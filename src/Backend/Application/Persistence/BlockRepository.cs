@@ -1,4 +1,5 @@
-﻿using Application.Import.ConcordiumNode.GrpcClient;
+﻿using Application.Database;
+using Application.Import.ConcordiumNode.GrpcClient;
 using Dapper;
 using Npgsql;
 
@@ -6,9 +7,16 @@ namespace Application.Persistence;
 
 public class BlockRepository
 {
+    private readonly DatabaseSettings _settings;
+
+    public BlockRepository(DatabaseSettings settings)
+    {
+        _settings = settings;
+    }
+
     public void Insert(BlockInfo blockInfo, string blockSummary)
     {
-        using var conn = new NpgsqlConnection("Host=localhost;Port=5432;Database=ConcordiumScan;Include Error Detail=true;");
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
         var blockParams = new

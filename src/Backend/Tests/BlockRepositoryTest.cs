@@ -1,18 +1,29 @@
 ﻿using System;
 using Application.Import.ConcordiumNode.GrpcClient;
 using Application.Persistence;
+using Dapper;
+using Tests.TestUtilities;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Tests;
 
-public class BlockRepositoryTest
+public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
 {
-    [Fact(Skip = "TODO: Requires an integration test db with schema updated.")]
+    private readonly DatabaseFixture _dbFixture;
+
+    public BlockRepositoryTest(DatabaseFixture dbFixture)
+    {
+        _dbFixture = dbFixture;
+        
+        using var connection = _dbFixture.GetOpenConnection();
+        connection.Execute("TRUNCATE TABLE block");
+    }
+
+    [Fact]
     public void Insert()
     {
-        var target = new BlockRepository();
-        var blockInfo = new BlockInfo()
+        var target = new BlockRepository(_dbFixture.DatabaseSettings);
+        var blockInfo = new BlockInfo
         {
             BlockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"),    
             BlockParent = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
