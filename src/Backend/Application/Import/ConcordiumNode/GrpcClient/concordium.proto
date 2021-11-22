@@ -1,0 +1,209 @@
+﻿syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+package concordium;
+
+message Empty {}
+
+message NumberResponse {
+  uint64 value = 1 [jstype = JS_STRING];
+}
+
+message BoolResponse {
+  bool value = 1;
+}
+
+message StringResponse {
+  string value = 1;
+}
+
+message JsonResponse {
+  string value = 1;
+}
+
+message BytesResponse {
+  bytes value = 1;
+}
+
+message PeerConnectRequest {
+  google.protobuf.StringValue ip = 1;
+  google.protobuf.Int32Value port = 2;
+}
+
+message PeerElement {
+  google.protobuf.StringValue node_id = 1;
+  google.protobuf.UInt32Value port = 2;
+  google.protobuf.StringValue ip = 3;
+  enum CatchupStatus {
+    UPTODATE = 0;
+    PENDING = 1;
+    CATCHINGUP = 2;
+  }
+  CatchupStatus catchup_status = 4;
+}
+
+message PeerListResponse {
+  string peer_type = 1;
+  repeated PeerElement peers = 2;
+}
+
+message PeerStatsResponse {
+  message PeerStats {
+    string node_id = 1;
+    uint64 packets_sent = 2 [jstype = JS_STRING];
+    uint64 packets_received = 3 [jstype = JS_STRING];
+    uint64 latency = 4 [jstype = JS_STRING];
+  }
+  repeated PeerStats peerstats = 1;
+  uint64 avg_bps_in = 2 [jstype = JS_STRING];
+  uint64 avg_bps_out = 3 [jstype = JS_STRING];
+}
+
+message NetworkChangeRequest {
+  google.protobuf.Int32Value network_id = 1;
+}
+
+message NodeInfoResponse {
+  google.protobuf.StringValue node_id = 1;
+  uint64 current_localtime = 2 [jstype = JS_STRING];
+  string peer_type = 3;
+  bool consensus_baker_running = 4;
+  bool consensus_running = 5;
+  string consensus_type = 6;
+  enum IsInBakingCommittee {
+    NOT_IN_COMMITTEE = 0;
+    ADDED_BUT_NOT_ACTIVE_IN_COMMITTEE = 1;
+    ADDED_BUT_WRONG_KEYS = 2;
+    ACTIVE_IN_COMMITTEE = 3;
+  }
+  IsInBakingCommittee consensus_baker_committee = 7;
+  bool consensus_finalizer_committee = 8;
+  google.protobuf.UInt64Value consensus_baker_id = 9;
+  google.protobuf.StringValue staging_net_username = 50 [deprecated = true];
+}
+
+message BlockHash {
+  string block_hash = 1;
+}
+
+message AccountAddress {
+  string account_address = 1;
+}
+
+message TransactionHash {
+  string transaction_hash = 1;
+}
+
+message BlockHashAndAmount {
+  string block_hash = 1;
+  uint64 amount = 2 [jstype = JS_STRING];
+}
+
+message SendTransactionRequest {
+  uint32 network_id = 1;
+  bytes payload = 2;
+}
+
+message GetAddressInfoRequest {
+  string block_hash = 1;
+  string address = 2;
+}
+
+message GetModuleSourceRequest {
+  string block_hash = 1;
+  string module_ref = 2;
+}
+
+message DumpRequest {
+  string file = 1;
+  bool raw = 2;
+}
+
+message PeersRequest {
+  bool include_bootstrappers = 1;
+}
+
+message GetTransactionStatusInBlockRequest {
+  string transaction_hash = 1;
+  string block_hash = 2;
+}
+
+message BlockHeight {
+  uint64 block_height = 1 [jstype = JS_STRING];
+  //! The block height is relative to the genesis block at this index.
+  uint32 from_genesis_index = 2;
+  //! If true, only return results from the specified genesis index.
+  bool restrict_to_genesis_index = 3;
+}
+
+service P2P {
+  //! Suggest to a peer to connect to the submitted peer details.
+  //! This, if successful, adds the peer to the list of given addresses.
+  rpc PeerConnect (PeerConnectRequest) returns (BoolResponse) {}
+  //! Disconnect from the peer and remove them from the given addresses list
+  //! if they are on it. Return if the request was processed successfully.
+  rpc PeerDisconnect (PeerConnectRequest) returns (BoolResponse) {}
+  //! Peer uptime in milliseconds
+  rpc PeerUptime(Empty) returns (NumberResponse) {}
+  //! Peer total number of sent packets
+  rpc PeerTotalSent(Empty) returns (NumberResponse) {}
+  //! Peer total number of received packets
+  rpc PeerTotalReceived(Empty) returns(NumberResponse) {}
+  //! Peer client software version
+  rpc PeerVersion(Empty) returns (StringResponse) {}
+  //! Stats for connected peers
+  rpc PeerStats(PeersRequest) returns (PeerStatsResponse) {}
+  //! List of connected peers
+  rpc PeerList(PeersRequest) returns (PeerListResponse) {}
+  rpc BanNode(PeerElement) returns (BoolResponse) {}
+  rpc UnbanNode(PeerElement) returns (BoolResponse) {}
+  rpc JoinNetwork(NetworkChangeRequest) returns (BoolResponse) {}
+  rpc LeaveNetwork(NetworkChangeRequest) returns (BoolResponse) {}
+  //! Get information about the running Node
+  rpc NodeInfo(Empty) returns (NodeInfoResponse) {}
+  //! see https://gitlab.com/Concordium/notes-wiki/wikis/Consensus-queries#getconsensusstatus
+  rpc GetConsensusStatus(Empty) returns (JsonResponse) {}
+  //! see https://gitlab.com/Concordium/notes-wiki/wikis/Consensus-queries#getblockinfo
+  rpc GetBlockInfo(BlockHash) returns (JsonResponse) {}
+  //! see https://gitlab.com/Concordium/notes-wiki/wikis/Consensus-queries#getancestors
+  rpc GetAncestors(BlockHashAndAmount) returns (JsonResponse) {}
+  //! see https://gitlab.com/Concordium/notes-wiki/wikis/Consensus-queries#getbranches
+  rpc GetBranches(Empty) returns (JsonResponse) {}
+  //! Get the blocks at the given height
+  rpc GetBlocksAtHeight(BlockHeight) returns (JsonResponse) {}
+  //! Submit a local transaction
+  rpc SendTransaction(SendTransactionRequest) returns (BoolResponse) {}
+
+  //! Start the baker in the consensus module
+  rpc StartBaker(Empty) returns (BoolResponse) {}
+  //! Stop the baker in the consensus module
+  rpc StopBaker(Empty) returns (BoolResponse) {}
+
+  rpc GetAccountList(BlockHash) returns (JsonResponse) {}
+  rpc GetInstances(BlockHash) returns (JsonResponse) {}
+  rpc GetAccountInfo(GetAddressInfoRequest) returns (JsonResponse) {}
+  rpc GetInstanceInfo(GetAddressInfoRequest) returns (JsonResponse) {}
+  rpc GetRewardStatus(BlockHash) returns (JsonResponse) {}
+  rpc GetBirkParameters(BlockHash) returns (JsonResponse) {}
+  rpc GetModuleList(BlockHash) returns (JsonResponse) {}
+  rpc GetModuleSource(GetModuleSourceRequest) returns (BytesResponse) {}
+  rpc GetIdentityProviders(BlockHash) returns (JsonResponse) {}
+  rpc GetAnonymityRevokers(BlockHash) returns (JsonResponse) {}
+  rpc GetCryptographicParameters(BlockHash) returns (JsonResponse) {}
+
+  rpc GetBannedPeers(Empty) returns (PeerListResponse) {}
+  rpc Shutdown(Empty) returns (BoolResponse) {}
+  rpc DumpStart(DumpRequest) returns (BoolResponse) {}
+  rpc DumpStop(Empty) returns (BoolResponse) {}
+  //! Query for the status of a transaction by its hash
+  rpc GetTransactionStatus(TransactionHash) returns (JsonResponse) {}
+  //! Query for transactions in a block by its hash
+  rpc GetTransactionStatusInBlock(GetTransactionStatusInBlockRequest) returns (JsonResponse) {}
+  //! Query for non-finalized transactions present on an account by the account address
+  rpc GetAccountNonFinalizedTransactions(AccountAddress) returns (JsonResponse) {}
+  //! Request a summary for a block by its hash
+  rpc GetBlockSummary(BlockHash) returns (JsonResponse) {}
+  //! Request next nonce information for an account
+  rpc GetNextAccountNonce(AccountAddress) returns (JsonResponse) {}
+}

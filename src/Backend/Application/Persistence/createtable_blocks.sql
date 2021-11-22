@@ -1,0 +1,20 @@
+﻿create table block (
+    id int primary key generated always as identity,
+    blockHash bytea not null,
+    parentBlock bytea not null,
+    blockLastFinalized bytea not null,
+    blockHeight int not null,
+    genesisIndex int not null,
+    eraBlockHeight int not null,
+    blockReceiveTime timestamp not null,
+    blockArriveTime timestamp not null,
+    blockSlot int not null,
+    blockSlotTime timestamp not null,
+    blockBaker int null,
+    finalized boolean not null,
+    transactionCount int not null,
+    transactionEnergyCost int not null,
+    transactionSize int not null,
+    blockStateHash bytea not null,
+    blockSummary jsonb not null
+);
