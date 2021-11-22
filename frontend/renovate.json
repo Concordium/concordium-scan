@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "packageRules": [
+    {
+      "packageNames": ["nuxt", "@nuxt/types", "@nuxt/typescript-build", "@nuxt/typescript-runtime"],
+      "groupName": "Nuxt TypeScript core packages"
+    }
+  ]
+}
