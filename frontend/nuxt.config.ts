@@ -1,7 +1,6 @@
 import type { NuxtConfig } from '@nuxt/types'
 
 const config: NuxtConfig = {
-  target: 'static',
   build: {},
   buildModules: [
     '@nuxt/typescript-build'
