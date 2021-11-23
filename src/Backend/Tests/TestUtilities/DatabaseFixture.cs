@@ -11,7 +11,7 @@ public class DatabaseFixture
     private static bool _databaseAlreadyMigrated;
 
     public const string ConnectionString = "Host=localhost;Port=5432;Database=ConcordiumScan_UnitTest;Include Error Detail=true;";
-    public DatabaseSettings DatabaseSettings => new(ConnectionString);
+    public DatabaseSettings DatabaseSettings => new() {ConnectionString = ConnectionString};
 
     public DatabaseFixture()
     {

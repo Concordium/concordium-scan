@@ -1,3 +1,6 @@
 ﻿namespace Application.Database;
 
-public record DatabaseSettings(string ConnectionString);
+public class DatabaseSettings
+{
+    public string ConnectionString { get; init; }
+}

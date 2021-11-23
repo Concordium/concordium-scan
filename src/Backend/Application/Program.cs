@@ -10,11 +10,12 @@ builder.Services.AddHostedService<ImportController>();
 builder.Services.AddSingleton<ConcordiumNodeGrpcClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
-builder.Services.AddSingleton(new DatabaseSettings("Host=localhost;Port=5432;Database=ConcordiumScan;"));
 builder.Services.AddSingleton(new HttpClient());
-
+builder.Services.AddSingleton(builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>());
 var app = builder.Build();
+
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
 try
 {
     if (onlyDatabaseMigration)

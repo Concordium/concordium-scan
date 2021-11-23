@@ -14,7 +14,7 @@ public class SqlScriptNamingConventionsTest
     public void ValidateScriptNamingConventions()
     {
         var connectionString = ""; // this test will not execute any scripts, so connection string is irrelevant! 
-        var settings = new DatabaseSettings(connectionString);
+        var settings = new DatabaseSettings {ConnectionString = connectionString};
         
         var databaseMigrator = new DatabaseMigrator(settings, new NullLogger<DatabaseMigrator>());
         databaseMigrator.EnsureScriptNamingConventionsFollowed();
