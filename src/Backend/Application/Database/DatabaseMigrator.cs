@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
+using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
+using DbUp.Engine.Output;
 using Npgsql;
 
 namespace Application.Database
@@ -8,17 +10,21 @@ namespace Application.Database
     public class DatabaseMigrator
     {
         private readonly DatabaseSettings _settings;
+        private readonly ILogger<DatabaseMigrator> _logger;
+        private readonly DbUpLogWrapper _dbUpLogWrapper;
         private readonly Assembly _sqlScriptsAssembly;
 
-        public DatabaseMigrator(DatabaseSettings settings, Assembly sqlScriptsAssembly)
+        public DatabaseMigrator(DatabaseSettings settings, ILogger<DatabaseMigrator> logger)
         {
             _settings = settings;
-            _sqlScriptsAssembly = sqlScriptsAssembly;
+            _logger = logger;
+            _dbUpLogWrapper = new DbUpLogWrapper(_logger);
+            _sqlScriptsAssembly = typeof(DatabaseScriptsMarkerType).Assembly;
         }
 
         public void MigrateDatabase()
         {
-            EnsureDatabase.For.PostgresqlDatabase(_settings.ConnectionString);
+            EnsureDatabase.For.PostgresqlDatabase(_settings.ConnectionString, _dbUpLogWrapper);
 
             var upgrader = GetUpgrader();
             EnsureExecutedScriptsStillExist(upgrader);
@@ -27,8 +33,7 @@ namespace Application.Database
             {
                 EnsureScriptNamingConventionsFollowed(upgrader);
 
-                // TODO: Logging....
-                Console.WriteLine("Running database migration scripts: ");
+                _logger.LogInformation("Running database migration scripts: ");
                 
                 var result = upgrader.PerformUpgrade();
                 if (!result.Successful)
@@ -40,9 +45,37 @@ namespace Application.Database
             }
             else
             {
-                // TODO: Logging....
-                Console.WriteLine("No database migration scripts pending");
+                _logger.LogInformation("Database does not required upgrade.");
             }
+        }
+
+        public void EnsureDatabaseMigrationNotNeeded()
+        {
+            _logger.LogInformation("Ensuring that database exists and that it is fully upgraded...");
+            
+            var upgrader = GetUpgrader();
+            bool isUpgradeRequired;
+            try
+            {
+                isUpgradeRequired = upgrader.IsUpgradeRequired();
+                if (isUpgradeRequired)
+                    _logger.LogWarning("Database exists but requires upgrading. Run the application in database migration mode to upgrade database.");
+                else
+                    _logger.LogInformation("Database exists and is fully upgraded.");
+            }
+            catch (PostgresException e)
+            {
+                if (e.SqlState == "3D000") 
+                {
+                    _logger.LogWarning("Database does not exist. Run the application in database migration mode to create and upgrade database.");
+                    isUpgradeRequired = true;
+                }
+                else
+                    throw;
+            }
+            
+            if (isUpgradeRequired)
+                throw new DatabaseValidationException("Database upgrade required!");
         }
 
         public void EnsureScriptNamingConventionsFollowed()
@@ -70,31 +103,35 @@ namespace Application.Database
             var upgrader = DeployChanges.To
                 .PostgresqlDatabase(_settings.ConnectionString)
                 .WithScriptsEmbeddedInAssembly(_sqlScriptsAssembly, scriptPath => scriptPath.EndsWith(".sql") && scriptPath.Contains(".SqlScripts."))
-                .LogToConsole() // TODO: Logging.... Consider where logging should go!
+                .LogTo(_dbUpLogWrapper)
                 .WithTransaction()
                 .Build();
             return upgrader;
         }
 
-        public void EnsureDatabaseMigrationNotNeeded()
+        private class DbUpLogWrapper : IUpgradeLog
         {
-            var upgrader = GetUpgrader();
+            private readonly ILogger<DatabaseMigrator> _logger;
 
-            bool isUpgradeRequired;
-            try
+            public DbUpLogWrapper(ILogger<DatabaseMigrator> logger)
             {
-                isUpgradeRequired = upgrader.IsUpgradeRequired();
+                _logger = logger;
             }
-            catch (PostgresException e)
+
+            public void WriteInformation(string format, params object[] args)
             {
-                if (e.SqlState == "3D000") // database does not exist!
-                    isUpgradeRequired = true;
-                else
-                    throw;
+                _logger.LogInformation(format, args);
             }
-            
-            if (isUpgradeRequired)
-                throw new DatabaseValidationException("Database upgrade required!");
+
+            public void WriteError(string format, params object[] args)
+            {
+                _logger.LogError(format, args);
+            }
+
+            public void WriteWarning(string format, params object[] args)
+            {
+                _logger.LogWarning(format, args);
+            }
         }
     }
 }
