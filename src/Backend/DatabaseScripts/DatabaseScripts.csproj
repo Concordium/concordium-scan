@@ -8,10 +8,6 @@
         <EmbeddedResource Include="SqlScripts/*.sql" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="SqlScriptsFoo" />
-    </ItemGroup>
-
     <!--
     Hack to ensure that an added or removed .sql file triggers a compile (otherwise, only modified files are considered when MSBuild creates
     its compile cache).
