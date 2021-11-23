@@ -1,4 +1,6 @@
-﻿namespace Application.Database;
+﻿using System;
+
+namespace Application.Database;
 
 public class DatabaseValidationException : Exception
 {

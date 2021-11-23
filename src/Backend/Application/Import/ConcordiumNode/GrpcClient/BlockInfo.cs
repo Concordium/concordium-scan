@@ -1,4 +1,6 @@
-﻿namespace Application.Import.ConcordiumNode.GrpcClient;
+﻿using System;
+
+namespace Application.Import.ConcordiumNode.GrpcClient;
 
 public class BlockInfo
 {

@@ -1,5 +1,4 @@
 ﻿using Application.Database;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Tests.DatabaseScripts;
@@ -16,7 +15,7 @@ public class SqlScriptNamingConventionsTest
         var connectionString = ""; // this test will not execute any scripts, so connection string is irrelevant! 
         var settings = new DatabaseSettings {ConnectionString = connectionString};
         
-        var databaseMigrator = new DatabaseMigrator(settings, new NullLogger<DatabaseMigrator>());
+        var databaseMigrator = new DatabaseMigrator(settings);
         databaseMigrator.EnsureScriptNamingConventionsFollowed();
     }
 }

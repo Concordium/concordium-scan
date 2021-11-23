@@ -1,23 +1,26 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq;
+using System.Reflection;
 using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using Npgsql;
+using Serilog;
 
 namespace Application.Database
 {
     public class DatabaseMigrator
     {
         private readonly DatabaseSettings _settings;
-        private readonly ILogger<DatabaseMigrator> _logger;
+        private readonly ILogger _logger;
         private readonly DbUpLogWrapper _dbUpLogWrapper;
         private readonly Assembly _sqlScriptsAssembly;
 
-        public DatabaseMigrator(DatabaseSettings settings, ILogger<DatabaseMigrator> logger)
+        public DatabaseMigrator(DatabaseSettings settings)
         {
             _settings = settings;
-            _logger = logger;
+            _logger = Log.ForContext(GetType());
             _dbUpLogWrapper = new DbUpLogWrapper(_logger);
             _sqlScriptsAssembly = typeof(DatabaseScriptsMarkerType).Assembly;
         }
@@ -33,7 +36,7 @@ namespace Application.Database
             {
                 EnsureScriptNamingConventionsFollowed(upgrader);
 
-                _logger.LogInformation("Running database migration scripts: ");
+                _logger.Information("Running database migration scripts: ");
                 
                 var result = upgrader.PerformUpgrade();
                 if (!result.Successful)
@@ -45,13 +48,13 @@ namespace Application.Database
             }
             else
             {
-                _logger.LogInformation("Database does not required upgrade.");
+                _logger.Information("Database does not required upgrade.");
             }
         }
 
         public void EnsureDatabaseMigrationNotNeeded()
         {
-            _logger.LogInformation("Ensuring that database exists and that it is fully upgraded...");
+            _logger.Information("Ensuring that database exists and that it is fully upgraded...");
             
             var upgrader = GetUpgrader();
             bool isUpgradeRequired;
@@ -59,15 +62,15 @@ namespace Application.Database
             {
                 isUpgradeRequired = upgrader.IsUpgradeRequired();
                 if (isUpgradeRequired)
-                    _logger.LogWarning("Database exists but requires upgrading. Run the application in database migration mode to upgrade database.");
+                    _logger.Warning("Database exists but requires upgrading. Run the application in database migration mode to upgrade database.");
                 else
-                    _logger.LogInformation("Database exists and is fully upgraded.");
+                    _logger.Information("Database exists and is fully upgraded.");
             }
             catch (PostgresException e)
             {
                 if (e.SqlState == "3D000") 
                 {
-                    _logger.LogWarning("Database does not exist. Run the application in database migration mode to create and upgrade database.");
+                    _logger.Warning("Database does not exist. Run the application in database migration mode to create and upgrade database.");
                     isUpgradeRequired = true;
                 }
                 else
@@ -111,26 +114,26 @@ namespace Application.Database
 
         private class DbUpLogWrapper : IUpgradeLog
         {
-            private readonly ILogger<DatabaseMigrator> _logger;
+            private readonly ILogger _logger;
 
-            public DbUpLogWrapper(ILogger<DatabaseMigrator> logger)
+            public DbUpLogWrapper(ILogger logger)
             {
                 _logger = logger;
             }
 
             public void WriteInformation(string format, params object[] args)
             {
-                _logger.LogInformation(format, args);
+                _logger.Information(format, args);
             }
 
             public void WriteError(string format, params object[] args)
             {
-                _logger.LogError(format, args);
+                _logger.Information(format, args);
             }
 
             public void WriteWarning(string format, params object[] args)
             {
-                _logger.LogWarning(format, args);
+                _logger.Information(format, args);
             }
         }
     }

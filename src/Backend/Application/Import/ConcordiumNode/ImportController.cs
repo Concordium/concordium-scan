@@ -1,5 +1,11 @@
-﻿using Application.Import.ConcordiumNode.GrpcClient;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Serilog;
+using Application.Import.ConcordiumNode.GrpcClient;
 using Application.Persistence;
+using Microsoft.Extensions.Hosting;
 
 namespace Application.Import.ConcordiumNode;
 
@@ -7,18 +13,18 @@ public class ImportController : BackgroundService
 {
     private readonly ConcordiumNodeGrpcClient _client;
     private readonly BlockRepository _repository;
-    private readonly ILogger<ImportController> _logger;
+    private readonly ILogger _logger;
 
-    public ImportController(ConcordiumNodeGrpcClient client, BlockRepository repository, ILogger<ImportController> logger)
+    public ImportController(ConcordiumNodeGrpcClient client, BlockRepository repository)
     {
         _client = client;
         _repository = repository;
-        _logger = logger;
+        _logger = Log.ForContext(GetType());
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Starting import from Concordium Node...");
+        _logger.Information("Starting import from Concordium Node...");
 
         // Hardcoded start and end - will be removed later
         var startingBlockHeight = 0;
@@ -45,6 +51,6 @@ public class ImportController : BackgroundService
             nextHeight++;
         }
         
-        _logger.LogInformation("Import from Concordium Node stopped...");
+        _logger.Information("Import from Concordium Node stopped...");
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using Application.Database;
-using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
 namespace Tests.TestUtilities;
@@ -19,7 +18,7 @@ public class DatabaseFixture
         {
             if (!_databaseAlreadyMigrated)
             {
-                var databaseMigrator = new DatabaseMigrator(DatabaseSettings, new NullLogger<DatabaseMigrator>());
+                var databaseMigrator = new DatabaseMigrator(DatabaseSettings);
                 databaseMigrator.MigrateDatabase();
 
                 Console.WriteLine("Database migrated");
