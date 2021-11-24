@@ -44,4 +44,12 @@ public class BlockRepository
             "INSERT INTO block(blockhash, parentblock, blocklastfinalized, blockheight, genesisindex, erablockheight, blockreceivetime, blockarrivetime, blockslot, blockslottime, blockbaker, finalized, transactioncount, transactionenergycost, transactionsize, blockstatehash, blocksummary) VALUES (@Blockhash, @Parentblock, @Blocklastfinalized, @Blockheight, @Genesisindex,  @Erablockheight, @Blockreceivetime, @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Finalized, @Transactioncount, @Transactionenergycost, @Transactionsize, @Blockstatehash, CAST(@Blocksummary AS json))",
             blockParams);
     }
+
+    public int? GetMaxBlockHeight()
+    {
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+
+        return conn.QuerySingle<int?>("SELECT max(blockheight) FROM block");
+    }
 }

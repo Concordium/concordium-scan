@@ -1,8 +1,7 @@
-﻿using System;
-using Application.Import.ConcordiumNode.GrpcClient;
-using Application.Persistence;
+﻿using Application.Persistence;
 using Dapper;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders;
 using Xunit;
 
 namespace Tests;
@@ -10,10 +9,12 @@ namespace Tests;
 public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
 {
     private readonly DatabaseFixture _dbFixture;
+    private readonly BlockRepository _target;
 
     public BlockRepositoryTest(DatabaseFixture dbFixture)
     {
         _dbFixture = dbFixture;
+        _target = new BlockRepository(_dbFixture.DatabaseSettings);
         
         using var connection = _dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE block");
@@ -22,26 +23,25 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     [Fact]
     public void Insert()
     {
-        var target = new BlockRepository(_dbFixture.DatabaseSettings);
-        var blockInfo = new BlockInfo
-        {
-            BlockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"),    
-            BlockParent = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
-            BlockLastFinalized = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
-            BlockHeight = 1,
-            GenesisIndex = 0,
-            EraBlockHeight = 1,    
-            BlockReceiveTime = new DateTimeOffset(2010, 10, 1, 12, 03, 54, 123, TimeSpan.Zero),
-            BlockArriveTime = new DateTimeOffset(2010, 10, 1, 12, 03, 53, 123, TimeSpan.Zero),
-            BlockSlot = 790511,
-            BlockSlotTime = new DateTimeOffset(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero),
-            BlockBaker = 5,
-            Finalized = true,
-            TransactionCount = 2,
-            TransactionEnergyCost = 4,
-            TransactionSize = 42,
-            BlockStateHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"
-        };
-        target.Insert(blockInfo, "{\"foo\": \"bar\"}");
-    }    
+        var blockInfo = new BlockInfoBuilder().Build();
+        _target.Insert(blockInfo, "{\"foo\": \"bar\"}");
+    }
+
+    [Fact]
+    public void GetMaxBlockHeight_NoBlocksExist()
+    {
+        var result = _target.GetMaxBlockHeight();
+        Assert.False(result.HasValue);
+    }
+    
+    [Fact]
+    public void GetMaxBlockHeight_BlocksExist()
+    {
+        _target.Insert(new BlockInfoBuilder().WithBlockHeight(1).Build(), "{\"foo\": \"bar\"}");
+        _target.Insert(new BlockInfoBuilder().WithBlockHeight(3).Build(), "{\"foo\": \"bar\"}");
+        _target.Insert(new BlockInfoBuilder().WithBlockHeight(2).Build(), "{\"foo\": \"bar\"}");
+
+        var result = _target.GetMaxBlockHeight();
+        Assert.Equal(3, result);
+    }
 }

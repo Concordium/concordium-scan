@@ -26,10 +26,12 @@ public class ImportController : BackgroundService
     {
         _logger.Information("Starting import from Concordium Node...");
 
-        // Hardcoded start and end - will be removed later
-        var startingBlockHeight = 0;
-        var endHeight = 50000;
+        var maxBlockHeight = _repository.GetMaxBlockHeight();
+        var startingBlockHeight = maxBlockHeight.HasValue ? maxBlockHeight.Value + 1 : 0;
+        var endHeight = startingBlockHeight + 10000; // Hardcoded end will be removed later
 
+        _logger.Information("Starting at block height {height}", startingBlockHeight);
+        
         var nextHeight = startingBlockHeight;
         var consensusStatus = await _client.GetConsensusStatusAsync();
         while (consensusStatus.BestBlockHeight >= nextHeight && nextHeight <= endHeight && !stoppingToken.IsCancellationRequested)
@@ -46,7 +48,9 @@ public class ImportController : BackgroundService
             var blockSummary = await blockSummaryTask;
 
             // TODO: Publish result - for now just write directly to db
-            // _repository.Insert(blockInfo, blockSummary);
+            _repository.Insert(blockInfo, blockSummary);
+
+            _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 
             nextHeight++;
         }
