@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net.Http;
+using Application.Common.Logging;
 using Application.Database;
 using Application.Import.ConcordiumNode;
 using Application.Import.ConcordiumNode.GrpcClient;
@@ -10,31 +11,30 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 
-var onlyDatabaseMigration = args.FirstOrDefault()?.ToLower() == "migrate-db";
-
-Log.Logger = new LoggerConfiguration()
-    .Enrich.With<SourceClassNameEnricher>()    
-    .WriteTo.Console(outputTemplate:"{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u4}] [{SourceClassName}] {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
+var performDatabaseMigration = args.FirstOrDefault()?.ToLower() == "migrate-db";
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.With<SourceClassNameEnricher>()    
+    .CreateLogger();
+builder.Logging.ClearProviders();
+builder.Logging.AddSerilog(Log.Logger);
+
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddSingleton<ConcordiumNodeGrpcClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddSingleton(builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>());
-builder.Logging.ClearProviders();
-builder.Logging.AddSerilog(Log.Logger);
 var app = builder.Build();
 
 var logger = Log.ForContext<Program>();
 try
 {
-    if (onlyDatabaseMigration)
+    if (performDatabaseMigration)
     {
         logger.Information("Application started in database migration mode. Starting database migration...");
         app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabase();
@@ -55,23 +55,3 @@ catch (Exception e)
 }
 
 logger.Information("Exiting application!");
-
-public class SourceClassNameEnricher : ILogEventEnricher
-{
-    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
-    {
-        string result;
-        if (logEvent.Properties.TryGetValue("SourceContext", out var sourceContext))
-        {
-            var sourceContextString = sourceContext.ToString("l", null);
-            var classNameStartIndex = sourceContextString.LastIndexOf(".", StringComparison.Ordinal) + 1;
-
-            result = classNameStartIndex > 0
-                ? sourceContextString.Substring(classNameStartIndex, sourceContextString.Length - classNameStartIndex)
-                : sourceContextString;
-        }
-        else
-            result = "(no context)";
-        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SourceClassName", result));
-    }
-}
