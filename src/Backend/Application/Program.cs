@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 
 var performDatabaseMigration = args.FirstOrDefault()?.ToLower() == "migrate-db";
@@ -28,11 +29,13 @@ builder.Services.AddSingleton<ConcordiumNodeGrpcClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
 builder.Services.AddSingleton(new HttpClient());
-builder.Services.AddSingleton(builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>());
+builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("ConcordiumNodeGrpc").Get<ConcordiumNodeGrpcClientSettings>());
+builder.Host.UseSystemd();
 var app = builder.Build();
 
 var logger = Log.ForContext<Program>();
+
 try
 {
     if (performDatabaseMigration)
