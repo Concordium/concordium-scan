@@ -16,11 +16,11 @@ public class ConcordiumNodeGrpcClient : IDisposable
     private readonly GrpcChannel _grpcChannel;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public ConcordiumNodeGrpcClient(HttpClient httpClient)
+    public ConcordiumNodeGrpcClient(ConcordiumNodeGrpcClientSettings settings, HttpClient httpClient)
     {
         _metadata = new Metadata
         {
-            { "authentication", "FTBgrpc2021" }
+            { "authentication", settings.AuthenticationToken }
         };
 
         var options = new GrpcChannelOptions
@@ -29,7 +29,7 @@ public class ConcordiumNodeGrpcClient : IDisposable
             HttpClient = httpClient,
             DisposeHttpClient = false
         };
-        _grpcChannel = GrpcChannel.ForAddress("http://20.107.203.167:10000", options);
+        _grpcChannel = GrpcChannel.ForAddress(settings.Address, options);
         _client = new P2P.P2PClient(_grpcChannel);
         
         _jsonSerializerOptions = new JsonSerializerOptions()

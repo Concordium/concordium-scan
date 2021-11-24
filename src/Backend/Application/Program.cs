@@ -29,6 +29,7 @@ builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddSingleton(builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>());
+builder.Services.AddSingleton(builder.Configuration.GetSection("ConcordiumNodeGrpc").Get<ConcordiumNodeGrpcClientSettings>());
 var app = builder.Build();
 
 var logger = Log.ForContext<Program>();
