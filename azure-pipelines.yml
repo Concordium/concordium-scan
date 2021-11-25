@@ -25,5 +25,5 @@ stages:
     - task: DotNetCoreCLI@2
       inputs:
         command: 'test'
-        projects: '/backend/Tests/Tests.csproj'
+        projects: './backend/Tests/Tests.csproj'
         testRunTitle: 'Backend tests'
