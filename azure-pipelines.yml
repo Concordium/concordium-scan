@@ -9,31 +9,21 @@ resources:
 - repo: self
 
 variables:
-  # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '364ea632-6043-404e-a6ea-eee8648a5845'
-  imageRepository: 'ConcordiumScan.Frontend.Backend'
-  containerRegistry: 'ccscan.azurecr.io'
-  dockerfilePath: '**/Dockerfile'
-  tag: '$(Build.BuildId)'
-
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
+
 stages:
-- stage: Build
-  displayName: Build and push stage
+- stage: Test
+  displayName: Test Backend code
   jobs:
-  - job: Build
-    displayName: Build
+  - job: Test
+    displayName: Test
     pool:
       vmImage: $(vmImageName)
     steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
+    - task: DotNetCoreCLI@2
       inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
+        command: 'test'
+        projects: '/backend/Tests/Tests.csproj'
+        testRunTitle: 'Backend tests'
