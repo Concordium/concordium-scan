@@ -11,7 +11,7 @@ resources:
 variables:
   # Container registry service connection established during pipeline creation
   dockerRegistryServiceConnection: '364ea632-6043-404e-a6ea-eee8648a5845'
-  imageRepository: 'concordiumscan'
+  imageRepository: 'ConcordiumScan.Frontend.Backend'
   containerRegistry: 'ccscan.azurecr.io'
   dockerfilePath: '**/Dockerfile'
   tag: '$(Build.BuildId)'
