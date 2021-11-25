@@ -39,7 +39,7 @@ RUN cd /app/frontend && npm install && \
     pm2 start "http-serve -p 4220"
 
 ##todo: realign once backend folder is moved to repo root
-RUN cd /app/src/Backend  && \
+RUN cd /app/backend  && \
     dotnet publish -c Release -o /srv/backend/ &&\
     cd /srv/backend/ && chmod 777 ./Application &&\
     ./Application migrate-db && pm2 start ./Application
