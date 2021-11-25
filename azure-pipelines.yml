@@ -20,8 +20,7 @@ stages:
   - job: Test
     displayName: Test
     steps:
-    - task: DotNetCoreCLI@2
-      inputs:
-        command: 'test'
-        projects: '**/Tests.csproj'
-        testRunTitle: 'Tests'
+        - task: DotNetCoreCLI@2
+          inputs:
+            command: 'run'
+            projects: '**/Tests.csproj'
