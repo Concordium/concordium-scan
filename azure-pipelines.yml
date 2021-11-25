@@ -32,6 +32,6 @@ stages:
         #     projects: '**/Tests.csproj'
         - task: PublishBuildArtifacts@1
           inputs:
-            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            PathtoPublish: '$(Build.SourcesDirectory)'
             ArtifactName: 'drop'
             publishLocation: 'Container'
