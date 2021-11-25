@@ -26,7 +26,7 @@ stages:
             packageType: 'sdk'
             version: '6.0.x'
             includePreviewVersions: true
-        - task: DotNetCoreCLI@2
-          inputs:
-            command: 'test'
-            projects: '**/Tests.csproj'
+        # - task: DotNetCoreCLI@2
+        #   inputs:
+        #     command: 'test'
+        #     projects: '**/Tests.csproj'
