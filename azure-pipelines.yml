@@ -10,7 +10,7 @@ resources:
 
 variables:
   # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  vmImageName: 'windows-latest'
 
 
 stages:
@@ -22,5 +22,5 @@ stages:
     steps:
         - task: DotNetCoreCLI@2
           inputs:
-            command: 'run'
+            command: 'test'
             projects: '**/Tests.csproj'
