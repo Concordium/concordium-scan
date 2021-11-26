@@ -34,7 +34,7 @@ stages:
       - task: PublishBuildArtifacts@1
         displayName: "Publish frontend app build artifact"
         inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/frontend/dist'
+            PathtoPublish: '$(Build.SourcesDirectory)/dist'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
 - stage: TestBackend
@@ -59,13 +59,18 @@ stages:
   - job: Build
     displayName: Build
     steps:
+      - task: UseDotNet@2
+          displayName: 'Use .NET 6 Core sdk'
+          inputs:
+            packageType: 'sdk'
+            version: '6.0.x'
+            includePreviewVersions: true
       - task: DotNetCoreCLI@2
         inputs:
           command: 'build'
-          projects: '**/Application.csproj'
       - task: PublishBuildArtifacts@1
         displayName: Publish backend source artifact
         inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0'
+            PathtoPublish: '$(Build.SourcesDirectory)\backend\Application\bin\Debug\net6.0'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
