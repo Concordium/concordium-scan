@@ -72,6 +72,6 @@ stages:
       - task: PublishBuildArtifacts@1
         displayName: Publish backend source artifact
         inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)\backend\Application\bin\Debug\net6.0'
+            PathtoPublish: '$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
