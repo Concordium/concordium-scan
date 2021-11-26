@@ -1,7 +1,5 @@
-﻿using System.Linq;
-using Application.Database;
+﻿using Application.Database;
 using DbUp.Engine;
-using Xunit;
 
 namespace Tests.Database;
 

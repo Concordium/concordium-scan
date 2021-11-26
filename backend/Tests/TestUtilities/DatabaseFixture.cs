@@ -1,5 +1,4 @@
-﻿using System;
-using Application.Database;
+﻿using Application.Database;
 using Npgsql;
 
 namespace Tests.TestUtilities;

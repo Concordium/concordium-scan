@@ -1,5 +1,4 @@
-﻿using System;
-using Application.Import.ConcordiumNode.GrpcClient;
+﻿using Application.Import.ConcordiumNode.GrpcClient;
 
 namespace Tests.TestUtilities.Builders;
 

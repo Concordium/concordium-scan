@@ -1,5 +1,4 @@
 ﻿using Application.Database;
-using Xunit;
 
 namespace Tests.DatabaseScripts;
 

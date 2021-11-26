@@ -2,7 +2,6 @@
 using Dapper;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
-using Xunit;
 
 namespace Tests;
 

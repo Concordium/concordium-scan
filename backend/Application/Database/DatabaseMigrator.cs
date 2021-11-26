@@ -1,12 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
 using Npgsql;
-using Serilog;
 
 namespace Application.Database
 {

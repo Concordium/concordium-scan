@@ -1,8 +1,5 @@
-﻿using System;
-using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using Serilog;
 using Application.Import.ConcordiumNode.GrpcClient;
 using Application.Persistence;
 using Microsoft.Extensions.Hosting;

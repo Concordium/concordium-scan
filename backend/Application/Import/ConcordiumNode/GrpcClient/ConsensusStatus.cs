@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Application.Import.ConcordiumNode.GrpcClient;
+﻿namespace Application.Import.ConcordiumNode.GrpcClient;
 
 /// <summary>
 /// See https://github.com/Concordium/concordium-node/blob/main/docs/grpc.md#getconsensusstatus--consensusstatus

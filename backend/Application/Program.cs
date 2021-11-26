@@ -1,6 +1,5 @@
-using System;
-using System.Linq;
 using System.Net.Http;
+using Application.Api.GraphQL;
 using Application.Common.Logging;
 using Application.Database;
 using Application.Import.ConcordiumNode;
@@ -9,9 +8,8 @@ using Application.Persistence;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 var performDatabaseMigration = args.FirstOrDefault()?.ToLower() == "migrate-db";
 
@@ -24,6 +22,8 @@ Log.Logger = new LoggerConfiguration()
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
 
+builder.Services.AddGraphQLServer().AddQueryType<Query>();
+    
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddSingleton<ConcordiumNodeGrpcClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
@@ -48,6 +48,14 @@ try
     {
         logger.Information("Application starting...");
         app.Services.GetRequiredService<DatabaseMigrator>().EnsureDatabaseMigrationNotNeeded();
+        
+        app
+            .UseRouting()
+            .UseEndpoints(endpoints =>
+            {
+                endpoints.MapGraphQL();
+            });
+        
         app.Run();    
     }
 }
