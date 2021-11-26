@@ -14,8 +14,8 @@ variables:
 
 
 stages:
-- stage: Dockerizations
-  displayName:  Deploy docker images
+- stage: Test
+  displayName:  Run test projects
   jobs:
   - job: Test
     displayName: Test
@@ -30,16 +30,19 @@ stages:
         #   inputs:
         #     command: 'test'
         #     projects: '**/Tests.csproj'
-        - task: PublishBuildArtifacts@1
-          displayName: "Publish backend source artifact"
-          inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/frontend'
-            ArtifactName: 'drop_frontend'
-            publishLocation: 'Container'
+- stage: Build
+  displayName:  Builds project
+  jobs:
+  - job: Build
+    displayName: Build
+    steps:
+      - task: DotNetCoreCLI@2
+        inputs:
+          command: 'build'
 
-        - task: PublishBuildArtifacts@1
+      - task: PublishBuildArtifacts@1
           displayName: "Publish backend source artifact"
           inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/backend'
+            PathtoPublish: '$(Build.SourcesDirectory)\Application\bin\Debug\net6.0'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
