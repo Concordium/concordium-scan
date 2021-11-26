@@ -31,17 +31,17 @@ stages:
             npm install
             echo y | npm run generate -y
         displayName: 'npm install and generate /dist'
+        condition: 
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: '$(Build.SourcesDirectory)'
+          Contents: 'Dockerfile'
+          TargetFolder: '$(Build.SourcesDirectory)/frontend/dist'
       - task: PublishBuildArtifacts@1
         displayName: "Publish frontend app build artifact"
         inputs:
             PathtoPublish: '$(Build.SourcesDirectory)/frontend/dist'
             ArtifactName: 'files_frontend'
-            publishLocation: 'Container'
-      - task: PublishBuildArtifacts@1
-        displayName: Publish frontend dockerfile
-        inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/frontend/Dockerfile'
-            ArtifactName: 'dockerfile_frontend'
             publishLocation: 'Container'
 - stage: TestBackend
   displayName:  Test Backend
@@ -75,6 +75,11 @@ stages:
         inputs:
           command: 'build'
           projects: '**/Application.csproj'
+      - task: CopyFiles@2
+        inputs:
+          SourceFolder: '$(Build.SourcesDirectory)/backend/'
+          Contents: 'Dockerfile'
+          TargetFolder: '$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0'
       - task: PublishBuildArtifacts@1
         displayName: Publish backend source artifact
         inputs:
@@ -82,8 +87,3 @@ stages:
             ArtifactName: 'files_backend'
             publishLocation: 'Container'
       - task: PublishBuildArtifacts@1
-        displayName: Publish backend dockerfile
-        inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)/backend/Dockerfile'
-            ArtifactName: 'dockerfile_backend'
-            publishLocation: 'Container'
