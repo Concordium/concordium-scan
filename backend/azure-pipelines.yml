@@ -14,8 +14,8 @@ variables:
 
 
 stages:
-- stage: Build Frontend
-  displayName: build frontend
+- stage: BuildFrontend
+  displayName: Build Frontend
   jobs: 
   - job: Build
     displayName: build frontend
@@ -37,8 +37,8 @@ stages:
             PathtoPublish: '$(Build.SourcesDirectory)/dist'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
-- stage: Test Backend
-  displayName:  Run test projects for backend
+- stage: TestBackend
+  displayName:  Test Backend
   jobs:
   - job: Test
     displayName: Test
@@ -53,8 +53,8 @@ stages:
         #   inputs:
         #     command: 'test'
         #     projects: '**/Tests.csproj'
-- stage: Build Backend
-  displayName:  Builds project
+- stage: BuildBackend
+  displayName:  Build Backend
   jobs:
   - job: Build
     displayName: Build
