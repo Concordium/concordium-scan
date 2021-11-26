@@ -21,7 +21,7 @@ RUN  npm install http-serve -g -y
 
 COPY . /app
 
-RUN http-serve -p 4220 && /bin/bash
+RUN http-serve -p 4220
 
 
 # Expose Port for the Application 
