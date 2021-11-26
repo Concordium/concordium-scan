@@ -35,7 +35,13 @@ stages:
         displayName: "Publish frontend app build artifact"
         inputs:
             PathtoPublish: '$(Build.SourcesDirectory)/frontend/dist'
-            ArtifactName: 'drop_backend'
+            ArtifactName: 'files_frontend'
+            publishLocation: 'Container'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish frontend dockerfile
+        inputs:
+            PathtoPublish: '$(Build.SourcesDirectory)/frontend/Dockerfile'
+            ArtifactName: 'dockerfile_frontend'
             publishLocation: 'Container'
 - stage: TestBackend
   displayName:  Test Backend
@@ -73,5 +79,11 @@ stages:
         displayName: Publish backend source artifact
         inputs:
             PathtoPublish: '$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0'
-            ArtifactName: 'drop_backend'
+            ArtifactName: 'files_backend'
+            publishLocation: 'Container'
+      - task: PublishBuildArtifacts@1
+        displayName: Publish backend dockerfile
+        inputs:
+            PathtoPublish: '$(Build.SourcesDirectory)/backend/Dockerfile'
+            ArtifactName: 'dockerfile_backend'
             publishLocation: 'Container'
