@@ -31,7 +31,15 @@ stages:
         #     command: 'test'
         #     projects: '**/Tests.csproj'
         - task: PublishBuildArtifacts@1
+          displayName: "Publish backend source artifact"
           inputs:
-            PathtoPublish: '$(Build.SourcesDirectory)'
-            ArtifactName: 'drop'
+            PathtoPublish: '$(Build.SourcesDirectory/frontend)'
+            ArtifactName: 'drop_frontend'
+            publishLocation: 'Container'
+
+        - task: PublishBuildArtifacts@1
+          displayName: "Publish backend source artifact"
+          inputs:
+            PathtoPublish: '$(Build.SourcesDirectory/backend)'
+            ArtifactName: 'drop_backend'
             publishLocation: 'Container'
