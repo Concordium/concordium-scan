@@ -14,8 +14,8 @@ variables:
 
 
 stages:
-- stage: Test
-  displayName: Test Backend code
+- stage: Docker Deploy
+  displayName:  Deploy docker images
   jobs:
   - job: Test
     displayName: Test
