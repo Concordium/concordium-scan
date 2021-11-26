@@ -15,8 +15,8 @@ RUN apt-get install –y apache2-utils
 RUN apt-get clean 
 COPY .  /var/www
 
-RUN http-serve -p 4220
+
 
 
 EXPOSE 80 
- CMD [“apache2ctl”, “-D”, “FOREGROUND”]
+CMD [“apache2ctl”, “-D”, “FOREGROUND”]
