@@ -62,6 +62,7 @@ stages:
       - task: DotNetCoreCLI@2
         inputs:
           command: 'build'
+          projects: '**/Application.csproj'
       - task: PublishBuildArtifacts@1
         displayName: Publish backend source artifact
         inputs:
