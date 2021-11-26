@@ -14,7 +14,7 @@ variables:
 
 
 stages:
-- stage: Docker Deploy
+- stage: Dockerizations
   displayName:  Deploy docker images
   jobs:
   - job: Test
