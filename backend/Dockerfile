@@ -32,10 +32,7 @@ RUN  apt-get update;  apt-get install -y apt-transport-https &&    apt-get updat
 
 COPY . /app
 
-RUN cd /app  && \
-    dotnet publish -c Release -o /srv/backend/ &&\
-    cd /srv/backend/ && chmod 777 ./Application &&\
-    ./Application migrate-db && pm2 start ./Application
+RUN cd /app  &&  chmod 777 ./Application && ./Application migrate-db && pm2 start ./Application
 
 # Expose Port for the Application 
 EXPOSE 5551 
