@@ -14,8 +14,30 @@ variables:
 
 
 stages:
+- stage: Buildfrontend
+  displayName: build frontend
+  jobs: 
+  - job: Build
+    displayName: build frontend
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '10.x'
+        displayName: 'Install Node.js'
+      - task: CmdLine@2
+        inputs:
+          script: |
+            npm install
+            echo y | npm run generate -y
+        displayName: 'npm install and generate /dist'
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish frontend app build artifact"
+        inputs:
+            PathtoPublish: '$(Build.SourcesDirectory)/dist'
+            ArtifactName: 'drop_backend'
+            publishLocation: 'Container'
 - stage: Test
-  displayName:  Run test projects
+  displayName:  Run test projects for backend
   jobs:
   - job: Test
     displayName: Test
@@ -39,10 +61,9 @@ stages:
       - task: DotNetCoreCLI@2
         inputs:
           command: 'build'
-
       - task: PublishBuildArtifacts@1
-          displayName: "Publish backend source artifact"
-          inputs:
+        displayName: Publish backend source artifact
+        inputs:
             PathtoPublish: '$(Build.SourcesDirectory)\Application\bin\Debug\net6.0'
             ArtifactName: 'drop_backend'
             publishLocation: 'Container'
