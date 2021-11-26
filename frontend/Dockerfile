@@ -9,21 +9,14 @@ CCScan frontend"
 
 # Disable Prompt During Packages Installation
 ARG DEBIAN_FRONTEND=noninteractive
-
-# Update Ubuntu Software repository
-RUN apt update
-RUN apt install curl -y
-
-## Set up node and NPM
-RUN curl -sL https://deb.nodesource.com/setup_14.x |  bash - && \
-    apt -y install nodejs
-RUN  npm install http-serve -g -y
-
-COPY . /app
+RUN apt-get update 
+RUN apt-get install –y apache2 
+RUN apt-get install –y apache2-utils 
+RUN apt-get clean 
+COPY .  /var/www
 
 RUN http-serve -p 4220
 
 
-# Expose Port for the Application 
-EXPOSE 4220 
-##Todo : also expose http/api ports
+EXPOSE 80 
+ CMD [“apache2ctl”, “-D”, “FOREGROUND”]
