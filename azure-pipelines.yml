@@ -34,7 +34,7 @@ stages:
         condition: 
       - task: CopyFiles@2
         inputs:
-          SourceFolder: '$(Build.SourcesDirectory)'
+          SourceFolder: '$(Build.SourcesDirectory)/frontend'
           Contents: 'Dockerfile'
           TargetFolder: '$(Build.SourcesDirectory)/frontend/dist'
       - task: PublishBuildArtifacts@1
