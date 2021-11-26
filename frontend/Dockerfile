@@ -23,8 +23,9 @@ RUN  npm install pm2 -g
 
 COPY . /app
 
-
 RUN cd /app && pm2 start "http-serve -p 4220"
+RUN pm2 save
+RUN pm2 startup
 
 # Expose Port for the Application 
 EXPOSE 4220 

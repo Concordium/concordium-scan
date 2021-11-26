@@ -34,6 +34,8 @@ COPY . /app
 
 RUN cd /app  &&  chmod 777 ./Application && ./Application migrate-db && pm2 start ./Application
 
+RUN pm2 save
+RUN pm2 startup
 # Expose Port for the Application 
 EXPOSE 5551 
 ##Todo : also expose http/api ports
