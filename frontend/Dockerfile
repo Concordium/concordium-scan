@@ -20,8 +20,8 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x |  bash - && \
 RUN  npm install http-serve -g -y
 
 COPY . /app
-RUN cd /app
-CMD http-serve -p 4220 
+
+CMD cd /app && http-serve -p 4220 
 
 
 # Expose Port for the Application 
