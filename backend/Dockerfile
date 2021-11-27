@@ -32,10 +32,8 @@ RUN  apt-get update;  apt-get install -y apt-transport-https &&    apt-get updat
 
 COPY . /app
 
-RUN cd /app  &&  chmod 777 ./Application && ./Application migrate-db && pm2 start ./Application
-
-RUN pm2 startup
-RUN pm2 save 
+RUN cd /app  &&  chmod 777 ./Application  && ./Application -migrate-db
+CMD ./Application
 # Expose Port for the Application 
 EXPOSE 5551 
 ##Todo : also expose http/api ports
