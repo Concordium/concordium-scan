@@ -1,4 +1,4 @@
-﻿using Application.Import.ConcordiumNode.GrpcClient;
+﻿using Concordium.NodeApi;
 
 namespace Tests.TestUtilities.Builders;
 

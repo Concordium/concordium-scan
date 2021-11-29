@@ -9,12 +9,6 @@
     <ItemGroup>
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="dbup-postgresql" Version="4.5.0" />
-      <PackageReference Include="Google.Protobuf" Version="3.19.1" />
-      <PackageReference Include="Grpc.Net.Client" Version="2.40.0" />
-      <PackageReference Include="Grpc.Tools" Version="2.41.1">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
       <PackageReference Include="HotChocolate.AspNetCore" Version="12.3.2" />
       <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="6.0.0" />
       <PackageReference Include="Npgsql" Version="6.0.0" />
@@ -22,12 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Protobuf Include="Import\ConcordiumNode\GrpcClient\concordium.proto">
-        <Generator>MSBuild:Compile</Generator>
-      </Protobuf>
-    </ItemGroup>
-
-    <ItemGroup>
+      <ProjectReference Include="..\Concordium\Concordium.csproj" />
       <ProjectReference Include="..\DatabaseScripts\DatabaseScripts.csproj" />
     </ItemGroup>
 </Project>

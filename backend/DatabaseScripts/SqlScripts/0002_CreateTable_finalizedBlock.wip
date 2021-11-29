@@ -1,0 +1,40 @@
+﻿create table finalized_block
+(
+    blockHeight           bigint primary key,
+    blockHash             bytea     not null,
+    parentBlock           bytea     not null,
+    blockLastFinalized    bytea     not null,
+    genesisIndex          int       not null,
+    eraBlockHeight        int       not null,
+    blockReceiveTime      timestamp not null,
+    blockArriveTime       timestamp not null,
+    blockSlot             int       not null,
+    blockSlotTime         timestamp not null,
+    blockBaker            int       null,
+    transactionCount      int       not null,
+    transactionEnergyCost int       not null,
+    transactionSize       int       not null,
+    blockStateHash        bytea     not null,
+    blockSummary          jsonb     not null
+);
+
+create table transaction_summary
+(
+    blockHeight        bigint primary key,
+    transaction_index  int primary key,
+    sender             bytea  not null,
+    transactionHash    bytea  not null,
+    cost               bigint not null,
+    energyCost         bigint not null,
+    transactionType    int    not null, -- 1, 2, 3? maybe postgress enum?
+    transactionSubType int    not null, -- values depend on transactionType ? maybe postgress enum?
+    outcome            text   not null  -- maybe postgress enum?
+);
+
+create table transaction_summary_result_event
+(
+    blockHeight             bigint primary key,
+    transaction_index       int primary key,
+    transaction_event_index int primary key,
+    eventData               jsonb not null -- serialized raw event data 
+);

@@ -1,18 +1,18 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Application.Import.ConcordiumNode.GrpcClient;
 using Application.Persistence;
+using Concordium.NodeApi;
 using Microsoft.Extensions.Hosting;
 
 namespace Application.Import.ConcordiumNode;
 
 public class ImportController : BackgroundService
 {
-    private readonly ConcordiumNodeGrpcClient _client;
+    private readonly GrpcClient _client;
     private readonly BlockRepository _repository;
     private readonly ILogger _logger;
 
-    public ImportController(ConcordiumNodeGrpcClient client, BlockRepository repository)
+    public ImportController(GrpcClient client, BlockRepository repository)
     {
         _client = client;
         _repository = repository;

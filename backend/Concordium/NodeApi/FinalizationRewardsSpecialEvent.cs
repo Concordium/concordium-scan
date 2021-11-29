@@ -1,4 +1,4 @@
-﻿namespace Application.Import.ConcordiumNode.GrpcClient;
+﻿namespace Concordium.NodeApi;
 
 public class FinalizationRewardsSpecialEvent : SpecialEvent
 {

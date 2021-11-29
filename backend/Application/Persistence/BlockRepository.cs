@@ -1,5 +1,5 @@
 ﻿using Application.Database;
-using Application.Import.ConcordiumNode.GrpcClient;
+using Concordium.NodeApi;
 using Dapper;
 using Npgsql;
 

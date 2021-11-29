@@ -1,4 +1,4 @@
-﻿namespace Application.Import.ConcordiumNode.GrpcClient;
+﻿namespace Concordium.NodeApi;
 
 /// <summary>
 /// See https://github.com/Concordium/concordium-node/blob/main/docs/grpc.md#getconsensusstatus--consensusstatus

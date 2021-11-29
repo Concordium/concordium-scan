@@ -2,20 +2,19 @@
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Concordium;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Application.Import.ConcordiumNode.GrpcClient;
+namespace Concordium.NodeApi;
 
-public class ConcordiumNodeGrpcClient : IDisposable
+public class GrpcClient : IDisposable
 {
     private readonly P2P.P2PClient _client;
     private readonly Metadata _metadata;
     private readonly GrpcChannel _grpcChannel;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public ConcordiumNodeGrpcClient(ConcordiumNodeGrpcClientSettings settings, HttpClient httpClient)
+    public GrpcClient(GrpcClientSettings settings, HttpClient httpClient)
     {
         _metadata = new Metadata
         {

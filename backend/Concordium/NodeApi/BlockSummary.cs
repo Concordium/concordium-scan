@@ -1,8 +1,8 @@
-﻿namespace Application.Import.ConcordiumNode.GrpcClient;
+﻿namespace Concordium.NodeApi;
 
 public class BlockSummary
 {
-    public TransactionStatus[] TransactionSummaries { get; init; }
+    public TransactionSummary[] TransactionSummaries { get; init; }
     public SpecialEvent[] SpecialEvents { get; init; }
     // public FinalizationData FinalizationData { get; init; }
     // public Updates Updates { get; init; }

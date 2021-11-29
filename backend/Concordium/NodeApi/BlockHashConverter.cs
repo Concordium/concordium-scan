@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Application.Import.ConcordiumNode.GrpcClient;
+namespace Concordium.NodeApi;
 
 public class BlockHashConverter : JsonConverter<BlockHash>
     {
