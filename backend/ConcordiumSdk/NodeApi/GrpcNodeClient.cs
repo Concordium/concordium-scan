@@ -2,19 +2,21 @@
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Concordium;
+using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 
-namespace Concordium.NodeApi;
+namespace ConcordiumSdk.NodeApi;
 
-public class GrpcClient : IDisposable
+public class GrpcNodeClient : INodeClient, IDisposable
 {
     private readonly P2P.P2PClient _client;
     private readonly Metadata _metadata;
     private readonly GrpcChannel _grpcChannel;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
 
-    public GrpcClient(GrpcClientSettings settings, HttpClient httpClient)
+    public GrpcNodeClient(GrpcNodeClientSettings settings, HttpClient httpClient)
     {
         _metadata = new Metadata
         {
@@ -36,6 +38,7 @@ public class GrpcClient : IDisposable
         };
         _jsonSerializerOptions.Converters.Add(new SpecialEventJsonConverter());
         _jsonSerializerOptions.Converters.Add(new BlockHashConverter());
+        _jsonSerializerOptions.Converters.Add(new NonceConverter());
     }
 
     public async Task<ConsensusStatus> GetConsensusStatusAsync()
@@ -67,6 +70,7 @@ public class GrpcClient : IDisposable
         };
         var call = _client.GetBlockInfoAsync(request, CreateCallOptions());
         var response = await call;
+        
         return JsonSerializer.Deserialize<BlockInfo>(response.Value, _jsonSerializerOptions);
     }
 
@@ -119,6 +123,19 @@ public class GrpcClient : IDisposable
         return response;
     }
 
+    public async Task<PeerStatsResponse> PeerStatsAsync(bool includeBootstrappers = false)
+    {
+        var request = new PeersRequest
+        {
+            IncludeBootstrappers = includeBootstrappers
+        };
+
+        var callOptions = CreateCallOptions();
+        var call = _client.PeerStatsAsync(request, callOptions);
+        var response = await call;
+        return response;
+    }
+
     public async Task<string> GetTransactionStatusAsync(string transactionHash)
     {
         var request = new TransactionHash { TransactionHash_ = transactionHash };
@@ -147,5 +164,36 @@ public class GrpcClient : IDisposable
     public void Dispose()
     {
         _grpcChannel?.Dispose();
+    }
+
+    public async Task SendTransactionAsync(byte[] payload, uint networkId = 100)
+    {
+        var request = new SendTransactionRequest
+        {
+            NetworkId = networkId,
+            Payload = ByteString.CopyFrom(payload)
+        };
+        var call = _client.SendTransactionAsync(request, CreateCallOptions());
+        var response = await call;
+        if (!response.Value)
+            throw new InvalidOperationException("Response indicated that transaction was not successfully sent.");
+    }
+
+    /// <summary>
+    /// Return the best guess as to what the next account nonce should be.
+    /// If all account transactions are finalized then this information is reliable.
+    /// Otherwise this is the best guess, assuming all other transactions will be committed to blocks and eventually finalized.
+    /// </summary>
+    public async Task<NextAccountNonceResponse> GetNextAccountNonceAsync(ConcordiumSdk.Types.AccountAddress address)
+    {
+        var request = new AccountAddress
+        {
+            AccountAddress_ = address.AsString
+        };
+        var call = _client.GetNextAccountNonceAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<NextAccountNonceResponse>(response.Value, _jsonSerializerOptions);
+        if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
+        return result;
     }
 }

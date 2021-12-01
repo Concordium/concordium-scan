@@ -1,4 +1,4 @@
-﻿namespace Concordium.NodeApi;
+﻿namespace ConcordiumSdk.NodeApi;
 
 /// <summary>
 /// See https://github.com/Concordium/concordium-node/blob/main/docs/grpc.md#getconsensusstatus--consensusstatus

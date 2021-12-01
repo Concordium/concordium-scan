@@ -1,6 +1,6 @@
-﻿namespace Concordium.NodeApi;
+﻿namespace ConcordiumSdk.NodeApi;
 
-public class GrpcClientSettings
+public class GrpcNodeClientSettings
 {
     public string AuthenticationToken { get; init; }
     public string Address { get; init; }

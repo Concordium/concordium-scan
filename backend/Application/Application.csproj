@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Concordium\Concordium.csproj" />
+      <ProjectReference Include="..\ConcordiumSdk\ConcordiumSdk.csproj" />
       <ProjectReference Include="..\DatabaseScripts\DatabaseScripts.csproj" />
     </ItemGroup>
 </Project>

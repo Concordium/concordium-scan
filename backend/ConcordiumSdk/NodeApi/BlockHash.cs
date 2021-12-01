@@ -1,4 +1,4 @@
-﻿namespace Concordium.NodeApi;
+﻿namespace ConcordiumSdk.NodeApi;
 
 public readonly struct BlockHash
 {

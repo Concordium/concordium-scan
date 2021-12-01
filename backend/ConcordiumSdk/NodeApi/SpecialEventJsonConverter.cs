@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Concordium.NodeApi;
+namespace ConcordiumSdk.NodeApi;
 
 public class SpecialEventJsonConverter : JsonConverter<SpecialEvent>
 {
