@@ -16,7 +16,7 @@ public class AccountTransactionServiceTest
         
         var sender = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         var toAddress = new AccountAddress("4hT1SmAHGbRH5m5UocN6xhUv9SXcs7HbNUPHqhS8Zy5jKubU1J");
-        var amount = Amount.FromCcd(100);
+        var amount = CcdAmount.FromCcd(100);
         var payload = new SimpleTransferPayload(amount, toAddress);
 
         var signer = new TransactionSignerStub();

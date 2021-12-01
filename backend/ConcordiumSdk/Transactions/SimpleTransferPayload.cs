@@ -5,26 +5,26 @@ namespace ConcordiumSdk.Transactions;
 
 public class SimpleTransferPayload : IAccountTransactionPayload
 {
-    public SimpleTransferPayload(Amount amount, AccountAddress toAddress)
+    public SimpleTransferPayload(CcdAmount amount, AccountAddress toAddress)
     {
         Amount = amount;
         ToAddress = toAddress;
     }
 
-    public AccountTransactionType TransactionType => AccountTransactionType.SimpleTransfer;
-    public Amount Amount { get; }
+    public CcdAmount Amount { get; }
     public AccountAddress ToAddress { get; }
 
     public byte[] SerializeToBytes()
     {
-        var result = new List<byte>(40);
+        var result = new List<byte>(41);
+        result.Add((byte)AccountTransactionType.SimpleTransfer);
         result.AddRange(ToAddress.AsBytes);
         result.AddRange(Amount.SerializeToBytes());
         return result.ToArray();
     }
 
-    public Amount GetBaseEnergyCost()
+    public int GetBaseEnergyCost()
     {
-        return Amount.FromMicroCcd(300);
+        return 300;
     }
 }

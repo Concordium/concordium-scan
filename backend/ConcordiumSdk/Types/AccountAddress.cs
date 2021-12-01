@@ -7,7 +7,6 @@ public class AccountAddress
 {
     private static readonly Base58CheckEncoder EncoderInstance = new();
     private readonly byte[] _bytes;
-    private readonly string _string;
 
     /// <summary>
     /// Creates an instance from a 32 byte address (ie. excluding the version byte).
@@ -21,7 +20,7 @@ public class AccountAddress
         var bytesToEncode = new byte[33];
         bytesToEncode[0] = 1;
         bytes.CopyTo(bytesToEncode, 1);
-        _string = EncoderInstance.EncodeData(bytesToEncode);
+        AsString = EncoderInstance.EncodeData(bytesToEncode);
     }
     
     /// <summary>
@@ -29,7 +28,7 @@ public class AccountAddress
     /// </summary>
     public AccountAddress(string base58CheckEncodedAddress)
     {
-        _string = base58CheckEncodedAddress ?? throw new ArgumentNullException(nameof(base58CheckEncodedAddress));
+        AsString = base58CheckEncodedAddress ?? throw new ArgumentNullException(nameof(base58CheckEncodedAddress));
 
         var decodedBytes = EncoderInstance.DecodeData(base58CheckEncodedAddress);
         _bytes = decodedBytes.Skip(1).ToArray(); // Remove version byte
@@ -44,10 +43,10 @@ public class AccountAddress
     /// <summary>
     /// Gets the address as a base58-check encoded string.
     /// </summary>
-    public string AsString => _string;
+    public string AsString { get; }
 
-    public void WriteBytes(Span<byte> span)
+    public override string ToString()
     {
-        _bytes.CopyTo(span);
+        return AsString;
     }
 }
