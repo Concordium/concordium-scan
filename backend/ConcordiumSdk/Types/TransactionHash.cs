@@ -1,18 +1,18 @@
-﻿namespace ConcordiumSdk.NodeApi;
+﻿namespace ConcordiumSdk.Types;
 
-public readonly struct BlockHash
+public readonly struct TransactionHash
 {
     private readonly string _formatted;
     private readonly byte[] _value;
 
-    public BlockHash(byte[] value)
+    public TransactionHash(byte[] value)
     {
         if (value.Length != 32) throw new ArgumentException("value must be 32 bytes");
         _value = value;
         _formatted = Convert.ToHexString(value);
     }
 
-    public BlockHash(string value)
+    public TransactionHash(string value)
     {
         if (value.Length != 64) throw new ArgumentException("string must be 64 char hex string.");
         _value = Convert.FromHexString(value);

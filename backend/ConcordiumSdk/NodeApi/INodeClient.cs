@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.NodeApi;
 
@@ -11,5 +12,7 @@ public interface INodeClient
     /// If all account transactions are finalized then this information is reliable.
     /// Otherwise this is the best guess, assuming all other transactions will be committed to blocks and eventually finalized.
     /// </summary>
-    Task<NextAccountNonceResponse> GetNextAccountNonceAsync(ConcordiumSdk.Types.AccountAddress address);
+    Task<NextAccountNonceResponse> GetNextAccountNonceAsync(AccountAddress address);
+
+    Task<TransactionStatus> GetTransactionStatusAsync(TransactionHash transactionHash);
 }

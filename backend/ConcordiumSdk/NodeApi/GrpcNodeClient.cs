@@ -1,11 +1,13 @@
 ﻿using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Concordium;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
+using BlockHash = ConcordiumSdk.Types.BlockHash;
 
 namespace ConcordiumSdk.NodeApi;
 
@@ -36,6 +38,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
         {
             PropertyNameCaseInsensitive = true,
         };
+        _jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         _jsonSerializerOptions.Converters.Add(new SpecialEventJsonConverter());
         _jsonSerializerOptions.Converters.Add(new BlockHashConverter());
         _jsonSerializerOptions.Converters.Add(new NonceConverter());
@@ -136,12 +139,13 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return response;
     }
 
-    public async Task<string> GetTransactionStatusAsync(string transactionHash)
+    public async Task<TransactionStatus> GetTransactionStatusAsync(ConcordiumSdk.Types.TransactionHash transactionHash)
     {
-        var request = new TransactionHash { TransactionHash_ = transactionHash };
+        var request = new TransactionHash { TransactionHash_ = transactionHash.AsString };
         var call = _client.GetTransactionStatusAsync(request, CreateCallOptions());
         var response = await call;
-        return response.Value;
+        var result = JsonSerializer.Deserialize<TransactionStatus>(response.Value, _jsonSerializerOptions);
+        return result;
     }
 
     public async Task<string> GetTransactionStatusInBlockAsync(string transactionHash, BlockHash blockHash)

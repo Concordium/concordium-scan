@@ -14,4 +14,9 @@ public class NodeClientStub : INodeClient
     {
         return Task.FromResult(new NextAccountNonceResponse(new Nonce(1), true));
     }
+
+    public Task<TransactionStatus> GetTransactionStatusAsync(TransactionHash transactionHash)
+    {
+        return Task.FromResult(new TransactionStatus { Status = TransactionStatusType.Received });
+    }
 }

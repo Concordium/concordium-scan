@@ -1,4 +1,6 @@
-﻿namespace ConcordiumSdk.NodeApi;
+﻿using ConcordiumSdk.Types;
+
+namespace ConcordiumSdk.NodeApi;
 
 public class BlockInfo
 {

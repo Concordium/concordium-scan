@@ -1,5 +1,6 @@
 ﻿using Application.Database;
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.Types;
 using Dapper;
 using Npgsql;
 

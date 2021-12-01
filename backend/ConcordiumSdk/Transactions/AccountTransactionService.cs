@@ -17,13 +17,13 @@ public class AccountTransactionService
         _client = client;
     }
 
-    public async Task<string> SendAccountTransactionAsync(AccountAddress sender, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
+    public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
     {
         var nextAccountNonceResponse = await _client.GetNextAccountNonceAsync(sender);
         return await SendAccountTransactionAsync(sender, nextAccountNonceResponse.Nonce, transactionPayload, signer);
     }
 
-    public async Task<string> SendAccountTransactionAsync(AccountAddress sender, Nonce nextAccountNonce, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
+    public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, Nonce nextAccountNonce, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
     {
         var signatureCount = 1;
 
@@ -56,7 +56,7 @@ public class AccountTransactionService
         await _client.SendTransactionAsync(serializedForSubmission);
 
         var txHash = SHA256.Create().ComputeHash(serializedTx);
-        return Convert.ToHexString(txHash).ToLowerInvariant();
+        return new TransactionHash(txHash);
     }
 
     private static byte[] SerializeHeader(AccountAddress sender, int payloadSize, Nonce accountNonce, int energyCost)
