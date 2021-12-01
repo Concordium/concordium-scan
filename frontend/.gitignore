@@ -53,6 +53,7 @@ node_modules/
 
 # Nuxt.js build / generate output
 .nuxt
+.output
 dist
 
 ### yarn ###

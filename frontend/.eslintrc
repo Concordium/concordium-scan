@@ -13,6 +13,8 @@
 		"plugin:vue/vue3-recommended"
 	],
 	"rules": {
+		"comma-dangle": ["error", "always-multiline"],
+		"indent": ["error", "tab"],
 		"no-tabs": ["error", { "allowIndentationTabs": true }],
 		"vue/html-indent": ["error", "tab"],
 		"vue/multi-word-component-names": [
