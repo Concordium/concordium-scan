@@ -18,11 +18,10 @@ RUN apt install curl -y
 RUN curl -sL https://deb.nodesource.com/setup_16.x |  bash - && \
     apt -y install nodejs
 
-COPY ./.output /app
-
-CMD node .output/server/index.mjs
-
+COPY .output /app
 
 # Expose Port for the Application
 EXPOSE 3000
 ##Todo : also expose http/api ports
+
+CMD [ "node", "app/server/index.mjs" ]
