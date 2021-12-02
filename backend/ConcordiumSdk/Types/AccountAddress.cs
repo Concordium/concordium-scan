@@ -34,6 +34,22 @@ public class AccountAddress
         _bytes = decodedBytes.Skip(1).ToArray(); // Remove version byte
     }
 
+    public static bool IsValid(string? base58CheckEncodedAddress)
+    {
+        if (base58CheckEncodedAddress == null) return false;
+        
+        try
+        {
+            EncoderInstance.DecodeData(base58CheckEncodedAddress);
+            return true;
+        }
+        catch (FormatException)
+        {
+            // Decode throws FormatException if decode is not successful
+            return false;
+        }
+    }
+    
     /// <summary>
     /// Gets the address as a byte array (without leading version byte).
     /// Will always be 32 bytes. 

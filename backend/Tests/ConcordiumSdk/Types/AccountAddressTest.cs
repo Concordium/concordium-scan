@@ -42,4 +42,17 @@ public class AccountAddressTest
         var input = inputAsHex == null ? null : Convert.FromHexString(inputAsHex);
         Assert.ThrowsAny<Exception>(() => new AccountAddress(input));
     }
+
+    [Theory]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", true)]
+    [InlineData("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy", true)]
+    [InlineData(null, false)]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9Q", false)]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9", false)]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P2", false)]
+    public void IsValid(string input, bool expectedResult)
+    {
+        var result = AccountAddress.IsValid(input);
+        Assert.Equal(expectedResult, result);
+    }
 }
