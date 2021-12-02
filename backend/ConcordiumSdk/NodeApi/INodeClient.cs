@@ -15,4 +15,5 @@ public interface INodeClient
     Task<NextAccountNonceResponse> GetNextAccountNonceAsync(AccountAddress address);
 
     Task<TransactionStatus> GetTransactionStatusAsync(TransactionHash transactionHash);
+    Task<BlockHash[]> GetBlocksAtHeightAsync(ulong blockHeight);
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Concordium;
+using ConcordiumSdk.Types.JsonConverters;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
