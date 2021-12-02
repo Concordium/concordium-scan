@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using ConcordiumSdk.ExportedMobileWalletFile;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.Transactions;
 using ConcordiumSdk.Types;
@@ -21,7 +22,7 @@ public class AccountTransactionServiceTest : IDisposable
     private readonly AccountAddress _senderAddress;
     private readonly INodeClient _nodeClient;
     private readonly ITransactionSigner _signer;
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
 
     public AccountTransactionServiceTest(ITestOutputHelper output)
     {
@@ -46,7 +47,10 @@ public class AccountTransactionServiceTest : IDisposable
             _httpClient = new HttpClient();
             _nodeClient = new GrpcNodeClient(grpcClientSettings, _httpClient);
 
-            _signer = Ed25519TransactionSigner.CreateFromConcordiumWalletExportFile(exportedWalletFilePath, exportedWalletPassword, _senderAddress);
+            var mobileWalletExport = MobileWalletExportReader.ReadAndDecrypt(exportedWalletFilePath, exportedWalletPassword);
+            var privateKeyAsHexString = mobileWalletExport.GetSingleSignKeyForAccountWithAddress(_senderAddress);
+            
+            _signer = new Ed25519TransactionSigner(privateKeyAsHexString);
         }
 
         _target = new AccountTransactionService(_nodeClient);
@@ -54,7 +58,7 @@ public class AccountTransactionServiceTest : IDisposable
 
     public void Dispose()
     {
-        if (_httpClient != null) _httpClient.Dispose();
+        _httpClient?.Dispose();
     }
 
     [Fact]
