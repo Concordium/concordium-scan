@@ -40,4 +40,9 @@ public readonly struct Nonce
     {
         return _value.ToString();
     }
+
+    public Nonce Increment()
+    {
+        return new Nonce(_value + 1);
+    }
 }
