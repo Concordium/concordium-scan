@@ -55,4 +55,20 @@ public class AccountAddressTest
         var result = AccountAddress.IsValid(input);
         Assert.Equal(expectedResult, result);
     }
+
+    [Theory]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", true)]
+    [InlineData("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy", false)]
+    public void Equality(string address1, string address2, bool expectedEqual)
+    {
+        var target1 = new AccountAddress(address1);
+        var target2 = new AccountAddress(address2);
+        
+        Assert.Equal(expectedEqual, target1.Equals(target2));
+        Assert.Equal(expectedEqual, target2.Equals(target1));
+        Assert.Equal(expectedEqual, target1 == target2);
+        Assert.Equal(expectedEqual, target2 == target1);
+        Assert.Equal(!expectedEqual, target1 != target2);
+        Assert.Equal(!expectedEqual, target2 != target1);
+    }
 }

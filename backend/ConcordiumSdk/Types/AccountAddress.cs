@@ -65,4 +65,32 @@ public class AccountAddress
     {
         return AsString;
     }
+
+    protected bool Equals(AccountAddress other)
+    {
+        return AsString == other.AsString;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != this.GetType()) return false;
+        return Equals((AccountAddress)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return AsString.GetHashCode();
+    }
+
+    public static bool operator ==(AccountAddress? left, AccountAddress? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(AccountAddress? left, AccountAddress? right)
+    {
+        return !Equals(left, right);
+    }
 }
