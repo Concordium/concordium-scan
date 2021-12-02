@@ -1,22 +1,29 @@
 {
-  "name": "nuxt-community-typescript-template",
-  "description": "A boilerplate to start a Nuxt+TS project quickly",
-  "version": "2.15.8",
-  "private": true,
-  "dependencies": {
-    "nuxt": "2.15.8"
-  },
-  "scripts": {
-    "dev": "nuxt",
-    "build": "nuxt build",
-    "start": "nuxt start",
-    "generate": "nuxt generate",
-    "lint": "eslint --max-warnings 0 --ext .ts,.vue ."
-  },
-  "devDependencies": {
-    "@nuxt/types": "2.15.8",
-    "@nuxt/typescript-build": "2.1.0",
-    "@nuxtjs/eslint-config-typescript": "7.0.2",
-    "eslint": "8.2.0"
-  }
+	"name": "ccscan-frontend",
+	"description": "A boilerplate to start a Nuxt+TS project quickly",
+	"version": "0.1.0",
+	"engine": "16",
+	"type": "module",
+	"private": true,
+	"dependencies": {
+		"nuxt3": "latest"
+	},
+	"scripts": {
+		"dev": "nuxt dev",
+		"build": "nuxt build",
+		"start": "nuxt start",
+		"generate": "nuxt generate",
+		"lint": "eslint --max-warnings 0 --ext .ts,.vue ."
+	},
+	"devDependencies": {
+		"@nuxtjs/eslint-config-typescript": "8.0.0",
+		"@types/node": "^16.11.11",
+		"@typescript-eslint/eslint-plugin": "^5.5.0",
+		"@typescript-eslint/parser": "^5.5.0",
+		"@vue/eslint-config-typescript": "^9.1.0",
+		"eslint": "^8.3.0",
+		"eslint-plugin-nuxt": "^3.1.0",
+		"eslint-plugin-vue": "^8.1.1",
+		"typescript": "^4.5.2"
+	}
 }

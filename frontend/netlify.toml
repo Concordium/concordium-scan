@@ -1,4 +1,0 @@
-[build]
-  publish = "dist/"
-  command = "npm run generate"
-  environment = { NODE_VERSION = "12" }

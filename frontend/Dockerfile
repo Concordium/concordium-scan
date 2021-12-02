@@ -15,15 +15,13 @@ RUN apt update
 RUN apt install curl -y
 
 ## Set up node and NPM
-RUN curl -sL https://deb.nodesource.com/setup_14.x |  bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_16.x |  bash - && \
     apt -y install nodejs
-RUN  npm install http-serve -g -y
 
-COPY . /app
+COPY .output /app
 
-CMD cd /app && http-serve -p 4220 
-
-
-# Expose Port for the Application 
-EXPOSE 4220 
+# Expose Port for the Application
+EXPOSE 3000
 ##Todo : also expose http/api ports
+
+CMD [ "node", "app/server/index.mjs" ]

@@ -1,5 +1,6 @@
 <template>
-  <div>
-    <nuxt />
-  </div>
+	<div>
+		Some shared layout content:
+		<slot />
+	</div>
 </template>

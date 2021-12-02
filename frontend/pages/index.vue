@@ -1,17 +1,7 @@
 <template>
-  <main>
-    <ul>
-      <li
-        v-for="page in ['Options API', ]"
-        :key="page"
-      >
-        <nuxt-link :to="`/${page.toLowerCase().split(' ').join('-')}`">
-          With {{ page }}
-        </nuxt-link>
-      </li>
-    </ul>
-  </main>
+	<main>
+		<p>Hello</p>
+	</main>
 </template>
 
-<script lang="ts">
-</script>
+<script lang="ts"></script>
