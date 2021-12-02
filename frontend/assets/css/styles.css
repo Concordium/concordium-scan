@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;700&family=Overpass:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	/* 1. Font families */
+	--font-family-mono: 'Overpass Mono', Lucida Console, Lucida Sans Typewriter,
+		monaco, Bitstream Vera Sans Mono, monospace;
+	--font-family-primary: 'Overpass', Lucida Grande, Lucida Sans Unicode,
+		Lucida Sans, Geneva, Verdana, sans-serif;
+
+	/* 2. Palette */
+	--color-primary: 239, 69%, 54%;
+	--color-primary-light: 239, 69%, 64%;
+	--color-white: 0, 0%, 100%;
+	--color-background-primary: var(--color-primary);
+	--color-border-primary: var(--color-primary);
+
+	/* 2.1 Text Palette */
+	--color-text-primary: var(--color-primary);
+	--color-text-primary-inversed: var(--color-white);
+
+	--color-text-light: var(--color-common-grey);
+	--color-text-dark: var(--color-common-black);
+
+	--color-text-error-darkmode: var(--color-common-red-darkmode);
+	--color-text-error-lightmode: var(--color-common-red-lightmode);
+
+	/* 2.2 Button Palette */
+	--color-button-bg-primary: var(--color-primary);
+	--color-button-bg-primary-hover: var(--color-primary-light);
+	--color-button-text-primary: var(--color-text-primary-inversed);
+}

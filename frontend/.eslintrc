@@ -13,6 +13,7 @@
 		"plugin:vue/vue3-recommended"
 	],
 	"rules": {
+		"arrow-parens": ["error", "as-needed"],
 		"comma-dangle": ["error", "always-multiline"],
 		"indent": ["error", "tab"],
 		"no-tabs": ["error", { "allowIndentationTabs": true }],
@@ -22,6 +23,7 @@
 			{
 				"ignores": ["default", "index"]
 			}
-		]
+		],
+		"vue/singleline-html-element-content-newline": "off"
 	}
 }
