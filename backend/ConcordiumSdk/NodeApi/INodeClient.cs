@@ -16,4 +16,5 @@ public interface INodeClient
 
     Task<TransactionStatus> GetTransactionStatusAsync(TransactionHash transactionHash);
     Task<BlockHash[]> GetBlocksAtHeightAsync(ulong blockHeight);
+    Task<ConsensusStatus> GetConsensusStatusAsync();
 }

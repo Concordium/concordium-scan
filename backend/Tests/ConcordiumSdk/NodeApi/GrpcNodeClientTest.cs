@@ -13,6 +13,7 @@ public class GrpcNodeClientTest : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly GrpcNodeClientSettings _grpcNodeClientSettings;
+    private GrpcNodeClient _target;
 
     public GrpcNodeClientTest()
     {
@@ -22,6 +23,7 @@ public class GrpcNodeClientTest : IDisposable
             Address = "http://40.127.163.29:10000",
             AuthenticationToken = "FTBgrpc2021"
         };
+        _target = new GrpcNodeClient(_grpcNodeClientSettings, _httpClient);
     }
 
     public void Dispose()
@@ -30,11 +32,17 @@ public class GrpcNodeClientTest : IDisposable
     }
 
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetConsensusStatusAsync()
+    {
+        var result = await _target.GetConsensusStatusAsync();
+        Assert.NotNull(result);
+    }
+    
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task GetTransactionStatusAsync_KnownFinalizedBlock()
     {
-        var target = new GrpcNodeClient(_grpcNodeClientSettings, _httpClient);
         var transactionHash = new TransactionHash("e2df806768b6f6a52f8654a12be2e6c832fedabe1d1a27eb278dc4e5f9d8631f");
-        var result = await target.GetTransactionStatusAsync(transactionHash);
+        var result = await _target.GetTransactionStatusAsync(transactionHash);
         Assert.Equal(TransactionStatusType.Finalized, result.Status);
     }
 }

@@ -26,4 +26,29 @@ public readonly struct BlockHash
     {
         return _formatted;
     }
+
+    public bool Equals(BlockHash other)
+    {
+        return _formatted == other._formatted;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is BlockHash other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return _formatted.GetHashCode();
+    }
+
+    public static bool operator ==(BlockHash left, BlockHash right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(BlockHash left, BlockHash right)
+    {
+        return !left.Equals(right);
+    }
 }

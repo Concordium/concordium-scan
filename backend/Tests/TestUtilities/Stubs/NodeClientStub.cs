@@ -24,4 +24,9 @@ public class NodeClientStub : INodeClient
     {
         return Task.FromResult(new BlockHash[] { new("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc") });
     }
+
+    public Task<ConsensusStatus> GetConsensusStatusAsync()
+    {
+        throw new NotImplementedException();
+    }
 }
