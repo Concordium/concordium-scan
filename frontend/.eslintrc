@@ -21,7 +21,7 @@
 		"vue/multi-word-component-names": [
 			"error",
 			{
-				"ignores": ["default", "index"]
+				"ignores": ["default", "index", "transactions", "accounts"]
 			}
 		],
 		"vue/singleline-html-element-content-newline": "off"

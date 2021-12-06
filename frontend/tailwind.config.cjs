@@ -40,7 +40,7 @@ module.exports = {
 		backgroundColor: {
 			theme: {
 				'common-white': withHslOpacity('--color-white'),
-				'background-primary': withHslOpacity('--color-primary'),
+				'background-primary': withHslOpacity('--color-background-primary'),
 				'button-primary': withHslOpacity('--color-button-bg-primary'),
 				'button-primary-hover': withHslOpacity(
 					'--color-button-bg-primary-hover'

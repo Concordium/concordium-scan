@@ -12,11 +12,12 @@
 		Lucida Sans, Geneva, Verdana, sans-serif;
 
 	/* 2. Palette */
-	--color-primary: 239, 69%, 54%;
+	--color-primary: 239, 69%, 54%; /* purple */
 	--color-primary-light: 239, 69%, 64%;
 	--color-white: 0, 0%, 100%;
-	--color-background-primary: var(--color-primary);
+	--color-background-primary: 246, 40%, 21%;
 	--color-border-primary: var(--color-primary);
+	--color-interactive: 162, 69%, 54%; /* green */
 
 	/* 2.1 Text Palette */
 	--color-text-primary: var(--color-primary);
