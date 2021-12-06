@@ -27,7 +27,7 @@ stages:
             inputs:
               script: |
                 cd frontend
-                nm run build
+                npm run build
             displayName: "Install dependencies and generate /.output"
             condition:
           - task: CopyFiles@2
