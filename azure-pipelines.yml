@@ -27,19 +27,19 @@ stages:
             inputs:
               script: |
                 cd frontend
-                yarn
-                echo y | yarn build -y
-            displayName: "Install dependencies and generate /dist"
+                yarn install
+                yarn run build
+            displayName: "Install dependencies and generate /.output"
             condition:
           - task: CopyFiles@2
             inputs:
               SourceFolder: "$(Build.SourcesDirectory)/frontend"
               Contents: "Dockerfile"
-              TargetFolder: "$(Build.SourcesDirectory)/frontend/dist"
+              TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
           - task: PublishBuildArtifacts@1
             displayName: "Publish frontend app build artifact"
             inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/frontend/dist"
+              PathtoPublish: "$(Build.SourcesDirectory)/frontend/.output"
               ArtifactName: "files_frontend"
               publishLocation: "Container"
   - stage: TestBackend
