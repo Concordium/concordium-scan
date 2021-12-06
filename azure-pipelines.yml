@@ -27,8 +27,8 @@ stages:
             inputs:
               script: |
                 cd frontend
-                npm install
-                npm run build
+                yarn install
+                yarn run build
             displayName: "Install dependencies and generate /.output"
             condition:
           - task: CopyFiles@2
