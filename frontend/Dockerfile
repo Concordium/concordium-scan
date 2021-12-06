@@ -18,7 +18,7 @@ RUN apt install curl -y
 RUN curl -sL https://deb.nodesource.com/setup_16.x |  bash - && \
     apt -y install nodejs
 
-COPY .output /app
+COPY . /app
 
 # Expose Port for the Application
 EXPOSE 3000
