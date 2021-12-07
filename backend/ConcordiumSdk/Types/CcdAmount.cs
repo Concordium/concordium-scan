@@ -4,6 +4,8 @@ namespace ConcordiumSdk.Types;
 
 public struct CcdAmount
 {
+    public static CcdAmount Zero => new(0);
+    
     private readonly ulong _microCcd;
 
     private CcdAmount(ulong microCcd)
@@ -40,6 +42,17 @@ public struct CcdAmount
     public static CcdAmount operator +(CcdAmount a, CcdAmount b)
         => new(a._microCcd + b._microCcd);
 
+    public static CcdAmount operator *(CcdAmount a, int b)
+    {
+        var result = a._microCcd * Convert.ToUInt32(b);
+        return new(result);
+    }
+    
+    public static CcdAmount operator *(int a, CcdAmount b)
+    {
+        return b * a;
+    }
+    
     public bool Equals(CcdAmount other)
     {
         return _microCcd == other._microCcd;
@@ -63,5 +76,34 @@ public struct CcdAmount
     public static bool operator !=(CcdAmount left, CcdAmount right)
     {
         return !left.Equals(right);
+    }
+
+    public static bool operator >(CcdAmount left, CcdAmount right)
+    {
+        return left._microCcd > right._microCcd;
+    }
+
+    public static bool operator >=(CcdAmount left, CcdAmount right)
+    {
+        return left._microCcd >= right._microCcd;
+    }
+
+    public static bool operator <(CcdAmount left, CcdAmount right)
+    {
+        return left._microCcd < right._microCcd;
+    }
+    
+    public static bool operator <=(CcdAmount left, CcdAmount right)
+    {
+        return left._microCcd <= right._microCcd;
+    }
+
+    public string FormattedMicroCcd => $"{_microCcd}";
+    
+    public string FormattedCcd => $"{_microCcd / (decimal)1000000}";
+    
+    public override string ToString()
+    {
+        return $"{_microCcd} µCCD";
     }
 }

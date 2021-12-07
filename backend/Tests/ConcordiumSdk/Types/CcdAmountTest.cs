@@ -67,4 +67,83 @@ public class CcdAmountTest
         Assert.Equal(!expectedEqual, target1 != target2);
         Assert.Equal(!expectedEqual, target2 != target1);
     }
+
+    [Theory]
+    [InlineData(199, 200, true)]
+    [InlineData(200, 200, false)]
+    [InlineData(201, 200, false)]
+    public void Operator_LessThan(int leftValue, int rightValue, bool expectedResult)
+    {
+        var left = CcdAmount.FromMicroCcd(leftValue);
+        var right = CcdAmount.FromMicroCcd(rightValue);
+
+        var result = left < right;
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Theory]
+    [InlineData(199, 200, true)]
+    [InlineData(200, 200, true)]
+    [InlineData(201, 200, false)]
+    public void Operator_LessThanEqual(int leftValue, int rightValue, bool expectedResult)
+    {
+        var left = CcdAmount.FromMicroCcd(leftValue);
+        var right = CcdAmount.FromMicroCcd(rightValue);
+
+        var result = left <= right;
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Theory]
+    [InlineData(199, 200, false)]
+    [InlineData(200, 200, false)]
+    [InlineData(201, 200, true)]
+    public void Operator_GreaterThan(int leftValue, int rightValue, bool expectedResult)
+    {
+        var left = CcdAmount.FromMicroCcd(leftValue);
+        var right = CcdAmount.FromMicroCcd(rightValue);
+
+        var result = left > right;
+        Assert.Equal(expectedResult, result);
+    }
+    
+    [Theory]
+    [InlineData(199, 200, false)]
+    [InlineData(200, 200, true)]
+    [InlineData(201, 200, true)]
+    public void Operator_GreaterThanEqual(int leftValue, int rightValue, bool expectedResult)
+    {
+        var left = CcdAmount.FromMicroCcd(leftValue);
+        var right = CcdAmount.FromMicroCcd(rightValue);
+
+        var result = left >= right;
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Theory]
+    [InlineData(1, "0,000001")]
+    [InlineData(20, "0,00002")]
+    [InlineData(23, "0,000023")]
+    [InlineData(624, "0,000624")]
+    [InlineData(9183, "0,009183")]
+    [InlineData(43891, "0,043891")]
+    [InlineData(123877, "0,123877")]
+    [InlineData(1000000, "1")]
+    [InlineData(1000001, "1,000001")]
+    [InlineData(3000000, "3")]
+    [InlineData(10000000, "10")]
+    public void FormattedCcd(ulong microCcd, string expectedResult)
+    {
+        var result = CcdAmount.FromMicroCcd(microCcd).FormattedCcd;
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Fact]
+    public void Operator_Multiply_ByInt()
+    {
+        var result1 = CcdAmount.FromMicroCcd(500) * 100;
+        var result2 = 100 * CcdAmount.FromMicroCcd(500);
+        Assert.Equal(CcdAmount.FromMicroCcd(50000), result1);
+        Assert.Equal(CcdAmount.FromMicroCcd(50000), result2);
+    }
 }
