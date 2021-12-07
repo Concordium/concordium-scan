@@ -1,7 +1,12 @@
 <template>
 	<header class="flex justify-between p-5">
-		<logo-horizontal />
-		<nav class="-mr-2">
+		<NuxtLink to="/" :class="$style.link">
+			<logo-horizontal />
+		</NuxtLink>
+
+		<search-input />
+
+		<nav class="-mr-2 flex">
 			<NuxtLink to="/" :class="$style.link">
 				<span :class="$style.linkInner">Blocks</span>
 			</NuxtLink>

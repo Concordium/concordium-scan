@@ -10,20 +10,15 @@
 		"eslint:recommended",
 		"@nuxtjs/eslint-config-typescript",
 		"plugin:@typescript-eslint/recommended",
-		"plugin:vue/vue3-recommended"
+		"plugin:vue/vue3-recommended",
+		"prettier"
 	],
 	"rules": {
-		"arrow-parens": ["error", "as-needed"],
-		"comma-dangle": ["error", "always-multiline"],
-		"indent": ["error", "tab"],
-		"no-tabs": ["error", { "allowIndentationTabs": true }],
-		"vue/html-indent": ["error", "tab"],
 		"vue/multi-word-component-names": [
 			"error",
 			{
 				"ignores": ["default", "index", "transactions", "accounts"]
 			}
-		],
-		"vue/singleline-html-element-content-newline": "off"
+		]
 	}
 }
