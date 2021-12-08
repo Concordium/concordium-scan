@@ -29,17 +29,17 @@ stages:
                 cd frontend
                 yarn install
                 yarn run build
-            displayName: "Install dependencies and generate /.output"
+            displayName: "Install dependencies and build .output"
             condition:
-          - task: CopyFiles@2
-            inputs:
-              SourceFolder: "$(Build.SourcesDirectory)/frontend"
-              Contents: "Dockerfile"
-              TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
+          # - task: CopyFiles@2
+          #   inputs:
+          #     SourceFolder: "$(Build.SourcesDirectory)/frontend"
+          #     Contents: "Dockerfile"
+          #     TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
           - task: PublishBuildArtifacts@1
             displayName: "Publish frontend app build artifact"
             inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/frontend/.output"
+              PathtoPublish: "$(Build.SourcesDirectory)/frontend"
               ArtifactName: "files_frontend"
               publishLocation: "Container"
   - stage: TestBackend
