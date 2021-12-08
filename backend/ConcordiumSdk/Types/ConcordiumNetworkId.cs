@@ -27,4 +27,14 @@ public class ConcordiumNetworkId
     {
         return NetworkName;
     }
+
+    public static ConcordiumNetworkId GetFromNetworkName(string networkName)
+    {
+        if (networkName == null) throw new ArgumentNullException(nameof(networkName));
+        if (networkName.Equals(Mainnet.NetworkName, StringComparison.InvariantCultureIgnoreCase))
+            return Mainnet;
+        if (networkName.Equals(Testnet.NetworkName, StringComparison.InvariantCultureIgnoreCase))
+            return Testnet;
+        throw new InvalidOperationException("Given network name is not a known network name");
+    }
 }

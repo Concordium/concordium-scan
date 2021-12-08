@@ -1,17 +1,25 @@
 ﻿using System.Linq;
+using System.Text.Json.Serialization;
 using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.ExportedMobileWalletFile;
 
 public class MobileWalletExport
 {
-    public MobileWalletExport(Identity[] identities)
+    [JsonConstructor]
+    private MobileWalletExport(Identity[] identities) : this ("", identities)
     {
-        Identities = identities;
     }
 
-    public Identity[] Identities { get; }
+    public MobileWalletExport(string environment, Identity[] identities)
+    {
+        Environment = environment;
+        Identities = identities ?? throw new ArgumentNullException(nameof(identities));
+    }
 
+    public string Environment { get; }
+    public Identity[] Identities { get; }
+    
     public string GetSingleSignKeyForAccountWithAddress(AccountAddress address)
     {
         return Identities
@@ -19,5 +27,10 @@ public class MobileWalletExport
                 .Where(account => account.Address == address)
                 .Select(x => x.AccountKeys.Keys["0"].Keys["0"].SignKey)) // Assume single SignKey is found here
             .Single();
+    }
+
+    internal MobileWalletExport WithEnvironment(string environment)
+    {
+        return new MobileWalletExport(environment, Identities);
     }
 }

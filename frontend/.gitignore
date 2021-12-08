@@ -62,3 +62,9 @@ dist
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+# Remove NPM package lock, as we're using Yarn
+package-lock.json
+
+### firebase
+.firebase/

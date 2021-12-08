@@ -34,12 +34,18 @@ stages:
           # - task: CopyFiles@2
           #   inputs:
           #     SourceFolder: "$(Build.SourcesDirectory)/frontend"
-          #     Contents: "Dockerfile"
+          #     Contents: "firebase.json"
           #     TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish frontend firebase.json"
+            inputs:
+              PathtoPublish: "$(Build.SourcesDirectory)/frontend/firebase.json"
+              ArtifactName: "firebase_json"
+              publishLocation: "Container"
           - task: PublishBuildArtifacts@1
             displayName: "Publish frontend app build artifact"
             inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/frontend"
+              PathtoPublish: "$(Build.SourcesDirectory)/frontend/.output"
               ArtifactName: "files_frontend"
               publishLocation: "Container"
   - stage: TestBackend
