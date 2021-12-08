@@ -62,3 +62,6 @@ dist
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+### firebase
+.firebase/
