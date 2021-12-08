@@ -1,6 +1,5 @@
 <template>
 	<button
-		@click="onClick"
 		class="
 			rounded
 			text-white
@@ -9,6 +8,7 @@
 			px-8
 			py-3
 		"
+		@click="onClick"
 	>
 		Hello
 	</button>
@@ -23,6 +23,9 @@ export default defineComponent({
 	props: {
 		onClick: {
 			type: Function as PropType<() => void>,
+			default: () => {
+				/* */
+			},
 		},
 	},
 })

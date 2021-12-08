@@ -14,11 +14,6 @@
 		"prettier"
 	],
 	"rules": {
-		"vue/multi-word-component-names": [
-			"error",
-			{
-				"ignores": ["default", "index", "transactions", "accounts"]
-			}
-		]
+		"vue/multi-word-component-names": "off"
 	}
 }

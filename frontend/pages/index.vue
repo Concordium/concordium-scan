@@ -6,8 +6,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
-import Button from '~/components/atoms/button.vue'
+import { defineComponent } from 'vue'
+import Button from '~/components/atoms/Button.vue'
 
 export default defineComponent({
 	components: {
