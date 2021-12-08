@@ -2,7 +2,7 @@
   "functions": { "source": "server" },
   "hosting": [
     {
-      "site": "ccscantest",
+      "site": "test-97464",
       "public": "public",
       "cleanUrls": true,
       "rewrites": [{ "source": "**", "function": "server" }]
