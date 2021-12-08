@@ -39,14 +39,13 @@ public static class MobileWalletExportReader
             iterationCount: e.Metadata.Iterations,
             numBytesRequested: 32);
 
-        using var myAes = new AesManaged
-        {
-            Mode = CipherMode.CBC,
-            IV = Convert.FromBase64String(e.Metadata.InitializationVector),
-            Key = key,
-            Padding = PaddingMode.PKCS7
-        };
-        using var decryptor = myAes.CreateDecryptor();
+        using var aes = Aes.Create();
+        aes.Mode = CipherMode.CBC;
+        aes.IV = Convert.FromBase64String(e.Metadata.InitializationVector);
+        aes.Key = key;
+        aes.Padding = PaddingMode.PKCS7;
+
+        using var decryptor = aes.CreateDecryptor();
 
         using var ms = new MemoryStream(Convert.FromBase64String(e.CipherText));
         using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
@@ -59,10 +58,13 @@ public static class MobileWalletExportReader
         options.Converters.Add(new AccountAddressConverter());
         
         var root = JsonSerializer.Deserialize<DecryptedMobileWalletExportRoot>(decryptedText, options);
+        if (root == null) throw new InvalidOperationException("Deserialization unexpectedly returned null");
+        
         if (root.Type == "concordium-mobile-wallet-data" && root.V == 1)
         {
-            var result = JsonSerializer.Deserialize<MobileWalletExport>(root.Value, options);
-            return result;
+            var result = root.Value.Deserialize<MobileWalletExport>(options);
+            if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null");
+            return result.WithEnvironment(root.Environment);
         }
         throw new InvalidOperationException("The current type and version of the decrypted data is not supported.");
     }

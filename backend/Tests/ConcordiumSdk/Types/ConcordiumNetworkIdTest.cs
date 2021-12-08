@@ -44,4 +44,30 @@ public class ConcordiumNetworkIdTest
         var randomBlockHash = new BlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1");
         Assert.Throws<InvalidOperationException>(() => ConcordiumNetworkId.GetFromGenesisBlockHash(randomBlockHash));
     }
+
+    [Theory]
+    [InlineData("Mainnet")]
+    [InlineData("mainnet")]
+    [InlineData("MAINNET")]
+    public void GetFromNetworkName_Mainnet(string input)
+    {
+        var result = ConcordiumNetworkId.GetFromNetworkName(input);
+        Assert.Same(ConcordiumNetworkId.Mainnet, result);
+    }
+    
+    [Theory]
+    [InlineData("Testnet")]
+    [InlineData("testnet")]
+    [InlineData("TESTNET")]
+    public void GetFromNetworkName_Testnet(string input)
+    {
+        var result = ConcordiumNetworkId.GetFromNetworkName(input);
+        Assert.Same(ConcordiumNetworkId.Testnet, result);
+    }
+
+    [Fact]
+    public void GetFromNetworkName_UnknownNetworkName()
+    {
+        Assert.Throws<InvalidOperationException>(() => ConcordiumNetworkId.GetFromNetworkName("foo-bar"));
+    }
 }
