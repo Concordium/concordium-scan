@@ -1,9 +1,9 @@
 {
-  "functions": { "source": ".output/server" },
+  "functions": { "source": "server" },
   "hosting": [
     {
-      "site": "test-97464",
-      "public": ".output/public",
+      "site": "ccscantest",
+      "public": "public",
       "cleanUrls": true,
       "rewrites": [{ "source": "**", "function": "server" }]
     }
