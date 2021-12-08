@@ -31,17 +31,11 @@ stages:
                 yarn run build
             displayName: "Install dependencies and build .output"
             condition:
-          # - task: CopyFiles@2
-          #   inputs:
-          #     SourceFolder: "$(Build.SourcesDirectory)/frontend"
-          #     Contents: "firebase.json"
-          #     TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
-          - task: PublishBuildArtifacts@1
-            displayName: "Publish frontend firebase.json"
+          - task: CopyFiles@2
             inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/frontend/firebase.json"
-              ArtifactName: "firebase_json"
-              publishLocation: "Container"
+              SourceFolder: "$(Build.SourcesDirectory)/frontend"
+              Contents: "firebase.json"
+              TargetFolder: "$(Build.SourcesDirectory)/frontend/.output"
           - task: PublishBuildArtifacts@1
             displayName: "Publish frontend app build artifact"
             inputs:
