@@ -1,19 +1,17 @@
 <template>
 	<main>
 		<p class="bg-purple-700 text-white p-6">Hello</p>
-		<button
-			class="
-				rounded
-				text-white
-				bg-theme-button-primary
-				hover:bg-theme-button-primary-hover
-				px-8
-				py-3
-			"
-		>
-			Click!
-		</button>
+		<Button> Click! </Button>
 	</main>
 </template>
 
-<script lang="ts"></script>
+<script lang="ts">
+import { defineComponent, PropType } from 'vue'
+import Button from '~/components/atoms/button.vue'
+
+export default defineComponent({
+	components: {
+		Button,
+	},
+})
+</script>

@@ -5,25 +5,31 @@
 	"engine": "16",
 	"type": "module",
 	"private": true,
-	"dependencies": {
-		"@heroicons/vue": "^1.0.5",
-		"@vue/composition-api": "^1.4.1",
-		"nuxt3": "latest"
-	},
 	"scripts": {
 		"dev": "nuxt dev",
 		"build": "nuxt build",
 		"start": "nuxt start",
 		"generate": "nuxt generate",
+		"test": "jest",
+		"test:watch": "jest --watch",
 		"lint": "eslint --max-warnings 0 --ext .ts,.vue ."
 	},
+	"dependencies": {
+		"@heroicons/vue": "^1.0.5",
+		"nuxt3": "latest"
+	},
 	"devDependencies": {
+		"@babel/preset-typescript": "^7.16.0",
 		"@nuxtjs/eslint-config-typescript": "8.0.0",
+		"@testing-library/jest-dom": "^5.16.1",
+		"@testing-library/vue": "^6.4.2",
+		"@types/jest": "26",
 		"@types/node": "^16.11.11",
 		"@typescript-eslint/eslint-plugin": "^5.5.0",
 		"@typescript-eslint/parser": "^5.5.0",
 		"@vue/eslint-config-typescript": "^9.1.0",
 		"autoprefixer": "^10.4.0",
+		"babel-jest": "26",
 		"eslint": "^8.3.0",
 		"eslint-config-prettier": "^8.3.0",
 		"eslint-plugin-nuxt": "^3.1.0",
@@ -31,8 +37,12 @@
 		"firebase-admin": "^10.0.0",
 		"firebase-functions": "^3.16.0",
 		"firebase-functions-test": "^0.3.3",
+		"jest": "26",
 		"postcss": "^8.4.4",
 		"tailwindcss": "^2.2.19",
-		"typescript": "^4.5.2"
+		"ts-jest": "^26",
+		"ts-node": "^10.4.0",
+		"typescript": "^4.5.2",
+		"vue-jest": "^5.0.0-alpha.10"
 	}
 }
