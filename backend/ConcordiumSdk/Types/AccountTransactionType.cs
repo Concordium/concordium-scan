@@ -1,8 +1,9 @@
-﻿namespace ConcordiumSdk.Transactions;
+﻿namespace ConcordiumSdk.Types;
 
 /// <summary>
-/// The different types of account transactions.
-/// The number value is important as it is part of the serialization of a particular transaction.
+/// The specific numeric values are the values used for binary serialization when sending transactions.
+/// Reference: At the time of writing this they are defined in "Payload"
+/// (https://github.com/Concordium/concordium-base/blob/a50612e023da79cb625cd36c52703af6ed483738/haskell-src/Concordium/Types/Execution.hs#L273)
 /// </summary>
 public enum AccountTransactionType 
 {

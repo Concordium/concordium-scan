@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ConcordiumSdk.ExportedMobileWalletFile;
+﻿namespace ConcordiumSdk.ExportedMobileWalletFile;
 
 public class AccountKeysRootContainer
 {

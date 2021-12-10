@@ -39,13 +39,15 @@ public class ImportController : BackgroundService
             var blockHash = blocksAtHeight.Single();
             
             var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
-            var blockSummaryTask = _client.GetBlockSummaryStringAsync(blockHash);
+            var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
+            var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
 
             var blockInfo = await blockInfoTask;
+            var blockSummaryString = await blockSummaryStringTask;
             var blockSummary = await blockSummaryTask;
-
+            
             // TODO: Publish result - for now just write directly to db
-            _repository.Insert(blockInfo, blockSummary);
+            _repository.Insert(blockInfo, blockSummaryString, blockSummary);
 
             _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 

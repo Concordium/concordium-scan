@@ -9,7 +9,7 @@ public class AccountAddressConverter : JsonConverter<AccountAddress>
     {
         var value = reader.GetString();
         if (value == null)
-            throw new JsonException("BlockHash cannot be null.");
+            throw new JsonException("AccountAddress cannot be null.");
         return new AccountAddress(value);
     }
 

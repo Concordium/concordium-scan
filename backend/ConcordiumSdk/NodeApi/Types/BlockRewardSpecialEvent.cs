@@ -1,4 +1,4 @@
-﻿namespace ConcordiumSdk.NodeApi;
+﻿namespace ConcordiumSdk.NodeApi.Types;
 
 public class BlockRewardSpecialEvent : SpecialEvent
 {

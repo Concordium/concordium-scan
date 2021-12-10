@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using ConcordiumSdk.Types;
+﻿using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.Transactions;
 

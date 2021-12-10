@@ -1,5 +1,6 @@
 ﻿using System.Net.Http;
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
 namespace Tests.ConcordiumSdk.NodeApi;
@@ -44,5 +45,13 @@ public class GrpcNodeClientTest : IDisposable
         var transactionHash = new TransactionHash("e2df806768b6f6a52f8654a12be2e6c832fedabe1d1a27eb278dc4e5f9d8631f");
         var result = await _target.GetTransactionStatusAsync(transactionHash);
         Assert.Equal(TransactionStatusType.Finalized, result.Status);
+    }
+
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetBlockSummary()
+    {
+        var blockHash = new BlockHash("23B6A71B435D1AC0C5B2F7DB8493E5956533B5026F88250056567644D5966FFF");
+        var result = await _target.GetBlockSummaryAsync(blockHash);
+        Assert.NotNull(result);
     }
 }

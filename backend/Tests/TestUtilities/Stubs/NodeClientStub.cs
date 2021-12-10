@@ -1,4 +1,5 @@
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
 namespace Tests.TestUtilities.Stubs;

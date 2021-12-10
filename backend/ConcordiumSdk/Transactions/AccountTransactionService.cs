@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.Types;
-using Nonce = ConcordiumSdk.Types.Nonce;
 
 namespace ConcordiumSdk.Transactions;
 
@@ -46,7 +45,7 @@ public class AccountTransactionService
         serializedSignatures[5] = 64; // -----
         signature.CopyTo(serializedSignatures, 6); // [64 bytes] signature
         
-        var serializedBlockItemKind = new byte[] { 0 }; // AccountTransactionKind: 0, CredentialDeploymentKind: 1, UpdateInstructionKind: 2
+        var serializedBlockItemKind = new byte[] { (int)BlockItemKind.AccountTransactionKind }; 
 
         var serializedTx = serializedBlockItemKind.Concat(serializedSignatures).Concat(serializedTransaction).ToArray(); 
 

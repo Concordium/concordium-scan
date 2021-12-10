@@ -1,6 +1,6 @@
 ﻿using ConcordiumSdk.Types;
 
-namespace ConcordiumSdk.NodeApi;
+namespace ConcordiumSdk.NodeApi.Types;
 
 public class NextAccountNonceResponse
 {

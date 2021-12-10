@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Concordium;
+using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types.JsonConverters;
 using Google.Protobuf;
 using Grpc.Core;
@@ -42,7 +44,12 @@ public class GrpcNodeClient : INodeClient, IDisposable
         _jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         _jsonSerializerOptions.Converters.Add(new SpecialEventJsonConverter());
         _jsonSerializerOptions.Converters.Add(new BlockHashConverter());
+        _jsonSerializerOptions.Converters.Add(new AccountAddressConverter());
+        _jsonSerializerOptions.Converters.Add(new TransactionHashConverter());
+        _jsonSerializerOptions.Converters.Add(new CcdAmountConverter());
         _jsonSerializerOptions.Converters.Add(new NonceConverter());
+        _jsonSerializerOptions.Converters.Add(new TransactionTypeConverter());
+        _jsonSerializerOptions.Converters.Add(new TransactionResultConverter());
     }
 
     public async Task<ConsensusStatus> GetConsensusStatusAsync()

@@ -1,6 +1,6 @@
 ﻿using ConcordiumSdk.Types;
 
-namespace ConcordiumSdk.NodeApi;
+namespace ConcordiumSdk.NodeApi.Types;
 
 /// <summary>
 /// See https://github.com/Concordium/concordium-node/blob/main/docs/grpc.md#getconsensusstatus--consensusstatus

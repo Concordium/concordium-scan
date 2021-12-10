@@ -1,4 +1,5 @@
 ﻿using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
 namespace Tests.TestUtilities.Builders;
@@ -6,7 +7,8 @@ namespace Tests.TestUtilities.Builders;
 public class BlockInfoBuilder
 {
     private int _blockHeight = 1;
-    
+    private DateTimeOffset _blockSlotTime = new(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero);
+
     public BlockInfoBuilder WithBlockHeight(int value)
     {
         _blockHeight = value;
@@ -26,7 +28,7 @@ public class BlockInfoBuilder
             BlockReceiveTime = new DateTimeOffset(2010, 10, 1, 12, 03, 54, 123, TimeSpan.Zero),
             BlockArriveTime = new DateTimeOffset(2010, 10, 1, 12, 03, 53, 123, TimeSpan.Zero),
             BlockSlot = 790511,
-            BlockSlotTime = new DateTimeOffset(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero),
+            BlockSlotTime = _blockSlotTime,
             BlockBaker = 5,
             Finalized = true,
             TransactionCount = 2,
@@ -34,5 +36,11 @@ public class BlockInfoBuilder
             TransactionSize = 42,
             BlockStateHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"
         };
+    }
+
+    public BlockInfoBuilder WithBlockSlotTime(DateTimeOffset value)
+    {
+        _blockSlotTime = value;
+        return this;
     }
 }

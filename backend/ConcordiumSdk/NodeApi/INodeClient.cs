@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.NodeApi;
