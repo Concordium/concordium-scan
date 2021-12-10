@@ -21,32 +21,34 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
+var logger = Log.ForContext<Program>();
+
+logger.Information("Application starting... [run-mode={runMode}]", performDatabaseMigration ? "migrate-db" : "normal");
+
+var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
+logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddGraphQLServer().AddQueryType<Query>();
-    
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
 builder.Services.AddSingleton(new HttpClient());
-builder.Services.AddSingleton(builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>());
+builder.Services.AddSingleton(databaseSettings);
 builder.Services.AddSingleton(builder.Configuration.GetSection("ConcordiumNodeGrpc").Get<GrpcNodeClientSettings>());
 builder.Host.UseSystemd();
 var app = builder.Build();
-
-var logger = Log.ForContext<Program>();
 
 try
 {
     if (performDatabaseMigration)
     {
-        logger.Information("Application started in database migration mode. Starting database migration...");
+        logger.Information("Starting database migration...");
         app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabase();
         logger.Information("Database migration finished successfully");
     }
     else
     {
-        logger.Information("Application starting...");
         app.Services.GetRequiredService<DatabaseMigrator>().EnsureDatabaseMigrationNotNeeded();
         
         app
