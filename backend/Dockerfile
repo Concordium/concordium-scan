@@ -32,8 +32,9 @@ RUN  apt-get update;  apt-get install -y apt-transport-https &&    apt-get updat
 
 COPY . /app
 
-RUN cd /app  && mkdir logs &&  chmod 777 ./Application  && ./Application migrate-db
-CMD ./Application
+# dette bør egentlig virke
+RUN cd /app  &&  chmod 777 ./Application
+CMD echo "everything set up - run me with entrypoint 'cd /app   && ./Application -migrate-db && ./Application'"
 # Expose Port for the Application 
 EXPOSE 5551 
 ##Todo : also expose http/api ports
