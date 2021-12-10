@@ -64,8 +64,7 @@ try
 catch (Exception e)
 {
     logger.Fatal(e, "Unhandled exception caught. Terminating application.");
-
-    // TODO: Do we need to signal to the process host that we are terminating due to an exception? throw?
+    Environment.ExitCode = -1;
 }
 
 logger.Information("Exiting application!");
