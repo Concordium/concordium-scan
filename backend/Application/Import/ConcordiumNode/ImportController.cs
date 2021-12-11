@@ -25,7 +25,7 @@ public class ImportController : BackgroundService
 
         var maxBlockHeight = _repository.GetMaxBlockHeight();
         var startingBlockHeight = maxBlockHeight.HasValue ? maxBlockHeight.Value + 1 : 0;
-        var endHeight = startingBlockHeight + 10000; // Hardcoded end will be removed later
+        var endHeight = startingBlockHeight + 15000; // Hardcoded end will be removed later
 
         _logger.Information("Starting at block height {height}", startingBlockHeight);
         
