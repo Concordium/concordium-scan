@@ -90,8 +90,8 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
             var key = reader.GetString()!;
             
             reader.Read();
-            EnsureTokenType(reader, JsonTokenType.String);
-            var value = reader.GetString()!;
+            EnsureTokenType(reader, JsonTokenType.String, JsonTokenType.Null);
+            var value = reader.GetString();
             
             if (key == "type") typeString = value;
             else if (key == "contents") contentsString = value;
@@ -100,44 +100,53 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
         }
 
         if (typeString == "accountTransaction")
-            return TransactionType.Get(_mapStringToAccountTransactionType[contentsString]);
+            return TransactionType.Get(contentsString != null ? _mapStringToAccountTransactionType[contentsString] : null);
         if (typeString == "credentialDeploymentTransaction")
-            return TransactionType.Get(_mapStringToCredentialDeploymentTransactionType[contentsString]);
+            return TransactionType.Get(contentsString != null ? _mapStringToCredentialDeploymentTransactionType[contentsString] : null);
         if (typeString == "updateTransaction")
-            return TransactionType.Get(_mapStringToUpdateTransactionType[contentsString]);
+            return TransactionType.Get(contentsString != null ? _mapStringToUpdateTransactionType[contentsString] : null);
         throw new NotImplementedException();
     }
 
-    private static void EnsureTokenType(Utf8JsonReader reader, JsonTokenType tokenType)
+    private static void EnsureTokenType(Utf8JsonReader reader, params JsonTokenType[] expectedTokenTypes)
     {
-        if (reader.TokenType != tokenType)
-            throw new JsonException($"Must be {tokenType}.");
+        if (!expectedTokenTypes.Contains(reader.TokenType))
+            throw new JsonException($"Must be {string.Join(" or ", expectedTokenTypes)}.");
     }
 
     public override void Write(Utf8JsonWriter writer, TransactionType value, JsonSerializerOptions options)
     {
-        string contentsString;
+        string? contentsString;
         string typeString;
         if (value is TransactionType<AccountTransactionType> accountTransaction)
         {
-            contentsString = _mapAccountTransactionTypeToString[accountTransaction.Type];
+            contentsString = accountTransaction.Type.HasValue
+                ? _mapAccountTransactionTypeToString[accountTransaction.Type.Value]
+                : null;
             typeString = "accountTransaction";
         }
         else if (value is TransactionType<CredentialDeploymentTransactionType> credentialDeploymentTransaction)
         {
-            contentsString = _mapCredentialDeploymentTransactionTypeToString[credentialDeploymentTransaction.Type];
+            contentsString = credentialDeploymentTransaction.Type.HasValue
+                ? _mapCredentialDeploymentTransactionTypeToString[credentialDeploymentTransaction.Type.Value]
+                : null;
             typeString = "credentialDeploymentTransaction";
         }
         else if (value is TransactionType<UpdateTransactionType> updateTransaction)
         {
-            contentsString = _mapUpdateTransactionTypeToString[updateTransaction.Type];
+            contentsString = updateTransaction.Type.HasValue
+                ? _mapUpdateTransactionTypeToString[updateTransaction.Type.Value]
+                : null;
             typeString = "updateTransaction";
         }
         else
             throw new InvalidOperationException("Cannot serialize that subtype");
         
         writer.WriteStartObject();
-        writer.WriteString("contents", contentsString);
+        if (contentsString != null)
+            writer.WriteString("contents", contentsString);
+        else
+            writer.WriteNull("contents");
         writer.WriteString("type", typeString);
         writer.WriteEndObject();
     }

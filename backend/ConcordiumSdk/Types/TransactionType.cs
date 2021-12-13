@@ -4,34 +4,34 @@ namespace ConcordiumSdk.Types;
 public abstract class TransactionType
 {
     public BlockItemKind Kind { get; }
-    public object Type { get; }
-    protected TransactionType(BlockItemKind kind, object type)
+    public object? Type { get; }
+    protected TransactionType(BlockItemKind kind, object? type)
     {
         Kind = kind;
-        Type = type ?? throw new ArgumentNullException(nameof(type));
+        Type = type;
     }
 
-    public static TransactionType<AccountTransactionType> Get(AccountTransactionType type)
+    public static TransactionType<AccountTransactionType> Get(AccountTransactionType? type)
     {
         return new TransactionType<AccountTransactionType>(BlockItemKind.AccountTransactionKind, type);
     }
     
-    public static TransactionType<CredentialDeploymentTransactionType> Get(CredentialDeploymentTransactionType type)
+    public static TransactionType<CredentialDeploymentTransactionType> Get(CredentialDeploymentTransactionType? type)
     {
         return new TransactionType<CredentialDeploymentTransactionType>(BlockItemKind.CredentialDeploymentKind, type);
     }
     
-    public static TransactionType<UpdateTransactionType> Get(UpdateTransactionType type)
+    public static TransactionType<UpdateTransactionType> Get(UpdateTransactionType? type)
     {
         return new TransactionType<UpdateTransactionType>(BlockItemKind.UpdateInstructionKind, type);
     }
 }
 
-public sealed class TransactionType<T> : TransactionType where T : Enum
+public sealed class TransactionType<T> : TransactionType where T : struct, Enum
 {
-    public new T Type { get; }
+    public new T? Type { get; }
 
-    internal TransactionType(BlockItemKind kind, T type) : base(kind, type)
+    internal TransactionType(BlockItemKind kind, T? type) : base(kind, type)
     {
         Type = type;
     }
@@ -43,7 +43,7 @@ public sealed class TransactionType<T> : TransactionType where T : Enum
 
     private bool Equals(TransactionType<T> other)
     {
-        return Type.Equals(other.Type)
+        return Equals(Type, other.Type)
                && Kind.Equals(other.Kind);
     }
 
@@ -54,7 +54,7 @@ public sealed class TransactionType<T> : TransactionType where T : Enum
 
     public override int GetHashCode()
     {
-        return EqualityComparer<T>.Default.GetHashCode(Type);
+        return Type.HasValue ? Type.Value.GetHashCode() : 0;
     }
 
     public static bool operator ==(TransactionType<T>? left, TransactionType<T>? right)

@@ -94,9 +94,9 @@ public class BlockRepository
         return null;
     }
 
-    private int MapTransactionSubType(TransactionType type)
+    private int? MapTransactionSubType(TransactionType type)
     {
-        return (int)type.Type;
+        return type.Type != null ? (int)type.Type : null;
     }
 
     private int MapTransactionType(TransactionType type)

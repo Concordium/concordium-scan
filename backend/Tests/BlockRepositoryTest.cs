@@ -3,7 +3,6 @@ using Application.Persistence;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
-using HotChocolate.Types.Descriptors;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 
@@ -78,6 +77,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
                     .Build(),
                 new TransactionSummaryBuilder()
                     .WithIndex(1)
+                    .WithType(TransactionType.Get((AccountTransactionType?)null))
                     .WithResult(new TransactionRejectResult() { Tag = "FooBarBas!"})
                     .Build()
             }
