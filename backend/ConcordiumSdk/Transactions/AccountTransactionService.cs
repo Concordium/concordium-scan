@@ -10,6 +10,7 @@ namespace ConcordiumSdk.Transactions;
 public class AccountTransactionService
 {
     private readonly INodeClient _client;
+    private static readonly TimeSpan DefaultTxExpiry = TimeSpan.FromMinutes(30);
 
     public AccountTransactionService(INodeClient client)
     {
@@ -19,17 +20,25 @@ public class AccountTransactionService
     public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
     {
         var nextAccountNonceResponse = await _client.GetNextAccountNonceAsync(sender);
-        return await SendAccountTransactionAsync(sender, nextAccountNonceResponse.Nonce, transactionPayload, signer);
+        var expiry = DateTimeOffset.UtcNow.Add(DefaultTxExpiry); 
+        return await SendAccountTransactionAsync(sender, nextAccountNonceResponse.Nonce, transactionPayload, expiry, signer);
     }
 
-    public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, Nonce nextAccountNonce, IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
+    public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, Nonce nextAccountNonce,
+        IAccountTransactionPayload transactionPayload, ITransactionSigner signer)
+    {
+        var expiry = DateTimeOffset.UtcNow.Add(DefaultTxExpiry); 
+        return await SendAccountTransactionAsync(sender, nextAccountNonce, transactionPayload, expiry, signer);
+    }
+    
+    public async Task<TransactionHash> SendAccountTransactionAsync(AccountAddress sender, Nonce nextAccountNonce, IAccountTransactionPayload transactionPayload, DateTimeOffset expiry, ITransactionSigner signer)
     {
         var signatureCount = 1;
 
         var serializedPayload = transactionPayload.SerializeToBytes();
         
         var energyCost = CalculateEnergyCost(signatureCount, serializedPayload.Length, transactionPayload.GetBaseEnergyCost());
-        var serializedHeader = SerializeHeader(sender, serializedPayload.Length, nextAccountNonce, energyCost);
+        var serializedHeader = SerializeHeader(sender, serializedPayload.Length, nextAccountNonce, energyCost, expiry);
 
         var serializedTransaction = serializedHeader.Concat(serializedPayload).ToArray();
 
@@ -58,17 +67,16 @@ public class AccountTransactionService
         return new TransactionHash(txHash);
     }
 
-    private static byte[] SerializeHeader(AccountAddress sender, int payloadSize, Nonce accountNonce, int energyCost)
+    private static byte[] SerializeHeader(AccountAddress sender, int payloadSize, Nonce accountNonce, int energyCost,
+        DateTimeOffset expiry)
     {
-        var expiry = DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds();
-
         var result = new byte[60];
         var span = new Span<byte>(result);
         sender.AsBytes.CopyTo(span.Slice(0, 32));
         BinaryPrimitives.WriteUInt64BigEndian(span.Slice(32, 8), accountNonce.AsUInt64);
         BinaryPrimitives.WriteUInt64BigEndian(span.Slice(40, 8), (ulong)energyCost);
         BinaryPrimitives.WriteUInt32BigEndian(span.Slice(48, 4), (uint)payloadSize);
-        BinaryPrimitives.WriteUInt64BigEndian(span.Slice(52, 8), (ulong)expiry);
+        BinaryPrimitives.WriteUInt64BigEndian(span.Slice(52, 8), (ulong)expiry.ToUnixTimeSeconds());
         return result;
     }
 
