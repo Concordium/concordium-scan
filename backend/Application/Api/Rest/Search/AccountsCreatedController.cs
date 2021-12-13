@@ -1,30 +1,39 @@
 ﻿using Application.Persistence;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Application.Api.Rest;
+namespace Application.Api.Rest.Search;
 
-public class FindAccountsCreatedQuery
+[ApiController]
+[Route("api/search/[controller]")]
+public class AccountsCreatedController : ControllerBase
 {
     private readonly BlockRepository _repository;
 
-    public FindAccountsCreatedQuery(BlockRepository repository)
+    public AccountsCreatedController(BlockRepository repository)
     {
         _repository = repository;
     }
 
-    public AccountAddress[] FindAccountsCreated(DateTimeOffset startTime, DateTimeOffset endTime, bool includeInitial, bool includeNormal)
+    [HttpGet]
+    public ActionResult<string[]> Get(DateTimeOffset? startTime, DateTimeOffset? endTime, bool includeInitial = false, bool includeNormal = false)
     {
+        if (!startTime.HasValue || !endTime.HasValue)
+            return BadRequest("Start and end time must be provided");
+        if (startTime.Value.Offset != TimeSpan.Zero || endTime.Value.Offset != TimeSpan.Zero)
+            return BadRequest("Start and end time must be explicitly provided with offset Zero.");
+        
         var transactionTypes = GetTransactionTypes(includeInitial, includeNormal);
 
         var result = _repository
-            .FindTransactionSummaries(startTime, endTime, transactionTypes)
+            .FindTransactionSummaries(startTime.Value, endTime.Value, transactionTypes)
             .Select(x => x.Result)
             .OfType<TransactionSuccessResult>()
             .Select(CreateResult)
             .ToArray();
 
-        return result;
+        return result.Select(x => x.AsString).ToArray();
     }
 
     private static TransactionType[] GetTransactionTypes(bool includeInitial, bool includeNormal)

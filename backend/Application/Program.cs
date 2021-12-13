@@ -30,6 +30,7 @@ logger.Information("Using Postgres connection string: {postgresConnectionString}
 
 builder.Services.AddGraphQLServer().AddQueryType<Query>();
 builder.Services.AddHostedService<ImportController>();
+builder.Services.AddControllers();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<BlockRepository>();
@@ -55,6 +56,7 @@ try
             .UseRouting()
             .UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers();
                 endpoints.MapGraphQL();
             });
         

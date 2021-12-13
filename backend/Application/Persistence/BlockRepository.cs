@@ -106,6 +106,9 @@ public class BlockRepository
 
     public TransactionSummary[] FindTransactionSummaries(DateTimeOffset startTime, DateTimeOffset endTime, params TransactionType[] types)
     {
+        if (types.Length == 0)
+            return Array.Empty<TransactionSummary>();
+        
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
@@ -133,7 +136,7 @@ public class BlockRepository
 
         return transactionSummaries
             .Select(x => new TransactionSummary(
-                new AccountAddress((byte[])x.sender),
+                MapToAccountAddress(x.sender),
                 new TransactionHash(x.transaction_hash),
                 CcdAmount.FromMicroCcd(Convert.ToUInt64(x.cost)),
                 Convert.ToInt32(x.energy_cost),
@@ -141,6 +144,12 @@ public class BlockRepository
                 MapToResult(x),
                 x.transaction_index))
             .ToArray();
+    }
+
+    private AccountAddress? MapToAccountAddress(dynamic obj)
+    {
+        if (obj == null) return null;
+        return new AccountAddress((byte[])obj);
     }
 
     private TransactionResult MapToResult(dynamic obj)
