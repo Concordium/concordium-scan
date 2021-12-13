@@ -36,5 +36,5 @@ COPY . /app
 RUN cd /app  &&  chmod 777 ./Application
 CMD echo "everything set up - run me with entrypoint 'cd /app   && ./Application -migrate-db && ./Application'"
 # Expose Port for the Application 
-EXPOSE 5551 
+EXPOSE 5000 
 ##Todo : also expose http/api ports
