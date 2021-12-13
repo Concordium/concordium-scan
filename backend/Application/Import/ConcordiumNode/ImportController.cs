@@ -25,13 +25,12 @@ public class ImportController : BackgroundService
 
         var maxBlockHeight = _repository.GetMaxBlockHeight();
         var startingBlockHeight = maxBlockHeight.HasValue ? maxBlockHeight.Value + 1 : 0;
-        var endHeight = startingBlockHeight + 15000; // Hardcoded end will be removed later
 
         _logger.Information("Starting at block height {height}", startingBlockHeight);
         
         var nextHeight = startingBlockHeight;
         var consensusStatus = await _client.GetConsensusStatusAsync();
-        while (consensusStatus.BestBlockHeight >= nextHeight && nextHeight <= endHeight && !stoppingToken.IsCancellationRequested)
+        while (consensusStatus.LastFinalizedBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
         {
             var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)nextHeight);
             if (blocksAtHeight.Length != 1)
