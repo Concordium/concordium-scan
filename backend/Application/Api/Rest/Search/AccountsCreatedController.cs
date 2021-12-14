@@ -24,6 +24,8 @@ public class AccountsCreatedController : ControllerBase
         if (startTime.Value.Offset != TimeSpan.Zero || endTime.Value.Offset != TimeSpan.Zero)
             return BadRequest("Start and end time must be explicitly provided with offset Zero.");
         
+        Log.Information("Retrieving accounts created between {startTime:u} and {endTime:u} [includeInitial:{includeInitial}] [includeNormal:{includeNormal}]", startTime, endTime, includeInitial, includeNormal);
+        
         var transactionTypes = GetTransactionTypes(includeInitial, includeNormal);
 
         var result = _repository
