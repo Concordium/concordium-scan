@@ -4,26 +4,18 @@ A [Nuxt.js](https://github.com/nuxt/nuxt.js) + [@nuxt/typescript](https://github
 
 ## Setup
 
-Create your repository by [Use this template](https://github.com/nuxt-community/typescript-template/generate) button from [this template](https://github.com/nuxt-community/typescript-template) and clone into your local.
+**Install dependencies:**
 
-Then, run below command and follow its message.
-
+```sh
+yarn
 ```
-./init.sh
-```
-
-The command will ask your preference for the API to write Vue component among:
-
-- Options API
-- Class API with with nuxt-property-decorator
-- Composition API (Experimental) with [@nuxt/composition-api](https://github.com/nuxt-community/composition-api)
 
 ## Usage
 
 ### Run Development server
 
 ```sh
-npm run dev
+yarn dev
 ```
 
 Go to [http://localhost:3000](http://localhost:3000)
@@ -31,25 +23,62 @@ Go to [http://localhost:3000](http://localhost:3000)
 ### Build/Run SSR enabled application
 
 ```sh
-npm run build
-npm start
+yarn build
+yarn start
 ```
 
-### Static Generation
+## Quality control
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/e5bf3478-1cb8-44c4-8aeb-040083bd39ca/deploy-status)](https://nuxt-ts-template.netlify.com/)
+We're using multiple automated quality checks.
+
+### [ESLint](https://eslint.org/)
+
+Static code analysis to enforce certain patterns and idiomatic programming. It is strongly recommended to install this as a plugin in your IDE, so you get warnings and errors "live", although you can also run it manually:
 
 ```sh
-npm run generate #=> Then distribute /dist
+yarn lint
 ```
 
-## FAQ
+### [Prettier](https://prettier.io/)
 
-- Q. How about providing sample usage of "xyz" (The name of OSS which you want to use)?
-  - A. Recommend running into [create-nuxt-app](https://github.com/nuxt/create-nuxt-app). This template aims to provide a minimal sample that follows the latest version of Nuxt.js and [@nuxt/typescript](https://github.com/nuxt/typescript). 
-- Q. I think the usage of Vuex is not typed enough...?
-  - A. We know! We desire the next major version of Vuex (v4) saves our bacon.
+Opinionated code formatter to make sure our code follows the same uniform style. It is strongly recommended to install this as a plugin in your IDE, so the code is automatically formatted on save.
 
-## Miss the old way of this repository?
+### [Typescript](https://www.typescriptlang.org/)
 
-That still alives on [master](https://github.com/nuxt-community/typescript-template/tree/master) branch.
+Adding strict type checking to the source code, allows us to avoid silly bugs and to rewrite code with confidence. Some IDE's have native support for Typescript, but if not it is strongly recommended that you install relevant plugins. You can also run it manually:
+
+```sh
+yarn typecheck
+```
+
+### Unit tests
+
+We're using [Vue Testing Library](https://testing-library.com/docs/vue-testing-library/intro) together with [Jest](https://jestjs.io/) for all unit tests.
+
+The tests will be run as a quality gate in the CI, but you can also run it manually:
+
+```sh
+yarn test
+```
+
+During development, you can run the tests in watch mode:
+
+```sh
+yarn test:watch
+```
+
+### Git hooks
+
+We're using [Husky](https://typicode.github.io/husky/#/) to write our git hooks. We only have one git hook; **pre-commit**. It will make sure, that when committing, the staged code is linted (using ESLint), formatted (using Prettier) and typechecked.
+
+Husky should be installed together with the rest of the dependencies, but if it isn't, you can install it manually:
+
+```sh
+npx husky install
+```
+
+Furthermore, it might complain that the hook cannot be run. If this is the case, you need to give Husky access to execute the file:
+
+```sh
+chmod +x .husky/pre-commit
+```
