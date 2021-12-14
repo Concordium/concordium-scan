@@ -6,13 +6,15 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
+		"prepare": "cd .. && husky install frontend/.husky",
 		"dev": "nuxt dev",
 		"build": "nuxt build",
 		"start": "nuxt start",
 		"generate": "nuxt generate",
 		"test": "jest",
 		"test:watch": "jest --watch",
-		"lint": "eslint --max-warnings 0 --ext .ts,.vue ."
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue,.md ."
 	},
 	"dependencies": {
 		"@heroicons/vue": "^1.0.5",
@@ -37,7 +39,9 @@
 		"firebase-admin": "^10.0.0",
 		"firebase-functions": "^3.16.0",
 		"firebase-functions-test": "^0.3.3",
+		"husky": "^7.0.4",
 		"jest": "26",
+		"lint-staged": "^12.1.2",
 		"postcss": "^8.4.4",
 		"tailwindcss": "^2.2.19",
 		"ts-jest": "^26",
