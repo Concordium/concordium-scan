@@ -1,3 +1,4 @@
 {
-  "*.{js,ts,vue}": ["yarn lint", "prettier --write", "yarn typecheck"]
+  "*.{js,ts,vue}": ["yarn lint", "prettier --write"],
+  "*.{js,ts}": ["yarn typecheck"]
 } 

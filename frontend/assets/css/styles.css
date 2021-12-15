@@ -15,7 +15,7 @@
 	--color-primary: 239, 69%, 54%; /* purple */
 	--color-primary-light: 239, 69%, 64%;
 	--color-white: 0, 0%, 100%;
-	--color-background-primary: 246, 40%, 21%;
+	--color-background-primary: 247, 40%, 18%;
 	--color-border-primary: var(--color-primary);
 	--color-interactive: 162, 69%, 54%; /* green */
 
@@ -37,4 +37,7 @@
 	/* 2.3 Input Palette */
 	--color-input-bg: hsla(245, 24%, 51%, 25%);
 	--color-input-placeholder: hsl(245, 24%, 51%);
+
+	/* 2.4 Table Palette */
+	--color-thead-bg: hsl(246, 40%, 21%);
 }
