@@ -1,40 +1,19 @@
-# Download base image ubuntu 20.04
-FROM ubuntu:20.04
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 5000
 
-# LABEL about the custom image
-LABEL maintainer="stefan@fintech.builders"
-LABEL version="0.1"
-LABEL description="This is custom Docker Image for \
-CCScan Backend"
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY ["Application/Application.csproj", "Application/"]
+RUN dotnet restore "Application/Application.csproj" 
+COPY . .
+WORKDIR "/src/Application"
+RUN dotnet build "Application.csproj" -c Release -o /app/build
 
-# Disable Prompt During Packages Installation
-ARG DEBIAN_FRONTEND=noninteractive
+FROM build AS publish
+RUN dotnet publish "Application.csproj" -c Release -o /app/publish
 
-# Update Ubuntu Software repository
-RUN apt update
-RUN apt-get install wget   -y
-RUN apt install curl -y
-
-## Set up node and NPM
-RUN curl -sL https://deb.nodesource.com/setup_14.x |  bash - && \
-    apt -y install nodejs
-RUN  npm install http-serve -g -y
-RUN  npm install pm2 -g
-
-# Install nginx, php-fpm and supervisord from ubuntu repository
-RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb &&\
-    rm packages-microsoft-prod.deb
-
-RUN  apt-get update;  apt-get install -y apt-transport-https &&    apt-get update &&    apt-get install -y dotnet-sdk-6.0
-RUN  apt-get update;  apt-get install -y apt-transport-https &&    apt-get update &&    apt-get install -y aspnetcore-runtime-6.0
-
-
-COPY . /app
-
-# dette bør egentlig virke
-RUN cd /app  &&  chmod 777 ./Application
-CMD echo "everything set up - run me with entrypoint 'cd /app   && ./Application -migrate-db && ./Application'"
-# Expose Port for the Application 
-EXPOSE 5000 
-##Todo : also expose http/api ports
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Application.dll"]
