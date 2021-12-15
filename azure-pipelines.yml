@@ -64,6 +64,14 @@ stages:
       - job: Build
         displayName: Build
         steps:
+          - task: Docker@2
+            displayName: "Build and push image"
+            inputs:
+              containerRegistry: 'ccscan_discrete'
+              repository: backend.build
+              command: 'buildAndPush'
+              Dockerfile: '$(Build.SourcesDirectory)/backend/Dockerfile'
+              tags: $(Build.BuildId)
           - task: UseDotNet@2
             displayName: "Use .NET 6 Core sdk"
             inputs:
