@@ -14,7 +14,7 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"typecheck": "tsc --noEmit",
-		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue,.md ."
+		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue ."
 	},
 	"dependencies": {
 		"@heroicons/vue": "^1.0.5",
@@ -43,6 +43,7 @@
 		"jest": "26",
 		"lint-staged": "^12.1.2",
 		"postcss": "^8.4.4",
+		"prettier": "^2.5.1",
 		"tailwindcss": "^2.2.19",
 		"ts-jest": "^26",
 		"ts-node": "^10.4.0",
