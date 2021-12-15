@@ -42,22 +42,6 @@ stages:
               PathtoPublish: "$(Build.SourcesDirectory)/frontend/.output"
               ArtifactName: "files_frontend"
               publishLocation: "Container"
-  - stage: TestBackend
-    displayName: Test Backend
-    jobs:
-      - job: Test
-        displayName: Test
-        steps:
-          - task: UseDotNet@2
-            displayName: "Use .NET 6 Core sdk"
-            inputs:
-              packageType: "sdk"
-              version: "6.0.x"
-              includePreviewVersions: true
-          # - task: DotNetCoreCLI@2
-          #   inputs:
-          #     command: 'test'
-          #     projects: '**/Tests.csproj'
   - stage: BuildBackend
     displayName: Build Backend
     jobs:
@@ -71,26 +55,4 @@ stages:
               repository: backend.build
               command: 'buildAndPush'
               Dockerfile: '$(Build.SourcesDirectory)/backend/Dockerfile'
-              tags: $(Build.BuildId)
-          - task: UseDotNet@2
-            displayName: "Use .NET 6 Core sdk"
-            inputs:
-              packageType: "sdk"
-              version: "6.0.x"
-              includePreviewVersions: true
-          - task: DotNetCoreCLI@2
-            inputs:
-              command: "build"
-              projects: "**/Application.csproj"
-          - task: CopyFiles@2
-            inputs:
-              SourceFolder: "$(Build.SourcesDirectory)/backend/"
-              Contents: "Dockerfile"
-              TargetFolder: "$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0"
-          - task: PublishBuildArtifacts@1
-            displayName: Publish backend source artifact
-            inputs:
-              PathtoPublish: "$(Build.SourcesDirectory)/backend/Application/bin/Debug/net6.0"
-              ArtifactName: "files_backend"
-              publishLocation: "Container"
-          - task: PublishBuildArtifacts@1
+              tags: $(Build.BuildNumber)
