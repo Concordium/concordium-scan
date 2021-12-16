@@ -9,14 +9,14 @@ public readonly struct BlockHash
     {
         if (value.Length != 32) throw new ArgumentException("value must be 32 bytes");
         _value = value;
-        _formatted = Convert.ToHexString(value);
+        _formatted = Convert.ToHexString(value).ToLowerInvariant();
     }
 
     public BlockHash(string value)
     {
         if (value.Length != 64) throw new ArgumentException("string must be 64 char hex string.");
         _value = Convert.FromHexString(value);
-        _formatted = value;
+        _formatted = value.ToLowerInvariant();
     }
 
     public string AsString => _formatted;

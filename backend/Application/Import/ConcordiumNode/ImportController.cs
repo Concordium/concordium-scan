@@ -2,6 +2,8 @@
 using System.Threading.Tasks;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using Microsoft.Extensions.Hosting;
 
 namespace Application.Import.ConcordiumNode;
@@ -23,13 +25,15 @@ public class ImportController : BackgroundService
     {
         _logger.Information("Starting import from Concordium Node...");
 
-        var maxBlockHeight = _repository.GetMaxBlockHeight();
-        var startingBlockHeight = maxBlockHeight.HasValue ? maxBlockHeight.Value + 1 : 0;
+        var consensusStatus = await _client.GetConsensusStatusAsync();
+        var importedMaxBlockHeight = _repository.GetMaxBlockHeight();
+        var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
+        EnsurePreconditions(consensusStatus, importedMaxBlockHeight, importedGenesisBlockHash);
 
-        _logger.Information("Starting at block height {height}", startingBlockHeight);
+        var startingBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
+        _logger.Information("Starting import at block height {height}", startingBlockHeight);
         
         var nextHeight = startingBlockHeight;
-        var consensusStatus = await _client.GetConsensusStatusAsync();
         while (consensusStatus.LastFinalizedBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
         {
             var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)nextHeight);
@@ -54,5 +58,28 @@ public class ImportController : BackgroundService
         }
         
         _logger.Information("Import from Concordium Node stopped...");
+    }
+
+    private void EnsurePreconditions(ConsensusStatus consensusStatus, int? importedMaxBlockHeight, BlockHash? importedGenesisBlockHash)
+    {
+        var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
+        _logger.Information("Consensus status read from Concordium Node. Genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
+
+        if (importedMaxBlockHeight.HasValue != importedGenesisBlockHash.HasValue)
+            throw new InvalidOperationException("Null-state of both state values from database must match!");
+        
+        if (importedMaxBlockHeight.HasValue && importedGenesisBlockHash.HasValue)
+        {
+            var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash.Value);
+            _logger.Information(
+                "Database import state read. Max block height is '{maxBlockHeight}' and genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}",
+                importedMaxBlockHeight, importedGenesisBlockHash.Value.AsString, databaseNetworkId.NetworkName);
+
+            if (consensusStatus.GenesisBlock != importedGenesisBlockHash)
+                throw new InvalidOperationException("Genesis block hash of Concordium Node and Database are not identical.");
+            _logger.Information("Genesis block hash of Concordium Node and Database are identical");
+        }
+        else
+            _logger.Information("Import status from database read. No data was previously imported.");
     }
 }

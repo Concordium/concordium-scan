@@ -130,4 +130,26 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
         var result = _target.FindTransactionSummaries(startTime, endTime, TransactionType.Get(AccountTransactionType.SimpleTransfer));
         Assert.Equal(expectedNumberOfResults, result.Length);
     }
+
+    [Fact]
+    public void GetGenesisBlockHash_EmptyDatabase()
+    {
+        var result = _target.GetGenesisBlockHash();
+        Assert.Null(result);
+    }
+    
+    [Fact]
+    public void GetGenesisBlockHash_NonEmptyDatabase()
+    {
+        var blockInfo = new BlockInfoBuilder()
+            .WithBlockHeight(0)
+            .WithBlockHash(new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
+            .Build();
+        var blockSummary = new BlockSummaryBuilder().Build();
+        
+        _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
+
+        var result = _target.GetGenesisBlockHash();
+        Assert.Equal("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc", result.Value.AsString);
+    }
 }

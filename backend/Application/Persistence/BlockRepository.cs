@@ -171,4 +171,15 @@ public class BlockRepository
             return TransactionType.Get((UpdateTransactionType)obj.transaction_sub_type);
         throw new InvalidOperationException("Unknown transaction summary type");
     }
+
+    public BlockHash? GetGenesisBlockHash()
+    {
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+
+        var blockHashBytes = conn.QuerySingleOrDefault<byte[]>("SELECT block_hash FROM finalized_block WHERE block_height = 0");
+        
+        var result = blockHashBytes != null ? new BlockHash(blockHashBytes) : (BlockHash?)null;
+        return result;
+    }
 }

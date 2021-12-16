@@ -8,6 +8,7 @@ public class BlockInfoBuilder
 {
     private int _blockHeight = 1;
     private DateTimeOffset _blockSlotTime = new(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero);
+    private BlockHash _blockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc");
 
     public BlockInfoBuilder WithBlockHeight(int value)
     {
@@ -19,7 +20,7 @@ public class BlockInfoBuilder
     {
         return new BlockInfo
         {
-            BlockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"),    
+            BlockHash = _blockHash,    
             BlockParent = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
             BlockLastFinalized = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
             BlockHeight = _blockHeight,
@@ -41,6 +42,12 @@ public class BlockInfoBuilder
     public BlockInfoBuilder WithBlockSlotTime(DateTimeOffset value)
     {
         _blockSlotTime = value;
+        return this;
+    }
+
+    public BlockInfoBuilder WithBlockHash(BlockHash value)
+    {
+        _blockHash = value;
         return this;
     }
 }

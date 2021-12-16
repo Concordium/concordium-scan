@@ -45,7 +45,7 @@ namespace Application.Database
             }
             else
             {
-                _logger.Information("Database does not required upgrade.");
+                _logger.Information("Database does not require upgrade.");
             }
         }
 
