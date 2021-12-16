@@ -16,6 +16,6 @@ export default defineComponent({
 
 <style module>
 .td {
-	@apply px-6 py-3;
+	@apply px-6 py-3 whitespace-nowrap;
 }
 </style>
