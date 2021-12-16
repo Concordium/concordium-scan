@@ -11,8 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-var performDatabaseMigration = args.FirstOrDefault()?.ToLower() == "migrate-db";
-
 var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
@@ -23,7 +21,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
 var logger = Log.ForContext<Program>();
 
-logger.Information("Application starting... [run-mode={runMode}]", performDatabaseMigration ? "migrate-db" : "normal");
+logger.Information("Application starting...");
 
 var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
@@ -42,26 +40,19 @@ var app = builder.Build();
 
 try
 {
-    if (performDatabaseMigration)
-    {
-        logger.Information("Starting database migration...");
-        app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabase();
-        logger.Information("Database migration finished successfully");
-    }
-    else
-    {
-        app.Services.GetRequiredService<DatabaseMigrator>().EnsureDatabaseMigrationNotNeeded();
-        
-        app
-            .UseRouting()
-            .UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.MapGraphQL();
-            });
-        
-        app.Run();    
-    }
+    logger.Information("Starting database migration...");
+    app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabase();
+    logger.Information("Database migration finished successfully");
+
+    app
+        .UseRouting()
+        .UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapGraphQL();
+        });
+    
+    app.Run();    
 }
 catch (Exception e)
 {
