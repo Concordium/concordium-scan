@@ -23,7 +23,7 @@ public class ConsensusStatus
 
     // Received block statistics
     public int BlocksReceivedCount { get; init; }
-    public DateTimeOffset BlockLastReceivedTime { get; init; }
+    public DateTimeOffset? BlockLastReceivedTime { get; init; }
     public double BlockReceiveLatencyEma { get; init; }
     public double BlockReceiveLatencyEmsd { get; init; }
     public double? BlockReceivePeriodEma { get; init; }
