@@ -30,17 +30,17 @@ public class ImportController : BackgroundService
         var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
         EnsurePreconditions(consensusStatus, importedMaxBlockHeight, importedGenesisBlockHash);
 
-        var startingBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
-        _logger.Information("Starting import at block height {height}", startingBlockHeight);
+        var importStartBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
+        _logger.Information("Starting import at block height {height}", importStartBlockHeight);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
-                await ImportBatch(startingBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
+                await ImportBatch(importStartBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
                 
                 importedMaxBlockHeight = consensusStatus.LastFinalizedBlockHeight;
-                startingBlockHeight = importedMaxBlockHeight.Value;
+                importStartBlockHeight = importedMaxBlockHeight.Value + 1;
             }
 
             else if (consensusStatus.LastFinalizedBlockHeight == importedMaxBlockHeight)
