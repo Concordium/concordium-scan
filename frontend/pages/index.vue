@@ -13,35 +13,34 @@
 			</TableHead>
 			<TableBody>
 				<TableRow v-for="block in blocks" :key="block.hash">
-					<TableTd
-						><StatusCircle
+					<TableTd>
+						<StatusCircle
 							:class="[
 								$style.statusIcon,
 								{ 'text-blue-600': block.status === 'Pending' },
 							]"
-						/>{{ block.status }}</TableTd
-					>
+						/>
+						{{ block.status }}
+					</TableTd>
 					<TableTd>{{ block.timestamp }}</TableTd>
-					<TableTd :class="$style.numerical"
-						><LinkButton
-							><HashtagIcon :class="$style.cellIcon" />{{
-								block.hash
-							}}</LinkButton
-						></TableTd
-					>
-					<TableTd align="right" :class="$style.numerical">{{
-						block.transactions
-					}}</TableTd>
-					<TableTd :class="$style.numerical"
-						><LinkButton
-							><UserIcon :class="$style.cellIcon" />{{
-								block.baker
-							}}</LinkButton
-						></TableTd
-					>
-					<TableTd align="right" :class="$style.numerical">{{
-						block.reward
-					}}</TableTd>
+					<TableTd :class="$style.numerical">
+						<LinkButton>
+							<HashtagIcon :class="$style.cellIcon" />
+							{{ block.hash }}
+						</LinkButton>
+					</TableTd>
+					<TableTd align="right" :class="$style.numerical">
+						{{ block.transactions }}
+					</TableTd>
+					<TableTd :class="$style.numerical">
+						<LinkButton>
+							<UserIcon :class="$style.cellIcon" />
+							{{ block.baker }}
+						</LinkButton>
+					</TableTd>
+					<TableTd align="right" :class="$style.numerical">
+						{{ block.reward }}
+					</TableTd>
 				</TableRow>
 			</TableBody>
 		</Table>
