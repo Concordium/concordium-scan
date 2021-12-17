@@ -35,10 +35,12 @@ public class ImportController : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
+            if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
                 await ImportBatch(startingBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
+                
                 importedMaxBlockHeight = consensusStatus.LastFinalizedBlockHeight;
+                startingBlockHeight = importedMaxBlockHeight.Value;
             }
 
             else if (consensusStatus.LastFinalizedBlockHeight == importedMaxBlockHeight)
