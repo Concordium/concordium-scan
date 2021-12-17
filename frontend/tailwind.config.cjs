@@ -31,11 +31,7 @@ module.exports = {
 	theme: {
 		fontFamily: {
 			mono: 'var(--font-family-mono)',
-			body: 'var(--font-family-primary)',
-			primary: 'var(--font-family-primary)',
-			secondary: 'var(--font-family-primary)',
-			medium: 'var(--font-family-primary)',
-			cta: 'var(--font-family-primary)',
+			sans: 'var(--font-family-primary)',
 		},
 		backgroundColor: {
 			theme: {
