@@ -32,15 +32,40 @@ public class ImportController : BackgroundService
 
         var startingBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
         _logger.Information("Starting import at block height {height}", startingBlockHeight);
-        
-        var nextHeight = startingBlockHeight;
-        while (consensusStatus.LastFinalizedBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            if (consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
+            {
+                await ImportBatch(startingBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
+                importedMaxBlockHeight = consensusStatus.LastFinalizedBlockHeight;
+            }
+
+            else if (consensusStatus.LastFinalizedBlockHeight == importedMaxBlockHeight)
+                await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
+            
+            else
+            {
+                _logger.Warning("Looks like the Concordium node is catching up, will wait a while and then check again... [NodeLastFinalizedBlockHeight: {lastFinalizedBlockHeight}] [DatabaseMaxImportedBlockHeight: {maxImportedBlockHeight}]", consensusStatus.LastFinalizedBlockHeight, importedMaxBlockHeight);
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
+
+            consensusStatus = await _client.GetConsensusStatusAsync();
+        }
+
+        _logger.Information("Import from Concordium Node stopped...");
+    }
+
+    private async Task ImportBatch(int startBlockHeight, int endBlockHeight, CancellationToken stoppingToken)
+    {
+        var nextHeight = startBlockHeight;
+        while (endBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
         {
             var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)nextHeight);
             if (blocksAtHeight.Length != 1)
                 throw new InvalidOperationException("Unexpected with more than one block at a given height."); // TODO: consider how/if this should be handled
             var blockHash = blocksAtHeight.Single();
-            
+
             var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
             var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
             var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
@@ -48,7 +73,7 @@ public class ImportController : BackgroundService
             var blockInfo = await blockInfoTask;
             var blockSummaryString = await blockSummaryStringTask;
             var blockSummary = await blockSummaryTask;
-            
+
             // TODO: Publish result - for now just write directly to db
             _repository.Insert(blockInfo, blockSummaryString, blockSummary);
 
@@ -56,8 +81,6 @@ public class ImportController : BackgroundService
 
             nextHeight++;
         }
-        
-        _logger.Information("Import from Concordium Node stopped...");
     }
 
     private void EnsurePreconditions(ConsensusStatus consensusStatus, int? importedMaxBlockHeight, BlockHash? importedGenesisBlockHash)
