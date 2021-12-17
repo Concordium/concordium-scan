@@ -2,9 +2,10 @@
 using System.Threading.Tasks;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
+using Grpc.Core;
 using Microsoft.Extensions.Hosting;
+using Polly;
 
 namespace Application.Import.ConcordiumNode;
 
@@ -23,39 +24,48 @@ public class ImportController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.Information("Starting import from Concordium Node...");
+        _logger.Information("Execute started...");
+        
+        await Policy
+            .Handle<RpcException>()
+            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnEnsurePreconditionRetry)
+            .ExecuteAsync(EnsurePreconditions);
 
-        var consensusStatus = await _client.GetConsensusStatusAsync();
+        await Policy
+            .Handle<RpcException>()
+            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnImportDataRetry)
+            .ExecuteAsync(() => ImportData(stoppingToken)); 
+
+        _logger.Information("Executed finished!");
+    }
+
+    private async Task ImportData(CancellationToken stoppingToken)
+    {
+        _logger.Information("Starting data import...");
+        
         var importedMaxBlockHeight = _repository.GetMaxBlockHeight();
-        var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
-        EnsurePreconditions(consensusStatus, importedMaxBlockHeight, importedGenesisBlockHash);
-
-        var importStartBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
-        _logger.Information("Starting import at block height {height}", importStartBlockHeight);
-
         while (!stoppingToken.IsCancellationRequested)
         {
+            var consensusStatus = await _client.GetConsensusStatusAsync();
+
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
-                await ImportBatch(importStartBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
-                
+                var startBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
+                await ImportBatch(startBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
                 importedMaxBlockHeight = consensusStatus.LastFinalizedBlockHeight;
-                importStartBlockHeight = importedMaxBlockHeight.Value + 1;
             }
 
             else if (consensusStatus.LastFinalizedBlockHeight == importedMaxBlockHeight)
                 await Task.Delay(TimeSpan.FromMilliseconds(100), stoppingToken);
-            
+
             else
             {
-                _logger.Warning("Looks like the Concordium node is catching up, will wait a while and then check again... [NodeLastFinalizedBlockHeight: {lastFinalizedBlockHeight}] [DatabaseMaxImportedBlockHeight: {maxImportedBlockHeight}]", consensusStatus.LastFinalizedBlockHeight, importedMaxBlockHeight);
+                _logger.Warning(
+                    "Looks like the Concordium node is catching up! Will wait a while and then check again... [NodeLastFinalizedBlockHeight: {lastFinalizedBlockHeight}] [DatabaseMaxImportedBlockHeight: {maxImportedBlockHeight}]",
+                    consensusStatus.LastFinalizedBlockHeight, importedMaxBlockHeight);
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
             }
-
-            consensusStatus = await _client.GetConsensusStatusAsync();
         }
-
-        _logger.Information("Import from Concordium Node stopped...");
     }
 
     private async Task ImportBatch(int startBlockHeight, int endBlockHeight, CancellationToken stoppingToken)
@@ -85,26 +95,41 @@ public class ImportController : BackgroundService
         }
     }
 
-    private void EnsurePreconditions(ConsensusStatus consensusStatus, int? importedMaxBlockHeight, BlockHash? importedGenesisBlockHash)
+    private async Task EnsurePreconditions()
     {
-        var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
-        _logger.Information("Consensus status read from Concordium Node. Genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
-
-        if (importedMaxBlockHeight.HasValue != importedGenesisBlockHash.HasValue)
-            throw new InvalidOperationException("Null-state of both state values from database must match!");
+        _logger.Information("Checking preconditions for importing data from Concordium node...");
         
-        if (importedMaxBlockHeight.HasValue && importedGenesisBlockHash.HasValue)
+        var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
+        
+        if (importedGenesisBlockHash.HasValue)
         {
             var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash.Value);
             _logger.Information(
-                "Database import state read. Max block height is '{maxBlockHeight}' and genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}",
-                importedMaxBlockHeight, importedGenesisBlockHash.Value.AsString, databaseNetworkId.NetworkName);
+                "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
+                importedGenesisBlockHash.Value.AsString, databaseNetworkId.NetworkName);
+
+            var consensusStatus = await _client.GetConsensusStatusAsync();
+            var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
+            _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
+                consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
 
             if (consensusStatus.GenesisBlock != importedGenesisBlockHash)
                 throw new InvalidOperationException("Genesis block hash of Concordium Node and Database are not identical.");
             _logger.Information("Genesis block hash of Concordium Node and Database are identical");
         }
         else
-            _logger.Information("Import status from database read. No data was previously imported.");
+            _logger.Information("Database does not contain genesis blocks hash. No data was previously imported.");
+    }
+
+    private void OnEnsurePreconditionRetry(Exception exception, TimeSpan ts)
+    {
+        var message = exception is RpcException rpcException ? rpcException.Status.Detail : exception.Message;
+        _logger.Error("Error while ensuring preconditions for data import. Will retry shortly! [message={errorMessage}]",  message);
+    }
+
+    private void OnImportDataRetry(Exception exception, TimeSpan ts)
+    {
+        var message = exception is RpcException rpcException ? rpcException.Status.Detail : exception.Message;
+        _logger.Error("Error while importing data. Will wait a while and then start import again! [message={errorMessage}]",  message);
     }
 }
