@@ -6,9 +6,9 @@
 					<TableTh>Status</TableTh>
 					<TableTh>Timestamp</TableTh>
 					<TableTh>Hash</TableTh>
-					<TableTh>Transactions</TableTh>
+					<TableTh align="right">Transactions</TableTh>
 					<TableTh>Baker</TableTh>
-					<TableTh>Reward (Ͼ)</TableTh>
+					<TableTh align="right">Reward (Ͼ)</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -49,6 +49,8 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import { useQuery } from '@urql/vue'
+
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import { blocks } from '~/__mocks__/blocks'
 import StatusCircle from '~/components/icons/StatusCircle'
@@ -73,6 +75,25 @@ export default defineComponent({
 		HashtagIcon,
 		UserIcon,
 	},
+	setup() {
+		const { data } = useQuery({
+			query: `
+				query {
+					characters {
+						results {
+							name
+							origin
+							location
+						}
+					}
+				}
+			`,
+		})
+
+		return {
+			data,
+		}
+	},
 	data() {
 		return {
 			blocks,
@@ -86,7 +107,7 @@ export default defineComponent({
 	@apply h-4 mr-2 text-green-600;
 }
 .cellIcon {
-	@apply h-4 text-white inline align-baseline mr-1;
+	@apply h-4 text-white inline align-baseline;
 }
 
 .numerical {

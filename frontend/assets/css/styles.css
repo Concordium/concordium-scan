@@ -41,3 +41,7 @@
 	/* 2.4 Table Palette */
 	--color-thead-bg: hsl(246, 40%, 21%);
 }
+
+::selection {
+	background-color: hotpink;
+}

@@ -1,5 +1,5 @@
 <template>
-	<th :class="$style.th">
+	<th :class="$style.th" align="left">
 		<slot />
 	</th>
 </template>
@@ -15,7 +15,7 @@ export default defineComponent({
 
 <style module>
 .th {
-	@apply px-6 py-3 font-normal text-left  whitespace-nowrap;
+	@apply px-6 py-3 font-normal whitespace-nowrap;
 	background-color: var(--color-thead-bg);
 }
 
