@@ -61,6 +61,7 @@ public class BlockRepository
         var transactionSummaries = blockSummary.TransactionSummaries.Select(tx => new
         {
             BlockHeight = blockInfo.BlockHeight,
+            BlockHash = blockInfo.BlockHash.AsBytes, 
             TransactionIndex = tx.Index,
             Sender = tx.Sender?.AsBytes,
             TransactionHash = tx.Hash.AsBytes,
@@ -73,8 +74,8 @@ public class BlockRepository
         });
         
         conn.Execute(
-            "INSERT INTO transaction_summary(block_height, transaction_index, sender, transaction_hash, cost, energy_cost, transaction_type, transaction_sub_type, success_events, reject_reason_type) " +
-            "VALUES (@BlockHeight, @TransactionIndex, @Sender, @TransactionHash, @Cost, @EnergyCost, @TransactionType, @TransactionSubType, CAST(@SuccessEvents AS json), @RejectReasonType)",
+            "INSERT INTO transaction_summary(block_height, block_hash, transaction_index, sender, transaction_hash, cost, energy_cost, transaction_type, transaction_sub_type, success_events, reject_reason_type) " +
+            "VALUES (@BlockHeight, @BlockHash, @TransactionIndex, @Sender, @TransactionHash, @Cost, @EnergyCost, @TransactionType, @TransactionSubType, CAST(@SuccessEvents AS json), @RejectReasonType)",
             transactionSummaries);
         
         tx.Commit();
