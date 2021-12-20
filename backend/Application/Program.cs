@@ -47,7 +47,11 @@ try
 
     app
         .UseRouting()
-        .UseCors(pb => pb.AllowAnyOrigin())
+        .UseCors(pb =>
+        {
+            pb.AllowAnyOrigin();
+            pb.AllowAnyHeader();
+        })
         .UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
