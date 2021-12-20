@@ -19,7 +19,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
         _target = new BlockRepository(_dbFixture.DatabaseSettings);
         
         using var connection = _dbFixture.GetOpenConnection();
-        connection.Execute("TRUNCATE TABLE finalized_block");
+        connection.Execute("TRUNCATE TABLE block");
         connection.Execute("TRUNCATE TABLE transaction_summary");
     }
 

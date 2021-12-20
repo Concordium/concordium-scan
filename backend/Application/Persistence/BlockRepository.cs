@@ -22,7 +22,7 @@ public class BlockRepository
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        return conn.QuerySingle<int?>("SELECT max(block_height) FROM finalized_block");
+        return conn.QuerySingle<int?>("SELECT max(block_height) FROM block");
     }
 
     public void Insert(BlockInfo blockInfo, string blockSummaryString, BlockSummary blockSummary)
@@ -54,8 +54,8 @@ public class BlockRepository
         };
 
         conn.Execute(
-            "INSERT INTO finalized_block(block_height, block_hash, parent_block, block_last_finalized, genesis_index, era_block_height, block_receive_time, block_arrive_time, block_slot, block_slot_time, block_baker, transaction_count, transaction_energy_cost, transaction_size, block_state_hash, block_summary) " +
-            " VALUES (@Blockheight, @Blockhash, @Parentblock, @Blocklastfinalized, @Genesisindex, @Erablockheight, @Blockreceivetime, @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Transactioncount, @Transactionenergycost, @Transactionsize, @Blockstatehash, CAST(@Blocksummary AS json))",
+            "INSERT INTO block(block_height, block_hash, parent_block, block_last_finalized, genesis_index, era_block_height, block_receive_time, block_arrive_time, block_slot, block_slot_time, block_baker, finalized, transaction_count, transaction_energy_cost, transaction_size, block_state_hash, block_summary) " +
+            " VALUES (@Blockheight, @Blockhash, @Parentblock, @Blocklastfinalized, @Genesisindex, @Erablockheight, @Blockreceivetime, @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Finalized, @Transactioncount, @Transactionenergycost, @Transactionsize, @Blockstatehash, CAST(@Blocksummary AS json))",
             blockParams);
 
         var transactionSummaries = blockSummary.TransactionSummaries.Select(tx => new
@@ -115,7 +115,7 @@ public class BlockRepository
 
         var boundsParams = new { startTime, endTime };
         var boundsResult = conn.QuerySingle(
-            "select (select min(block_height) from finalized_block where block_slot_time >= @startTime) as start_block_height, (select max(block_height) from finalized_block where block_slot_time <= @endTime) as end_block_height", boundsParams);
+            "select (select min(block_height) from block where block_slot_time >= @startTime) as start_block_height, (select max(block_height) from block where block_slot_time <= @endTime) as end_block_height", boundsParams);
 
         if (boundsResult.start_block_height == null || 
             boundsResult.end_block_height == null ||
@@ -178,7 +178,7 @@ public class BlockRepository
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var blockHashBytes = conn.QuerySingleOrDefault<byte[]>("SELECT block_hash FROM finalized_block WHERE block_height = 0");
+        var blockHashBytes = conn.QuerySingleOrDefault<byte[]>("SELECT block_hash FROM block WHERE block_height = 0");
         
         var result = blockHashBytes != null ? new BlockHash(blockHashBytes) : (BlockHash?)null;
         return result;

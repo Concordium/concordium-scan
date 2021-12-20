@@ -1,6 +1,7 @@
-﻿create table finalized_block
+﻿create table block
 (
-    block_height            bigint    primary key,
+    id                      bigint    primary key generated always as identity,
+    block_height            bigint    not null,
     block_hash              bytea     not null,
     parent_block            bytea     not null,
     block_last_finalized    bytea     not null,
@@ -11,6 +12,7 @@
     block_slot              int       not null,
     block_slot_time         timestamp not null,
     block_baker             int       null,
+    finalized               bool      not null, 
     transaction_count       int       not null,
     transaction_energy_cost int       not null,
     transaction_size        int       not null,

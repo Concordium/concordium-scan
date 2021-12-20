@@ -31,10 +31,14 @@ public class Query
         var blocks = FindBlocks(afterId, beforeId, first, last);
         
         var edges = blocks
-            .Select(block => new Edge<Block>(block, block.BlockHeight.ToString()))
+            .Select(block => new Edge<Block>(block, block.Id.ToString()))
             .ToArray();
 
-        var pageInfo = new ConnectionPageInfo(!ReferenceEquals(blocks.Last(), _allBlocks.Value.Last()), !ReferenceEquals(blocks.First(), _allBlocks.Value.First()), blocks.First().BlockHeight.ToString(), blocks.Last().BlockHeight.ToString());
+        var pageInfo = new ConnectionPageInfo(
+            !ReferenceEquals(blocks.Last(), _allBlocks.Value.Last()), 
+            !ReferenceEquals(blocks.First(), _allBlocks.Value.First()), 
+            blocks.First().Id.ToString(), 
+            blocks.Last().Id.ToString());
 
         return new Connection<Block>(edges, pageInfo, ct => ValueTask.FromResult(0));
     }
@@ -51,11 +55,16 @@ public class Query
             .Select(transaction => new Edge<Transaction>(transaction, transaction.Id.ToString()))
             .ToArray();
 
-        var pageInfo = new ConnectionPageInfo(!ReferenceEquals(transactions.Last(), _allTransactions.Value.Last()), !ReferenceEquals(transactions.First(), _allTransactions.Value.First()), transactions.First().Id.ToString(), transactions.Last().Id.ToString());
+        var pageInfo = transactions.Any()
+            ? new ConnectionPageInfo(
+                !ReferenceEquals(transactions.Last(), _allTransactions.Value.Last()),
+                !ReferenceEquals(transactions.First(), _allTransactions.Value.First()),
+                transactions.First().Id.ToString(),
+                transactions.Last().Id.ToString())
+            : new ConnectionPageInfo(false, false, null, null);
 
         return new Connection<Transaction>(edges, pageInfo, ct => ValueTask.FromResult(0));
     }
-    
 
     private Block[] FindBlocks(int? afterId, int? beforeId, int? first, int? last)
     {
@@ -86,10 +95,11 @@ public class Query
 
         var result =
             conn.Query(
-                "SELECT block_hash, block_height, block_slot_time, transaction_count FROM finalized_block WHERE block_height < 40000");
+                "SELECT id, block_hash, block_height, block_slot_time, transaction_count FROM block WHERE block_height < 40000");
         
         return result.Select(obj => new Block()
         {
+            Id = obj.id,
             BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
             BlockHeight = (int)obj.block_height,
             BlockSlotTime = (DateTimeOffset)obj.block_slot_time,
@@ -110,8 +120,8 @@ public class Query
         return result.Select(obj => new Transaction()
         {
             Id = obj.id,
-            BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
             BlockHeight = (int)obj.block_height,
+            BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
             TransactionIndex = obj.transaction_index,
             TransactionHash = new TransactionHash((byte[])obj.transaction_hash).AsString,
             SenderAccountAddress = obj.sender != null ? new AccountAddress((byte[])obj.sender).AsString : "",

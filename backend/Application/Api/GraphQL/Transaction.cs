@@ -2,14 +2,14 @@
 
 public class Transaction
 {
-    public int Id { get; set; }
+    public long Id { get; set; }
     public string BlockHash { get; set; }
-    public int BlockHeight { get; set; }
+    public long BlockHeight { get; set; }
     public int TransactionIndex { get; set; }
     public string TransactionHash { get; set; }
     public string SenderAccountAddress { get; set; }
-    public int CcdCost { get; set; }
-    public int EnergyCost { get; set; }
+    public long CcdCost { get; set; }
+    public long EnergyCost { get; set; }
     
     // TODO: how to model BlockItemKind and TransactionType? Strings, enums, other?
 
