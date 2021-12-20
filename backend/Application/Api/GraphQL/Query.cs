@@ -13,11 +13,13 @@ public class Query
     private const int DefaultPageSize = 20;
     private readonly DatabaseSettings _dbSettings;
     private readonly Lazy<Block[]> _allBlocks; 
+    private readonly Lazy<Transaction[]> _allTransactions; 
     
     public Query(DatabaseSettings dbSettings)
     {
         _dbSettings = dbSettings;
-        _allBlocks = new Lazy<Block[]>(FetchSampleSetFromDb);
+        _allBlocks = new Lazy<Block[]>(FetchSampleBlockSetFromDb);
+        _allTransactions = new Lazy<Transaction[]>(FetchSampleTransactionSetFromDb);
     }
 
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize)]
@@ -37,6 +39,24 @@ public class Query
         return new Connection<Block>(edges, pageInfo, ct => ValueTask.FromResult(0));
     }
 
+    [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize)]
+    public Connection<Transaction> GetTransactions(string? after, int? first, string? before, int? last)
+    {
+        int? afterId = after != null ? Convert.ToInt32(after) : null;
+        int? beforeId = before != null ? Convert.ToInt32(before) : null;
+
+        var transactions = FindTransactions(afterId, beforeId, first, last);
+        
+        var edges = transactions
+            .Select(transaction => new Edge<Transaction>(transaction, transaction.Id.ToString()))
+            .ToArray();
+
+        var pageInfo = new ConnectionPageInfo(!ReferenceEquals(transactions.Last(), _allTransactions.Value.Last()), !ReferenceEquals(transactions.First(), _allTransactions.Value.First()), transactions.First().Id.ToString(), transactions.Last().Id.ToString());
+
+        return new Connection<Transaction>(edges, pageInfo, ct => ValueTask.FromResult(0));
+    }
+    
+
     private Block[] FindBlocks(int? afterId, int? beforeId, int? first, int? last)
     {
         if (afterId.HasValue)
@@ -48,14 +68,25 @@ public class Query
         return _allBlocks.Value.Take(first ?? DefaultPageSize).ToArray();
     }
 
-    private Block[] FetchSampleSetFromDb()
+    private Transaction[] FindTransactions(int? afterId, int? beforeId, int? first, int? last)
+    {
+        if (afterId.HasValue)
+            return _allTransactions.Value.Where(x => x.Id > afterId.Value).Take(first ?? DefaultPageSize).ToArray();
+        if (beforeId.HasValue)
+            return _allTransactions.Value.Where(x => x.Id < beforeId.Value).TakeLast(last ?? DefaultPageSize).ToArray();
+        if (last.HasValue)
+            return _allTransactions.Value.TakeLast(last.Value).ToArray();
+        return _allTransactions.Value.Take(first ?? DefaultPageSize).ToArray();
+    }
+
+    private Block[] FetchSampleBlockSetFromDb()
     {
         using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         conn.Open();
 
         var result =
             conn.Query(
-                "SELECT block_hash, block_height, block_slot_time, transaction_count FROM finalized_block WHERE block_height < 500");
+                "SELECT block_hash, block_height, block_slot_time, transaction_count FROM finalized_block WHERE block_height < 40000");
         
         return result.Select(obj => new Block()
         {
@@ -66,4 +97,28 @@ public class Query
             TransactionCount = (int)obj.transaction_count
         }).ToArray();
     }
+    
+    private Transaction[] FetchSampleTransactionSetFromDb()
+    {
+        using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
+        conn.Open();
+
+        var result =
+            conn.Query(
+                "SELECT id, block_height, block_hash, transaction_index, transaction_hash, sender, cost, energy_cost FROM transaction_summary WHERE block_height < 40000");
+        
+        return result.Select(obj => new Transaction()
+        {
+            Id = obj.id,
+            BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
+            BlockHeight = (int)obj.block_height,
+            TransactionIndex = obj.transaction_index,
+            TransactionHash = new TransactionHash((byte[])obj.transaction_hash).AsString,
+            SenderAccountAddress = obj.sender != null ? new AccountAddress((byte[])obj.sender).AsString : "",
+            CcdCost = obj.cost,
+            EnergyCost = obj.energy_cost
+        }).ToArray();
+    }
+    
+    
 }
