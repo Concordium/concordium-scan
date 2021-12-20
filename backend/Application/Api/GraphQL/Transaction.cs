@@ -1,7 +1,10 @@
-﻿namespace Application.Api.GraphQL;
+﻿using HotChocolate.Types.Relay;
+
+namespace Application.Api.GraphQL;
 
 public class Transaction
 {
+    [ID]
     public long Id { get; set; }
     public string BlockHash { get; set; }
     public long BlockHeight { get; set; }

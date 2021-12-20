@@ -1,10 +1,12 @@
 ﻿using HotChocolate;
 using HotChocolate.Types;
+using HotChocolate.Types.Relay;
 
 namespace Application.Api.GraphQL;
 
 public class Block
 {
+    [ID]
     public long Id { get; set; }
     public string BlockHash { get; set; }
     public int BlockHeight { get; set; }
