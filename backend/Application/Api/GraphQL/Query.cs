@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using HotChocolate.Types;
 using HotChocolate.Types.Pagination;
+using HotChocolate.Types.Relay;
 
 namespace Application.Api.GraphQL;
 
@@ -14,6 +15,11 @@ public class Query
         _sampleDataSet = sampleDataSet;
     }
 
+    public Block? GetBlock([ID] long id)
+    {
+        return _sampleDataSet.AllBlocks.SingleOrDefault(block => block.Id == id);
+    }
+    
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize)]
     public Connection<Block> GetBlocks(string? after, int? first, string? before, int? last)
     {
@@ -35,6 +41,11 @@ public class Query
         return new Connection<Block>(edges, pageInfo, ct => ValueTask.FromResult(0));
     }
 
+    public Transaction? GetTransaction([ID] long id)
+    {
+        return _sampleDataSet.AllTransactions.SingleOrDefault(tx => tx.Id == id);
+    }
+    
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize)]
     public Connection<Transaction> GetTransactions(string? after, int? first, string? before, int? last)
     {
