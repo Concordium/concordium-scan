@@ -28,7 +28,7 @@ public class SampleDataSet
 
         var result =
             conn.Query(
-                "SELECT id, block_hash, block_height, block_slot_time, transaction_count FROM block WHERE block_height < 40000");
+                "SELECT id, block_hash, block_height, block_slot_time, block_baker, transaction_count FROM block WHERE block_height < 40000");
         
         return result.Select(obj => new Block()
         {
@@ -36,6 +36,7 @@ public class SampleDataSet
             BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
             BlockHeight = (int)obj.block_height,
             BlockSlotTime = (DateTimeOffset)obj.block_slot_time,
+            BakerId = obj.block_baker,
             Finalized = true,
             TransactionCount = (int)obj.transaction_count
         }).ToArray();
