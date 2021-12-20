@@ -6,6 +6,7 @@ using Application.Import.ConcordiumNode;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -28,6 +29,7 @@ logger.Information("Using Postgres connection string: {postgresConnectionString}
 
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().AddQueryType<Query>();
+builder.Services.AddSingleton<SampleDataSet>();
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<GrpcNodeClient>();
