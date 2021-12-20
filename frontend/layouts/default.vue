@@ -5,17 +5,14 @@
 	</div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script setup lang="ts">
 import { createClient, provideClient } from '@urql/vue'
 
+const { apiUrl } = useRuntimeConfig()
+
 const client = createClient({
-	url: 'https://countries.trevorblades.com/',
+	url: apiUrl,
 })
 
-export default defineComponent({
-	setup() {
-		provideClient(client)
-	},
-})
+provideClient(client)
 </script>

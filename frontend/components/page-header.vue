@@ -1,5 +1,5 @@
 <template>
-	<header class="flex justify-between p-5">
+	<header class="flex justify-between p-5 mb-20">
 		<NuxtLink to="/" :class="$style.link">
 			<logo-horizontal />
 		</NuxtLink>

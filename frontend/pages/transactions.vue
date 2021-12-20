@@ -1,5 +1,5 @@
 <template>
-	<main>
-		<p class="text-white">Transactions</p>
+	<main class="p-4 flex items-center justify-center h-full">
+		<h1 class="text-white">Transactions</h1>
 	</main>
 </template>
