@@ -123,13 +123,13 @@ public class ImportController : BackgroundService
 
     private void OnEnsurePreconditionRetry(Exception exception, TimeSpan ts)
     {
-        var message = exception is RpcException rpcException ? rpcException.Status.Detail : exception.Message;
-        _logger.Error("Error while ensuring preconditions for data import. Will retry shortly! [message={errorMessage}]",  message);
+        var message = exception is RpcException rpcException ? $"{rpcException.Status.StatusCode}: {rpcException.Status.Detail}" : exception.Message;
+        _logger.Error("Error while ensuring preconditions for data import. Will retry shortly! [message={errorMessage}] [exception-type={exceptionType}]",  message, exception.GetType());
     }
 
     private void OnImportDataRetry(Exception exception, TimeSpan ts)
     {
-        var message = exception is RpcException rpcException ? rpcException.Status.Detail : exception.Message;
-        _logger.Error("Error while importing data. Will wait a while and then start import again! [message={errorMessage}]",  message);
+        var message = exception is RpcException rpcException ? $"{rpcException.Status.StatusCode}: {rpcException.Status.Detail}" : exception.Message;
+        _logger.Error("Error while importing data. Will wait a while and then start import again! [message={errorMessage}] [exception-type={exceptionType}]",  message, exception.GetType());
     }
 }
