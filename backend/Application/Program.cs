@@ -26,6 +26,7 @@ logger.Information("Application starting...");
 var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
+builder.Services.AddCors();
 builder.Services.AddGraphQLServer().AddQueryType<Query>();
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
@@ -46,6 +47,7 @@ try
 
     app
         .UseRouting()
+        .UseCors(pb => pb.AllowAnyOrigin())
         .UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
