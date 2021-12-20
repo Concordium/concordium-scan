@@ -47,59 +47,9 @@
 	</main>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-import { useQuery } from '@urql/vue'
-
+<script lang="ts" setup>
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import { blocks } from '~/__mocks__/blocks'
-import StatusCircle from '~/components/icons/StatusCircle'
-import LinkButton from '~/components/atoms/LinkButton'
-import Table from '~/components/Table/Table'
-import TableHead from '~/components/Table/TableHead'
-import TableBody from '~/components/Table/TableBody'
-import TableRow from '~/components/Table/TableRow'
-import TableTh from '~/components/Table/TableTh'
-import TableTd from '~/components/Table/TableTd'
-
-export default defineComponent({
-	components: {
-		StatusCircle,
-		LinkButton,
-		Table,
-		TableHead,
-		TableBody,
-		TableRow,
-		TableTd,
-		TableTh,
-		HashtagIcon,
-		UserIcon,
-	},
-	setup() {
-		const { data } = useQuery({
-			query: `
-				query {
-					characters {
-						results {
-							name
-							origin
-							location
-						}
-					}
-				}
-			`,
-		})
-
-		return {
-			data,
-		}
-	},
-	data() {
-		return {
-			blocks,
-		}
-	},
-})
 </script>
 
 <style module>

@@ -21,28 +21,11 @@
 	</main>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script lang="ts" setup>
 import { useQuery } from '@urql/vue'
-import Table from '~/components/Table/Table'
-import TableHead from '~/components/Table/TableHead'
-import TableBody from '~/components/Table/TableBody'
-import TableRow from '~/components/Table/TableRow'
-import TableTh from '~/components/Table/TableTh'
-import TableTd from '~/components/Table/TableTd'
 
-export default defineComponent({
-	components: {
-		Table,
-		TableHead,
-		TableBody,
-		TableRow,
-		TableTd,
-		TableTh,
-	},
-	setup() {
-		const result = useQuery({
-			query: `query {
+const result = useQuery({
+	query: `query {
   countries {
     name
     currency
@@ -52,10 +35,7 @@ export default defineComponent({
     }
   }
 }`,
-		})
-		return {
-			data: result.data?._rawValue?.countries || result.data.countries || [],
-		}
-	},
 })
+
+const data = result.data?._rawValue?.countries || result.data.countries || []
 </script>

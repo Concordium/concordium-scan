@@ -13,7 +13,7 @@
 		"generate": "nuxt generate",
 		"test": "jest",
 		"test:watch": "jest --watch",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc --noEmit --skipLibCheck",
 		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue ."
 	},
 	"dependencies": {
