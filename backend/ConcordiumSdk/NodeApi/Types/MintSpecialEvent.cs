@@ -1,9 +1,11 @@
-﻿namespace ConcordiumSdk.NodeApi.Types;
+﻿using ConcordiumSdk.Types;
+
+namespace ConcordiumSdk.NodeApi.Types;
 
 public class MintSpecialEvent : SpecialEvent
 {
-    public string MintBakingReward { get; init; }
-    public string MintFinalizationReward { get; init; }
-    public string MintPlatformDevelopmentCharge { get; init; }
-    public string FoundationAccount { get; init; }
+    public CcdAmount MintBakingReward { get; init; }
+    public CcdAmount MintFinalizationReward { get; init; }
+    public CcdAmount MintPlatformDevelopmentCharge { get; init; }
+    public AccountAddress FoundationAccount { get; init; }
 }

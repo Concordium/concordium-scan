@@ -1,9 +1,8 @@
 ﻿using System.Text.Json;
-using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.NodeApi.Types.JsonConverters;
 
-namespace Tests.ConcordiumSdk.Types.JsonConverters;
+namespace Tests.ConcordiumSdk.NodeApi.JsonConverters;
 
 public class TransactionResultConverterTest
 {

@@ -2,7 +2,7 @@
 using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
 
-namespace Tests.ConcordiumSdk.Types.JsonConverters;
+namespace Tests.ConcordiumSdk.NodeApi.JsonConverters;
 
 public class TransactionTypeConverterTest
 {

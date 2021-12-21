@@ -21,30 +21,19 @@ public class SpecialEventJsonConverter : JsonConverter<SpecialEvent>
             throw new JsonException("Expected property name to be 'tag'");
         readerClone.Read();
         var tagValue = readerClone.GetString();
+        if (tagValue == null)
+            throw new JsonException("Expected tag value to be non-null.");
 
         SpecialEvent result = tagValue switch
         {
-            "Mint" => JsonSerializer.Deserialize<MintSpecialEvent>(ref reader, options),
-            "FinalizationRewards" => JsonSerializer.Deserialize<FinalizationRewardsSpecialEvent>(ref reader, options),
-            "BlockReward" => JsonSerializer.Deserialize<BlockRewardSpecialEvent>(ref reader, options),
-            _ => JsonSerializer.Deserialize<UnknownSpecialEvent>(ref reader, options)
+            "Mint" => JsonSerializer.Deserialize<MintSpecialEvent>(ref reader, options)!,
+            "FinalizationRewards" => JsonSerializer.Deserialize<FinalizationRewardsSpecialEvent>(ref reader, options)!,
+            "BlockReward" => JsonSerializer.Deserialize<BlockRewardSpecialEvent>(ref reader, options)!,
+            "BakingRewards" => JsonSerializer.Deserialize<BakingRewardsSpecialEvent>(ref reader, options)!,
+            _ => JsonSerializer.Deserialize<UnknownSpecialEvent>(ref reader, options)!
         };
 
         return result;
-    }
-
-    private static string GetJsonString(Utf8JsonReader reader)
-    {
-        using var jsonDocument = JsonDocument.ParseValue(ref reader);
-        using var stream = new MemoryStream();
-        var writerOptions = new JsonWriterOptions
-        {
-            Indented = false
-        };
-        var writer = new Utf8JsonWriter(stream, writerOptions);
-        jsonDocument.WriteTo(writer);
-        writer.Flush();
-        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     public override void Write(Utf8JsonWriter writer, SpecialEvent value, JsonSerializerOptions options)

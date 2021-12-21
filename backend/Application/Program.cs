@@ -49,10 +49,10 @@ try
 
     app
         .UseRouting()
-        .UseCors(pb =>
+        .UseCors(policy =>
         {
-            pb.AllowAnyOrigin();
-            pb.AllowAnyHeader();
+            policy.AllowAnyOrigin();
+            policy.AllowAnyHeader();
         })
         .UseEndpoints(endpoints =>
         {

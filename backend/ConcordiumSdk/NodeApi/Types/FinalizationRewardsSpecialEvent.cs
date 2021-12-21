@@ -1,7 +1,9 @@
-﻿namespace ConcordiumSdk.NodeApi.Types;
+﻿using ConcordiumSdk.Types;
+
+namespace ConcordiumSdk.NodeApi.Types;
 
 public class FinalizationRewardsSpecialEvent : SpecialEvent
 {
-    public FinalizationReward[] FinalizationRewards { get; init; }
-    public string Remainder { get; init; }
+    public AccountAddressAmount[] FinalizationRewards { get; init; }
+    public CcdAmount Remainder { get; init; }
 }
