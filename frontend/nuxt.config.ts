@@ -1,6 +1,7 @@
 import { defineNuxtConfig } from 'nuxt3'
 
 export default defineNuxtConfig({
+	srcDir: 'src/',
 	components: [
 		'~/components',
 		'~/components/atoms',

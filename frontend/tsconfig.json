@@ -13,10 +13,6 @@
 		"noEmit": true,
 		"baseUrl": ".",
 		"importsNotUsedAsValues": "preserve",
-		"paths": {
-			"~/*": ["./*"],
-			"@/*": ["./*"]
-		},
 		"types": ["@types/node", "@types/jest"]
 	},
 	"exclude": ["node_modules"]

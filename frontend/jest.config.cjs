@@ -8,6 +8,6 @@ module.exports = {
 		'^.+.js$': '<rootDir>/node_modules/babel-jest',
 	},
 	setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-	testMatch: ['<rootDir>/**/*.spec.ts'],
+	testMatch: ['<rootDir>/src/**/*.spec.ts'],
 	verbose: true,
 }
