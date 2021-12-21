@@ -32,6 +32,17 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public void Insert_WithMintSpecialEvent()
+    {
+        var blockInfo = new BlockInfoBuilder().Build();
+        var blockSummary = new BlockSummaryBuilder()
+            .WithSpecialEvents(new BakingRewardsSpecialEventBuilder().Build())
+            .Build();
+        
+        _target.Insert(blockInfo, "{\"bar\": \"baz\"}", blockSummary);
+    }
+
+    [Fact]
     public void Insert_TransactionSummarySenderNull()
     {
         var blockInfo = new BlockInfoBuilder().Build();

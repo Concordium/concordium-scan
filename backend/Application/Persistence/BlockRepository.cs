@@ -32,6 +32,11 @@ public class BlockRepository
 
         using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
 
+        var mint = blockSummary.SpecialEvents?.OfType<MintSpecialEvent>().SingleOrDefault();
+        var blockReward = blockSummary.SpecialEvents?.OfType<BlockRewardSpecialEvent>().SingleOrDefault();
+        var finalizationRewards = blockSummary.SpecialEvents?.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault();
+        var bakingRewards = blockSummary.SpecialEvents?.OfType<BakingRewardsSpecialEvent>().SingleOrDefault();
+        
         var blockParams = new
         {
             Blockhash = blockInfo.BlockHash.AsBytes,
@@ -50,12 +55,33 @@ public class BlockRepository
             Transactionenergycost = blockInfo.TransactionEnergyCost,
             Transactionsize = blockInfo.TransactionSize,
             Blockstatehash = new BlockHash(blockInfo.BlockStateHash).AsBytes,
-            Blocksummary = blockSummaryString
+            Blocksummary = blockSummaryString,
+            MintBakingReward = mint != null ? Convert.ToInt64(mint.MintBakingReward.MicroCcdValue) : (long?)null,
+            MintFinalizationReward = mint != null ? Convert.ToInt64(mint.MintFinalizationReward.MicroCcdValue) : (long?)null,
+            MintPlatformDevelopmentCharge = mint != null ? Convert.ToInt64(mint.MintPlatformDevelopmentCharge.MicroCcdValue) : (long?)null,
+            MintFoundationAccount = mint?.FoundationAccount.AsBytes,
+            BlockRewardTransactionFees = blockReward != null ? Convert.ToInt64(blockReward.TransactionFees.MicroCcdValue) : (long?)null,
+            BlockRewardOldGasAccount = blockReward != null ? Convert.ToInt64(blockReward.OldGasAccount.MicroCcdValue) : (long?)null,
+            BlockRewardNewGasAccount = blockReward != null ? Convert.ToInt64(blockReward.NewGasAccount.MicroCcdValue) : (long?)null,
+            BlockRewardBakerReward = blockReward != null ? Convert.ToInt64(blockReward.BakerReward.MicroCcdValue) : (long?)null,
+            BlockRewardFoundationCharge = blockReward != null ? Convert.ToInt64(blockReward.FoundationCharge.MicroCcdValue) : (long?)null,
+            BlockRewardBakerAddress = blockReward?.Baker.AsBytes,
+            BlockRewardFoundationAccount = blockReward?.FoundationAccount.AsBytes,
+            FinalizationRewardRemainder = finalizationRewards != null ? Convert.ToInt64(finalizationRewards.Remainder.MicroCcdValue) : (long?)null,
+            BakingRewardRemainder = bakingRewards != null ? Convert.ToInt64(bakingRewards.Remainder.MicroCcdValue) : (long?)null,
         };
-
-        conn.Execute(
-            "INSERT INTO block(block_height, block_hash, parent_block, block_last_finalized, genesis_index, era_block_height, block_receive_time, block_arrive_time, block_slot, block_slot_time, block_baker, finalized, transaction_count, transaction_energy_cost, transaction_size, block_state_hash, block_summary) " +
-            " VALUES (@Blockheight, @Blockhash, @Parentblock, @Blocklastfinalized, @Genesisindex, @Erablockheight, @Blockreceivetime, @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Finalized, @Transactioncount, @Transactionenergycost, @Transactionsize, @Blockstatehash, CAST(@Blocksummary AS json))",
+        
+        var blockId = conn.ExecuteScalar<long>(
+            "INSERT INTO block(block_height, block_hash, parent_block, block_last_finalized, genesis_index, era_block_height, block_receive_time," +
+            " block_arrive_time, block_slot, block_slot_time, block_baker, finalized, transaction_count, transaction_energy_cost, transaction_size," +
+            " block_state_hash, block_summary, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, "+
+            " block_reward_transaction_fees, block_reward_old_gas_account, block_reward_new_gas_account, block_reward_baker_reward, block_reward_foundation_charge, block_reward_baker_address, block_reward_foundation_account,"+
+            " finalization_reward_remainder, baking_reward_remainder) " +
+            " VALUES (@Blockheight, @Blockhash, @Parentblock, @Blocklastfinalized, @Genesisindex, @Erablockheight, @Blockreceivetime," +
+            " @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Finalized, @Transactioncount, @Transactionenergycost, @Transactionsize," +
+            " @Blockstatehash, CAST(@Blocksummary AS json), @MintBakingReward, @MintFinalizationReward, @MintPlatformDevelopmentCharge, @MintFoundationAccount," +
+            " @BlockRewardTransactionFees, @BlockRewardOldGasAccount, @BlockRewardNewGasAccount, @BlockRewardBakerReward, @BlockRewardFoundationCharge, @BlockRewardBakerAddress, @BlockRewardFoundationAccount," +
+            " @FinalizationRewardRemainder, @BakingRewardRemainder) returning id",
             blockParams);
 
         var transactionSummaries = blockSummary.TransactionSummaries.Select(tx => new
@@ -77,6 +103,38 @@ public class BlockRepository
             "INSERT INTO transaction_summary(block_height, block_hash, transaction_index, sender, transaction_hash, cost, energy_cost, transaction_type, transaction_sub_type, success_events, reject_reason_type) " +
             "VALUES (@BlockHeight, @BlockHash, @TransactionIndex, @Sender, @TransactionHash, @Cost, @EnergyCost, @TransactionType, @TransactionSubType, CAST(@SuccessEvents AS json), @RejectReasonType)",
             transactionSummaries);
+
+        if (finalizationRewards != null)
+        {
+            var finalizationParams = finalizationRewards.FinalizationRewards.Select((reward, ix) => new
+            {
+                BlockId = blockId,
+                Index = ix,
+                Amount = Convert.ToInt64(reward.Amount.MicroCcdValue),
+                Address = reward.Address.AsBytes
+            });
+            
+            conn.Execute(
+                "INSERT INTO finalization_reward(block_id, index, amount, address) " +
+                "VALUES (@BlockId, @Index, @Amount, @Address)",
+                finalizationParams);
+        }
+        
+        if (bakingRewards != null)
+        {
+            var bakingParams = bakingRewards.BakerRewards.Select((reward, ix) => new
+            {
+                BlockId = blockId,
+                Index = ix,
+                Amount = Convert.ToInt64(reward.Amount.MicroCcdValue),
+                Address = reward.Address.AsBytes
+            });
+            
+            conn.Execute(
+                "INSERT INTO baking_reward(block_id, index, amount, address) " +
+                "VALUES (@BlockId, @Index, @Amount, @Address)",
+                bakingParams);
+        }
         
         tx.Commit();
     }
