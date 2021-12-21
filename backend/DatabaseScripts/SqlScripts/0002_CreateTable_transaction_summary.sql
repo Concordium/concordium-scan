@@ -1,6 +1,7 @@
 ﻿create table transaction_summary
 (
     id                   bigint primary key generated always as identity,
+    block_id             bigint not null,
     block_height         bigint not null,
     block_hash           bytea  not null,
     transaction_index    int    not null,
