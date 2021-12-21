@@ -79,11 +79,12 @@ public class ImportController : BackgroundService
             var blockHash = blocksAtHeight.Single();
 
             var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
-            var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
-            var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
-
             var blockInfo = await blockInfoTask;
+
+            var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
             var blockSummaryString = await blockSummaryStringTask;
+
+            var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
             var blockSummary = await blockSummaryTask;
 
             // TODO: Publish result - for now just write directly to db
