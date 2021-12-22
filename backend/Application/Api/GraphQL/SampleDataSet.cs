@@ -33,16 +33,16 @@ public class SampleDataSet
         conn.Open();
 
         var finalizationRewards = conn
-            .Query("select block_id, index, address, amount from finalization_reward where block_id < 40000")
+            .Query("select block_id, index, address, amount from finalization_reward where block_id < 1000")
             .ToArray();
         
         var bakingRewards = conn
-            .Query("select block_id, index, address, amount from baking_reward where block_id < 40000")
+            .Query("select block_id, index, address, amount from baking_reward where block_id < 1000")
             .ToArray();
         
         var rows =
             conn.Query(
-                "SELECT id, block_hash, block_height, block_slot_time, block_baker, transaction_count, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, block_reward_transaction_fees, block_reward_old_gas_account, block_reward_new_gas_account, block_reward_baker_reward, block_reward_foundation_charge, block_reward_baker_address, block_reward_foundation_account, finalization_reward_remainder, baking_reward_remainder FROM block WHERE block_height < 40000");
+                "SELECT id, block_hash, block_height, block_slot_time, block_baker, transaction_count, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, block_reward_transaction_fees, block_reward_old_gas_account, block_reward_new_gas_account, block_reward_baker_reward, block_reward_foundation_charge, block_reward_baker_address, block_reward_foundation_account, finalization_reward_remainder, baking_reward_remainder FROM block WHERE block_height < 1000");
         
         var result = rows.Select(obj => new Block()
         {
@@ -156,7 +156,7 @@ public class SampleDataSet
 
         var rows =
             conn.Query(
-                "SELECT id, block_height, block_hash, transaction_index, transaction_hash, sender, cost, energy_cost FROM transaction_summary WHERE block_height < 40000");
+                "SELECT id, block_height, block_hash, transaction_index, transaction_hash, sender, cost, energy_cost FROM transaction_summary WHERE block_height < 1000");
         
         var result = rows.Select(obj => new Transaction()
         {
