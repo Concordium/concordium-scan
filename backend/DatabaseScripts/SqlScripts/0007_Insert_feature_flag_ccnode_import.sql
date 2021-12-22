@@ -1,0 +1,1 @@
+﻿insert into feature_flag (feature_name, enabled) values ('ccnode-import', true);

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Application.Api.GraphQL;
+using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
 using Application.Import.ConcordiumNode;
@@ -34,6 +35,7 @@ builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
+builder.Services.AddSingleton<IFeatureFlags, SqlFeatureFlags>();
 builder.Services.AddSingleton<BlockRepository>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddSingleton(databaseSettings);

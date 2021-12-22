@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Application.Common.FeatureFlags;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.Types;
@@ -13,17 +14,25 @@ public class ImportController : BackgroundService
 {
     private readonly GrpcNodeClient _client;
     private readonly BlockRepository _repository;
+    private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
 
-    public ImportController(GrpcNodeClient client, BlockRepository repository)
+    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags)
     {
         _client = client;
         _repository = repository;
+        _featureFlags = featureFlags;
         _logger = Log.ForContext(GetType());
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_featureFlags.IsEnabled("ccnode-import"))
+        {
+            _logger.Warning("Data import from Concordium node is disabled.");
+            return;
+        }
+            
         _logger.Information("Execute started...");
         
         await Policy
