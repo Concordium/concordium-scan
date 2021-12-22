@@ -6,7 +6,7 @@ using Application.Import.ConcordiumNode;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components.RenderTree;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -48,6 +48,10 @@ try
     logger.Information("Database migration finished successfully");
 
     app
+        .UseForwardedHeaders(new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+        })
         .UseRouting()
         .UseCors(policy =>
         {
