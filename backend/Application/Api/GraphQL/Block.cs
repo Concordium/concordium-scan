@@ -14,6 +14,7 @@ public class Block
     public int? BakerId { get; init; }
     public bool Finalized { get; init; }
     public int TransactionCount { get; init; }
+    public SpecialEvents SpecialEvents { get; init; }
 
     [UsePaging]
     public IEnumerable<Transaction> GetTransactions([Service] SampleDataSet sampleDataSet)
