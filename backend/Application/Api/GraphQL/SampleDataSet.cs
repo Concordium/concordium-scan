@@ -1,4 +1,5 @@
-﻿using Application.Database;
+﻿using System.Threading;
+using Application.Database;
 using ConcordiumSdk.Types;
 using Dapper;
 using Npgsql;
@@ -8,14 +9,17 @@ namespace Application.Api.GraphQL;
 public class SampleDataSet
 {
     private readonly DatabaseSettings _dbSettings;
+    private readonly ILogger _log;
     private readonly Lazy<Block[]> _allBlocks; 
     private readonly Lazy<Transaction[]> _allTransactions;
 
     public SampleDataSet(DatabaseSettings dbSettings)
     {
         _dbSettings = dbSettings;
-        _allBlocks = new Lazy<Block[]>(FetchSampleBlockSetFromDb);
-        _allTransactions = new Lazy<Transaction[]>(FetchSampleTransactionSetFromDb);
+        _log = Log.ForContext(GetType());
+        
+        _allBlocks = new Lazy<Block[]>(FetchSampleBlockSetFromDb, LazyThreadSafetyMode.ExecutionAndPublication);
+        _allTransactions = new Lazy<Transaction[]>(FetchSampleTransactionSetFromDb, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public Block[] AllBlocks => _allBlocks.Value;
@@ -23,6 +27,8 @@ public class SampleDataSet
     
     private Block[] FetchSampleBlockSetFromDb()
     {
+        _log.Debug("Starting retrieving sample block data set from database...");
+        
         using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         conn.Open();
 
@@ -34,11 +40,11 @@ public class SampleDataSet
             .Query("select block_id, index, address, amount from baking_reward where block_id < 40000")
             .ToArray();
         
-        var result =
+        var rows =
             conn.Query(
                 "SELECT id, block_hash, block_height, block_slot_time, block_baker, transaction_count, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, block_reward_transaction_fees, block_reward_old_gas_account, block_reward_new_gas_account, block_reward_baker_reward, block_reward_foundation_charge, block_reward_baker_address, block_reward_foundation_account, finalization_reward_remainder, baking_reward_remainder FROM block WHERE block_height < 40000");
         
-        return result.Select(obj => new Block()
+        var result = rows.Select(obj => new Block()
         {
             Id = obj.id,
             BlockHash = new BlockHash((byte[])obj.block_hash).AsString,
@@ -55,6 +61,10 @@ public class SampleDataSet
                 BakingRewards = MapBakingRewards(obj, bakingRewards)
             }
         }).ToArray();
+
+        _log.Debug("Sample block data set retrieved from database...");
+
+        return result;
     }
 
     private BakingRewards? MapBakingRewards(dynamic obj, dynamic[] allBakingRewards)
@@ -139,14 +149,16 @@ public class SampleDataSet
 
     private Transaction[] FetchSampleTransactionSetFromDb()
     {
+        _log.Debug("Starting retrieving sample transaction data set from database...");
+
         using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         conn.Open();
 
-        var result =
+        var rows =
             conn.Query(
                 "SELECT id, block_height, block_hash, transaction_index, transaction_hash, sender, cost, energy_cost FROM transaction_summary WHERE block_height < 40000");
         
-        return result.Select(obj => new Transaction()
+        var result = rows.Select(obj => new Transaction()
         {
             Id = obj.id,
             BlockHeight = (int)obj.block_height,
@@ -157,6 +169,10 @@ public class SampleDataSet
             CcdCost = obj.cost,
             EnergyCost = obj.energy_cost
         }).ToArray();
+
+        _log.Debug("Sample transaction data set retrieved from database...");
+
+        return result;
     }
 
 }
