@@ -9,8 +9,7 @@ export default defineNuxtConfig({
 		'~/components/Table',
 	],
 	publicRuntimeConfig: {
-		apiUrl:
-			'http://ftbccscandevnode.northeurope.cloudapp.azure.com:5000/graphql/',
+		apiUrl: 'https://dev.api-mainnet.ccdscan.io/graphql/',
 	},
 	nitro: {
 		preset: 'firebase',
