@@ -8,16 +8,20 @@
 				<Table>
 					<TableHead>
 						<TableRow>
+							<TableTh>Height</TableTh>
 							<TableTh>Status</TableTh>
 							<TableTh>Timestamp</TableTh>
-							<TableTh>Hash</TableTh>
-							<TableTh align="right">Transactions</TableTh>
+							<TableTh>Block hash</TableTh>
 							<TableTh>Baker</TableTh>
-							<TableTh align="right">Reward (Ͼ)</TableTh>
+							<TableTh align="right">Transactions</TableTh>
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						<TableRow v-for="block in data" :key="block.blockHash">
+						<TableRow
+							v-for="block in data?.blocks.nodes"
+							:key="block.blockHash"
+						>
+							<TableTd>{{ block.blockHeight }}</TableTd>
 							<TableTd>
 								<StatusCircle
 									:class="[
@@ -28,7 +32,7 @@
 								{{ block.finalized ? 'Finalised' : 'Pending' }}
 							</TableTd>
 							<TableTd>{{
-								convertTimestampToRelative(block.blockSlotTime)
+								convertTimestampToRelative(block.blockSlotTime, NOW)
 							}}</TableTd>
 							<TableTd :class="$style.numerical">
 								<LinkButton @click="openDrawer">
@@ -36,17 +40,12 @@
 									{{ block.blockHash.substring(0, 6) }}
 								</LinkButton>
 							</TableTd>
+							<TableTd :class="$style.numerical">
+								<UserIcon v-if="block.bakerId" :class="$style.cellIcon" />
+								{{ block.bakerId }}
+							</TableTd>
 							<TableTd align="right" :class="$style.numerical">
 								{{ block.transactionCount }}
-							</TableTd>
-							<TableTd :class="$style.numerical">
-								<LinkButton>
-									<UserIcon :class="$style.cellIcon" />
-									eb0c31
-								</LinkButton>
-							</TableTd>
-							<TableTd align="right" :class="$style.numerical">
-								0.006438
 							</TableTd>
 						</TableRow>
 					</TableBody>
@@ -58,11 +57,11 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-
 import { useQuery, gql } from '@urql/vue'
-import { formatDistance, parseISO } from 'date-fns'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import Drawer from '../components/Drawer/Drawer.vue'
+import { convertTimestampToRelative } from '~/utils/format'
+import { BlockList } from '~/types/types'
 
 const isDrawerOpen = ref(false)
 
@@ -74,10 +73,11 @@ const closeDrawer = () => {
 	isDrawerOpen.value = false
 }
 
-const BlocksQuery = gql`
+const BlocksQuery = gql<BlockList>`
 	query {
 		blocks {
 			nodes {
+				bakerId
 				blockHash
 				blockHeight
 				blockSlotTime
@@ -88,17 +88,11 @@ const BlocksQuery = gql`
 	}
 `
 
-const result = await useQuery({
+const { data } = await useQuery({
 	query: BlocksQuery,
 })
 
 const NOW = new Date()
-
-const convertTimestampToRelative = (timestamp: string) =>
-	formatDistance(parseISO(timestamp), NOW, { addSuffix: true })
-
-const data =
-	result.data.blocks?.nodes || result.data._rawValue.blocks?.nodes || []
 </script>
 
 <style module>
