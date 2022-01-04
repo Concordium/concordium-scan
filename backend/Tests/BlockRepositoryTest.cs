@@ -8,6 +8,7 @@ using Tests.TestUtilities.Builders;
 
 namespace Tests;
 
+[Collection("Postgres Collection")]
 public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
 {
     private readonly DatabaseFixture _dbFixture;

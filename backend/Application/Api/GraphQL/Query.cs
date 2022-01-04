@@ -38,4 +38,28 @@ public class Query
             .AsNoTracking()
             .OrderByDescending(tx => tx.Id);
     }
+
+    public SearchResult Search([Service] GraphQlDbContext dbContext, string query)
+    {
+        if (long.TryParse(query, out var blockHeight))
+        {
+            return new SearchResult
+            {
+                Blocks = dbContext.Blocks.Where(block => block.BlockHeight == blockHeight)
+            };
+        }
+
+        try
+        {
+            return new SearchResult
+            {
+                Blocks = dbContext.Blocks.Where(block => block.BlockHash == query).ToArray(),
+                Transactions = dbContext.Transactions.Where(transaction => transaction.TransactionHash == query).ToArray()
+            };
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException) // thrown if given query is not a valid block- or transaction hash
+        {
+            return new SearchResult();
+        }
+    }
 }

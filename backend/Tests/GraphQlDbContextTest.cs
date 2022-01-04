@@ -8,6 +8,7 @@ using Tests.TestUtilities.Builders;
 
 namespace Tests;
 
+[Collection("Postgres Collection")]
 public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContext _target;
