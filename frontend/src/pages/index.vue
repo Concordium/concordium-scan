@@ -2,9 +2,7 @@
 	<div>
 		<Suspense>
 			<main class="p-4">
-				<Drawer :is-open="isDrawerOpen" :on-close="closeDrawer">
-					<h1 class="text-2xl">Content</h1>
-				</Drawer>
+				<BlockDetails :is-open="isDrawerOpen" :on-close="closeDrawer" />
 				<Table>
 					<TableHead>
 						<TableRow>
@@ -41,7 +39,10 @@
 								</LinkButton>
 							</TableTd>
 							<TableTd :class="$style.numerical">
-								<UserIcon v-if="block.bakerId" :class="$style.cellIcon" />
+								<UserIcon
+									v-if="block.bakerId || block.bakerId === 0"
+									:class="$style.cellIcon"
+								/>
 								{{ block.bakerId }}
 							</TableTd>
 							<TableTd align="right" :class="$style.numerical">
@@ -59,7 +60,7 @@
 import { ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
-import Drawer from '../components/Drawer/Drawer.vue'
+import BlockDetails from '~/components/BlockDetails.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 
 // Splitting the types out will cause an import error, as they are are not

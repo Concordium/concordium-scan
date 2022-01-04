@@ -3,7 +3,7 @@
 		class="rounded text-white bg-theme-button-primary hover:bg-theme-button-primary-hover px-8 py-3"
 		@click="onClick"
 	>
-		Hello
+		<slot />
 	</button>
 </template>
 

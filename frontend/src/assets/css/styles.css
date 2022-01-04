@@ -45,3 +45,13 @@
 ::selection {
 	background-color: hotpink;
 }
+
+body {
+	/* prevents layout shift when locking body scroll */
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+#__nuxt {
+	overflow-x: hidden;
+}
