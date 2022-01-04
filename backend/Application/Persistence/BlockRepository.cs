@@ -69,6 +69,9 @@ public class BlockRepository
             BlockRewardFoundationAccount = blockReward?.FoundationAccount.AsBytes,
             FinalizationRewardRemainder = finalizationRewards != null ? Convert.ToInt64(finalizationRewards.Remainder.MicroCcdValue) : (long?)null,
             BakingRewardRemainder = bakingRewards != null ? Convert.ToInt64(bakingRewards.Remainder.MicroCcdValue) : (long?)null,
+            FinalizationDataBlockPointer = blockSummary.FinalizationData?.FinalizationBlockPointer.AsBytes,
+            FinalizationDataIndex = blockSummary.FinalizationData?.FinalizationIndex,
+            FinalizationDataDelay = blockSummary.FinalizationData?.FinalizationDelay
         };
         
         var blockId = conn.ExecuteScalar<long>(
@@ -76,12 +79,12 @@ public class BlockRepository
             " block_arrive_time, block_slot, block_slot_time, block_baker, finalized, transaction_count, transaction_energy_cost, transaction_size," +
             " block_state_hash, block_summary, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, "+
             " block_reward_transaction_fees, block_reward_old_gas_account, block_reward_new_gas_account, block_reward_baker_reward, block_reward_foundation_charge, block_reward_baker_address, block_reward_foundation_account,"+
-            " finalization_reward_remainder, baking_reward_remainder) " +
+            " finalization_reward_remainder, baking_reward_remainder, finalization_data_block_pointer, finalization_data_index, finalization_data_delay) " +
             " VALUES (@Blockheight, @Blockhash, @Parentblock, @Blocklastfinalized, @Genesisindex, @Erablockheight, @Blockreceivetime," +
             " @Blockarrivetime, @Blockslot, @Blockslottime, @Blockbaker, @Finalized, @Transactioncount, @Transactionenergycost, @Transactionsize," +
             " @Blockstatehash, CAST(@Blocksummary AS json), @MintBakingReward, @MintFinalizationReward, @MintPlatformDevelopmentCharge, @MintFoundationAccount," +
             " @BlockRewardTransactionFees, @BlockRewardOldGasAccount, @BlockRewardNewGasAccount, @BlockRewardBakerReward, @BlockRewardFoundationCharge, @BlockRewardBakerAddress, @BlockRewardFoundationAccount," +
-            " @FinalizationRewardRemainder, @BakingRewardRemainder) returning id",
+            " @FinalizationRewardRemainder, @BakingRewardRemainder, @FinalizationDataBlockPointer, @FinalizationDataIndex, @FinalizationDataDelay) returning id",
             blockParams);
 
         var transactionSummaries = blockSummary.TransactionSummaries.Select(tx => new
@@ -135,6 +138,23 @@ public class BlockRepository
                 "INSERT INTO baking_reward(block_id, index, amount, address) " +
                 "VALUES (@BlockId, @Index, @Amount, @Address)",
                 bakingParams);
+        }
+
+        if (blockSummary.FinalizationData != null)
+        {
+            var finalizersParams = blockSummary.FinalizationData.Finalizers.Select((finalizer, ix) => new
+            {
+                BlockId = blockId,
+                Index = ix,
+                BakerId = Convert.ToInt64(finalizer.BakerId),
+                Weight = Convert.ToInt64(finalizer.Weight),
+                finalizer.Signed,
+            });
+            
+            conn.Execute(
+                "INSERT INTO finalization_data_finalizers(block_id, index, baker_id, weight, signed) " +
+                "VALUES (@BlockId, @Index, @BakerId, @Weight, @Signed)",
+                finalizersParams);
         }
         
         tx.Commit();
