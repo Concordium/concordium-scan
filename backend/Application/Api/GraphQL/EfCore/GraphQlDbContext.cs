@@ -117,7 +117,7 @@ public class GraphQlDbContext : DbContext
         transactionBuilder.Property(b => b.BlockHeight).HasColumnName("block_height").IsRequired();
         transactionBuilder.Property(b => b.TransactionIndex).HasColumnName("transaction_index").IsRequired();
         transactionBuilder.Property(b => b.TransactionHash).HasColumnName("transaction_hash").HasConversion(transactionHashAsStringConverter).IsRequired();
-        transactionBuilder.Property(b => b.SenderAccountAddress).HasColumnName("sender").HasConversion(accountAddressAsStringConverter).IsRequired();
+        transactionBuilder.Property(b => b.SenderAccountAddress).HasColumnName("sender").HasConversion(accountAddressAsStringConverter);
         transactionBuilder.Property(b => b.CcdCost).HasColumnName("cost").IsRequired();
         transactionBuilder.Property(b => b.EnergyCost).HasColumnName("energy_cost").IsRequired();
     }

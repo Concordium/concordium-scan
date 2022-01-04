@@ -204,4 +204,21 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         Assert.Equal(45872, single.CcdCost);
         Assert.Equal(399, single.EnergyCost);
     }
+    
+    [Fact]
+    public void Transactions_Single_SenderNull()
+    {
+        var block = new BlockInfoBuilder().Build();
+        var blockSummary = new BlockSummaryBuilder()
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithSender(null)
+                .Build())
+            .Build();
+        _writeRepository.Insert(block, "{}", blockSummary);
+        
+        var result = _target.Transactions;
+        var single = Assert.Single(result);
+        Assert.NotNull(single);
+        Assert.Null(single.SenderAccountAddress);
+    }
 }
