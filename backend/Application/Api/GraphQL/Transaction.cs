@@ -6,6 +6,8 @@ public class Transaction
 {
     [ID]
     public long Id { get; set; }
+    [ID(nameof(Block))]
+    public long BlockId { get; set; }
     public string BlockHash { get; set; }
     public long BlockHeight { get; set; }
     public int TransactionIndex { get; set; }

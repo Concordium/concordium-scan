@@ -48,7 +48,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
         var blockInfo = new BlockInfoBuilder().Build();
         var blockSummary = new BlockSummaryBuilder()
             .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .withSender(null)
+                .WithSender(null)
                 .Build())
             .Build();
         

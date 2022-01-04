@@ -1,4 +1,5 @@
-﻿using HotChocolate;
+﻿using Application.Api.GraphQL.EfCore;
+using HotChocolate;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 
@@ -17,8 +18,8 @@ public class Block
     public SpecialEvents SpecialEvents { get; init; }
 
     [UsePaging]
-    public IEnumerable<Transaction> GetTransactions([Service] SampleDataSet sampleDataSet)
+    public IEnumerable<Transaction> GetTransactions([Service] GraphQlDbContext dbContext)
     {
-        return sampleDataSet.AllTransactions.Where(tx => tx.BlockHeight == BlockHeight && tx.BlockHash == BlockHash);
+        return dbContext.Transactions.Where(tx => tx.BlockId == Id);
     }
 }

@@ -1,5 +1,6 @@
 using System.Net.Http;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
@@ -8,6 +9,7 @@ using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,9 +32,9 @@ logger.Information("Using Postgres connection string: {postgresConnectionString}
 
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().AddQueryType<Query>();
-builder.Services.AddSingleton<SampleDataSet>();
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
+builder.Services.AddDbContext<GraphQlDbContext>(options => options.UseNpgsql(databaseSettings.ConnectionString));
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IFeatureFlags, SqlFeatureFlags>();
