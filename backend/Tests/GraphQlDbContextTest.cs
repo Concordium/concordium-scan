@@ -24,6 +24,7 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE transaction_summary");
         connection.Execute("TRUNCATE TABLE finalization_reward");
         connection.Execute("TRUNCATE TABLE baking_reward");
+        connection.Execute("TRUNCATE TABLE finalization_data_finalizers");
     }
 
     [Fact]
@@ -166,6 +167,53 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         Assert.Equal("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi", single.SpecialEvents.BakingRewards.Rewards.ElementAt(0).Address);
         Assert.Equal(91425373, single.SpecialEvents.BakingRewards.Rewards.ElementAt(1).Amount);
         Assert.Equal("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd", single.SpecialEvents.BakingRewards.Rewards.ElementAt(1).Address);
+    }
+
+    [Fact]
+    public void Blocks_FinalizationSummary_Null()
+    {
+        var block = new BlockInfoBuilder().Build();
+        var blockSummary = new BlockSummaryBuilder()
+            .WithFinalizationData(null)
+            .Build();
+        _writeRepository.Insert(block, "{}", blockSummary);
+        
+        var blocks = _target.Blocks;
+        
+        var single = Assert.Single(blocks);
+        Assert.Null(single.FinalizationSummary);
+    }
+    
+    [Fact]
+    public void Blocks_FinalizationSummary_HasData()
+    {
+        var block = new BlockInfoBuilder().Build();
+        var blockSummary = new BlockSummaryBuilder()
+            .WithFinalizationData(new FinalizationDataBuilder()
+                .WithFinalizationBlockPointer(new BlockHash("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e"))
+                .WithFinalizationIndex(42)
+                .WithFinalizationDelay(11)
+                .WithFinalizers(
+                    new FinalizationSummaryPartyBuilder().WithBakerId(1).WithWeight(130).WithSigned(true).Build(),
+                    new FinalizationSummaryPartyBuilder().WithBakerId(2).WithWeight(220).WithSigned(false).Build())
+                .Build())
+            .Build();
+        _writeRepository.Insert(block, "{}", blockSummary);
+        
+        var blocks = _target.Blocks;
+        
+        var single = Assert.Single(blocks);
+        Assert.NotNull(single.FinalizationSummary);
+        Assert.Equal("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e", single.FinalizationSummary.FinalizedBlockHash);
+        Assert.Equal(42, single.FinalizationSummary.FinalizationIndex);
+        Assert.Equal(11, single.FinalizationSummary.FinalizationDelay);
+        Assert.Equal(2, single.FinalizationSummary.Finalizers.Count());
+        Assert.Equal(1, single.FinalizationSummary.Finalizers.ElementAt(0).BakerId);
+        Assert.Equal(130, single.FinalizationSummary.Finalizers.ElementAt(0).Weight);
+        Assert.Equal(true, single.FinalizationSummary.Finalizers.ElementAt(0).Signed);
+        Assert.Equal(2, single.FinalizationSummary.Finalizers.ElementAt(1).BakerId);
+        Assert.Equal(220, single.FinalizationSummary.Finalizers.ElementAt(1).Weight);
+        Assert.Equal(false, single.FinalizationSummary.Finalizers.ElementAt(1).Signed);
     }
 
     [Fact]

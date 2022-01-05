@@ -107,6 +107,23 @@ public class GraphQlDbContext : DbContext
                         });
                     });
             });
+        blockBuilder.OwnsOne(block => block.FinalizationSummary,
+            builder =>
+            {
+                builder.Property(x => x.FinalizedBlockHash).HasColumnName("finalization_data_block_pointer").HasConversion(blockHashAsStringConverter).IsRequired();
+                builder.Property(x => x.FinalizationIndex).HasColumnName("finalization_data_index").IsRequired();
+                builder.Property(x => x.FinalizationDelay).HasColumnName("finalization_data_delay").IsRequired();
+                builder.OwnsMany(x => x.Finalizers, finalizerBuilder =>
+                {
+                    finalizerBuilder.ToTable("finalization_data_finalizers");
+                    finalizerBuilder.WithOwner().HasForeignKey("block_id");
+                    finalizerBuilder.Property<int>("index");
+                    finalizerBuilder.Property(d => d.BakerId).HasColumnName("baker_id").IsRequired();
+                    finalizerBuilder.Property(d => d.Weight).HasColumnName("weight").IsRequired();
+                    finalizerBuilder.Property(d => d.Signed).HasColumnName("signed").IsRequired();
+                    finalizerBuilder.HasKey("block_id", "index");
+                });
+            });
 
         var transactionBuilder = modelBuilder.Entity<Transaction>()
             .ToTable("transaction_summary");
