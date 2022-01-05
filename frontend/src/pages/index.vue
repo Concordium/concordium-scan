@@ -28,8 +28,8 @@
 						<TableTd>
 							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
 						</TableTd>
-						<TableTd :class="$style.numerical">
-							<LinkButton @click="openDrawer">
+						<TableTd>
+							<LinkButton :class="$style.numerical" @click="openDrawer">
 								<HashtagIcon :class="$style.cellIcon" />
 								{{ block.blockHash.substring(0, 6) }}
 							</LinkButton>
@@ -118,5 +118,6 @@ const NOW = new Date()
 
 .numerical {
 	@apply font-mono;
+	font-variant-ligatures: none;
 }
 </style>
