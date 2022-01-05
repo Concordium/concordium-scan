@@ -31,7 +31,9 @@ var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddCors();
-builder.Services.AddGraphQLServer().AddQueryType<Query>();
+builder.Services.AddGraphQLServer().AddQueryType<Query>()
+    .AddType<AccountTransaction>().AddType<CredentialDeploymentTransaction>().AddType<UpdateTransaction>()
+    .AddType<Successful>().AddType<Rejected>();
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<GraphQlDbContext>(options => options.UseNpgsql(databaseSettings.ConnectionString));

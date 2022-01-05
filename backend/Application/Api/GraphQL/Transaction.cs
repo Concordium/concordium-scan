@@ -1,9 +1,36 @@
-﻿using HotChocolate.Types.Relay;
+﻿using System.Text.Json;
+using ConcordiumSdk.Types;
+using HotChocolate.Types.Relay;
 
 namespace Application.Api.GraphQL;
 
 public class Transaction
 {
+    private int _transactionType;
+    private int? _transactionSubType;
+    private Lazy<TransactionTypeUnion> _transactionTypeUnion;
+    private JsonElement? _successEvents;
+    
+    public Transaction()
+    {
+        _transactionTypeUnion = new Lazy<TransactionTypeUnion>(CreateTransactionTypeUnion);
+    }
+
+    private TransactionTypeUnion CreateTransactionTypeUnion()
+    {
+        switch ((BlockItemKind)_transactionType)
+        {
+            case BlockItemKind.AccountTransactionKind:
+                return new AccountTransaction { AccountTransactionType = _transactionSubType.HasValue ? (AccountTransactionType)_transactionSubType.Value : null };
+            case BlockItemKind.CredentialDeploymentKind:
+                return new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = _transactionSubType.HasValue ? (CredentialDeploymentTransactionType)_transactionSubType.Value : null };
+            case BlockItemKind.UpdateInstructionKind:
+                return new UpdateTransaction { UpdateTransactionType = _transactionSubType.HasValue ? (UpdateTransactionType)_transactionSubType.Value : null };
+            default:
+                throw new InvalidOperationException("Unknown block item kind.");
+        }
+    }
+
     [ID]
     public long Id { get; set; }
     
@@ -24,7 +51,7 @@ public class Transaction
     
     public long EnergyCost { get; set; }
     
-    // TODO: how to model BlockItemKind and TransactionType? Strings, enums, other?
+    public TransactionTypeUnion TransactionType => _transactionTypeUnion.Value;
 
-    // TODO: How to model outcome/result?
+    public TransactionResult Result => _successEvents != null ? new Successful() : new Rejected();
 }

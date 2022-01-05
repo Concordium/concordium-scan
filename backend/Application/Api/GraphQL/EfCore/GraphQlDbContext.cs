@@ -1,5 +1,4 @@
-﻿using System.Linq.Expressions;
-using Application.Database;
+﻿using Application.Database;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -137,5 +136,10 @@ public class GraphQlDbContext : DbContext
         transactionBuilder.Property(b => b.SenderAccountAddress).HasColumnName("sender").HasConversion(accountAddressAsStringConverter);
         transactionBuilder.Property(b => b.CcdCost).HasColumnName("cost").IsRequired();
         transactionBuilder.Property(b => b.EnergyCost).HasColumnName("energy_cost").IsRequired();
+        transactionBuilder.Ignore(b => b.TransactionType);
+        transactionBuilder.Property("_transactionType").HasColumnName("transaction_type");
+        transactionBuilder.Property("_transactionSubType").HasColumnName("transaction_sub_type");
+        transactionBuilder.Ignore(b => b.Result);
+        transactionBuilder.Property("_successEvents").HasColumnName("success_events");
     }
 }

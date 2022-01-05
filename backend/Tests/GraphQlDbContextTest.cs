@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.EfCore;
 using Application.Persistence;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -252,6 +253,8 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         Assert.Equal("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b", single.TransactionHash);
         Assert.Equal(45872, single.CcdCost);
         Assert.Equal(399, single.EnergyCost);
+        var accountTransaction = Assert.IsType<AccountTransaction>(single.TransactionType);
+        Assert.Equal(AccountTransactionType.SimpleTransfer, accountTransaction.AccountTransactionType);
     }
     
     [Fact]
