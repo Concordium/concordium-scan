@@ -1,58 +1,53 @@
 <template>
 	<div>
-		<Suspense>
-			<main class="p-4">
-				<BlockDetails :is-open="isDrawerOpen" :on-close="closeDrawer" />
-				<Table>
-					<TableHead>
-						<TableRow>
-							<TableTh>Height</TableTh>
-							<TableTh>Status</TableTh>
-							<TableTh>Timestamp</TableTh>
-							<TableTh>Block hash</TableTh>
-							<TableTh>Baker</TableTh>
-							<TableTh align="right">Transactions</TableTh>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						<TableRow
-							v-for="block in data?.blocks.nodes"
-							:key="block.blockHash"
-						>
-							<TableTd>{{ block.blockHeight }}</TableTd>
-							<TableTd>
-								<StatusCircle
-									:class="[
-										$style.statusIcon,
-										{ 'text-blue-600': !block.finalized },
-									]"
-								/>
-								{{ block.finalized ? 'Finalised' : 'Pending' }}
-							</TableTd>
-							<TableTd>{{
-								convertTimestampToRelative(block.blockSlotTime, NOW)
-							}}</TableTd>
-							<TableTd :class="$style.numerical">
-								<LinkButton @click="openDrawer">
-									<HashtagIcon :class="$style.cellIcon" />
-									{{ block.blockHash.substring(0, 6) }}
-								</LinkButton>
-							</TableTd>
-							<TableTd :class="$style.numerical">
-								<UserIcon
-									v-if="block.bakerId || block.bakerId === 0"
-									:class="$style.cellIcon"
-								/>
-								{{ block.bakerId }}
-							</TableTd>
-							<TableTd align="right" :class="$style.numerical">
-								{{ block.transactionCount }}
-							</TableTd>
-						</TableRow>
-					</TableBody>
-				</Table>
-			</main>
-		</Suspense>
+		<BlockDetails :is-open="isDrawerOpen" :on-close="closeDrawer" />
+		<main class="p-4">
+			<Table>
+				<TableHead>
+					<TableRow>
+						<TableTh>Height</TableTh>
+						<TableTh>Status</TableTh>
+						<TableTh>Timestamp</TableTh>
+						<TableTh>Block hash</TableTh>
+						<TableTh>Baker</TableTh>
+						<TableTh align="right">Transactions</TableTh>
+					</TableRow>
+				</TableHead>
+				<TableBody>
+					<TableRow v-for="block in data?.blocks.nodes" :key="block.blockHash">
+						<TableTd>{{ block.blockHeight }}</TableTd>
+						<TableTd>
+							<StatusCircle
+								:class="[
+									$style.statusIcon,
+									{ 'text-blue-600': !block.finalized },
+								]"
+							/>
+							{{ block.finalized ? 'Finalised' : 'Pending' }}
+						</TableTd>
+						<TableTd>
+							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
+						</TableTd>
+						<TableTd :class="$style.numerical">
+							<LinkButton @click="openDrawer">
+								<HashtagIcon :class="$style.cellIcon" />
+								{{ block.blockHash.substring(0, 6) }}
+							</LinkButton>
+						</TableTd>
+						<TableTd :class="$style.numerical">
+							<UserIcon
+								v-if="block.bakerId || block.bakerId === 0"
+								:class="$style.cellIcon"
+							/>
+							{{ block.bakerId }}
+						</TableTd>
+						<TableTd align="right" :class="$style.numerical">
+							{{ block.transactionCount }}
+						</TableTd>
+					</TableRow>
+				</TableBody>
+			</Table>
+		</main>
 	</div>
 </template>
 
