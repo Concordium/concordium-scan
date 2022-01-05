@@ -22,6 +22,7 @@
 	/* 2.1 Text Palette */
 	--color-text-primary: var(--color-primary);
 	--color-text-primary-inversed: var(--color-white);
+	--color-text-faded: hsl(245, 24%, 51%);
 
 	--color-text-light: var(--color-common-grey);
 	--color-text-dark: var(--color-common-black);

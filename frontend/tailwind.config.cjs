@@ -44,6 +44,11 @@ module.exports = {
 				'input-primary': withHslOpacity('--color-input-bg-primary', '25%'),
 			},
 		},
+		textColor: {
+			theme: {
+				faded: 'var(--color-text-faded)',
+			},
+		},
 		extend: {},
 	},
 	variants: {
