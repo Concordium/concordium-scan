@@ -1,5 +1,6 @@
 <template>
 	<div>
+		{{ error }}
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -25,7 +26,9 @@
 							/>
 							{{ transaction.result.successful ? 'Finalised' : 'Rejected' }}
 						</TableTd>
-						<TableTd>{{ transaction.__typename }}</TableTd>
+						<TableTd>{{
+							translateTransactionType(transaction.transactionType)
+						}}</TableTd>
 						<TableTd :class="$style.numerical">
 							<HashtagIcon :class="$style.cellIcon" />
 							{{ transaction.transactionHash.substring(0, 6) }}
@@ -51,6 +54,10 @@
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import { convertMicroCcdToCcd } from '~/utils/format'
+import {
+	translateTransactionType,
+	type TransactionType,
+} from '~/utils/translateTransactionTypes'
 
 // Splitting the types out will cause an import error, as they are are not
 // bundled by Nuxt. See more in README.md under "Known issues"
@@ -62,6 +69,7 @@ type Transaction = {
 	result: {
 		successful: boolean
 	}
+	transactionType: TransactionType
 }
 
 type TransactionList = {
@@ -82,12 +90,24 @@ const TransactionsQuery = gql<TransactionList>`
 				result {
 					successful
 				}
+				transactionType {
+					__typename
+					... on AccountTransaction {
+						accountTransactionType
+					}
+					... on CredentialDeploymentTransaction {
+						credentialDeploymentTransactionType
+					}
+					... on UpdateTransaction {
+						updateTransactionType
+					}
+				}
 			}
 		}
 	}
 `
 
-const { data } = useQuery({
+const { data, error } = useQuery({
 	query: TransactionsQuery,
 	requestPolicy: 'cache-and-network',
 })
