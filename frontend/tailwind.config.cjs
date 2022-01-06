@@ -51,6 +51,7 @@ module.exports = {
 				interactive: withHslOpacity('--color-interactive'),
 				interactiveHover: withHslOpacity('--color-interactive-hover'),
 				info: withHslOpacity('--color-info'),
+				error: withHslOpacity('--color-error'),
 			},
 		},
 		extend: {},

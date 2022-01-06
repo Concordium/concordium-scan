@@ -19,7 +19,7 @@
 						<TableTd>
 							<StatusCircle
 								:class="[
-									$style.statusIcon,
+									'h-4 mr-2 text-theme-interactive',
 									{ 'text-theme-info': !block.finalized },
 								]"
 							/>
@@ -107,16 +107,13 @@ const BlocksQuery = gql<BlockList>`
 
 const { data } = await useQuery({
 	query: BlocksQuery,
-	requestPolicy: 'cache-first',
+	requestPolicy: 'cache-and-network',
 })
 
 const NOW = new Date()
 </script>
 
 <style module>
-.statusIcon {
-	@apply h-4 mr-2 text-theme-interactive;
-}
 .cellIcon {
 	@apply h-4 text-theme-white inline align-baseline;
 }

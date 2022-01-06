@@ -1,4 +1,7 @@
-import { convertTimestampToRelative } from '../utils/format'
+import {
+	convertTimestampToRelative,
+	convertMicroCcdToCcd,
+} from '../utils/format'
 
 describe('format', () => {
 	describe('convertTimestampToRelative', () => {
@@ -20,6 +23,20 @@ describe('format', () => {
 			const result = convertTimestampToRelative(timestamp)
 
 			expect(result).toStrictEqual('about 2 years ago')
+		})
+	})
+
+	describe('convertMicroCcdToCcd', () => {
+		it('should convert microCCD into CCD', () => {
+			expect(convertMicroCcdToCcd(1337)).toStrictEqual('0.001337')
+		})
+
+		it('should return a fixed number of decimals', () => {
+			expect(convertMicroCcdToCcd(1_337_000)).toStrictEqual('1.337000')
+		})
+
+		it('should default to 0 if no number is provided', () => {
+			expect(convertMicroCcdToCcd(undefined)).toStrictEqual('0.000000')
 		})
 	})
 })
