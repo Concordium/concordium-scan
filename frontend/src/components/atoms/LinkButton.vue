@@ -1,5 +1,8 @@
 <template>
-	<button class="text-purple-500 hover:text-purple-400" @click="onClick">
+	<button
+		class="text-theme-interactive hover:text-theme-interactive-hover"
+		@click="onClick"
+	>
 		<slot />
 	</button>
 </template>

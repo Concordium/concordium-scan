@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="rounded text-white bg-theme-button-primary hover:bg-theme-button-primary-hover px-8 py-3"
+		class="rounded bg-theme-button-primary hover:bg-theme-button-primary-hover px-8 py-3"
 		@click="onClick"
 	>
 		<slot />

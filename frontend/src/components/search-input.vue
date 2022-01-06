@@ -38,7 +38,7 @@ export default {
 }
 
 .input {
-	@apply rounded p-2 w-full text-white focus:ring-2 focus:ring-pink-500 outline-none;
+	@apply rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none;
 	background: var(--color-input-bg);
 }
 
@@ -48,7 +48,7 @@ export default {
 }
 
 .button {
-	@apply absolute top-1/2 right-3 text-white;
+	@apply absolute top-1/2 right-3;
 	transform: translateY(-50%);
 }
 

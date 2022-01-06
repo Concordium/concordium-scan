@@ -14,6 +14,6 @@ export default defineComponent({
 
 <style module>
 .table {
-	@apply w-full text-white;
+	@apply w-full;
 }
 </style>

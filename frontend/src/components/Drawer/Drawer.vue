@@ -50,7 +50,7 @@ watch(
 
 <style module>
 .drawer {
-	@apply flex flex-col flex-nowrap justify-between min-h-screen w-1/2 absolute top-0 right-0 text-white z-20;
+	@apply flex flex-col flex-nowrap justify-between min-h-screen w-1/2 absolute top-0 right-0 z-20;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px hsl(247, 40%, 8%);
 }
@@ -65,7 +65,7 @@ watch(
 	@apply rounded fixed right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
 }
 .closeIcon {
-	@apply h-6 text-white;
+	@apply h-6;
 }
 </style>
 

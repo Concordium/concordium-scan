@@ -46,7 +46,11 @@ module.exports = {
 		},
 		textColor: {
 			theme: {
+				white: 'white',
 				faded: 'var(--color-text-faded)',
+				interactive: withHslOpacity('--color-interactive'),
+				interactiveHover: withHslOpacity('--color-interactive-hover'),
+				info: withHslOpacity('--color-info'),
 			},
 		},
 		extend: {},

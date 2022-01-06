@@ -18,8 +18,11 @@
 	--color-background-primary: 247, 40%, 18%;
 	--color-border-primary: var(--color-primary);
 	--color-interactive: 162, 69%, 54%; /* green */
+	--color-interactive-hover: 162, 69%, 59%; /* green */
+	--color-info: 209, 100%, 52%; /* blue * /
 
 	/* 2.1 Text Palette */
+	--color-text-regular: var(--color-white);
 	--color-text-primary: var(--color-primary);
 	--color-text-primary-inversed: var(--color-white);
 	--color-text-faded: hsl(245, 24%, 51%);
@@ -48,6 +51,7 @@
 }
 
 body {
+	@apply text-theme-white;
 	/* prevents layout shift when locking body scroll */
 	overflow-y: scroll;
 	overflow-x: hidden;

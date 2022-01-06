@@ -20,7 +20,7 @@
 							<StatusCircle
 								:class="[
 									$style.statusIcon,
-									{ 'text-blue-600': !block.finalized },
+									{ 'text-theme-info': !block.finalized },
 								]"
 							/>
 							{{ block.finalized ? 'Finalised' : 'Pending' }}
@@ -110,10 +110,10 @@ const NOW = new Date()
 
 <style module>
 .statusIcon {
-	@apply h-4 mr-2 text-green-600;
+	@apply h-4 mr-2 text-theme-interactive;
 }
 .cellIcon {
-	@apply h-4 text-white inline align-baseline;
+	@apply h-4 text-theme-white inline align-baseline;
 }
 
 .numerical {

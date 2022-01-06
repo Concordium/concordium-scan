@@ -22,7 +22,7 @@
 
 <style module>
 .link {
-	@apply text-white font-bold transition-colors py-2 relative;
+	@apply font-bold transition-colors py-2 relative;
 }
 
 .link:hover {
