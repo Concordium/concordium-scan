@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<BlockDetails :is-open="isDrawerOpen" :on-close="closeDrawer" />
+		<BlockDetails :block-id="selectedBlockId" :on-close="closeDrawer" />
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -29,7 +29,10 @@
 							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
 						</TableTd>
 						<TableTd>
-							<LinkButton :class="$style.numerical" @click="openDrawer">
+							<LinkButton
+								:class="$style.numerical"
+								@click="openDrawer(block.id)"
+							>
 								<HashtagIcon :class="$style.cellIcon" />
 								{{ block.blockHash.substring(0, 6) }}
 							</LinkButton>
@@ -55,13 +58,13 @@
 import { ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
-import BlockDetails from '~/components/BlockDetails.vue'
+import BlockDetails from '~/components/BlockDetails/BlockDetails.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 
 // Splitting the types out will cause an import error, as they are are not
 // bundled by Nuxt. See more in README.md under "Known issues"
 type Block = {
-	id: number
+	id: string
 	bakerId?: number
 	blockHash: string
 	blockHeight: number
@@ -76,20 +79,21 @@ type BlockList = {
 	}
 }
 
-const isDrawerOpen = ref(false)
+const selectedBlockId = ref('')
 
-const openDrawer = () => {
-	isDrawerOpen.value = true
+const openDrawer = (id: string) => {
+	selectedBlockId.value = id
 }
 
 const closeDrawer = () => {
-	isDrawerOpen.value = false
+	selectedBlockId.value = ''
 }
 
 const BlocksQuery = gql<BlockList>`
 	query {
 		blocks {
 			nodes {
+				id
 				bakerId
 				blockHash
 				blockHeight
@@ -103,6 +107,7 @@ const BlocksQuery = gql<BlockList>`
 
 const { data } = await useQuery({
 	query: BlocksQuery,
+	requestPolicy: 'cache-first',
 })
 
 const NOW = new Date()

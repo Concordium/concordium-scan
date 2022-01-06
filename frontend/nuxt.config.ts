@@ -7,6 +7,8 @@ export default defineNuxtConfig({
 		'~/components/atoms',
 		'~/components/icons',
 		'~/components/Table',
+		'~/components/Drawer',
+		'~/components/BlockDetails',
 	],
 	publicRuntimeConfig: {
 		apiUrl: 'https://dev.api-mainnet.ccdscan.io/graphql/',
