@@ -8,6 +8,7 @@
 						<TableTh>Status</TableTh>
 						<TableTh>Type</TableTh>
 						<TableTh>Transaction hash</TableTh>
+						<TableTh>Block height</TableTh>
 						<TableTh>Sender</TableTh>
 						<TableTh align="right">Cost (Ͼ)</TableTh>
 					</TableRow>
@@ -24,7 +25,7 @@
 									{ 'text-theme-error': !transaction.result.successful },
 								]"
 							/>
-							{{ transaction.result.successful ? 'Finalised' : 'Rejected' }}
+							{{ transaction.result.successful ? 'Success' : 'Rejected' }}
 						</TableTd>
 						<TableTd>{{
 							translateTransactionType(transaction.transactionType)
@@ -33,6 +34,9 @@
 							<HashtagIcon :class="$style.cellIcon" />
 							{{ transaction.transactionHash.substring(0, 6) }}
 						</TableTd>
+						<TableTd :class="$style.numerical">{{
+							transaction.blockHeight
+						}}</TableTd>
 						<TableTd :class="$style.numerical">
 							<UserIcon
 								v-if="transaction.senderAccountAddress"
@@ -63,6 +67,7 @@ import {
 // bundled by Nuxt. See more in README.md under "Known issues"
 type Transaction = {
 	__typename: string
+	blockHeight: number
 	transactionHash: string
 	senderAccountAddress: string
 	ccdCost: number
@@ -82,11 +87,10 @@ const TransactionsQuery = gql<TransactionList>`
 	query {
 		transactions {
 			nodes {
+				ccdCost
+				blockHeight
 				transactionHash
 				senderAccountAddress
-				ccdCost
-				energyCost
-				__typename
 				result {
 					successful
 				}
