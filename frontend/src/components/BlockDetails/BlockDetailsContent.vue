@@ -2,10 +2,10 @@
 	<div>
 		<DrawerTitle class="font-mono">
 			{{ data?.block?.blockHash.substring(0, 6) }}
-			<Badge v-if="!data?.block?.finalized"> Finalised </Badge>
+			<Badge v-if="data?.block?.finalized"> Finalised </Badge>
 		</DrawerTitle>
 		<DrawerContent>
-			<div class="grid gap-6 grid-cols-2">
+			<div class="grid gap-6 grid-cols-2 mb-16">
 				<DetailsCard>
 					<template #title>Timestamp</template>
 					<template #default>
@@ -23,6 +23,17 @@
 					</template>
 				</DetailsCard>
 			</div>
+			<Accordion>
+				Tokenomics
+				<template #content> Tokenomics go here </template>
+			</Accordion>
+			<Accordion>
+				Transactions
+				<span class="text-theme-faded ml-1"
+					>({{ data?.block?.transactionCount }})</span
+				>
+				<template #content> Transactions go here </template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -34,6 +45,7 @@ import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
+import Accordion from '~/components/Accordion.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 
 // Splitting the types out will cause an import error, as they are are not
@@ -63,6 +75,8 @@ const BlockQuery = gql<Block>`
 			blockHash
 			bakerId
 			blockSlotTime
+			finalized
+			transactionCount
 		}
 	}
 `
