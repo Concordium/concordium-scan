@@ -21,7 +21,7 @@ public class GrpcNodeClientTest : IDisposable
         _httpClient = new HttpClient();
         _grpcNodeClientSettings = new GrpcNodeClientSettings()
         {
-            Address = "http://40.127.163.29:10000",
+            Address = "http://ftbccscandevnode.northeurope.cloudapp.azure.com:10111",
             AuthenticationToken = "FTBgrpc2021"
         };
         _target = new GrpcNodeClient(_grpcNodeClientSettings, _httpClient);

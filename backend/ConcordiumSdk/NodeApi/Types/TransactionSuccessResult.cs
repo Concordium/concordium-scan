@@ -1,29 +1,38 @@
 using System.Text.Json;
+using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.NodeApi.Types;
 
-/// <summary>
-/// Events still not deserialized to strongly type events.
-/// Should probably be done at some time, something like this...
-/// 
-/// public class TransactionResultEvent
-/// {
-/// }
-///
-/// public class Transferred : TransactionResultEvent
-/// {
-///     public string Amount { get; init; }
-///     public AddressWithType To { get; init; }
-///     public AddressWithType From { get; init; }
-/// }
-///
-/// public class AddressWithType
-/// {
-///     public string Address { get; init; }
-///     public string Type { get; init; }
-/// }
-/// </summary>
 public class TransactionSuccessResult : TransactionResult
 {
-    public JsonElement Events { get; init; }
+    public TransactionResultEvent[] Events { get; init; }
 }
+
+public abstract class TransactionResultEvent
+{
+}
+
+public class JsonTransactionResultEvent : TransactionResultEvent
+{
+    public JsonTransactionResultEvent(JsonElement data)
+    {
+        Data = data;
+    }
+
+    public JsonElement Data { get; }
+}
+
+public class Transferred : TransactionResultEvent
+{
+    public Transferred(Address to, Address @from, CcdAmount amount)
+    {
+        To = to;
+        From = @from;
+        Amount = amount;
+    }
+
+    public CcdAmount Amount { get; }
+    public Address To { get; }
+    public Address From { get; }
+}
+

@@ -2,7 +2,9 @@
 using System.Text.Json;
 using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
+using ConcordiumSdk.Types.JsonConverters;
 using Dapper;
 using Npgsql;
 
@@ -11,10 +13,15 @@ namespace Application.Persistence;
 public class BlockRepository
 {
     private readonly DatabaseSettings _settings;
+    private readonly JsonSerializerOptions _successEventsSerializerOptions;
 
     public BlockRepository(DatabaseSettings settings)
     {
         _settings = settings;
+        _successEventsSerializerOptions = new JsonSerializerOptions();
+        _successEventsSerializerOptions.Converters.Add(new TransactionResultEventConverter());
+        _successEventsSerializerOptions.Converters.Add(new AddressConverter());
+        _successEventsSerializerOptions.Converters.Add(new CcdAmountConverter());
     }
 
     public int? GetMaxBlockHeight()
@@ -163,7 +170,7 @@ public class BlockRepository
     private string? MapSuccessEvents(TransactionResult result)
     {
         if (result is TransactionSuccessResult success)
-            return success.Events.ToString();
+            return JsonSerializer.Serialize(success.Events, _successEventsSerializerOptions);
 
         return null;
     }
@@ -235,7 +242,7 @@ public class BlockRepository
     private TransactionResult MapToResult(dynamic obj)
     {
         if (obj.success_events != null)
-            return new TransactionSuccessResult { Events = JsonDocument.Parse(obj.success_events).RootElement };
+            return new TransactionSuccessResult { Events = JsonSerializer.Deserialize<TransactionResultEvent[]>(obj.success_events, _successEventsSerializerOptions) };
         if (obj.reject_reason_type != null)
             return new TransactionRejectResult { Tag = obj.reject_reason_type };
         throw new InvalidOperationException("Unknown transaction result");

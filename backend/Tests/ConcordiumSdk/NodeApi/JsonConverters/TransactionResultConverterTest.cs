@@ -12,15 +12,16 @@ public class TransactionResultConverterTest
     {
         _serializerOptions = new JsonSerializerOptions( );
         _serializerOptions.Converters.Add(new TransactionResultConverter());
+        _serializerOptions.Converters.Add(new TransactionResultEventConverter());
     }
 
     [Fact]
     public void Deserialize_Success()
     {
-        var json = "{\"events\": [{\"foo\": \"bar\"}, {\"lorem\": 1}], \"outcome\": \"success\"}";
+        var json = "{\"events\": [{\"tag\": \"foo\"}, {\"tag\": \"bar\"}], \"outcome\": \"success\"}";
         var result = JsonSerializer.Deserialize<TransactionResult>(json, _serializerOptions);
         var typed = Assert.IsType<TransactionSuccessResult>(result);
-        Assert.Equal(2, typed.Events.EnumerateArray().Count());
+        Assert.Equal(2, typed.Events.Length);
     }
     
     [Fact]

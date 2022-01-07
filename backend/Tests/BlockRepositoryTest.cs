@@ -84,7 +84,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
             {
                 new TransactionSummaryBuilder()
                     .WithIndex(0)
-                    .WithResult(new TransactionSuccessResult() { Events = JsonDocument.Parse("[]").RootElement })
+                    .WithResult(new TransactionSuccessResult() { Events = Array.Empty<TransactionResultEvent>() })
                     .Build(),
                 new TransactionSummaryBuilder()
                     .WithIndex(1)

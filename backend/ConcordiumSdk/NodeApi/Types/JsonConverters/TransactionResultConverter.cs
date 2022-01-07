@@ -43,7 +43,7 @@ public class TransactionResultConverter : JsonConverter<TransactionResult>
         {
             if (events == null)
                 throw new InvalidOperationException("events were null when trying to deserialize a successful outcome!");
-            return new TransactionSuccessResult { Events = events.Value };
+            return new TransactionSuccessResult { Events = events.Value.Deserialize<TransactionResultEvent[]>(options)! };
         }
 
         if (outcome == "reject")

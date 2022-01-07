@@ -44,12 +44,14 @@ public class GrpcNodeClient : INodeClient, IDisposable
         _jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         _jsonSerializerOptions.Converters.Add(new SpecialEventJsonConverter());
         _jsonSerializerOptions.Converters.Add(new BlockHashConverter());
+        _jsonSerializerOptions.Converters.Add(new AddressConverter());
         _jsonSerializerOptions.Converters.Add(new AccountAddressConverter());
         _jsonSerializerOptions.Converters.Add(new TransactionHashConverter());
         _jsonSerializerOptions.Converters.Add(new CcdAmountConverter());
         _jsonSerializerOptions.Converters.Add(new NonceConverter());
         _jsonSerializerOptions.Converters.Add(new TransactionTypeConverter());
         _jsonSerializerOptions.Converters.Add(new TransactionResultConverter());
+        _jsonSerializerOptions.Converters.Add(new TransactionResultEventConverter());
     }
 
     public async Task<ConsensusStatus> GetConsensusStatusAsync()
