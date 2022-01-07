@@ -19,6 +19,7 @@
 	--color-border-primary: var(--color-primary);
 	--color-interactive: 162, 69%, 54%; /* green */
 	--color-interactive-hover: 162, 69%, 59%; /* green */
+	--color-interactive-dark: 162, 69%, 29%; /* green */
 	--color-info: 209, 100%, 52%; /* blue */
 	--color-error: 11, 82%, 57%; /* flame */
 

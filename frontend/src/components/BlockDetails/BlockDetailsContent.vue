@@ -2,6 +2,7 @@
 	<div>
 		<DrawerTitle class="font-mono">
 			{{ data?.block?.blockHash.substring(0, 6) }}
+			<Badge v-if="!data?.block?.finalized"> Finalised </Badge>
 		</DrawerTitle>
 		<DrawerContent>
 			<div class="grid gap-6 grid-cols-2">
@@ -32,6 +33,7 @@ import { UserIcon } from '@heroicons/vue/solid'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import Badge from '~/components/Badge.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 
 // Splitting the types out will cause an import error, as they are are not
