@@ -6,6 +6,7 @@
 		</DrawerTitle>
 		<DrawerContent>
 			<div class="grid gap-6 grid-cols-2 mb-16">
+				{{ error }}
 				<DetailsCard>
 					<template #title>Timestamp</template>
 					<template #default>
@@ -29,10 +30,51 @@
 			</Accordion>
 			<Accordion>
 				Transactions
-				<span class="text-theme-faded ml-1"
-					>({{ data?.block?.transactionCount }})</span
-				>
-				<template #content> Transactions go here </template>
+				<span class="text-theme-faded ml-1">
+					({{ data?.block?.transactionCount }})
+				</span>
+				<template #content>
+					<Table>
+						<TableHead>
+							<TableRow>
+								<TableTh>Status</TableTh>
+								<TableTh>Transaction hash</TableTh>
+								<TableTh>Sender</TableTh>
+								<TableTh align="right">Cost (Ͼ)</TableTh>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							<TableRow
+								v-for="transaction in data?.block?.transactions.nodes"
+								:key="transaction.transactionHash"
+							>
+								<TableTd>
+									<StatusCircle
+										:class="[
+											'h-4 mr-2 text-theme-interactive',
+											{ 'text-theme-error': !transaction.result.successful },
+										]"
+									/>
+									{{ transaction.result.successful ? 'Success' : 'Rejected' }}
+								</TableTd>
+								<TableTd :class="$style.numerical">
+									<HashtagIcon :class="$style.cellIcon" />
+									{{ transaction.transactionHash.substring(0, 6) }}
+								</TableTd>
+								<TableTd :class="$style.numerical">
+									<UserIcon
+										v-if="transaction.senderAccountAddress"
+										:class="$style.cellIcon"
+									/>
+									{{ transaction.senderAccountAddress?.substring(0, 6) }}
+								</TableTd>
+								<TableTd align="right" :class="$style.numerical">
+									{{ convertMicroCcdToCcd(transaction.ccdCost) }}
+								</TableTd>
+							</TableRow>
+						</TableBody>
+					</Table>
+				</template>
 			</Accordion>
 		</DrawerContent>
 	</div>
@@ -40,16 +82,28 @@
 
 <script lang="ts" setup>
 import { useQuery, gql } from '@urql/vue'
-import { UserIcon } from '@heroicons/vue/solid'
+import { UserIcon, HashtagIcon } from '@heroicons/vue/solid'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
 import Accordion from '~/components/Accordion.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import {
+	convertTimestampToRelative,
+	convertMicroCcdToCcd,
+} from '~/utils/format'
 
 // Splitting the types out will cause an import error, as they are are not
 // bundled by Nuxt. See more in README.md under "Known issues"
+type Transaction = {
+	transactionHash: string
+	senderAccountAddress: string
+	ccdCost: number
+	result: {
+		successful: boolean
+	}
+}
+
 type Block = {
 	block?: {
 		id: string
@@ -59,6 +113,9 @@ type Block = {
 		blockSlotTime: string
 		finalized: boolean
 		transactionCount: number
+		transactions: {
+			nodes: Transaction[]
+		}
 	}
 }
 
@@ -77,14 +134,38 @@ const BlockQuery = gql<Block>`
 			blockSlotTime
 			finalized
 			transactionCount
+			transactions {
+				nodes {
+					transactionHash
+					senderAccountAddress
+					ccdCost
+					result {
+						successful
+					}
+				}
+			}
 		}
 	}
 `
 
-const { data } = await useQuery({
+const { data, error } = await useQuery({
 	query: BlockQuery,
 	variables: { id: props.id },
 })
 
 const NOW = new Date()
 </script>
+
+<style module>
+.statusIcon {
+	@apply h-4 mr-2 text-theme-interactive;
+}
+.cellIcon {
+	@apply h-4 text-theme-white inline align-baseline;
+}
+
+.numerical {
+	@apply font-mono;
+	font-variant-ligatures: none;
+}
+</style>
