@@ -1,0 +1,16 @@
+	<svg
+		width="24"
+		height="24"
+		viewBox="0 0 24 24"
+		fill="none"
+		xmlns="http://www.w3.org/2000/svg"
+	>
+	<style>
+    circle { fill: hsl(247, 40%, 18%); }
+    @media (prefers-color-scheme: dark) {
+      circle { fill: hsl(162, 69%, 54%); }
+    }
+  </style>
+
+		<circle cx="12" cy="12" r="12" />
+	</svg>

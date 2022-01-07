@@ -1,6 +1,6 @@
 <template>
 	<div>
-		{{ error }}
+		<Title>CCDScan | Transactions</Title>
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -107,7 +107,7 @@ const TransactionsQuery = gql<TransactionList>`
 	}
 `
 
-const { data, error } = useQuery({
+const { data } = useQuery({
 	query: TransactionsQuery,
 	requestPolicy: 'cache-and-network',
 })

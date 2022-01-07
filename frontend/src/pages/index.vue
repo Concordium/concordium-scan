@@ -1,5 +1,6 @@
 <template>
 	<div>
+		<Title>CCDScan | Blocks</Title>
 		<BlockDetails :block-id="selectedBlockId" :on-close="closeDrawer" />
 		<main class="p-4">
 			<Table>
@@ -15,7 +16,7 @@
 				</TableHead>
 				<TableBody>
 					<TableRow v-for="block in data?.blocks.nodes" :key="block.blockHash">
-						<TableTd>{{ block.blockHeight }}</TableTd>
+						<TableTd :class="$style.numerical">{{ block.blockHeight }}</TableTd>
 						<TableTd>
 							<StatusCircle
 								:class="[
