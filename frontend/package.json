@@ -9,7 +9,7 @@
 		"prepare": "cd .. && husky install frontend/.husky",
 		"dev": "nuxt dev",
 		"build": "nuxt build",
-		"start": "nuxt start",
+		"start": "nuxi start",
 		"generate": "nuxt generate",
 		"test": "jest",
 		"test:watch": "jest --watch",
@@ -21,7 +21,8 @@
 		"@urql/vue": "^0.6.1",
 		"date-fns": "^2.27.0",
 		"graphql": "^16.1.0",
-		"nuxt3": "latest"
+		"nuxt3": "^3.0.0-27356801.e9128f3",
+		"vue": "^3.2.26"
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "^7.16.0",
