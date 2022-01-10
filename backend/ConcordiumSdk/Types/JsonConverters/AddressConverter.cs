@@ -8,35 +8,29 @@ public class AddressConverter : JsonConverter<Address>
     public override Address Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         EnsureTokenType(reader, JsonTokenType.StartObject);
-
-        string? type = null;
-        string? address = null;
         
         reader.Read();
-        while (reader.TokenType != JsonTokenType.EndObject)
+        EnsureTokenType(reader, JsonTokenType.PropertyName);
+        if (reader.GetString() != "type") throw new JsonException("Expected first property to be 'type'");
+
+        reader.Read();
+        EnsureTokenType(reader, JsonTokenType.String);
+        var typeValue = reader.GetString();
+
+        reader.Read();
+        EnsureTokenType(reader, JsonTokenType.PropertyName);
+        if (reader.GetString() != "address") throw new JsonException("Expected first property to be 'type'");
+
+        reader.Read();
+        Address result = typeValue switch
         {
-            EnsureTokenType(reader, JsonTokenType.PropertyName);
-            var key = reader.GetString()!;
-
-            reader.Read();
-            EnsureTokenType(reader, JsonTokenType.String);
-            if (key == "type")
-                type = reader.GetString()!;
-            else if (key == "address")
-                address = reader.GetString()!;
-            
-            reader.Read();
-        }
-
-        if (type == null || address == null)
-            throw new JsonException("Unexpected JSON for a generic address.");
-
-        return type switch
-        {
-            "AddressAccount" => new AccountAddress(address),
-            "AddressContract" => new ContractAddress(address),
-            _ => throw new JsonException($"Unexpected type '{type}'.")
+            "AddressAccount" => JsonSerializer.Deserialize<AccountAddress>(ref reader, options)!,
+            "AddressContract" => JsonSerializer.Deserialize<ContractAddress>(ref reader, options)!,
+            _ => throw new JsonException($"Unexpected tag value '{typeValue}'.")
         };
+        
+        reader.Read(); // Read EndObject (Contract) or String (Account)
+        return result;
     }
 
     public override void Write(Utf8JsonWriter writer, Address value, JsonSerializerOptions options)
@@ -47,7 +41,7 @@ public class AddressConverter : JsonConverter<Address>
         writer.WritePropertyName("type");
         writer.WriteStringValue(typeValue);
         writer.WritePropertyName("address");
-        writer.WriteStringValue(value.AsString);
+        JsonSerializer.Serialize(writer, value, value.GetType(), options);
         writer.WriteEndObject();
     }
 

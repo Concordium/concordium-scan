@@ -13,7 +13,27 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
     {
         _tagValueToTypeMap = new Dictionary<string, Type>()
         {
-            { "Transferred", typeof(Transferred) }
+            { "ModuleDeployed", typeof(ModuleDeployed) },
+            { "ContractInitialized", typeof(ContractInitialized) },
+            { "Updated", typeof(Updated) },
+            { "Transferred", typeof(Transferred) },
+            { "AccountCreated", typeof(AccountCreated) },
+            { "CredentialDeployed", typeof(CredentialDeployed) },
+            { "BakerAdded", typeof(BakerAdded) },
+            { "BakerRemoved", typeof(BakerRemoved) },
+            { "BakerStakeIncreased", typeof(BakerStakeIncreased) },
+            { "BakerStakeDecreased", typeof(BakerStakeDecreased) },
+            { "BakerSetRestakeEarnings", typeof(BakerSetRestakeEarnings) },
+            { "BakerKeysUpdated", typeof(BakerKeysUpdated) },
+            { "CredentialKeysUpdated", typeof(CredentialKeysUpdated) },
+            { "NewEncryptedAmount", typeof(NewEncryptedAmount) },
+            { "EncryptedAmountsRemoved", typeof(EncryptedAmountsRemoved) },
+            { "AmountAddedByDecryption", typeof(AmountAddedByDecryption) },
+            { "EncryptedSelfAmountAdded", typeof(EncryptedSelfAmountAdded) },
+            { "TransferredWithSchedule", typeof(TransferredWithSchedule) },
+            { "CredentialsUpdated", typeof(CredentialsUpdated) },
+            { "TransferMemo", typeof(TransferMemo) },
+            { "DataRegistered", typeof(DataRegistered) },
         };
         
         _typeToTagValueMap = _tagValueToTypeMap
@@ -23,8 +43,8 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
     public override TransactionResultEvent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var tagValue = ReadTagValue(reader);
-        if (_tagValueToTypeMap.ContainsKey(tagValue))
-            return (TransactionResultEvent)JsonSerializer.Deserialize(ref reader, typeof(Transferred), options)!;
+        if (_tagValueToTypeMap.TryGetValue(tagValue, out var tagType))
+            return (TransactionResultEvent)JsonSerializer.Deserialize(ref reader, tagType, options)!;
         return new JsonTransactionResultEvent(JsonElement.ParseValue(ref reader));
     }
 

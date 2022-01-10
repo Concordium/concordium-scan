@@ -161,6 +161,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
         _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
 
         var result = _target.GetGenesisBlockHash();
-        Assert.Equal("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc", result.Value.AsString);
+        Assert.NotNull(result);
+        Assert.Equal("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc", result!.AsString);
     }
 }

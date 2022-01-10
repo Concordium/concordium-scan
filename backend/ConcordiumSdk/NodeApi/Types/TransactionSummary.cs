@@ -7,7 +7,7 @@ public class TransactionSummary
     public TransactionSummary(AccountAddress? sender, TransactionHash hash, CcdAmount cost, int energyCost, TransactionType type, TransactionResult result, int index)
     {
         Sender = sender;
-        Hash = hash;
+        Hash = hash ?? throw new ArgumentNullException(nameof(hash));
         Cost = cost;
         EnergyCost = energyCost;
         Type = type ?? throw new ArgumentNullException(nameof(type));

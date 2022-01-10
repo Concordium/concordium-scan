@@ -110,13 +110,12 @@ public class ImportController : BackgroundService
         _logger.Information("Checking preconditions for importing data from Concordium node...");
         
         var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
-        
-        if (importedGenesisBlockHash.HasValue)
+        if (importedGenesisBlockHash != null)
         {
-            var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash.Value);
+            var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash);
             _logger.Information(
                 "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
-                importedGenesisBlockHash.Value.AsString, databaseNetworkId.NetworkName);
+                importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
 
             var consensusStatus = await _client.GetConsensusStatusAsync();
             var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);

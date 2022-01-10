@@ -16,6 +16,7 @@ public class ConcordiumNetworkId
 
     public static ConcordiumNetworkId GetFromGenesisBlockHash(BlockHash genesisBlockHash)
     {
+        if (genesisBlockHash == null) throw new ArgumentNullException(nameof(genesisBlockHash));
         if (genesisBlockHash == Mainnet.GenesisBlockHash)
             return Mainnet;
         if (genesisBlockHash == Testnet.GenesisBlockHash)

@@ -67,7 +67,7 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         var single = Assert.Single(blocks);
         Assert.NotNull(single.SpecialEvents);
         Assert.NotNull(single.SpecialEvents.Mint);
-        Assert.Equal(371021, single.SpecialEvents.Mint.BakingReward);
+        Assert.Equal(371021, single.SpecialEvents.Mint!.BakingReward);
         Assert.Equal(4577291, single.SpecialEvents.Mint.FinalizationReward);
         Assert.Equal(2890562, single.SpecialEvents.Mint.PlatformDevelopmentCharge);
         Assert.Equal("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd", single.SpecialEvents.Mint.FoundationAccount);
@@ -98,7 +98,7 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         var single = Assert.Single(blocks);
         Assert.NotNull(single.SpecialEvents);
         Assert.NotNull(single.SpecialEvents.FinalizationRewards);
-        Assert.Equal(371021, single.SpecialEvents.FinalizationRewards.Remainder);
+        Assert.Equal(371021, single.SpecialEvents.FinalizationRewards!.Remainder);
         Assert.Equal(2, single.SpecialEvents.FinalizationRewards.Rewards.Count());
         Assert.Equal(55511115, single.SpecialEvents.FinalizationRewards.Rewards.ElementAt(0).Amount);
         Assert.Equal("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi", single.SpecialEvents.FinalizationRewards.Rewards.ElementAt(0).Address);
@@ -128,7 +128,7 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         var single = Assert.Single(blocks);
         Assert.NotNull(single.SpecialEvents);
         Assert.NotNull(single.SpecialEvents.BlockRewards);
-        Assert.Equal(5111884, single.SpecialEvents.BlockRewards.BakerReward);
+        Assert.Equal(5111884, single.SpecialEvents.BlockRewards!.BakerReward);
         Assert.Equal(4884, single.SpecialEvents.BlockRewards.FoundationCharge);
         Assert.Equal(8888, single.SpecialEvents.BlockRewards.TransactionFees);
         Assert.Equal(455, single.SpecialEvents.BlockRewards.NewGasAccount);
@@ -162,7 +162,7 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         var single = Assert.Single(blocks);
         Assert.NotNull(single.SpecialEvents);
         Assert.NotNull(single.SpecialEvents.BakingRewards);
-        Assert.Equal(371021, single.SpecialEvents.BakingRewards.Remainder);
+        Assert.Equal(371021, single.SpecialEvents.BakingRewards!.Remainder);
         Assert.Equal(2, single.SpecialEvents.BakingRewards.Rewards.Count());
         Assert.Equal(55511115, single.SpecialEvents.BakingRewards.Rewards.ElementAt(0).Amount);
         Assert.Equal("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi", single.SpecialEvents.BakingRewards.Rewards.ElementAt(0).Address);
@@ -205,16 +205,16 @@ public class GraphQlDbContextTest : IClassFixture<DatabaseFixture>
         
         var single = Assert.Single(blocks);
         Assert.NotNull(single.FinalizationSummary);
-        Assert.Equal("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e", single.FinalizationSummary.FinalizedBlockHash);
+        Assert.Equal("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e", single.FinalizationSummary!.FinalizedBlockHash);
         Assert.Equal(42, single.FinalizationSummary.FinalizationIndex);
         Assert.Equal(11, single.FinalizationSummary.FinalizationDelay);
         Assert.Equal(2, single.FinalizationSummary.Finalizers.Count());
         Assert.Equal(1, single.FinalizationSummary.Finalizers.ElementAt(0).BakerId);
         Assert.Equal(130, single.FinalizationSummary.Finalizers.ElementAt(0).Weight);
-        Assert.Equal(true, single.FinalizationSummary.Finalizers.ElementAt(0).Signed);
+        Assert.True(single.FinalizationSummary.Finalizers.ElementAt(0).Signed);
         Assert.Equal(2, single.FinalizationSummary.Finalizers.ElementAt(1).BakerId);
         Assert.Equal(220, single.FinalizationSummary.Finalizers.ElementAt(1).Weight);
-        Assert.Equal(false, single.FinalizationSummary.Finalizers.ElementAt(1).Signed);
+        Assert.False(single.FinalizationSummary.Finalizers.ElementAt(1).Signed);
     }
 
     [Fact]

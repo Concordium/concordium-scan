@@ -18,10 +18,22 @@ public class BlockRepository
     public BlockRepository(DatabaseSettings settings)
     {
         _settings = settings;
-        _successEventsSerializerOptions = new JsonSerializerOptions();
-        _successEventsSerializerOptions.Converters.Add(new TransactionResultEventConverter());
-        _successEventsSerializerOptions.Converters.Add(new AddressConverter());
-        _successEventsSerializerOptions.Converters.Add(new CcdAmountConverter());
+        _successEventsSerializerOptions = new JsonSerializerOptions
+        {
+            Converters =
+            {
+                new TransactionResultEventConverter(),
+                new AddressConverter(),
+                new AccountAddressConverter(),
+                new TimestampedAmountConverter(),
+                new CcdAmountConverter(),
+                new RegisteredDataConverter(),
+                new MemoConverter(),
+                new ModuleRefConverter(),
+                new ContractEventConverter(),
+                new ContractParameterConverter()
+            }
+        };
     }
 
     public int? GetMaxBlockHeight()
@@ -266,7 +278,7 @@ public class BlockRepository
 
         var blockHashBytes = conn.QuerySingleOrDefault<byte[]>("SELECT block_hash FROM block WHERE block_height = 0");
         
-        var result = blockHashBytes != null ? new BlockHash(blockHashBytes) : (BlockHash?)null;
+        var result = blockHashBytes != null ? new BlockHash(blockHashBytes) : null;
         return result;
     }
 }
