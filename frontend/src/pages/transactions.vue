@@ -58,32 +58,16 @@
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import { convertMicroCcdToCcd } from '~/utils/format'
-import {
-	translateTransactionType,
-	type TransactionType,
-} from '~/utils/translateTransactionTypes'
+import { translateTransactionType } from '~/utils/translateTransactionTypes'
+import type { Transaction } from '~/types/transactions'
 
-// Splitting the types out will cause an import error, as they are are not
-// bundled by Nuxt. See more in README.md under "Known issues"
-type Transaction = {
-	__typename: string
-	blockHeight: number
-	transactionHash: string
-	senderAccountAddress: string
-	ccdCost: number
-	result: {
-		successful: boolean
-	}
-	transactionType: TransactionType
-}
-
-type TransactionList = {
+type TransactionsResponse = {
 	transactions: {
 		nodes: Transaction[]
 	}
 }
 
-const TransactionsQuery = gql<TransactionList>`
+const TransactionsQuery = gql<TransactionsResponse>`
 	query {
 		transactions {
 			nodes {

@@ -61,24 +61,7 @@ import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
 import BlockDetails from '~/components/BlockDetails/BlockDetails.vue'
 import { convertTimestampToRelative } from '~/utils/format'
-
-// Splitting the types out will cause an import error, as they are are not
-// bundled by Nuxt. See more in README.md under "Known issues"
-type Block = {
-	id: string
-	bakerId?: number
-	blockHash: string
-	blockHeight: number
-	blockSlotTime: string
-	finalized: boolean
-	transactionCount: number
-}
-
-type BlockList = {
-	blocks: {
-		nodes: Block[]
-	}
-}
+import type { Block } from '~/types/blocks'
 
 const selectedBlockId = ref('')
 
@@ -88,6 +71,12 @@ const openDrawer = (id: string) => {
 
 const closeDrawer = () => {
 	selectedBlockId.value = ''
+}
+
+type BlockList = {
+	blocks: {
+		nodes: Block[]
+	}
 }
 
 const BlocksQuery = gql<BlockList>`

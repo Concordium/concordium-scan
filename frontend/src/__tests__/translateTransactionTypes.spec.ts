@@ -1,9 +1,9 @@
+import { translateTransactionType } from '../utils/translateTransactionTypes'
 import {
-	translateTransactionType,
 	type AccountTransaction,
 	type UpdateTransaction,
 	type CredentialDeploymentTransaction,
-} from '../utils/translateTransactionTypes'
+} from '../types/transactions'
 
 describe('translateTransactionTypes', () => {
 	it('should have a fallback for unknown transaction types', () => {

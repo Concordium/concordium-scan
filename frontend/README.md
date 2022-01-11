@@ -89,10 +89,6 @@ chmod +x .husky/pre-commit
 
   [A GitHub issue](https://github.com/nuxt/framework/issues/2343) has been reported and a fix has been merged.
 
-- **Types can not be split out; they must exist in the file they are consumed.**
-
-  This seems a Nuxt issue. It will result in an error that the type is not exported from `_nuxt/types/types` (or whatever the path is).
-
 - **Components using the `@apply` directive from Tailwind can not be tested.**
 
   It results in a very non-descriptive syntax error. It might be that we manually need to add a Webpack loader for this.

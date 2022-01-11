@@ -92,31 +92,10 @@ import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 } from '~/utils/format'
+import type { Block } from '~/types/blocks'
 
-// Splitting the types out will cause an import error, as they are are not
-// bundled by Nuxt. See more in README.md under "Known issues"
-type Transaction = {
-	transactionHash: string
-	senderAccountAddress: string
-	ccdCost: number
-	result: {
-		successful: boolean
-	}
-}
-
-type Block = {
-	block?: {
-		id: string
-		bakerId?: number
-		blockHash: string
-		blockHeight: number
-		blockSlotTime: string
-		finalized: boolean
-		transactionCount: number
-		transactions: {
-			nodes: Transaction[]
-		}
-	}
+type BlockResponse = {
+	block?: Block
 }
 
 type Props = {
@@ -125,7 +104,7 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const BlockQuery = gql<Block>`
+const BlockQuery = gql<BlockResponse>`
 	query ($id: ID!) {
 		block(id: $id) {
 			id
