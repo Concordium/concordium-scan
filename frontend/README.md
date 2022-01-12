@@ -85,10 +85,6 @@ chmod +x .husky/pre-commit
 
 # Known issues
 
-- **Tests cannot be colocated, as that will include them in the production bundle.**
-
-  [A GitHub issue](https://github.com/nuxt/framework/issues/2343) has been reported and a fix has been merged.
-
 - **Components using the `@apply` directive from Tailwind can not be tested.**
 
   It results in a very non-descriptive syntax error. It might be that we manually need to add a Webpack loader for this.

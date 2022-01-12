@@ -1,7 +1,4 @@
-import {
-	convertTimestampToRelative,
-	convertMicroCcdToCcd,
-} from '../utils/format'
+import { convertTimestampToRelative, convertMicroCcdToCcd } from './format'
 
 describe('format', () => {
 	describe('convertTimestampToRelative', () => {

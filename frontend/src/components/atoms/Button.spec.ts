@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/vue'
-import Button from '../components/atoms/Button.vue'
+import Button from './Button.vue'
 
 describe('Button', () => {
 	it('has a label', () => {
