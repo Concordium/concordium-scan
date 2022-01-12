@@ -80,7 +80,8 @@ public class AccountTransactionServiceTest : IDisposable
     {
         var toAddress = new AccountAddress("3uHj5LudVeJMZ7xAm3E4bbFwN61N4ijb9KtnAuARkhoAMLiNYa");
         var amount = CcdAmount.FromCcd(2);
-        var payload = new SimpleTransferWithMemoPayload(amount, toAddress, Memo.CreateCborEncodedFromText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."));
+        var memo = Memo.CreateCborEncodedFromText("Lorem ipsum dolor sit amet.");
+        var payload = new SimpleTransferWithMemoPayload(amount, toAddress, memo);
 
         var txHash = await _target.SendAccountTransactionAsync(_senderAddress, payload, _signer);
 
