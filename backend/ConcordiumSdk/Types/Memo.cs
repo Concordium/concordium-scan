@@ -1,3 +1,4 @@
+using System.Formats.Cbor;
 using System.Linq;
 
 namespace ConcordiumSdk.Types;
@@ -12,16 +13,46 @@ public class Memo
 
     public Memo(byte[] bytes)
     {
-        _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        if (bytes.Length > 256) throw new ArgumentException("Size of a memo is not allowed to exceed 256 bytes.");
+        _bytes = bytes;
     }
 
-    public static Memo FromHexString(string hexString)
+    public static Memo CreateFromHex(string hexString)
     {
         var bytes = Convert.FromHexString(hexString);
         return new Memo(bytes);
     }
-    
+
+    public static Memo CreateCborEncodedFromText(string text)
+    {
+        var encoder = new CborWriter();
+        encoder.WriteTextString(text);
+        var encodedBytes = encoder.Encode();
+        return new Memo(encodedBytes);
+    }
+
+    public bool TryCborDecodeToText(out string? decodedText)
+    {
+        var encoder = new CborReader(_bytes);
+        try
+        {
+            var textRead = encoder.ReadTextString();
+            if (encoder.BytesRemaining == 0)
+            {
+                decodedText = textRead;
+                return true;
+            }
+        }
+        catch (CborContentException) { }
+        catch (InvalidOperationException) { }
+
+        decodedText = null;
+        return false;
+    }
+
     public byte[] AsBytes => _bytes;
+
     public string AsHex => Convert.ToHexString(_bytes).ToLowerInvariant();
 
     public override bool Equals(object? obj)

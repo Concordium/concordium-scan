@@ -13,5 +13,4 @@ public class MobileWalletExportReaderTest
         
         Assert.NotNull(target);
     }
-    
 }

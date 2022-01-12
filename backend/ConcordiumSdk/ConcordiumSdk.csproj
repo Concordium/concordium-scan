@@ -16,6 +16,7 @@
         <PackageReference Include="NBitcoin" Version="6.0.18" />
         <PackageReference Include="NSec.Cryptography" Version="20.2.0" />
         <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="6.0.0" />
+        <PackageReference Include="System.Formats.Cbor" Version="6.0.0" />
     </ItemGroup>
 
     <ItemGroup>

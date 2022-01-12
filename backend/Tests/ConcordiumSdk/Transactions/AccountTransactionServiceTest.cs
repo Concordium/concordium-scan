@@ -74,6 +74,20 @@ public class AccountTransactionServiceTest : IDisposable
 
         _output.WriteLine($"txHash1: {txHash.AsString}");
     }
+    
+    [Fact]
+    public async Task SendAccountTransactionAsync_SingleTransferWithMemo()
+    {
+        var toAddress = new AccountAddress("3uHj5LudVeJMZ7xAm3E4bbFwN61N4ijb9KtnAuARkhoAMLiNYa");
+        var amount = CcdAmount.FromCcd(2);
+        var payload = new SimpleTransferWithMemoPayload(amount, toAddress, Memo.CreateCborEncodedFromText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."));
+
+        var txHash = await _target.SendAccountTransactionAsync(_senderAddress, payload, _signer);
+
+        Assert.Equal(32, txHash.AsBytes.Length);
+
+        _output.WriteLine($"txHash1: {txHash.AsString}");
+    }
 
     /// <summary>
     /// When making multiple transfers from the same sender account you can  control the nonce value yourself

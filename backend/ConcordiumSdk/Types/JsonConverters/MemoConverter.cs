@@ -10,7 +10,7 @@ public class MemoConverter : JsonConverter<Memo>
         var value = reader.GetString();
         if (value == null)
             throw new JsonException("Memo cannot be null.");
-        return Memo.FromHexString(value);
+        return Memo.CreateFromHex(value);
     }
 
     public override void Write(Utf8JsonWriter writer, Memo value, JsonSerializerOptions options)

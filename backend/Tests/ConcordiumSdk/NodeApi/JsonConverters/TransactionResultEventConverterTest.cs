@@ -371,7 +371,7 @@ public class TransactionResultEventConverterTest
         
         var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
         var typed = Assert.IsType<TransferMemo>(deserialized);
-        Assert.Equal(Memo.FromHexString("704164616d2042696c6c696f6e61697265"), typed.Memo);
+        Assert.Equal(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265"), typed.Memo);
 
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
