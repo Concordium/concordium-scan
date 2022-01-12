@@ -2,11 +2,12 @@
 	<div>
 		<DrawerTitle class="font-mono">
 			{{ data?.block?.blockHash.substring(0, 6) }}
-			<Badge v-if="data?.block?.finalized"> Finalised </Badge>
+			<Badge :type="data?.block?.finalized ? 'success' : 'failure'">
+				{{ data?.block?.finalized ? 'Finalised' : 'Rejected' }}
+			</Badge>
 		</DrawerTitle>
 		<DrawerContent>
 			<div class="grid gap-6 grid-cols-2 mb-16">
-				{{ error }}
 				<DetailsCard>
 					<template #title>Timestamp</template>
 					<template #default>
@@ -127,7 +128,7 @@ const BlockQuery = gql<BlockResponse>`
 	}
 `
 
-const { data, error } = await useQuery({
+const { data } = await useQuery({
 	query: BlockQuery,
 	variables: { id: props.id },
 })

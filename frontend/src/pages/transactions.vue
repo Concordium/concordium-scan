@@ -1,6 +1,10 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
+		<TransactionDetails
+			:transaction-id="selectedTxId"
+			:on-close="closeDrawer"
+		/>
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -30,9 +34,14 @@
 						<TableTd>{{
 							translateTransactionType(transaction.transactionType)
 						}}</TableTd>
-						<TableTd :class="$style.numerical">
+						<TableTd>
 							<HashtagIcon :class="$style.cellIcon" />
-							{{ transaction.transactionHash.substring(0, 6) }}
+							<LinkButton
+								:class="$style.numerical"
+								@click="openDrawer(transaction.id)"
+							>
+								{{ transaction.transactionHash.substring(0, 6) }}
+							</LinkButton>
 						</TableTd>
 						<TableTd :class="$style.numerical">{{
 							transaction.blockHeight
@@ -61,6 +70,16 @@ import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 
+const selectedTxId = ref('')
+
+const openDrawer = (id: string) => {
+	selectedTxId.value = id
+}
+
+const closeDrawer = () => {
+	selectedTxId.value = ''
+}
+
 type TransactionsResponse = {
 	transactions: {
 		nodes: Transaction[]
@@ -71,6 +90,7 @@ const TransactionsQuery = gql<TransactionsResponse>`
 	query {
 		transactions {
 			nodes {
+				id
 				ccdCost
 				blockHeight
 				transactionHash

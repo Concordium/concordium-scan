@@ -22,6 +22,7 @@
 	--color-interactive-dark: 162, 69%, 29%; /* green */
 	--color-info: 209, 100%, 52%; /* blue */
 	--color-error: 11, 82%, 57%; /* flame */
+	--color-error-dark: 11, 82%, 32%; /* flame */
 
 	/* 2.1 Text Palette */
 	--color-text-regular: var(--color-white);

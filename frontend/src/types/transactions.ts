@@ -58,7 +58,9 @@ export type TransactionType =
 	| CredentialDeploymentTransaction
 
 export type Transaction = {
+	id: string
 	blockHeight: number
+	blockHash: string
 	transactionHash: string
 	senderAccountAddress: string
 	ccdCost: number
