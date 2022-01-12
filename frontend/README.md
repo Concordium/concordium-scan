@@ -88,3 +88,7 @@ chmod +x .husky/pre-commit
 - **Components using the `@apply` directive from Tailwind can not be tested.**
 
   It results in a very non-descriptive syntax error. It might be that we manually need to add a Webpack loader for this.
+
+- **vue-tsc seems not to use the tsconfig in git hook.**
+
+  Running the typecheck on Vue files as a pre-commit results in many funny errors related to module resolution. This might also be a configuration error on our side.
