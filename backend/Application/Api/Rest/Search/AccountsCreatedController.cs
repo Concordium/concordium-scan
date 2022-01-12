@@ -51,10 +51,9 @@ public class AccountsCreatedController : ControllerBase
     private AccountAddress CreateResult(TransactionSuccessResult result)
     {
         var accountAddressAsString = result.Events
-            .Cast<JsonTransactionResultEvent>()
-            .Select(x => x.Data)
-            .Single(e => e.GetProperty("tag").GetString() == "AccountCreated")
-            .GetProperty("contents").GetString()!;
+            .OfType<AccountCreated>()
+            .Select(x => x.Contents.AsString)
+            .Single();
         
         return new AccountAddress(accountAddressAsString);
     }

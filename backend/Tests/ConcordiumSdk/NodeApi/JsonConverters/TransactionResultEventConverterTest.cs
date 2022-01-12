@@ -28,8 +28,11 @@ public class TransactionResultEventConverterTest
                 new RegisteredDataConverter(),
                 new MemoConverter(),
                 new ModuleRefConverter(),
-                new ContractEventConverter(),
-                new ContractParameterConverter()
+                new BinaryDataConverter(),
+                new UpdatePayloadConverter(),
+                new RootUpdateConverter(),
+                new Level1UpdateConverter(),
+                new UnixTimeSecondsConverter()
             }
         };
     }
@@ -57,8 +60,8 @@ public class TransactionResultEventConverterTest
         typed.Ref.Should().Be(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
         typed.Amount.Should().Be(CcdAmount.FromMicroCcd(1578));
         typed.Events.Should().Equal(
-            ContractEvent.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"),
-            ContractEvent.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00"));
+            BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"),
+            BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00"));
         typed.Address.Should().Be(new ContractAddress(1423, 1));
         typed.InitName.Should().Be("init_CIS1-singleNFT");
         
@@ -76,11 +79,11 @@ public class TransactionResultEventConverterTest
         typed.Address.Should().Be(new ContractAddress(35, 0));
         typed.Instigator.Should().Be(new ContractAddress(37, 0));
         typed.Amount.Should().Be(CcdAmount.FromMicroCcd(20));
-        typed.Message.Should().Be(ContractParameter.FromHexString("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"));
+        typed.Message.Should().Be(BinaryData.FromHexString("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"));
         typed.ReceiveName.Should().Be("inventory.transfer");
         typed.Events.Should().Equal(
-            ContractEvent.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
-            ContractEvent.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"));
+            BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
+            BinaryData.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"));
         
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
@@ -299,6 +302,21 @@ public class TransactionResultEventConverterTest
     }
 
     [Fact]
+    public void RoundTrip_UpdateEnqueued()
+    {
+        var json = "{\"tag\": \"UpdateEnqueued\", \"payload\": {\"updateType\": \"level1\", \"update\": {\"typeOfUpdate\": \"level2KeysUpdate\", \"updatePayload\": {\"keys\": [{\"schemeId\": \"Ed25519\", \"verifyKey\": \"0fb2431e05980f143dd5b6e7e197aa3b8b4ab666b66be64c7f641dc5343e80a6\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"3b9022f1625f06795255489bfeb6ee6244a16991f4fa5cef9c4f4b6614eeb5cf\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"fff862a666372843e3d05514573a9ecf87e9258bda7a2df908962eec53611dfc\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"af65154d71176544869a01eee6195a3cd15a2e135bbf208b5f5f50867674fe07\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"be3322e2b3e7ff4f4ab1e9251bfc3e75024e2546b2aec36b5e754a7fc1b7629e\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"6d4924a5da84615352dd6e5f19bf58157838dbd4f2b9e67713fb3f6e39d32a44\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"8cba5dcc0ef47b69118dfacc695ee36faf845bb1963e80448297ce0087305d6d\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"563133c8df10a3a2d88522eb62629b9dac3dcafbe41a6f9419287755f93524ed\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"eb89caed1020683d47e33c4457aa2285f1ef8cda92f4cbba861aabf9d6508cda\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"3efd31536ee2b0453ea0553817f80ff1f94ae3d329a8d368dab998d04ba56e31\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"31f39c8851718bd104ce1d166d73305668cd2618ccf5f77f8b5206dc36005e90\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"cf78e2c726d31d3fe0ed3c32c44174de53a63885a0fd0f583a3d4777ea6ac39f\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"ff20982a805c847e6418f1b7cf199e20f1f7c6c7e0453f8342977671b323e134\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"802154292370cf24b1b408f1002d2ab3d7efea7fdec9bc8cbb1c6472421c9a49\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"8c094013f41d80b3c1d301a1c206b26a8865438985341946be6c0f35d5567743\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"e0e706096a1371af1f026c70069c5bc546d7e51c1a6b009818c874599ba868c9\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"b7118672d789106e1529d4c8f37da5b79acbdd8ed5dfe63fc8649588c3115459\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"e41da9c37cfe9867061cb3551573bbb2b0bba92a56a8c9ec91d0e9f4e8d87ae3\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"e01fe85030814112973b42acea20bafc2e88a3c141241192b938ea5a8f253c29\"}, {\"schemeId\": \"Ed25519\", \"verifyKey\": \"e0e706096a1371af1f026c70069c5bc546d7e51c1a6b009818c874599ba868c9\"}], \"protocol\": {\"threshold\": 7, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}, \"emergency\": {\"threshold\": 7, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}, \"euroPerEnergy\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"microGTUPerEuro\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"paramGASRewards\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"mintDistribution\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"foundationAccount\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"electionDifficulty\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"addAnonymityRevoker\": {\"threshold\": 7, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}, \"addIdentityProvider\": {\"threshold\": 7, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}, \"bakerStakeThreshold\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}, \"transactionFeeDistribution\": {\"threshold\": 2, \"authorizedKeys\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}}}}, \"effectiveTime\": 1624630671}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<UpdateEnqueued>(deserialized);
+        typed.EffectiveTime.Should().Be(new UnixTimeSeconds(1624630671));
+        var nested = Assert.IsType<Level1UpdatePayload>(typed.Payload);
+        Assert.IsType<Level2KeysLevel1Update>(nested.Content);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
     public void RoundTrip_TransferredWithSchedule()
     {
         var json = "{\"to\": \"4TFVnybZqYj1HWn6UnGMomre1EYwTQDFk5ha5fYQbPypcjrozp\", \"tag\": \"TransferredWithSchedule\", \"from\": \"3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH\", \"amount\": [[1621260359000, \"1000000\"], [1621611359000, \"2000000\"], [1639438559000, \"3000000\"]]}";
@@ -357,18 +375,5 @@ public class TransactionResultEventConverterTest
 
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
-    }
-
-    [Fact]
-    public void FactMethodName()
-    {
-        var json = "[{\"tag\":\"bar\"},{\"tag\":\"1\"}]";
-        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent[]>(json, _serializerOptions);
-        var typed = Assert.IsType<TransactionResultEvent[]>(deserialized);
-        Assert.Equal(2, typed.Length);
-        var first = Assert.IsType<JsonTransactionResultEvent>(typed[0]);
-        Assert.Equal("{\"tag\":\"bar\"}", first.Data.ToString());
-        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
-        Assert.Equal(json, serialized);
     }
 }

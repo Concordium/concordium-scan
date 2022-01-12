@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
 
 namespace ConcordiumSdk.NodeApi.Types;
@@ -10,9 +10,6 @@ public class TransactionSuccessResult : TransactionResult
 
 public abstract record TransactionResultEvent;
 
-public record JsonTransactionResultEvent(
-    JsonElement Data) : TransactionResultEvent;
-
 public record ModuleDeployed(
     ModuleRef Contents) : TransactionResultEvent;
 
@@ -21,15 +18,15 @@ public record ContractInitialized(
     ContractAddress Address,
     CcdAmount Amount, 
     string InitName,
-    ContractEvent[] Events) : TransactionResultEvent;
+    BinaryData[] Events) : TransactionResultEvent;
 
 public record Updated(
     ContractAddress Address,
     Address Instigator,
     CcdAmount Amount,
-    ContractParameter Message,
+    BinaryData Message,
     string ReceiveName,
-    ContractEvent[] Events) : TransactionResultEvent;
+    BinaryData[] Events) : TransactionResultEvent;
 
 public record Transferred(
     CcdAmount Amount,
@@ -101,7 +98,9 @@ public record EncryptedSelfAmountAdded(
     string NewAmount,
     CcdAmount Amount) : TransactionResultEvent;
     
-//TODO: UpdateEnqueued!
+public record UpdateEnqueued(
+    UnixTimeSeconds EffectiveTime,
+    UpdatePayload Payload) : TransactionResultEvent;
 
 public record TransferredWithSchedule(
     AccountAddress From,

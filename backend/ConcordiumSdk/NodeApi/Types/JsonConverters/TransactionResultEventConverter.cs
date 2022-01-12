@@ -30,6 +30,7 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
             { "EncryptedAmountsRemoved", typeof(EncryptedAmountsRemoved) },
             { "AmountAddedByDecryption", typeof(AmountAddedByDecryption) },
             { "EncryptedSelfAmountAdded", typeof(EncryptedSelfAmountAdded) },
+            { "UpdateEnqueued", typeof(UpdateEnqueued) },
             { "TransferredWithSchedule", typeof(TransferredWithSchedule) },
             { "CredentialsUpdated", typeof(CredentialsUpdated) },
             { "TransferMemo", typeof(TransferMemo) },
@@ -43,9 +44,9 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
     public override TransactionResultEvent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         var tagValue = ReadTagValue(reader);
-        if (_tagValueToTypeMap.TryGetValue(tagValue, out var tagType))
-            return (TransactionResultEvent)JsonSerializer.Deserialize(ref reader, tagType, options)!;
-        return new JsonTransactionResultEvent(JsonElement.ParseValue(ref reader));
+        if (!_tagValueToTypeMap.TryGetValue(tagValue, out var tagType))
+            throw new NotImplementedException($"Deserialization of '{tagValue}' is not implemented.");
+        return (TransactionResultEvent)JsonSerializer.Deserialize(ref reader, tagType, options)!;
     }
 
     private string ReadTagValue(Utf8JsonReader reader)
@@ -63,22 +64,17 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
 
     public override void Write(Utf8JsonWriter writer, TransactionResultEvent value, JsonSerializerOptions options)
     {
-        if (value is JsonTransactionResultEvent jsonEvent)
-            jsonEvent.Data.WriteTo(writer);
-        else
-        {
-            var valueType = value.GetType();
-            var serializedBytes = (Span<byte>)JsonSerializer.SerializeToUtf8Bytes(value, valueType, options);
-            var serializedBytesWithoutStartAndEndObjectTag = serializedBytes.Slice(1, serializedBytes.Length - 2);
+        var valueType = value.GetType();
+        var serializedBytes = (Span<byte>)JsonSerializer.SerializeToUtf8Bytes(value, valueType, options);
+        var serializedBytesWithoutStartAndEndObjectTag = serializedBytes.Slice(1, serializedBytes.Length - 2);
 
-            if (!_typeToTagValueMap.TryGetValue(valueType, out var tagValue))
-                throw new InvalidOperationException($"Type {valueType.Name} is not represented in mapping dictionary.");
-            
-            writer.WriteStartObject();
-            writer.WritePropertyName("tag");
-            writer.WriteStringValue(tagValue);
-            writer.WriteRawValue(serializedBytesWithoutStartAndEndObjectTag, true);
-            writer.WriteEndObject();
-        }
+        if (!_typeToTagValueMap.TryGetValue(valueType, out var tagValue))
+            throw new InvalidOperationException($"Type {valueType.Name} is not represented in mapping dictionary.");
+        
+        writer.WriteStartObject();
+        writer.WritePropertyName("tag");
+        writer.WriteStringValue(tagValue);
+        writer.WriteRawValue(serializedBytesWithoutStartAndEndObjectTag, true);
+        writer.WriteEndObject();
     }
 }

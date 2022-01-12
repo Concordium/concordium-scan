@@ -18,10 +18,10 @@ public class TransactionResultConverterTest
     [Fact]
     public void Deserialize_Success()
     {
-        var json = "{\"events\": [{\"tag\": \"foo\"}, {\"tag\": \"bar\"}], \"outcome\": \"success\"}";
+        var json = "{\"events\": [{\"tag\": \"AccountCreated\", \"contents\": \"3aTTghVWSQPRKEXhE5a4aUWsvSeNEMHYFa25sgxAP3HZVeU25p\"}], \"outcome\": \"success\"}";
         var result = JsonSerializer.Deserialize<TransactionResult>(json, _serializerOptions);
         var typed = Assert.IsType<TransactionSuccessResult>(result);
-        Assert.Equal(2, typed.Events.Length);
+        Assert.Single(typed.Events);
     }
     
     [Fact]

@@ -30,8 +30,10 @@ public class BlockRepository
                 new RegisteredDataConverter(),
                 new MemoConverter(),
                 new ModuleRefConverter(),
-                new ContractEventConverter(),
-                new ContractParameterConverter()
+                new BinaryDataConverter(),
+                new UpdatePayloadConverter(),
+                new RootUpdateConverter(),
+                new Level1UpdateConverter(),
             }
         };
     }
