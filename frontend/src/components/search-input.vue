@@ -1,12 +1,11 @@
 <template>
 	<div :class="$style.container">
 		<input
-			v-model="searchValue"
 			:class="$style.input"
 			placeholder="Search for block or transaction &hellip;"
 			type="search"
 		/>
-		<button :class="$style.button" @click="onSearch">
+		<button :class="$style.button">
 			<SearchIcon :class="$style.icon" />
 		</button>
 	</div>
