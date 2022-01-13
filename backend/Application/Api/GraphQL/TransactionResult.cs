@@ -15,6 +15,7 @@ public abstract class TransactionResult
 
 public class Successful : TransactionResult
 {
+    [UsePaging]
     public IEnumerable<TransactionResultEvent> Events { get; }
     
     public Successful(IEnumerable<TransactionResultEvent> events) : base(true)
@@ -75,6 +76,7 @@ public record ContractInitialized(
     ContractAddress Address,
     ulong Amount,
     string InitName,
+    [property:UsePaging(InferConnectionNameFromField = false)]
     IEnumerable<string> Events) : TransactionResultEvent;  //TODO: how should we represent binary data on graphql?
 public record CredentialDeployed(
     string RegId,
@@ -116,6 +118,7 @@ public enum TextDecodeType
 public record TransferredWithSchedule(
     string FromAccountAddress,
     string ToAccountAddress,
+    [property:UsePaging]
     IEnumerable<TimestampedAmount> AmountsSchedule) : TransactionResultEvent;
 
 public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
@@ -128,6 +131,7 @@ public record Updated(
     ulong Amoung,
     string MessageAsHex, // TODO: How to represent binary data?
     string ReceiveName,
+    [property:UsePaging(InferConnectionNameFromField = false)]
     IEnumerable<string> EventsAsHex) : TransactionResultEvent; // TODO: How to represent binary data?
 
 [UnionType("Address")]
