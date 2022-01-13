@@ -92,3 +92,7 @@ chmod +x .husky/pre-commit
 - **vue-tsc seems not to use the tsconfig in git hook.**
 
   Running the typecheck on Vue files as a pre-commit results in many funny errors related to module resolution. This might also be a configuration error on our side.
+
+- **Icons from @heroicons must be imported explicitly from `index.js`.**
+
+  It seems ESM imports is not very well supported in @heroicons. See https://github.com/tailwindlabs/heroicons/issues/564 and https://github.com/tailwindlabs/heroicons/issues/309. Presumably we could also import the icons one at a time (this might reduce the bundle size).

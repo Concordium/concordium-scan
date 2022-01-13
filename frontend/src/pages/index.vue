@@ -58,7 +58,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
-import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
+import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockDetails from '~/components/BlockDetails/BlockDetails.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'

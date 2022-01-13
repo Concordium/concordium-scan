@@ -83,7 +83,7 @@
 
 <script lang="ts" setup>
 import { useQuery, gql } from '@urql/vue'
-import { UserIcon, HashtagIcon } from '@heroicons/vue/solid'
+import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'

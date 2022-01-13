@@ -65,7 +65,7 @@
 
 <script lang="ts" setup>
 import { useQuery, gql } from '@urql/vue'
-import { HashtagIcon, UserIcon } from '@heroicons/vue/solid'
+import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'

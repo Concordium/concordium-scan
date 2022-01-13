@@ -17,7 +17,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ChevronRightIcon } from '@heroicons/vue/solid'
+import { ChevronRightIcon } from '@heroicons/vue/solid/index.js'
 
 const isOpen = ref(false)
 

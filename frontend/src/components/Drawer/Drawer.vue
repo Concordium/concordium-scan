@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-import { XIcon } from '@heroicons/vue/solid'
+import { XIcon } from '@heroicons/vue/solid/index.js'
 
 type Props = {
 	isOpen: boolean

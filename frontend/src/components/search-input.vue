@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-import { SearchIcon } from '@heroicons/vue/outline'
+import { SearchIcon } from '@heroicons/vue/outline/index.js'
 
 export default {
 	components: {
