@@ -6,6 +6,7 @@ using Dapper;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests;
 

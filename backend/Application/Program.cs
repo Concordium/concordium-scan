@@ -7,6 +7,7 @@ using Application.Database;
 using Application.Import.ConcordiumNode;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
+using HotChocolate.Types;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,17 @@ logger.Information("Using Postgres connection string: {postgresConnectionString}
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().AddQueryType<Query>()
     .AddType<AccountTransaction>().AddType<CredentialDeploymentTransaction>().AddType<UpdateTransaction>()
-    .AddType<Successful>().AddType<Rejected>();
+    .AddType<Successful>().AddType<Rejected>()
+    .AddType<AccountCreated>().AddType<AmountAddedByDecryption>().AddType<BakerAdded>().AddType<BakerKeysUpdated>()
+    .AddType<BakerRemoved>().AddType<BakerSetRestakeEarnings>().AddType<BakerStakeDecreased>()
+    .AddType<BakerStakeIncreased>().AddType<ContractInitialized>().AddType<CredentialDeployed>()
+    .AddType<CredentialKeysUpdated>().AddType<CredentialsUpdated>().AddType<DataRegistered>()
+    .AddType<EncryptedAmountsRemoved>().AddType<EncryptedSelfAmountAdded>().AddType<ModuleDeployed>()
+    .AddType<NewEncryptedAmount>().AddType<TransferMemo>().AddType<Transferred>().AddType<TransferredWithSchedule>()
+    .AddType<UpdateEnqueued>().AddType<Updated>()
+    .AddType<ContractAddress>().AddType<AccountAddress>()
+    .BindRuntimeType<ulong, UnsignedLongType>();
+
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<GraphQlDbContext>(options => options.UseNpgsql(databaseSettings.ConnectionString));

@@ -53,5 +53,5 @@ public class Transaction
     
     public TransactionTypeUnion TransactionType => _transactionTypeUnion.Value;
 
-    public TransactionResult Result => _successEvents != null ? new Successful() : new Rejected();
+    public TransactionResult Result => _successEvents != null ? new Successful(Array.Empty<TransactionResultEvent>()) : new Rejected();
 }

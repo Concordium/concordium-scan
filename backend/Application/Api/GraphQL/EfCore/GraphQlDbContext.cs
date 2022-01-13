@@ -42,8 +42,8 @@ public class GraphQlDbContext : DbContext
             bytes => new TransactionHash(bytes).AsString);
         
         var accountAddressAsStringConverter = new ValueConverter<string, byte[]>(
-            str => new AccountAddress(str).AsBytes,
-            bytes => new AccountAddress(bytes).AsString);
+            str => new ConcordiumSdk.Types.AccountAddress(str).AsBytes,
+            bytes => new ConcordiumSdk.Types.AccountAddress(bytes).AsString);
 
         var blockBuilder = modelBuilder.Entity<Block>()
             .ToTable("block");
