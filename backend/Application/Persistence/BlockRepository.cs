@@ -20,6 +20,8 @@ public class BlockRepository
         _settings = settings;
         _successEventsSerializerOptions = new JsonSerializerOptions
         {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters =
             {
                 new TransactionResultEventConverter(),
