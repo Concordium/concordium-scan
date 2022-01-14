@@ -1,7 +1,6 @@
 <template>
 	<div>
 		<Title>CCDScan | Blocks</Title>
-		<BlockDetails :block-id="selectedBlockId" :on-close="closeDrawer" />
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -32,7 +31,7 @@
 						<TableTd>
 							<LinkButton
 								:class="$style.numerical"
-								@click="openDrawer(block.id)"
+								@click="selectedBlockId = block.id"
 							>
 								<HashtagIcon :class="$style.cellIcon" />
 								{{ block.blockHash.substring(0, 6) }}
@@ -56,22 +55,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
-import BlockDetails from '~/components/BlockDetails/BlockDetails.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'
 
-const selectedBlockId = ref('')
-
-const openDrawer = (id: string) => {
-	selectedBlockId.value = id
-}
-
-const closeDrawer = () => {
-	selectedBlockId.value = ''
-}
+const selectedBlockId = useBlockDetails()
 
 type BlockList = {
 	blocks: {

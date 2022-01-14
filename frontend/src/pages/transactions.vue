@@ -1,10 +1,6 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
-		<TransactionDetails
-			:transaction-id="selectedTxId"
-			:on-close="closeDrawer"
-		/>
 		<main class="p-4">
 			<Table>
 				<TableHead>
@@ -38,7 +34,7 @@
 							<HashtagIcon :class="$style.cellIcon" />
 							<LinkButton
 								:class="$style.numerical"
-								@click="openDrawer(transaction.id)"
+								@click="selectedTxId = transaction.id"
 							>
 								{{ transaction.transactionHash.substring(0, 6) }}
 							</LinkButton>
@@ -70,15 +66,7 @@ import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 
-const selectedTxId = ref('')
-
-const openDrawer = (id: string) => {
-	selectedTxId.value = id
-}
-
-const closeDrawer = () => {
-	selectedTxId.value = ''
-}
+const selectedTxId = useTransactionDetails()
 
 type TransactionsResponse = {
 	transactions: {

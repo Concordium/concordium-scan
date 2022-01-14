@@ -1,6 +1,6 @@
 {
 	"*.{js,ts}": [
-		"yarn typecheck"
+		"tsc --noEmit --skipLibCheck"
 	],
 	"*.{js,ts,vue}": [
 		"yarn lint",

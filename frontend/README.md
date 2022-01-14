@@ -96,3 +96,7 @@ chmod +x .husky/pre-commit
 - **Icons from @heroicons must be imported explicitly from `index.js`.**
 
   It seems ESM imports is not very well supported in @heroicons. See https://github.com/tailwindlabs/heroicons/issues/564 and https://github.com/tailwindlabs/heroicons/issues/309. Presumably we could also import the icons one at a time (this might reduce the bundle size).
+
+- **`<teleport>` can't be used yet.**
+
+  We would like to use `<teleport>` for some global components, e.g. drawers. Unfortunately, this causes a hydration error when navigating away from the page. There is [an open issue](https://github.com/nuxt/framework/issues/1907) on it with Nuxt, however it seems not to have very high priority. For now we have solved it by lifting those components up, and then keep track of state with a `useState` composable.

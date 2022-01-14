@@ -3,6 +3,9 @@
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
+		<BlockDetails />
+		<TransactionDetails />
+
 		<div class="bg-theme-background-primary min-h-screen">
 			<page-header />
 			<slot />

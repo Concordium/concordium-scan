@@ -1,18 +1,22 @@
 <template>
-	<teleport to="body">
+	<div>
 		<transition name="drawer-mask">
-			<div v-if="isOpen" :class="$style.drawerMask" @click="onClose"></div>
+			<div
+				v-if="isOpen"
+				:class="$style.drawerMask"
+				@click="props.onClose"
+			></div>
 		</transition>
 
 		<transition name="drawer">
 			<section v-if="isOpen" :class="$style.drawer">
-				<button :class="$style.closeButton" @click="onClose">
+				<button :class="$style.closeButton" @click="props.onClose">
 					<XIcon :class="$style.closeIcon" />
 				</button>
 				<slot />
 			</section>
 		</transition>
-	</teleport>
+	</div>
 </template>
 
 <script lang="ts" setup>

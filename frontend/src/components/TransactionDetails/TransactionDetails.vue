@@ -1,8 +1,10 @@
 <template>
-	<Drawer :is-open="!!props.transactionId" :on-close="props.onClose">
-		<TransactionDetailsContent :id="props.transactionId" />
+	<Drawer :is-open="!!selectedTxId" :on-close="() => (selectedTxId = '')">
+		<TransactionDetailsContent :id="selectedTxId" />
 		<DrawerActions>
-			<Button :on-click="props.onClose" class="self-end">Close</Button>
+			<Button :on-click="() => (selectedTxId = '')" class="self-end">
+				Close
+			</Button>
 		</DrawerActions>
 	</Drawer>
 </template>
@@ -10,11 +12,5 @@
 <script lang="ts" setup>
 import TransactionDetailsContent from './TransactionDetailsContent.vue'
 import Drawer from '~/components/Drawer/Drawer.vue'
-
-type Props = {
-	transactionId: string
-	onClose: () => void
-}
-
-const props = defineProps<Props>()
+const selectedTxId = useTransactionDetails()
 </script>

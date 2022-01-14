@@ -1,8 +1,10 @@
 <template>
-	<Drawer :is-open="!!props.blockId" :on-close="props.onClose">
-		<BlockDetailsContent :id="props.blockId" />
+	<Drawer :is-open="!!selectedBlockId" :on-close="() => (selectedBlockId = '')">
+		<BlockDetailsContent :id="selectedBlockId" />
 		<DrawerActions>
-			<Button :on-click="props.onClose" class="self-end">Close</Button>
+			<Button :on-click="() => (selectedBlockId = '')" class="self-end">
+				Close
+			</Button>
 		</DrawerActions>
 	</Drawer>
 </template>
@@ -10,11 +12,5 @@
 <script lang="ts" setup>
 import BlockDetailsContent from './BlockDetailsContent.vue'
 import Drawer from '~/components/Drawer/Drawer.vue'
-
-type Props = {
-	blockId: string
-	onClose: () => void
-}
-
-const props = defineProps<Props>()
+const selectedBlockId = useBlockDetails()
 </script>
