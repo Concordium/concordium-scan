@@ -41,6 +41,9 @@ module.exports = {
 				'button-primary-hover': withHslOpacity(
 					'--color-button-bg-primary-hover'
 				),
+				'button-primary-disabled': 'var(--color-button-bg-primary-disabled)',
+				'button-text-primary-disabled':
+					'var(--color-button-text-primary-disabled)',
 				'input-primary': withHslOpacity('--color-input-bg-primary', '25%'),
 			},
 		},

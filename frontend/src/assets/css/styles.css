@@ -42,6 +42,8 @@
 	--color-button-bg-primary: var(--color-primary);
 	--color-button-bg-primary-hover: var(--color-primary-light);
 	--color-button-text-primary: var(--color-text-primary-inversed);
+	--color-button-bg-primary-disabled: hsl(244, 30%, 26%);
+	--color-button-text-primary-disabled: hsl(247, 35%, 72%);
 
 	/* 2.3 Input Palette */
 	--color-input-bg: hsla(245, 24%, 51%, 25%);
