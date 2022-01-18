@@ -13,6 +13,10 @@ public record Transferred(
 public record AccountCreated(
     string Address) : TransactionResultEvent;
 
+/// <summary>
+/// The public balance of the account was increased via a transfer from
+/// encrypted to public balance.
+/// </summary>
 public record AmountAddedByDecryption(
     ulong Amount,
     string AccountAddress) : TransactionResultEvent;
@@ -76,20 +80,40 @@ public record CredentialsUpdated(
 public record DataRegistered(
     string Data) : TransactionResultEvent; //TODO: how should we represent binary data on graphql?
 
+/// <summary>
+/// Event generated when one or more encrypted amounts are consumed from the account
+/// </summary>
+/// <param name="AccountAddress">The affected account</param>
+/// <param name="NewEncryptedAmount">The new self encrypted amount on the affected account</param>
+/// <param name="InputAmount">The input encrypted amount that was removed</param>
+/// <param name="UpToIndex">The index indicating which amounts were used</param>
 public record EncryptedAmountsRemoved(
     string AccountAddress,
-    string NewAmount,
+    string NewEncryptedAmount,
     string InputAmount,
     ulong UpToIndex) : TransactionResultEvent;
 
+/// <summary>
+/// The encrypted balance of the account was updated due to transfer from
+/// public to encrypted balance of the account.
+/// </summary>
+/// <param name="AccountAddress">The affected account</param>
+/// <param name="NewEncryptedAmount">The new self encrypted amount of the account</param>
+/// <param name="Amount">The amount that was transferred from public to encrypted balance</param>
 public record EncryptedSelfAmountAdded(
     string AccountAddress,
-    string NewAmount,
+    string NewEncryptedAmount,
     ulong Amount) : TransactionResultEvent;
 
 public record ModuleDeployed(
     string ModuleRef) : TransactionResultEvent;
 
+/// <summary>
+/// A new encrypted amount was added to the account.
+/// </summary>
+/// <param name="AccountAddress">The account onto which the amount was added.</param>
+/// <param name="NewIndex">The index the amount was assigned.</param>
+/// <param name="EncryptedAmount">The encrypted amount that was added.</param>
 public record NewEncryptedAmount(
     string AccountAddress,
     ulong NewIndex,
