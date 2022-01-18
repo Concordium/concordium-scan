@@ -10,6 +10,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<BlockRelated<BakingReward>> BakingRewards { get; private set; }
     public DbSet<BlockRelated<FinalizationSummaryParty>> FinalizationSummaryFinalizers { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }
+    public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
@@ -118,5 +119,14 @@ public class GraphQlDbContext : DbContext
         transactionBuilder.Property(b => b.TransactionType).HasColumnName("transaction_type").HasConversion<TransactionTypeToStringConverter>();
         transactionBuilder.Ignore(b => b.RejectReason); // TODO: 
         transactionBuilder.Ignore(b => b.Result); // TODO: Map to nullable reject reason string (json). If null it is a success, otherwise a failure and reject reason can be deserialized from this string data.
+
+        var transactionEventBuilder = modelBuilder.Entity<TransactionRelated<TransactionResultEvent>>()
+            .ToTable("graphql_transaction_events");
+
+        transactionEventBuilder.HasKey(x => new { x.TransactionId, x.Index });
+        transactionEventBuilder.Property(x => x.TransactionId).HasColumnName("transaction_id");
+        transactionEventBuilder.Property(x => x.Index).HasColumnName("index");
+        transactionEventBuilder.Property(x => x.Entity).HasColumnName("event").HasColumnType("json").HasConversion<TransactionResultEventToJsonConverter>();
     }
 }
+

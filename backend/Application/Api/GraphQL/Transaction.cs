@@ -49,7 +49,7 @@ public class Transaction
     {
         get
         {
-            if (RejectReason == null) return new Successful(Array.Empty<TransactionResultEvent>());
+            if (RejectReason == null) return new Successful(this);
             return new Rejected();
         }
     }

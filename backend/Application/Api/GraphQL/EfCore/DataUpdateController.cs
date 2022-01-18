@@ -22,24 +22,16 @@ public class DataUpdateController
         await using var context = await _dcContextFactory.CreateDbContextAsync();
         await using var tx = await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
-        var block = Map(blockInfo, blockSummary);
+        var block = MapBlock(blockInfo, blockSummary);
         context.Blocks.Add(block);
-        await context.SaveChangesAsync();
+        
+        await context.SaveChangesAsync(); // assigns block id
 
         var finalizationRewards = blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault();
         if (finalizationRewards != null)
         {
             var toSave = finalizationRewards.FinalizationRewards
-                .Select((x, ix) => new BlockRelated<FinalizationReward>
-                {
-                    BlockId = block.Id,
-                    Index = ix,
-                    Entity = new FinalizationReward
-                    {
-                        Address = x.Address.AsString,
-                        Amount = x.Amount.MicroCcdValue
-                    }
-                })
+                .Select((x, ix) => MapFinalizationReward(block, ix, x))
                 .ToArray();
             await context.FinalizationRewards.AddRangeAsync(toSave);
         }
@@ -48,16 +40,7 @@ public class DataUpdateController
         if (bakingRewards != null)
         {
             var toSave = bakingRewards.BakerRewards
-                .Select((x, ix) => new BlockRelated<BakingReward>
-                {
-                    BlockId = block.Id,
-                    Index = ix,
-                    Entity = new BakingReward()
-                    {
-                        Address = x.Address.AsString,
-                        Amount = x.Amount.MicroCcdValue
-                    }
-                })
+                .Select((x, ix) => MapBakingReward(block, ix, x))
                 .ToArray();
             await context.BakingRewards.AddRangeAsync(toSave);
         }
@@ -66,51 +49,64 @@ public class DataUpdateController
         if (finalizationData != null)
         {
             var toSave = finalizationData.Finalizers
-                .Select((x, ix) => new BlockRelated<FinalizationSummaryParty>
-                {
-                    BlockId = block.Id,
-                    Index = ix,
-                    Entity = new FinalizationSummaryParty
-                    {
-                        BakerId = x.BakerId,
-                        Weight = x.Weight,
-                        Signed = x.Signed
-                    }
-                })
+                .Select((x, ix) => MapFinalizer(block, ix, x))
                 .ToArray();
             await context.FinalizationSummaryFinalizers.AddRangeAsync(toSave);
         }
 
         var transactions = blockSummary.TransactionSummaries
             .Where(x => x.Result is TransactionSuccessResult)
-            .Select(x => new Transaction
+            .Select(x => new { Source = x, Mapped = MapTransaction(block, x)})
+            .ToArray();
+        await context.Transactions.AddRangeAsync(transactions.Select(x => x.Mapped));
+        
+        await context.SaveChangesAsync();  // assigns transaction ids
+
+        foreach (var transaction in transactions)
+        {
+            if (transaction.Source.Result is TransactionSuccessResult successResult)
             {
-                BlockId = block.Id,
-                TransactionIndex = x.Index,
-                TransactionHash = x.Hash.AsString,
-                TransactionType = Map(x.Type),
-                SenderAccountAddress = x.Sender?.AsString,
-                CcdCost = x.Cost.MicroCcdValue,
-                EnergyCost = Convert.ToUInt64(x.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
-            });
-        await context.Transactions.AddRangeAsync(transactions);
+                var events = successResult.Events
+                    .Where(x => x is ConcordiumSdk.NodeApi.Types.Transferred || x is ConcordiumSdk.NodeApi.Types.AccountCreated || x is ConcordiumSdk.NodeApi.Types.CredentialDeployed) // TODO: Only temporary while implementing each event type.
+                    .Select((x, ix) => MapTransactionEvent(transaction.Mapped, ix, x))
+                    .ToArray();
+
+                await context.TransactionResultEvents.AddRangeAsync(events);
+            }
+        }
 
         await context.SaveChangesAsync();
+
         await tx.CommitAsync();
     }
 
-    private TransactionTypeUnion Map(TransactionType value)
+    private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)
     {
-        return value switch
+        return new TransactionRelated<TransactionResultEvent>
         {
-            TransactionType<AccountTransactionType> x => new AccountTransaction { AccountTransactionType = x.Type },
-            TransactionType<CredentialDeploymentTransactionType> x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.Type },
-            TransactionType<UpdateTransactionType> x => new UpdateTransaction { UpdateTransactionType = x.Type },
-            _ => throw new NotSupportedException($"Cannot map this transaction type")
+            TransactionId = owner.Id,
+            Index = index,
+            Entity = value switch
+            {
+                ConcordiumSdk.NodeApi.Types.Transferred x => new Transferred(x.Amount.MicroCcdValue, MapAddress(x.From), MapAddress(x.To)),
+                ConcordiumSdk.NodeApi.Types.AccountCreated x => new AccountCreated(x.Contents.AsString),
+                ConcordiumSdk.NodeApi.Types.CredentialDeployed x => new CredentialDeployed(x.RegId, x.Account.AsString),
+                _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
+            }
         };
     }
 
-    private Block Map(BlockInfo blockInfo, BlockSummary blockSummary)
+    private Address MapAddress(ConcordiumSdk.Types.Address value)
+    {
+        return value switch
+        {
+            ConcordiumSdk.Types.AccountAddress x => new AccountAddress(x.AsString),
+            ConcordiumSdk.Types.ContractAddress x => new ContractAddress(x.Index, x.SubIndex),
+            _ => throw new NotSupportedException("Cannot map this address type")
+        };
+    }
+
+    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary)
     {
         var block = new Block
         {
@@ -122,18 +118,85 @@ public class DataUpdateController
             TransactionCount = blockInfo.TransactionCount,
             SpecialEvents = new SpecialEvents
             {
-                Mint = Map(blockSummary.SpecialEvents.OfType<MintSpecialEvent>().SingleOrDefault()),
-                FinalizationRewards =
-                    Map(blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault()),
-                BlockRewards = Map(blockSummary.SpecialEvents.OfType<BlockRewardSpecialEvent>().SingleOrDefault()),
-                BakingRewards = Map(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
+                Mint = MapMint(blockSummary.SpecialEvents.OfType<MintSpecialEvent>().SingleOrDefault()),
+                FinalizationRewards = MapFinalizationRewards(blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault()),
+                BlockRewards = MapBlockRewards(blockSummary.SpecialEvents.OfType<BlockRewardSpecialEvent>().SingleOrDefault()),
+                BakingRewards = MapBakingRewards(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
             },
-            FinalizationSummary = Map(blockSummary.FinalizationData)
+            FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData)
         };
         return block;
     }
 
-    private FinalizationSummary? Map(FinalizationData? data)
+    private static BlockRelated<FinalizationReward> MapFinalizationReward(Block block, int index, AccountAddressAmount value)
+    {
+        return new BlockRelated<FinalizationReward>
+        {
+            BlockId = block.Id,
+            Index = index,
+            Entity = new FinalizationReward
+            {
+                Address = value.Address.AsString,
+                Amount = value.Amount.MicroCcdValue
+            }
+        };
+    }
+
+    private static BlockRelated<BakingReward> MapBakingReward(Block block, int index, AccountAddressAmount value)
+    {
+        return new BlockRelated<BakingReward>
+        {
+            BlockId = block.Id,
+            Index = index,
+            Entity = new BakingReward()
+            {
+                Address = value.Address.AsString,
+                Amount = value.Amount.MicroCcdValue
+            }
+        };
+    }
+
+    private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, ConcordiumSdk.NodeApi.Types.FinalizationSummaryParty value)
+    {
+        return new BlockRelated<FinalizationSummaryParty>
+        {
+            BlockId = block.Id,
+            Index = index,
+            Entity = new FinalizationSummaryParty
+            {
+                BakerId = value.BakerId,
+                Weight = value.Weight,
+                Signed = value.Signed
+            }
+        };
+    }
+
+    private Transaction MapTransaction(Block block, TransactionSummary value)
+    {
+        return new Transaction
+        {
+            BlockId = block.Id,
+            TransactionIndex = value.Index,
+            TransactionHash = value.Hash.AsString,
+            TransactionType = MapTransactionType(value.Type),
+            SenderAccountAddress = value.Sender?.AsString,
+            CcdCost = value.Cost.MicroCcdValue,
+            EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
+        };
+    }
+
+    private TransactionTypeUnion MapTransactionType(TransactionType value)
+    {
+        return value switch
+        {
+            TransactionType<AccountTransactionType> x => new AccountTransaction { AccountTransactionType = x.Type },
+            TransactionType<CredentialDeploymentTransactionType> x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.Type },
+            TransactionType<UpdateTransactionType> x => new UpdateTransaction { UpdateTransactionType = x.Type },
+            _ => throw new NotSupportedException($"Cannot map this transaction type")
+        };
+    }
+
+    private FinalizationSummary? MapFinalizationSummary(FinalizationData? data)
     {
         if (data == null) return null;
         return new FinalizationSummary
@@ -144,7 +207,7 @@ public class DataUpdateController
         };
     }
 
-    private BakingRewards? Map(BakingRewardsSpecialEvent? rewards)
+    private BakingRewards? MapBakingRewards(BakingRewardsSpecialEvent? rewards)
     {
         if (rewards == null) return null;
 
@@ -154,7 +217,7 @@ public class DataUpdateController
         };
     }
 
-    private BlockRewards? Map(BlockRewardSpecialEvent? rewards)
+    private BlockRewards? MapBlockRewards(BlockRewardSpecialEvent? rewards)
     {
         if (rewards == null) return null;
 
@@ -170,7 +233,7 @@ public class DataUpdateController
         };
     }
 
-    private FinalizationRewards? Map(FinalizationRewardsSpecialEvent? rewards)
+    private FinalizationRewards? MapFinalizationRewards(FinalizationRewardsSpecialEvent? rewards)
     {
         if (rewards == null) return null;
 
@@ -180,7 +243,7 @@ public class DataUpdateController
         };
     }
 
-    private Mint? Map(MintSpecialEvent? mint)
+    private Mint? MapMint(MintSpecialEvent? mint)
     {
         if (mint == null) return null;
 

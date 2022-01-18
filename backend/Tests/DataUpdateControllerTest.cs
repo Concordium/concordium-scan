@@ -1,5 +1,5 @@
 ﻿using Application.Api.GraphQL.EfCore;
-using Application.Database;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;
@@ -14,13 +14,13 @@ namespace Tests;
 public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
 {
     private readonly DataUpdateController _target;
-    private readonly GraphQlDbContext2FactoryStub _dbContextFactory;
+    private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
 
     public DataUpdateControllerTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContext2FactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new DataUpdateController(_dbContextFactory);
 
         using var connection = dbFixture.GetOpenConnection();
@@ -29,6 +29,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE graphql_baking_rewards");
         connection.Execute("TRUNCATE TABLE graphql_finalization_summary_finalizers");
         connection.Execute("TRUNCATE TABLE graphql_transactions");
+        connection.Execute("TRUNCATE TABLE graphql_transaction_events");
     }
 
     [Fact]
@@ -405,29 +406,98 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         transaction.TransactionType.Should().BeOfType<Application.Api.GraphQL.UpdateTransaction>()
             .Which.UpdateTransactionType.Should().Be(transactionType);
     }
+
+    [Fact]
+    public async Task TransactionEvents_TransactionIdAndIndex()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(
+                        new CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")),
+                        new AccountCreated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var transaction = dbContext.Transactions.Single();
+
+        var result = dbContext.TransactionResultEvents.ToArray();
+        result.Length.Should().Be(2);
+        result[0].TransactionId.Should().Be(transaction.Id);
+        result[0].Index.Should().Be(0);
+        result[0].Entity.Should().BeOfType<Application.Api.GraphQL.CredentialDeployed>();
+        result[1].TransactionId.Should().Be(transaction.Id);
+        result[1].Index.Should().Be(1);
+        result[1].Entity.Should().BeOfType<Application.Api.GraphQL.AccountCreated>();
+    }
     
+    [Fact]
+    public async Task TransactionEvents_Transferred()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new Transferred(CcdAmount.FromMicroCcd(458382), new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new ContractAddress(234, 32)))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transferred>();
+        result.Amount.Should().Be(458382);
+        result.To.Should().BeOfType<Application.Api.GraphQL.AccountAddress>().Which.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        var toAddress = result.From.Should().BeOfType<Application.Api.GraphQL.ContractAddress>().Subject;
+        toAddress.Index.Should().Be(234);
+        toAddress.SubIndex.Should().Be(32);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_AccountCreated()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new AccountCreated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AccountCreated>();
+        result.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_CredentialDeployed()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialDeployed>();
+        result.RegId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    private async Task<T> ReadSingleTransactionEventType<T>()
+    {
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.TransactionResultEvents.SingleAsync();
+        return result.Entity.Should().BeOfType<T>().Subject;
+    }
+
     private async Task WriteData()
     {
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
         await _target.BlockDataReceived(blockInfo, blockSummary);
-    }
-}
-
-public class GraphQlDbContext2FactoryStub : IDbContextFactory<GraphQlDbContext>
-{
-    private readonly DatabaseSettings _settings;
-
-    public GraphQlDbContext2FactoryStub(DatabaseSettings settings)
-    {
-        _settings = settings;
-    }
-
-    public GraphQlDbContext CreateDbContext()
-    {
-        var optionsBuilder = new DbContextOptionsBuilder<GraphQlDbContext>()
-            .UseNpgsql(_settings.ConnectionString);
-        
-        return new GraphQlDbContext(optionsBuilder.Options);
     }
 }

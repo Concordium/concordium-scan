@@ -1,4 +1,9 @@
-﻿using HotChocolate.Types;
+﻿using System.Linq;
+using Application.Api.GraphQL.EfCore;
+using HotChocolate;
+using HotChocolate.Data;
+using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
@@ -15,12 +20,22 @@ public abstract class TransactionResult
 
 public class Successful : TransactionResult
 {
+    private readonly Transaction _owner;
+
+    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IEnumerable<TransactionResultEvent> Events { get; }
-    
-    public Successful(IEnumerable<TransactionResultEvent> events) : base(true)
+    public IEnumerable<TransactionResultEvent> GetEvents([ScopedService] GraphQlDbContext dbContext)
     {
-        Events = events;
+        return dbContext.TransactionResultEvents
+            .AsNoTracking()
+            .Where(x => x.TransactionId == _owner.Id)
+            .OrderBy(x => x.Index)
+            .Select(x => x.Entity);
+    }
+    
+    public Successful(Transaction owner) : base(true)
+    {
+        _owner = owner;
     }
 }
 
