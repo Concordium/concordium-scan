@@ -2,9 +2,9 @@
 
 public class Mint
 {
-    public long BakingReward { get; init; }
-    public long FinalizationReward { get; init; }
-    public long PlatformDevelopmentCharge { get; init; }
+    public ulong BakingReward { get; init; }
+    public ulong FinalizationReward { get; init; }
+    public ulong PlatformDevelopmentCharge { get; init; }
     public string FoundationAccount { get; init; }
 
 }

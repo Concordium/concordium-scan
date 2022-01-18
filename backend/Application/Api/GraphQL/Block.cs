@@ -1,7 +1,9 @@
 ﻿using Application.Api.GraphQL.EfCore;
 using HotChocolate;
+using HotChocolate.Data;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
@@ -18,26 +20,12 @@ public class Block
     public SpecialEvents SpecialEvents { get; init; }
     public FinalizationSummary? FinalizationSummary { get; init; }
 
+    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IEnumerable<Transaction> GetTransactions([Service] GraphQlDbContext dbContext)
+    public IEnumerable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
     {
-        return dbContext.Transactions.Where(tx => tx.BlockId == Id);
+        return dbContext.Transactions
+            .AsNoTracking()
+            .Where(tx => tx.BlockId == Id).OrderBy(x => x.TransactionIndex);
     }
-}
-
-public class FinalizationSummary
-{
-    public string FinalizedBlockHash { get; init; }
-    public long FinalizationIndex { get; init; }
-    public long FinalizationDelay { get; init; }
-    
-    [UsePaging]
-    public IEnumerable<FinalizationSummaryParty> Finalizers { get; init; }
-}
-
-public class FinalizationSummaryParty
-{
-    public long BakerId { get; init; } 
-    public long Weight { get; init; }
-    public bool Signed { get; init; }
 }

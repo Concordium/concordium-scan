@@ -1,0 +1,8 @@
+create table graphql_baking_rewards
+(
+    block_id bigint not null,
+    index    int    not null,
+    address  text   not null,
+    amount   bigint not null,
+    PRIMARY KEY (block_id, index)
+);

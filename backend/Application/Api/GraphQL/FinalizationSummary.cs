@@ -6,23 +6,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
-public class BakingRewards
+public class FinalizationSummary
 {
     /// <summary>
     /// This property is intentionally not part of the GraphQL schema.
     /// Only here as a back reference to the owning block so that child data can be loaded.
     /// </summary>
     [GraphQLIgnore]
-    public SpecialEvents Owner { get; set; }
-    public ulong Remainder { get; init; }
-    
+    public Block Owner { get; set; }
+    public string FinalizedBlockHash { get; init; }
+    public long FinalizationIndex { get; init; }
+    public long FinalizationDelay { get; init; }
+
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false)]
-    public IEnumerable<BakingReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    [UsePaging]
+    public IEnumerable<FinalizationSummaryParty> GetFinalizers([ScopedService] GraphQlDbContext dbContext)
     {
-        return dbContext.BakingRewards
+        return dbContext.FinalizationSummaryFinalizers
             .AsNoTracking()
-            .Where(x => x.BlockId == Owner.Owner.Id)
+            .Where(x => x.BlockId == Owner.Id)
             .OrderBy(x => x.Index)
             .Select(x => x.Entity);
     }

@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
@@ -15,13 +16,15 @@ public class ImportController : BackgroundService
     private readonly GrpcNodeClient _client;
     private readonly BlockRepository _repository;
     private readonly IFeatureFlags _featureFlags;
+    private readonly DataUpdateController _dataUpdateController;
     private readonly ILogger _logger;
 
-    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags)
+    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController)
     {
         _client = client;
         _repository = repository;
         _featureFlags = featureFlags;
+        _dataUpdateController = dataUpdateController;
         _logger = Log.ForContext(GetType());
     }
 
@@ -98,6 +101,7 @@ public class ImportController : BackgroundService
 
             // TODO: Publish result - for now just write directly to db
             _repository.Insert(blockInfo, blockSummaryString, blockSummary);
+            await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary);
 
             _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 

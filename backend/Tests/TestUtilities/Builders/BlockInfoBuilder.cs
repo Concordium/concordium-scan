@@ -9,6 +9,9 @@ public class BlockInfoBuilder
     private int _blockHeight = 1;
     private DateTimeOffset _blockSlotTime = new(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero);
     private BlockHash _blockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc");
+    private int? _blockBaker = 5;
+    private bool _finalized = true;
+    private int _transactionCount = 2;
 
     public BlockInfoBuilder WithBlockHeight(int value)
     {
@@ -30,9 +33,9 @@ public class BlockInfoBuilder
             BlockArriveTime = new DateTimeOffset(2010, 10, 1, 12, 03, 53, 123, TimeSpan.Zero),
             BlockSlot = 790511,
             BlockSlotTime = _blockSlotTime,
-            BlockBaker = 5,
-            Finalized = true,
-            TransactionCount = 2,
+            BlockBaker = _blockBaker,
+            Finalized = _finalized,
+            TransactionCount = _transactionCount,
             TransactionEnergyCost = 4,
             TransactionSize = 42,
             BlockStateHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"
@@ -48,6 +51,24 @@ public class BlockInfoBuilder
     public BlockInfoBuilder WithBlockHash(BlockHash value)
     {
         _blockHash = value;
+        return this;
+    }
+
+    public BlockInfoBuilder WithBlockBaker(int? value)
+    {
+        _blockBaker = value;
+        return this;
+    }
+
+    public BlockInfoBuilder WithFinalized(bool value)
+    {
+        _finalized = value;
+        return this;
+    }
+
+    public BlockInfoBuilder WithTransactionCount(int value)
+    {
+        _transactionCount = value;
         return this;
     }
 }

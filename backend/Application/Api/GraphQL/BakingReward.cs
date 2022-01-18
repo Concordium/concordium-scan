@@ -2,6 +2,6 @@
 
 public class BakingReward
 {
-    public long Amount { get; init; }
+    public ulong Amount { get; init; }
     public string Address { get; init; }
 }
