@@ -487,6 +487,119 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
+    [Fact]
+    public async Task TransactionEvents_BakerAdded()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerAdded(CcdAmount.FromMicroCcd(12551), true, 17, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerAdded>();
+        result.StakedAmount.Should().Be(12551);
+        result.RestakeEarnings.Should().BeTrue();
+        result.BakerId.Should().Be(17);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
+        result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
+        result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerKeysUpdated()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerKeysUpdated(19, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerKeysUpdated>();
+        result.BakerId.Should().Be(19);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
+        result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
+        result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerRemoved()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerRemoved(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerRemoved>();
+        result.BakerId.Should().Be(21);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerSetRestakeEarnings()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetRestakeEarnings(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerSetRestakeEarnings>();
+        result.BakerId.Should().Be(23);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.RestakeEarnings.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerStakeDecreased()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerStakeDecreased(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeDecreased>();
+        result.BakerId.Should().Be(23);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.NewStakedAmount.Should().Be(34786451);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerStakeIncreased()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerStakeIncreased(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeIncreased>();
+        result.BakerId.Should().Be(23);
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.NewStakedAmount.Should().Be(34786451);
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();

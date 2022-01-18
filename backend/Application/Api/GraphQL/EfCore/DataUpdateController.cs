@@ -67,8 +67,9 @@ public class DataUpdateController
             if (transaction.Source.Result is TransactionSuccessResult successResult)
             {
                 var events = successResult.Events
-                    .Where(x => x is ConcordiumSdk.NodeApi.Types.Transferred || x is ConcordiumSdk.NodeApi.Types.AccountCreated || x is ConcordiumSdk.NodeApi.Types.CredentialDeployed) // TODO: Only temporary while implementing each event type.
                     .Select((x, ix) => MapTransactionEvent(transaction.Mapped, ix, x))
+                    .Where(x => x != null) // Remove once all events have been mapped!
+                    .Select(x => x!) // Remove once all events have been mapped!
                     .ToArray();
 
                 await context.TransactionResultEvents.AddRangeAsync(events);
@@ -80,20 +81,33 @@ public class DataUpdateController
         await tx.CommitAsync();
     }
 
-    private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)
+    private TransactionRelated<TransactionResultEvent>? MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)
     {
-        return new TransactionRelated<TransactionResultEvent>
+        try
         {
-            TransactionId = owner.Id,
-            Index = index,
-            Entity = value switch
+            return new TransactionRelated<TransactionResultEvent>
             {
-                ConcordiumSdk.NodeApi.Types.Transferred x => new Transferred(x.Amount.MicroCcdValue, MapAddress(x.From), MapAddress(x.To)),
-                ConcordiumSdk.NodeApi.Types.AccountCreated x => new AccountCreated(x.Contents.AsString),
-                ConcordiumSdk.NodeApi.Types.CredentialDeployed x => new CredentialDeployed(x.RegId, x.Account.AsString),
-                _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
-            }
-        };
+                TransactionId = owner.Id,
+                Index = index,
+                Entity = value switch
+                {
+                    ConcordiumSdk.NodeApi.Types.Transferred x => new Transferred(x.Amount.MicroCcdValue, MapAddress(x.From), MapAddress(x.To)),
+                    ConcordiumSdk.NodeApi.Types.AccountCreated x => new AccountCreated(x.Contents.AsString),
+                    ConcordiumSdk.NodeApi.Types.CredentialDeployed x => new CredentialDeployed(x.RegId, x.Account.AsString),
+                    ConcordiumSdk.NodeApi.Types.BakerAdded x => new BakerAdded(x.Stake.MicroCcdValue, x.RestakeEarnings, x.BakerId, x.Account.AsString, x.SignKey, x.ElectionKey, x.AggregationKey),
+                    ConcordiumSdk.NodeApi.Types.BakerKeysUpdated x => new BakerKeysUpdated(x.BakerId, x.Account.AsString, x.SignKey, x.ElectionKey, x.AggregationKey),
+                    ConcordiumSdk.NodeApi.Types.BakerRemoved x => new BakerRemoved(x.BakerId, x.Account.AsString),
+                    ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings x => new BakerSetRestakeEarnings(x.BakerId, x.Account.AsString, x.RestakeEarnings),
+                    ConcordiumSdk.NodeApi.Types.BakerStakeDecreased x => new BakerStakeDecreased(x.BakerId, x.Account.AsString, x.NewStake.MicroCcdValue),
+                    ConcordiumSdk.NodeApi.Types.BakerStakeIncreased x => new BakerStakeIncreased(x.BakerId, x.Account.AsString, x.NewStake.MicroCcdValue),
+                    _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
+                }
+            };
+        }
+        catch (NotSupportedException) // Remove once all events have been mapped!
+        {
+            return null;
+        }
     }
 
     private Address MapAddress(ConcordiumSdk.Types.Address value)
