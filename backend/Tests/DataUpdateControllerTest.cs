@@ -802,6 +802,22 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
             new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(20), 3333),
             new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(30), 2111));
     }
+    
+    [Fact]
+    public async Task TransactionEvents_DataRegistered()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.DataRegistered>();
+        result.DataAsHex.Should().Be("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863");
+    }
 
     private async Task<T> ReadSingleTransactionEventType<T>()
     {

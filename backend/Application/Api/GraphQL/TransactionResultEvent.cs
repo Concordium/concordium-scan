@@ -121,8 +121,12 @@ public record CredentialsUpdated(
     string[] RemovedCredIds,
     byte NewThreshold) : TransactionResultEvent;
 
+/// <summary>
+/// Data was registered on the chain.
+/// </summary>
+/// <param name="DataAsHex">The data that was registered.</param>
 public record DataRegistered(
-    string Data) : TransactionResultEvent; //TODO: how should we represent binary data on graphql?
+    string DataAsHex) : TransactionResultEvent; 
 
 /// <summary>
 /// Event generated when one or more encrypted amounts are consumed from the account
