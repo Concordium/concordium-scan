@@ -39,9 +39,9 @@ builder.Services.AddGraphQLServer().AddQueryType<Query>()
     .AddType<BakerRemoved>().AddType<BakerSetRestakeEarnings>().AddType<BakerStakeDecreased>()
     .AddType<BakerStakeIncreased>().AddType<ContractInitialized>().AddType<CredentialDeployed>()
     .AddType<CredentialKeysUpdated>().AddType<CredentialsUpdated>().AddType<DataRegistered>()
-    .AddType<EncryptedAmountsRemoved>().AddType<EncryptedSelfAmountAdded>().AddType<ModuleDeployed>()
+    .AddType<EncryptedAmountsRemoved>().AddType<EncryptedSelfAmountAdded>().AddType<ContractModuleDeployed>()
     .AddType<NewEncryptedAmount>().AddType<TransferMemo>().AddType<Transferred>().AddType<TransferredWithSchedule>()
-    .AddType<UpdateEnqueued>().AddType<Updated>()
+    .AddType<UpdateEnqueued>().AddType<ContractUpdated>()
     .AddType<ContractAddress>().AddType<AccountAddress>()
     .BindRuntimeType<ulong, UnsignedLongType>();
 

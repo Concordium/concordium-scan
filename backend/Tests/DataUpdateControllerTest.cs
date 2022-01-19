@@ -448,10 +448,8 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transferred>();
         result.Amount.Should().Be(458382);
-        result.To.Should().BeOfType<Application.Api.GraphQL.AccountAddress>().Which.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        var toAddress = result.From.Should().BeOfType<Application.Api.GraphQL.ContractAddress>().Subject;
-        toAddress.Index.Should().Be(234);
-        toAddress.SubIndex.Should().Be(32);
+        result.To.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.From.Should().Be(new Application.Api.GraphQL.ContractAddress(234, 32));
     }
     
     [Fact]
@@ -705,6 +703,73 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.NewCredIds.Should().Equal("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
         result.RemovedCredIds.Should().BeEmpty();
         result.NewThreshold.Should().Be(123);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ContractInitialized()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new ContractInitialized(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), new ContractAddress(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractInitialized>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.Address.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.Amount.Should().Be(5345462);
+        result.InitName.Should().Be("init_CIS1-singleNFT");
+        result.EventsAsHex.Should().Equal("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4", "fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ContractModuleDeployed()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new ModuleDeployed(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractModuleDeployed>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ContractUpdated()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new Updated(
+                        new ContractAddress(1423, 1),
+                        new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
+                        CcdAmount.FromMicroCcd(15674371),
+                        BinaryData.FromHexString("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"), 
+                        "inventory.transfer", 
+                        new []
+                        {
+                            BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
+                            BinaryData.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32")
+                        }))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractUpdated>();
+        result.Address.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.Instigator.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.Amount.Should().Be(15674371);
+        result.MessageAsHex.Should().Be("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
+        result.ReceiveName.Should().Be("inventory.transfer");
+        result.EventsAsHex.Should().Equal("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32", "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
     }
 
     private async Task<T> ReadSingleTransactionEventType<T>()

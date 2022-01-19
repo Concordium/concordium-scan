@@ -19,6 +19,9 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(NewEncryptedAmount), 13 },
         { typeof(CredentialKeysUpdated), 14 },
         { typeof(CredentialsUpdated), 15 },
+        { typeof(ContractInitialized), 16 },
+        { typeof(ContractModuleDeployed), 17 },
+        { typeof(ContractUpdated), 18 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

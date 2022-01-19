@@ -106,6 +106,9 @@ public class DataUpdateController
                     ConcordiumSdk.NodeApi.Types.NewEncryptedAmount x => new NewEncryptedAmount(x.Account.AsString, x.NewIndex, x.EncryptedAmount),
                     ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated x => new CredentialKeysUpdated(x.CredId),
                     ConcordiumSdk.NodeApi.Types.CredentialsUpdated x => new CredentialsUpdated(x.Account.AsString, x.NewCredIds, x.RemovedCredIds, x.NewThreshold),
+                    ConcordiumSdk.NodeApi.Types.ContractInitialized x => new ContractInitialized(x.Ref.AsString, MapContractAddress(x.Address), x.Amount.MicroCcdValue, x.InitName, x.Events.Select(data => data.AsHexString).ToArray()),
+                    ConcordiumSdk.NodeApi.Types.ModuleDeployed x => new ContractModuleDeployed(x.Contents.AsString),
+                    ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.MicroCcdValue, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
                     _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
                 }
             };
@@ -121,9 +124,14 @@ public class DataUpdateController
         return value switch
         {
             ConcordiumSdk.Types.AccountAddress x => new AccountAddress(x.AsString),
-            ConcordiumSdk.Types.ContractAddress x => new ContractAddress(x.Index, x.SubIndex),
+            ConcordiumSdk.Types.ContractAddress x => MapContractAddress(x),
             _ => throw new NotSupportedException("Cannot map this address type")
         };
+    }
+
+    private static ContractAddress MapContractAddress(ConcordiumSdk.Types.ContractAddress value)
+    {
+        return new ContractAddress(value.Index, value.SubIndex);
     }
 
     private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary)
