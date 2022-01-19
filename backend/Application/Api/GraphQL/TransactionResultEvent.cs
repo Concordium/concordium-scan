@@ -186,6 +186,9 @@ public record TransferredWithSchedule(
 
 public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
 
-public record UpdateEnqueued(
-    DateTime EffectiveTime,
-    string UpdateType) : TransactionResultEvent; // TODO: How to represent the updates - probably another large union!
+/// <summary>
+/// A chain update was enqueued for the given time.
+/// </summary>
+/// <param name="EffectiveTime"></param>
+public record ChainUpdateEnqueued(
+    DateTimeOffset EffectiveTime) : TransactionResultEvent; // TODO: Add payload for the update - probably yet another large union!

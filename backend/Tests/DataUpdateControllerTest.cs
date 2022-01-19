@@ -835,6 +835,22 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.RawHex.Should().Be("704164616d2042696c6c696f6e61697265");
     }
 
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued() // TODO: Still need to add payload!
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new MicroGtuPerEuroUpdatePayload(new ExchangeRate(1, 2))))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
