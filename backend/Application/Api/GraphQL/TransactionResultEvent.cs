@@ -68,9 +68,20 @@ public record CredentialDeployed(
     string RegId,
     string AccountAddress) : TransactionResultEvent;
 
+/// <summary>
+/// Keys of the given credential were updated.
+/// </summary>
+/// <param name="CredId">ID of the credential whose keys were updated.</param>
 public record CredentialKeysUpdated(
     string CredId) : TransactionResultEvent;
 
+/// <summary>
+/// The credentials of the account were updated.
+/// </summary>
+/// <param name="AccountAddress">The affected account.</param>
+/// <param name="NewCredIds">The credential ids that were added.</param>
+/// <param name="RemovedCredIds">The credential ids that were removed.</param>
+/// <param name="NewThreshold">The (possibly) updated account threshold.</param>
 public record CredentialsUpdated(
     string AccountAddress,
     string[] NewCredIds,

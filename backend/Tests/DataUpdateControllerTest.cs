@@ -672,6 +672,41 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.EncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
     }
 
+    [Fact]
+    public async Task TransactionEvents_CredentialKeysUpdated()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialKeysUpdated>();
+        result.CredId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_CredentialsUpdated()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new CredentialsUpdated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialsUpdated>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.NewCredIds.Should().Equal("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
+        result.RemovedCredIds.Should().BeEmpty();
+        result.NewThreshold.Should().Be(123);
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();

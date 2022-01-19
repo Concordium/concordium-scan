@@ -104,6 +104,8 @@ public class DataUpdateController
                     ConcordiumSdk.NodeApi.Types.EncryptedAmountsRemoved x => new EncryptedAmountsRemoved(x.Account.AsString, x.NewAmount, x.InputAmount, x.UpToIndex),
                     ConcordiumSdk.NodeApi.Types.EncryptedSelfAmountAdded x => new EncryptedSelfAmountAdded(x.Account.AsString, x.NewAmount, x.Amount.MicroCcdValue),
                     ConcordiumSdk.NodeApi.Types.NewEncryptedAmount x => new NewEncryptedAmount(x.Account.AsString, x.NewIndex, x.EncryptedAmount),
+                    ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated x => new CredentialKeysUpdated(x.CredId),
+                    ConcordiumSdk.NodeApi.Types.CredentialsUpdated x => new CredentialsUpdated(x.Account.AsString, x.NewCredIds, x.RemovedCredIds, x.NewThreshold),
                     _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
                 }
             };
