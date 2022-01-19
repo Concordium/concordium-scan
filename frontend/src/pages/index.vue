@@ -26,7 +26,7 @@
 							{{ block.finalized ? 'Finalised' : 'Pending' }}
 						</TableTd>
 						<TableTd>
-							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
+							{{ convertTimestampToRelative(block.blockSlotTime) }}
 						</TableTd>
 						<TableTd>
 							<LinkButton
@@ -102,7 +102,7 @@ const BlocksQuery = gql<BlockList>`
 	}
 `
 
-const { data } = useQuery({
+const { data } = await useQuery({
 	query: BlocksQuery,
 	requestPolicy: 'cache-and-network',
 	variables: {
@@ -112,8 +112,6 @@ const { data } = useQuery({
 		last: paginateLast,
 	},
 })
-
-const NOW = new Date()
 </script>
 
 <style module>
