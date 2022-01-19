@@ -24,6 +24,7 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(ContractUpdated), 18 },
         { typeof(TransferredWithSchedule), 19 },
         { typeof(DataRegistered), 20 },
+        { typeof(TransferMemo), 21 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

@@ -111,6 +111,7 @@ public class DataUpdateController
                     ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.MicroCcdValue, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
                     ConcordiumSdk.NodeApi.Types.TransferredWithSchedule x => new TransferredWithSchedule(x.From.AsString, x.To.AsString, x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.MicroCcdValue)).ToArray()),
                     ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
+                    ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
                     _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
                 }
             };

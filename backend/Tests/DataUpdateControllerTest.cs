@@ -819,6 +819,22 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.DataAsHex.Should().Be("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863");
     }
 
+    [Fact]
+    public async Task TransactionEvents_TransferMemo()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.TransferMemo>();
+        result.RawHex.Should().Be("704164616d2042696c6c696f6e61697265");
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();

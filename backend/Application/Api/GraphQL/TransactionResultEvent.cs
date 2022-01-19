@@ -69,8 +69,8 @@ public record ContractInitialized(
     ContractAddress Address,
     ulong Amount,
     string InitName,
-    [property:UsePaging(InferConnectionNameFromField = false)]
-    string[] EventsAsHex) : TransactionResultEvent;  
+    [property: UsePaging(InferConnectionNameFromField = false)]
+    string[] EventsAsHex) : TransactionResultEvent;
 
 /// <summary>
 /// A smart contract module was successfully deployed.
@@ -92,9 +92,9 @@ public record ContractUpdated(
     ContractAddress Address,
     Address Instigator,
     ulong Amount,
-    string MessageAsHex, 
+    string MessageAsHex,
     string ReceiveName,
-    [property:UsePaging(InferConnectionNameFromField = false)]
+    [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent;
 
 public record CredentialDeployed(
@@ -126,7 +126,7 @@ public record CredentialsUpdated(
 /// </summary>
 /// <param name="DataAsHex">The data that was registered.</param>
 public record DataRegistered(
-    string DataAsHex) : TransactionResultEvent; 
+    string DataAsHex) : TransactionResultEvent;
 
 /// <summary>
 /// Event generated when one or more encrypted amounts are consumed from the account
@@ -164,15 +164,19 @@ public record NewEncryptedAmount(
     ulong NewIndex,
     string EncryptedAmount) : TransactionResultEvent;
 
-public record TransferMemo(
-    string DecodedText,
-    TextDecodeType DecodeType,
-    string RawHex) : TransactionResultEvent;
-
-public enum TextDecodeType
+public record TransferMemo : TransactionResultEvent
 {
-    Cbor,
-    None
+    public TransferMemo(string rawHex)
+    {
+        RawHex = rawHex ?? throw new ArgumentNullException(nameof(rawHex));
+    }
+
+    public string RawHex { get; init; }
+
+    public DecodedTransferMemo GetDecoded()
+    {
+        return DecodedTransferMemo.CreateFromHex(RawHex);
+    }
 }
 
 /// <summary>
@@ -184,7 +188,7 @@ public enum TextDecodeType
 public record TransferredWithSchedule(
     string FromAccountAddress,
     string ToAccountAddress,
-    [property:UsePaging]
+    [property: UsePaging] 
     TimestampedAmount[] AmountsSchedule) : TransactionResultEvent;
 
 public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
