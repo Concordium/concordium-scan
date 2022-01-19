@@ -14,7 +14,14 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const cssClass = `badge--${props.type}`
+const cssClass = ref(`badge--${props.type}`)
+
+watch(
+	() => props.type,
+	value => {
+		cssClass.value = `badge--${value}`
+	}
+)
 </script>
 
 <style>

@@ -56,7 +56,6 @@
 </template>
 
 <script lang="ts" setup>
-import { useQuery, gql } from '@urql/vue'
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
@@ -68,11 +67,7 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-import type { Transaction } from '~/types/transactions'
-
-type TxResponse = {
-	transaction?: Transaction
-}
+import { useTransactionQuery } from '~/queries/useTransactionQuery'
 
 type Props = {
 	id: string
@@ -80,40 +75,7 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const TxQuery = gql<TxResponse>`
-	query ($id: ID!) {
-		transaction(id: $id) {
-			ccdCost
-			transactionHash
-			senderAccountAddress
-			block {
-				blockHash
-				blockHeight
-				blockSlotTime
-			}
-			result {
-				successful
-			}
-			transactionType {
-				__typename
-				... on AccountTransaction {
-					accountTransactionType
-				}
-				... on CredentialDeploymentTransaction {
-					credentialDeploymentTransactionType
-				}
-				... on UpdateTransaction {
-					updateTransactionType
-				}
-			}
-		}
-	}
-`
-
-const { data } = await useQuery({
-	query: TxQuery,
-	variables: { id: props.id },
-})
+const { data } = await useTransactionQuery(props.id)
 </script>
 
 <style module>

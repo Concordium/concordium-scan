@@ -8,7 +8,7 @@
 		</DrawerTitle>
 		<DrawerContent>
 			<div class="grid gap-6 grid-cols-2 mb-16">
-				<DetailsCard>
+				<DetailsCard v-if="data?.block?.blockSlotTime">
 					<template #title>Timestamp</template>
 					<template #default>
 						{{
@@ -82,7 +82,6 @@
 </template>
 
 <script lang="ts" setup>
-import { useQuery, gql } from '@urql/vue'
 import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
@@ -93,11 +92,7 @@ import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 } from '~/utils/format'
-import type { Block } from '~/types/blocks'
-
-type BlockResponse = {
-	block?: Block
-}
+import { useBlockQuery } from '~/queries/useBlockQuery'
 
 type Props = {
 	id: string
@@ -105,33 +100,7 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const BlockQuery = gql<BlockResponse>`
-	query ($id: ID!) {
-		block(id: $id) {
-			id
-			blockHash
-			bakerId
-			blockSlotTime
-			finalized
-			transactionCount
-			transactions {
-				nodes {
-					transactionHash
-					senderAccountAddress
-					ccdCost
-					result {
-						successful
-					}
-				}
-			}
-		}
-	}
-`
-
-const { data } = await useQuery({
-	query: BlockQuery,
-	variables: { id: props.id },
-})
+const { data } = await useBlockQuery(props.id)
 
 const NOW = new Date()
 </script>

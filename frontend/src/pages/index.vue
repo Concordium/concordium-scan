@@ -61,56 +61,21 @@
 </template>
 
 <script lang="ts" setup>
-import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertTimestampToRelative } from '~/utils/format'
-import type { Block } from '~/types/blocks'
-import type { PageInfo } from '~/types/pageInfo'
 import { usePagination } from '~/composables/usePagination'
+import { useBlockListQuery } from '~~/src/queries/useBlockListQuery'
 
 const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
 	usePagination()
 
 const selectedBlockId = useBlockDetails()
 
-type BlockList = {
-	blocks: {
-		nodes: Block[]
-		pageInfo: PageInfo
-	}
-}
-
-const BlocksQuery = gql<BlockList>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
-		blocks(after: $after, before: $before, first: $first, last: $last) {
-			nodes {
-				id
-				bakerId
-				blockHash
-				blockHeight
-				blockSlotTime
-				finalized
-				transactionCount
-			}
-			pageInfo {
-				startCursor
-				endCursor
-				hasPreviousPage
-				hasNextPage
-			}
-		}
-	}
-`
-
-const { data } = await useQuery({
-	query: BlocksQuery,
-	requestPolicy: 'cache-and-network',
-	variables: {
-		after: afterCursor,
-		before: beforeCursor,
-		first: paginateFirst,
-		last: paginateLast,
-	},
+const { data } = useBlockListQuery({
+	after: afterCursor,
+	before: beforeCursor,
+	first: paginateFirst,
+	last: paginateLast,
 })
 </script>
 
