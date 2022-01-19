@@ -5,12 +5,12 @@
 			<Table>
 				<TableHead>
 					<TableRow>
-						<TableTh>Height</TableTh>
-						<TableTh>Status</TableTh>
-						<TableTh>Timestamp</TableTh>
-						<TableTh>Block hash</TableTh>
-						<TableTh>Baker</TableTh>
-						<TableTh align="right">Transactions</TableTh>
+						<TableTh width="20%">Height</TableTh>
+						<TableTh width="20%">Status</TableTh>
+						<TableTh width="30%">Timestamp</TableTh>
+						<TableTh width="10%">Block hash</TableTh>
+						<TableTh width="10%">Baker</TableTh>
+						<TableTh width="10%" align="right">Transactions</TableTh>
 					</TableRow>
 				</TableHead>
 				<TableBody>
@@ -50,6 +50,12 @@
 					</TableRow>
 				</TableBody>
 			</Table>
+
+			<Pagination
+				v-if="data?.blocks.pageInfo"
+				:page-info="data?.blocks.pageInfo"
+				:go-to-page="goToPage"
+			/>
 		</main>
 	</div>
 </template>
@@ -59,18 +65,24 @@ import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'
+import type { PageInfo } from '~/types/pageInfo'
+import { usePagination } from '~/composables/usePagination'
+
+const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
+	usePagination()
 
 const selectedBlockId = useBlockDetails()
 
 type BlockList = {
 	blocks: {
 		nodes: Block[]
+		pageInfo: PageInfo
 	}
 }
 
 const BlocksQuery = gql<BlockList>`
-	query {
-		blocks {
+	query ($after: String, $before: String, $first: Int, $last: Int) {
+		blocks(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
 				id
 				bakerId
@@ -80,13 +92,25 @@ const BlocksQuery = gql<BlockList>`
 				finalized
 				transactionCount
 			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasPreviousPage
+				hasNextPage
+			}
 		}
 	}
 `
 
-const { data } = await useQuery({
+const { data } = useQuery({
 	query: BlocksQuery,
 	requestPolicy: 'cache-and-network',
+	variables: {
+		after: afterCursor,
+		before: beforeCursor,
+		first: paginateFirst,
+		last: paginateLast,
+	},
 })
 
 const NOW = new Date()

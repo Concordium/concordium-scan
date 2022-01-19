@@ -57,6 +57,7 @@
 			</Table>
 
 			<Pagination
+				v-if="data?.transactions.pageInfo"
 				:page-info="data?.transactions.pageInfo"
 				:go-to-page="goToPage"
 			/>

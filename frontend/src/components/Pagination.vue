@@ -4,7 +4,7 @@
 			class="mr-4"
 			aria-label="Go to the first page"
 			:disabled="!props.pageInfo.hasPreviousPage"
-			@click="goToFirst"
+			:on-click="goToFirst"
 		>
 			<ChevronDoubleLeftIcon class="h-4 inline align-text-top" />
 			First
@@ -14,7 +14,7 @@
 			aria-label="Go to the previous page"
 			:disabled="!props.pageInfo.hasPreviousPage"
 			group-position="first"
-			@click="goToPrevious"
+			:on-click="goToPrevious"
 		>
 			<ChevronRightIcon
 				class="h-4 inline align-text-top"
@@ -27,7 +27,7 @@
 			aria-label="Go to the next page"
 			group-position="last"
 			:disabled="!props.pageInfo.hasNextPage"
-			@click="goToNext"
+			:on-click="goToNext"
 		>
 			Next
 			<ChevronRightIcon class="h-4 inline align-text-top" />
