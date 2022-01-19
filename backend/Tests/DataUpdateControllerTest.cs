@@ -772,6 +772,37 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.EventsAsHex.Should().Equal("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32", "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
     }
 
+    [Fact]
+    public async Task TransactionEvents_TransferredWithSchedule()
+    {
+        var baseTimestamp = new DateTimeOffset(2010, 10, 01, 12, 0, 0, TimeSpan.Zero);
+        
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new TransferredWithSchedule(
+                        new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 
+                        new AccountAddress("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"), 
+                        new []
+                        {
+                            new TimestampedAmount(baseTimestamp.AddHours(10), CcdAmount.FromMicroCcd(1000)),
+                            new TimestampedAmount(baseTimestamp.AddHours(20), CcdAmount.FromMicroCcd(3333)),
+                            new TimestampedAmount(baseTimestamp.AddHours(30), CcdAmount.FromMicroCcd(2111)),
+                        }))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.TransferredWithSchedule>();
+        result.FromAccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.ToAccountAddress.Should().Be("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH");
+        result.AmountsSchedule.Should().Equal(
+            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(10), 1000),
+            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(20), 3333),
+            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(30), 2111));
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();

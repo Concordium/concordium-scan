@@ -171,11 +171,17 @@ public enum TextDecodeType
     None
 }
 
+/// <summary>
+/// A transfer with schedule was enqueued.
+/// </summary>
+/// <param name="FromAccountAddress">Sender account address.</param>
+/// <param name="ToAccountAddress">Receiver account address.</param>
+/// <param name="AmountsSchedule">The list of releases. Ordered by increasing timestamp.</param>
 public record TransferredWithSchedule(
     string FromAccountAddress,
     string ToAccountAddress,
     [property:UsePaging]
-    IEnumerable<TimestampedAmount> AmountsSchedule) : TransactionResultEvent;
+    TimestampedAmount[] AmountsSchedule) : TransactionResultEvent;
 
 public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
 
