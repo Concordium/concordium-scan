@@ -164,15 +164,8 @@ public record NewEncryptedAmount(
     ulong NewIndex,
     string EncryptedAmount) : TransactionResultEvent;
 
-public record TransferMemo : TransactionResultEvent
+public record TransferMemo(string RawHex) : TransactionResultEvent
 {
-    public TransferMemo(string rawHex)
-    {
-        RawHex = rawHex ?? throw new ArgumentNullException(nameof(rawHex));
-    }
-
-    public string RawHex { get; init; }
-
     public DecodedTransferMemo GetDecoded()
     {
         return DecodedTransferMemo.CreateFromHex(RawHex);
