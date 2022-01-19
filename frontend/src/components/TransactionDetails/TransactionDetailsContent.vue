@@ -13,21 +13,29 @@
 				<DetailsCard>
 					<template #title>Block height / block hash</template>
 					<template #default>
-						{{ data?.transaction?.blockHeight }}
+						{{ data?.transaction?.block.blockHeight }}
 					</template>
 					<template #secondary>
-						{{ data?.transaction?.blockHash.substring(0, 6) }}
+						{{ data?.transaction?.block.blockHash.substring(0, 6) }}
+					</template>
+				</DetailsCard>
+				<DetailsCard v-if="data?.transaction?.block.blockSlotTime">
+					<template #title>Timestamp</template>
+					<template #default>
+						{{
+							convertTimestampToRelative(data?.transaction?.block.blockSlotTime)
+						}}
+					</template>
+					<template #secondary>
+						{{ data?.transaction?.block.blockSlotTime }}
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="data?.transaction?.transactionType">
-					<template #title>Transaction type</template>
+					<template #title>Transaction type / cost (Ͼ)</template>
 					<template #default>
 						{{ translateTransactionType(data?.transaction?.transactionType) }}
 					</template>
-				</DetailsCard>
-				<DetailsCard>
-					<template #title>Cost (Ͼ)</template>
-					<template #default>
+					<template #secondary>
 						{{ convertMicroCcdToCcd(data?.transaction?.ccdCost) }}
 					</template>
 				</DetailsCard>
@@ -55,7 +63,10 @@ import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
 import Accordion from '~/components/Accordion.vue'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import {
+	convertMicroCcdToCcd,
+	convertTimestampToRelative,
+} from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 
@@ -73,10 +84,13 @@ const TxQuery = gql<TxResponse>`
 	query ($id: ID!) {
 		transaction(id: $id) {
 			ccdCost
-			blockHash
-			blockHeight
 			transactionHash
 			senderAccountAddress
+			block {
+				blockHash
+				blockHeight
+				blockSlotTime
+			}
 			result {
 				successful
 			}

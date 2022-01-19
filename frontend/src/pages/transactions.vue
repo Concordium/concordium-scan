@@ -5,12 +5,13 @@
 			<Table>
 				<TableHead>
 					<TableRow>
-						<TableTh width="14.3%">Status</TableTh>
-						<TableTh width="28.5%">Type</TableTh>
-						<TableTh width="14.3%">Transaction hash</TableTh>
-						<TableTh width="14.3%">Block height</TableTh>
-						<TableTh width="14.3%">Sender</TableTh>
-						<TableTh width="14.3%" align="right">Cost (Ͼ)</TableTh>
+						<TableTh width="10%">Status</TableTh>
+						<TableTh width="20%">Timestamp</TableTh>
+						<TableTh width="30%">Type</TableTh>
+						<TableTh width="10%">Transaction hash</TableTh>
+						<TableTh width="10%">Block height</TableTh>
+						<TableTh width="10%">Sender</TableTh>
+						<TableTh width="10%" align="right">Cost (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
 				<TableBody>
@@ -27,9 +28,12 @@
 							/>
 							{{ transaction.result.successful ? 'Success' : 'Rejected' }}
 						</TableTd>
-						<TableTd>{{
-							translateTransactionType(transaction.transactionType)
-						}}</TableTd>
+						<TableTd>
+							{{ convertTimestampToRelative(transaction.block.blockSlotTime) }}
+						</TableTd>
+						<TableTd>
+							{{ translateTransactionType(transaction.transactionType) }}
+						</TableTd>
 						<TableTd>
 							<HashtagIcon :class="$style.cellIcon" />
 							<LinkButton
@@ -39,9 +43,9 @@
 								{{ transaction.transactionHash.substring(0, 6) }}
 							</LinkButton>
 						</TableTd>
-						<TableTd :class="$style.numerical">{{
-							transaction.blockHeight
-						}}</TableTd>
+						<TableTd :class="$style.numerical">
+							{{ transaction.block.blockHeight }}
+						</TableTd>
 						<TableTd :class="$style.numerical">
 							<UserIcon
 								v-if="transaction.senderAccountAddress"
@@ -68,7 +72,10 @@
 <script lang="ts" setup>
 import { useQuery, gql } from '@urql/vue'
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import {
+	convertMicroCcdToCcd,
+	convertTimestampToRelative,
+} from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/pageInfo'
@@ -92,9 +99,12 @@ const TransactionsQuery = gql<TransactionsResponse>`
 			nodes {
 				id
 				ccdCost
-				blockHeight
 				transactionHash
 				senderAccountAddress
+				block {
+					blockHeight
+					blockSlotTime
+				}
 				result {
 					successful
 				}

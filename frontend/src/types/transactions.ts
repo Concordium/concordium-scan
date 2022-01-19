@@ -1,3 +1,5 @@
+import type { Block } from './blocks'
+
 type AccountTransactionTypes =
 	| 'DEPLOY_MODULE'
 	| 'INITIALIZE_SMART_CONTRACT_INSTANCE'
@@ -64,6 +66,7 @@ export type Transaction = {
 	transactionHash: string
 	senderAccountAddress: string
 	ccdCost: number
+	block: Block
 	result: {
 		successful: boolean
 	}
