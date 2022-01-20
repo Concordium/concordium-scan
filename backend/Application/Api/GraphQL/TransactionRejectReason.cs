@@ -3,7 +3,7 @@
 namespace Application.Api.GraphQL;
 
 [UnionType]
-public abstract record TransactionRejectReason;
+public abstract record TransactionRejectReason(bool _ = false);
 
 /// <summary>
 /// Error raised when validating the Wasm module.
