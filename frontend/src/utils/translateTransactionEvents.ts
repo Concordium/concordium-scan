@@ -1,3 +1,4 @@
+import { convertMicroCcdToCcd } from './format'
 import type {
 	TransactionSuccessfulEvent,
 	TransferAddress,
@@ -23,7 +24,9 @@ export const translateTransactionEvents = (
 	}
 
 	if (txEvent.__typename === 'Transferred') {
-		return `Transferred from ${translateTransferAddress(
+		return `Transferred ${convertMicroCcdToCcd(
+			txEvent.amount
+		)}Ͼ from ${translateTransferAddress(
 			txEvent.from
 		)} to ${translateTransferAddress(txEvent.to)}`
 	}

@@ -45,12 +45,13 @@ describe('translateTransactionEvents', () => {
 	it('should have a translation for a transfer', () => {
 		const txEvent = {
 			__typename: 'Transferred',
+			amount: 1337042,
 			from: { __typename: 'AccountAddress', address: 'sender123' },
 			to: { __typename: 'AccountAddress', address: 'recipient' },
 		} as TransactionSuccessfulEvent
 
 		expect(translateTransactionEvents(txEvent)).toBe(
-			'Transferred from account sender to account recipi'
+			'Transferred 1.337042Ͼ from account sender to account recipi'
 		)
 	})
 

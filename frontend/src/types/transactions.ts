@@ -85,6 +85,7 @@ export type TransferAddress = AccountAddress | ContractAddress
 
 type TransferredEvent = {
 	__typename: 'Transferred'
+	amount: number
 	from: TransferAddress
 	to: TransferAddress
 }
