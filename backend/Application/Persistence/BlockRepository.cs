@@ -1,10 +1,9 @@
 ﻿using System.Data;
 using System.Text.Json;
 using Application.Database;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
-using ConcordiumSdk.Types.JsonConverters;
 using Dapper;
 using Npgsql;
 
@@ -18,26 +17,7 @@ public class BlockRepository
     public BlockRepository(DatabaseSettings settings)
     {
         _settings = settings;
-        _successEventsSerializerOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters =
-            {
-                new TransactionResultEventConverter(),
-                new AddressConverter(),
-                new AccountAddressConverter(),
-                new TimestampedAmountConverter(),
-                new CcdAmountConverter(),
-                new RegisteredDataConverter(),
-                new MemoConverter(),
-                new ModuleRefConverter(),
-                new BinaryDataConverter(),
-                new UpdatePayloadConverter(),
-                new RootUpdateConverter(),
-                new Level1UpdateConverter(),
-            }
-        };
+        _successEventsSerializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     public int? GetMaxBlockHeight()
@@ -193,7 +173,7 @@ public class BlockRepository
 
     private string? MapRejectReasonType(TransactionResult result)
     {
-        if (result is TransactionRejectResult reject) return reject.Tag;
+        if (result is TransactionRejectResult reject) return reject.Reason.GetType().Name;
         return null;
     }
 
@@ -260,7 +240,7 @@ public class BlockRepository
         if (obj.success_events != null)
             return new TransactionSuccessResult { Events = JsonSerializer.Deserialize<TransactionResultEvent[]>(obj.success_events, _successEventsSerializerOptions) };
         if (obj.reject_reason_type != null)
-            return new TransactionRejectResult { Tag = obj.reject_reason_type };
+            throw new NotImplementedException("Map this!"); // return new TransactionRejectResult { Tag = obj.reject_reason_type };
         throw new InvalidOperationException("Unknown transaction result");
     }
 

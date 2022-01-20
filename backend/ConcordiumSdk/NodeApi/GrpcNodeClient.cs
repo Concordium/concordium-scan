@@ -14,6 +14,45 @@ using BlockHash = ConcordiumSdk.Types.BlockHash;
 
 namespace ConcordiumSdk.NodeApi;
 
+public static class GrpcNodeJsonSerializerOptionsFactory 
+{
+    public static JsonSerializerOptions Create()
+    {
+        return new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters =
+            {
+                new UnixTimeSecondsConverter(),
+                new JsonStringEnumConverter(),
+                new SpecialEventJsonConverter(),
+                new BlockHashConverter(),
+                new AddressConverter(),
+                new AccountAddressConverter(),
+                new ContractAddressConverter(),
+                new TransactionHashConverter(),
+                new CcdAmountConverter(),
+                new NonceConverter(),
+                new TransactionTypeConverter(),
+                new TransactionResultConverter(),
+                new TransactionResultEventConverter(),
+                new TimestampedAmountConverter(),
+                new RegisteredDataConverter(),
+                new MemoConverter(),
+                new ModuleRefConverter(),
+                new BinaryDataConverter(),
+                new UpdatePayloadConverter(),
+                new RootUpdateConverter(),
+                new Level1UpdateConverter(),
+                new TransactionRejectReasonConverter(),
+                new InvalidInitMethodConverter(),
+                new InvalidReceiveMethodConverter(),
+                new AmountTooLargeConverter(),
+            }
+        };
+    }
+}
+
 public class GrpcNodeClient : INodeClient, IDisposable
 {
     private readonly P2P.P2PClient _client;
@@ -36,31 +75,8 @@ public class GrpcNodeClient : INodeClient, IDisposable
         };
         _grpcChannel = GrpcChannel.ForAddress(settings.Address, options);
         _client = new P2P.P2PClient(_grpcChannel);
-        
-        _jsonSerializerOptions = new JsonSerializerOptions()
-        {
-            PropertyNameCaseInsensitive = true,
-        };
-        _jsonSerializerOptions.Converters.Add(new UnixTimeSecondsConverter());
-        _jsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        _jsonSerializerOptions.Converters.Add(new SpecialEventJsonConverter());
-        _jsonSerializerOptions.Converters.Add(new BlockHashConverter());
-        _jsonSerializerOptions.Converters.Add(new AddressConverter());
-        _jsonSerializerOptions.Converters.Add(new AccountAddressConverter());
-        _jsonSerializerOptions.Converters.Add(new TransactionHashConverter());
-        _jsonSerializerOptions.Converters.Add(new CcdAmountConverter());
-        _jsonSerializerOptions.Converters.Add(new NonceConverter());
-        _jsonSerializerOptions.Converters.Add(new TransactionTypeConverter());
-        _jsonSerializerOptions.Converters.Add(new TransactionResultConverter());
-        _jsonSerializerOptions.Converters.Add(new TransactionResultEventConverter());
-        _jsonSerializerOptions.Converters.Add(new TimestampedAmountConverter());
-        _jsonSerializerOptions.Converters.Add(new RegisteredDataConverter());
-        _jsonSerializerOptions.Converters.Add(new MemoConverter());
-        _jsonSerializerOptions.Converters.Add(new ModuleRefConverter());
-        _jsonSerializerOptions.Converters.Add(new BinaryDataConverter());
-        _jsonSerializerOptions.Converters.Add(new UpdatePayloadConverter());
-        _jsonSerializerOptions.Converters.Add(new RootUpdateConverter());
-        _jsonSerializerOptions.Converters.Add(new Level1UpdateConverter());
+
+        _jsonSerializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     public async Task<ConsensusStatus> GetConsensusStatusAsync()

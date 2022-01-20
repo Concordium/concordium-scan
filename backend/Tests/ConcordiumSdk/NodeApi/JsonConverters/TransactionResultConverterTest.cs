@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -10,9 +11,7 @@ public class TransactionResultConverterTest
 
     public TransactionResultConverterTest()
     {
-        _serializerOptions = new JsonSerializerOptions( );
-        _serializerOptions.Converters.Add(new TransactionResultConverter());
-        _serializerOptions.Converters.Add(new TransactionResultEventConverter());
+        _serializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     [Fact]
@@ -27,9 +26,9 @@ public class TransactionResultConverterTest
     [Fact]
     public void Deserialize_Reject()
     {
-        var json = "{\"outcome\": \"reject\", \"rejectReason\": {\"tag\": \"AmountTooLarge\"}}";
+        var json = "{\"outcome\": \"reject\", \"rejectReason\": {\"tag\": \"OutOfEnergy\"}}";
         var result = JsonSerializer.Deserialize<TransactionResult>(json, _serializerOptions);
-        var typed = Assert.IsType<TransactionRejectResult>(result);
-        Assert.Equal("AmountTooLarge", typed.Tag);
+        var rejectResult = Assert.IsType<TransactionRejectResult>(result);
+        Assert.IsType<OutOfEnergy>(rejectResult.Reason);
     }
 }

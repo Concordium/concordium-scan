@@ -89,7 +89,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
                 new TransactionSummaryBuilder()
                     .WithIndex(1)
                     .WithType(TransactionType.Get((AccountTransactionType?)null))
-                    .WithResult(new TransactionRejectResult() { Tag = "FooBarBas!"})
+                    .WithResult(new TransactionRejectResult { Reason = new ModuleNotWf()})
                     .Build()
             }
         };

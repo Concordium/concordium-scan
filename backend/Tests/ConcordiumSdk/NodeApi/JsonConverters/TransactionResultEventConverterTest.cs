@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
@@ -14,27 +15,7 @@ public class TransactionResultEventConverterTest
 
     public TransactionResultEventConverterTest()
     {
-        _serializerOptions = new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters =
-            {
-                new TransactionResultEventConverter(), 
-                new AddressConverter(), 
-                new AccountAddressConverter(),
-                new ContractAddressConverter(),
-                new CcdAmountConverter(),
-                new TimestampedAmountConverter(),
-                new RegisteredDataConverter(),
-                new MemoConverter(),
-                new ModuleRefConverter(),
-                new BinaryDataConverter(),
-                new UpdatePayloadConverter(),
-                new RootUpdateConverter(),
-                new Level1UpdateConverter(),
-                new UnixTimeSecondsConverter()
-            }
-        };
+        _serializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     [Fact]

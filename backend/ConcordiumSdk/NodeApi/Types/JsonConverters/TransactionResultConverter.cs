@@ -11,7 +11,7 @@ public class TransactionResultConverter : JsonConverter<TransactionResult>
 
         JsonElement? events = null;
         string? outcome = null;
-        JsonElement? rejectReason = null;
+        TransactionRejectReason rejectReason = null;
         
         reader.Read();
         while (reader.TokenType != JsonTokenType.EndObject)
@@ -33,7 +33,7 @@ public class TransactionResultConverter : JsonConverter<TransactionResult>
             else if (key == "rejectReason")
             {
                 EnsureTokenType(reader, JsonTokenType.StartObject);
-                rejectReason = JsonElement.ParseValue(ref reader);
+                rejectReason = JsonSerializer.Deserialize<TransactionRejectReason>(ref reader, options);
             }
             
             reader.Read();
@@ -48,11 +48,9 @@ public class TransactionResultConverter : JsonConverter<TransactionResult>
 
         if (outcome == "reject")
         {
-            if (!rejectReason.HasValue)
-                throw new InvalidOperationException("rejectReason was null when trying to deserialized a reject outcome!");
-            var tagValue = rejectReason.Value.GetProperty("tag").GetString();
-            if (tagValue == null) throw new InvalidOperationException("value of tag was null.");
-            return new TransactionRejectResult { Tag = tagValue };
+            if (rejectReason == null)
+                throw new InvalidOperationException("rejectReason was null!");
+            return new TransactionRejectResult { Reason = rejectReason };
         }
 
         throw new NotImplementedException();

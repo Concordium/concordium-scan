@@ -1,8 +1,7 @@
 ﻿using System.Text.Json;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
-using ConcordiumSdk.Types.JsonConverters;
 using FluentAssertions;
 using Tests.TestUtilities;
 
@@ -14,18 +13,7 @@ public class UpdatePayloadConverterTest
 
     public UpdatePayloadConverterTest()
     {
-        _serializerOptions = new JsonSerializerOptions()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters =
-            {
-                new AccountAddressConverter(),
-                new BinaryDataConverter(),
-                new CcdAmountConverter(),
-                new UpdatePayloadConverter(),
-                new Level1UpdateConverter(),
-            }
-        };
+        _serializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     [Fact]

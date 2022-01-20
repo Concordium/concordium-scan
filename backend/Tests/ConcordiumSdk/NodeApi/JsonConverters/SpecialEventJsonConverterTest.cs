@@ -1,8 +1,7 @@
 ﻿using System.Text.Json;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
-using ConcordiumSdk.Types.JsonConverters;
 
 namespace Tests.ConcordiumSdk.NodeApi.JsonConverters;
 
@@ -12,14 +11,7 @@ public class SpecialEventJsonConverterTest
 
     public SpecialEventJsonConverterTest()
     {
-        _serializerOptions = new JsonSerializerOptions()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-        _serializerOptions.Converters.Add(new CcdAmountConverter());
-        _serializerOptions.Converters.Add(new AccountAddressConverter());
-        _serializerOptions.Converters.Add(new SpecialEventJsonConverter());
-
+        _serializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
     [Fact]

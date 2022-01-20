@@ -1,29 +1,240 @@
+using ConcordiumSdk.Types;
+
 namespace ConcordiumSdk.NodeApi.Types;
 
-/// <summary>
-/// This type does not reflect the full set of data available.
-///
-/// As can be seen in the Haskell source (https://github.com/Concordium/concordium-base/blob/a50612e023da79cb625cd36c52703af6ed483738/haskell-src/Concordium/Types/Execution.hs#L1034)
-/// there is a finite set of reject reasons, modelled individually to allow reject reasons
-/// to carry state that wary by reject reason.
-///
-/// However, the serialized JSON simply contains this state in one array, fx:
-/// {
-///    "tag": "AmountTooLarge",
-///    "contents": [
-///    {
-///        "type": "AddressAccount",
-///        "address": "3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"
-///    },
-///    "5000000000"
-///    ]
-/// }
-///
-/// As can be seen there are no keys/fields for the data in contents, so what does "5000000000" actually represent?
-///
-/// Implementation of a proper deserialization has been postponed for now :)  
-/// </summary>
 public class TransactionRejectResult : TransactionResult
 {
-    public string Tag { get; init; }
+    public TransactionRejectReason Reason { get; init; }
 }
+
+public abstract record TransactionRejectReason;
+
+/// <summary>
+/// Error raised when validating the Wasm module.
+/// </summary>
+public record ModuleNotWf : TransactionRejectReason;
+
+/// <summary>
+/// Module hash already exists.
+/// </summary>
+public record ModuleHashAlreadyExists(
+    ModuleRef Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Account does not exist.
+/// </summary>
+public record InvalidAccountReference(
+    AccountAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Reference to a non-existing contract init method.
+/// </summary>
+public record InvalidInitMethod(
+    ModuleRef ModuleRef,
+    string InitName) : TransactionRejectReason;
+
+/// <summary>
+/// Reference to a non-existing contract receive method.
+/// </summary>
+public record InvalidReceiveMethod(
+    ModuleRef ModuleRef,
+    string ReceiveName) : TransactionRejectReason;
+
+/// <summary>
+/// Reference to a non-existing module.
+/// </summary>
+public record InvalidModuleReference(
+    ModuleRef Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Contract instance does not exist.
+/// </summary>
+public record InvalidContractAddress(
+    ContractAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Runtime exception occurred when running either the init or receive method.
+/// </summary>
+public record RuntimeFailure : TransactionRejectReason;
+
+/// <summary>
+/// When one wishes to transfer an amount from A to B but there
+/// are not enough funds on account/contract A to make this
+/// possible.
+/// </summary>
+/// <param name="Address">The from address in the transaction.</param>
+/// <param name="Amount">The amount in the transaction.</param>
+public record AmountTooLarge(
+    Address Address,
+    CcdAmount Amount) : TransactionRejectReason;
+
+/// <summary>
+/// Serialization of the body failed.
+/// </summary>
+public record SerializationFailure : TransactionRejectReason;
+
+/// <summary>
+/// We ran of out energy to process this transaction.
+/// </summary>
+public record OutOfEnergy : TransactionRejectReason;
+
+/// <summary>
+/// Rejected due to contract logic in init function of a contract.
+/// </summary>
+public record RejectedInit(
+    int RejectReason) : TransactionRejectReason;
+
+public record RejectedReceive(
+    int RejectReason,
+    ContractAddress ContractAddress,
+    string ReceiveName,
+    BinaryData Parameter) : TransactionRejectReason;
+
+/// <summary>
+/// Reward account desired by the baker does not exist.
+/// </summary>
+public record NonExistentRewardAccount(
+    AccountAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Proof that the baker owns relevant private keys is not valid.
+/// </summary>
+public record InvalidProof : TransactionRejectReason;
+
+/// <summary>
+/// Tried to add baker for an account that already has a baker.
+/// </summary>
+/// <param name="Contents">Baker ID</param>
+public record AlreadyABaker(ulong Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Tried to remove a baker for an account that has no baker.
+/// </summary>
+public record NotABaker(AccountAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// The amount on the account was insufficient to cover the proposed stake.
+/// </summary>
+public record InsufficientBalanceForBakerStake : TransactionRejectReason;
+
+/// <summary>
+/// The amount provided is under the threshold required for becoming a baker.
+/// </summary>
+public record StakeUnderMinimumThresholdForBaking : TransactionRejectReason;
+
+/// <summary>
+/// The change could not be made because the baker is in cooldown for another change.
+/// </summary>
+public record BakerInCooldown : TransactionRejectReason;
+
+/// <summary>
+/// A baker with the given aggregation key already exists.
+/// </summary>
+/// <param name="Contents">The aggregation key</param>
+public record DuplicateAggregationKey(string Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Encountered credential ID that does not exist.
+/// </summary>
+public record NonExistentCredentialID : TransactionRejectReason;
+
+/// <summary>
+/// Attempted to add an account key to a key index already in use.
+/// </summary>
+public record KeyIndexAlreadyInUse : TransactionRejectReason;
+
+/// <summary>
+/// When the account threshold is updated, it must not exceed the amount of existing keys.
+/// </summary>
+public record InvalidAccountThreshold : TransactionRejectReason;
+
+/// <summary>
+/// When the credential key threshold is updated, it must not exceed the amount of existing keys.
+/// </summary>
+public record InvalidCredentialKeySignThreshold : TransactionRejectReason;
+
+/// <summary>
+/// Proof for an encrypted amount transfer did not validate.
+/// </summary>
+public record InvalidEncryptedAmountTransferProof : TransactionRejectReason;
+
+/// <summary>
+/// Proof for a secret to public transfer did not validate.
+/// </summary>
+public record InvalidTransferToPublicProof : TransactionRejectReason;
+
+/// <summary>
+/// Account tried to transfer an encrypted amount to itself, that's not allowed.
+/// </summary>
+public record EncryptedAmountSelfTransfer(
+    AccountAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// The provided index is below the start index or above `startIndex + length incomingAmounts`
+/// </summary>
+public record InvalidIndexOnEncryptedTransfer : TransactionRejectReason;
+
+/// <summary>
+/// The transfer with schedule is going to send 0 tokens.
+/// </summary>
+public record ZeroScheduledAmount : TransactionRejectReason;
+
+/// <summary>
+/// The transfer with schedule has a non strictly increasing schedule.
+/// </summary>
+public record NonIncreasingSchedule : TransactionRejectReason;
+
+/// <summary>
+/// The first scheduled release in a transfer with schedule has already expired.
+/// </summary>
+public record FirstScheduledReleaseExpired : TransactionRejectReason;
+
+/// <summary>
+/// Account tried to transfer with schedule to itself, that's not allowed.
+/// </summary>
+public record ScheduledSelfTransfer(
+    AccountAddress Contents) : TransactionRejectReason;
+
+/// <summary>
+/// At least one of the credentials was either malformed or its proof was incorrect.
+/// </summary>
+public record InvalidCredentials : TransactionRejectReason;
+
+/// <summary>
+/// Some of the credential IDs already exist or are duplicated in the transaction.
+/// </summary>
+/// <param name="Contents">Array of credential registration ids</param>
+public record DuplicateCredIDs(
+    string[] Contents) : TransactionRejectReason;
+
+/// <summary>
+/// A credential id that was to be removed is not part of the account. 
+/// </summary>
+/// <param name="Contents">Array of credential registration ids</param>
+public record NonExistentCredIDs(
+    string[] Contents) : TransactionRejectReason;
+
+/// <summary>
+/// Attemp to remove the first credential.
+/// </summary>
+public record RemoveFirstCredential : TransactionRejectReason;
+
+/// <summary>
+/// The credential holder of the keys to be updated did not sign the transaction.
+/// </summary>
+public record CredentialHolderDidNotSign : TransactionRejectReason;
+
+/// <summary>
+/// Account is not allowed to have multiple credentials because it contains a non-zero encrypted transfer.
+/// </summary>
+public record NotAllowedMultipleCredentials : TransactionRejectReason;
+
+/// <summary>
+/// The account is not allowed to receive encrypted transfers because it has multiple credentials.
+/// </summary>
+public record NotAllowedToReceiveEncrypted : TransactionRejectReason;
+
+/// <summary>
+/// The account is not allowed to send encrypted transfers (or transfer from/to public to/from encrypted).
+/// </summary>
+public record NotAllowedToHandleEncrypted : TransactionRejectReason;
