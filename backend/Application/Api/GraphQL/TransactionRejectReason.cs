@@ -1,12 +1,8 @@
-using ConcordiumSdk.Types;
+﻿using HotChocolate.Types;
 
-namespace ConcordiumSdk.NodeApi.Types;
+namespace Application.Api.GraphQL;
 
-public class TransactionRejectResult : TransactionResult
-{
-    public TransactionRejectReason Reason { get; init; }
-}
-
+[UnionType]
 public abstract record TransactionRejectReason;
 
 /// <summary>
@@ -18,39 +14,39 @@ public record ModuleNotWf : TransactionRejectReason;
 /// Module hash already exists.
 /// </summary>
 public record ModuleHashAlreadyExists(
-    ModuleRef Contents) : TransactionRejectReason;
+    string ModuleRef) : TransactionRejectReason;
 
 /// <summary>
 /// Account does not exist.
 /// </summary>
 public record InvalidAccountReference(
-    AccountAddress Contents) : TransactionRejectReason;
+    string AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// Reference to a non-existing contract init method.
 /// </summary>
 public record InvalidInitMethod(
-    ModuleRef ModuleRef,
+    string ModuleRef,
     string InitName) : TransactionRejectReason;
 
 /// <summary>
 /// Reference to a non-existing contract receive method.
 /// </summary>
 public record InvalidReceiveMethod(
-    ModuleRef ModuleRef,
+    string ModuleRef,
     string ReceiveName) : TransactionRejectReason;
 
 /// <summary>
 /// Reference to a non-existing module.
 /// </summary>
 public record InvalidModuleReference(
-    ModuleRef Contents) : TransactionRejectReason;
+    string ModuleRef) : TransactionRejectReason;
 
 /// <summary>
 /// Contract instance does not exist.
 /// </summary>
 public record InvalidContractAddress(
-    ContractAddress Contents) : TransactionRejectReason;
+    ContractAddress ContractAddress) : TransactionRejectReason;
 
 /// <summary>
 /// Runtime exception occurred when running either the init or receive method.
@@ -62,11 +58,9 @@ public record RuntimeFailure : TransactionRejectReason;
 /// are not enough funds on account/contract A to make this
 /// possible.
 /// </summary>
-/// <param name="Address">The from address in the transaction.</param>
-/// <param name="Amount">The amount in the transaction.</param>
 public record AmountTooLarge(
     Address Address,
-    CcdAmount Amount) : TransactionRejectReason;
+    ulong Amount) : TransactionRejectReason;
 
 /// <summary>
 /// Serialization of the body failed.
@@ -88,13 +82,13 @@ public record RejectedReceive(
     int RejectReason,
     ContractAddress ContractAddress,
     string ReceiveName,
-    BinaryData Parameter) : TransactionRejectReason;
+    string MessageAsHex) : TransactionRejectReason;
 
 /// <summary>
 /// Reward account desired by the baker does not exist.
 /// </summary>
 public record NonExistentRewardAccount(
-    AccountAddress Contents) : TransactionRejectReason;
+    string AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// Proof that the baker owns relevant private keys is not valid.
@@ -104,13 +98,14 @@ public record InvalidProof : TransactionRejectReason;
 /// <summary>
 /// Tried to add baker for an account that already has a baker.
 /// </summary>
-/// <param name="Contents">Baker ID</param>
-public record AlreadyABaker(ulong Contents) : TransactionRejectReason;
+public record AlreadyABaker(
+    ulong BakerId) : TransactionRejectReason;
 
 /// <summary>
 /// Tried to remove a baker for an account that has no baker.
 /// </summary>
-public record NotABaker(AccountAddress Contents) : TransactionRejectReason;
+public record NotABaker(
+    string AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// The amount on the account was insufficient to cover the proposed stake.
@@ -130,8 +125,8 @@ public record BakerInCooldown : TransactionRejectReason;
 /// <summary>
 /// A baker with the given aggregation key already exists.
 /// </summary>
-/// <param name="Contents">The aggregation key</param>
-public record DuplicateAggregationKey(string Contents) : TransactionRejectReason;
+public record DuplicateAggregationKey(
+    string AggregationKey) : TransactionRejectReason;
 
 /// <summary>
 /// Encountered credential ID that does not exist.
@@ -167,7 +162,7 @@ public record InvalidTransferToPublicProof : TransactionRejectReason;
 /// Account tried to transfer an encrypted amount to itself, that's not allowed.
 /// </summary>
 public record EncryptedAmountSelfTransfer(
-    AccountAddress Contents) : TransactionRejectReason;
+    string AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// The provided index is below the start index or above `startIndex + length incomingAmounts`
@@ -193,7 +188,7 @@ public record FirstScheduledReleaseExpired : TransactionRejectReason;
 /// Account tried to transfer with schedule to itself, that's not allowed.
 /// </summary>
 public record ScheduledSelfTransfer(
-    AccountAddress Contents) : TransactionRejectReason;
+    string AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// At least one of the credentials was either malformed or its proof was incorrect.
@@ -203,16 +198,14 @@ public record InvalidCredentials : TransactionRejectReason;
 /// <summary>
 /// Some of the credential IDs already exist or are duplicated in the transaction.
 /// </summary>
-/// <param name="Contents">Array of credential registration ids</param>
 public record DuplicateCredIds(
-    string[] Contents) : TransactionRejectReason;
+    string[] CredIds) : TransactionRejectReason;
 
 /// <summary>
 /// A credential id that was to be removed is not part of the account. 
 /// </summary>
-/// <param name="Contents">Array of credential registration ids</param>
 public record NonExistentCredIds(
-    string[] Contents) : TransactionRejectReason;
+    string[] CredIds) : TransactionRejectReason;
 
 /// <summary>
 /// Attempt to remove the first credential.

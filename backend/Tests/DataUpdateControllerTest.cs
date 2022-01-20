@@ -851,6 +851,450 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
     }
 
+    [Fact]
+    public async Task TransactionRejectReason_ModuleNotWf()
+    {
+        var inputReason = new ModuleNotWf();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ModuleNotWf>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_ModuleHashAlreadyExists()
+    {
+        var inputReason = new ModuleHashAlreadyExists(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ModuleHashAlreadyExists>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidAccountReference()
+    {
+        var inputReason = new InvalidAccountReference(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidAccountReference>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidInitMethod()
+    {
+        var inputReason = new InvalidInitMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.init");
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidInitMethod>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.InitName.Should().Be("trader.init");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidReceiveMethod()
+    {
+        var inputReason = new InvalidReceiveMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.receive");
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidReceiveMethod>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.ReceiveName.Should().Be("trader.receive");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidModuleReference()
+    {
+        var inputReason = new InvalidModuleReference(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidModuleReference>();
+        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidContractAddress()
+    {
+        var inputReason = new InvalidContractAddress(new ContractAddress(187, 22));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidContractAddress>();
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_RuntimeFailure()
+    {
+        var inputReason = new RuntimeFailure();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RuntimeFailure>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_AmountTooLarge()
+    {
+        var inputReason = new AmountTooLarge(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34656));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.AmountTooLarge>();
+        result.Address.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.Amount.Should().Be(34656);
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_SerializationFailure()
+    {
+        var inputReason = new SerializationFailure();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.SerializationFailure>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_OutOfEnergy()
+    {
+        var inputReason = new OutOfEnergy();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.OutOfEnergy>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_RejectedInit()
+    {
+        var inputReason = new RejectedInit(-48518);
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RejectedInit>();
+        result.RejectReason.Should().Be(-48518);
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_RejectedReceive()
+    {
+        var inputReason = new RejectedReceive(
+            -48518,
+            new ContractAddress(187, 22),
+            "trader.dostuff",
+            BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00"));
+        
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RejectedReceive>();
+        result.RejectReason.Should().Be(-48518);
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
+        result.ReceiveName.Should().Be("trader.dostuff");
+        result.MessageAsHex.Should().Be("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NonExistentRewardAccount()
+    {
+        var inputReason = new NonExistentRewardAccount(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentRewardAccount>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidProof()
+    {
+        var inputReason = new InvalidProof();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidProof>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_AlreadyABaker()
+    {
+        var inputReason = new AlreadyABaker(45);
+        
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.AlreadyABaker>();
+        result.BakerId.Should().Be(45);
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NotABaker()
+    {
+        var inputReason = new NotABaker(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotABaker>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InsufficientBalanceForBakerStake()
+    {
+        var inputReason = new InsufficientBalanceForBakerStake();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InsufficientBalanceForBakerStake>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_StakeUnderMinimumThresholdForBaking()
+    {
+        var inputReason = new StakeUnderMinimumThresholdForBaking();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.StakeUnderMinimumThresholdForBaking>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_BakerInCooldown()
+    {
+        var inputReason = new BakerInCooldown();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.BakerInCooldown>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_DuplicateAggregationKey()
+    {
+        var inputReason = new DuplicateAggregationKey("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.DuplicateAggregationKey>();
+        result.AggregationKey.Should().Be("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NonExistentCredentialId()
+    {
+        var inputReason = new NonExistentCredentialId();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentCredentialId>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_KeyIndexAlreadyInUse()
+    {
+        var inputReason = new KeyIndexAlreadyInUse();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.KeyIndexAlreadyInUse>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidAccountThreshold()
+    {
+        var inputReason = new InvalidAccountThreshold();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidAccountThreshold>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidCredentialKeySignThreshold()
+    {
+        var inputReason = new InvalidCredentialKeySignThreshold();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidCredentialKeySignThreshold>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidEncryptedAmountTransferProof()
+    {
+        var inputReason = new InvalidEncryptedAmountTransferProof();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidEncryptedAmountTransferProof>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidTransferToPublicProof()
+    {
+        var inputReason = new InvalidTransferToPublicProof();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidTransferToPublicProof>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_EncryptedAmountSelfTransfer()
+    {
+        var inputReason = new EncryptedAmountSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.EncryptedAmountSelfTransfer>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidIndexOnEncryptedTransfer()
+    {
+        var inputReason = new InvalidIndexOnEncryptedTransfer();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidIndexOnEncryptedTransfer>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_ZeroScheduledAmount()
+    {
+        var inputReason = new ZeroScheduledAmount();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ZeroScheduledAmount>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NonIncreasingSchedule()
+    {
+        var inputReason = new NonIncreasingSchedule();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonIncreasingSchedule>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_FirstScheduledReleaseExpired()
+    {
+        var inputReason = new FirstScheduledReleaseExpired();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.FirstScheduledReleaseExpired>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_ScheduledSelfTransfer()
+    {
+        var inputReason = new ScheduledSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ScheduledSelfTransfer>();
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_InvalidCredentials()
+    {
+        var inputReason = new InvalidCredentials();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidCredentials>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_DuplicateCredIds()
+    {
+        var inputReason = new DuplicateCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.DuplicateCredIds>();
+        result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NonExistentCredIds()
+    {
+        var inputReason = new NonExistentCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentCredIds>();
+        result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_RemoveFirstCredential()
+    {
+        var inputReason = new RemoveFirstCredential();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RemoveFirstCredential>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_CredentialHolderDidNotSign()
+    {
+        var inputReason = new CredentialHolderDidNotSign();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.CredentialHolderDidNotSign>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NotAllowedMultipleCredentials()
+    {
+        var inputReason = new NotAllowedMultipleCredentials();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedMultipleCredentials>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NotAllowedToReceiveEncrypted()
+    {
+        var inputReason = new NotAllowedToReceiveEncrypted();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedToReceiveEncrypted>();
+        result.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task TransactionRejectReason_NotAllowedToHandleEncrypted()
+    {
+        var inputReason = new NotAllowedToHandleEncrypted();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedToHandleEncrypted>();
+        result.Should().NotBeNull();
+    }
+
+    private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : Application.Api.GraphQL.TransactionRejectReason
+    {
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var transaction = await dbContext.Transactions.SingleAsync();
+        var rejected = Assert.IsType<Application.Api.GraphQL.Rejected>(transaction.Result);
+        return Assert.IsType<T>(rejected.Reason);
+    }
+
+    private async Task WriteSingleRejectedTransaction(TransactionRejectReason rejectReason)
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionRejectResultBuilder()
+                    .WithRejectReason(rejectReason)
+                    .Build())
+                .Build());
+
+        await WriteData();
+    }
+
     private async Task<T> ReadSingleTransactionEventType<T>()
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();

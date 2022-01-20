@@ -394,7 +394,7 @@ public class TransactionRejectReasonConverterTest
         var json = "{\"tag\": \"DuplicateCredIDs\", \"contents\": [\"b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f\"]}";
         
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
-        var typed = Assert.IsType<DuplicateCredIDs>(deserialized);
+        var typed = Assert.IsType<DuplicateCredIds>(deserialized);
         typed.Contents.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
         
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
@@ -407,7 +407,7 @@ public class TransactionRejectReasonConverterTest
         var json = "{\"tag\": \"NonExistentCredIDs\", \"contents\": [\"8221a0f0694ec0b8da5924e546d3b56e8d1421471771fd88253d1e63869680987f9fbd5b0c40612daa67cc6e9834a667\"]}";
         
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
-        var typed = Assert.IsType<NonExistentCredIDs>(deserialized);
+        var typed = Assert.IsType<NonExistentCredIds>(deserialized);
         typed.Contents.Should().ContainSingle().Which.Should().Be("8221a0f0694ec0b8da5924e546d3b56e8d1421471771fd88253d1e63869680987f9fbd5b0c40612daa67cc6e9834a667");
         
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);

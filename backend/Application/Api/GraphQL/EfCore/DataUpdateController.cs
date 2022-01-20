@@ -55,7 +55,6 @@ public class DataUpdateController
         }
 
         var transactions = blockSummary.TransactionSummaries
-            .Where(x => x.Result is TransactionSuccessResult)
             .Select(x => new { Source = x, Mapped = MapTransaction(block, x)})
             .ToArray();
         await context.Transactions.AddRangeAsync(transactions.Select(x => x.Mapped));
@@ -205,6 +204,58 @@ public class DataUpdateController
             SenderAccountAddress = value.Sender?.AsString,
             CcdCost = value.Cost.MicroCcdValue,
             EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
+            RejectReason = MapRejectReason(value.Result as TransactionRejectResult),
+        };
+    }
+
+    private TransactionRejectReason? MapRejectReason(TransactionRejectResult? value)
+    {
+        if (value == null) return null;
+
+        return value.Reason switch
+        {
+            ConcordiumSdk.NodeApi.Types.ModuleNotWf => new ModuleNotWf(),
+            ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists x => new ModuleHashAlreadyExists(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidAccountReference x => new InvalidAccountReference(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidInitMethod x => new InvalidInitMethod(x.ModuleRef.AsString, x.InitName),
+            ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod x => new InvalidReceiveMethod(x.ModuleRef.AsString, x.ReceiveName),
+            ConcordiumSdk.NodeApi.Types.InvalidModuleReference x => new InvalidModuleReference(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidContractAddress x => new InvalidContractAddress(MapContractAddress(x.Contents)),
+            ConcordiumSdk.NodeApi.Types.RuntimeFailure => new RuntimeFailure(),
+            ConcordiumSdk.NodeApi.Types.AmountTooLarge x => new AmountTooLarge(MapAddress(x.Address), x.Amount.MicroCcdValue),
+            ConcordiumSdk.NodeApi.Types.SerializationFailure => new SerializationFailure(),
+            ConcordiumSdk.NodeApi.Types.OutOfEnergy => new OutOfEnergy(),
+            ConcordiumSdk.NodeApi.Types.RejectedInit x => new RejectedInit(x.RejectReason),
+            ConcordiumSdk.NodeApi.Types.RejectedReceive x => new RejectedReceive(x.RejectReason, MapContractAddress(x.ContractAddress), x.ReceiveName, x.Parameter.AsHexString),
+            ConcordiumSdk.NodeApi.Types.NonExistentRewardAccount x => new NonExistentRewardAccount(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidProof => new InvalidProof(),
+            ConcordiumSdk.NodeApi.Types.AlreadyABaker x => new AlreadyABaker(x.Contents),
+            ConcordiumSdk.NodeApi.Types.NotABaker x => new NotABaker(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InsufficientBalanceForBakerStake => new InsufficientBalanceForBakerStake(),
+            ConcordiumSdk.NodeApi.Types.StakeUnderMinimumThresholdForBaking => new StakeUnderMinimumThresholdForBaking(),
+            ConcordiumSdk.NodeApi.Types.BakerInCooldown => new BakerInCooldown(),
+            ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey x => new DuplicateAggregationKey(x.Contents),
+            ConcordiumSdk.NodeApi.Types.NonExistentCredentialId => new NonExistentCredentialId(),
+            ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse => new KeyIndexAlreadyInUse(),
+            ConcordiumSdk.NodeApi.Types.InvalidAccountThreshold => new InvalidAccountThreshold(),
+            ConcordiumSdk.NodeApi.Types.InvalidCredentialKeySignThreshold => new InvalidCredentialKeySignThreshold(),
+            ConcordiumSdk.NodeApi.Types.InvalidEncryptedAmountTransferProof => new InvalidEncryptedAmountTransferProof(),
+            ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof => new InvalidTransferToPublicProof(),
+            ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer x => new EncryptedAmountSelfTransfer(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidIndexOnEncryptedTransfer => new InvalidIndexOnEncryptedTransfer(),
+            ConcordiumSdk.NodeApi.Types.ZeroScheduledAmount => new ZeroScheduledAmount(),
+            ConcordiumSdk.NodeApi.Types.NonIncreasingSchedule => new NonIncreasingSchedule(),
+            ConcordiumSdk.NodeApi.Types.FirstScheduledReleaseExpired => new FirstScheduledReleaseExpired(),
+            ConcordiumSdk.NodeApi.Types.ScheduledSelfTransfer x => new ScheduledSelfTransfer(x.Contents.AsString),
+            ConcordiumSdk.NodeApi.Types.InvalidCredentials => new InvalidCredentials(),
+            ConcordiumSdk.NodeApi.Types.DuplicateCredIds x => new DuplicateCredIds(x.Contents),
+            ConcordiumSdk.NodeApi.Types.NonExistentCredIds x => new NonExistentCredIds(x.Contents),
+            ConcordiumSdk.NodeApi.Types.RemoveFirstCredential => new RemoveFirstCredential(),
+            ConcordiumSdk.NodeApi.Types.CredentialHolderDidNotSign => new CredentialHolderDidNotSign(),
+            ConcordiumSdk.NodeApi.Types.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
+            ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
+            ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
+            _ => throw new NotImplementedException("Reject reason not mapped!")
         };
     }
 

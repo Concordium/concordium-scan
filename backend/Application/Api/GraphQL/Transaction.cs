@@ -31,17 +31,19 @@ public class Transaction
     public TransactionTypeUnion TransactionType { get; set; }
 
     /// <summary>
-    /// TODO: Document intend with property!
+    /// Not part of GraphQL schema as the reject reason is part of the Result property
+    /// which is created based on this property.
+    /// Purpose of this property is to allow EF to persist/retrieve the reject reason. 
     /// </summary>
     [GraphQLIgnore]
-    public string? RejectReason { get; set; }
+    public TransactionRejectReason? RejectReason { get; set; }
 
     public TransactionResult Result
     {
         get
         {
             if (RejectReason == null) return new Successful(this);
-            return new Rejected();
+            return new Rejected(RejectReason);
         }
     }
 

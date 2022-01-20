@@ -40,5 +40,10 @@ public class Successful : TransactionResult
 
 public class Rejected : TransactionResult
 {
-    public Rejected() : base(false){}
+    public TransactionRejectReason Reason { get; }
+    
+    public Rejected(TransactionRejectReason reason) : base(false)
+    {
+        Reason = reason;
+    }
 }

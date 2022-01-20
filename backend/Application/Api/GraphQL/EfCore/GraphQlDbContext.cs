@@ -117,7 +117,7 @@ public class GraphQlDbContext : DbContext
         transactionBuilder.Property(b => b.CcdCost).HasColumnName("micro_ccd_cost");
         transactionBuilder.Property(b => b.EnergyCost).HasColumnName("energy_cost");
         transactionBuilder.Property(b => b.TransactionType).HasColumnName("transaction_type").HasConversion<TransactionTypeToStringConverter>();
-        transactionBuilder.Ignore(b => b.RejectReason); // TODO: 
+        transactionBuilder.Property(b => b.RejectReason).HasColumnName("reject_reason").HasColumnType("json").HasConversion<TransactionRejectReasonToJsonConverter>();  
         transactionBuilder.Ignore(b => b.Result); // TODO: Map to nullable reject reason string (json). If null it is a success, otherwise a failure and reject reason can be deserialized from this string data.
 
         var transactionEventBuilder = modelBuilder.Entity<TransactionRelated<TransactionResultEvent>>()
