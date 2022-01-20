@@ -8,7 +8,7 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
-namespace Tests;
+namespace Tests.Api.GraphQL.EfCore;
 
 [Collection("Postgres Collection")]
 public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>

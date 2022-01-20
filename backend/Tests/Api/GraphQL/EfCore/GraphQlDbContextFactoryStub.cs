@@ -2,7 +2,7 @@
 using Application.Database;
 using Microsoft.EntityFrameworkCore;
 
-namespace Tests;
+namespace Tests.Api.GraphQL.EfCore;
 
 public class GraphQlDbContextFactoryStub : IDbContextFactory<GraphQlDbContext>
 {

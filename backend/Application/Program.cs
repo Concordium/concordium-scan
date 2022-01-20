@@ -7,7 +7,6 @@ using Application.Database;
 using Application.Import.ConcordiumNode;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
-using HotChocolate.Types;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -32,59 +31,7 @@ var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddCors();
-builder.Services.AddGraphQLServer().AddQueryType<Query>()
-    .AddType<AccountTransaction>().AddType<CredentialDeploymentTransaction>().AddType<UpdateTransaction>()
-    .AddType<Successful>().AddType<Rejected>()
-    .AddType<AccountCreated>().AddType<AmountAddedByDecryption>().AddType<BakerAdded>().AddType<BakerKeysUpdated>()
-    .AddType<BakerRemoved>().AddType<BakerSetRestakeEarnings>().AddType<BakerStakeDecreased>()
-    .AddType<BakerStakeIncreased>().AddType<ContractInitialized>().AddType<CredentialDeployed>()
-    .AddType<CredentialKeysUpdated>().AddType<CredentialsUpdated>().AddType<DataRegistered>()
-    .AddType<EncryptedAmountsRemoved>().AddType<EncryptedSelfAmountAdded>().AddType<ContractModuleDeployed>()
-    .AddType<NewEncryptedAmount>().AddType<TransferMemo>().AddType<Transferred>().AddType<TransferredWithSchedule>()
-    .AddType<ChainUpdateEnqueued>().AddType<ContractUpdated>()
-    .AddType<ContractAddress>().AddType<AccountAddress>()
-    .AddType<AlreadyABaker>()
-    .AddType<AmountTooLarge>()
-    .AddType<BakerInCooldown>()
-    .AddType<CredentialHolderDidNotSign>()
-    .AddType<DuplicateAggregationKey>()
-    .AddType<DuplicateCredIds>()
-    .AddType<EncryptedAmountSelfTransfer>()
-    .AddType<FirstScheduledReleaseExpired>()
-    .AddType<InsufficientBalanceForBakerStake>()
-    .AddType<InvalidAccountReference>()
-    .AddType<InvalidAccountThreshold>()
-    .AddType<InvalidContractAddress>()
-    .AddType<InvalidCredentialKeySignThreshold>()
-    .AddType<InvalidCredentials>()
-    .AddType<InvalidEncryptedAmountTransferProof>()
-    .AddType<InvalidIndexOnEncryptedTransfer>()
-    .AddType<InvalidInitMethod>()
-    .AddType<InvalidModuleReference>()
-    .AddType<InvalidProof>()
-    .AddType<InvalidReceiveMethod>()
-    .AddType<InvalidTransferToPublicProof>()
-    .AddType<KeyIndexAlreadyInUse>()
-    .AddType<ModuleHashAlreadyExists>()
-    .AddType<ModuleNotWf>()
-    .AddType<NonExistentCredIds>()
-    .AddType<NonExistentCredentialId>()
-    .AddType<NonExistentRewardAccount>()
-    .AddType<NonIncreasingSchedule>()
-    .AddType<NotABaker>()
-    .AddType<NotAllowedMultipleCredentials>()
-    .AddType<NotAllowedToHandleEncrypted>()
-    .AddType<NotAllowedToReceiveEncrypted>()
-    .AddType<OutOfEnergy>()
-    .AddType<RejectedInit>()
-    .AddType<RejectedReceive>()
-    .AddType<RemoveFirstCredential>()
-    .AddType<RuntimeFailure>()
-    .AddType<ScheduledSelfTransfer>()
-    .AddType<SerializationFailure>()
-    .AddType<StakeUnderMinimumThresholdForBaking>()
-    .AddType<ZeroScheduledAmount>()
-    .BindRuntimeType<ulong, UnsignedLongType>();
+builder.Services.AddGraphQLServer().ConfigureSchema(SchemaConfiguration.Configure);
              
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
