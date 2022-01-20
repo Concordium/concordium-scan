@@ -98,51 +98,6 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public void FindTransactionSummaries_EmptyTable()
-    {
-        var startTime = new DateTimeOffset(2020, 01, 02, 10, 00, 00, TimeSpan.Zero);
-        var endTime = new DateTimeOffset(2020, 01, 02, 10, 10, 00, TimeSpan.Zero);
-        var result = _target.FindTransactionSummaries(startTime, endTime, TransactionType.Get(AccountTransactionType.SimpleTransfer));
-        Assert.Empty(result);
-    }
-    
-    [Theory]
-    [InlineData(-60, -30, 0)]  
-    [InlineData(150, 180, 0)]  
-    [InlineData(90, 110, 0)]   
-    [InlineData(119, 121, 1)]  
-    [InlineData(120, 120, 1)]  
-    [InlineData(60, 120, 2)]   
-    [InlineData(0, 120, 3)]    
-    public void FindTransactionSummaries_SingleRow(int startTimeOffset, int endTimeOffset, int expectedNumberOfResults)
-    {
-        var blockSlotTime = new DateTimeOffset(2020, 01, 02, 10, 00, 00, TimeSpan.Zero);
-
-        for (var i = 0; i < 3; i++)
-        {
-            var blockInfo = new BlockInfoBuilder()
-                .WithBlockHeight(i+1)
-                .WithBlockSlotTime(blockSlotTime.AddHours(i))
-                .Build();
-
-            var blockSummary = new BlockSummaryBuilder()
-                .WithTransactionSummaries(
-                    new TransactionSummaryBuilder()
-                        .WithType(TransactionType.Get(AccountTransactionType.SimpleTransfer))
-                        .Build())
-                .Build();
-
-            _target.Insert(blockInfo, "{}", blockSummary);
-        }
-
-        var startTime = blockSlotTime.AddMinutes(startTimeOffset);
-        var endTime = blockSlotTime.AddMinutes(endTimeOffset);
-        
-        var result = _target.FindTransactionSummaries(startTime, endTime, TransactionType.Get(AccountTransactionType.SimpleTransfer));
-        Assert.Equal(expectedNumberOfResults, result.Length);
-    }
-
-    [Fact]
     public void GetGenesisBlockHash_EmptyDatabase()
     {
         var result = _target.GetGenesisBlockHash();

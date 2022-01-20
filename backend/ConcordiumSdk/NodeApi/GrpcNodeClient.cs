@@ -20,6 +20,7 @@ public static class GrpcNodeJsonSerializerOptionsFactory
     {
         return new JsonSerializerOptions
         {
+            PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters =
             {
