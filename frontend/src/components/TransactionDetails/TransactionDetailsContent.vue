@@ -49,7 +49,18 @@
 			</div>
 			<Accordion>
 				Events
-				<template #content> Tx events go here </template>
+				<span
+					v-if="data?.transaction?.result.successful"
+					class="text-theme-faded ml-1"
+				>
+					({{ data?.transaction?.result.events?.nodes.length }})
+				</span>
+				<template #content>
+					<TransactionEventList
+						v-if="data?.transaction?.result.successful"
+						:events="data?.transaction.result.events?.nodes"
+					/>
+				</template>
 			</Accordion>
 		</DrawerContent>
 	</div>
@@ -62,6 +73,7 @@ import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
 import Accordion from '~/components/Accordion.vue'
+import TransactionEventList from '~/components/TransactionEventList.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,

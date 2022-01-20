@@ -59,6 +59,54 @@ export type TransactionType =
 	| UpdateTransaction
 	| CredentialDeploymentTransaction
 
+type AccountCreatedEvent = {
+	__typename: 'AccountCreated'
+	address: string
+}
+
+type CredentialDeployed = {
+	__typename: 'CredentialDeployed'
+	regId: string
+	accountAddress: string
+}
+
+type AccountAddress = {
+	__typename: 'AccountAddress'
+	address: string
+}
+
+type ContractAddress = {
+	__typename: 'ContractAddress'
+	index: string
+	subIndex: string
+}
+
+export type TransferAddress = AccountAddress | ContractAddress
+
+type TransferredEvent = {
+	__typename: 'Transferred'
+	from: TransferAddress
+	to: TransferAddress
+}
+
+export type TransactionSuccessfulEvent =
+	| AccountCreatedEvent
+	| CredentialDeployed
+	| TransferredEvent
+
+type TransactionSuccessful = {
+	successful: true
+	events: {
+		nodes: TransactionSuccessfulEvent[]
+	}
+}
+
+type TransactionRejected = {
+	successful: false
+}
+
+type TransactionResult = TransactionSuccessful | TransactionRejected
+
 export type Transaction = {
 	id: string
 	blockHeight: number
@@ -67,8 +115,6 @@ export type Transaction = {
 	senderAccountAddress: string
 	ccdCost: number
 	block: Block
-	result: {
-		successful: boolean
-	}
+	result: TransactionResult
 	transactionType: TransactionType
 }

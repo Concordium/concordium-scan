@@ -18,6 +18,45 @@ const BlockQuery = gql<TransactionResponse>`
 			}
 			result {
 				successful
+				... on Successful {
+					events {
+						nodes {
+							__typename
+							... on Transferred {
+								amount
+								from {
+									... on AccountAddress {
+										__typename
+										address
+									}
+									... on ContractAddress {
+										__typename
+										index
+										subIndex
+									}
+								}
+								to {
+									... on AccountAddress {
+										__typename
+										address
+									}
+									... on ContractAddress {
+										__typename
+										index
+										subIndex
+									}
+								}
+							}
+							... on AccountCreated {
+								address
+							}
+							... on CredentialDeployed {
+								regId
+								accountAddress
+							}
+						}
+					}
+				}
 			}
 			transactionType {
 				__typename
