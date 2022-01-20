@@ -1,11 +1,15 @@
 <template>
 	<Drawer :is-open="!!selectedTxId" :on-close="() => (selectedTxId = '')">
-		<TransactionDetailsContent :id="selectedTxId" />
-		<DrawerActions>
-			<Button :on-click="() => (selectedTxId = '')" class="self-end">
-				Close
-			</Button>
-		</DrawerActions>
+		<template #content>
+			<TransactionDetailsContent :id="selectedTxId" />
+		</template>
+		<template #actions>
+			<DrawerActions>
+				<Button :on-click="() => (selectedTxId = '')" class="self-end">
+					Close
+				</Button>
+			</DrawerActions>
+		</template>
 	</Drawer>
 </template>
 

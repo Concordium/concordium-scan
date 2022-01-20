@@ -13,7 +13,11 @@
 				<button :class="$style.closeButton" @click="props.onClose">
 					<XIcon :class="$style.closeIcon" />
 				</button>
-				<slot />
+
+				<div>
+					<slot name="content" />
+				</div>
+				<slot name="actions" />
 			</section>
 		</transition>
 	</div>
@@ -32,7 +36,7 @@ const props = defineProps<Props>()
 watch(
 	() => props.isOpen,
 	value => {
-		const appEl = document.getElementById('__nuxt')
+		const appEl = document.getElementById('app')
 
 		const classes = [
 			'max-h-screen',
@@ -66,7 +70,7 @@ watch(
 }
 
 .closeButton {
-	@apply rounded fixed right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
+	@apply rounded absolute right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
 }
 .closeIcon {
 	@apply h-6;

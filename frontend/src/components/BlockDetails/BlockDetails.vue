@@ -1,11 +1,16 @@
 <template>
 	<Drawer :is-open="!!selectedBlockId" :on-close="() => (selectedBlockId = '')">
-		<BlockDetailsContent :id="selectedBlockId" />
-		<DrawerActions>
-			<Button :on-click="() => (selectedBlockId = '')" class="self-end">
-				Close
-			</Button>
-		</DrawerActions>
+		<template #content>
+			<BlockDetailsContent :id="selectedBlockId" />
+		</template>
+
+		<template #actions>
+			<DrawerActions>
+				<Button :on-click="() => (selectedBlockId = '')" class="self-end">
+					Close
+				</Button>
+			</DrawerActions>
+		</template>
 	</Drawer>
 </template>
 

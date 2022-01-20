@@ -6,7 +6,7 @@
 		<BlockDetails />
 		<TransactionDetails />
 
-		<div class="bg-theme-background-primary min-h-screen">
+		<div id="app" class="bg-theme-background-primary min-h-screen">
 			<page-header />
 			<slot />
 		</div>
