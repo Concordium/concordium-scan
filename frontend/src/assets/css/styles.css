@@ -67,3 +67,8 @@ body {
 #__nuxt {
 	overflow-x: hidden;
 }
+
+.numerical {
+	font-family: var(--font-family-mono);
+	font-variant-ligatures: none;
+}

@@ -27,7 +27,20 @@
 			</div>
 			<Accordion>
 				Tokenomics
-				<template #content> Tokenomics go here </template>
+				<template #content>
+					<MintDistribution
+						v-if="data?.block?.specialEvents.mint"
+						:data="data.block.specialEvents.mint"
+					/>
+					<FinalizationRewards
+						v-if="data?.block?.specialEvents.finalizationRewards"
+						:data="data.block.specialEvents.finalizationRewards.rewards.nodes"
+					/>
+					<BlockRewards
+						v-if="data?.block.specialEvents.blockRewards"
+						:data="data.block.specialEvents.blockRewards"
+					/>
+				</template>
 			</Accordion>
 			<Accordion>
 				Transactions
@@ -88,6 +101,9 @@ import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
 import Accordion from '~/components/Accordion.vue'
+import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
+import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
+import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,

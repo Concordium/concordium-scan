@@ -1,4 +1,8 @@
-import { convertTimestampToRelative, convertMicroCcdToCcd } from './format'
+import {
+	convertTimestampToRelative,
+	convertMicroCcdToCcd,
+	calculateWeight,
+} from './format'
 
 describe('format', () => {
 	describe('convertTimestampToRelative', () => {
@@ -34,6 +38,16 @@ describe('format', () => {
 
 		it('should default to 0 if no number is provided', () => {
 			expect(convertMicroCcdToCcd(undefined)).toStrictEqual('0.000000')
+		})
+	})
+
+	describe('calculateWeight', () => {
+		it('should calculate the weight of an amount', () => {
+			expect(calculateWeight(25, 500)).toStrictEqual('5.00')
+		})
+
+		it('should round the result to two decimals', () => {
+			expect(calculateWeight(25, 600)).toStrictEqual('4.17')
 		})
 	})
 })

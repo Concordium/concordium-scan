@@ -24,6 +24,32 @@ const BlockQuery = gql<BlockResponse>`
 					}
 				}
 			}
+			specialEvents {
+				mint {
+					bakingReward
+					finalizationReward
+					foundationAccount
+					platformDevelopmentCharge
+				}
+				finalizationRewards {
+					remainder
+					rewards {
+						nodes {
+							amount
+							address
+						}
+					}
+				}
+				blockRewards {
+					bakerReward
+					transactionFees
+					oldGasAccount
+					newGasAccount
+					foundationCharge
+					bakerAccountAddress
+					foundationAccountAddress
+				}
+			}
 		}
 	}
 `

@@ -1,4 +1,41 @@
 import type { Transaction } from './transactions'
+import type { PageInfo } from './pageInfo'
+
+export type Mint = {
+	bakingReward: number
+	finalizationReward: number
+	foundationAccount: number
+	platformDevelopmentCharge: number
+}
+
+export type FinalizationReward = {
+	address: string
+	amount: number
+}
+
+export type FinalizationRewards = {
+	remainder: number
+	rewards: {
+		nodes: FinalizationReward[]
+		pageInfo: PageInfo
+	}
+}
+
+export type BlockRewards = {
+	bakerAccountAddress: string
+	bakerReward: number
+	foundationAccountAddress: string
+	foundationCharge: number
+	newGasAccount: number
+	oldGasAccount: number
+	transactionFees: number
+}
+
+type SpecialEvents = {
+	mint?: Mint
+	blockRewards?: BlockRewards
+	finalizationRewards?: FinalizationRewards
+}
 
 export type Block = {
 	id: string
@@ -11,4 +48,5 @@ export type Block = {
 	transactions: {
 		nodes: Transaction[]
 	}
+	specialEvents: SpecialEvents
 }
