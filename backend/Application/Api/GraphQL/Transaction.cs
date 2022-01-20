@@ -11,27 +11,12 @@ public class Transaction
     [ID]
     public long Id { get; set; }
     
-    [GraphQLDeprecated("Use the `block` field instead")]
-    [ID(nameof(Block))]
+    /// <summary>
+    /// Not part of schema. Clients must get block-specific data from the Blocks field.
+    /// Only here to retrieve the the owning block. 
+    /// </summary>
+    [GraphQLIgnore]
     public long BlockId { get; set; }
-    
-    [UseDbContext(typeof(GraphQlDbContext))]
-    [GraphQLDeprecated("Use the `block` field instead")]
-    public string GetBlockHash([ScopedService] GraphQlDbContext dbContext)
-    {
-        return dbContext.Blocks
-            .AsNoTracking()
-            .Single(x => x.Id == BlockId).BlockHash;
-    }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    [GraphQLDeprecated("Use the `block` field instead")]
-    public long GetBlockHeight([ScopedService] GraphQlDbContext dbContext)
-    {
-        return dbContext.Blocks
-            .AsNoTracking()
-            .Single(x => x.Id == BlockId).BlockHeight;
-    }
     
     public int TransactionIndex { get; set; }
     
@@ -45,6 +30,12 @@ public class Transaction
 
     public TransactionTypeUnion TransactionType { get; set; }
 
+    /// <summary>
+    /// TODO: Document intend with property!
+    /// </summary>
+    [GraphQLIgnore]
+    public string? RejectReason { get; set; }
+
     public TransactionResult Result
     {
         get
@@ -53,12 +44,6 @@ public class Transaction
             return new Rejected();
         }
     }
-
-    /// <summary>
-    /// TODO: Document intend with property!
-    /// </summary>
-    [GraphQLIgnore]
-    public string? RejectReason { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     public Block GetBlock([ScopedService] GraphQlDbContext dbContext)
