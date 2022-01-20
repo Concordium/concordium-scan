@@ -1,9 +1,17 @@
-﻿using HotChocolate.Types;
+﻿using HotChocolate;
+using HotChocolate.Types;
 
 namespace Application.Api.GraphQL;
 
 [UnionType]
-public abstract record TransactionRejectReason(bool _ = false);
+public abstract record TransactionRejectReason
+{
+    [GraphQLDeprecatedAttribute("Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")]
+    public bool Get_() // Will translate to a boolean field named _ in the GraphQL schema.
+    {
+        return false;
+    }
+}
 
 /// <summary>
 /// Error raised when validating the Wasm module.
