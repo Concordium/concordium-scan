@@ -6,7 +6,7 @@
 
 <style module>
 .drawerActions {
-	@apply flex flex-grow-0 mt-8 p-8;
+	@apply flex flex-grow-0 justify-end sticky bottom-0 mt-8 p-8;
 	background: hsl(247, 40%, 18%);
 }
 

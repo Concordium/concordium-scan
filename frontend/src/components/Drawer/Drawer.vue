@@ -58,7 +58,7 @@ watch(
 
 <style module>
 .drawer {
-	@apply flex flex-col flex-nowrap justify-between min-h-screen w-1/2 absolute top-0 right-0 z-20;
+	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px hsl(247, 40%, 8%);
 }
@@ -70,7 +70,7 @@ watch(
 }
 
 .closeButton {
-	@apply rounded absolute right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
+	@apply rounded fixed right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
 }
 .closeIcon {
 	@apply h-6;
