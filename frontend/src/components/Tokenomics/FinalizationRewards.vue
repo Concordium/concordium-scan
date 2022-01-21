@@ -1,5 +1,5 @@
 <template>
-	<TokenomicsDisplay>
+	<TokenomicsDisplay class="p-4 pr-0">
 		<template #title>Finalisers</template>
 		<template #content>
 			<Table>

@@ -1,43 +1,43 @@
 <template>
-	<TokenomicsDisplay>
+	<TokenomicsDisplay class="p-4">
 		<template #title>Baker rewards</template>
 		<template #content>
 			<dl class="grid grid-cols-2 col-span-2">
 				<dt>Baker</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<UserIcon class="text-white inline h-4 align-baseline" />
 					{{ data.bakerAccountAddress.substring(0, 6) }}
 				</dd>
 				<dt>Baker reward</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.bakerReward) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>Transaction fees</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.transactionFees) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>Foundation charge</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.foundationCharge) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>Gas account</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.oldGasAccount) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>New gas account</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.newGasAccount) }}
 					</span>

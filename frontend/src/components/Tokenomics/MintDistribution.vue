@@ -1,31 +1,31 @@
 <template>
-	<TokenomicsDisplay>
+	<TokenomicsDisplay class="p-4">
 		<template #title>Distributed minted CCD</template>
 		<template #content>
 			<dl class="grid grid-cols-2 col-span-2">
 				<dt>Baking reward account</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.bakingReward) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>Finalisation reward account</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.finalizationReward) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt>Foundation account</dt>
-				<dd class="text-right">
+				<dd class="text-right mb-2">
 					<span class="numerical">
 						{{ convertMicroCcdToCcd(data.platformDevelopmentCharge) }}
 					</span>
 					Ͼ
 				</dd>
 				<dt class="totalRow">= TOTAL MINTED</dt>
-				<dd class="totalRow text-right">
+				<dd class="totalRow text-right mb-2">
 					<span class="numerical">
 						{{
 							convertMicroCcdToCcd(
