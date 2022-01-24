@@ -1,7 +1,9 @@
 <template>
-	<table :class="$style.table">
-		<slot />
-	</table>
+	<div class="max-w-full overflow-x-auto">
+		<table class="w-full">
+			<slot />
+		</table>
+	</div>
 </template>
 
 <script lang="ts">
@@ -11,9 +13,3 @@ export default defineComponent({
 	inheritAttrs: true,
 })
 </script>
-
-<style module>
-.table {
-	@apply w-full;
-}
-</style>
