@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.EfCore;
+﻿using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -53,21 +52,21 @@ public class Query
         {
             return new SearchResult
             {
-                Blocks = dbContext.Blocks.AsNoTracking().Where(block => block.BlockHeight == blockHeight)
+                Blocks = dbContext.Blocks.AsNoTracking()
+                .Where(block => block.BlockHeight == blockHeight)
+                .ToArray()
             };
         }
 
-        try
+        return new SearchResult
         {
-            return new SearchResult
-            {
-                Blocks = dbContext.Blocks.AsNoTracking().Where(block => block.BlockHash == query).ToArray(),
-                Transactions = dbContext.Transactions.AsNoTracking().Where(transaction => transaction.TransactionHash == query).ToArray()
-            };
-        }
-        catch (Exception ex) when (ex is FormatException or ArgumentException) // thrown if given query is not a valid block- or transaction hash
-        {
-            return new SearchResult();
-        }
+            Blocks = dbContext.Blocks.AsNoTracking()
+                .Where(block => block.BlockHash == query)
+                .ToArray(),
+            
+            Transactions = dbContext.Transactions.AsNoTracking()
+                .Where(transaction => transaction.TransactionHash == query)
+                .ToArray()
+        };
     }
 }
