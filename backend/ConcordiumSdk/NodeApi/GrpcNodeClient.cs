@@ -1,58 +1,15 @@
 ﻿using System.Net.Http;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Concordium;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.NodeApi.Types.JsonConverters;
-using ConcordiumSdk.Types.JsonConverters;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using BlockHash = ConcordiumSdk.Types.BlockHash;
 
 namespace ConcordiumSdk.NodeApi;
-
-public static class GrpcNodeJsonSerializerOptionsFactory 
-{
-    public static JsonSerializerOptions Create()
-    {
-        return new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters =
-            {
-                new UnixTimeSecondsConverter(),
-                new JsonStringEnumConverter(),
-                new SpecialEventJsonConverter(),
-                new BlockHashConverter(),
-                new AddressConverter(),
-                new AccountAddressConverter(),
-                new ContractAddressConverter(),
-                new TransactionHashConverter(),
-                new CcdAmountConverter(),
-                new NonceConverter(),
-                new TransactionTypeConverter(),
-                new TransactionResultConverter(),
-                new TransactionResultEventConverter(),
-                new TimestampedAmountConverter(),
-                new RegisteredDataConverter(),
-                new MemoConverter(),
-                new ModuleRefConverter(),
-                new BinaryDataConverter(),
-                new UpdatePayloadConverter(),
-                new RootUpdateConverter(),
-                new Level1UpdateConverter(),
-                new TransactionRejectReasonConverter(),
-                new InvalidInitMethodConverter(),
-                new InvalidReceiveMethodConverter(),
-                new AmountTooLargeConverter(),
-            }
-        };
-    }
-}
 
 public class GrpcNodeClient : INodeClient, IDisposable
 {
@@ -101,6 +58,17 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return JsonSerializer.Deserialize<BlockHash[]>(response.Value, _jsonSerializerOptions);
     }
 
+    public async Task<ConcordiumSdk.Types.AccountAddress[]> GetAccountListAsync(BlockHash blockHash)
+    {
+        var request = new Concordium.BlockHash
+        {
+            BlockHash_ = blockHash.AsString
+        };
+        var call = _client.GetAccountListAsync(request, CreateCallOptions());
+        var response = await call;
+        return JsonSerializer.Deserialize<ConcordiumSdk.Types.AccountAddress[]>(response.Value, _jsonSerializerOptions)!;
+    }
+    
     public async Task<BlockInfo> GetBlockInfoAsync(BlockHash blockHash)
     {
         var request = new Concordium.BlockHash
@@ -137,11 +105,11 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
-    public async Task<string> GetAccountInfoAsync(string accountAddress, BlockHash blockHash)
+    public async Task<string> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
     {
         var request = new GetAddressInfoRequest()
         {
-            Address = accountAddress,
+            Address = accountAddress.AsString,
             BlockHash = blockHash.AsString
         };
         var call = _client.GetAccountInfoAsync(request, CreateCallOptions());
