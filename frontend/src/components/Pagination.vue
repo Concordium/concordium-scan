@@ -40,6 +40,7 @@ import {
 	ChevronRightIcon,
 	ChevronDoubleLeftIcon,
 } from '@heroicons/vue/solid/index.js'
+import Button from './atoms/Button.vue'
 import type { PageInfo } from '~/types/pageInfo'
 import type { PaginationTarget } from '~/composables/usePagination'
 

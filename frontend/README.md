@@ -100,3 +100,7 @@ chmod +x .husky/pre-commit
 - **`<teleport>` can't be used yet.**
 
   We would like to use `<teleport>` for some global components, e.g. drawers. Unfortunately, this causes a hydration error when navigating away from the page. There is [an open issue](https://github.com/nuxt/framework/issues/1907) on it with Nuxt, however it seems not to have very high priority. For now we have solved it by lifting those components up, and then keep track of state with a `useState` composable.
+
+- **Jest sometimes has problems with absolute- and auto imports**
+
+  When running tests, Jest cannot find some components (e.g.) `Button` when they are imported with absolute paths or when they are auto-imported. This is illogical, as it can import other modules just fine (e.g. `Table`).
