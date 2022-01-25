@@ -24,7 +24,7 @@ public class QueryTest
             .AddGraphQLServer()
             .ConfigureSchema(SchemaConfiguration.Configure)
             .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-            .AddCursorPagingProvider<BlockPagingProvider>(providerName:"block_paging")
+            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
             .BuildRequestExecutorAsync();
 
         var dbContextFactory = services.BuildServiceProvider().GetService<IDbContextFactory<GraphQlDbContext>>();
@@ -78,6 +78,7 @@ public class QueryTest
                                                  "  }" +
                                                  "}");
 
+        result2.Errors.Should().BeNull();
         json = await result2.ToJsonAsync();
         doc = JsonNode.Parse(json)!;
         blocksNode = doc["data"]?["blocks"];

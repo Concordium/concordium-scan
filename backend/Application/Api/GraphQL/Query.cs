@@ -20,7 +20,7 @@ public class Query
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "block_paging")]
+    [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "block_by_descending_id")]
     public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.Blocks

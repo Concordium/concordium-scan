@@ -5,22 +5,22 @@ using HotChocolate.Types.Pagination;
 
 namespace Application.Api.GraphQL.Pagination;
 
-public class BlockPagingHandler : CursorPagingHandler
+public class GenericCursorPagingHandler<T> : CursorPagingHandler
 {
-    private readonly BlockPagingAlgorithm _algorithm;
+    private readonly CursorPagingAlgorithmBase<T> _algorithm;
 
-    public BlockPagingHandler(PagingOptions options) : base(options)
+    public GenericCursorPagingHandler(PagingOptions options, CursorPagingAlgorithmBase<T> algorithm) : base(options)
     {
         if (IncludeTotalCount) 
             throw new NotSupportedException("Support for total count not implemented!");
 
-        _algorithm = new BlockPagingAlgorithm(new OpaqueCursorSerializer());
+        _algorithm = algorithm;
     }
 
     protected override async ValueTask<Connection> SliceAsync(IResolverContext context, object source, CursorPagingArguments arguments)
     {
-        if (source is IQueryable<Block> query)
+        if (source is IQueryable<T> query)
             return await _algorithm.ApplyPaginationAsync(query, arguments, CancellationToken.None);
-        throw new ArgumentException("Can only do paging for IQueryable<Block>");
+        throw new ArgumentException($"Can only do paging for IQueryable<{typeof(T).Name}>");
     }
 }

@@ -37,7 +37,7 @@ builder.Services.AddGraphQLServer()
     .ConfigureSchema(SchemaConfiguration.Configure)
     .AddInMemorySubscriptions()
     .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-    .AddCursorPagingProvider<BlockPagingProvider>(providerName:"block_paging");
+    .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id");
              
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
