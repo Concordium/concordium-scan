@@ -34,6 +34,7 @@ export type BlockRewards = {
 type SpecialEvents = {
 	mint?: Mint
 	blockRewards?: BlockRewards
+	finalizationRewards?: FinalizationRewards
 }
 
 export type Block = {
