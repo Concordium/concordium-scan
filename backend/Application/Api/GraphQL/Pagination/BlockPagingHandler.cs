@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using HotChocolate.Resolvers;
 using HotChocolate.Types.Pagination;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Pagination;
 
 public class BlockPagingHandler : CursorPagingHandler
 {
@@ -14,7 +14,7 @@ public class BlockPagingHandler : CursorPagingHandler
         if (IncludeTotalCount) 
             throw new NotSupportedException("Support for total count not implemented!");
 
-        _algorithm = new BlockPagingAlgorithm();
+        _algorithm = new BlockPagingAlgorithm(new OpaqueCursorSerializer());
     }
 
     protected override async ValueTask<Connection> SliceAsync(IResolverContext context, object source, CursorPagingArguments arguments)

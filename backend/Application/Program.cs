@@ -1,6 +1,7 @@
 using System.Net.Http;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Pagination;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;

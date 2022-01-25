@@ -2,6 +2,7 @@
 using System.Text.Json.Nodes;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Pagination;
 using FluentAssertions;
 using HotChocolate;
 using HotChocolate.Execution;

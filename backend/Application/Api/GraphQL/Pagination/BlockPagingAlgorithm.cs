@@ -3,22 +3,29 @@ using System.Threading.Tasks;
 using HotChocolate.Types.Pagination;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Pagination;
 
 public class BlockPagingAlgorithm
 {
+    private readonly ICursorSerializer _cursorSerializer;
+
+    public BlockPagingAlgorithm(ICursorSerializer cursorSerializer)
+    {
+        _cursorSerializer = cursorSerializer;
+    }
+
     public async ValueTask<Connection<Block>> ApplyPaginationAsync(
         IQueryable<Block> query,
         CursorPagingArguments arguments,
         CancellationToken cancellationToken)
     {
         if (arguments.After != null)
-            query = query.Where(x => x.Id < long.Parse(arguments.After));
+            query = query.Where(x => x.Id < _cursorSerializer.Deserialize(arguments.After));
         if (arguments.Before != null)
-            query = query.Where(x => x.Id > long.Parse(arguments.Before));
+            query = query.Where(x => x.Id > _cursorSerializer.Deserialize(arguments.Before));
 
         var strategy = Strategy.Create(arguments);
-        return await strategy.ApplyPaginationAsync(query, arguments, cancellationToken);
+        return await strategy.ApplyPaginationAsync(query, arguments, _cursorSerializer, cancellationToken);
     }
 
     private abstract class Strategy
@@ -35,7 +42,7 @@ public class BlockPagingAlgorithm
         }
 
         public async ValueTask<Connection<Block>> ApplyPaginationAsync(IQueryable<Block> query,
-            CursorPagingArguments arguments, CancellationToken cancellationToken)
+            CursorPagingArguments arguments, ICursorSerializer cursorSerializer, CancellationToken cancellationToken)
         {
             var requestedPageSize = GetRequestedPageSize(arguments);
             
@@ -52,7 +59,7 @@ public class BlockPagingAlgorithm
             
             var edges = new List<Edge<Block>>();
             foreach (var block in requestedBlocks)
-                edges.Add(new Edge<Block>(block, block.Id.ToString()));
+                edges.Add(new Edge<Block>(block, cursorSerializer.Serialize(block.Id)));
 
             var hasNextPage = GetHasNextPage(arguments, extraRowRetrieved);
             var hasPrevPage = GetHasPrevPage(arguments, extraRowRetrieved);

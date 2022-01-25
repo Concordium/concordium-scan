@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Pagination;
 using FluentAssertions;
 using HotChocolate.Types.Pagination;
 
-namespace Tests.Api.GraphQL;
+namespace Tests.Api.GraphQL.Pagination;
 
 public class BlockPagingAlgorithmTest
 {
@@ -12,7 +13,7 @@ public class BlockPagingAlgorithmTest
 
     public BlockPagingAlgorithmTest()
     {
-        _target = new BlockPagingAlgorithm();
+        _target = new BlockPagingAlgorithm(new NullCursorSerializer());
     }
 
     [Theory]
@@ -60,5 +61,18 @@ public class BlockPagingAlgorithmTest
         result.Info.HasNextPage.Should().Be(expectedHasNextPage);
         result.Info.StartCursor.Should().Be(expectedNodeIds.First().ToString());
         result.Info.EndCursor.Should().Be(expectedNodeIds.Last().ToString());
+    }
+}
+
+public class NullCursorSerializer : ICursorSerializer
+{
+    public string Serialize(long value)
+    {
+        return value.ToString();
+    }
+
+    public long Deserialize(string serializedValue)
+    {
+        return long.Parse(serializedValue);
     }
 }

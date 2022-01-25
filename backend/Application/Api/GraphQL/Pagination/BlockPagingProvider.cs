@@ -1,7 +1,7 @@
 ﻿using HotChocolate.Internal;
 using HotChocolate.Types.Pagination;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Pagination;
 
 public class BlockPagingProvider : CursorPagingProvider
 {
