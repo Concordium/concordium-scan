@@ -2,6 +2,7 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4">
+			<div v-if="newItems > 0">New transactionsn available: {{ newItems }}</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -78,11 +79,21 @@ import {
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { usePagination } from '~/composables/usePagination'
 import { useTransactionsListQuery } from '~~/src/queries/useTransactionListQuery'
+import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
+import type { BlockSubscriptionResponse } from '~/types/blocks'
 
 const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
 	usePagination()
 
 const selectedTxId = useTransactionDetails()
+const newItems = ref(0)
+const subscriptionHandler = (
+	_prevData: void,
+	newData: BlockSubscriptionResponse
+) => {
+	newItems.value += newData.blockAdded.transactionCount
+}
+useBlockSubscription(subscriptionHandler)
 
 const { data } = useTransactionsListQuery({
 	after: afterCursor,
@@ -96,6 +107,7 @@ const { data } = useTransactionsListQuery({
 .statusIcon {
 	@apply h-4 mr-2 text-theme-interactive;
 }
+
 .cellIcon {
 	@apply h-4 text-theme-white inline align-baseline;
 }

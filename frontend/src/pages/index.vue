@@ -2,6 +2,12 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4">
+			<div class="h-20">
+				<div v-if="newItems > 0">
+					New blocks available: {{ newItems }}
+					<Button :on-click="refetch">Update</Button>
+				</div>
+			</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -65,13 +71,30 @@ import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertTimestampToRelative } from '~/utils/format'
 import { usePagination } from '~/composables/usePagination'
 import { useBlockListQuery } from '~~/src/queries/useBlockListQuery'
+import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
+import type { BlockSubscriptionResponse } from '~/types/blocks'
 
 const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
 	usePagination()
 
 const selectedBlockId = useBlockDetails()
 
-const { data } = useBlockListQuery({
+const newItems = ref(0)
+const subscriptionHandler = (
+	_prevData: void,
+	_newData: BlockSubscriptionResponse
+) => {
+	newItems.value++
+}
+
+useBlockSubscription(subscriptionHandler)
+
+const refetch = () => {
+	newItems.value = 0
+	refetchBlockList()
+}
+
+const { data, executeQuery: refetchBlockList } = useBlockListQuery({
 	after: afterCursor,
 	before: beforeCursor,
 	first: paginateFirst,

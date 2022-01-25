@@ -22,6 +22,7 @@
 		"date-fns": "^2.27.0",
 		"graphql": "^16.1.0",
 		"nuxt3": "^3.0.0-27356801.e9128f3",
+		"subscriptions-transport-ws": "^0.11.0",
 		"vue": "^3.2.26"
 	},
 	"devDependencies": {
