@@ -7,7 +7,9 @@ using ConcordiumSdk.NodeApi.Types;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
+using AccountAddress = Concordium.AccountAddress;
 using BlockHash = ConcordiumSdk.Types.BlockHash;
+using TransactionHash = Concordium.TransactionHash;
 
 namespace ConcordiumSdk.NodeApi;
 
@@ -105,7 +107,20 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
-    public async Task<string> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
+    public async Task<AccountInfo> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
+    {
+        var request = new GetAddressInfoRequest()
+        {
+            Address = accountAddress.AsString,
+            BlockHash = blockHash.AsString
+        };
+        var call = _client.GetAccountInfoAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<AccountInfo>(response.Value, _jsonSerializerOptions)!;
+        return result;
+    }
+
+    public async Task<string> GetAccountInfoStringAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
     {
         var request = new GetAddressInfoRequest()
         {

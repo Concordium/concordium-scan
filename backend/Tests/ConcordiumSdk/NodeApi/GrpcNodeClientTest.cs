@@ -3,6 +3,7 @@ using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
+using FluentAssertions;
 using Tests.TestUtilities;
 
 namespace Tests.ConcordiumSdk.NodeApi;
@@ -68,8 +69,20 @@ public class GrpcNodeClientTest : IDisposable
     public async Task GetAccountInfo()
     {
         var blockHashes = await _target.GetBlocksAtHeightAsync(1928019);
-        var address = new AccountAddress("4acpJCLj2Q56s7gPDXAySrELFrg6g9wypTH43jCzq1gXGnWaty");
+        var address = new AccountAddress("32jTsKCtpGKr56WLweiPJB6jvLoCgFAHvfXtexHeoovJWu2PBD");
         var result = await _target.GetAccountInfoAsync(address, blockHashes.Single());
+        result.Should().NotBeNull();
+        result.AccountNonce.Should().Be(new Nonce(29));
+        result.AccountAmount.Should().Be(CcdAmount.FromMicroCcd(56157825516550));
+        result.AccountAddress.Should().Be(address);
+    }
+
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetAccountInfoString()
+    {
+        var blockHashes = await _target.GetBlocksAtHeightAsync(1928019);
+        var address = new AccountAddress("4acpJCLj2Q56s7gPDXAySrELFrg6g9wypTH43jCzq1gXGnWaty");
+        var result = await _target.GetAccountInfoStringAsync(address, blockHashes.Single());
         Assert.NotNull(result);
     }
 
@@ -84,7 +97,7 @@ public class GrpcNodeClientTest : IDisposable
         var accountAddresses = await _target.GetAccountListAsync(blockHash);
         foreach (var accountAddress in accountAddresses)
         {
-            var result = await _target.GetAccountInfoAsync(accountAddress, blockHash);
+            var result = await _target.GetAccountInfoStringAsync(accountAddress, blockHash);
             var param = new
             {
                 Data = result,
