@@ -14,7 +14,8 @@ public class SchemaConfigurationTest
     public async Task BuildSchema()
     {
         var schema = await new ServiceCollection()
-            .AddGraphQLServer().ConfigureSchema(SchemaConfiguration.Configure)
+            .AddGraphQLServer()
+            .Configure()
             .BuildSchemaAsync();
         
         schema.Should().NotBeNull();

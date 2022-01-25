@@ -1,11 +1,23 @@
-﻿using HotChocolate;
+﻿using Application.Api.GraphQL.Pagination;
+using HotChocolate;
+using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;
+using HotChocolate.Types.Pagination;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Api.GraphQL;
 
-public static class SchemaConfiguration
+public static class GraphQlConfiguration
 {
-    public static void Configure(ISchemaBuilder builder)
+    public static IRequestExecutorBuilder Configure(this IRequestExecutorBuilder builder)
+    {
+        return builder.ConfigureSchema(ConfigureSchema)
+            .AddInMemorySubscriptions()
+            .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
+            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id");
+    }
+
+    private static void ConfigureSchema(ISchemaBuilder builder)
     {
         builder.AddQueryType<Query>();
         builder.AddSubscriptionType<Subscription>();

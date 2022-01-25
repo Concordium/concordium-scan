@@ -1,44 +1,57 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Pagination;
 using FluentAssertions;
 using HotChocolate;
 using HotChocolate.Execution;
-using HotChocolate.Types.Pagination;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tests.TestUtilities.Builders.GraphQL;
 
 namespace Tests.Api.GraphQL;
 
-public class QueryTest
+public class QueryTest : IAsyncLifetime
 {
-    [Fact]
-    public async Task FactMethodName()
+    private IRequestExecutor? _executor;
+    private GraphQlDbContext? _dbContext;
+
+    public async Task InitializeAsync()
     {
         var services = new ServiceCollection();
         services.AddDbContextFactory<GraphQlDbContext>(options => options.UseInMemoryDatabase("graphql"));
         
-        var executor = await services
-            .AddGraphQLServer()
-            .ConfigureSchema(SchemaConfiguration.Configure)
-            .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
-            .BuildRequestExecutorAsync();
+        _executor = await services.AddGraphQLServer().Configure().BuildRequestExecutorAsync();
 
-        var dbContextFactory = services.BuildServiceProvider().GetService<IDbContextFactory<GraphQlDbContext>>();
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var dbContextFactory = services.BuildServiceProvider().GetService<IDbContextFactory<GraphQlDbContext>>()!;
+        _dbContext = await dbContextFactory.CreateDbContextAsync();
+    }
 
-        await dbContext.Blocks.AddRangeAsync(
+    public async Task DisposeAsync()
+    {
+        if (_dbContext != null) 
+            await _dbContext.DisposeAsync();
+    }
+
+    /// <summary>
+    /// The GraphQL built-in cursor based paging is actually just an offset based paging - this means that when new
+    /// blocks are added, the pages will "shift". A custom cursor based paging has been implemented to mitigate this. 
+    /// </summary>
+    [Fact]
+    public async Task GetBlocks_EnsurePagingCursorAreStableWhenNewBlocksAreAdded()
+    {
+        if (_dbContext == null || _executor == null) throw new InvalidOperationException();
+        
+        // Create some initial blocks...
+        await _dbContext.Blocks.AddRangeAsync(
             new BlockBuilder().WithId(1).WithBlockHeight(100).Build(),
             new BlockBuilder().WithId(2).WithBlockHeight(101).Build(),
             new BlockBuilder().WithId(3).WithBlockHeight(102).Build(),
             new BlockBuilder().WithId(4).WithBlockHeight(103).Build(),
             new BlockBuilder().WithId(5).WithBlockHeight(104).Build());
-        await dbContext.SaveChangesAsync();
+        await _dbContext.SaveChangesAsync();
 
-        var result = await executor.ExecuteAsync("query {" +
+        // ... request the "first" two of them...
+        var result = await _executor.ExecuteAsync("query {" +
                                                  "  blocks(first:2)" +
                                                  "  {" +
                                                  "    nodes { " +
@@ -51,7 +64,7 @@ public class QueryTest
                                                  "  }" +
                                                  "}");
         
-        
+        // ... and check that we get the right nodes...
         result.Errors.Should().BeNull();
         var json = await result.ToJsonAsync();
         var doc = JsonNode.Parse(json)!;
@@ -59,13 +72,15 @@ public class QueryTest
         var actual = blocksNode?["nodes"]?.AsArray().Select(x => (int)x!["blockHeight"]!).ToArray();
         actual.Should().Equal(104, 103);
 
+        // ... remember the end cursor of this query...
         var endCursor = (string)blocksNode?["pageInfo"]?["endCursor"]!;
 
-        await dbContext.Blocks.AddRangeAsync(new BlockBuilder().WithId(6).WithBlockHeight(105).Build());
-        await dbContext.SaveChangesAsync();
-
+        // ... and add a new block to the top of the chain (in the database)...
+        await _dbContext.Blocks.AddRangeAsync(new BlockBuilder().WithId(6).WithBlockHeight(105).Build());
+        await _dbContext.SaveChangesAsync();
         
-        var result2 = await executor.ExecuteAsync("query {" +
+        // ... and make a new request using the cursor from the previous query...
+        var result2 = await _executor.ExecuteAsync("query {" +
                                                  $"  blocks(first:2, after:\"{endCursor}\")" +
                                                  "  {" +
                                                  "    nodes { " +
@@ -78,45 +93,12 @@ public class QueryTest
                                                  "  }" +
                                                  "}");
 
+        // ... and ensure that we get the right blocks (that the inserted block hasn't shifted the paging cursor)
         result2.Errors.Should().BeNull();
         json = await result2.ToJsonAsync();
         doc = JsonNode.Parse(json)!;
         blocksNode = doc["data"]?["blocks"];
         actual = blocksNode?["nodes"]?.AsArray().Select(x => (int)x!["blockHeight"]!).ToArray();
         actual.Should().Equal(102, 101);
-    }
-}
-
-public class BlockBuilder
-{
-    private long _id = 1;
-    private int _blockHeight = 47;
-
-    public Block Build()
-    {
-        return new Block
-        {
-            Id = _id,
-            BlockHash = "5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1",
-            BlockHeight = _blockHeight,
-            BlockSlotTime = new DateTimeOffset(2010, 10, 10, 12, 0, 0, TimeSpan.Zero),
-            BakerId = 7,
-            Finalized = true,
-            TransactionCount = 0,
-            SpecialEvents = new SpecialEvents(),
-
-        };
-    }
-
-    public BlockBuilder WithId(long value)
-    {
-        _id = value;
-        return this;
-    }
-
-    public BlockBuilder WithBlockHeight(int value)
-    {
-        _blockHeight = value;
-        return this;
     }
 }

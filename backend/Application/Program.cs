@@ -8,6 +8,7 @@ using Application.Database;
 using Application.Import.ConcordiumNode;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
+using HotChocolate.Execution.Configuration;
 using HotChocolate.Types.Pagination;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -33,12 +34,7 @@ var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddCors();
-builder.Services.AddGraphQLServer()
-    .ConfigureSchema(SchemaConfiguration.Configure)
-    .AddInMemorySubscriptions()
-    .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-    .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id");
-             
+builder.Services.AddGraphQLServer().Configure();
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
