@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
+using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.EfCore;
@@ -9,10 +10,12 @@ namespace Application.Api.GraphQL.EfCore;
 public class DataUpdateController
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
+    private readonly ITopicEventSender _sender;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory)
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender)
     {
         _dcContextFactory = dcContextFactory;
+        _sender = sender;
     }
 
     public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary)
@@ -76,6 +79,8 @@ public class DataUpdateController
         await context.SaveChangesAsync();
 
         await tx.CommitAsync();
+
+        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
 
     private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)

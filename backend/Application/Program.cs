@@ -33,7 +33,11 @@ var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddCors();
-builder.Services.AddGraphQLServer().ConfigureSchema(SchemaConfiguration.Configure).AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true).AddCursorPagingProvider<BlockPagingProvider>(providerName:"block_paging");
+builder.Services.AddGraphQLServer()
+    .ConfigureSchema(SchemaConfiguration.Configure)
+    .AddInMemorySubscriptions()
+    .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
+    .AddCursorPagingProvider<BlockPagingProvider>(providerName:"block_paging");
              
 builder.Services.AddHostedService<ImportController>();
 builder.Services.AddControllers();
@@ -64,6 +68,7 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
+        .UseWebSockets()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();

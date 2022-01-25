@@ -8,6 +8,7 @@ public static class SchemaConfiguration
     public static void Configure(ISchemaBuilder builder)
     {
         builder.AddQueryType<Query>();
+        builder.AddSubscriptionType<Subscription>();
         
         builder.BindClrType<ulong, UnsignedLongType>();
 
