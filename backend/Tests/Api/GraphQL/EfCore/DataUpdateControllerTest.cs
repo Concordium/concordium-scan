@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using Tests.TestUtilities.Stubs;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.EfCore;
@@ -21,7 +22,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
     public DataUpdateControllerTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new DataUpdateController(_dbContextFactory);
+        _target = new DataUpdateController(_dbContextFactory, new TopicEventSenderStub());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
