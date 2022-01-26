@@ -12,6 +12,7 @@ export default defineNuxtConfig({
 	],
 	publicRuntimeConfig: {
 		apiUrl: 'https://dev.api-mainnet.ccdscan.io/graphql/',
+		wsUrl: 'wss://dev.api-mainnet.ccdscan.io/graphql',
 	},
 	nitro: {
 		preset: 'firebase',

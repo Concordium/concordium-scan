@@ -26,15 +26,12 @@ useMeta({
 	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
 })
 
-const { apiUrl } = useRuntimeConfig()
+const { apiUrl, wsUrl } = useRuntimeConfig()
 
 let subscriptionClient: SubscriptionClient
 if (process.client) {
 	// We cannot run websockets serverside.
-	subscriptionClient = new SubscriptionClient(
-		'wss://dev.api-mainnet.ccdscan.io/graphql',
-		{ reconnect: true }
-	)
+	subscriptionClient = new SubscriptionClient(wsUrl, { reconnect: true })
 }
 const client = createClient({
 	url: apiUrl,
