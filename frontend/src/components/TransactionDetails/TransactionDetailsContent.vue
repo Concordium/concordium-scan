@@ -7,6 +7,22 @@
 			>
 				{{ data?.transaction?.result.successful ? 'Success' : 'Rejected' }}
 			</Badge>
+			<Button
+				v-if="$route.name != 'transactions-transactionHash'"
+				:on-click="
+					() => {
+						selectedTxId = ''
+						$router.push({
+							name: 'transactions-transactionHash',
+							params: {
+								internalId: props.id,
+								transactionHash: data?.transaction?.block.blockHash,
+							},
+						})
+					}
+				"
+				>Goto details</Button
+			>
 		</DrawerTitle>
 		<DrawerContent>
 			<div class="grid gap-6 grid-cols-2 mb-16">
@@ -80,7 +96,7 @@ import {
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useTransactionQuery } from '~/queries/useTransactionQuery'
-
+const selectedTxId = useTransactionDetails()
 type Props = {
 	id: string
 }
