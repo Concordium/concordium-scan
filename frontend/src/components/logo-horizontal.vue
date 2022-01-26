@@ -10,7 +10,7 @@
 		<text
 			x="40"
 			y="19"
-			class="text-xl text-theme-white font-sans"
+			class="text-xl text-theme-white font-sans hidden md:block"
 			fill="currentColor"
 		>
 			CCDScan

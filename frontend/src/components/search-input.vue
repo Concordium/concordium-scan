@@ -33,11 +33,11 @@ export default {
 
 <style module>
 .container {
-	@apply relative w-1/3;
+	@apply relative md:w-1/3;
 }
 
 .input {
-	@apply rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none;
+	@apply rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none hidden md:block;
 	background: var(--color-input-bg);
 }
 
@@ -52,6 +52,6 @@ export default {
 }
 
 .icon {
-	@apply h-5;
+	@apply h-6 md:h-5;
 }
 </style>

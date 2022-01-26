@@ -6,8 +6,8 @@
 		<BlockDetails />
 		<TransactionDetails />
 
-		<div id="app" class="bg-theme-background-primary min-h-screen">
-			<page-header />
+		<div id="app" class="bg-theme-background-primary max-w-screen min-h-screen">
+			<PageHeader />
 			<slot />
 		</div>
 	</div>

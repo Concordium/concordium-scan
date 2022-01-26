@@ -10,7 +10,11 @@
 
 		<transition name="drawer">
 			<section v-if="isOpen" :class="$style.drawer">
-				<button :class="$style.closeButton" @click="props.onClose">
+				<button
+					:class="$style.closeButton"
+					aria-label="Close"
+					@click="props.onClose"
+				>
 					<XIcon :class="$style.closeIcon" />
 				</button>
 
