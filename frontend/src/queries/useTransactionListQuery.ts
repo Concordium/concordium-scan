@@ -55,11 +55,11 @@ const TransactionsQuery = gql<TransactionListResponse>`
 `
 
 export const useTransactionsListQuery = (variables: QueryVariables) => {
-	const { data } = useQuery({
+	const { data, executeQuery } = useQuery({
 		query: TransactionsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
 	})
 
-	return { data }
+	return { data, executeQuery }
 }

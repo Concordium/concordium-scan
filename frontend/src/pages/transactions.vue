@@ -2,7 +2,13 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4">
-			<div v-if="newItems > 0">New transactionsn available: {{ newItems }}</div>
+			<div class="h-20">
+				<div v-if="newItems > 0">
+					New transactions available: {{ newItems }}
+					<Button :on-click="refetch">Update</Button>
+				</div>
+			</div>
+
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -94,13 +100,19 @@ const subscriptionHandler = (
 	newItems.value += newData.blockAdded.transactionCount
 }
 useBlockSubscription(subscriptionHandler)
+const refetch = () => {
+	newItems.value = 0
+	refetchTransactionList()
+}
 
-const { data } = useTransactionsListQuery({
-	after: afterCursor,
-	before: beforeCursor,
-	first: paginateFirst,
-	last: paginateLast,
-})
+const { data, executeQuery: refetchTransactionList } = useTransactionsListQuery(
+	{
+		after: afterCursor,
+		before: beforeCursor,
+		first: paginateFirst,
+		last: paginateLast,
+	}
+)
 </script>
 
 <style module>
