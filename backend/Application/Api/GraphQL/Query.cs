@@ -37,7 +37,7 @@ public class Query
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize)]
+    [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "transaction_by_descending_id")]
     public IQueryable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.Transactions

@@ -14,7 +14,8 @@ public static class GraphQlConfiguration
         return builder.ConfigureSchema(ConfigureSchema)
             .AddInMemorySubscriptions()
             .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id");
+            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
+            .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(providerName:"transaction_by_descending_id");
     }
 
     private static void ConfigureSchema(ISchemaBuilder builder)
