@@ -1,5 +1,7 @@
 <template>
-	<header class="max-w-screen flex items-center md:justify-between p-5 mb-20">
+	<header
+		class="max-w-screen flex items-center md:justify-between p-5 md:mb-20"
+	>
 		<NuxtLink to="/" class="font-bold">
 			<logo-horizontal />
 		</NuxtLink>

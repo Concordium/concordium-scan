@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
-		<main class="p-4">
+		<main class="p-4 pb-0">
 			<div class="h-20">
 				<div v-if="newItems > 0">
 					New transactions available: {{ newItems }}
