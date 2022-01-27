@@ -20,6 +20,14 @@ public class Query
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
+    public Block? GetBlockByBlockHash([ScopedService] GraphQlDbContext dbContext, string blockHash)
+    {
+        return dbContext.Blocks
+            .AsNoTracking()
+            .SingleOrDefault(block => block.BlockHash == blockHash);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "block_by_descending_id")]
     public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)
     {
@@ -34,6 +42,14 @@ public class Query
         return dbContext.Transactions
             .AsNoTracking()
             .SingleOrDefault(tx => tx.Id == id);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public Transaction? GetTransactionByTransactionHash([ScopedService] GraphQlDbContext dbContext, string transactionHash)
+    {
+        return dbContext.Transactions
+            .AsNoTracking()
+            .SingleOrDefault(tx => tx.TransactionHash == transactionHash);
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
