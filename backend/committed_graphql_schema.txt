@@ -1,0 +1,700 @@
+﻿schema {
+  query: Query
+  subscription: Subscription
+}
+
+interface TransactionResult {
+  successful: Boolean!
+}
+
+type AccountAddress {
+  address: String!
+}
+
+type AccountCreated {
+  address: String!
+}
+
+type AccountTransaction {
+  accountTransactionType: AccountTransactionType
+}
+
+type AlreadyABaker {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  bakerId: UnsignedLong!
+}
+
+type AmountAddedByDecryption {
+  amount: UnsignedLong!
+  accountAddress: String!
+}
+
+type AmountTooLarge {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  address: Address!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type AmountsScheduleConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [AmountsScheduleEdge!]
+  "A flattened list of the nodes."
+  nodes: [TimestampedAmount!]
+}
+
+"An edge in a connection."
+type AmountsScheduleEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: TimestampedAmount!
+}
+
+type BakerAdded {
+  stakedAmount: UnsignedLong!
+  restakeEarnings: Boolean!
+  bakerId: UnsignedLong!
+  accountAddress: String!
+  signKey: String!
+  electionKey: String!
+  aggregationKey: String!
+}
+
+type BakerInCooldown {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type BakerKeysUpdated {
+  bakerId: UnsignedLong!
+  accountAddress: String!
+  signKey: String!
+  electionKey: String!
+  aggregationKey: String!
+}
+
+type BakerRemoved {
+  bakerId: UnsignedLong!
+  accountAddress: String!
+}
+
+type BakerSetRestakeEarnings {
+  bakerId: UnsignedLong!
+  accountAddress: String!
+  restakeEarnings: Boolean!
+}
+
+type BakerStakeDecreased {
+  bakerId: UnsignedLong!
+  accountAddress: String!
+  newStakedAmount: UnsignedLong!
+}
+
+type BakerStakeIncreased {
+  bakerId: UnsignedLong!
+  accountAddress: String!
+  newStakedAmount: UnsignedLong!
+}
+
+type BakingReward {
+  amount: UnsignedLong!
+  address: String!
+}
+
+"A connection to a list of items."
+type BakingRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [BakingRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [BakingReward!]
+}
+
+"An edge in a connection."
+type BakingRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: BakingReward!
+}
+
+type BakingRewards {
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakingRewardConnection
+  remainder: UnsignedLong!
+}
+
+type Block {
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
+  id: ID!
+  blockHash: String!
+  blockHeight: Int!
+  blockSlotTime: DateTime!
+  bakerId: Int
+  finalized: Boolean!
+  transactionCount: Int!
+  specialEvents: SpecialEvents!
+  finalizationSummary: FinalizationSummary
+}
+
+type BlockRewards {
+  transactionFees: UnsignedLong!
+  oldGasAccount: UnsignedLong!
+  newGasAccount: UnsignedLong!
+  bakerReward: UnsignedLong!
+  foundationCharge: UnsignedLong!
+  bakerAccountAddress: String!
+  foundationAccountAddress: String!
+}
+
+"A connection to a list of items."
+type BlocksConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [BlocksEdge!]
+  "A flattened list of the nodes."
+  nodes: [Block!]
+}
+
+"An edge in a connection."
+type BlocksEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Block!
+}
+
+type ChainUpdateEnqueued {
+  effectiveTime: DateTime!
+}
+
+type ContractAddress {
+  index: UnsignedLong!
+  subIndex: UnsignedLong!
+}
+
+type ContractInitialized {
+  moduleRef: String!
+  address: ContractAddress!
+  amount: UnsignedLong!
+  initName: String!
+  eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+}
+
+type ContractModuleDeployed {
+  moduleRef: String!
+}
+
+type ContractUpdated {
+  address: ContractAddress!
+  instigator: Address!
+  amount: UnsignedLong!
+  messageAsHex: String!
+  receiveName: String!
+  eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+}
+
+type CredentialDeployed {
+  regId: String!
+  accountAddress: String!
+}
+
+type CredentialDeploymentTransaction {
+  credentialDeploymentTransactionType: CredentialDeploymentTransactionType
+}
+
+type CredentialHolderDidNotSign {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type CredentialKeysUpdated {
+  credId: String!
+}
+
+type CredentialsUpdated {
+  accountAddress: String!
+  newCredIds: [String!]!
+  removedCredIds: [String!]!
+  newThreshold: Byte!
+}
+
+type DataRegistered {
+  dataAsHex: String!
+}
+
+type DecodedTransferMemo {
+  text: String!
+  decodeType: TextDecodeType!
+}
+
+type DuplicateAggregationKey {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  aggregationKey: String!
+}
+
+type DuplicateCredIds {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  credIds: [String!]!
+}
+
+type EncryptedAmountSelfTransfer {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: String!
+}
+
+type EncryptedAmountsRemoved {
+  accountAddress: String!
+  newEncryptedAmount: String!
+  inputAmount: String!
+  upToIndex: UnsignedLong!
+}
+
+type EncryptedSelfAmountAdded {
+  accountAddress: String!
+  newEncryptedAmount: String!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type EventsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [EventsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Event!]
+}
+
+"An edge in a connection."
+type EventsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Event!
+}
+
+type FinalizationReward {
+  amount: UnsignedLong!
+  address: String!
+}
+
+"A connection to a list of items."
+type FinalizationRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [FinalizationRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [FinalizationReward!]
+}
+
+"An edge in a connection."
+type FinalizationRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: FinalizationReward!
+}
+
+type FinalizationRewards {
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): FinalizationRewardConnection
+  remainder: UnsignedLong!
+}
+
+type FinalizationSummary {
+  finalizers("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): FinalizersConnection
+  finalizedBlockHash: String!
+  finalizationIndex: Long!
+  finalizationDelay: Long!
+}
+
+type FinalizationSummaryParty {
+  bakerId: Long!
+  weight: Long!
+  signed: Boolean!
+}
+
+"A connection to a list of items."
+type FinalizersConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [FinalizersEdge!]
+  "A flattened list of the nodes."
+  nodes: [FinalizationSummaryParty!]
+}
+
+"An edge in a connection."
+type FinalizersEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: FinalizationSummaryParty!
+}
+
+type FirstScheduledReleaseExpired {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InsufficientBalanceForBakerStake {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidAccountReference {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: String!
+}
+
+type InvalidAccountThreshold {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidContractAddress {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  contractAddress: ContractAddress!
+}
+
+type InvalidCredentialKeySignThreshold {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidCredentials {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidEncryptedAmountTransferProof {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidIndexOnEncryptedTransfer {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidInitMethod {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  moduleRef: String!
+  initName: String!
+}
+
+type InvalidModuleReference {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  moduleRef: String!
+}
+
+type InvalidProof {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InvalidReceiveMethod {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  moduleRef: String!
+  receiveName: String!
+}
+
+type InvalidTransferToPublicProof {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type KeyIndexAlreadyInUse {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type Mint {
+  bakingReward: UnsignedLong!
+  finalizationReward: UnsignedLong!
+  platformDevelopmentCharge: UnsignedLong!
+  foundationAccount: String!
+}
+
+type ModuleHashAlreadyExists {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  moduleRef: String!
+}
+
+type ModuleNotWf {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type NewEncryptedAmount {
+  accountAddress: String!
+  newIndex: UnsignedLong!
+  encryptedAmount: String!
+}
+
+type NonExistentCredIds {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  credIds: [String!]!
+}
+
+type NonExistentCredentialId {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type NonExistentRewardAccount {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: String!
+}
+
+type NonIncreasingSchedule {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type NotABaker {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: String!
+}
+
+type NotAllowedMultipleCredentials {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type NotAllowedToHandleEncrypted {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type NotAllowedToReceiveEncrypted {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type OutOfEnergy {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+"Information about pagination in a connection."
+type PageInfo {
+  "Indicates whether more edges exist following the set defined by the clients arguments."
+  hasNextPage: Boolean!
+  "Indicates whether more edges exist prior the set defined by the clients arguments."
+  hasPreviousPage: Boolean!
+  "When paginating backwards, the cursor to continue."
+  startCursor: String
+  "When paginating forwards, the cursor to continue."
+  endCursor: String
+}
+
+type Query {
+  block(id: ID!): Block
+  blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
+  transaction(id: ID!): Transaction
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
+  search(query: String!): SearchResult!
+}
+
+type Rejected implements TransactionResult {
+  reason: TransactionRejectReason!
+  successful: Boolean!
+}
+
+type RejectedInit {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  rejectReason: Int!
+}
+
+type RejectedReceive {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  rejectReason: Int!
+  contractAddress: ContractAddress!
+  receiveName: String!
+  messageAsHex: String!
+}
+
+type RemoveFirstCredential {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type RuntimeFailure {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type ScheduledSelfTransfer {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: String!
+}
+
+type SearchResult {
+  blocks: [Block!]!
+  transactions: [Transaction!]!
+}
+
+type SerializationFailure {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type SpecialEvents {
+  mint: Mint
+  finalizationRewards: FinalizationRewards
+  blockRewards: BlockRewards
+  bakingRewards: BakingRewards
+}
+
+type StakeUnderMinimumThresholdForBaking {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+"A connection to a list of items."
+type StringConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [StringEdge!]
+  "A flattened list of the nodes."
+  nodes: [String!]
+}
+
+"An edge in a connection."
+type StringEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: String!
+}
+
+type Subscription {
+  blockAdded: Block!
+}
+
+type Successful implements TransactionResult {
+  events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): EventsConnection
+  successful: Boolean!
+}
+
+type TimestampedAmount {
+  timestamp: DateTime!
+  amount: UnsignedLong!
+}
+
+type Transaction {
+  block: Block!
+  id: ID!
+  transactionIndex: Int!
+  transactionHash: String!
+  senderAccountAddress: String
+  ccdCost: UnsignedLong!
+  energyCost: UnsignedLong!
+  transactionType: TransactionType!
+  result: TransactionResult!
+}
+
+"A connection to a list of items."
+type TransactionsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [TransactionsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Transaction!]
+}
+
+"An edge in a connection."
+type TransactionsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Transaction!
+}
+
+type TransferMemo {
+  decoded: DecodedTransferMemo!
+  rawHex: String!
+}
+
+type Transferred {
+  amount: UnsignedLong!
+  from: Address!
+  to: Address!
+}
+
+type TransferredWithSchedule {
+  fromAccountAddress: String!
+  toAccountAddress: String!
+  amountsSchedule("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AmountsScheduleConnection
+}
+
+type UpdateTransaction {
+  updateTransactionType: UpdateTransactionType
+}
+
+type ZeroScheduledAmount {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+union Address = AccountAddress | ContractAddress
+
+union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
+
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted
+
+union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
+
+enum AccountTransactionType {
+  DEPLOY_MODULE
+  INITIALIZE_SMART_CONTRACT_INSTANCE
+  UPDATE_SMART_CONTRACT_INSTANCE
+  SIMPLE_TRANSFER
+  ADD_BAKER
+  REMOVE_BAKER
+  UPDATE_BAKER_STAKE
+  UPDATE_BAKER_RESTAKE_EARNINGS
+  UPDATE_BAKER_KEYS
+  UPDATE_CREDENTIAL_KEYS
+  ENCRYPTED_TRANSFER
+  TRANSFER_TO_ENCRYPTED
+  TRANSFER_TO_PUBLIC
+  TRANSFER_WITH_SCHEDULE
+  UPDATE_CREDENTIALS
+  REGISTER_DATA
+  SIMPLE_TRANSFER_WITH_MEMO
+  ENCRYPTED_TRANSFER_WITH_MEMO
+  TRANSFER_WITH_SCHEDULE_WITH_MEMO
+}
+
+enum CredentialDeploymentTransactionType {
+  INITIAL
+  NORMAL
+}
+
+enum TextDecodeType {
+  CBOR
+  HEX
+}
+
+enum UpdateTransactionType {
+  UPDATE_PROTOCOL
+  UPDATE_ELECTION_DIFFICULTY
+  UPDATE_EURO_PER_ENERGY
+  UPDATE_MICRO_GTU_PER_EURO
+  UPDATE_FOUNDATION_ACCOUNT
+  UPDATE_MINT_DISTRIBUTION
+  UPDATE_TRANSACTION_FEE_DISTRIBUTION
+  UPDATE_GAS_REWARDS
+  UPDATE_BAKER_STAKE_THRESHOLD
+  UPDATE_ADD_ANONYMITY_REVOKER
+  UPDATE_ADD_IDENTITY_PROVIDER
+  UPDATE_ROOT_KEYS
+  UPDATE_LEVEL1_KEYS
+  UPDATE_LEVEL2_KEYS
+}
+
+"The `@defer` directive may be provided for fragment spreads and inline fragments to inform the executor to delay the execution of the current fragment to indicate deprioritization of the current fragment. A query with `@defer` directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred is delivered in a subsequent response. `@include` and `@skip` take precedence over `@defer`."
+directive @defer("If this argument label has a value other than null, it will be passed on to the result of this defer directive. This label is intended to give client applications a way to identify to which fragment a deferred result belongs to." label: String "Deferred when true." if: Boolean) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"The `@specifiedBy` directive is used within the type system definition language to provide a URL for specifying the behavior of custom scalar definitions."
+directive @specifiedBy("The specifiedBy URL points to a human-readable specification. This field will only read a result for scalar types." url: String!) on SCALAR
+
+"The `@stream` directive may be provided for a field of `List` type so that the backend can leverage technology such as asynchronous iterators to provide a partial list in the initial response, and additional list items in subsequent responses. `@include` and `@skip` take precedence over `@stream`."
+directive @stream("If this argument label has a value other than null, it will be passed on to the result of this stream directive. This label is intended to give client applications a way to identify to which fragment a streamed result belongs to." label: String "The initial elements that shall be send down to the consumer." initialCount: Int! = 0 "Streamed when true." if: Boolean) on FIELD
+
+"The `Byte` scalar type represents non-fractional whole numeric values. Byte can represent values between 0 and 255."
+scalar Byte
+
+"The `DateTime` scalar represents an ISO-8601 compliant date time type."
+scalar DateTime @specifiedBy(url: "https:\/\/www.graphql-scalars.com\/date-time")
+
+"The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1."
+scalar Long
+
+"The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0."
+scalar UnsignedLong

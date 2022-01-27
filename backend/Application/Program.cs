@@ -1,4 +1,5 @@
 using System.Net.Http;
+using Application;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
@@ -15,6 +16,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+if (args.Any())
+{
+    await SpecialRunModeHandler.HandleCommandLineArgs(args);
+    return;
+}
 var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
