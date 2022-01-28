@@ -1,27 +1,39 @@
 <template>
 	<div>
-		<DrawerTitle class="font-mono">
-			{{ data?.block?.blockHash.substring(0, 6) }}
-			<Badge :type="data?.block?.finalized ? 'success' : 'failure'">
-				{{ data?.block?.finalized ? 'Finalised' : 'Rejected' }}
+		<DrawerTitle v-if="props.block" class="font-mono">
+			<div v-if="$route.name != 'blocks-blockHash'" class="inline">
+				<DetailsLinkButton
+					:id="props.block.id"
+					entity="block"
+					:hash="props.block?.blockHash"
+				>
+					{{ props.block?.blockHash.substring(0, 6) }}
+					<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />
+				</DetailsLinkButton>
+			</div>
+			<div v-else class="inline">
+				{{ props.block?.blockHash.substring(0, 6) }}
+			</div>
+			<Badge :type="props.block?.finalized ? 'success' : 'failure'">
+				{{ props.block?.finalized ? 'Finalised' : 'Rejected' }}
 			</Badge>
 		</DrawerTitle>
-		<DrawerContent>
+		<DrawerContent v-if="props.block">
 			<div class="grid gap-6 grid-cols-2 mb-16">
-				<DetailsCard v-if="data?.block?.blockSlotTime">
+				<DetailsCard v-if="props.block?.blockSlotTime">
 					<template #title>Timestamp</template>
 					<template #default>
 						{{
-							convertTimestampToRelative(data?.block?.blockSlotTime || '', NOW)
+							convertTimestampToRelative(props.block?.blockSlotTime || '', NOW)
 						}}
 					</template>
-					<template #secondary>{{ data?.block?.blockSlotTime }}</template>
+					<template #secondary>{{ props.block?.blockSlotTime }}</template>
 				</DetailsCard>
 				<DetailsCard>
 					<template #title>Baker id</template>
 					<template #default>
 						<UserIcon class="h-5 inline align-baseline mr-3" />
-						{{ data?.block?.bakerId }}
+						{{ props.block?.bakerId }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -29,23 +41,23 @@
 				Tokenomics
 				<template #content>
 					<MintDistribution
-						v-if="data?.block?.specialEvents.mint"
-						:data="data.block.specialEvents.mint"
+						v-if="props.block?.specialEvents.mint"
+						:data="props.block.specialEvents.mint"
 					/>
 					<FinalizationRewards
-						v-if="data?.block?.specialEvents.finalizationRewards"
-						:data="data.block.specialEvents.finalizationRewards.rewards.nodes"
+						v-if="props.block?.specialEvents.finalizationRewards"
+						:data="props.block.specialEvents.finalizationRewards.rewards.nodes"
 					/>
 					<BlockRewards
-						v-if="data?.block.specialEvents.blockRewards"
-						:data="data.block.specialEvents.blockRewards"
+						v-if="props.block?.specialEvents.blockRewards"
+						:data="props.block.specialEvents.blockRewards"
 					/>
 				</template>
 			</Accordion>
 			<Accordion>
 				Transactions
 				<span class="text-theme-faded ml-1">
-					({{ data?.block?.transactionCount }})
+					({{ props.block?.transactionCount }})
 				</span>
 				<template #content>
 					<Table>
@@ -59,7 +71,7 @@
 						</TableHead>
 						<TableBody>
 							<TableRow
-								v-for="transaction in data?.block?.transactions.nodes"
+								v-for="transaction in props.block?.transactions.nodes"
 								:key="transaction.transactionHash"
 							>
 								<TableTd>
@@ -73,7 +85,12 @@
 								</TableTd>
 								<TableTd :class="$style.numerical">
 									<HashtagIcon :class="$style.cellIcon" />
-									{{ transaction.transactionHash.substring(0, 6) }}
+									<DetailsLinkButton
+										entity="transaction"
+										:hash="transaction.transactionHash"
+									>
+										{{ transaction.transactionHash.substring(0, 6) }}
+									</DetailsLinkButton>
 								</TableTd>
 								<TableTd :class="$style.numerical">
 									<UserIcon
@@ -95,7 +112,11 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
+import {
+	UserIcon,
+	HashtagIcon,
+	DocumentSearchIcon,
+} from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
@@ -104,19 +125,22 @@ import Accordion from '~/components/Accordion.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
+import type { Block } from '~/types/blocks'
 import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 } from '~/utils/format'
-import { useBlockQuery } from '~/queries/useBlockQuery'
 
 type Props = {
-	id: string
+	block: Block
 }
-
+const selectedBlockId = useBlockDetails()
 const props = defineProps<Props>()
-
-const { data } = await useBlockQuery(props.id)
+const route = useRoute()
+// Since this is used in both the drawer and other places, this is a quick way to make sure the drawer closes on route change.
+watch(route, _to => {
+	selectedBlockId.value = ''
+})
 
 const NOW = new Date()
 </script>

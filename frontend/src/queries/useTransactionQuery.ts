@@ -4,10 +4,14 @@ import type { Transaction } from '~/types/transactions'
 type TransactionResponse = {
 	transaction: Transaction
 }
+type TransactionByTransactionHashResponse = {
+	transactionByTransactionHash: Transaction
+}
 
-const BlockQuery = gql<TransactionResponse>`
+const TransactionQuery = gql<TransactionResponse>`
 	query ($id: ID!) {
 		transaction(id: $id) {
+			id
 			ccdCost
 			transactionHash
 			senderAccountAddress
@@ -74,9 +78,90 @@ const BlockQuery = gql<TransactionResponse>`
 	}
 `
 
+const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
+	query ($hash: String!) {
+		transactionByTransactionHash(transactionHash: $hash) {
+			id
+			ccdCost
+			transactionHash
+			senderAccountAddress
+			block {
+				blockHash
+				blockHeight
+				blockSlotTime
+			}
+			result {
+				successful
+				... on Successful {
+					events {
+						nodes {
+							__typename
+							... on Transferred {
+								amount
+								from {
+									... on AccountAddress {
+										__typename
+										address
+									}
+									... on ContractAddress {
+										__typename
+										index
+										subIndex
+									}
+								}
+								to {
+									... on AccountAddress {
+										__typename
+										address
+									}
+									... on ContractAddress {
+										__typename
+										index
+										subIndex
+									}
+								}
+							}
+							... on AccountCreated {
+								address
+							}
+							... on CredentialDeployed {
+								regId
+								accountAddress
+							}
+						}
+					}
+				}
+			}
+			transactionType {
+				__typename
+				... on AccountTransaction {
+					accountTransactionType
+				}
+				... on CredentialDeploymentTransaction {
+					credentialDeploymentTransactionType
+				}
+				... on UpdateTransaction {
+					updateTransactionType
+				}
+			}
+		}
+	}
+`
+export const useTransactionQueryByHash = (hash: string) => {
+	const { data } = useQuery({
+		query: TransactionQueryByHash,
+		requestPolicy: 'cache-first',
+		variables: {
+			hash,
+		},
+	})
+
+	return { data }
+}
+
 export const useTransactionQuery = (id: string) => {
 	const { data } = useQuery({
-		query: BlockQuery,
+		query: TransactionQuery,
 		requestPolicy: 'cache-first',
 		variables: {
 			id,

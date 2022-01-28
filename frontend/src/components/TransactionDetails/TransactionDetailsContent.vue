@@ -1,80 +1,82 @@
 <template>
 	<div>
-		<DrawerTitle class="font-mono">
-			{{ data?.transaction?.transactionHash.substring(0, 6) }}
+		<DrawerTitle v-if="props.transaction" class="font-mono">
+			<div v-if="$route.name != 'transactions-transactionHash'" class="inline">
+				<DetailsLinkButton
+					:id="props.transaction.id"
+					entity="transaction"
+					:hash="props.transaction?.transactionHash"
+				>
+					{{ props.transaction?.transactionHash.substring(0, 6) }}
+					<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />
+				</DetailsLinkButton>
+			</div>
+			<div v-else class="inline">
+				{{ props.transaction?.transactionHash.substring(0, 6) }}
+			</div>
+
 			<Badge
-				:type="data?.transaction?.result.successful ? 'success' : 'failure'"
+				:type="props.transaction?.result.successful ? 'success' : 'failure'"
 			>
-				{{ data?.transaction?.result.successful ? 'Success' : 'Rejected' }}
+				{{ props.transaction?.result.successful ? 'Success' : 'Rejected' }}
 			</Badge>
-			<Button
-				v-if="$route.name != 'transactions-transactionHash'"
-				:on-click="
-					() => {
-						selectedTxId = ''
-						$router.push({
-							name: 'transactions-transactionHash',
-							params: {
-								internalId: props.id,
-								transactionHash: data?.transaction?.block.blockHash,
-							},
-						})
-					}
-				"
-				>Goto details</Button
-			>
 		</DrawerTitle>
-		<DrawerContent>
+		<DrawerContent v-if="props.transaction">
 			<div class="grid gap-6 grid-cols-2 mb-16">
 				<DetailsCard>
 					<template #title>Block height / block hash</template>
 					<template #default>
-						{{ data?.transaction?.block.blockHeight }}
+						{{ props.transaction?.block.blockHeight }}
 					</template>
 					<template #secondary>
-						{{ data?.transaction?.block.blockHash.substring(0, 6) }}
+						<DetailsLinkButton
+							entity="block"
+							:hash="props.transaction?.block.blockHash"
+						>
+							{{ props.transaction?.block.blockHash.substring(0, 6) }}
+						</DetailsLinkButton>
 					</template>
 				</DetailsCard>
-				<DetailsCard v-if="data?.transaction?.block.blockSlotTime">
+				<DetailsCard v-if="props.transaction?.block.blockSlotTime">
 					<template #title>Timestamp</template>
 					<template #default>
 						{{
-							convertTimestampToRelative(data?.transaction?.block.blockSlotTime)
+							convertTimestampToRelative(props.transaction?.block.blockSlotTime)
 						}}
 					</template>
 					<template #secondary>
-						{{ data?.transaction?.block.blockSlotTime }}
+						{{ props.transaction?.block.blockSlotTime }}
 					</template>
 				</DetailsCard>
-				<DetailsCard v-if="data?.transaction?.transactionType">
+				<DetailsCard v-if="props.transaction?.transactionType">
 					<template #title>Transaction type / cost (Ͼ)</template>
 					<template #default>
-						{{ translateTransactionType(data?.transaction?.transactionType) }}
+						{{ translateTransactionType(props.transaction?.transactionType) }}
 					</template>
 					<template #secondary>
-						{{ convertMicroCcdToCcd(data?.transaction?.ccdCost) }}
+						{{ convertMicroCcdToCcd(props.transaction?.ccdCost) }}
 					</template>
 				</DetailsCard>
-				<DetailsCard v-if="data?.transaction?.senderAccountAddress">
+				<DetailsCard v-if="props.transaction?.senderAccountAddress">
 					<template #title>Sender</template>
 					<template #default>
 						<UserIcon class="h-5 inline align-baseline mr-3" />
-						{{ data?.transaction?.senderAccountAddress.substring(0, 6) }}
+						{{ props.transaction?.senderAccountAddress.substring(0, 6) }}
 					</template>
 				</DetailsCard>
 			</div>
 			<Accordion>
 				Events
 				<span
-					v-if="data?.transaction?.result.successful"
+					v-if="props.transaction?.result.successful"
 					class="text-theme-faded ml-1"
 				>
-					({{ data?.transaction?.result.events?.nodes.length }})
+					({{ props.transaction?.result.events?.nodes.length }})
 				</span>
 				<template #content>
 					<TransactionEventList
-						v-if="data?.transaction?.result.successful"
-						:events="data?.transaction.result.events?.nodes"
+						v-if="props.transaction?.result.successful"
+						:events="props.transaction.result.events?.nodes"
 					/>
 				</template>
 			</Accordion>
@@ -83,7 +85,7 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon, DocumentSearchIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
@@ -95,15 +97,17 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-import { useTransactionQuery } from '~/queries/useTransactionQuery'
+import type { Transaction } from '~/types/transactions'
 const selectedTxId = useTransactionDetails()
 type Props = {
-	id: string
+	transaction: Transaction
 }
-
 const props = defineProps<Props>()
-
-const { data } = await useTransactionQuery(props.id)
+const route = useRoute()
+// Since this is used in both the drawer and other places, this is a quick way to make sure the drawer closes on route change.
+watch(route, _to => {
+	selectedTxId.value = ''
+})
 </script>
 
 <style module>

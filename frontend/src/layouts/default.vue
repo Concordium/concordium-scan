@@ -3,8 +3,8 @@
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
-		<BlockDetails />
-		<TransactionDetails />
+		<BlockDetailsDrawer />
+		<TransactionDetailsDrawer />
 
 		<div id="app" class="bg-theme-background-primary max-w-screen min-h-screen">
 			<PageHeader />
@@ -26,24 +26,28 @@ useMeta({
 	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
 })
 
-const { apiUrl, wsUrl } = useRuntimeConfig()
+const { apiUrl, wsUrl, includeDevTools } = useRuntimeConfig()
 
 let subscriptionClient: SubscriptionClient
 if (process.client) {
 	// We cannot run websockets serverside.
 	subscriptionClient = new SubscriptionClient(wsUrl, { reconnect: true })
 }
+let exchanges = process.client
+	? [
+			...defaultExchanges,
+			subscriptionExchange({
+				forwardSubscription: operation => subscriptionClient.request(operation),
+			}),
+	  ]
+	: defaultExchanges
+if (includeDevTools) {
+	const dtools = await import('@urql/devtools')
+	exchanges = [dtools.devtoolsExchange, ...exchanges]
+}
 const client = createClient({
 	url: apiUrl,
-	exchanges: process.client
-		? [
-				...defaultExchanges,
-				subscriptionExchange({
-					forwardSubscription: operation =>
-						subscriptionClient.request(operation),
-				}),
-		  ]
-		: defaultExchanges,
+	exchanges,
 })
 
 provideClient(client)

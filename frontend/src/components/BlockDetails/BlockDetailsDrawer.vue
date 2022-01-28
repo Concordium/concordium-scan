@@ -1,7 +1,7 @@
 <template>
 	<Drawer :is-open="!!selectedBlockId" :on-close="() => (selectedBlockId = '')">
 		<template #content>
-			<BlockDetailsContent :id="selectedBlockId" />
+			<BlockDetailsContainer :id="selectedBlockId" />
 		</template>
 
 		<template #actions>
@@ -15,7 +15,7 @@
 </template>
 
 <script lang="ts" setup>
-import BlockDetailsContent from './BlockDetailsContent.vue'
+import BlockDetailsContainer from './BlockDetailsContainer.vue'
 import Drawer from '~/components/Drawer/Drawer.vue'
 const selectedBlockId = useBlockDetails()
 </script>

@@ -5,6 +5,7 @@ export default defineNuxtConfig({
 	components: [
 		'~/components',
 		'~/components/atoms',
+		'~/components/molecules',
 		'~/components/icons',
 		'~/components/Table',
 		'~/components/Drawer',
@@ -13,6 +14,7 @@ export default defineNuxtConfig({
 	publicRuntimeConfig: {
 		apiUrl: 'https://dev.api-mainnet.ccdscan.io/graphql/',
 		wsUrl: 'wss://dev.api-mainnet.ccdscan.io/graphql',
+		includeDevTools: true,
 	},
 	nitro: {
 		preset: 'firebase',
