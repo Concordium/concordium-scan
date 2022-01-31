@@ -184,8 +184,12 @@ resource "azurerm_linux_virtual_machine" "vm" {
   }
 }
 
+# Changes to the disk resource that leads to replacement will NOT trigger a replacement of the VM
+# However, the VM needs to be replaced when the data disk is replaced.
+# This needs to be done manually by running apply with -replace:
+# terraform apply -replace="azurerm_linux_virtual_machine.vm"
 resource "azurerm_managed_disk" "vm_data" {
-  name                 = "storage_disk_concNodeVM"
+  name                 = "disk_vm_data_${azurerm_linux_virtual_machine.vm.virtual_machine_id}"
   location             = azurerm_resource_group.this.location
   resource_group_name  = azurerm_resource_group.this.name
   storage_account_type = "StandardSSD_LRS"
