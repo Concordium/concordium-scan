@@ -1,26 +1,38 @@
 resource "azurerm_resource_group" "this" {
   name     = local.envs[local.environment].resource_group_name
   location = "northeurope"
+
+  tags = {
+    environment = local.environment
+  }
 }
 
 resource "azurerm_virtual_network" "this" {
-  name                = "vnet-concNodeVM"
+  name                = "vnet"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
+
+  tags = {
+    environment = local.environment
+  }
 }
 
 resource "azurerm_subnet" "this" {
-  name                 = "snet-concNodeVM"
+  name                 = "snet"
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "this" {
-  name                = "nsg-concNodeVM"
+  name                = "nsg"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
+
+  tags = {
+    environment = local.environment
+  }
 
   security_rule {
     name                       = "SSH"
@@ -120,15 +132,19 @@ resource "azurerm_network_security_group" "this" {
 }
 
 resource "azurerm_public_ip" "vm" {
-  name                = "pip-concNodeVM"
+  name                = "pip-vm"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
   allocation_method   = "Static"
   domain_name_label   = "ftbccscantestnode"
+
+  tags = {
+    environment = local.environment
+  }
 }
 
 resource "azurerm_network_interface" "vm" {
-  name                = "nic-concNodeVM"
+  name                = "nic-vm"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
 
@@ -137,6 +153,10 @@ resource "azurerm_network_interface" "vm" {
     subnet_id                     = azurerm_subnet.this.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vm.id
+  }
+
+  tags = {
+    environment = local.environment
   }
 }
 
@@ -151,7 +171,7 @@ data "azurerm_ssh_public_key" "ssh_vm" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                            = "vm-concNodeVM"
+  name                            = "vm"
   location                        = azurerm_resource_group.this.location
   resource_group_name             = azurerm_resource_group.this.name
   network_interface_ids           = [azurerm_network_interface.vm.id]
@@ -162,7 +182,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   disable_password_authentication = true
   
   os_disk {
-    name                 = "disk-concNodeVM"
+    name                 = "disk_vm_os"
     caching              = "ReadWrite"
     storage_account_type = "Premium_LRS"
   }
