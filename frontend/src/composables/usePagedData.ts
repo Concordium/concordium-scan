@@ -2,6 +2,7 @@ import { Ref } from 'vue'
 import type { PageInfo } from '~/types/pageInfo'
 
 const PAGE_SIZE = 25
+export const MAX_PAGE_SIZE = 50
 
 /**
  * Hook to control pagination state and actions
@@ -9,7 +10,7 @@ const PAGE_SIZE = 25
  */
 export const usePagedData = <PageData>() => {
 	const pagedData = ref<PageData[]>([]) as Ref<PageData[]>
-	const intention = ref<'fetchNew' | 'loadMore'>('loadMore')
+	const intention = ref<'fetchNew' | 'loadMore' | 'refresh'>('loadMore')
 
 	const first = ref<number | undefined>(PAGE_SIZE)
 	const last = ref<number | undefined>(undefined)
@@ -23,16 +24,24 @@ export const usePagedData = <PageData>() => {
 	 * @param { newItemsCount } - Amount of new items to fetch
 	 */
 	const fetchNew = (newItems: number) => {
-		intention.value = 'fetchNew'
-		first.value = newItems
-		last.value = undefined
-		after.value = undefined
+		if (newItems > MAX_PAGE_SIZE) {
+			intention.value = 'refresh'
+			first.value = PAGE_SIZE
+			last.value = undefined
+			after.value = undefined
+		} else {
+			intention.value = 'fetchNew'
+			first.value = newItems
+			last.value = undefined
+			after.value = undefined
+		}
 	}
 
 	/**
 	 * Loads a full new page (as a side effect)
 	 */
 	const loadMore = () => {
+		intention.value = 'loadMore'
 		first.value = PAGE_SIZE
 		last.value = undefined
 		after.value = lastAfterCursor?.value
@@ -47,7 +56,9 @@ export const usePagedData = <PageData>() => {
 			pagedData.value = push(newPage)
 		} else if (intention.value === 'fetchNew') {
 			pagedData.value = unshift(newPage)
-			intention.value = 'loadMore'
+		} else if (intention.value === 'refresh') {
+			lastAfterCursor.value = newPageInfo?.endCursor
+			pagedData.value = newPage
 		}
 	}
 

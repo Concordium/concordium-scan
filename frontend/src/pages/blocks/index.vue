@@ -2,12 +2,6 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4 pb-0">
-			<div class="h-20">
-				<div v-if="newItems > 0">
-					New blocks available: {{ newItems }}
-					<Button :on-click="refetch">Update</Button>
-				</div>
-			</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -20,6 +14,11 @@
 					</TableRow>
 				</TableHead>
 				<TableBody>
+					<TableRow>
+						<TableTd colspan="6" align="center" class="p-0 tdlol">
+							<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
+						</TableTd>
+					</TableRow>
 					<TableRow v-for="block in pagedData" :key="block.blockHash">
 						<TableTd :class="$style.numerical">{{ block.blockHeight }}</TableTd>
 						<TableTd>
@@ -119,5 +118,19 @@ watch(
 .numerical {
 	@apply font-mono;
 	font-variant-ligatures: none;
+}
+</style>
+
+<style>
+.tdlol {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+.hello {
+	transition: background-color 0.2s ease-in;
+}
+
+.hello:hover {
+	background-color: hsl(0deg 0% 83% / 6%);
 }
 </style>
