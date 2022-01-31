@@ -1,6 +1,6 @@
 ﻿<template>
 	<div>
-		<Title>CCDScan | Blocks</Title>
+		<Title>CCDScan | Dashboard</Title>
 		<main class="p-4 pb-0">Dashboard</main>
 	</div>
 </template>

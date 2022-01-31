@@ -110,8 +110,6 @@ type TransactionResult = TransactionSuccessful | TransactionRejected
 
 export type Transaction = {
 	id: string
-	blockHeight: number
-	blockHash: string
 	transactionHash: string
 	senderAccountAddress: string
 	ccdCost: number

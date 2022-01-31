@@ -20,7 +20,7 @@
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					<TableRow v-for="block in data?.blocks.nodes" :key="block.blockHash">
+					<TableRow v-for="block in pagedData" :key="block.blockHash">
 						<TableTd :class="$style.numerical">{{ block.blockHeight }}</TableTd>
 						<TableTd>
 							<StatusCircle
@@ -57,10 +57,10 @@
 				</TableBody>
 			</Table>
 
-			<Pagination
+			<LoadMore
 				v-if="data?.blocks.pageInfo"
 				:page-info="data?.blocks.pageInfo"
-				:go-to-page="goToPage"
+				:on-load-more="loadMore"
 			/>
 		</main>
 	</div>
@@ -69,13 +69,13 @@
 <script lang="ts" setup>
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertTimestampToRelative } from '~/utils/format'
-import { usePagination } from '~/composables/usePagination'
+import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~~/src/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import type { BlockSubscriptionResponse } from '~/types/blocks'
+import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 
-const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
-	usePagination()
+const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
+	usePagedData<Block>()
 
 const selectedBlockId = useBlockDetails()
 
@@ -87,19 +87,28 @@ const subscriptionHandler = (
 	newItems.value++
 }
 
+const before = ref<string | undefined>(undefined)
+
 useBlockSubscription(subscriptionHandler)
 
 const refetch = () => {
+	fetchNew(newItems.value)
 	newItems.value = 0
-	refetchBlockList()
 }
 
-const { data, executeQuery: refetchBlockList } = useBlockListQuery({
-	after: afterCursor,
-	before: beforeCursor,
-	first: paginateFirst,
-	last: paginateLast,
+const { data } = useBlockListQuery({
+	first,
+	last,
+	after,
+	before,
 })
+
+watch(
+	() => data.value,
+	value => {
+		addPagedData(value?.blocks.nodes || [], value?.blocks.pageInfo)
+	}
+)
 </script>
 
 <style module>

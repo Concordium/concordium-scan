@@ -33,11 +33,11 @@ const BlocksQuery = gql<BlockListResponse>`
 `
 
 export const useBlockListQuery = (variables: QueryVariables) => {
-	const { data, executeQuery } = useQuery({
+	const { data } = useQuery({
 		query: BlocksQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
 	})
 
-	return { data, executeQuery }
+	return { data }
 }

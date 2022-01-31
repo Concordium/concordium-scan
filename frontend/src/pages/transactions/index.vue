@@ -8,7 +8,6 @@
 					<Button :on-click="refetch">Update</Button>
 				</div>
 			</div>
-
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -23,7 +22,7 @@
 				</TableHead>
 				<TableBody>
 					<TableRow
-						v-for="transaction in data?.transactions.nodes"
+						v-for="transaction in pagedData"
 						:key="transaction.transactionHash"
 					>
 						<TableTd>
@@ -67,10 +66,10 @@
 				</TableBody>
 			</Table>
 
-			<Pagination
+			<LoadMore
 				v-if="data?.transactions.pageInfo"
 				:page-info="data?.transactions.pageInfo"
-				:go-to-page="goToPage"
+				:on-load-more="loadMore"
 			/>
 		</main>
 	</div>
@@ -83,13 +82,14 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-import { usePagination } from '~/composables/usePagination'
+import { usePagedData } from '~/composables/usePagedData'
 import { useTransactionsListQuery } from '~~/src/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse } from '~/types/blocks'
+import type { Transaction } from '~/types/transactions'
 
-const { afterCursor, beforeCursor, paginateFirst, paginateLast, goToPage } =
-	usePagination()
+const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
+	usePagedData<Transaction>()
 
 const selectedTxId = useTransactionDetails()
 const newItems = ref(0)
@@ -99,18 +99,27 @@ const subscriptionHandler = (
 ) => {
 	newItems.value += newData.blockAdded.transactionCount
 }
+
+const before = ref<string | undefined>(undefined)
+
 useBlockSubscription(subscriptionHandler)
+
 const refetch = () => {
+	fetchNew(newItems.value)
 	newItems.value = 0
-	refetchTransactionList()
 }
 
-const { data, executeQuery: refetchTransactionList } = useTransactionsListQuery(
-	{
-		after: afterCursor,
-		before: beforeCursor,
-		first: paginateFirst,
-		last: paginateLast,
+const { data } = useTransactionsListQuery({
+	first,
+	last,
+	after,
+	before,
+})
+
+watch(
+	() => data.value,
+	value => {
+		addPagedData(value?.transactions.nodes || [], value?.transactions.pageInfo)
 	}
 )
 </script>
