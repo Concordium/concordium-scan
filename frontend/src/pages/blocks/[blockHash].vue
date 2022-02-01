@@ -1,13 +1,13 @@
 ﻿<template>
-	<div v-if="$route.params.internalId">
-		<div v-if="blockQueryResult.data">
-			<BlockDetailsContent :block="blockQueryResult.data.block" />
-		</div>
-	</div>
-	<div v-else>
-		<div v-if="blockQueryResult.data">
-			<BlockDetailsContent :block="blockQueryResult.data.blockByBlockHash" />
-		</div>
+	<div v-if="blockQueryResult.data">
+		<BlockDetailsContent
+			v-if="$route.params.internalId && blockQueryResult.data.block"
+			:block="blockQueryResult.data.block"
+		/>
+		<BlockDetailsContent
+			v-else
+			:block="blockQueryResult.data.blockByBlockHash"
+		/>
 	</div>
 </template>
 <script lang="ts" setup>

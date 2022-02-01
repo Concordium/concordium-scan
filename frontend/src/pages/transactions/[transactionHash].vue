@@ -1,17 +1,13 @@
 ﻿<template>
-	<div v-if="$route.params.internalId">
-		<div v-if="transactionQueryResult.data">
-			<TransactionDetailsContent
-				:transaction="transactionQueryResult.data.transaction"
-			/>
-		</div>
-	</div>
-	<div v-else>
-		<div v-if="transactionQueryResult.data">
-			<TransactionDetailsContent
-				:transaction="transactionQueryResult.data.transactionByTransactionHash"
-			/>
-		</div>
+	<div v-if="transactionQueryResult.data">
+		<TransactionDetailsContent
+			v-if="$route.params.internalId && transactionQueryResult.data.transaction"
+			:transaction="transactionQueryResult.data.transaction"
+		/>
+		<TransactionDetailsContent
+			v-else
+			:transaction="transactionQueryResult.data.transactionByTransactionHash"
+		/>
 	</div>
 </template>
 <script lang="ts" setup>
