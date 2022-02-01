@@ -11,7 +11,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import BlockDetailsContent from '../../components/BlockDetails/BlockDetailsContent.vue'
+import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 import { useBlockQueryByHash, useBlockQuery } from '~/queries/useBlockQuery'
 const route = useRoute()
 const blockQueryResult = ref()

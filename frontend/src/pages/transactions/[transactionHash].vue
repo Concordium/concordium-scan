@@ -15,7 +15,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import TransactionDetailsContent from '../../components/TransactionDetails/TransactionDetailsContent.vue'
+import TransactionDetailsContent from '~/components/TransactionDetails/TransactionDetailsContent.vue'
 import {
 	useTransactionQueryByHash,
 	useTransactionQuery,

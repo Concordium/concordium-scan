@@ -83,7 +83,7 @@ import {
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { usePagedData } from '~/composables/usePagedData'
-import { useTransactionsListQuery } from '~~/src/queries/useTransactionListQuery'
+import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'

@@ -1,4 +1,4 @@
-import type { TransactionType } from '../types/transactions'
+import type { TransactionType } from '~/types/transactions'
 
 const translations = {
 	accountTransactionTypes: {

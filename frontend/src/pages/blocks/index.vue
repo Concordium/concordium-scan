@@ -69,7 +69,7 @@
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import { convertTimestampToRelative } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
-import { useBlockListQuery } from '~~/src/queries/useBlockListQuery'
+import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 

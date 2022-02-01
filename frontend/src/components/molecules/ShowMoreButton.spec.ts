@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/vue'
 import type { RenderOptions } from '@testing-library/vue'
-import { MAX_PAGE_SIZE } from '../../composables/usePagedData'
 import ShowMoreButton from './ShowMoreButton.vue'
+import { MAX_PAGE_SIZE } from '~/composables/usePagedData'
 
 const noop = () => {
 	/* noop */

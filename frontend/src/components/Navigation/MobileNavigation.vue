@@ -32,7 +32,7 @@
 
 <script lang="ts" setup>
 import { MenuIcon } from '@heroicons/vue/outline/index.js'
-import Drawer from '../Drawer/Drawer.vue'
+import Drawer from '~/components/Drawer/Drawer.vue'
 import type { Route } from '~/types/route'
 
 const isNavigationOpen = ref(false)

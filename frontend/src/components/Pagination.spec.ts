@@ -69,7 +69,7 @@ describe('Pagination', () => {
 		it('is disabled if there are no previous pages', () => {
 			renderComponent()
 
-			expect(screen.getByText(dom.FIRST_TEXT)).toBeDisabled()
+			expect(screen.getByLabelText(dom.FIRST_ARIA)).toBeDisabled()
 		})
 	})
 
@@ -99,7 +99,7 @@ describe('Pagination', () => {
 		it('is disabled if there are no previous pages', () => {
 			renderComponent()
 
-			expect(screen.getByText(dom.PREV_TEXT)).toBeDisabled()
+			expect(screen.getByLabelText(dom.PREV_ARIA)).toBeDisabled()
 		})
 	})
 
@@ -130,7 +130,7 @@ describe('Pagination', () => {
 			}
 			renderComponent(props)
 
-			expect(screen.getByText(dom.NEXT_TEXT)).toBeDisabled()
+			expect(screen.getByLabelText(dom.NEXT_ARIA)).toBeDisabled()
 		})
 	})
 })

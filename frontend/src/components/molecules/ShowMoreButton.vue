@@ -30,7 +30,8 @@
 
 <script lang="ts" setup>
 import { ArrowUpIcon, RefreshIcon } from '@heroicons/vue/outline/index.js'
-import { MAX_PAGE_SIZE } from '../../composables/usePagedData'
+import { MAX_PAGE_SIZE } from '~/composables/usePagedData'
+import LinkButton from '~/components/atoms/LinkButton.vue'
 
 type Props = {
 	newItemCount: number
