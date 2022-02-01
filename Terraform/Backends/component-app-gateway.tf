@@ -28,7 +28,7 @@ resource "azurerm_application_gateway" "this" {
 
   frontend_port {
     name = "app-gateway-feport"
-    port = 80
+    port = 443
   }
 
   frontend_ip_configuration {
@@ -64,18 +64,20 @@ resource "azurerm_application_gateway" "this" {
     name                           = "mainnet-listener"
     frontend_ip_configuration_name = "app-gateway-feip"
     frontend_port_name             = "app-gateway-feport"
-    # TODO: change to https and add ssl
-    protocol                       = "Http"
+    protocol                       = "Https"
+    ssl_certificate_name           = "ssl"
     host_name                      = local.envs[local.environment].public_host_name_mainnet_backend
+    require_sni                    = false
   }
 
   http_listener {
     name                           = "testnet-listener"
     frontend_ip_configuration_name = "app-gateway-feip"
     frontend_port_name             = "app-gateway-feport"
-    # TODO: change to https and add ssl
-    protocol                       = "Http"
+    protocol                       = "Https"
+    ssl_certificate_name           = "ssl"
     host_name                      = local.envs[local.environment].public_host_name_testnet_backend
+    require_sni                    = false
   }
 
   request_routing_rule {
@@ -102,6 +104,13 @@ resource "azurerm_application_gateway" "this" {
     timeout = 30
     unhealthy_threshold = 3
     pick_host_name_from_backend_http_settings = true
+  }
+
+  # TODO: Bootstrap cert and password should be retreived as a secret from Azure key vault
+  ssl_certificate {
+      name = "ssl"
+      data = filebase64("bootstrap-cert-${local.environment}.pfx")
+      password = "poshacme"
   }
 }
 
