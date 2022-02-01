@@ -266,6 +266,7 @@ type EventsConnection {
   edges: [EventsEdge!]
   "A flattened list of the nodes."
   nodes: [Event!]
+  totalCount: Int!
 }
 
 "An edge in a connection."

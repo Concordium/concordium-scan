@@ -22,7 +22,7 @@ public class Successful : TransactionResult
     private readonly Transaction _owner;
 
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging]
+    [UsePaging(IncludeTotalCount = true)]
     public IEnumerable<TransactionResultEvent> GetEvents([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.TransactionResultEvents
