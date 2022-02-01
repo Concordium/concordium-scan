@@ -30,9 +30,11 @@ az acr login --name ccscan --username ccscan --password "${container_registry_pa
 echo Login to azure container registry for ${vm_user} 
 sudo -u ${vm_user} az acr login --name ccscan --username ccscan --password "${container_registry_password}"
 
+
 # set up discrete docker networks for main and testnet
 docker network create -d bridge mainnetDocker
 docker network create -d bridge testnetDocker
+
 
 # Set up Concordium node containers
 docker run -td \
@@ -48,7 +50,6 @@ docker run -td \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-mainnet:3.0.1-0
 
-
 docker run -td  \
  -p 10111:10000 \
  -p 18888:18888 \
@@ -63,31 +64,13 @@ docker run -td  \
  ccscan.azurecr.io/ccnode-testnet:3.0.1-0
 
 
-# Set up postgres containers
-docker run -td \
- --network=mainnetDocker \
- --name postgres-mainnet \
- --hostname postgres \
- -e POSTGRES_PASSWORD=${postgres_password} \
- -e POSTGRES_USER=postgres \
- -e POSTGRES_DB=ConcordiumScan \
- postgres
-
-docker run -td \
- --network=testnetDocker \
- --name postgres-testnet \
- --hostname postgres \
- -e POSTGRES_PASSWORD=${postgres_password} \
- -e POSTGRES_USER=postgres \
- -e POSTGRES_DB=ConcordiumScan \
- postgres
-
 # Set up backend containers
 docker run -td \
   -p 5000:5000 \
   --network=mainnetDocker \
   --restart=on-failure:3 \
   --name backend-mainnet \
+  -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-mainnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
   -v /data/backend-logs.mainnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
 
@@ -96,8 +79,10 @@ docker run -td \
   --network=testnetDocker \
   --restart=on-failure:3 \
   --name backend-testnet \
+  -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-testnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
   -v /data/backend-logs.testnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
+
 
 # Set up watchtower container 
 docker run -d \
