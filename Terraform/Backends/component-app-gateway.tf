@@ -120,11 +120,6 @@ resource "azurerm_application_gateway" "this" {
 ##
 ## ..\scripts\GenerateBootstrapSslCertAndPushToKeyVault.ps1
 ## -------------------------------------------------------------------------
-data "azurerm_key_vault" "ccscan" {
-  name                = "ccscan"
-  resource_group_name = "ccscan-key-vault"
-}
-
 data "azurerm_key_vault_secret" "ssl-cert-data" {
   name         = "${local.environment}-sslcert-pfx"
   key_vault_id = data.azurerm_key_vault.ccscan.id
