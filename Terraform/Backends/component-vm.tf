@@ -195,3 +195,8 @@ resource "azurerm_virtual_machine_data_disk_attachment" "vm_data" {
   lun                = "1"
   caching            = "ReadWrite"
 }
+
+data "azurerm_key_vault_secret" "ccnode-auth-token" {
+  name         = "${local.environment}-ccnode-auth-token"
+  key_vault_id = data.azurerm_key_vault.ccscan.id
+}

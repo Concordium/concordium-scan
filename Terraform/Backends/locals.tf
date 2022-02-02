@@ -15,7 +15,6 @@ locals {
   postgres_hostname = "pg-ss"
   postgres_user = "postgres"
 
-  # TODO: Secrets should probably go to the key vault instead
   vm_entrypoint_script = templatefile("${path.cwd}/entrypoint.tpl", {
     vm_user = local.vm_admin_user
     environment_name = local.environment
@@ -25,6 +24,6 @@ locals {
     postgres_hostname = local.postgres_hostname
     postgres_user = local.postgres_user
     postgres_password = data.azurerm_key_vault_secret.postgres-password.value
-    cc_node_grpc_token = "FTBgrpc2021"
+    cc_node_auth_token = data.azurerm_key_vault_secret.ccnode-auth-token.value
   })
 }

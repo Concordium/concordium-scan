@@ -44,8 +44,8 @@ docker run -td \
  --name ccnode-mainnet  \
  --hostname ccnode \
  -e CONCORDIUM_NODE_COLLECTOR_NODE_NAME=FTB-${environment_name} \
- -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_grpc_token}  \
- -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_grpc_token}  \
+ -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token}  \
+ -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_LISTEN_PORT=8888 \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-mainnet:3.0.1-0
@@ -57,8 +57,8 @@ docker run -td  \
  --name ccnode-testnet \
  --hostname ccnode \
  -e CONCORDIUM_NODE_COLLECTOR_NODE_NAME=FTB-${environment_name} \
- -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_grpc_token} \
- -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_grpc_token} \
+ -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token} \
+ -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_LISTEN_PORT=18888 \
  -v /data/concordium.testnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-testnet:3.0.1-0
@@ -71,6 +71,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-mainnet \
   -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-mainnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
+  -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.mainnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
 
@@ -80,6 +81,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-testnet \
   -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-testnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
+  -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.testnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
 
