@@ -68,10 +68,10 @@ describe('translateTransactionEvents', () => {
 		it('should format a contract address', () => {
 			const address = {
 				__typename: 'ContractAddress',
-				index: 'conindex42',
+				index: 186,
 			} as TransferAddress
 
-			expect(translateTransferAddress(address)).toBe('contract conind')
+			expect(translateTransferAddress(address)).toBe('contract 186')
 		})
 	})
 })

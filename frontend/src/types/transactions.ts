@@ -77,7 +77,7 @@ type AccountAddress = {
 
 type ContractAddress = {
 	__typename: 'ContractAddress'
-	index: string
+	index: number
 	subIndex: string
 }
 

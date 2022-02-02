@@ -7,7 +7,7 @@ import type {
 export const translateTransferAddress = (address: TransferAddress) =>
 	address.__typename === 'AccountAddress'
 		? `account ${address.address.substring(0, 6)}`
-		: `contract ${address.index.substring(0, 6)}`
+		: `contract ${address.index}`
 
 export const translateTransactionEvents = (
 	txEvent: TransactionSuccessfulEvent
