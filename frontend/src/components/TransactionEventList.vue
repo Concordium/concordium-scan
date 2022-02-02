@@ -1,5 +1,5 @@
 <template>
-	<Fragment>
+	<div>
 		<ul class="px-4">
 			<li
 				v-for="(event, i) in props.events"
@@ -15,7 +15,7 @@
 			:page-info="props.pageInfo"
 			:go-to-page="props.goToPage"
 		/>
-	</Fragment>
+	</div>
 </template>
 
 <script lang="ts" setup>

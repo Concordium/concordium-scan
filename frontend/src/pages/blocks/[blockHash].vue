@@ -3,19 +3,36 @@
 		<BlockDetailsContent
 			v-if="$route.params.internalId && blockQueryResult.data.block"
 			:block="blockQueryResult.data.block"
+			:go-to-page="goToPage"
 		/>
 		<BlockDetailsContent
 			v-else
 			:block="blockQueryResult.data.blockByBlockHash"
+			:go-to-page="goToPage"
 		/>
 	</div>
 </template>
 <script lang="ts" setup>
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 import { useBlockQueryByHash, useBlockQuery } from '~/queries/useBlockQuery'
+import { usePagination } from '~/composables/usePagination'
+
+const { first, last, after, before, goToPage } = usePagination()
+
 const route = useRoute()
 const blockQueryResult = ref()
 if (!route.params.internalId)
-	blockQueryResult.value = useBlockQueryByHash(route.params.blockHash + '')
-else blockQueryResult.value = useBlockQuery(route.params.internalId + '')
+	blockQueryResult.value = useBlockQueryByHash(route.params.blockHash + '', {
+		first,
+		last,
+		after,
+		before,
+	})
+else
+	blockQueryResult.value = useBlockQuery(route.params.internalId + '', {
+		first,
+		last,
+		after,
+		before,
+	})
 </script>
