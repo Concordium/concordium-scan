@@ -10,27 +10,26 @@
 				{{ translateTransactionEvents(event) }}
 			</li>
 		</ul>
-		<LoadMore
-			v-if="
-				events.length > PAGE_SIZE ||
-				(events.length === PAGE_SIZE && pageInfo.hasNextPage)
-			"
-			:page-info="pageInfo"
-			:on-load-more="loadMore"
+		<Pagination
+			v-if="props.pageInfo && props.totalCount > PAGE_SIZE"
+			:page-info="props.pageInfo"
+			:go-to-page="props.goToPage"
 		/>
 	</Fragment>
 </template>
 
 <script lang="ts" setup>
 import { translateTransactionEvents } from '~/utils/translateTransactionEvents'
+import { PAGE_SIZE } from '~/composables/usePagination'
 import type { TransactionSuccessfulEvent } from '~/types/transactions'
 import type { PageInfo } from '~/types/pageInfo'
-import { PAGE_SIZE } from '~/composables/usePagedData'
+import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {
 	events: TransactionSuccessfulEvent[]
+	totalCount: number
 	pageInfo: PageInfo
-	loadMore: () => void
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()

@@ -60,6 +60,7 @@ const TransactionQuery = gql<TransactionResponse>`
 								accountAddress
 							}
 						}
+						totalCount
 						pageInfo {
 							startCursor
 							endCursor
@@ -141,6 +142,13 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 								regId
 								accountAddress
 							}
+						}
+						totalCount
+						pageInfo {
+							startCursor
+							endCursor
+							hasPreviousPage
+							hasNextPage
 						}
 					}
 				}

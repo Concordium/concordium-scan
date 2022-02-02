@@ -100,6 +100,7 @@ type TransactionSuccessful = {
 	successful: true
 	events: {
 		nodes: TransactionSuccessfulEvent[]
+		totalCount: number
 		pageInfo: PageInfo
 	}
 }
