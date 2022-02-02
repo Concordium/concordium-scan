@@ -36,7 +36,11 @@
 						<TableTd>
 							<LinkButton
 								:class="$style.numerical"
-								@click="selectedBlockId = block.id"
+								@click="
+									() => {
+										drawer.push('block', block.blockHash, block.id)
+									}
+								"
 							>
 								<HashtagIcon :class="$style.cellIcon" />
 								{{ block.blockHash.substring(0, 6) }}
@@ -72,11 +76,10 @@ import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
+import { useDrawer } from '~/composables/useDrawer'
 
 const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
 	usePagedData<Block>()
-
-const selectedBlockId = useBlockDetails()
 
 const newItems = ref(0)
 const subscriptionHandler = (
@@ -108,6 +111,7 @@ watch(
 		addPagedData(value?.blocks.nodes || [], value?.blocks.pageInfo)
 	}
 )
+const drawer = useDrawer()
 </script>
 
 <style module>

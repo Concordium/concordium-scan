@@ -35,6 +35,16 @@
 						>
 							{{ props.transaction?.block.blockHash.substring(0, 6) }}
 						</DetailsLinkButton>
+						<a
+							@click="
+								drawer.push(
+									'block',
+									props.transaction?.block.blockHash,
+									props.transaction?.block.id
+								)
+							"
+							>in drawer</a
+						>
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.block.blockSlotTime">
@@ -98,7 +108,9 @@ import {
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
+import { useDrawer } from '~/composables/useDrawer'
 const selectedTxId = useTransactionDetails()
+const drawer = useDrawer()
 type Props = {
 	transaction: Transaction
 }

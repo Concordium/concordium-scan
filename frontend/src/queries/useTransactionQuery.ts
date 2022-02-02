@@ -16,6 +16,7 @@ const TransactionQuery = gql<TransactionResponse>`
 			transactionHash
 			senderAccountAddress
 			block {
+				id
 				blockHash
 				blockHeight
 				blockSlotTime
@@ -86,6 +87,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			transactionHash
 			senderAccountAddress
 			block {
+				id
 				blockHash
 				blockHeight
 				blockSlotTime
