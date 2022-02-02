@@ -77,6 +77,8 @@
 					<TransactionEventList
 						v-if="props.transaction?.result.successful"
 						:events="props.transaction.result.events?.nodes"
+						:page-info="props.transaction.result.events?.pageInfo"
+						:load-more="props.loadMoreEvents"
 					/>
 				</template>
 			</Accordion>
@@ -101,6 +103,7 @@ import type { Transaction } from '~/types/transactions'
 const selectedTxId = useTransactionDetails()
 type Props = {
 	transaction: Transaction
+	loadMoreEvents: () => void
 }
 const props = defineProps<Props>()
 const route = useRoute()
