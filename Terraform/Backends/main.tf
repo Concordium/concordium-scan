@@ -47,3 +47,8 @@ data "azurerm_key_vault" "ccscan" {
   name                = "ccscan"
   resource_group_name = "ccscan-key-vault"
 }
+
+data "azurerm_container_registry" "ccscan" {
+  name                = "ccscan"
+  resource_group_name = "ccscan-docker-registry"
+}

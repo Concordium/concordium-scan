@@ -26,9 +26,9 @@ sudo chmod 666 /var/run/docker.sock
 ## set up Azure cloud credentials (connection to container registry):
 sudo apt install azure-cli -y
 echo Login to azure container registry for root
-az acr login --name ccscan --username ccscan --password "${container_registry_password}"
+az acr login --name ccscan --username "${container_registry_username}" --password "${container_registry_password}"
 echo Login to azure container registry for ${vm_user} 
-sudo -u ${vm_user} az acr login --name ccscan --username ccscan --password "${container_registry_password}"
+sudo -u ${vm_user} az acr login --name ccscan --username "${container_registry_username}" --password "${container_registry_password}"
 
 
 # set up discrete docker networks for main and testnet

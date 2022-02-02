@@ -20,7 +20,8 @@ locals {
     vm_user = local.vm_admin_user
     environment_name = local.environment
     container_repository_backend = local.envs[local.environment].container_repository_backend
-    container_registry_password = "G+ne4o=OfLOnl54VkbeFYO0U+AB2xQRc"
+    container_registry_username = data.azurerm_container_registry.ccscan.admin_username
+    container_registry_password = data.azurerm_container_registry.ccscan.admin_password 
     postgres_hostname = local.postgres_hostname
     postgres_user = local.postgres_user
     postgres_password = data.azurerm_key_vault_secret.postgres-password.value
