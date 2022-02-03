@@ -25,12 +25,18 @@
 					</TableTd>
 					<TableTd class="numerical">
 						<HashtagIcon class="h-4 text-theme-white inline align-baseline" />
-						<DetailsLinkButton
-							entity="transaction"
-							:hash="transaction.transactionHash"
+						<LinkButton
+							:class="$style.numerical"
+							@click="
+								drawer.push(
+									'transaction',
+									transaction.transactionHash,
+									transaction.id
+								)
+							"
 						>
 							{{ transaction.transactionHash.substring(0, 6) }}
-						</DetailsLinkButton>
+						</LinkButton>
 					</TableTd>
 					<TableTd class="numerical">
 						<UserIcon
