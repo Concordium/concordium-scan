@@ -43,7 +43,13 @@
 							<HashtagIcon :class="$style.cellIcon" />
 							<LinkButton
 								:class="$style.numerical"
-								@click="selectedTxId = transaction.id"
+								@click="
+									drawer.push(
+										'transaction',
+										transaction.transactionHash,
+										transaction.id
+									)
+								"
 							>
 								{{ transaction.transactionHash.substring(0, 6) }}
 							</LinkButton>
@@ -90,7 +96,6 @@ import type { Transaction } from '~/types/transactions'
 const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
 	usePagedData<Transaction>()
 
-const selectedTxId = useTransactionDetails()
 const newItems = ref(0)
 const subscriptionHandler = (
 	_prevData: void,
@@ -100,6 +105,8 @@ const subscriptionHandler = (
 }
 
 const before = ref<string | undefined>(undefined)
+
+const drawer = useDrawer()
 
 useBlockSubscription(subscriptionHandler)
 

@@ -1,14 +1,12 @@
 <template>
-	<Drawer :is-open="!!selectedBlockId" :on-close="() => (selectedBlockId = '')">
+	<Drawer :is-open="!!props.id" :on-close="() => softReset()">
 		<template #content>
-			<BlockDetailsContainer :id="selectedBlockId" />
+			<BlockDetailsContainer :id="props.id" />
 		</template>
 
 		<template #actions>
 			<DrawerActions>
-				<Button :on-click="() => (selectedBlockId = '')" class="self-end">
-					Close
-				</Button>
+				<Button class="self-end" :on-click="() => softReset()"> Close </Button>
 			</DrawerActions>
 		</template>
 	</Drawer>
@@ -17,5 +15,9 @@
 <script lang="ts" setup>
 import BlockDetailsContainer from './BlockDetailsContainer.vue'
 import Drawer from '~/components/Drawer/Drawer.vue'
-const selectedBlockId = useBlockDetails()
+const { softReset } = useDrawer()
+type Props = {
+	id: string
+}
+const props = defineProps<Props>()
 </script>

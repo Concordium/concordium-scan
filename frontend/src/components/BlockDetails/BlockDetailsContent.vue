@@ -2,14 +2,12 @@
 	<div>
 		<DrawerTitle v-if="props.block" class="font-mono">
 			<div v-if="$route.name != 'blocks-blockHash'" class="inline">
-				<DetailsLinkButton
-					:id="props.block.id"
-					entity="block"
-					:hash="props.block?.blockHash"
+				<LinkButton
+					class="numerical"
+					@click="drawer.push('block', props.block?.blockHash, props.block.id)"
 				>
 					{{ props.block?.blockHash.substring(0, 6) }}
-					<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />
-				</DetailsLinkButton>
+				</LinkButton>
 			</div>
 			<div v-else class="inline">
 				{{ props.block?.blockHash.substring(0, 6) }}
@@ -78,8 +76,7 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon, DocumentSearchIcon } from '@heroicons/vue/solid/index.js'
-import BlockDetailsTransactions from './BlockDetailsTransactions.vue'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
@@ -98,13 +95,15 @@ type Props = {
 	block: Block
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
-const selectedBlockId = useBlockDetails()
+const drawer = useDrawer()
 const props = defineProps<Props>()
-const route = useRoute()
-// Since this is used in both the drawer and other places, this is a quick way to make sure the drawer closes on route change.
-watch(route, _to => {
-	selectedBlockId.value = ''
-})
 
 const NOW = new Date()
 </script>
+
+<style module>
+.numerical {
+	@apply font-mono;
+	font-variant-ligatures: none;
+}
+</style>

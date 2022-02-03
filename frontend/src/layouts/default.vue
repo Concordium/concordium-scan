@@ -3,9 +3,7 @@
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
-		<BlockDetailsDrawer />
-		<TransactionDetailsDrawer />
-
+		<DrawerContainer />
 		<div id="app" class="bg-theme-background-primary max-w-screen min-h-screen">
 			<PageHeader />
 			<slot />
@@ -21,6 +19,7 @@ import {
 	provideClient,
 } from '@urql/vue'
 import { SubscriptionClient } from 'subscriptions-transport-ws'
+import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
 
 useMeta({
 	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
