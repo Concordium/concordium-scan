@@ -32,7 +32,7 @@ export const useDrawer = () => {
 			softReset()
 		}
 	})
-	// Soft reset of counter, which closes to drawer, but can still be navigated to with "forward"-button on mouse.
+	// Soft reset of counter, which closes the drawer, but can still be navigated to with "forward"-button on mouse.
 	const softReset = () => {
 		router.push({ query: {} })
 		currentDrawerCount.value = 0
@@ -42,11 +42,9 @@ export const useDrawer = () => {
 		drawerState.value.items = []
 		currentDrawerCount.value = 0
 	}
-	const currentTopItem = computed(() => {
-		if (drawerState && drawerState.value && drawerState.value.items.length > 0)
-			return drawerState.value.items[currentDrawerCount.value - 1]
-		return undefined
-	})
+	const currentTopItem = computed(
+		() => drawerState?.value?.items[currentDrawerCount.value - 1]
+	)
 
 	const push = (entityTypeName: string, hash: string, id: string) => {
 		const item = { entityTypeName, hash, id }

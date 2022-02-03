@@ -3,11 +3,10 @@
 		<DrawerTitle v-if="props.block" class="font-mono">
 			<div v-if="$route.name != 'blocks-blockHash'" class="inline">
 				<LinkButton
-					:class="$style.numerical"
+					class="numerical"
 					@click="drawer.push('block', props.block?.blockHash, props.block.id)"
 				>
 					{{ props.block?.blockHash.substring(0, 6) }}
-					<!--<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />-->
 				</LinkButton>
 			</div>
 			<div v-else class="inline">

@@ -21,7 +21,7 @@
 				<h3>Search hits:</h3>
 				<LinkButton
 					v-if="queryData.search.blocks.length > 0"
-					:class="$style.numerical"
+					class="numerical"
 					@click="
 						drawer.push(
 							'block',
@@ -33,7 +33,7 @@
 				</LinkButton>
 				<LinkButton
 					v-if="queryData.search.transactions.length > 0"
-					:class="$style.numerical"
+					class="numerical"
 					@click="
 						drawer.push(
 							'transaction',

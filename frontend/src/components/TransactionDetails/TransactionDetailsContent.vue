@@ -3,7 +3,7 @@
 		<DrawerTitle v-if="props.transaction" class="font-mono">
 			<div v-if="$route.name != 'transactions-transactionHash'" class="inline">
 				<LinkButton
-					:class="$style.numerical"
+					class="numerical"
 					@click="
 						drawer.push(
 							'transaction',
@@ -13,7 +13,6 @@
 					"
 				>
 					{{ props.transaction?.transactionHash.substring(0, 6) }}
-					<!--<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />-->
 				</LinkButton>
 			</div>
 			<div v-else class="inline">
@@ -35,7 +34,7 @@
 					</template>
 					<template #secondary>
 						<LinkButton
-							:class="$style.numerical"
+							class="numerical"
 							@click="
 								drawer.push(
 									'block',

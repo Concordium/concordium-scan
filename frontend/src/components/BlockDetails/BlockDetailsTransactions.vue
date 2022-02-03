@@ -26,7 +26,7 @@
 					<TableTd class="numerical">
 						<HashtagIcon class="h-4 text-theme-white inline align-baseline" />
 						<LinkButton
-							:class="$style.numerical"
+							class="numerical"
 							@click="
 								drawer.push(
 									'transaction',
@@ -66,6 +66,7 @@ import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/pageInfo'
+import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {
 	transactions: Transaction[]
@@ -73,5 +74,6 @@ type Props = {
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
+const drawer = useDrawer()
 defineProps<Props>()
 </script>

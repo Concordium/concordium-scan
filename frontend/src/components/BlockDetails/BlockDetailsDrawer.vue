@@ -1,16 +1,12 @@
 <template>
-	<Drawer :is-open="!!props.id" :on-close="() => softReset()"
-		><!--TODO: :on-close="() => (props.id = '')"-->
+	<Drawer :is-open="!!props.id" :on-close="() => softReset()">
 		<template #content>
 			<BlockDetailsContainer :id="props.id" />
 		</template>
 
 		<template #actions>
 			<DrawerActions>
-				<Button class="self-end" :on-click="() => softReset()"
-					><!--TODO: :on-click="() => (props.id = '')" -->
-					Close
-				</Button>
+				<Button class="self-end" :on-click="() => softReset()"> Close </Button>
 			</DrawerActions>
 		</template>
 	</Drawer>

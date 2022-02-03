@@ -35,7 +35,7 @@
 						</TableTd>
 						<TableTd>
 							<LinkButton
-								:class="$style.numerical"
+								class="numerical"
 								@click="
 									() => {
 										drawer.push('block', block.blockHash, block.id)
