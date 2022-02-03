@@ -14,6 +14,11 @@
 			<div v-else class="inline">
 				{{ props.block?.blockHash.substring(0, 6) }}
 			</div>
+			<TextCopy
+				:text="props.block?.blockHash"
+				label="Click to copy block hash to clipboard"
+				class="h-5 inline align-baseline mr-3"
+			/>
 			<Badge :type="props.block?.finalized ? 'success' : 'failure'">
 				{{ props.block?.finalized ? 'Finalised' : 'Rejected' }}
 			</Badge>
@@ -79,6 +84,7 @@ import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
+import TextCopy from '~/components/atoms/TextCopy.vue'
 import Accordion from '~/components/Accordion.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'

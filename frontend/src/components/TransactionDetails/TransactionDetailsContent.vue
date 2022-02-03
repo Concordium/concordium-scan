@@ -15,6 +15,12 @@
 				{{ props.transaction?.transactionHash.substring(0, 6) }}
 			</div>
 
+			<TextCopy
+				:text="props.transaction?.transactionHash"
+				label="Click to copy transaction hash to clipboard"
+				class="h-5 inline align-baseline mr-3"
+			/>
+
 			<Badge
 				:type="props.transaction?.result.successful ? 'success' : 'failure'"
 			>
@@ -93,6 +99,7 @@ import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
+import TextCopy from '~/components/atoms/TextCopy.vue'
 import Accordion from '~/components/Accordion.vue'
 import TransactionEventList from '~/components/TransactionEventList.vue'
 import {
