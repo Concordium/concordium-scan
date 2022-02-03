@@ -12,7 +12,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { ClipboardCopyIcon } from '@heroicons/vue/solid'
+import { ClipboardCopyIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
