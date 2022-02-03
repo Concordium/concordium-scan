@@ -2,14 +2,19 @@
 	<div>
 		<DrawerTitle v-if="props.transaction" class="font-mono">
 			<div v-if="$route.name != 'transactions-transactionHash'" class="inline">
-				<DetailsLinkButton
-					:id="props.transaction.id"
-					entity="transaction"
-					:hash="props.transaction?.transactionHash"
+				<LinkButton
+					:class="$style.numerical"
+					@click="
+						drawer.push(
+							'transaction',
+							props.transaction?.transactionHash,
+							props.transaction.id
+						)
+					"
 				>
 					{{ props.transaction?.transactionHash.substring(0, 6) }}
-					<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />
-				</DetailsLinkButton>
+					<!--<DocumentSearchIcon class="h-5 inline align-baseline mr-3" />-->
+				</LinkButton>
 			</div>
 			<div v-else class="inline">
 				{{ props.transaction?.transactionHash.substring(0, 6) }}
@@ -29,13 +34,8 @@
 						{{ props.transaction?.block.blockHeight }}
 					</template>
 					<template #secondary>
-						<DetailsLinkButton
-							entity="block"
-							:hash="props.transaction?.block.blockHash"
-						>
-							{{ props.transaction?.block.blockHash.substring(0, 6) }}
-						</DetailsLinkButton>
-						<a
+						<LinkButton
+							:class="$style.numerical"
 							@click="
 								drawer.push(
 									'block',
@@ -43,8 +43,9 @@
 									props.transaction?.block.id
 								)
 							"
-							>in drawer</a
 						>
+							{{ props.transaction?.block.blockHash.substring(0, 6) }}
+						</LinkButton>
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.block.blockSlotTime">
@@ -95,7 +96,7 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon, DocumentSearchIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'

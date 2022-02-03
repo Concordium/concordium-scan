@@ -19,23 +19,31 @@
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
 				<h3>Search hits:</h3>
-				<DetailsLinkButton
+				<LinkButton
 					v-if="queryData.search.blocks.length > 0"
-					:id="queryData.search.blocks[0].id"
-					entity="block"
-					:hash="queryData.search.blocks[0].blockHash"
-					>Block {{ queryData.search.blocks[0].blockHash }}</DetailsLinkButton
-				>
-				<DetailsLinkButton
+					:class="$style.numerical"
+					@click="
+						drawer.push(
+							'block',
+							queryData.search.blocks[0].blockHash,
+							queryData.search.blocks[0].id
+						)
+					"
+					>Block {{ queryData.search.blocks[0].blockHash }}
+				</LinkButton>
+				<LinkButton
 					v-if="queryData.search.transactions.length > 0"
-					:id="queryData.search.transactions[0].id"
-					entity="transaction"
-					:hash="queryData.search.transactions[0].transactionHash"
+					:class="$style.numerical"
+					@click="
+						drawer.push(
+							'transaction',
+							queryData.search.transactions[0].transactionHash,
+							queryData.search.transactions[0].id
+						)
+					"
 					>Transaction
-					{{
-						queryData.search.transactions[0].transactionHash
-					}}</DetailsLinkButton
-				>
+					{{ queryData.search.transactions[0].transactionHash }}
+				</LinkButton>
 			</div>
 		</div>
 		<button :class="$style.button">
@@ -47,16 +55,17 @@
 <script lang="ts" setup>
 import { SearchIcon } from '@heroicons/vue/outline/index.js'
 import { useSearchQuery } from '~/queries/useSearchQuery'
-import DetailsLinkButton from '~/components/molecules/DetailsLinkButton.vue'
 import {
 	useEntityNavigator,
 	EntityType,
 } from '~/composables/useEntityNavigator'
+import { useDrawer } from '~/composables/useDrawer'
 const { goto } = useEntityNavigator()
 const searchValue = ref('')
 const delayedSearchValue = ref('')
 const { data: queryData } = useSearchQuery(delayedSearchValue)
 let searchQueryTimeout: NodeJS.Timeout | null = null
+const drawer = useDrawer()
 watch(searchValue, (newValue, _oldValue) => {
 	if (searchQueryTimeout) clearTimeout(searchQueryTimeout)
 	if (!newValue) delayedSearchValue.value = newValue

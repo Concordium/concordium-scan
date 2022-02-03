@@ -80,7 +80,6 @@ import { useDrawer } from '~/composables/useDrawer'
 
 const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
 	usePagedData<Block>()
-
 const newItems = ref(0)
 const subscriptionHandler = (
 	_prevData: void,

@@ -34,6 +34,7 @@ export const useDrawer = () => {
 	})
 	// Soft reset of counter, which closes to drawer, but can still be navigated to with "forward"-button on mouse.
 	const softReset = () => {
+		router.push({ query: {} })
 		currentDrawerCount.value = 0
 	}
 	// 'Hard' reset of both the counter and the data. Which is used when we need to discard the old drawer
@@ -56,5 +57,5 @@ export const useDrawer = () => {
 	const getItems = () => {
 		return drawerState.value.items
 	}
-	return { push, getItems, currentTopItem }
+	return { push, getItems, currentTopItem, softReset }
 }

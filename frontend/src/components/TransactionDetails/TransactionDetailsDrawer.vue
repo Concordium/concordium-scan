@@ -1,12 +1,12 @@
 <template>
-	<Drawer :is-open="!!props.id"
+	<Drawer :is-open="!!props.id" :on-close="() => softReset()"
 		><!--TODO: :on-close="() => (props.id = '')"-->
 		<template #content>
 			<TransactionDetailsContainer :id="props.id" />
 		</template>
 		<template #actions>
 			<DrawerActions>
-				<Button class="self-end">
+				<Button class="self-end" :on-click="() => softReset()">
 					<!--TODO:  :on-click="() => (props.id = '')"  -->
 					Close
 				</Button>
@@ -18,6 +18,7 @@
 <script lang="ts" setup>
 import TransactionDetailsContainer from './TransactionDetailsContainer.vue'
 import Drawer from '~/components/Drawer/Drawer.vue'
+const { softReset } = useDrawer()
 type Props = {
 	id: string
 }
