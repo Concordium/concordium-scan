@@ -42,3 +42,13 @@ resource "azurerm_subnet" "backend" {
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.1.0/24"]
 }
+
+data "azurerm_key_vault" "ccscan" {
+  name                = "ccscan"
+  resource_group_name = "ccscan-key-vault"
+}
+
+data "azurerm_container_registry" "ccscan" {
+  name                = "ccscan"
+  resource_group_name = "ccscan-docker-registry"
+}

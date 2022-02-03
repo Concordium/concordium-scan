@@ -1,5 +1,6 @@
 import { useQuery, gql } from '@urql/vue'
 import type { Block } from '~/types/blocks'
+import type { QueryVariables } from '~/types/queryVariables'
 
 type BlockResponse = {
 	block: Block
@@ -8,7 +9,7 @@ type BlockByBlockHashResponse = {
 	blockByBlockHash: Block
 }
 const BlockQuery = gql<BlockResponse>`
-	query ($id: ID!) {
+	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		block(id: $id) {
 			id
 			blockHash
@@ -16,7 +17,7 @@ const BlockQuery = gql<BlockResponse>`
 			blockSlotTime
 			finalized
 			transactionCount
-			transactions {
+			transactions(after: $after, before: $before, first: $first, last: $last) {
 				nodes {
 					id
 					transactionHash
@@ -25,6 +26,12 @@ const BlockQuery = gql<BlockResponse>`
 					result {
 						successful
 					}
+				}
+				pageInfo {
+					startCursor
+					endCursor
+					hasPreviousPage
+					hasNextPage
 				}
 			}
 			specialEvents {
@@ -58,7 +65,13 @@ const BlockQuery = gql<BlockResponse>`
 `
 
 const BlockQueryByHash = gql<BlockByBlockHashResponse>`
-	query ($hash: String!) {
+	query (
+		$hash: String!
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		blockByBlockHash(blockHash: $hash) {
 			id
 			blockHash
@@ -66,7 +79,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 			blockSlotTime
 			finalized
 			transactionCount
-			transactions {
+			transactions(after: $after, before: $before, first: $first, last: $last) {
 				nodes {
 					id
 					transactionHash
@@ -75,6 +88,12 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					result {
 						successful
 					}
+				}
+				pageInfo {
+					startCursor
+					endCursor
+					hasPreviousPage
+					hasNextPage
 				}
 			}
 			specialEvents {
@@ -106,23 +125,28 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 		}
 	}
 `
-export const useBlockQueryByHash = (hash: string) => {
+export const useBlockQueryByHash = (
+	hash: string,
+	eventsVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: BlockQueryByHash,
 		requestPolicy: 'cache-first',
 		variables: {
 			hash,
+			...eventsVariables,
 		},
 	})
 	return { data }
 }
 
-export const useBlockQuery = (id: string) => {
+export const useBlockQuery = (id: string, eventsVariables?: QueryVariables) => {
 	const { data } = useQuery({
 		query: BlockQuery,
 		requestPolicy: 'cache-first',
 		variables: {
 			id,
+			...eventsVariables,
 		},
 	})
 

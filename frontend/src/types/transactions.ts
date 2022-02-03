@@ -1,4 +1,5 @@
 import type { Block } from './blocks'
+import type { PageInfo } from './pageInfo'
 
 type AccountTransactionTypes =
 	| 'DEPLOY_MODULE'
@@ -99,6 +100,8 @@ type TransactionSuccessful = {
 	successful: true
 	events: {
 		nodes: TransactionSuccessfulEvent[]
+		totalCount: number
+		pageInfo: PageInfo
 	}
 }
 

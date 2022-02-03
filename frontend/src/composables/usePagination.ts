@@ -1,6 +1,6 @@
 import type { PageInfo } from '~/types/pageInfo'
 
-const PAGE_SIZE = 25
+export const PAGE_SIZE = 25
 
 export type PaginationTarget = 'first' | 'previous' | 'next'
 
@@ -9,10 +9,10 @@ export type PaginationTarget = 'first' | 'previous' | 'next'
  * Returns query variables and a curried navigation handler
  */
 export const usePagination = () => {
-	const afterCursor = ref<string | undefined>(undefined)
-	const beforeCursor = ref<string | undefined>(undefined)
-	const paginateFirst = ref<number | undefined>(PAGE_SIZE)
-	const paginateLast = ref<number | undefined>(undefined)
+	const after = ref<string | undefined>(undefined)
+	const before = ref<string | undefined>(undefined)
+	const first = ref<number | undefined>(PAGE_SIZE)
+	const last = ref<number | undefined>(undefined)
 
 	/**
 	 * CURRIED: Navigation handler to modify query variables
@@ -20,19 +20,19 @@ export const usePagination = () => {
 	 * @param { PaginationTarget } - The target (e.g. "next")
 	 */
 	const goToPage = (pageInfo: PageInfo) => (target: PaginationTarget) => {
-		afterCursor.value = undefined
-		beforeCursor.value = undefined
-		paginateLast.value = undefined
-		paginateFirst.value = undefined
+		after.value = undefined
+		before.value = undefined
+		first.value = undefined
+		last.value = undefined
 
 		if (target === 'first') {
-			paginateFirst.value = PAGE_SIZE
+			first.value = PAGE_SIZE
 		} else if (target === 'previous' && pageInfo.hasPreviousPage) {
-			beforeCursor.value = pageInfo.startCursor
-			paginateLast.value = PAGE_SIZE
+			before.value = pageInfo.startCursor
+			last.value = PAGE_SIZE
 		} else if (target === 'next' && pageInfo.endCursor) {
-			afterCursor.value = pageInfo.endCursor
-			paginateFirst.value = PAGE_SIZE
+			after.value = pageInfo.endCursor
+			first.value = PAGE_SIZE
 		} else {
 			// eslint-disable-next-line no-console
 			console.error('Incorrect pagination arguments:', { target, ...pageInfo })
@@ -40,10 +40,10 @@ export const usePagination = () => {
 	}
 
 	return {
-		afterCursor,
-		beforeCursor,
-		paginateFirst,
-		paginateLast,
+		after,
+		before,
+		first,
+		last,
 		goToPage,
 	}
 }

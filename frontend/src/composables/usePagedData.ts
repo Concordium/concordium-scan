@@ -1,20 +1,21 @@
 import { Ref } from 'vue'
 import type { PageInfo } from '~/types/pageInfo'
 
-const PAGE_SIZE = 25
+export const PAGE_SIZE = 25
 export const MAX_PAGE_SIZE = 50
 
 /**
  * Hook to control pagination state and actions
  * Returns query variables and a curried navigation handler
  */
-export const usePagedData = <PageData>() => {
-	const pagedData = ref<PageData[]>([]) as Ref<PageData[]>
+export const usePagedData = <PageData>(initialData: PageData[] = []) => {
+	const pagedData = ref<PageData[]>(initialData) as Ref<PageData[]>
 	const intention = ref<'fetchNew' | 'loadMore' | 'refresh'>('loadMore')
 
 	const first = ref<number | undefined>(PAGE_SIZE)
 	const last = ref<number | undefined>(undefined)
 	const after = ref<string | undefined>(undefined)
+	const before = ref<string | undefined>(undefined)
 
 	// Persist the afterCursor of the last page after fetching new from the top
 	const lastAfterCursor = ref<string | undefined>(undefined)
@@ -66,6 +67,7 @@ export const usePagedData = <PageData>() => {
 		first,
 		last,
 		after,
+		before,
 		pagedData,
 		addPagedData,
 		fetchNew,

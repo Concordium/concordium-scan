@@ -47,6 +47,7 @@ export type Block = {
 	transactionCount: number
 	transactions: {
 		nodes: Transaction[]
+		pageInfo: PageInfo
 	}
 	specialEvents: SpecialEvents
 }

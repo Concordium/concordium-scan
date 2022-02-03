@@ -82,12 +82,15 @@
 					v-if="props.transaction?.result.successful"
 					class="text-theme-faded ml-1"
 				>
-					({{ props.transaction?.result.events?.nodes.length }})
+					({{ props.transaction?.result.events?.totalCount }})
 				</span>
 				<template #content>
 					<TransactionEventList
 						v-if="props.transaction?.result.successful"
 						:events="props.transaction.result.events?.nodes"
+						:total-count="props.transaction?.result.events?.totalCount"
+						:page-info="props.transaction.result.events?.pageInfo"
+						:go-to-page="props.goToPage"
 					/>
 				</template>
 			</Accordion>
@@ -110,11 +113,17 @@ import {
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 import { useDrawer } from '~/composables/useDrawer'
+import type { PageInfo } from '~/types/pageInfo'
+import type { PaginationTarget } from '~/composables/usePagination'
+
 const selectedTxId = useTransactionDetails()
 const drawer = useDrawer()
+
 type Props = {
 	transaction: Transaction
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
+
 const props = defineProps<Props>()
 const route = useRoute()
 // Since this is used in both the drawer and other places, this is a quick way to make sure the drawer closes on route change.

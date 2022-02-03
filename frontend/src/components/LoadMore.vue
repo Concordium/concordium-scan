@@ -1,6 +1,8 @@
 <template>
 	<nav class="flex justify-center py-8">
-		<Button :on-click="handleLoadMore">Load more</Button>
+		<Button :on-click="handleLoadMore" :disabled="!props.pageInfo.hasNextPage">
+			Load more
+		</Button>
 	</nav>
 </template>
 

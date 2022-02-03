@@ -1,5 +1,6 @@
 import { useQuery, gql } from '@urql/vue'
 import type { Transaction } from '~/types/transactions'
+import type { QueryVariables } from '~/types/queryVariables'
 
 type TransactionResponse = {
 	transaction: Transaction
@@ -9,7 +10,7 @@ type TransactionByTransactionHashResponse = {
 }
 
 const TransactionQuery = gql<TransactionResponse>`
-	query ($id: ID!) {
+	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		transaction(id: $id) {
 			id
 			ccdCost
@@ -24,7 +25,7 @@ const TransactionQuery = gql<TransactionResponse>`
 			result {
 				successful
 				... on Successful {
-					events {
+					events(after: $after, before: $before, first: $first, last: $last) {
 						nodes {
 							__typename
 							... on Transferred {
@@ -59,6 +60,13 @@ const TransactionQuery = gql<TransactionResponse>`
 								regId
 								accountAddress
 							}
+						}
+						totalCount
+						pageInfo {
+							startCursor
+							endCursor
+							hasPreviousPage
+							hasNextPage
 						}
 					}
 				}
@@ -80,7 +88,13 @@ const TransactionQuery = gql<TransactionResponse>`
 `
 
 const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
-	query ($hash: String!) {
+	query (
+		$hash: String!
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		transactionByTransactionHash(transactionHash: $hash) {
 			id
 			ccdCost
@@ -95,7 +109,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			result {
 				successful
 				... on Successful {
-					events {
+					events(after: $after, before: $before, first: $first, last: $last) {
 						nodes {
 							__typename
 							... on Transferred {
@@ -131,6 +145,13 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 								accountAddress
 							}
 						}
+						totalCount
+						pageInfo {
+							startCursor
+							endCursor
+							hasPreviousPage
+							hasNextPage
+						}
 					}
 				}
 			}
@@ -149,24 +170,32 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 		}
 	}
 `
-export const useTransactionQueryByHash = (hash: string) => {
+export const useTransactionQueryByHash = (
+	hash: string,
+	eventsVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: TransactionQueryByHash,
 		requestPolicy: 'cache-first',
 		variables: {
 			hash,
+			...eventsVariables,
 		},
 	})
 
 	return { data }
 }
 
-export const useTransactionQuery = (id: string) => {
+export const useTransactionQuery = (
+	id: string,
+	eventsVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: TransactionQuery,
 		requestPolicy: 'cache-first',
 		variables: {
 			id,
+			...eventsVariables,
 		},
 	})
 

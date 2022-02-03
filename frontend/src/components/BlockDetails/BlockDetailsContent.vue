@@ -59,58 +59,12 @@
 					({{ props.block?.transactionCount }})
 				</span>
 				<template #content>
-					<Table>
-						<TableHead>
-							<TableRow>
-								<TableTh>Status</TableTh>
-								<TableTh>Transaction hash</TableTh>
-								<TableTh>Sender</TableTh>
-								<TableTh align="right">Cost (Ͼ)</TableTh>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							<TableRow
-								v-for="transaction in props.block?.transactions.nodes"
-								:key="transaction.transactionHash"
-							>
-								<TableTd>
-									<StatusCircle
-										:class="[
-											'h-4 mr-2 text-theme-interactive',
-											{ 'text-theme-error': !transaction.result.successful },
-										]"
-									/>
-									{{ transaction.result.successful ? 'Success' : 'Rejected' }}
-								</TableTd>
-								<TableTd :class="$style.numerical">
-									<HashtagIcon :class="$style.cellIcon" />
-
-									<LinkButton
-										:class="$style.numerical"
-										@click="
-											drawer.push(
-												'transaction',
-												transaction.transactionHash,
-												transaction.id
-											)
-										"
-									>
-										{{ transaction.transactionHash.substring(0, 6) }}
-									</LinkButton>
-								</TableTd>
-								<TableTd :class="$style.numerical">
-									<UserIcon
-										v-if="transaction.senderAccountAddress"
-										:class="$style.cellIcon"
-									/>
-									{{ transaction.senderAccountAddress?.substring(0, 6) }}
-								</TableTd>
-								<TableTd align="right" :class="$style.numerical">
-									{{ convertMicroCcdToCcd(transaction.ccdCost) }}
-								</TableTd>
-							</TableRow>
-						</TableBody>
-					</Table>
+					<BlockDetailsTransactions
+						:transactions="props.block?.transactions.nodes"
+						:total-count="props.block?.transactionCount"
+						:page-info="props.block.transactions?.pageInfo"
+						:go-to-page="props.goToPage"
+					/>
 				</template>
 			</Accordion>
 		</DrawerContent>
@@ -118,7 +72,7 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
@@ -127,15 +81,14 @@ import Accordion from '~/components/Accordion.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
+import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'
-import {
-	convertTimestampToRelative,
-	convertMicroCcdToCcd,
-} from '~/utils/format'
-import { useDrawer } from '~/composables/useDrawer'
+import type { PageInfo } from '~/types/pageInfo'
+import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {
 	block: Block
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 const drawer = useDrawer()
 const props = defineProps<Props>()
@@ -144,13 +97,6 @@ const NOW = new Date()
 </script>
 
 <style module>
-.statusIcon {
-	@apply h-4 mr-2 text-theme-interactive;
-}
-.cellIcon {
-	@apply h-4 text-theme-white inline align-baseline;
-}
-
 .numerical {
 	@apply font-mono;
 	font-variant-ligatures: none;

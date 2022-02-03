@@ -2,12 +2,6 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
-			<div class="h-20">
-				<div v-if="newItems > 0">
-					New transactions available: {{ newItems }}
-					<Button :on-click="refetch">Update</Button>
-				</div>
-			</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -21,6 +15,11 @@
 					</TableRow>
 				</TableHead>
 				<TableBody>
+					<TableRow>
+						<TableTd colspan="6" align="center" class="p-0 tdlol">
+							<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
+						</TableTd>
+					</TableRow>
 					<TableRow
 						v-for="transaction in pagedData"
 						:key="transaction.transactionHash"

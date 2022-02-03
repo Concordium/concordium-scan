@@ -4,7 +4,7 @@ resource "azurerm_postgresql_server" "this" {
   resource_group_name = azurerm_resource_group.this.name
 
   administrator_login          = local.postgres_user
-  administrator_login_password = local.postgres_password
+  administrator_login_password = data.azurerm_key_vault_secret.postgres-password.value
 
   sku_name   = "B_Gen5_1"
   version    = "11"
@@ -28,4 +28,9 @@ resource "azurerm_postgresql_firewall_rule" "vm" {
   server_name         = azurerm_postgresql_server.this.name
   start_ip_address    = azurerm_public_ip.vm.ip_address
   end_ip_address      = azurerm_public_ip.vm.ip_address
+}
+
+data "azurerm_key_vault_secret" "postgres-password" {
+  name         = "${local.environment}-postgres-password"
+  key_vault_id = data.azurerm_key_vault.ccscan.id
 }

@@ -106,12 +106,28 @@ resource "azurerm_application_gateway" "this" {
     pick_host_name_from_backend_http_settings = true
   }
 
-  # TODO: Bootstrap cert and password should be retreived as a secret from Azure key vault
   ssl_certificate {
       name = "ssl"
-      data = filebase64("bootstrap-cert-${local.environment}.pfx")
-      password = "poshacme"
+      data = data.azurerm_key_vault_secret.ssl-cert-data.value
+      password = data.azurerm_key_vault_secret.ssl-cert-password.value
   }
+}
+
+## -------------------------------------------------------------------------
+## A bootstrap ssl-cert pfx must exist for the given environment in
+## the key vault. Scripts for generating a bootstrap SSL cert and 
+## push it to key vault is found here:
+##
+## ..\scripts\GenerateBootstrapSslCertAndPushToKeyVault.ps1
+## -------------------------------------------------------------------------
+data "azurerm_key_vault_secret" "ssl-cert-data" {
+  name         = "${local.environment}-sslcert-pfx"
+  key_vault_id = data.azurerm_key_vault.ccscan.id
+}
+
+data "azurerm_key_vault_secret" "ssl-cert-password" {
+  name         = "${local.environment}-sslcert-pfx-password"
+  key_vault_id = data.azurerm_key_vault.ccscan.id
 }
 
 resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "vm" {
