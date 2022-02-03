@@ -52,6 +52,12 @@
 
 	/* 2.4 Table Palette */
 	--color-thead-bg: hsl(246, 40%, 21%);
+
+	/* 2.5 Tooltip Palette */
+	--color-tooltip-bg: hsl(247deg, 39%, 12%);
+
+	/* 2.5 Tooltip Palette */
+	--color-shadow-dark: hsl(247, 40%, 8%);
 }
 
 ::selection {

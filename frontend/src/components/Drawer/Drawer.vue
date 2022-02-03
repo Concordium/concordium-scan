@@ -64,7 +64,7 @@ watch(
 .drawer {
 	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20;
 	background: hsl(247, 40%, 18%);
-	box-shadow: -25px 0 50px -12px hsl(247, 40%, 8%);
+	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
 }
 
 .drawerMask {
