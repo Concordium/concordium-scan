@@ -17,14 +17,16 @@ public class ImportController : BackgroundService
     private readonly BlockRepository _repository;
     private readonly IFeatureFlags _featureFlags;
     private readonly DataUpdateController _dataUpdateController;
+    private readonly MetricsUpdateController _metricsUpdateController;
     private readonly ILogger _logger;
 
-    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController)
+    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController, MetricsUpdateController metricsUpdateController)
     {
         _client = client;
         _repository = repository;
         _featureFlags = featureFlags;
         _dataUpdateController = dataUpdateController;
+        _metricsUpdateController = metricsUpdateController;
         _logger = Log.ForContext(GetType());
     }
 
@@ -102,6 +104,7 @@ public class ImportController : BackgroundService
             // TODO: Publish result - for now just write directly to db
             _repository.Insert(blockInfo, blockSummaryString, blockSummary);
             await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary);
+            await _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary);
 
             _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 

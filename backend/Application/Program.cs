@@ -45,6 +45,7 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
 builder.Services.AddSingleton<DataUpdateController>();
+builder.Services.AddSingleton<MetricsUpdateController>();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<IFeatureFlags, SqlFeatureFlags>();

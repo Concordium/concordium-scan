@@ -205,7 +205,7 @@ public class DataUpdateController
             BlockId = block.Id,
             TransactionIndex = value.Index,
             TransactionHash = value.Hash.AsString,
-            TransactionType = MapTransactionType(value.Type),
+            TransactionType = TransactionTypeUnion.CreateFrom(value.Type),
             SenderAccountAddress = value.Sender?.AsString,
             CcdCost = value.Cost.MicroCcdValue,
             EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
@@ -261,17 +261,6 @@ public class DataUpdateController
             ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
             ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
             _ => throw new NotImplementedException("Reject reason not mapped!")
-        };
-    }
-
-    private TransactionTypeUnion MapTransactionType(TransactionType value)
-    {
-        return value switch
-        {
-            TransactionType<AccountTransactionType> x => new AccountTransaction { AccountTransactionType = x.Type },
-            TransactionType<CredentialDeploymentTransactionType> x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.Type },
-            TransactionType<UpdateTransactionType> x => new UpdateTransaction { UpdateTransactionType = x.Type },
-            _ => throw new NotSupportedException($"Cannot map this transaction type")
         };
     }
 
