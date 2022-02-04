@@ -55,12 +55,7 @@
 <script lang="ts" setup>
 import { SearchIcon } from '@heroicons/vue/outline/index.js'
 import { useSearchQuery } from '~/queries/useSearchQuery'
-import {
-	useEntityNavigator,
-	EntityType,
-} from '~/composables/useEntityNavigator'
 import { useDrawer } from '~/composables/useDrawer'
-const { goto } = useEntityNavigator()
 const searchValue = ref('')
 const delayedSearchValue = ref('')
 const { data: queryData } = useSearchQuery(delayedSearchValue)
@@ -87,16 +82,16 @@ const gotoSearchResult = () => {
 		(queryData.value.search.transactions[0] || queryData.value.search.blocks[0])
 	) {
 		if (queryData.value.search.transactions[0])
-			goto(
-				EntityType.Transaction,
+			drawer.push(
+				'transaction',
 				queryData.value.search.transactions[0].id,
 				queryData.value.search.transactions[0].transactionHash
 			)
 		else if (queryData.value.search.blocks[0])
-			goto(
-				EntityType.Block,
-				queryData.value.search.blocks[0].id,
-				queryData.value.search.blocks[0].blockHash
+			drawer.push(
+				'block',
+				queryData.value.search.blocks[0].blockHash,
+				queryData.value.search.blocks[0].id
 			)
 
 		searchValue.value = ''
