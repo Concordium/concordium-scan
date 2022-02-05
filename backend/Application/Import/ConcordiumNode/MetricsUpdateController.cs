@@ -38,7 +38,7 @@ public class MetricsUpdateController
         {
             Time = blockInfo.BlockSlotTime,
             TransactionType = TransactionTypeUnion.CreateFrom(txs.Type).ToCompactString(),
-            MicroCcdCost = txs.Cost.MicroCcdValue,
+            MicroCcdCost = Convert.ToInt64(txs.Cost.MicroCcdValue),
             Success = txs.Result is TransactionSuccessResult
         }).ToArray();
 
