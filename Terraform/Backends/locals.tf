@@ -17,7 +17,7 @@ locals {
 
   vm_admin_user = "concNodeVMuser"
 
-  postgres_hostname = "pg-ss"
+  postgres_hostname = "postgres-ss-ccdscan-${local.environment}" # must be globally unique on Azure
   postgres_user = "postgres"
 
   vm_entrypoint_script = templatefile("${path.cwd}/content/entrypoint.tpl", {

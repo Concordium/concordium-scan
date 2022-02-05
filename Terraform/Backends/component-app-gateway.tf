@@ -141,7 +141,7 @@ resource "azurerm_network_interface_application_gateway_backend_address_pool_ass
 }
 
 resource "azurerm_automation_account" "this" {
-  name                = "automation-account"
+  name                = "automation-account-${local.environment}"
   location            = azurerm_resource_group.this.location
   resource_group_name = azurerm_resource_group.this.name
 
@@ -234,7 +234,7 @@ locals {
   #       ID here afterwards and run again to set access permissions.
   #       (https://github.com/hashicorp/terraform-provider-azurerm/issues/11503)
   #       (https://github.com/hashicorp/terraform-provider-azurerm/pull/15072) seems this will be added in v2.96.0
-  automation_account_system_assigned_user_identity_principal_id = "a718ac29-8c4f-4712-961b-6e6dc968aaaa"
+  automation_account_system_assigned_user_identity_principal_id = "df547db4-6f83-41b5-ad09-f871e792e9a5"
 }
 
 resource "azurerm_role_assignment" "automation-account-key-vault-sslcert-pfx-password" {
