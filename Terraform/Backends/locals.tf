@@ -1,13 +1,18 @@
 locals {
   environment = terraform.workspace
   envs = {
-      "test": {
-          resource_group_name = "ccscan-env-test"
-          azure_vm_size = "Standard_B4ms"
-          container_repository_backend = "backend.test"
-          public_host_name_mainnet_backend = "mainnet.test-api.ccdscan.io"
-          public_host_name_testnet_backend = "testnet.test-api.ccdscan.io"
-      }
+    "dev": {
+        resource_group_name = "ccscan-env-dev"
+        azure_vm_size = "Standard_B4ms"
+        container_repository_backend = "backend.dev"
+        domain_name = "dev-api.ccdscan.io"
+    }
+    "test": {
+        resource_group_name = "ccscan-env-test"
+        azure_vm_size = "Standard_B4ms"
+        container_repository_backend = "backend.test"
+        domain_name = "test-api.ccdscan.io"
+    }
   }
 
   vm_admin_user = "concNodeVMuser"
@@ -15,7 +20,7 @@ locals {
   postgres_hostname = "pg-ss"
   postgres_user = "postgres"
 
-  vm_entrypoint_script = templatefile("${path.cwd}/entrypoint.tpl", {
+  vm_entrypoint_script = templatefile("${path.cwd}/content/entrypoint.tpl", {
     vm_user = local.vm_admin_user
     environment_name = local.environment
     container_repository_backend = local.envs[local.environment].container_repository_backend

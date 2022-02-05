@@ -49,7 +49,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "Conc_P2P"
+    name                       = "ccnode_mainnet_p2p"
     priority                   = 1002
     direction                  = "Inbound"
     access                     = "Allow"
@@ -61,7 +61,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "Conc_P2PTestnet"
+    name                       = "ccnode_testnet_p2p"
     priority                   = 1003
     direction                  = "Inbound"
     access                     = "Allow"
@@ -73,7 +73,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "Conc_GRPC"
+    name                       = "ccnode_mainnet_grpc"
     priority                   = 1004
     direction                  = "Inbound"
     access                     = "Allow"
@@ -85,7 +85,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "Conc_GRPC_test"
+    name                       = "ccnode_testnet_grpc"
     priority                   = 1005
     direction                  = "Inbound"
     access                     = "Allow"
@@ -97,19 +97,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "POSTGRES"
-    priority                   = 1006
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "5432"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "http-server"
+    name                       = "http-mainnet"
     priority                   = 1007
     direction                  = "Inbound"
     access                     = "Allow"
@@ -121,7 +109,7 @@ resource "azurerm_network_security_group" "this" {
   }
 
   security_rule {
-    name                       = "http-server_testnet"
+    name                       = "http-testnet"
     priority                   = 1008
     direction                  = "Inbound"
     access                     = "Allow"
