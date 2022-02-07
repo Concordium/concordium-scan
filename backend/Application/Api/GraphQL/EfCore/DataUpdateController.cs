@@ -18,7 +18,7 @@ public class DataUpdateController
         _sender = sender;
     }
 
-    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary)
+    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
     {
         // TODO: Handle updates later - consider also implementing a replay feature to support migrations?
 
@@ -78,6 +78,14 @@ public class DataUpdateController
 
         await context.SaveChangesAsync();
 
+        var accounts = createdAccounts.Select(x => new Account
+        {
+            Address = x.AccountAddress.AsString,
+            CreatedAt = blockInfo.BlockSlotTime
+        }).ToArray();
+        await context.Accounts.AddRangeAsync(accounts);
+        await context.SaveChangesAsync();
+        
         await tx.CommitAsync();
 
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);

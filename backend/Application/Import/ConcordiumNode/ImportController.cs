@@ -4,6 +4,7 @@ using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Application.Persistence;
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
@@ -101,14 +102,45 @@ public class ImportController : BackgroundService
             var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
             var blockSummary = await blockSummaryTask;
 
+            var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
+            
             // TODO: Publish result - for now just write directly to db
             _repository.Insert(blockInfo, blockSummaryString, blockSummary);
-            await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary);
+            await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts);
             await _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary);
 
             _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 
+            if (createdAccounts.Any())
+                _logger.Information("{count} accounts created", createdAccounts.Length);
             nextHeight++;
+        }
+    }
+
+    private async Task<AccountInfo[]> GetCreatedAccounts(BlockInfo blockInfo, BlockSummary blockSummary)
+    {
+        if (blockInfo.BlockHeight == 0)
+        {
+            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash);
+            var accountInfoTasks = accountList
+                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash))
+                .ToArray();
+            
+            return await Task.WhenAll(accountInfoTasks);
+        }
+        else
+        {
+            var accountsCreated = blockSummary.TransactionSummaries
+                .Select(x => x.Result).OfType<TransactionSuccessResult>()
+                .SelectMany(x => x.Events.OfType<AccountCreated>())
+                .ToArray();
+
+            if (accountsCreated.Length == 0) return Array.Empty<AccountInfo>();
+            
+            var accountInfoTasks = accountsCreated
+                .Select(x => _client.GetAccountInfoAsync(x.Contents, blockInfo.BlockHash))
+                .ToArray();
+            return await Task.WhenAll(accountInfoTasks);
         }
     }
 

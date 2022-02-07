@@ -10,6 +10,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<BlockRelated<BakingReward>> BakingRewards { get; private set; }
     public DbSet<BlockRelated<FinalizationSummaryParty>> FinalizationSummaryFinalizers { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }
+    public DbSet<Account> Accounts { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
@@ -127,6 +128,14 @@ public class GraphQlDbContext : DbContext
         transactionEventBuilder.Property(x => x.TransactionId).HasColumnName("transaction_id");
         transactionEventBuilder.Property(x => x.Index).HasColumnName("index");
         transactionEventBuilder.Property(x => x.Entity).HasColumnName("event").HasColumnType("json").HasConversion<TransactionResultEventToJsonConverter>();
+
+        var accountBuilder = modelBuilder.Entity<Account>()
+            .ToTable("graphql_accounts");
+
+        accountBuilder.HasKey(x => x.Id);
+        accountBuilder.Property(x => x.Id).HasColumnName("id");
+        accountBuilder.Property(x => x.Address).HasColumnName("address");
+        accountBuilder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();;
     }
 }
 

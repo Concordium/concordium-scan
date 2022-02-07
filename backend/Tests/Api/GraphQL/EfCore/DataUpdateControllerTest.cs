@@ -18,6 +18,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
+    private AccountInfo[] _createdAccounts = new AccountInfo[0];
 
     public DataUpdateControllerTest(DatabaseFixture dbFixture)
     {
@@ -1276,6 +1277,25 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         result.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task Account_AccountCreated()
+    {
+        var slotTime = new DateTimeOffset(2020, 10, 01, 12, 0, 15, TimeSpan.Zero);
+        
+        _blockInfoBuilder.WithBlockSlotTime(slotTime);
+
+        _createdAccounts = new [] {
+            new AccountInfo { AccountAddress = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd") }};
+
+        await WriteData();
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var account = await dbContext.Accounts.SingleAsync();
+        account.Id.Should().BeGreaterThan(0);
+        account.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        account.CreatedAt.Should().Be(slotTime);
+    }
+    
     private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : Application.Api.GraphQL.TransactionRejectReason
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
@@ -1307,6 +1327,6 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
     {
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
-        await _target.BlockDataReceived(blockInfo, blockSummary);
+        await _target.BlockDataReceived(blockInfo, blockSummary, _createdAccounts);
     }
 }
