@@ -234,7 +234,8 @@ locals {
   #       ID here afterwards and run again to set access permissions.
   #       (https://github.com/hashicorp/terraform-provider-azurerm/issues/11503)
   #       (https://github.com/hashicorp/terraform-provider-azurerm/pull/15072) seems this will be added in v2.96.0
-  automation_account_system_assigned_user_identity_principal_id = "df547db4-6f83-41b5-ad09-f871e792e9a5"
+#  automation_account_system_assigned_user_identity_principal_id = "df547db4-6f83-41b5-ad09-f871e792e9a5"
+  automation_account_system_assigned_user_identity_principal_id = "c37ae625-b376-47f3-804f-4ba2ca760338"
 }
 
 resource "azurerm_role_assignment" "automation-account-key-vault-sslcert-pfx-password" {

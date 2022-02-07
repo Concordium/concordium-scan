@@ -34,3 +34,14 @@ data "azurerm_key_vault_secret" "postgres-password" {
   name         = "${local.environment}-postgres-password"
   key_vault_id = data.azurerm_key_vault.ccscan.id
 }
+
+resource "azurerm_postgresql_configuration" "timescaledb" {
+  name                = "shared_preload_libraries"
+  resource_group_name = azurerm_resource_group.this.name
+  server_name         = azurerm_postgresql_server.this.name
+  value               = "timescaledb"
+
+  provisioner "local-exec" {
+    command = "az postgres server restart -g ${azurerm_resource_group.this.name} -n ${azurerm_postgresql_server.this.name}"
+  }
+} 
