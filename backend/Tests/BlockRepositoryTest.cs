@@ -67,8 +67,8 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     public void GetMaxBlockHeight_BlocksExist()
     {
         _target.Insert(new BlockInfoBuilder().WithBlockHeight(1).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
-        _target.Insert(new BlockInfoBuilder().WithBlockHeight(3).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
         _target.Insert(new BlockInfoBuilder().WithBlockHeight(2).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
+        _target.Insert(new BlockInfoBuilder().WithBlockHeight(3).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
 
         var result = _target.GetMaxBlockHeight();
         Assert.Equal(3, result);

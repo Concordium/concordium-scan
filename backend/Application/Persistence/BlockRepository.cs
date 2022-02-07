@@ -25,7 +25,9 @@ public class BlockRepository
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        return conn.QuerySingle<int?>("SELECT max(block_height) FROM block");
+        var data = conn.QuerySingleOrDefault("SELECT block_height FROM block order by id desc limit 1");
+        if (data == null) return null; 
+        return (int)data.block_height;
     }
 
     public void Insert(BlockInfo blockInfo, string blockSummaryString, BlockSummary blockSummary)
