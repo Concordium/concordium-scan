@@ -77,9 +77,16 @@ import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 import { useDrawer } from '~/composables/useDrawer'
-
-const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
-	usePagedData<Block>()
+const {
+	pagedData,
+	first,
+	last,
+	after,
+	before,
+	addPagedData,
+	fetchNew,
+	loadMore,
+} = usePagedData<Block>()
 const newItems = ref(0)
 const subscriptionHandler = (
 	_prevData: void,
@@ -87,8 +94,6 @@ const subscriptionHandler = (
 ) => {
 	newItems.value++
 }
-
-const before = ref<string | undefined>(undefined)
 
 useBlockSubscription(subscriptionHandler)
 

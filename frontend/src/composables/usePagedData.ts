@@ -20,6 +20,9 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 	// Persist the afterCursor of the last page after fetching new from the top
 	const lastAfterCursor = ref<string | undefined>(undefined)
 
+	// Persist the top cursor, so we can trigger a new query with the "refresh" action
+	const topCursor = ref<string | undefined>(undefined)
+
 	/**
 	 * Fetches the latest n updates (as a side effect)
 	 * @param { newItemsCount } - Amount of new items to fetch
@@ -30,11 +33,13 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 			first.value = PAGE_SIZE
 			last.value = undefined
 			after.value = undefined
+			before.value = topCursor.value
 		} else {
 			intention.value = 'fetchNew'
 			first.value = newItems
 			last.value = undefined
 			after.value = undefined
+			before.value = undefined
 		}
 	}
 
@@ -46,6 +51,7 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 		first.value = PAGE_SIZE
 		last.value = undefined
 		after.value = lastAfterCursor?.value
+		before.value = undefined
 	}
 
 	const push = (newPage: PageData[]) => [...pagedData.value, ...newPage]
@@ -53,11 +59,14 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 
 	const addPagedData = (newPage: PageData[], newPageInfo?: PageInfo) => {
 		if (intention.value === 'loadMore') {
+			if (!topCursor.value) topCursor.value = newPageInfo?.startCursor
 			lastAfterCursor.value = newPageInfo?.endCursor
 			pagedData.value = push(newPage)
 		} else if (intention.value === 'fetchNew') {
+			topCursor.value = newPageInfo?.startCursor
 			pagedData.value = unshift(newPage)
 		} else if (intention.value === 'refresh') {
+			topCursor.value = newPageInfo?.startCursor
 			lastAfterCursor.value = newPageInfo?.endCursor
 			pagedData.value = newPage
 		}

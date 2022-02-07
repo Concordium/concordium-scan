@@ -93,8 +93,16 @@ import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'
 
-const { pagedData, first, last, after, addPagedData, fetchNew, loadMore } =
-	usePagedData<Transaction>()
+const {
+	pagedData,
+	first,
+	last,
+	after,
+	before,
+	addPagedData,
+	fetchNew,
+	loadMore,
+} = usePagedData<Transaction>()
 
 const newItems = ref(0)
 const subscriptionHandler = (
@@ -103,8 +111,6 @@ const subscriptionHandler = (
 ) => {
 	newItems.value += newData.blockAdded.transactionCount
 }
-
-const before = ref<string | undefined>(undefined)
 
 const drawer = useDrawer()
 
