@@ -32,6 +32,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE graphql_finalization_summary_finalizers");
         connection.Execute("TRUNCATE TABLE graphql_transactions");
         connection.Execute("TRUNCATE TABLE graphql_transaction_events");
+        connection.Execute("TRUNCATE TABLE graphql_accounts");
     }
 
     [Fact]
