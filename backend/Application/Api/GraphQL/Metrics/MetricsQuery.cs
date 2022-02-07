@@ -54,6 +54,40 @@ public class MetricsQuery
         return result;
     }
 
+    public async Task<TransactionMetrics?> GetTransactionMetrics(MetricsPeriod period)
+    {
+        await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
+        await conn.OpenAsync();
+
+        var queryParams = CreateQueryParams(period);
+
+        var sql = @"select count(*) as total_transaction_count
+                    from metrics_transaction
+                    where time between @FromTime and @ToTime;";
+        var data = await conn.QuerySingleAsync(sql, queryParams);
+        if (data.total_transaction_count == 0)
+            return null; // Means "no data"
+        
+        var totalTransactionCount = (int)data.total_transaction_count;
+
+        var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
+        var bucketsSql = @"select time_bucket(@BucketWidth, time) as interval_start, count(*) as count 
+                    from metrics_transaction
+                    where time between @FromTime and @ToTime
+                    group by interval_start
+                    order by interval_start desc;";
+        var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
+
+        bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
+        
+        var buckets = new TransactionMetricsBuckets(
+            queryParams.BucketWidth,
+            bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
+            bucketData.Select(row => (int)row.count).ToArray());
+        var result = new TransactionMetrics(totalTransactionCount, buckets);
+        return result;
+    }
+
     private static DateTimeOffset AsUtcDateTimeOffset(DateTime timestampValue)
     {
         return DateTime.SpecifyKind(timestampValue, DateTimeKind.Utc);
