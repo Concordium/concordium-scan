@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Pagination;
+﻿using Application.Api.GraphQL.Metrics;
+using Application.Api.GraphQL.Pagination;
 using HotChocolate;
 using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;
@@ -20,7 +21,9 @@ public static class GraphQlConfiguration
 
     private static void ConfigureSchema(ISchemaBuilder builder)
     {
-        builder.AddQueryType<Query>();
+        builder.AddQueryType<Query>()
+            .AddType<MetricsQuery>();
+        
         builder.AddSubscriptionType<Subscription>();
         
         builder.BindClrType<ulong, UnsignedLongType>();
