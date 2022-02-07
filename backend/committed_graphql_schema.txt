@@ -139,6 +139,21 @@ type Block {
   finalizationSummary: FinalizationSummary
 }
 
+type BlockMetrics {
+  avgBlockTime: Int!
+  totalBlockCount: Int!
+  buckets: BlockMetricsBuckets!
+}
+
+type BlockMetricsBuckets {
+  bucketWidth: TimeSpan!
+  x_Time: [DateTime!]!
+  y_BlockCount: [Int!]!
+  y_BlockTimeMin: [Int!]!
+  y_BlockTimeAvg: [Int!]!
+  y_BlockTimeMax: [Int!]!
+}
+
 type BlockRewards {
   transactionFees: UnsignedLong!
   oldGasAccount: UnsignedLong!
@@ -484,6 +499,8 @@ type Query {
   transactionByTransactionHash(transactionHash: String!): Transaction
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   search(query: String!): SearchResult!
+  blockMetrics(period: MetricsPeriod!): BlockMetrics
+  transactionMetrics(period: MetricsPeriod!): TransactionMetrics
 }
 
 type Rejected implements TransactionResult {
@@ -581,6 +598,17 @@ type Transaction {
   result: TransactionResult!
 }
 
+type TransactionMetrics {
+  totalTransactionCount: Int!
+  buckets: TransactionMetricsBuckets!
+}
+
+type TransactionMetricsBuckets {
+  bucketWidth: TimeSpan!
+  x_Time: [DateTime!]!
+  y_TransactionCount: [Int!]!
+}
+
 "A connection to a list of items."
 type TransactionsConnection {
   "Information to aid in pagination."
@@ -659,6 +687,14 @@ enum CredentialDeploymentTransactionType {
   NORMAL
 }
 
+enum MetricsPeriod {
+  LAST_HOUR
+  LAST24_HOURS
+  LAST7_DAYS
+  LAST30_DAYS
+  LAST_YEAR
+}
+
 enum TextDecodeType {
   CBOR
   HEX
@@ -698,6 +734,9 @@ scalar DateTime @specifiedBy(url: "https:\/\/www.graphql-scalars.com\/date-time"
 
 "The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1."
 scalar Long
+
+"The `TimeSpan` scalar represents an ISO-8601 compliant duration type."
+scalar TimeSpan
 
 "The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0."
 scalar UnsignedLong

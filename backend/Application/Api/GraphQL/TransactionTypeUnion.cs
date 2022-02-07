@@ -1,4 +1,5 @@
 ﻿using ConcordiumSdk.Types;
+using HotChocolate;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL;
@@ -17,6 +18,7 @@ public abstract class TransactionTypeUnion
         };
     }
 
+    [GraphQLIgnore] // Not part of GraphQL schema!
     public string ToCompactString()
     {
         return this switch
