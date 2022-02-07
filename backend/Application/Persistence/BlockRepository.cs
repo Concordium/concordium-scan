@@ -192,9 +192,10 @@ public class BlockRepository
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var blockHashBytes = conn.QuerySingleOrDefault<byte[]>("SELECT block_hash FROM block WHERE block_height = 0");
-        
-        var result = blockHashBytes != null ? new BlockHash(blockHashBytes) : null;
+        var data = conn.QuerySingleOrDefault("SELECT block_height, block_hash FROM block order by id limit 1");
+        if (data == null) return null;
+        if (data.block_height != 0) throw new InvalidOperationException("Did not get the genesis block - unexpected!");
+        var result = data != null ? new BlockHash((byte[])data.block_hash) : null;
         return result;
     }
 }
