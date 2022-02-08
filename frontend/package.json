@@ -14,7 +14,8 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"typecheck": "vue-tsc --noEmit",
-		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue ."
+		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue .",
+		"gql-codegen": "graphql-codegen --config graphql-codegen.yml"
 	},
 	"dependencies": {
 		"@heroicons/vue": "^1.0.5",
@@ -28,6 +29,8 @@
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "^7.16.0",
+		"@graphql-codegen/cli": "2.5.0",
+		"@graphql-codegen/typescript": "^2.4.3",
 		"@nuxtjs/eslint-config-typescript": "8.0.0",
 		"@testing-library/jest-dom": "^5.16.1",
 		"@testing-library/vue": "^6.4.2",

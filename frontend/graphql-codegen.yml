@@ -1,0 +1,6 @@
+overwrite: true
+schema: 'https://mainnet.dev-api.ccdscan.io/graphql/'
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - 'typescript'
