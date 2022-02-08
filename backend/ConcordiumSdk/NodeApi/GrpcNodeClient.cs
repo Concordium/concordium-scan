@@ -85,6 +85,10 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
     public async Task<string> GetBlockSummaryStringAsync(BlockHash blockHash)
     {
+        var blockSummary = _lastBlockSummary;
+        if (blockSummary?.Item1 == blockHash)
+            return blockSummary.Item2;
+        
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
@@ -92,18 +96,16 @@ public class GrpcNodeClient : INodeClient, IDisposable
         
         var call = _client.GetBlockSummaryAsync(request, CreateCallOptions());
         var response = await call;
+        _lastBlockSummary = new Tuple<BlockHash, string>(blockHash, response.Value);
         return response.Value;
     }
+
+    private Tuple<BlockHash, string> _lastBlockSummary;
     
     public async Task<BlockSummary> GetBlockSummaryAsync(BlockHash blockHash)
     {
-        var request = new Concordium.BlockHash
-        {
-            BlockHash_ = blockHash.AsString
-        };
-        var call = _client.GetBlockSummaryAsync(request, CreateCallOptions());
-        var response = await call;
-        var result = JsonSerializer.Deserialize<BlockSummary>(response.Value, _jsonSerializerOptions);
+        var stringResponse = await GetBlockSummaryStringAsync(blockHash);
+        var result = JsonSerializer.Deserialize<BlockSummary>(stringResponse, _jsonSerializerOptions)!;
         return result;
     }
 

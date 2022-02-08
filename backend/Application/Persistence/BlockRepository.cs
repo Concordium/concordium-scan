@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Application.Database;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
@@ -30,12 +31,12 @@ public class BlockRepository
         return (int)data.block_height;
     }
 
-    public void Insert(BlockInfo blockInfo, string blockSummaryString, BlockSummary blockSummary)
+    public async Task Insert(BlockInfo blockInfo, string blockSummaryString, BlockSummary blockSummary)
     {
-        using var conn = new NpgsqlConnection(_settings.ConnectionString);
-        conn.Open();
+        await using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        await conn.OpenAsync();
 
-        using var tx = conn.BeginTransaction(IsolationLevel.ReadCommitted);
+        await using var tx = await conn.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
         var mint = blockSummary.SpecialEvents?.OfType<MintSpecialEvent>().SingleOrDefault();
         var blockReward = blockSummary.SpecialEvents?.OfType<BlockRewardSpecialEvent>().SingleOrDefault();
@@ -79,7 +80,7 @@ public class BlockRepository
             FinalizationDataDelay = blockSummary.FinalizationData?.FinalizationDelay
         };
         
-        var blockId = conn.ExecuteScalar<long>(
+        var blockId = await conn.ExecuteScalarAsync<long>(
             "INSERT INTO block(block_height, block_hash, parent_block, block_last_finalized, genesis_index, era_block_height, block_receive_time," +
             " block_arrive_time, block_slot, block_slot_time, block_baker, finalized, transaction_count, transaction_energy_cost, transaction_size," +
             " block_state_hash, block_summary, mint_baking_reward, mint_finalization_reward, mint_platform_development_charge, mint_foundation_account, "+
@@ -108,7 +109,7 @@ public class BlockRepository
             RejectReasonType = MapRejectReasonType(tx.Result)
         });
         
-        conn.Execute(
+        await conn.ExecuteAsync(
             "INSERT INTO transaction_summary(block_id, block_height, block_hash, transaction_index, sender, transaction_hash, cost, energy_cost, transaction_type, transaction_sub_type, success_events, reject_reason_type) " +
             "VALUES (@BlockId, @BlockHeight, @BlockHash, @TransactionIndex, @Sender, @TransactionHash, @Cost, @EnergyCost, @TransactionType, @TransactionSubType, CAST(@SuccessEvents AS json), @RejectReasonType)",
             transactionSummaries);
@@ -123,7 +124,7 @@ public class BlockRepository
                 Address = reward.Address.AsBytes
             });
             
-            conn.Execute(
+            await conn.ExecuteAsync(
                 "INSERT INTO finalization_reward(block_id, index, amount, address) " +
                 "VALUES (@BlockId, @Index, @Amount, @Address)",
                 finalizationParams);
@@ -139,7 +140,7 @@ public class BlockRepository
                 Address = reward.Address.AsBytes
             });
             
-            conn.Execute(
+            await conn.ExecuteAsync(
                 "INSERT INTO baking_reward(block_id, index, amount, address) " +
                 "VALUES (@BlockId, @Index, @Amount, @Address)",
                 bakingParams);
@@ -156,13 +157,13 @@ public class BlockRepository
                 finalizer.Signed,
             });
             
-            conn.Execute(
+            await conn.ExecuteAsync(
                 "INSERT INTO finalization_data_finalizers(block_id, index, baker_id, weight, signed) " +
                 "VALUES (@BlockId, @Index, @BakerId, @Weight, @Signed)",
                 finalizersParams);
         }
         
-        tx.Commit();
+        await tx.CommitAsync();
     }
 
     private string? MapSuccessEvents(TransactionResult result)

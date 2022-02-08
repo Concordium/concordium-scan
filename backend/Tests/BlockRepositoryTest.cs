@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Application.Persistence;
+﻿using Application.Persistence;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -25,26 +24,26 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public void Insert()
+    public async Task Insert()
     {
         var blockInfo = new BlockInfoBuilder().Build();
         var blockSummary = new BlockSummaryBuilder().Build();
-        _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
+        await _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
     }
 
     [Fact]
-    public void Insert_WithMintSpecialEvent()
+    public async Task Insert_WithMintSpecialEvent()
     {
         var blockInfo = new BlockInfoBuilder().Build();
         var blockSummary = new BlockSummaryBuilder()
             .WithSpecialEvents(new BakingRewardsSpecialEventBuilder().Build())
             .Build();
         
-        _target.Insert(blockInfo, "{\"bar\": \"baz\"}", blockSummary);
+        await _target.Insert(blockInfo, "{\"bar\": \"baz\"}", blockSummary);
     }
 
     [Fact]
-    public void Insert_TransactionSummarySenderNull()
+    public async Task Insert_TransactionSummarySenderNull()
     {
         var blockInfo = new BlockInfoBuilder().Build();
         var blockSummary = new BlockSummaryBuilder()
@@ -53,7 +52,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
                 .Build())
             .Build();
         
-        _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
+        await _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
     }
 
     [Fact]
@@ -64,18 +63,18 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     }
     
     [Fact]
-    public void GetMaxBlockHeight_BlocksExist()
+    public async Task GetMaxBlockHeight_BlocksExist()
     {
-        _target.Insert(new BlockInfoBuilder().WithBlockHeight(1).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
-        _target.Insert(new BlockInfoBuilder().WithBlockHeight(2).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
-        _target.Insert(new BlockInfoBuilder().WithBlockHeight(3).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
+        await _target.Insert(new BlockInfoBuilder().WithBlockHeight(1).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
+        await _target.Insert(new BlockInfoBuilder().WithBlockHeight(2).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
+        await _target.Insert(new BlockInfoBuilder().WithBlockHeight(3).Build(), "{\"foo\": \"bar\"}", new BlockSummaryBuilder().Build());
 
         var result = _target.GetMaxBlockHeight();
         Assert.Equal(3, result);
     }
     
     [Fact]
-    public void Insert_new()
+    public async Task Insert_new()
     {
         var blockInfo = new BlockInfoBuilder().Build();
         var blockSummary = new BlockSummary
@@ -94,7 +93,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
             }
         };
 
-        _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
+        await _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
     }
 
     [Fact]
@@ -105,7 +104,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
     }
     
     [Fact]
-    public void GetGenesisBlockHash_NonEmptyDatabase()
+    public async Task GetGenesisBlockHash_NonEmptyDatabase()
     {
         var blockInfo = new BlockInfoBuilder()
             .WithBlockHeight(0)
@@ -113,7 +112,7 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
             .Build();
         var blockSummary = new BlockSummaryBuilder().Build();
         
-        _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
+        await _target.Insert(blockInfo, "{\"foo\": \"bar\"}", blockSummary);
 
         var result = _target.GetGenesisBlockHash();
         Assert.NotNull(result);

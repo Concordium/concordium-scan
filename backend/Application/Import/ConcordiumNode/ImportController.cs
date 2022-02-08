@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
@@ -51,7 +52,7 @@ public class ImportController : BackgroundService
             .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnImportDataRetry)
             .ExecuteAsync(() => ImportData(stoppingToken)); 
 
-        _logger.Information("Executed finished!");
+        _logger.Information("Execute finished!");
     }
 
     private async Task ImportData(CancellationToken stoppingToken)
@@ -88,28 +89,36 @@ public class ImportController : BackgroundService
         var nextHeight = startBlockHeight;
         while (endBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
         {
+            var sw = Stopwatch.StartNew();
+            
             var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)nextHeight);
             if (blocksAtHeight.Length != 1)
                 throw new InvalidOperationException("Unexpected with more than one block at a given height."); // TODO: consider how/if this should be handled
             var blockHash = blocksAtHeight.Single();
 
             var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
-            var blockInfo = await blockInfoTask;
-
             var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
+
+            var blockInfo = await blockInfoTask;
             var blockSummaryString = await blockSummaryStringTask;
 
             var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
             var blockSummary = await blockSummaryTask;
-
+            
             var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
+
+            var readDuration = sw.ElapsedMilliseconds;
+            sw.Restart();
             
             // TODO: Publish result - for now just write directly to db
-            _repository.Insert(blockInfo, blockSummaryString, blockSummary);
-            await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts);
-            await _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts);
+            await Task.WhenAll(
+                _repository.Insert(blockInfo, blockSummaryString, blockSummary),
+                _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts),
+                _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts));
 
-            _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
+            var writeDuration = sw.ElapsedMilliseconds;
+            
+            _logger.Information("Imported block {blockhash} at block height {blockheight} [read: {readDuration}ms] [write: {writeDuration}ms]", blockHash.AsString, nextHeight, readDuration, writeDuration);
 
             if (createdAccounts.Any())
                 _logger.Information("{count} accounts created", createdAccounts.Length);
