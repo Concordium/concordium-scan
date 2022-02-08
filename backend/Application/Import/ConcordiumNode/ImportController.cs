@@ -107,7 +107,7 @@ public class ImportController : BackgroundService
             // TODO: Publish result - for now just write directly to db
             _repository.Insert(blockInfo, blockSummaryString, blockSummary);
             await _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts);
-            await _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary);
+            await _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts);
 
             _logger.Information("Imported block {blockhash} at block height {blockheight}", blockHash.AsString, nextHeight);
 

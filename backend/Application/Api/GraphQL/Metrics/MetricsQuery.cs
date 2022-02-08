@@ -88,6 +88,50 @@ public class MetricsQuery
         return result;
     }
 
+    public async Task<AccountsMetrics?> GetAccountsMetrics(MetricsPeriod period)
+    {
+        await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
+        await conn.OpenAsync();
+
+        var queryParams = CreateQueryParams(period);
+
+        // TODO: Still need to figure out what to do if no new accounts have been created in requested time interval!
+        //       For "sum_accounts_created": Should use gap-filling setting value to zero
+        //       For "last_cumulative_accounts_created": LOCF (last object carried forward).
+        //                                               A little tricky though, because the first value would be outside the dataset
+        //       Besides that: LOCF and gap filling in timescaledb is community edition, requires non-azure-hosted instance
+        var sql = @"select max(cumulative_accounts_created) as last_cumulative_accounts_created, sum(accounts_created) as sum_accounts_created
+                    from metrics_accounts
+                    where time between @FromTime and @ToTime;";
+        var data = await conn.QuerySingleAsync(sql, queryParams);
+        if (data.total_transaction_count == 0)
+            return null; // Means "no data" - makes no sense (there will always be accounts - maybe not any new accounts)
+                         // will be removed once TODO above is taken care of!
+        
+        var lastCumulativeAccountsCreated = (long)data.last_cumulative_accounts_created;
+        var sumAccountsCreated = (int)data.sum_accounts_created;
+
+        var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
+        var bucketsSql = @"select time_bucket(@BucketWidth, time) as interval_start, 
+                                  last(cumulative_accounts_created, time) as last_cumulative_accounts_created,
+                                  sum(accounts_created) as sum_accounts_created
+                           from metrics_accounts
+                           where time between @FromTime and @ToTime
+                           group by interval_start
+                           order by interval_start desc;";
+        var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
+
+        bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
+        
+        var buckets = new AccountsMetricsBuckets(
+            queryParams.BucketWidth,
+            bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
+            bucketData.Select(row => (long)row.last_cumulative_accounts_created).ToArray(),
+            bucketData.Select(row => (int)row.sum_accounts_created).ToArray());
+        var result = new AccountsMetrics(lastCumulativeAccountsCreated, sumAccountsCreated, buckets);
+        return result;
+    }
+
     private static DateTimeOffset AsUtcDateTimeOffset(DateTime timestampValue)
     {
         return DateTime.SpecifyKind(timestampValue, DateTimeKind.Utc);

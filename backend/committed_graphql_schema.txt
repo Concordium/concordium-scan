@@ -25,6 +25,19 @@ type AccountTransaction {
   accountTransactionType: AccountTransactionType
 }
 
+type AccountsMetrics {
+  lastCumulativeAccountsCreated: Long!
+  sumAccountsCreated: Int!
+  buckets: AccountsMetricsBuckets!
+}
+
+type AccountsMetricsBuckets {
+  bucketWidth: TimeSpan!
+  x_Time: [DateTime!]!
+  y_LastCumulativeAccountsCreated: [Long!]!
+  y_SumAccountsCreated: [Int!]!
+}
+
 type AlreadyABaker {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   bakerId: UnsignedLong!
@@ -509,6 +522,7 @@ type Query {
   search(query: String!): SearchResult!
   blockMetrics(period: MetricsPeriod!): BlockMetrics
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
+  accountsMetrics(period: MetricsPeriod!): AccountsMetrics
 }
 
 type Rejected implements TransactionResult {

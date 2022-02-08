@@ -11,13 +11,14 @@ public class MetricsUpdateController
 {
     private readonly DatabaseSettings _settings;
     private BlockInfo? _prevBlockInfo;
+    private long? _cumulativeAccountsCreated;
 
     public MetricsUpdateController(DatabaseSettings settings)
     {
         _settings = settings;
     }
 
-    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary)
+    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
@@ -26,6 +27,7 @@ public class MetricsUpdateController
 
         await InsertBlockMetrics(blockInfo, conn);
         await InsertTransactionMetrics(blockInfo, blockSummary, conn);
+        await InsertAccountsMetrics(blockInfo, createdAccounts, conn);
         
         await tx.CommitAsync();
         
@@ -65,5 +67,31 @@ public class MetricsUpdateController
             return 0; // TODO: Should only be valid for genesis block, but right now every time the app starts the first imported data item will be zero. Will be corrected later...
         var blockTime = blockInfo.BlockSlotTime - _prevBlockInfo.BlockSlotTime;
         return Convert.ToInt32(blockTime.TotalSeconds);
+    }
+
+    private async Task InsertAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, NpgsqlConnection conn)
+    {
+        if (createdAccounts.Length == 0) return;
+
+        if (!_cumulativeAccountsCreated.HasValue)
+        {
+            var initSql = @"select max(cumulative_accounts_created)
+                            from metrics_accounts
+                            where time = (select max(time) from metrics_accounts)";
+            var maxTotalAccounts = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
+            _cumulativeAccountsCreated = maxTotalAccounts ?? 0;
+        }
+        
+        _cumulativeAccountsCreated += createdAccounts.Length;
+        
+        var accountsParams = new
+        {
+            Time = blockInfo.BlockSlotTime,
+            CumulativeAccountsCreated = _cumulativeAccountsCreated.Value,
+            AccountsCreated = createdAccounts.Length
+        };
+        
+        var sql = "insert into metrics_accounts (time, cumulative_accounts_created, accounts_created) values (@Time, @CumulativeAccountsCreated, @AccountsCreated)";
+        await conn.ExecuteAsync(sql, accountsParams);
     }
 }
