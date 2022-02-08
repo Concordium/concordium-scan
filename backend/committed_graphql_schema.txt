@@ -7,6 +7,12 @@ interface TransactionResult {
   successful: Boolean!
 }
 
+type Account {
+  id: ID!
+  address: String!
+  createdAt: DateTime!
+}
+
 type AccountAddress {
   address: String!
 }
@@ -499,6 +505,8 @@ type Query {
   transactionByTransactionHash(transactionHash: String!): Transaction
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   search(query: String!): SearchResult!
+  account(id: ID!): Account
+  accountByAddress(accountAddress: String!): Account
   blockMetrics(period: MetricsPeriod!): BlockMetrics
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
 }
