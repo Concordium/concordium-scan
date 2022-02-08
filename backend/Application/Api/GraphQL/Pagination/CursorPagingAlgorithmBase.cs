@@ -58,7 +58,9 @@ public abstract class CursorPagingAlgorithmBase<T>
 
             var hasNextPage = GetHasNextPage(arguments, extraRowRetrieved);
             var hasPrevPage = GetHasPrevPage(arguments, extraRowRetrieved);
-            var pageInfo = new ConnectionPageInfo(hasNextPage, hasPrevPage, edges[0].Cursor, edges[^1].Cursor);
+            var startCursor = edges.Count > 0 ? edges[0].Cursor : null;
+            var endCursor = edges.Count > 0 ? edges[^1].Cursor : null;
+            var pageInfo = new ConnectionPageInfo(hasNextPage, hasPrevPage, startCursor, endCursor);
             return new Connection<T>(edges, pageInfo, ct => throw new NotImplementedException());
         }
 

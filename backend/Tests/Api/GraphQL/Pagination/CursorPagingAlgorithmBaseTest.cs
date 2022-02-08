@@ -21,6 +21,7 @@ public class CursorPagingAlgorithmBaseTest
     [InlineData(2, null, "12", null, new [] { 13, 14 }, true, true)]
     [InlineData(2, null, "13", null, new [] { 14, 15 }, true, false)]
     [InlineData(2, null, "14", null, new [] { 15 }, true, false)]
+    [InlineData(1, null, "15", null, new int[0] , true, false)]
     // last queries
     [InlineData(null, 1, null, null, new [] { 15 }, true, false)]
     [InlineData(null, 2, null, null, new [] { 14, 15 }, true, false)]
@@ -33,6 +34,7 @@ public class CursorPagingAlgorithmBaseTest
     [InlineData(null, 2, null, "14", new [] { 12, 13 }, true, true)]
     [InlineData(null, 2, null, "13", new [] { 11, 12 }, false, true)]
     [InlineData(null, 2, null, "12", new [] { 11 }, false, true)]
+    [InlineData(null, 1, null, "11", new int[0], false, true)]
     public async Task ApplyPaginationOnDataOrderedAscending(int? first, int? last, string? after, string? before, int[] expectedNodes, bool expectedHasPrevPage, bool expectedHasNextPage)
     {
         var blocks = new List<int> { 11, 12, 13, 14, 15 };
@@ -47,8 +49,25 @@ public class CursorPagingAlgorithmBaseTest
         result.Info.TotalCount.Should().BeNull();
         result.Info.HasPreviousPage.Should().Be(expectedHasPrevPage);
         result.Info.HasNextPage.Should().Be(expectedHasNextPage);
-        result.Info.StartCursor.Should().Be(expectedNodes.First().ToString());
-        result.Info.EndCursor.Should().Be(expectedNodes.Last().ToString());
+        result.Info.StartCursor.Should().Be(expectedNodes.Any() ? expectedNodes.First().ToString() : null);
+        result.Info.EndCursor.Should().Be(expectedNodes.Any() ? expectedNodes.Last().ToString() : null);
+    }
+
+    [Fact]
+    public async Task ApplyPaginationOnQueryThatYieldsNoResults()
+    {
+        var query = new List<int>().AsQueryable();
+        
+        var arguments = new CursorPagingArguments(3, null, null, null);
+        
+        var target = new AscendingDataTarget();
+        var result = await target.ApplyPaginationAsync(query, arguments, CancellationToken.None);
+        result.Edges.Should().BeEmpty();
+        result.Info.TotalCount.Should().BeNull();
+        result.Info.HasPreviousPage.Should().Be(false);
+        result.Info.HasNextPage.Should().Be(false);
+        result.Info.StartCursor.Should().BeNull();
+        result.Info.EndCursor.Should().BeNull();
     }
     
     [Theory]
@@ -64,6 +83,7 @@ public class CursorPagingAlgorithmBaseTest
     [InlineData(2, null, "14", null, new [] { 13, 12 }, true, true)]
     [InlineData(2, null, "13", null, new [] { 12, 11 }, true, false)]
     [InlineData(2, null, "12", null, new [] { 11 }, true, false)]
+    [InlineData(1, null, "11", null, new int[] { }, true, false)]
     // last queries
     [InlineData(null, 1, null, null, new [] { 11 }, true, false)]
     [InlineData(null, 2, null, null, new [] { 12, 11 }, true, false)]
@@ -76,6 +96,7 @@ public class CursorPagingAlgorithmBaseTest
     [InlineData(null, 2, null, "12", new [] { 14, 13 }, true, true)]
     [InlineData(null, 2, null, "13", new [] { 15, 14 }, false, true)]
     [InlineData(null, 2, null, "14", new [] { 15 }, false, true)]
+    [InlineData(null, 1, null, "15", new int[] { }, false, true)]
     public async Task ApplyPaginationOnDataOrderedDescending(int? first, int? last, string? after, string? before, int[] expectedNodes, bool expectedHasPrevPage, bool expectedHasNextPage)
     {
         var blocks = new List<int> { 15, 14, 13, 12, 11 };
@@ -90,8 +111,8 @@ public class CursorPagingAlgorithmBaseTest
         result.Info.TotalCount.Should().BeNull();
         result.Info.HasPreviousPage.Should().Be(expectedHasPrevPage);
         result.Info.HasNextPage.Should().Be(expectedHasNextPage);
-        result.Info.StartCursor.Should().Be(expectedNodes.First().ToString());
-        result.Info.EndCursor.Should().Be(expectedNodes.Last().ToString());
+        result.Info.StartCursor.Should().Be(expectedNodes.Any() ? expectedNodes.First().ToString() : null);
+        result.Info.EndCursor.Should().Be(expectedNodes.Any() ? expectedNodes.Last().ToString() : null);
     }
     
     private class AscendingDataTarget : CursorPagingAlgorithmBase<int>
