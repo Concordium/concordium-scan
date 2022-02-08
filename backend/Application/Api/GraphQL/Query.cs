@@ -60,29 +60,4 @@ public class Query
             .AsNoTracking()
             .OrderByDescending(tx => tx.Id);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public SearchResult Search([ScopedService] GraphQlDbContext dbContext, string query)
-    {
-        if (long.TryParse(query, out var blockHeight))
-        {
-            return new SearchResult
-            {
-                Blocks = dbContext.Blocks.AsNoTracking()
-                .Where(block => block.BlockHeight == blockHeight)
-                .ToArray()
-            };
-        }
-
-        return new SearchResult
-        {
-            Blocks = dbContext.Blocks.AsNoTracking()
-                .Where(block => block.BlockHash == query)
-                .ToArray(),
-            
-            Transactions = dbContext.Transactions.AsNoTracking()
-                .Where(transaction => transaction.TransactionHash == query)
-                .ToArray()
-        };
-    }
 }
