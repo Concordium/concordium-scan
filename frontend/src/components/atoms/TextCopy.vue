@@ -1,5 +1,10 @@
 <template>
-	<Tooltip :text="statusText || label" :on-mouse-enter="handleOnMouseEnter">
+	<Tooltip
+		:text="statusText || label"
+		:on-mouse-enter="handleOnMouseEnter"
+		:position="position"
+		:text-class="tooltipClass"
+	>
 		<button
 			:aria-label="label"
 			class="transition-colors text-theme-interactive hover:text-theme-interactiveHover"
@@ -14,13 +19,17 @@
 import { ref } from 'vue'
 import { ClipboardCopyIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
+import type { Position } from '~/composables/useTooltip'
 
 type Props = {
 	text: string
 	label: string
+	tooltipClass?: string
 }
 
 const props = defineProps<Props>()
+
+const position = 'bottom' as Position
 
 const statusText = ref('')
 

@@ -34,7 +34,11 @@
 							{{ transaction.result.successful ? 'Success' : 'Rejected' }}
 						</TableTd>
 						<TableTd>
-							{{ convertTimestampToRelative(transaction.block.blockSlotTime) }}
+							<Tooltip :text="transaction.block.blockSlotTime">
+								{{
+									convertTimestampToRelative(transaction.block.blockSlotTime)
+								}}
+							</Tooltip>
 						</TableTd>
 						<TableTd>
 							{{ translateTransactionType(transaction.transactionType) }}
@@ -51,7 +55,12 @@
 									)
 								"
 							>
-								{{ transaction.transactionHash.substring(0, 6) }}
+								<Tooltip
+									:text="transaction.transactionHash"
+									text-class="text-theme-body"
+								>
+									{{ transaction.transactionHash.substring(0, 6) }}
+								</Tooltip>
 							</LinkButton>
 						</TableTd>
 						<TableTd :class="$style.numerical">
@@ -82,6 +91,7 @@
 
 <script lang="ts" setup>
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,

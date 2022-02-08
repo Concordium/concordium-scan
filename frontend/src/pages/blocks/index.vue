@@ -31,7 +31,9 @@
 							{{ block.finalized ? 'Finalised' : 'Pending' }}
 						</TableTd>
 						<TableTd>
-							{{ convertTimestampToRelative(block.blockSlotTime) }}
+							<Tooltip :text="block.blockSlotTime">
+								{{ convertTimestampToRelative(block.blockSlotTime) }}
+							</Tooltip>
 						</TableTd>
 						<TableTd>
 							<LinkButton
@@ -43,7 +45,9 @@
 								"
 							>
 								<HashtagIcon :class="$style.cellIcon" />
-								{{ block.blockHash.substring(0, 6) }}
+								<Tooltip :text="block.blockHash" text-class="text-theme-body">
+									{{ block.blockHash.substring(0, 6) }}
+								</Tooltip>
 							</LinkButton>
 						</TableTd>
 						<TableTd :class="$style.numerical">
@@ -71,6 +75,7 @@
 
 <script lang="ts" setup>
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'

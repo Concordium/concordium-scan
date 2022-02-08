@@ -1,15 +1,17 @@
 <template>
 	<span
-		class="relative"
+		class="relative border-dotted border-b"
 		@mouseenter="handleOnMouseEnter"
 		@mouseleave="handleOnMouseLeave"
 	>
 		<transition name="tooltip">
 			<span
 				v-show="isVisible"
-				class="text-sm absolute -bottom-12 left-1/2 w-max p-3 rounded-lg z-50 tooltip"
+				class="text-sm absolute left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip"
+				:class="textClass"
 			>
 				{{ text }}
+				<span class="tooltip-triangle"></span>
 			</span>
 		</transition>
 		<slot />
@@ -18,11 +20,15 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
+import { useTooltip } from '~/composables/useTooltip'
+import type { Position } from '~/composables/useTooltip'
 
 const isVisible = ref(false)
 
 type Props = {
 	text: string
+	textClass?: string
+	position?: Position
 	onMouseEnter?: () => void
 	onMouseLeave?: () => void
 }
@@ -37,48 +43,57 @@ const handleOnMouseEnter = () => {
 const handleOnMouseLeave = () => {
 	isVisible.value = false
 }
+
+const {
+	triangleTopBorder,
+	triangleBottomBorder,
+	trianglePosTop,
+	tooltipPosYFrom,
+	tooltipPosYTo,
+} = useTooltip(props.position)
 </script>
 
 <style>
 .tooltip {
 	background: var(--color-tooltip-bg);
-	box-shadow: 0 3px 6px 0 var(--color-shadow-dark);
-	transform: translate(-50%, 0);
+	transform: translate(-50%, calc(v-bind(tooltipPosYTo)));
 }
 
-.tooltip::after {
-	content: '';
+/* Binding variables from a composable to a pseudo element does not work in Vue */
+.tooltip-triangle {
 	display: block;
 	height: 10px;
 	width: 10px;
-	border-width: 0 0 10px;
-	border-left: 10px solid transparent;
-	border-right: 10px solid transparent;
-	border-bottom: 10px solid var(--color-tooltip-bg);
+	border-width: 0 10px 0;
+	border-color: transparent;
+	border-top: v-bind(triangleTopBorder) solid;
+	border-bottom: v-bind(triangleBottomBorder) solid;
+	border-bottom-color: var(--color-tooltip-bg);
+	border-top-color: var(--color-tooltip-bg);
 	position: absolute;
-	top: -10px;
+	top: v-bind(trianglePosTop);
 	left: 50%;
-	transform: translateX(-50%);
+	transform: translate(-10px, 0);
 }
 
 .tooltip-enter-active,
 .tooltip-leave-active {
-	transition: all 0.2s ease-out;
+	transition: transform 0.2s ease-out, opacity 0.1s ease-in;
 }
 
 .tooltip-leave-active {
-	transition: all 0.1s ease-in;
+	transition: transform 0.1s ease-in, opacity 0.1s ease-in;
 }
 
 .tooltip-enter-from,
 .tooltip-leave-to {
-	transform: translate(-50%, -5px);
+	transform: translate(-50%, calc(v-bind(tooltipPosYFrom)));
 	opacity: 0;
 }
 
 .tooltip-enter-to,
 .tooltip-leave-from {
-	transform: translate(-50%, 0);
+	transform: translate(-50%, calc(v-bind(tooltipPosYTo)));
 	opacity: 1;
 }
 </style>

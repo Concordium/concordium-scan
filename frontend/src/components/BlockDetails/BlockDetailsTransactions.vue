@@ -35,7 +35,12 @@
 								)
 							"
 						>
-							{{ transaction.transactionHash.substring(0, 6) }}
+							<Tooltip
+								:text="transaction.transactionHash"
+								text-class="text-theme-body"
+							>
+								{{ transaction.transactionHash.substring(0, 6) }}
+							</Tooltip>
 						</LinkButton>
 					</TableTd>
 					<TableTd class="numerical">
@@ -43,7 +48,12 @@
 							v-if="transaction.senderAccountAddress"
 							class="h-4 text-theme-white inline align-baseline"
 						/>
-						{{ transaction.senderAccountAddress?.substring(0, 6) }}
+						<Tooltip
+							:text="transaction.senderAccountAddress"
+							text-class="text-theme-body"
+						>
+							{{ transaction.senderAccountAddress.substring(0, 6) }}
+						</Tooltip>
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						{{ convertMicroCcdToCcd(transaction.ccdCost) }}

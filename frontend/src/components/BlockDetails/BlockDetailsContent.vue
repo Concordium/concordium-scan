@@ -16,6 +16,7 @@
 				:text="props.block?.blockHash"
 				label="Click to copy block hash to clipboard"
 				class="h-5 inline align-baseline mr-3"
+				tooltip-class="font-sans"
 			/>
 			<Badge :type="props.block?.finalized ? 'success' : 'failure'">
 				{{ props.block?.finalized ? 'Finalised' : 'Rejected' }}

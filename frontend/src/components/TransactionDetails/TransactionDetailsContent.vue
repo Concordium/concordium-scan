@@ -23,6 +23,7 @@
 				:text="props.transaction?.transactionHash"
 				label="Click to copy transaction hash to clipboard"
 				class="h-5 inline align-baseline mr-3"
+				tooltip-class="font-sans"
 			/>
 
 			<Badge
@@ -49,7 +50,12 @@
 								)
 							"
 						>
-							{{ props.transaction?.block.blockHash.substring(0, 6) }}
+							<Tooltip
+								:text="props.transaction?.block.blockHash"
+								text-class="text-theme-body"
+							>
+								{{ props.transaction?.block.blockHash.substring(0, 6) }}
+							</Tooltip>
 						</LinkButton>
 					</template>
 				</DetailsCard>
