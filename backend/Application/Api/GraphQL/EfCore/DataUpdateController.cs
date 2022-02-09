@@ -36,7 +36,7 @@ public class DataUpdateController
             var toSave = finalizationRewards.FinalizationRewards
                 .Select((x, ix) => MapFinalizationReward(block, ix, x))
                 .ToArray();
-            await context.FinalizationRewards.AddRangeAsync(toSave);
+            context.FinalizationRewards.AddRange(toSave);
         }
 
         var bakingRewards = blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault();
@@ -45,7 +45,7 @@ public class DataUpdateController
             var toSave = bakingRewards.BakerRewards
                 .Select((x, ix) => MapBakingReward(block, ix, x))
                 .ToArray();
-            await context.BakingRewards.AddRangeAsync(toSave);
+            context.BakingRewards.AddRange(toSave);
         }
 
         var finalizationData = blockSummary.FinalizationData;
@@ -54,13 +54,13 @@ public class DataUpdateController
             var toSave = finalizationData.Finalizers
                 .Select((x, ix) => MapFinalizer(block, ix, x))
                 .ToArray();
-            await context.FinalizationSummaryFinalizers.AddRangeAsync(toSave);
+            context.FinalizationSummaryFinalizers.AddRange(toSave);
         }
 
         var transactions = blockSummary.TransactionSummaries
             .Select(x => new { Source = x, Mapped = MapTransaction(block, x)})
             .ToArray();
-        await context.Transactions.AddRangeAsync(transactions.Select(x => x.Mapped));
+        context.Transactions.AddRange(transactions.Select(x => x.Mapped));
         
         await context.SaveChangesAsync();  // assigns transaction ids
 
@@ -72,18 +72,16 @@ public class DataUpdateController
                     .Select((x, ix) => MapTransactionEvent(transaction.Mapped, ix, x))
                     .ToArray();
 
-                await context.TransactionResultEvents.AddRangeAsync(events);
+                context.TransactionResultEvents.AddRange(events);
             }
         }
-
-        await context.SaveChangesAsync();
 
         var accounts = createdAccounts.Select(x => new Account
         {
             Address = x.AccountAddress.AsString,
             CreatedAt = blockInfo.BlockSlotTime
         }).ToArray();
-        await context.Accounts.AddRangeAsync(accounts);
+        context.Accounts.AddRange(accounts);
         await context.SaveChangesAsync();
         
         await tx.CommitAsync();
