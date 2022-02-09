@@ -1,6 +1,6 @@
 import { useQuery, gql } from '@urql/vue'
 import type { Block } from '~/types/blocks'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BlockListResponse = {

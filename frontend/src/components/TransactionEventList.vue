@@ -2,7 +2,7 @@
 	<div>
 		<ul class="px-4">
 			<li
-				v-for="(event, i) in props.events"
+				v-for="(event, i) in events?.nodes"
 				:key="i"
 				class="border-l-4 py-4 px-6 relative"
 				:class="$style.listItem"
@@ -11,8 +11,8 @@
 			</li>
 		</ul>
 		<Pagination
-			v-if="props.pageInfo && props.totalCount > PAGE_SIZE"
-			:page-info="props.pageInfo"
+			v-if="events?.pageInfo && events?.totalCount > PAGE_SIZE"
+			:page-info="events?.pageInfo"
 			:go-to-page="props.goToPage"
 		/>
 	</div>
@@ -21,14 +21,11 @@
 <script lang="ts" setup>
 import { translateTransactionEvents } from '~/utils/translateTransactionEvents'
 import { PAGE_SIZE } from '~/composables/usePagination'
-import type { TransactionSuccessfulEvent } from '~/types/transactions'
-import type { PageInfo } from '~/types/pageInfo'
 import type { PaginationTarget } from '~/composables/usePagination'
+import type { Successful, PageInfo } from '~/types/generated'
 
 type Props = {
-	events: TransactionSuccessfulEvent[]
-	totalCount: number
-	pageInfo: PageInfo
+	events: Successful['events']
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 

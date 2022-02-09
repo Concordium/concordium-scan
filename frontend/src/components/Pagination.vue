@@ -44,7 +44,7 @@ import {
 	ChevronDoubleLeftIcon,
 } from '@heroicons/vue/solid/index.js'
 import Button from './atoms/Button.vue'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {

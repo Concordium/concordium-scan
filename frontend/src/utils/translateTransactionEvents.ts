@@ -1,17 +1,18 @@
 import { convertMicroCcdToCcd } from './format'
-import type {
-	TransactionSuccessfulEvent,
-	TransferAddress,
-} from '~/types/transactions'
+import type { Event, Address } from '~/types/generated'
 
-export const translateTransferAddress = (address: TransferAddress) =>
-	address.__typename === 'AccountAddress'
-		? `account ${address.address.substring(0, 6)}`
-		: `contract ${address.index}`
+export const translateAddress = (address: Address) => {
+	if (address.__typename === 'AccountAddress') {
+		return `account ${address.address.substring(0, 6)}`
+	} else if (address.__typename === 'ContractAddress') {
+		return `contract <${address.index}, ${address.subIndex}>`
+	}
 
-export const translateTransactionEvents = (
-	txEvent: TransactionSuccessfulEvent
-) => {
+	// This should never happen, but TS seems not to understand ternaries ...
+	return 'an unknown address'
+}
+
+export const translateTransactionEvents = (txEvent: Event) => {
 	if (txEvent.__typename === 'AccountCreated') {
 		return `Account created with address ${txEvent.address.substring(0, 6)}`
 	}
@@ -26,11 +27,10 @@ export const translateTransactionEvents = (
 	if (txEvent.__typename === 'Transferred') {
 		return `Transferred ${convertMicroCcdToCcd(
 			txEvent.amount
-		)}Ͼ from ${translateTransferAddress(
-			txEvent.from
-		)} to ${translateTransferAddress(txEvent.to)}`
+		)}Ͼ from ${translateAddress(txEvent.from)} to ${translateAddress(
+			txEvent.to
+		)}`
 	}
 
-	// @ts-expect-error : fallback for unknwown events
 	return `Transaction event: ${txEvent.__typename}`
 }

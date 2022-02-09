@@ -75,7 +75,7 @@ import { convertMicroCcdToCcd } from '~/utils/format'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Transaction } from '~/types/transactions'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {

@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 type Props = {
 	pageInfo: PageInfo
 	onLoadMore: () => void

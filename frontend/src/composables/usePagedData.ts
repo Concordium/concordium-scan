@@ -1,5 +1,5 @@
 import { Ref } from 'vue'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 
 export const PAGE_SIZE = 25
 export const MAX_PAGE_SIZE = 50
@@ -14,14 +14,14 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 
 	const first = ref<number | undefined>(PAGE_SIZE)
 	const last = ref<number | undefined>(undefined)
-	const after = ref<string | undefined>(undefined)
-	const before = ref<string | undefined>(undefined)
+	const after = ref<PageInfo['endCursor']>(undefined)
+	const before = ref<PageInfo['endCursor']>(undefined)
 
 	// Persist the afterCursor of the last page after fetching new from the top
-	const lastAfterCursor = ref<string | undefined>(undefined)
+	const lastAfterCursor = ref<PageInfo['startCursor']>(undefined)
 
 	// Persist the top cursor, so we can trigger a new query with the "refresh" action
-	const topCursor = ref<string | undefined>(undefined)
+	const topCursor = ref<PageInfo['startCursor']>(undefined)
 
 	/**
 	 * Fetches the latest n updates (as a side effect)

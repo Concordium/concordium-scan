@@ -1,11 +1,8 @@
 import {
 	translateTransactionEvents,
-	translateTransferAddress,
+	translateAddress,
 } from './translateTransactionEvents'
-import type {
-	TransactionSuccessfulEvent,
-	TransferAddress,
-} from '~/types/transactions'
+import type { Event, Address } from '~/types/generated'
 
 describe('translateTransactionEvents', () => {
 	it('should have a fallback translation for unknown events', () => {
@@ -23,7 +20,7 @@ describe('translateTransactionEvents', () => {
 		const txEvent = {
 			__typename: 'AccountCreated',
 			address: '1337address',
-		} as TransactionSuccessfulEvent
+		} as Event
 
 		expect(translateTransactionEvents(txEvent)).toBe(
 			'Account created with address 1337ad'
@@ -35,7 +32,7 @@ describe('translateTransactionEvents', () => {
 			__typename: 'CredentialDeployed',
 			accountAddress: '1337address',
 			regId: 'regid421337',
-		} as TransactionSuccessfulEvent
+		} as Event
 
 		expect(translateTransactionEvents(txEvent)).toBe(
 			'Deployed account with address 1337ad from regid4'
@@ -48,30 +45,40 @@ describe('translateTransactionEvents', () => {
 			amount: 1337042,
 			from: { __typename: 'AccountAddress', address: 'sender123' },
 			to: { __typename: 'AccountAddress', address: 'recipient' },
-		} as TransactionSuccessfulEvent
+		} as Event
 
 		expect(translateTransactionEvents(txEvent)).toBe(
 			'Transferred 1.337042Ͼ from account sender to account recipi'
 		)
 	})
 
-	describe('translateTransferAddress', () => {
+	describe('translateAddress', () => {
 		it('should format an account address', () => {
 			const address = {
 				__typename: 'AccountAddress',
 				address: 'accadd123',
-			} as TransferAddress
+			} as Address
 
-			expect(translateTransferAddress(address)).toBe('account accadd')
+			expect(translateAddress(address)).toBe('account accadd')
 		})
 
 		it('should format a contract address', () => {
 			const address = {
 				__typename: 'ContractAddress',
 				index: 186,
-			} as TransferAddress
+				subIndex: 42,
+			} as Address
 
-			expect(translateTransferAddress(address)).toBe('contract 186')
+			expect(translateAddress(address)).toBe('contract <186, 42>')
+		})
+
+		it('should have a fallback', () => {
+			const address = {
+				__typename: 'Unknown',
+			} as unknown
+
+			// @ts-expect-error : test for fallback
+			expect(translateAddress(address)).toBe('an unknown address')
 		})
 	})
 })

@@ -1,5 +1,5 @@
 import type { Block } from './blocks'
-import type { PageInfo } from './pageInfo'
+import type { Successful, Rejected } from '~/types/generated'
 
 type AccountTransactionTypes =
 	| 'DEPLOY_MODULE'
@@ -96,20 +96,7 @@ export type TransactionSuccessfulEvent =
 	| CredentialDeployed
 	| TransferredEvent
 
-type TransactionSuccessful = {
-	successful: true
-	events: {
-		nodes: TransactionSuccessfulEvent[]
-		totalCount: number
-		pageInfo: PageInfo
-	}
-}
-
-type TransactionRejected = {
-	successful: false
-}
-
-type TransactionResult = TransactionSuccessful | TransactionRejected
+type TransactionResult = Successful | Rejected
 
 export type Transaction = {
 	id: string

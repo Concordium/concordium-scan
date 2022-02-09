@@ -1,4 +1,4 @@
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 
 export const PAGE_SIZE = 25
 
@@ -9,8 +9,8 @@ export type PaginationTarget = 'first' | 'previous' | 'next'
  * Returns query variables and a curried navigation handler
  */
 export const usePagination = () => {
-	const after = ref<string | undefined>(undefined)
-	const before = ref<string | undefined>(undefined)
+	const after = ref<PageInfo['endCursor']>(undefined)
+	const before = ref<PageInfo['startCursor']>(undefined)
 	const first = ref<number | undefined>(PAGE_SIZE)
 	const last = ref<number | undefined>(undefined)
 

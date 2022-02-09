@@ -89,7 +89,7 @@ import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {

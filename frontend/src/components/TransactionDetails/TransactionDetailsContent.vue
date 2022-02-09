@@ -90,15 +90,15 @@
 			<Accordion>
 				Events
 				<span
-					v-if="props.transaction?.result.successful"
+					v-if="props.transaction?.result.__typename === 'Successful'"
 					class="text-theme-faded ml-1"
 				>
 					({{ props.transaction?.result.events?.totalCount }})
 				</span>
 				<template #content>
 					<TransactionEventList
-						v-if="props.transaction?.result.successful"
-						:events="props.transaction.result.events?.nodes"
+						v-if="props.transaction?.result.__typename === 'Successful'"
+						:events="props.transaction.result.events"
 						:total-count="props.transaction?.result.events?.totalCount"
 						:page-info="props.transaction.result.events?.pageInfo"
 						:go-to-page="props.goToPage"
@@ -125,7 +125,7 @@ import {
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
 import { useDrawer } from '~/composables/useDrawer'
-import type { PageInfo } from '~/types/pageInfo'
+import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const selectedTxId = useTransactionDetails()
