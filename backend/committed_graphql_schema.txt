@@ -638,14 +638,18 @@ type Transaction {
 }
 
 type TransactionMetrics {
-  totalTransactionCount: Int!
+  "Total number of transactions added in requested period."
+  transactionsAdded: Int!
   buckets: TransactionMetricsBuckets!
 }
 
 type TransactionMetricsBuckets {
+  "The width (time interval) of each bucket."
   bucketWidth: TimeSpan!
+  "Start of the bucket time period. Intended x-axis value."
   x_Time: [DateTime!]!
-  y_TransactionCount: [Int!]!
+  "Total number of transactions added within the bucket time period. Intended y-axis value."
+  y_TransactionsAdded: [Int!]!
 }
 
 "A connection to a list of items."
