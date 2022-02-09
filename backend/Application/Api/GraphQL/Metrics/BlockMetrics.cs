@@ -3,7 +3,7 @@
 namespace Application.Api.GraphQL.Metrics;
 
 public record BlockMetrics(
-    [property:GraphQLDescription("The most recent block height (equals the total length of the chain).")]
+    [property:GraphQLDescription("The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero).")]
     long LastBlockHeight, 
     [property:GraphQLDescription("Total number of blocks added in requested period.")]
     int BlocksAdded, 
