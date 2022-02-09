@@ -122,6 +122,19 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
+    public async Task<RewardStatus> GetRewardStatusAsync(BlockHash blockHash)
+    {
+        var request = new Concordium.BlockHash
+        {
+            BlockHash_ = blockHash.AsString
+        };
+
+        var call = _client.GetRewardStatusAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<RewardStatus>(response.Value, _jsonSerializerOptions)!;
+        return result;
+    }
+
     public async Task<string> GetAccountInfoStringAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
     {
         var request = new GetAddressInfoRequest()

@@ -98,9 +98,11 @@ public class ImportController : BackgroundService
 
             var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
             var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
+            var rewardStatusTask = _client.GetRewardStatusAsync(blockHash);
 
             var blockInfo = await blockInfoTask;
             var blockSummaryString = await blockSummaryStringTask;
+            var rewardStatus = await rewardStatusTask;
 
             // Should be fetched from cache!
             var blockSummary = await _client.GetBlockSummaryAsync(blockHash);
@@ -114,7 +116,7 @@ public class ImportController : BackgroundService
             await Task.WhenAll(
                 _repository.Insert(blockInfo, blockSummaryString, blockSummary),
                 _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts),
-                _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts));
+                _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
 
             var writeDuration = sw.ElapsedMilliseconds;
             

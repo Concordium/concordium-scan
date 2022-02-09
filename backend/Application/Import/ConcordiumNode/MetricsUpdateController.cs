@@ -18,14 +18,14 @@ public class MetricsUpdateController
         _settings = settings;
     }
 
-    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
+    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts, RewardStatus rewardStatus)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
         
         var tx = await conn.BeginTransactionAsync();
 
-        await InsertBlockMetrics(blockInfo, conn);
+        await InsertBlockMetrics(blockInfo, rewardStatus, conn);
         await InsertTransactionMetrics(blockInfo, blockSummary, conn);
         await InsertAccountsMetrics(blockInfo, createdAccounts, conn);
         
@@ -48,25 +48,29 @@ public class MetricsUpdateController
         await conn.ExecuteAsync(sql, transactionParams);
     }
 
-    private async Task InsertBlockMetrics(BlockInfo blockInfo, NpgsqlConnection conn)
+    private async Task InsertBlockMetrics(BlockInfo blockInfo, RewardStatus rewardStatus, NpgsqlConnection conn)
     {
         var blockParam = new
         {
             Time = blockInfo.BlockSlotTime,
             blockInfo.BlockHeight,
-            BlockTimeSecs = GetBlockTime(blockInfo)
+            BlockTimeSecs = GetBlockTime(blockInfo),
+            TotalMicroCcd = (long)rewardStatus.TotalAmount.MicroCcdValue,
+            TotalEncryptedMicroCcd = (long)rewardStatus.TotalEncryptedAmount.MicroCcdValue
+            
         };
 
-        var sql = "insert into metrics_block (time, block_height, block_time_secs) values (@Time, @BlockHeight, @BlockTimeSecs)";
+        var sql = @"insert into metrics_block (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
+                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
         await conn.ExecuteAsync(sql, blockParam);
     }
 
-    private int GetBlockTime(BlockInfo blockInfo)
+    private double GetBlockTime(BlockInfo blockInfo)
     {
         if (_prevBlockInfo == null)
             return 0; // TODO: Should only be valid for genesis block, but right now every time the app starts the first imported data item will be zero. Will be corrected later...
         var blockTime = blockInfo.BlockSlotTime - _prevBlockInfo.BlockSlotTime;
-        return Convert.ToInt32(blockTime.TotalSeconds);
+        return Math.Round(blockTime.TotalSeconds, 1);
     }
 
     private async Task InsertAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, NpgsqlConnection conn)

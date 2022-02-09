@@ -26,8 +26,10 @@ public class MetricsQuery
         // TODO: Still need to figure out what to do if no new blocks have been created in requested time interval! Not very likely!
         var sql = 
             @"select max(block_height) as last_block_height,
-                     count(*) as total_block_count ,
-                     round(avg(block_time_secs), 1) as avg_block_time_secs
+                     count(*) as total_block_count,
+                     avg(block_time_secs) as avg_block_time_secs,
+                     max(total_microccd) as last_total_microccd,
+                     last(total_encrypted_microccd, time) as last_total_encrypted_microccd
               from metrics_block
               where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
@@ -36,15 +38,21 @@ public class MetricsQuery
 
         var lastBlockHeight = (long)data.last_block_height;
         var totalBlockCount = (int)data.total_block_count;
-        var avgBlockTime = (double)data.avg_block_time_secs;
-
+        var avgBlockTime = Math.Round((double)data.avg_block_time_secs, 1);
+        var lastTotalMicroCcd = (long)data.last_total_microccd;
+        var lastTotalEncryptedMicroCcd = (long)data.last_total_encrypted_microccd;
+        
         var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
         var bucketsSql = 
             @"select time_bucket(@BucketWidth, time) as interval_start, 
                      count(*) as count, 
-                     round(min(block_time_secs), 1) as min_block_time_secs, 
-                     round(avg(block_time_secs), 1) as avg_block_time_secs, 
-                     round(max(block_time_secs), 1) as max_block_time_secs 
+                     min(block_time_secs) as min_block_time_secs, 
+                     avg(block_time_secs) as avg_block_time_secs, 
+                     max(block_time_secs) as max_block_time_secs,
+                     last(total_microccd, time) as last_total_microccd,
+                     min(total_encrypted_microccd) as min_total_encrypted_microccd,
+                     max(total_encrypted_microccd) as max_total_encrypted_microccd,
+                     last(total_encrypted_microccd, time) as last_total_encrypted_microccd
               from metrics_block
               where time between @FromTime and @ToTime
               group by interval_start
@@ -58,9 +66,13 @@ public class MetricsQuery
             bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
             bucketData.Select(row => (int)row.count).ToArray(),
             bucketData.Select(row => (double)row.min_block_time_secs).ToArray(),
-            bucketData.Select(row => (double)row.avg_block_time_secs).ToArray(),
-            bucketData.Select(row => (double)row.max_block_time_secs).ToArray());
-        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, buckets);
+            bucketData.Select(row => Math.Round((double)row.avg_block_time_secs, 1)).ToArray(),
+            bucketData.Select(row => (double)row.max_block_time_secs).ToArray(),
+            bucketData.Select(row => (long)row.last_total_microccd).ToArray(),
+            bucketData.Select(row => (long)row.min_total_encrypted_microccd).ToArray(),
+            bucketData.Select(row => (long)row.max_total_encrypted_microccd).ToArray(),
+            bucketData.Select(row => (long)row.last_total_encrypted_microccd).ToArray());
+        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
         return result;
     }
 
