@@ -102,8 +102,8 @@ public class ImportController : BackgroundService
             var blockInfo = await blockInfoTask;
             var blockSummaryString = await blockSummaryStringTask;
 
-            var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
-            var blockSummary = await blockSummaryTask;
+            // Should be fetched from cache!
+            var blockSummary = await _client.GetBlockSummaryAsync(blockHash);
             
             var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
 
