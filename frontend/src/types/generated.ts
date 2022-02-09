@@ -68,17 +68,23 @@ export enum AccountTransactionType {
 
 export type AccountsMetrics = {
   __typename?: 'AccountsMetrics';
+  /** Total number of accounts created in requested period. */
+  accountsCreated: Scalars['Int'];
   buckets: AccountsMetricsBuckets;
+  /** Total number of accounts created (all time) */
   lastCumulativeAccountsCreated: Scalars['Long'];
-  sumAccountsCreated: Scalars['Int'];
 };
 
 export type AccountsMetricsBuckets = {
   __typename?: 'AccountsMetricsBuckets';
+  /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
+  /** Number of accounts created within bucket time period. Intended y-axis value. */
+  y_AccountsCreated: Array<Scalars['Int']>;
+  /** Total number of accounts created (all time) at the end of the bucket period. Intended y-axis value. */
   y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
-  y_SumAccountsCreated: Array<Scalars['Int']>;
 };
 
 export type Address = AccountAddress | ContractAddress;
@@ -241,19 +247,41 @@ export type BlockTransactionsArgs = {
 
 export type BlockMetrics = {
   __typename?: 'BlockMetrics';
-  avgBlockTime: Scalars['Int'];
+  /** The average block time (slot-time difference between two adjacent blocks) in the requested period. */
+  avgBlockTime: Scalars['Float'];
+  /** Total number of blocks added in requested period. */
+  blocksAdded: Scalars['Int'];
   buckets: BlockMetricsBuckets;
-  totalBlockCount: Scalars['Int'];
+  /** The most recent block height (equals the total length of the chain). */
+  lastBlockHeight: Scalars['Long'];
+  /** The total amount of CCD in encrypted balances. */
+  lastTotalEncryptedMicroCcd: Scalars['Long'];
+  /** The total amount of CCD in existence. */
+  lastTotalMicroCcd: Scalars['Long'];
 };
 
 export type BlockMetricsBuckets = {
   __typename?: 'BlockMetricsBuckets';
+  /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  y_BlockCount: Array<Scalars['Int']>;
-  y_BlockTimeAvg: Array<Scalars['Int']>;
-  y_BlockTimeMax: Array<Scalars['Int']>;
-  y_BlockTimeMin: Array<Scalars['Int']>;
+  /** The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
+  y_BlockTimeAvg: Array<Scalars['Float']>;
+  /** The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
+  y_BlockTimeMax: Array<Scalars['Float']>;
+  /** The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
+  y_BlockTimeMin: Array<Scalars['Float']>;
+  /** Number of blocks added within the bucket time period. Intended y-axis value. */
+  y_BlocksAdded: Array<Scalars['Int']>;
+  /** The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value. */
+  y_LastTotalEncryptedMicroCcd: Array<Scalars['Long']>;
+  /** The total amount of CCD in existence at the end of the bucket period. Intended y-axis value. */
+  y_LastTotalMicroCcd: Array<Scalars['Long']>;
+  /** The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. */
+  y_MaxTotalEncryptedMicroCcd: Array<Scalars['Long']>;
+  /** The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. */
+  y_MinTotalEncryptedMicroCcd: Array<Scalars['Long']>;
 };
 
 export type BlockRewards = {
@@ -811,10 +839,9 @@ export type QueryTransactionsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
-export type Rejected = TransactionResult & {
+export type Rejected = {
   __typename?: 'Rejected';
   reason: TransactionRejectReason;
-  successful: Scalars['Boolean'];
 };
 
 export type RejectedInit = {
@@ -905,14 +932,13 @@ export type Subscription = {
   blockAdded: Block;
 };
 
-export type Successful = TransactionResult & {
-  __typename?: 'Successful';
+export type Success = {
+  __typename?: 'Success';
   events?: Maybe<EventsConnection>;
-  successful: Scalars['Boolean'];
 };
 
 
-export type SuccessfulEventsArgs = {
+export type SuccessEventsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -946,21 +972,27 @@ export type Transaction = {
 export type TransactionMetrics = {
   __typename?: 'TransactionMetrics';
   buckets: TransactionMetricsBuckets;
-  totalTransactionCount: Scalars['Int'];
+  /** Total number of transactions (all time) */
+  lastCumulativeTransactionCount: Scalars['Long'];
+  /** Total number of transactions in requested period. */
+  transactionCount: Scalars['Int'];
 };
 
 export type TransactionMetricsBuckets = {
   __typename?: 'TransactionMetricsBuckets';
+  /** The width (time interval) of each bucket. */
   bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
+  /** Total number of transactions (all time) at the end of the bucket period. Intended y-axis value. */
+  y_LastCumulativeTransactionCount: Array<Scalars['Long']>;
+  /** Total number of transactions within the bucket time period. Intended y-axis value. */
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
 export type TransactionRejectReason = AlreadyABaker | AmountTooLarge | BakerInCooldown | CredentialHolderDidNotSign | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonIncreasingSchedule | NotABaker | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeUnderMinimumThresholdForBaking | ZeroScheduledAmount;
 
-export type TransactionResult = {
-  successful: Scalars['Boolean'];
-};
+export type TransactionResult = Rejected | Success;
 
 export type TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction;
 

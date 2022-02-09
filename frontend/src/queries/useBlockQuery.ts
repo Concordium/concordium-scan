@@ -24,7 +24,7 @@ const BlockQuery = gql<BlockResponse>`
 					senderAccountAddress
 					ccdCost
 					result {
-						successful
+						__typename
 					}
 				}
 				pageInfo {
@@ -86,7 +86,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					senderAccountAddress
 					ccdCost
 					result {
-						successful
+						__typename
 					}
 				}
 				pageInfo {

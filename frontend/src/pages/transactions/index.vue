@@ -28,10 +28,17 @@
 							<StatusCircle
 								:class="[
 									'h-4 mr-2 text-theme-interactive',
-									{ 'text-theme-error': !transaction.result.successful },
+									{
+										'text-theme-error':
+											transaction.result.__typename === 'Rejected',
+									},
 								]"
 							/>
-							{{ transaction.result.successful ? 'Success' : 'Rejected' }}
+							{{
+								transaction.result.__typename === 'Success'
+									? 'Success'
+									: 'Rejected'
+							}}
 						</TableTd>
 						<TableTd>
 							<Tooltip :text="transaction.block.blockSlotTime">

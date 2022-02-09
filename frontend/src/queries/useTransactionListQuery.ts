@@ -29,7 +29,7 @@ const TransactionsQuery = gql<TransactionListResponse>`
 					blockSlotTime
 				}
 				result {
-					successful
+					__typename
 				}
 				transactionType {
 					__typename

@@ -1,5 +1,5 @@
 import type { Block } from './blocks'
-import type { Successful, Rejected } from '~/types/generated'
+import type { TransactionResult } from '~/types/generated'
 
 type AccountTransactionTypes =
 	| 'DEPLOY_MODULE'
@@ -60,17 +60,6 @@ export type TransactionType =
 	| UpdateTransaction
 	| CredentialDeploymentTransaction
 
-type AccountCreatedEvent = {
-	__typename: 'AccountCreated'
-	address: string
-}
-
-type CredentialDeployed = {
-	__typename: 'CredentialDeployed'
-	regId: string
-	accountAddress: string
-}
-
 type AccountAddress = {
 	__typename: 'AccountAddress'
 	address: string
@@ -83,20 +72,6 @@ type ContractAddress = {
 }
 
 export type TransferAddress = AccountAddress | ContractAddress
-
-type TransferredEvent = {
-	__typename: 'Transferred'
-	amount: number
-	from: TransferAddress
-	to: TransferAddress
-}
-
-export type TransactionSuccessfulEvent =
-	| AccountCreatedEvent
-	| CredentialDeployed
-	| TransferredEvent
-
-type TransactionResult = Successful | Rejected
 
 export type Transaction = {
 	id: string

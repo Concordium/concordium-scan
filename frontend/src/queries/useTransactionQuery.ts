@@ -23,8 +23,7 @@ const TransactionQuery = gql<TransactionResponse>`
 				blockSlotTime
 			}
 			result {
-				successful
-				... on Successful {
+				... on Success {
 					events(after: $after, before: $before, first: $first, last: $last) {
 						nodes {
 							__typename
@@ -107,8 +106,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 				blockSlotTime
 			}
 			result {
-				successful
-				... on Successful {
+				... on Success {
 					events(after: $after, before: $before, first: $first, last: $last) {
 						nodes {
 							__typename

@@ -22,10 +22,10 @@
 import { translateTransactionEvents } from '~/utils/translateTransactionEvents'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { Successful, PageInfo } from '~/types/generated'
+import type { Success, PageInfo } from '~/types/generated'
 
 type Props = {
-	events: Successful['events']
+	events: Success['events']
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 

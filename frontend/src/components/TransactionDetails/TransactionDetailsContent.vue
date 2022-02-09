@@ -27,9 +27,17 @@
 			/>
 
 			<Badge
-				:type="props.transaction?.result.successful ? 'success' : 'failure'"
+				:type="
+					props.transaction?.result.__typename === 'Success'
+						? 'success'
+						: 'failure'
+				"
 			>
-				{{ props.transaction?.result.successful ? 'Success' : 'Rejected' }}
+				{{
+					props.transaction?.result.__typename === 'Success'
+						? 'Success'
+						: 'Rejected'
+				}}
 			</Badge>
 		</DrawerTitle>
 		<DrawerContent v-if="props.transaction">
@@ -90,14 +98,14 @@
 			<Accordion>
 				Events
 				<span
-					v-if="props.transaction?.result.__typename === 'Successful'"
+					v-if="props.transaction?.result.__typename === 'Success'"
 					class="text-theme-faded ml-1"
 				>
 					({{ props.transaction?.result.events?.totalCount }})
 				</span>
 				<template #content>
 					<TransactionEventList
-						v-if="props.transaction?.result.__typename === 'Successful'"
+						v-if="props.transaction?.result.__typename === 'Success'"
 						:events="props.transaction.result.events"
 						:total-count="props.transaction?.result.events?.totalCount"
 						:page-info="props.transaction.result.events?.pageInfo"
