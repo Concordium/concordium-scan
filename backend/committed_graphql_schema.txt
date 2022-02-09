@@ -26,16 +26,22 @@ type AccountTransaction {
 }
 
 type AccountsMetrics {
+  "Total number of accounts created (all time)"
   lastCumulativeAccountsCreated: Long!
-  sumAccountsCreated: Int!
+  "Total number of accounts created in requested period."
+  accountsCreated: Int!
   buckets: AccountsMetricsBuckets!
 }
 
 type AccountsMetricsBuckets {
+  "The width (time interval) of each bucket."
   bucketWidth: TimeSpan!
+  "Start of the bucket time period. Intended x-axis value."
   x_Time: [DateTime!]!
+  "Total number of accounts created (all time) at the end of the bucket period. Intended y-axis value."
   y_LastCumulativeAccountsCreated: [Long!]!
-  y_SumAccountsCreated: [Int!]!
+  "Number of accounts created within bucket time period. Intended y-axis value."
+  y_AccountsCreated: [Int!]!
 }
 
 type AlreadyABaker {
