@@ -171,6 +171,10 @@ type BlockMetrics {
   blocksAdded: Int!
   "The average block time (slot-time difference between two adjacent blocks) in the requested period."
   avgBlockTime: Float!
+  "The total amount of CCD in existence."
+  lastTotalMicroCcd: Long!
+  "The total amount of CCD in encrypted balances."
+  lastTotalEncryptedMicroCcd: Long!
   buckets: BlockMetricsBuckets!
 }
 
@@ -181,12 +185,20 @@ type BlockMetricsBuckets {
   x_Time: [DateTime!]!
   "Number of blocks added within the bucket time period. Intended y-axis value."
   y_BlocksAdded: [Int!]!
-  "The minimum block time (slot-time difference between two adjacent blocks) in the requested period. Intended y-axis value."
+  "The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
   y_BlockTimeMin: [Float!]!
-  "The average block time (slot-time difference between two adjacent blocks) in the requested period. Intended y-axis value."
+  "The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
   y_BlockTimeAvg: [Float!]!
-  "The maximum block time (slot-time difference between two adjacent blocks) in the requested period. Intended y-axis value."
+  "The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
   y_BlockTimeMax: [Float!]!
+  "The total amount of CCD in existence at the end of the bucket period. Intended y-axis value."
+  y_LastTotalMicroCcd: [Long!]!
+  "The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value."
+  y_MinTotalEncryptedMicroCcd: [Long!]!
+  "The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value."
+  y_MaxTotalEncryptedMicroCcd: [Long!]!
+  "The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value."
+  y_LastTotalEncryptedMicroCcd: [Long!]!
 }
 
 type BlockRewards {
@@ -638,8 +650,10 @@ type Transaction {
 }
 
 type TransactionMetrics {
-  "Total number of transactions added in requested period."
-  transactionsAdded: Int!
+  "Total number of transactions (all time)"
+  lastCumulativeTransactionCount: Long!
+  "Total number of transactions in requested period."
+  transactionCount: Int!
   buckets: TransactionMetricsBuckets!
 }
 
@@ -648,8 +662,10 @@ type TransactionMetricsBuckets {
   bucketWidth: TimeSpan!
   "Start of the bucket time period. Intended x-axis value."
   x_Time: [DateTime!]!
-  "Total number of transactions added within the bucket time period. Intended y-axis value."
-  y_TransactionsAdded: [Int!]!
+  "Total number of transactions (all time) at the end of the bucket period. Intended y-axis value."
+  y_LastCumulativeTransactionCount: [Long!]!
+  "Total number of transactions within the bucket time period. Intended y-axis value."
+  y_TransactionCount: [Int!]!
 }
 
 "A connection to a list of items."

@@ -11,6 +11,7 @@ public class MetricsUpdateController
 {
     private readonly DatabaseSettings _settings;
     private BlockInfo? _prevBlockInfo;
+    private long? _cumulativeTransactionCount;
     private long? _cumulativeAccountsCreated;
 
     public MetricsUpdateController(DatabaseSettings settings)
@@ -26,26 +27,44 @@ public class MetricsUpdateController
         var tx = await conn.BeginTransactionAsync();
 
         await InsertBlockMetrics(blockInfo, rewardStatus, conn);
-        await InsertTransactionMetrics(blockInfo, blockSummary, conn);
-        await InsertAccountsMetrics(blockInfo, createdAccounts, conn);
+        var newCumulativeTransactionCount = await InsertTransactionMetrics(blockInfo, blockSummary, conn);
+        var newCumulativeAccountsCreated = await InsertAccountsMetrics(blockInfo, createdAccounts, conn);
         
         await tx.CommitAsync();
+        
+        _cumulativeTransactionCount = newCumulativeTransactionCount;
+        _cumulativeAccountsCreated = newCumulativeAccountsCreated;
         
         _prevBlockInfo = blockInfo;
     }
 
-    private static async Task InsertTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, NpgsqlConnection conn)
+    private async Task<long?> InsertTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, NpgsqlConnection conn)
     {
-        var transactionParams = blockSummary.TransactionSummaries.Select(txs => new
+        if (blockSummary.TransactionSummaries.Length == 0) return _cumulativeTransactionCount;
+
+        var cumulativeTransactionCount = _cumulativeTransactionCount;
+        if (!cumulativeTransactionCount.HasValue)
         {
+            var initSql = @"select max(cumulative_transaction_count)
+                            from metrics_transactions
+                            where time = (select max(time) from metrics_transactions)";
+            var maxCumulativeTxCount = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
+            cumulativeTransactionCount = maxCumulativeTxCount ?? 0;
+        }
+
+        var transactionParams = blockSummary.TransactionSummaries.Select((txs, ix) => new
+        {
+            CumulativeTransactionCount = cumulativeTransactionCount.Value + ix + 1,
             Time = blockInfo.BlockSlotTime,
             TransactionType = TransactionTypeUnion.CreateFrom(txs.Type).ToCompactString(),
             MicroCcdCost = Convert.ToInt64(txs.Cost.MicroCcdValue),
             Success = txs.Result is TransactionSuccessResult
         }).ToArray();
-
-        var sql = "insert into metrics_transaction (time, transaction_type, micro_ccd_cost, success) values (@Time, @TransactionType, @MicroCcdCost, @Success)";
+        
+        var sql = "insert into metrics_transactions (time, cumulative_transaction_count, transaction_type, micro_ccd_cost, success) values (@Time, @CumulativeTransactionCount, @TransactionType, @MicroCcdCost, @Success)";
         await conn.ExecuteAsync(sql, transactionParams);
+
+        return cumulativeTransactionCount.Value + blockSummary.TransactionSummaries.Length;
     }
 
     private async Task InsertBlockMetrics(BlockInfo blockInfo, RewardStatus rewardStatus, NpgsqlConnection conn)
@@ -73,29 +92,30 @@ public class MetricsUpdateController
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
-    private async Task InsertAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, NpgsqlConnection conn)
+    private async Task<long?> InsertAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, NpgsqlConnection conn)
     {
-        if (createdAccounts.Length == 0) return;
+        if (createdAccounts.Length == 0) return _cumulativeAccountsCreated;
 
-        if (!_cumulativeAccountsCreated.HasValue)
+        var cumulativeAccountsCreated = _cumulativeAccountsCreated;
+        if (!cumulativeAccountsCreated.HasValue)
         {
             var initSql = @"select max(cumulative_accounts_created)
                             from metrics_accounts
                             where time = (select max(time) from metrics_accounts)";
             var maxTotalAccounts = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
-            _cumulativeAccountsCreated = maxTotalAccounts ?? 0;
+            cumulativeAccountsCreated = maxTotalAccounts ?? 0;
         }
-        
-        _cumulativeAccountsCreated += createdAccounts.Length;
         
         var accountsParams = new
         {
             Time = blockInfo.BlockSlotTime,
-            CumulativeAccountsCreated = _cumulativeAccountsCreated.Value,
+            CumulativeAccountsCreated = cumulativeAccountsCreated.Value + createdAccounts.Length,
             AccountsCreated = createdAccounts.Length
         };
         
         var sql = "insert into metrics_accounts (time, cumulative_accounts_created, accounts_created) values (@Time, @CumulativeAccountsCreated, @AccountsCreated)";
         await conn.ExecuteAsync(sql, accountsParams);
+
+        return cumulativeAccountsCreated;
     }
 }

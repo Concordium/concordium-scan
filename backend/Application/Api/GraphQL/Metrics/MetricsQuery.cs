@@ -84,20 +84,23 @@ public class MetricsQuery
         var queryParams = CreateQueryParams(period);
 
         // TODO: Still need to figure out what to do if no new transactions have been created in requested time interval! Not very likely!
-        var sql = @"select count(*) as transactions_added
-                    from metrics_transaction
+        var sql = @"select max(cumulative_transaction_count) as last_cumulative_transaction_count,
+                           count(*) as transaction_count
+                    from metrics_transactions
                     where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
-        if (data.transactions_added == 0)
+        if (data.transaction_count == 0)
             return null; // Means "no data"
         
-        var transactionsAdded = (int)data.transactions_added;
+        var lastCumulativeTransactionCount = (long)data.last_cumulative_transaction_count;
+        var transactionCount = (int)data.transaction_count;
 
         var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
         var bucketsSql = 
-            @"select time_bucket(@BucketWidth, time) as interval_start, 
-              count(*) as transactions_added
-              from metrics_transaction
+            @"select time_bucket(@BucketWidth, time) as interval_start,
+                     last(cumulative_transaction_count, time) as last_cumulative_transaction_count,
+                     count(*) as transaction_count
+              from metrics_transactions
               where time between @FromTime and @ToTime
               group by interval_start
               order by interval_start desc;";
@@ -108,8 +111,9 @@ public class MetricsQuery
         var buckets = new TransactionMetricsBuckets(
             queryParams.BucketWidth,
             bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
-            bucketData.Select(row => (int)row.transactions_added).ToArray());
-        var result = new TransactionMetrics(transactionsAdded, buckets);
+            bucketData.Select(row => (long)row.last_cumulative_transaction_count).ToArray(),
+            bucketData.Select(row => (int)row.transaction_count).ToArray());
+        var result = new TransactionMetrics(lastCumulativeTransactionCount, transactionCount, buckets);
         return result;
     }
 
