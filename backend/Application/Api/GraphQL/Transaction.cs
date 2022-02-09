@@ -42,7 +42,7 @@ public class Transaction
     {
         get
         {
-            if (RejectReason == null) return new Successful(this);
+            if (RejectReason == null) return new Success(this);
             return new Rejected(RejectReason);
         }
     }

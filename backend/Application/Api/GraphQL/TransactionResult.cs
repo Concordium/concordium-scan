@@ -6,18 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
-[InterfaceType("TransactionResult")]
-public abstract class TransactionResult
-{
-    protected TransactionResult(bool successful)
-    {
-        Successful = successful;
-    }
+[UnionType]
+public abstract class TransactionResult { }
 
-    public bool Successful { get; }
-}
-
-public class Successful : TransactionResult
+public class Success : TransactionResult
 {
     private readonly Transaction _owner;
 
@@ -32,7 +24,7 @@ public class Successful : TransactionResult
             .Select(x => x.Entity);
     }
     
-    public Successful(Transaction owner) : base(true)
+    public Success(Transaction owner) 
     {
         _owner = owner;
     }
@@ -42,7 +34,7 @@ public class Rejected : TransactionResult
 {
     public TransactionRejectReason Reason { get; }
     
-    public Rejected(TransactionRejectReason reason) : base(false)
+    public Rejected(TransactionRejectReason reason) 
     {
         Reason = reason;
     }

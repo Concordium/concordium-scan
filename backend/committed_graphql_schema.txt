@@ -3,10 +3,6 @@
   subscription: Subscription
 }
 
-interface TransactionResult {
-  successful: Boolean!
-}
-
 type Account {
   id: ID!
   address: String!
@@ -553,9 +549,8 @@ type Query {
   accountsMetrics(period: MetricsPeriod!): AccountsMetrics
 }
 
-type Rejected implements TransactionResult {
+type Rejected {
   reason: TransactionRejectReason!
-  successful: Boolean!
 }
 
 type RejectedInit {
@@ -627,9 +622,8 @@ type Subscription {
   blockAdded: Block!
 }
 
-type Successful implements TransactionResult {
+type Success {
   events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): EventsConnection
-  successful: Boolean!
 }
 
 type TimestampedAmount {
@@ -716,6 +710,8 @@ union Address = AccountAddress | ContractAddress
 union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
 
 union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted
+
+union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
 
