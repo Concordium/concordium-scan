@@ -83,6 +83,16 @@ Furthermore, it might complain that the hook cannot be run. If this is the case,
 chmod +x .husky/pre-commit
 ```
 
+### Type generation
+
+We are using [GraphQL Code Generator](https://www.graphql-code-generator.com/) to generate types from our GraphQL schema. Whenever there is a change in the schema, you can run the following:
+
+```sh
+yarn gql-codegen
+```
+
+This will generate a new set of types in `types/generated.ts`. You should never edit this file manually, as the codegen will simply overwrite changes.
+
 # Known issues
 
 - **Components using the `@apply` directive from Tailwind can not be tested.**

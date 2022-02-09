@@ -66,6 +66,21 @@ export enum AccountTransactionType {
   UpdateSmartContractInstance = 'UPDATE_SMART_CONTRACT_INSTANCE'
 }
 
+export type AccountsMetrics = {
+  __typename?: 'AccountsMetrics';
+  buckets: AccountsMetricsBuckets;
+  lastCumulativeAccountsCreated: Scalars['Long'];
+  sumAccountsCreated: Scalars['Int'];
+};
+
+export type AccountsMetricsBuckets = {
+  __typename?: 'AccountsMetricsBuckets';
+  bucketWidth: Scalars['TimeSpan'];
+  x_Time: Array<Scalars['DateTime']>;
+  y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
+  y_SumAccountsCreated: Array<Scalars['Int']>;
+};
+
 export type Address = AccountAddress | ContractAddress;
 
 export type AlreadyABaker = {
@@ -718,6 +733,7 @@ export type Query = {
   __typename?: 'Query';
   account?: Maybe<Account>;
   accountByAddress?: Maybe<Account>;
+  accountsMetrics?: Maybe<AccountsMetrics>;
   block?: Maybe<Block>;
   blockByBlockHash?: Maybe<Block>;
   blockMetrics?: Maybe<BlockMetrics>;
@@ -737,6 +753,11 @@ export type QueryAccountArgs = {
 
 export type QueryAccountByAddressArgs = {
   accountAddress: Scalars['String'];
+};
+
+
+export type QueryAccountsMetricsArgs = {
+  period: MetricsPeriod;
 };
 
 

@@ -1,5 +1,5 @@
 {
-	"src/!(generated)/*.{js,ts,vue}": [
+	"!(generated)*.{js,ts,vue}": [
 		"yarn lint",
 		"prettier --write"
 	]
