@@ -24,3 +24,6 @@ create table graphql_blocks
     finalization_data_index          bigint    null,
     finalization_data_delay          bigint    null
 );
+
+create index graphql_blocks_block_hash_index
+    on graphql_blocks (block_hash);

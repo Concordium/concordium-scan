@@ -10,3 +10,6 @@ create table graphql_transactions
     transaction_type     text   not null,
     reject_reason        json   null
 );
+
+create index graphql_transactions_transaction_hash_index
+    on graphql_transactions (transaction_hash);

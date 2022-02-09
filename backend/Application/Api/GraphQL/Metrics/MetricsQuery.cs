@@ -30,7 +30,7 @@ public class MetricsQuery
                      avg(block_time_secs) as avg_block_time_secs,
                      max(total_microccd) as last_total_microccd,
                      last(total_encrypted_microccd, time) as last_total_encrypted_microccd
-              from metrics_block
+              from metrics_blocks
               where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
         if (data.total_block_count == 0)
@@ -53,7 +53,7 @@ public class MetricsQuery
                      min(total_encrypted_microccd) as min_total_encrypted_microccd,
                      max(total_encrypted_microccd) as max_total_encrypted_microccd,
                      last(total_encrypted_microccd, time) as last_total_encrypted_microccd
-              from metrics_block
+              from metrics_blocks
               where time between @FromTime and @ToTime
               group by interval_start
               order by interval_start desc;";

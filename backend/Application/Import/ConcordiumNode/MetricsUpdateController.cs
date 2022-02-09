@@ -79,7 +79,7 @@ public class MetricsUpdateController
             
         };
 
-        var sql = @"insert into metrics_block (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
+        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
                     values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
         await conn.ExecuteAsync(sql, blockParam);
     }
@@ -105,11 +105,13 @@ public class MetricsUpdateController
             var maxTotalAccounts = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
             cumulativeAccountsCreated = maxTotalAccounts ?? 0;
         }
+
+        cumulativeAccountsCreated = cumulativeAccountsCreated.Value + createdAccounts.Length;
         
         var accountsParams = new
         {
             Time = blockInfo.BlockSlotTime,
-            CumulativeAccountsCreated = cumulativeAccountsCreated.Value + createdAccounts.Length,
+            CumulativeAccountsCreated = cumulativeAccountsCreated.Value,
             AccountsCreated = createdAccounts.Length
         };
         

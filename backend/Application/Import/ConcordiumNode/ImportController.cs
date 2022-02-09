@@ -122,8 +122,6 @@ public class ImportController : BackgroundService
             
             _logger.Information("Imported block {blockhash} at block height {blockheight} [read: {readDuration}ms] [write: {writeDuration}ms]", blockHash.AsString, nextHeight, readDuration, writeDuration);
 
-            if (createdAccounts.Any())
-                _logger.Information("{count} accounts created", createdAccounts.Length);
             nextHeight++;
         }
     }
