@@ -23,22 +23,32 @@ public class MetricsQuery
 
         var queryParams = CreateQueryParams(period);
 
-        var sql = @"select round(avg(block_time_secs)) as avg_block_time_secs, count(*) as total_block_count
-                    from metrics_block
-                    where time between @FromTime and @ToTime;";
+        // TODO: Still need to figure out what to do if no new blocks have been created in requested time interval! Not very likely!
+        var sql = 
+            @"select max(block_height) as last_block_height,
+                     count(*) as total_block_count ,
+                     round(avg(block_time_secs), 1) as avg_block_time_secs
+              from metrics_block
+              where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
         if (data.total_block_count == 0)
-            return null; // Means "no data"
-        
-        var avgBlockTime = (int)data.avg_block_time_secs;
+            return null; // "No data"
+
+        var lastBlockHeight = (long)data.last_block_height;
         var totalBlockCount = (int)data.total_block_count;
+        var avgBlockTime = (double)data.avg_block_time_secs;
 
         var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
-        var bucketsSql = @"select time_bucket(@BucketWidth, time) as interval_start, count(*) as count, min(block_time_secs) as min_block_time_secs, round(avg(block_time_secs)) as avg_block_time_secs, max(block_time_secs) as max_block_time_secs 
-                    from metrics_block
-                    where time between @FromTime and @ToTime
-                    group by interval_start
-                    order by interval_start desc;";
+        var bucketsSql = 
+            @"select time_bucket(@BucketWidth, time) as interval_start, 
+                     count(*) as count, 
+                     round(min(block_time_secs), 1) as min_block_time_secs, 
+                     round(avg(block_time_secs), 1) as avg_block_time_secs, 
+                     round(max(block_time_secs), 1) as max_block_time_secs 
+              from metrics_block
+              where time between @FromTime and @ToTime
+              group by interval_start
+              order by interval_start desc;";
         var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
 
         bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
@@ -47,10 +57,10 @@ public class MetricsQuery
             queryParams.BucketWidth,
             bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
             bucketData.Select(row => (int)row.count).ToArray(),
-            bucketData.Select(row => (int)row.min_block_time_secs).ToArray(),
-            bucketData.Select(row => (int)row.avg_block_time_secs).ToArray(),
-            bucketData.Select(row => (int)row.max_block_time_secs).ToArray());
-        var result = new BlockMetrics(avgBlockTime, totalBlockCount, buckets);
+            bucketData.Select(row => (double)row.min_block_time_secs).ToArray(),
+            bucketData.Select(row => (double)row.avg_block_time_secs).ToArray(),
+            bucketData.Select(row => (double)row.max_block_time_secs).ToArray());
+        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, buckets);
         return result;
     }
 
