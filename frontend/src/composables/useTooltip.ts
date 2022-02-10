@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 export type Position = 'top' | 'bottom'
 
 /**
