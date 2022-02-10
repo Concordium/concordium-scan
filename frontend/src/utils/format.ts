@@ -38,3 +38,13 @@ export const calculateWeight = (amount: number, total: number) => {
 		maximumFractionDigits: 2,
 	}).format(weight)
 }
+
+/**
+ * Shortens a hash (or any other long string)
+ * @param {string} hash - String to shorten
+ * @returns {string} - Shortened string
+ * @example
+ * // returns b4da55abc123def456
+ * shortenHash(b4da55)
+ */
+export const shortenHash = (hash: string) => hash.substring(0, 6)

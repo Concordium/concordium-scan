@@ -2,6 +2,7 @@ import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 	calculateWeight,
+	shortenHash,
 } from './format'
 
 describe('format', () => {
@@ -48,6 +49,12 @@ describe('format', () => {
 
 		it('should round the result to two decimals', () => {
 			expect(calculateWeight(25, 600)).toStrictEqual('4.17')
+		})
+	})
+
+	describe('shortenHash', () => {
+		it('should shorten a long hash', () => {
+			expect(shortenHash('b4da55abc123def456')).toStrictEqual('b4da55')
 		})
 	})
 })

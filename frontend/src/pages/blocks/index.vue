@@ -46,7 +46,7 @@
 							>
 								<HashtagIcon :class="$style.cellIcon" />
 								<Tooltip :text="block.blockHash" text-class="text-theme-body">
-									{{ block.blockHash.substring(0, 6) }}
+									{{ shortenHash(block.blockHash) }}
 								</Tooltip>
 							</LinkButton>
 						</TableTd>
@@ -76,7 +76,7 @@
 <script lang="ts" setup>
 import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { convertTimestampToRelative, shortenHash } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'

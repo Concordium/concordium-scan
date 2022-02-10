@@ -6,11 +6,11 @@
 					class="numerical"
 					@click="drawer.push('block', props.block?.blockHash, props.block.id)"
 				>
-					{{ props.block?.blockHash.substring(0, 6) }}
+					{{ shortenHash(props.block?.blockHash) }}
 				</LinkButton>
 			</div>
 			<div v-else class="inline">
-				{{ props.block?.blockHash.substring(0, 6) }}
+				{{ shortenHash(props.block?.blockHash) }}
 			</div>
 			<TextCopy
 				:text="props.block?.blockHash"
@@ -87,7 +87,7 @@ import Accordion from '~/components/Accordion.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { convertTimestampToRelative, shortenHash } from '~/utils/format'
 import type { Block } from '~/types/blocks'
 import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'

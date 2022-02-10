@@ -66,7 +66,7 @@
 									:text="transaction.transactionHash"
 									text-class="text-theme-body"
 								>
-									{{ transaction.transactionHash.substring(0, 6) }}
+									{{ shortenHash(transaction.transactionHash) }}
 								</Tooltip>
 							</LinkButton>
 						</TableTd>
@@ -74,11 +74,8 @@
 							{{ transaction.block.blockHeight }}
 						</TableTd>
 						<TableTd :class="$style.numerical">
-							<UserIcon
-								v-if="transaction.senderAccountAddress"
-								:class="$style.cellIcon"
-							/>
-							{{ transaction.senderAccountAddress?.substring(0, 6) }}
+							<UserIcon :class="$style.cellIcon" />
+							{{ shortenHash(transaction.senderAccountAddress) }}
 						</TableTd>
 						<TableTd align="right" :class="$style.numerical">
 							{{ convertMicroCcdToCcd(transaction.ccdCost) }}
@@ -102,6 +99,7 @@ import Tooltip from '~/components/atoms/Tooltip.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
+	shortenHash,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { usePagedData } from '~/composables/usePagedData'

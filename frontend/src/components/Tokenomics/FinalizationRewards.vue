@@ -14,7 +14,7 @@
 					<TableRow v-for="finalizer in data" :key="finalizer.address">
 						<TableTd>
 							<UserIcon class="text-white inline h-4 align-baseline" />
-							{{ finalizer.address.substring(0, 6) }}
+							{{ shortenHash(finalizer.address) }}
 						</TableTd>
 						<TableTd class="numerical text-right">
 							{{ calculateWeight(finalizer.amount, totalAmount) }}%
@@ -32,7 +32,11 @@
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
-import { convertMicroCcdToCcd, calculateWeight } from '~/utils/format'
+import {
+	convertMicroCcdToCcd,
+	calculateWeight,
+	shortenHash,
+} from '~/utils/format'
 import type { FinalizationReward } from '~/types/blocks'
 
 type Props = {

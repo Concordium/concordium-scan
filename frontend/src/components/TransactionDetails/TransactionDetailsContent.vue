@@ -12,11 +12,11 @@
 						)
 					"
 				>
-					{{ props.transaction?.transactionHash.substring(0, 6) }}
+					{{ shortenHash(props.transaction?.transactionHash) }}
 				</LinkButton>
 			</div>
 			<div v-else class="inline">
-				{{ props.transaction?.transactionHash.substring(0, 6) }}
+				{{ shortenHash(props.transaction?.transactionHash) }}
 			</div>
 
 			<TextCopy
@@ -62,7 +62,7 @@
 								:text="props.transaction?.block.blockHash"
 								text-class="text-theme-body"
 							>
-								{{ props.transaction?.block.blockHash.substring(0, 6) }}
+								{{ shortenHash(props.transaction?.block.blockHash) }}
 							</Tooltip>
 						</LinkButton>
 					</template>
@@ -91,7 +91,7 @@
 					<template #title>Sender</template>
 					<template #default>
 						<UserIcon class="h-5 inline align-baseline mr-3" />
-						{{ props.transaction?.senderAccountAddress.substring(0, 6) }}
+						{{ shortenHash(props.transaction?.senderAccountAddress) }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -129,6 +129,7 @@ import TransactionEventList from '~/components/TransactionEventList.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
+	shortenHash,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'

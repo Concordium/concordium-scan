@@ -46,7 +46,7 @@
 								:text="transaction.transactionHash"
 								text-class="text-theme-body"
 							>
-								{{ transaction.transactionHash.substring(0, 6) }}
+								{{ shortenHash(transaction.transactionHash) }}
 							</Tooltip>
 						</LinkButton>
 					</TableTd>
@@ -59,7 +59,7 @@
 							:text="transaction.senderAccountAddress"
 							text-class="text-theme-body"
 						>
-							{{ transaction.senderAccountAddress.substring(0, 6) }}
+							{{ shortenHash(transaction.transactionHash) }}
 						</Tooltip>
 					</TableTd>
 					<TableTd align="right" class="numerical">
@@ -78,7 +78,7 @@
 
 <script lang="ts" setup>
 import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Transaction } from '~/types/transactions'

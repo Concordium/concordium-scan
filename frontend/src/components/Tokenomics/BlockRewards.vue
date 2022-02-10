@@ -6,7 +6,7 @@
 				<dt>Baker</dt>
 				<dd class="text-right mb-2">
 					<UserIcon class="text-white inline h-4 align-baseline" />
-					{{ data.bakerAccountAddress.substring(0, 6) }}
+					{{ shortenHash(data.bakerAccountAddress) }}
 				</dd>
 				<dt>Baker reward</dt>
 				<dd class="text-right mb-2">
@@ -51,7 +51,7 @@
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
 import type { BlockRewards } from '~/types/blocks'
 
 type Props = {
