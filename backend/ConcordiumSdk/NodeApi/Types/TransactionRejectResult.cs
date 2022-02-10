@@ -5,9 +5,20 @@ namespace ConcordiumSdk.NodeApi.Types;
 public class TransactionRejectResult : TransactionResult
 {
     public TransactionRejectReason Reason { get; init; }
+    
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        return Reason.GetAccountAddresses();
+    }
 }
 
-public abstract record TransactionRejectReason;
+public abstract record TransactionRejectReason
+{
+    public virtual IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        return Array.Empty<AccountAddress>();
+    }
+}
 
 /// <summary>
 /// Error raised when validating the Wasm module.
@@ -24,7 +35,13 @@ public record ModuleHashAlreadyExists(
 /// Account does not exist.
 /// </summary>
 public record InvalidAccountReference(
-    AccountAddress Contents) : TransactionRejectReason;
+    AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
 
 /// <summary>
 /// Reference to a non-existing contract init method.
@@ -66,7 +83,14 @@ public record RuntimeFailure : TransactionRejectReason;
 /// <param name="Amount">The amount in the transaction.</param>
 public record AmountTooLarge(
     Address Address,
-    CcdAmount Amount) : TransactionRejectReason;
+    CcdAmount Amount) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        if (Address is AccountAddress accountAddress)
+            yield return accountAddress;
+    }
+}
 
 /// <summary>
 /// Serialization of the body failed.
@@ -94,7 +118,13 @@ public record RejectedReceive(
 /// Reward account desired by the baker does not exist.
 /// </summary>
 public record NonExistentRewardAccount(
-    AccountAddress Contents) : TransactionRejectReason;
+    AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
 
 /// <summary>
 /// Proof that the baker owns relevant private keys is not valid.
@@ -110,7 +140,13 @@ public record AlreadyABaker(ulong Contents) : TransactionRejectReason;
 /// <summary>
 /// Tried to remove a baker for an account that has no baker.
 /// </summary>
-public record NotABaker(AccountAddress Contents) : TransactionRejectReason;
+public record NotABaker(AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
 
 /// <summary>
 /// The amount on the account was insufficient to cover the proposed stake.
@@ -167,7 +203,13 @@ public record InvalidTransferToPublicProof : TransactionRejectReason;
 /// Account tried to transfer an encrypted amount to itself, that's not allowed.
 /// </summary>
 public record EncryptedAmountSelfTransfer(
-    AccountAddress Contents) : TransactionRejectReason;
+    AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
 
 /// <summary>
 /// The provided index is below the start index or above `startIndex + length incomingAmounts`
@@ -193,7 +235,13 @@ public record FirstScheduledReleaseExpired : TransactionRejectReason;
 /// Account tried to transfer with schedule to itself, that's not allowed.
 /// </summary>
 public record ScheduledSelfTransfer(
-    AccountAddress Contents) : TransactionRejectReason;
+    AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
 
 /// <summary>
 /// At least one of the credentials was either malformed or its proof was incorrect.

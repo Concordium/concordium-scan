@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Threading.Tasks;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Dapper;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -83,10 +83,41 @@ public class DataUpdateController
         }).ToArray();
         context.Accounts.AddRange(accounts);
         await context.SaveChangesAsync();
-        
+
+        var accountTransactions = transactions
+            .Select(x => new
+            {
+                TransactionId = x.Mapped.Id,
+                DistinctAccountAddresses = FindAccountAddresses(x.Source, x.Mapped).Distinct()
+            })
+            .SelectMany(x => x.DistinctAccountAddresses
+                .Select(accountAddress => new
+                {
+                    AccountAddress = accountAddress.AsString, 
+                    x.TransactionId
+                }))
+            .ToArray();
+
+        if (accountTransactions.Length > 0)
+        {
+            var connection = context.Database.GetDbConnection();
+
+            // Inserted via dapper to inline lookup of account id from account address directly in insert
+            await connection.ExecuteAsync(@"
+                insert into graphql_account_transactions (account_id, transaction_id)
+                values ((select id from graphql_accounts where address = @AccountAddress), @TransactionId);", accountTransactions);
+        }
+
         await tx.CommitAsync();
 
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
+    }
+
+    private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source, Transaction mapped)
+    {
+        if (source.Sender != null) yield return source.Sender;
+        foreach (var address in source.Result.GetAccountAddresses())
+            yield return address;
     }
 
     private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)
