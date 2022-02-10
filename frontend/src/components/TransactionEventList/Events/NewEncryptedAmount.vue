@@ -1,0 +1,16 @@
+<template>
+	<span>
+		Added an amount to the encrypted balance of account
+		<Hash :hash="event.accountAddress" />
+	</span>
+</template>
+
+<script setup lang="ts">
+import type { NewEncryptedAmount } from '~/types/generated'
+
+type Props = {
+	event: NewEncryptedAmount
+}
+
+defineProps<Props>()
+</script>

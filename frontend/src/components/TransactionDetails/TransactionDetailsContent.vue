@@ -125,7 +125,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import Accordion from '~/components/Accordion.vue'
-import TransactionEventList from '~/components/TransactionEventList.vue'
+import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,

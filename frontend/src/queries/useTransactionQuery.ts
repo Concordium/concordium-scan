@@ -9,6 +9,130 @@ type TransactionByTransactionHashResponse = {
 	transactionByTransactionHash: Transaction
 }
 
+const eventsFragment = `
+... on AmountAddedByDecryption {
+	amount
+	accountAddress
+}
+... on BakerAdded {
+	__typename
+	bakerId
+	accountAddress
+	stakedAmount
+	restakeEarnings
+}
+... on BakerKeysUpdated {
+	bakerId
+}
+... on BakerRemoved {
+	bakerId
+}
+... on BakerSetRestakeEarnings {
+	bakerId
+	restakeEarnings
+}
+... on BakerStakeDecreased {
+	bakerId
+	newStakedAmount
+}
+... on BakerStakeIncreased {
+	bakerId
+	newStakedAmount
+}
+... on ContractInitialized {
+	address {
+		__typename
+		index
+		subIndex
+	}
+	amount
+	moduleRef
+}
+... on ContractModuleDeployed {
+	moduleRef
+}
+... on ContractUpdated {
+	instigator {
+		__typename
+		... on AccountAddress {
+			address
+		}
+		... on ContractAddress {
+			index
+			subIndex
+		}
+	}
+	address {
+		__typename
+		index
+		subIndex
+	}
+}
+... on CredentialKeysUpdated {
+	credId
+}
+... on CredentialsUpdated {
+	accountAddress
+	newCredIds
+	removedCredIds
+}
+... on DataRegistered {
+	__typename
+}
+...on EncryptedAmountsRemoved {
+	accountAddress
+}
+... on EncryptedSelfAmountAdded {
+	accountAddress
+	amount
+}
+...on NewEncryptedAmount {
+	accountAddress
+}
+... on TransferMemo {
+	decoded {
+		text
+		decodeType
+	}
+}
+... on TransferredWithSchedule {
+	fromAccountAddress
+	toAccountAddress
+}
+...on ChainUpdateEnqueued {
+	__typename
+}
+... on Transferred {
+	amount
+	from {
+		... on AccountAddress {
+			__typename
+			address
+		}
+		... on ContractAddress {
+			__typename
+			index
+			subIndex
+		}
+	}
+	to {
+		... on AccountAddress {
+			__typename
+			address
+		}
+		... on ContractAddress {
+			__typename
+			index
+			subIndex
+		}
+	}
+}
+... on CredentialDeployed {
+	regId
+	accountAddress
+}
+`
+
 const TransactionQuery = gql<TransactionResponse>`
 	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		transaction(id: $id) {
@@ -25,41 +149,7 @@ const TransactionQuery = gql<TransactionResponse>`
 			result {
 				... on Success {
 					events(after: $after, before: $before, first: $first, last: $last) {
-						nodes {
-							__typename
-							... on Transferred {
-								amount
-								from {
-									... on AccountAddress {
-										__typename
-										address
-									}
-									... on ContractAddress {
-										__typename
-										index
-										subIndex
-									}
-								}
-								to {
-									... on AccountAddress {
-										__typename
-										address
-									}
-									... on ContractAddress {
-										__typename
-										index
-										subIndex
-									}
-								}
-							}
-							... on AccountCreated {
-								address
-							}
-							... on CredentialDeployed {
-								regId
-								accountAddress
-							}
-						}
+						nodes { ${eventsFragment} }
 						totalCount
 						pageInfo {
 							startCursor
@@ -108,41 +198,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			result {
 				... on Success {
 					events(after: $after, before: $before, first: $first, last: $last) {
-						nodes {
-							__typename
-							... on Transferred {
-								amount
-								from {
-									... on AccountAddress {
-										__typename
-										address
-									}
-									... on ContractAddress {
-										__typename
-										index
-										subIndex
-									}
-								}
-								to {
-									... on AccountAddress {
-										__typename
-										address
-									}
-									... on ContractAddress {
-										__typename
-										index
-										subIndex
-									}
-								}
-							}
-							... on AccountCreated {
-								address
-							}
-							... on CredentialDeployed {
-								regId
-								accountAddress
-							}
-						}
+						nodes { ${eventsFragment} }
 						totalCount
 						pageInfo {
 							startCursor
