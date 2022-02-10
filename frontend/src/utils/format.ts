@@ -47,4 +47,4 @@ export const calculateWeight = (amount: number, total: number) => {
  * // returns b4da55abc123def456
  * shortenHash(b4da55)
  */
-export const shortenHash = (hash: string) => hash.substring(0, 6)
+export const shortenHash = (hash?: string) => (hash ? hash.substring(0, 6) : '')

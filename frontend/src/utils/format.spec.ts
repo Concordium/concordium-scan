@@ -56,5 +56,13 @@ describe('format', () => {
 		it('should shorten a long hash', () => {
 			expect(shortenHash('b4da55abc123def456')).toStrictEqual('b4da55')
 		})
+
+		it('should have a fallback if there is no hash', () => {
+			expect(shortenHash()).toStrictEqual('')
+			expect(shortenHash(undefined)).toStrictEqual('')
+
+			// @ts-expect-error : test for fallback
+			expect(shortenHash(null)).toStrictEqual('')
+		})
 	})
 })
