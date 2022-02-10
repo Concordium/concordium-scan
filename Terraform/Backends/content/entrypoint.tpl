@@ -2,6 +2,10 @@
 
 echo Starting entrypoint script...
 
+set -e
+trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+trap 'echo "\"$${last_command}\" command filed with exit code $?."' EXIT
+
 ## house keeping and initial installs and packages
 sudo apt-get update
 sudo mkdir /home/setup
@@ -9,19 +13,33 @@ cd /home/setup
 
 ## Mount data drive
 ## TODO: Partition device name is hard-coded, maybe it should be read dynamically?
+##       Should probably check if drive is already partitioned/formatted before 
 ##       (https://docs.microsoft.com/en-us/azure/virtual-machines/linux/attach-disk-portal)
+until [ -e /dev/disk/azure/scsi1/lun1 ]; do echo waiting on data disk to be attached...; sleep 1; done
+
+parted /dev/sdc --script mklabel gpt mkpart primary ext4 0% 100%
+mkfs -t ext4 /dev/sdc1
+partprobe /dev/sdc1
+
+echo 
+echo "#========= FDISK after partitioning ======(start)#"
+fdisk -l
+echo "#========= FDISK after partitioning ========(end)#"
+echo 
+
 sudo mkdir /data
 sudo mount /dev/sdc1 /data
+
 
 ## Set up docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
-sudo groupadd docker
 sudo usermod -aG docker ${vm_user}
 sudo systemctl daemon-reload
 sudo systemctl enable docker.service
 sudo systemctl start docker.service
 sudo chmod 666 /var/run/docker.sock
+
 
 ## set up Azure cloud credentials (connection to container registry):
 sudo apt install azure-cli -y
@@ -43,6 +61,7 @@ docker run -td \
  --network=mainnetDocker  \
  --name ccnode-mainnet  \
  --hostname ccnode \
+ --log-driver local \
  -e CONCORDIUM_NODE_COLLECTOR_NODE_NAME=FTB-${environment_name} \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token}  \
@@ -56,6 +75,7 @@ docker run -td  \
  --network=testnetDocker \
  --name ccnode-testnet \
  --hostname ccnode \
+ --log-driver local \
  -e CONCORDIUM_NODE_COLLECTOR_NODE_NAME=FTB-${environment_name} \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token} \
@@ -70,6 +90,7 @@ docker run -td \
   --network=mainnetDocker \
   --restart=on-failure:3 \
   --name backend-mainnet \
+  --log-driver none \
   -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-mainnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.mainnet:/app/logs \
@@ -80,6 +101,7 @@ docker run -td \
   --network=testnetDocker \
   --restart=on-failure:3 \
   --name backend-testnet \
+  --log-driver none \
   -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-testnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.testnet:/app/logs \
@@ -89,6 +111,7 @@ docker run -td \
 # Set up watchtower container 
 docker run -d \
   --name watchtower \
+  --log-driver local \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /home/${vm_user}/.docker/config.json:/config.json \
   -e WATCHTOWER_INCLUDE_STOPPED=true \
