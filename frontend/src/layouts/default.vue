@@ -20,6 +20,7 @@ import {
 } from '@urql/vue'
 import { SubscriptionClient } from 'subscriptions-transport-ws'
 import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
+import { useDrawer } from '~/composables/useDrawer'
 
 useMeta({
 	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
@@ -47,6 +48,11 @@ if (includeDevTools) {
 const client = createClient({
 	url: apiUrl,
 	exchanges,
+})
+const route = useRoute()
+const { handleWatch: drawerHandleWatch } = useDrawer()
+watch(route, to => {
+	drawerHandleWatch(to)
 })
 
 provideClient(client)
