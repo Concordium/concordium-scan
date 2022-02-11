@@ -105,7 +105,7 @@ public class DataUpdateController
             // Inserted via dapper to inline lookup of account id from account address directly in insert
             await connection.ExecuteAsync(@"
                 insert into graphql_account_transactions (account_id, transaction_id)
-                values ((select id from graphql_accounts where address = @AccountAddress), @TransactionId);", accountTransactions);
+                select id, @TransactionId from graphql_accounts where address = @AccountAddress;", accountTransactions);
         }
 
         await tx.CommitAsync();
