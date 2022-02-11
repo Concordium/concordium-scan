@@ -47,7 +47,7 @@ public class SchemaTest
             .BuildSchemaAsync();
         
         var currentSchema = schema.Print();
-        var persistedSchema = await File.ReadAllTextAsync("committed_graphql_schema.txt");
+        var persistedSchema = await File.ReadAllTextAsync("committed_graphql_schema.graphql");
 
         // persisted file normally differs with additional line-ending
         persistedSchema = persistedSchema.TrimEnd(' ', '\r', '\n');

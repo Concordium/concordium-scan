@@ -32,6 +32,6 @@
 
     
     <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
-        <Copy SourceFiles="..\committed_graphql_schema.txt" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="..\committed_graphql_schema.graphql" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     </Target>
 </Project>
