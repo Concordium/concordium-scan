@@ -12,6 +12,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<Transaction> Transactions { get; private set; }
     public DbSet<Account> Accounts { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
+    public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
@@ -135,7 +136,15 @@ public class GraphQlDbContext : DbContext
         accountBuilder.HasKey(x => x.Id);
         accountBuilder.Property(x => x.Id).HasColumnName("id");
         accountBuilder.Property(x => x.Address).HasColumnName("address");
-        accountBuilder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();;
+        accountBuilder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();
+
+        var accountTransactionRelationBuilder = modelBuilder.Entity<AccountTransactionRelation>()
+            .ToTable("graphql_account_transactions");
+        
+        accountTransactionRelationBuilder.HasKey(x => new { x.AccountId, x.Index });
+        accountTransactionRelationBuilder.Property(x => x.AccountId).HasColumnName("account_id");
+        accountTransactionRelationBuilder.Property(x => x.Index).HasColumnName("index");
+        accountTransactionRelationBuilder.Property(x => x.TransactionId).HasColumnName("transaction_id");
     }
 }
 
