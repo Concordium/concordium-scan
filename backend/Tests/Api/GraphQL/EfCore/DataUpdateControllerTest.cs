@@ -468,7 +468,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AccountCreated>();
-        result.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
     
     [Fact]
@@ -722,7 +722,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractInitialized>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
-        result.Address.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
         result.Amount.Should().Be(5345462);
         result.InitName.Should().Be("init_CIS1-singleNFT");
         result.EventsAsHex.Should().Equal("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4", "fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00");
@@ -767,7 +767,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractUpdated>();
-        result.Address.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
         result.Instigator.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.Amount.Should().Be(15674371);
         result.MessageAsHex.Should().Be("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
