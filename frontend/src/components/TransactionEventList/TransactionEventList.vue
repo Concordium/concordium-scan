@@ -13,7 +13,7 @@
 				/>
 
 				<AmountAddedByDecryption
-					v-if="event.__typename === 'AmountAddedByDecryption'"
+					v-else-if="event.__typename === 'AmountAddedByDecryption'"
 					:event="event"
 				/>
 

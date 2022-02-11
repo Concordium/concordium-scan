@@ -16,7 +16,7 @@
 				</TableHead>
 				<TableBody>
 					<TableRow>
-						<TableTd colspan="6" align="center" class="p-0 tdlol">
+						<TableTd colspan="7" align="center" class="p-0 tdlol">
 							<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
 						</TableTd>
 					</TableRow>
@@ -74,7 +74,10 @@
 							{{ transaction.block.blockHeight }}
 						</TableTd>
 						<TableTd :class="$style.numerical">
-							<UserIcon :class="$style.cellIcon" />
+							<UserIcon
+								v-if="transaction.senderAccountAddress"
+								:class="$style.cellIcon"
+							/>
 							{{ shortenHash(transaction.senderAccountAddress) }}
 						</TableTd>
 						<TableTd align="right" :class="$style.numerical">

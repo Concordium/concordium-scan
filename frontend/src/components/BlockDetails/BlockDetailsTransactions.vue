@@ -56,10 +56,11 @@
 							class="h-4 text-theme-white inline align-baseline"
 						/>
 						<Tooltip
+							v-if="transaction.senderAccountAddress"
 							:text="transaction.senderAccountAddress"
 							text-class="text-theme-body"
 						>
-							{{ shortenHash(transaction.transactionHash) }}
+							{{ shortenHash(transaction.senderAccountAddress) }}
 						</Tooltip>
 					</TableTd>
 					<TableTd align="right" class="numerical">
