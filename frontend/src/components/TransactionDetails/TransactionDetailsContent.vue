@@ -95,23 +95,28 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<Accordion>
+			<Accordion
+				v-if="
+					props.transaction?.result.__typename === 'Success' &&
+					props.transaction.result.events
+				"
+			>
 				Events
-				<span
-					v-if="props.transaction?.result.__typename === 'Success'"
-					class="text-theme-faded ml-1"
-				>
+				<span class="text-theme-faded ml-1">
 					({{ props.transaction?.result.events?.totalCount }})
 				</span>
 				<template #content>
 					<TransactionEventList
-						v-if="props.transaction?.result.__typename === 'Success'"
 						:events="props.transaction.result.events"
 						:total-count="props.transaction?.result.events?.totalCount"
 						:page-info="props.transaction.result.events?.pageInfo"
 						:go-to-page="props.goToPage"
 					/>
 				</template>
+			</Accordion>
+			<Accordion v-if="props.transaction?.result.__typename === 'Rejected'">
+				Reject reason
+				<template #content>{{ props.transaction?.result.reason }}</template>
 			</Accordion>
 		</DrawerContent>
 	</div>

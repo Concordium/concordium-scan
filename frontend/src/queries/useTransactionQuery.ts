@@ -162,6 +162,11 @@ const TransactionQuery = gql<TransactionResponse>`
 						}
 					}
 				}
+				... on Rejected {
+					reason {
+						__typename
+					}
+				}
 			}
 			transactionType {
 				__typename
@@ -209,6 +214,11 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 							hasPreviousPage
 							hasNextPage
 						}
+					}
+				}
+				... on Rejected {
+					reason {
+						__typename
 					}
 				}
 			}
