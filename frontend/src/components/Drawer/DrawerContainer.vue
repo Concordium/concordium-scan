@@ -1,13 +1,18 @@
 ﻿<template>
-	<Drawer :is-open="!!currentTopItem?.id" :on-close="() => softReset()">
+	<Drawer
+		:is-open="!!currentTopItem?.id || !!currentTopItem?.hash"
+		:on-close="() => softReset()"
+	>
 		<template #content>
 			<BlockDetailsContainer
 				v-if="currentTopItem && currentTopItem.entityTypeName == 'block'"
 				:id="currentTopItem?.id"
+				:hash="currentTopItem?.hash"
 			/>
 			<TransactionDetailsContainer
 				v-if="currentTopItem && currentTopItem.entityTypeName == 'transaction'"
 				:id="currentTopItem?.id"
+				:hash="currentTopItem?.hash"
 			/>
 		</template>
 

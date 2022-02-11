@@ -18,14 +18,22 @@ export const useDrawer = () => {
 	})
 	const currentDrawerCount = useState<number>('currentDrawerCount', () => 0)
 	const router = useRouter()
-	const route = useRoute()
 
-	// Beware this watch is set up on all components that uses this composable. TODO: rewrite?
-	const handleWatch = (to: RouteLocationNormalizedLoaded) => {
-		if (to.query.dcount) {
-			const dcountAsInt = parseInt(to.query.dcount as string)
-			// This makes sure we only run the underlying set once. In case this would do more.
-			if (currentDrawerCount.value === dcountAsInt) return
+	const handleInitialLoad = (route: RouteLocationNormalizedLoaded) => {
+		if (route.query.dentity && route.query.dhash) {
+			push(
+				route.query.dentity as string,
+				route.query.dhash as string,
+				undefined,
+				false
+			)
+		} else router.push({ query: {} })
+		//	}
+	}
+
+	const updateByRouteData = (route: RouteLocationNormalizedLoaded) => {
+		if (route.query.dcount) {
+			const dcountAsInt = parseInt(route.query.dcount as string)
 			currentDrawerCount.value = dcountAsInt
 		} else {
 			softReset()
@@ -41,17 +49,27 @@ export const useDrawer = () => {
 		drawerState.value.items = []
 		currentDrawerCount.value = 0
 	}
-	const currentTopItem = computed(
-		() => drawerState?.value?.items[currentDrawerCount.value - 1]
-	)
+	const currentTopItem = computed(() => {
+		return drawerState?.value?.items[currentDrawerCount.value - 1]
+	})
 
-	const push = (entityTypeName: string, hash: string, id?: string) => {
+	const push = (
+		entityTypeName: string,
+		hash: string,
+		id?: string,
+		resetList = true
+	) => {
 		const item = { entityTypeName, hash, id }
-		if (currentDrawerCount.value === 0) reset()
+
+		if (currentDrawerCount.value === 0 && resetList) {
+			reset()
+		} else {
+			currentDrawerCount.value = 1
+		}
 		drawerState.value.items.push(item)
 		router.push({
 			query: {
-				dcount: drawerState.value.items.length,
+				dcount: resetList ? drawerState.value.items.length : 1,
 				dentity: entityTypeName,
 				dhash: hash,
 			},
@@ -60,15 +78,13 @@ export const useDrawer = () => {
 	const getItems = () => {
 		return drawerState.value.items
 	}
-	if (drawerState.value.items.length < parseInt(route.query.dcount as string)) {
-		if (route.query.dentity && route.query.dhash) {
-			push(
-				route.query.dentity as string,
-				route.query.dhash as string,
-				undefined
-			)
-		} else router.push({ query: {} })
-	}
 
-	return { push, getItems, currentTopItem, softReset, handleWatch }
+	return {
+		push,
+		getItems,
+		currentTopItem,
+		softReset,
+		updateByRouteData,
+		handleInitialLoad,
+	}
 }

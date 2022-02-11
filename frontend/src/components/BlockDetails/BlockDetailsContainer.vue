@@ -24,18 +24,19 @@ type Props = {
 }
 const props = defineProps<Props>()
 const blockQueryResult = ref()
-if (props.id)
+if (props.id) {
 	blockQueryResult.value = useBlockQuery(props.id, {
 		first,
 		last,
 		after,
 		before,
 	})
-else if (props.hash)
+} else if (props.hash) {
 	blockQueryResult.value = useBlockQueryByHash(props.hash, {
 		first,
 		last,
 		after,
 		before,
 	})
+}
 </script>

@@ -50,9 +50,14 @@ const client = createClient({
 	exchanges,
 })
 const route = useRoute()
-const { handleWatch: drawerHandleWatch } = useDrawer()
+const {
+	updateByRouteData: drawerupdateByRouteData,
+	handleInitialLoad: drawerhandleInitialLoad,
+} = useDrawer()
+
+drawerhandleInitialLoad(route)
 watch(route, to => {
-	drawerHandleWatch(to)
+	drawerupdateByRouteData(to)
 })
 
 provideClient(client)
