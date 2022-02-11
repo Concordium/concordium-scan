@@ -7,6 +7,11 @@
 				class="border-l-4 py-4 px-6 relative"
 				:class="$style.listItem"
 			>
+				<AccountCreated
+					v-if="event.__typename === 'AccountCreated'"
+					:event="event"
+				/>
+
 				<AmountAddedByDecryption
 					v-if="event.__typename === 'AmountAddedByDecryption'"
 					:event="event"
@@ -112,7 +117,7 @@
 					:event="event"
 				/>
 
-				<span v-else>{{ translateTransactionEvents(event) }}</span>
+				<span v-else>Transaction event: {{ event.__typename }}</span>
 			</li>
 		</ul>
 		<Pagination
@@ -124,6 +129,7 @@
 </template>
 
 <script lang="ts" setup>
+import AccountCreated from './Events/AccountCreated.vue'
 import AmountAddedByDecryption from './Events/AmountAddedByDecryption.vue'
 import BakerAdded from './Events/BakerAdded.vue'
 import BakerKeysUpdated from './Events/BakerKeysUpdated.vue'
@@ -145,7 +151,6 @@ import NewEncryptedAmount from './Events/NewEncryptedAmount.vue'
 import TransferMemo from './Events/TransferMemo.vue'
 import Transferred from './Events/Transferred.vue'
 import TransferredWithSchedule from './Events/TransferredWithSchedule.vue'
-import { translateTransactionEvents } from '~/utils/translateTransactionEvents'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Success, PageInfo } from '~/types/generated'

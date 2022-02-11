@@ -1,7 +1,8 @@
 <template>
 	<span>
-		Smart contract instance <Contract :address="event.address" /> created from
-		module <Hash :hash="event.moduleRef" /> with amount
+		Smart contract instance
+		<Contract :address="event.contractAddress" /> created from module
+		<Hash :hash="event.moduleRef" /> with amount
 		{{ convertMicroCcdToCcd(event.amount) }}Ͼ
 	</span>
 </template>

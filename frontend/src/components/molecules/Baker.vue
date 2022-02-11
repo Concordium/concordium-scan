@@ -9,7 +9,7 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 
 type Props = {
-	id: string
+	id: number
 	iconClass?: string
 }
 

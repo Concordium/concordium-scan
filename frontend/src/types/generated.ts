@@ -36,7 +36,7 @@ export type AccountAddress = {
 
 export type AccountCreated = {
   __typename?: 'AccountCreated';
-  address: Scalars['String'];
+  accountAddress: Scalars['String'];
 };
 
 export type AccountTransaction = {
@@ -252,7 +252,7 @@ export type BlockMetrics = {
   /** Total number of blocks added in requested period. */
   blocksAdded: Scalars['Int'];
   buckets: BlockMetricsBuckets;
-  /** The most recent block height (equals the total length of the chain). */
+  /** The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero). */
   lastBlockHeight: Scalars['Long'];
   /** The total amount of CCD in encrypted balances. */
   lastTotalEncryptedMicroCcd: Scalars['Long'];
@@ -328,8 +328,8 @@ export type ContractAddress = {
 
 export type ContractInitialized = {
   __typename?: 'ContractInitialized';
-  address: ContractAddress;
   amount: Scalars['UnsignedLong'];
+  contractAddress: ContractAddress;
   eventsAsHex?: Maybe<StringConnection>;
   initName: Scalars['String'];
   moduleRef: Scalars['String'];
@@ -350,8 +350,8 @@ export type ContractModuleDeployed = {
 
 export type ContractUpdated = {
   __typename?: 'ContractUpdated';
-  address: ContractAddress;
   amount: Scalars['UnsignedLong'];
+  contractAddress: ContractAddress;
   eventsAsHex?: Maybe<StringConnection>;
   instigator: Address;
   messageAsHex: Scalars['String'];

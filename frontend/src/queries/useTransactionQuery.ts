@@ -10,12 +10,15 @@ type TransactionByTransactionHashResponse = {
 }
 
 const eventsFragment = `
+__typename
+... on AccountCreated {
+	accountAddress
+}
 ... on AmountAddedByDecryption {
 	amount
 	accountAddress
 }
 ... on BakerAdded {
-	__typename
 	bakerId
 	accountAddress
 	stakedAmount
@@ -40,7 +43,7 @@ const eventsFragment = `
 	newStakedAmount
 }
 ... on ContractInitialized {
-	address {
+	contractAddress {
 		__typename
 		index
 		subIndex
@@ -62,7 +65,7 @@ const eventsFragment = `
 			subIndex
 		}
 	}
-	address {
+	contractAddress {
 		__typename
 		index
 		subIndex

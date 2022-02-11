@@ -1,7 +1,5 @@
 <template>
-	<span>
-		Baker <Baker :id="event.bakerId" /> keys was scheduled to be removed
-	</span>
+	<span> Baker <Baker :id="event.bakerId" /> was scheduled to be removed </span>
 </template>
 
 <script setup lang="ts">

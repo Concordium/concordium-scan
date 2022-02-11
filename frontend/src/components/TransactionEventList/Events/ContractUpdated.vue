@@ -8,7 +8,8 @@
 			v-else-if="event.instigator.__typename === 'AccountAddress'"
 			:hash="event.instigator.address"
 		/>
-		updated smart contract instance <Contract :address="event.address" />
+		updated smart contract instance
+		<Contract :address="event.contractAddress" />
 	</span>
 </template>
 
