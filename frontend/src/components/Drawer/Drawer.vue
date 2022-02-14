@@ -29,35 +29,42 @@
 
 <script lang="ts" setup>
 import { XIcon } from '@heroicons/vue/solid/index.js'
+import { onMounted } from 'vue'
 
 type Props = {
 	isOpen: boolean
 	onClose: () => void
+	isMobile?: boolean
 }
 
 const props = defineProps<Props>()
-
+onMounted(() => {
+	if (!props.isMobile) toggleClasses(props.isOpen)
+})
 watch(
 	() => props.isOpen,
 	value => {
-		const appEl = document.getElementById('app')
-
-		const classes = [
-			'max-h-screen',
-			'w-full',
-			'overflow-hidden',
-			'fixed',
-			'top-0',
-			'left-0',
-		]
-
-		if (value) {
-			appEl?.classList.add(...classes)
-		} else {
-			appEl?.classList.remove(...classes)
-		}
+		toggleClasses(value)
 	}
 )
+const toggleClasses = (isOpen: boolean) => {
+	const appEl = document.getElementById('app')
+
+	const classes = [
+		'max-h-screen',
+		'w-full',
+		'overflow-hidden',
+		'fixed',
+		'top-0',
+		'left-0',
+	]
+
+	if (isOpen) {
+		appEl?.classList.add(...classes)
+	} else {
+		appEl?.classList.remove(...classes)
+	}
+}
 </script>
 
 <style module>

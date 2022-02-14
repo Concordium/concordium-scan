@@ -9,6 +9,7 @@
 			<MenuIcon class="h-6" />
 		</button>
 		<Drawer
+			:is-mobile="true"
 			:is-open="isNavigationOpen"
 			:on-close="() => (isNavigationOpen = false)"
 		>
