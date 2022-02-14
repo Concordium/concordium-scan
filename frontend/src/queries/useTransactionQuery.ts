@@ -136,6 +136,80 @@ __typename
 }
 `
 
+const rejectionFragment = `
+reason {
+	__typename,
+	... on AlreadyABaker {
+		bakerId
+	}
+	... on AmountTooLarge {
+		amount
+		address {
+			__typename
+			... on AccountAddress {
+				address
+			}
+			... on ContractAddress {
+				index
+				subIndex
+			}
+		}
+	}
+	... on DuplicateCredIds {
+		credIds
+	}
+	... on EncryptedAmountSelfTransfer {
+		accountAddress
+	}
+	... on InvalidAccountReference {
+		accountAddress
+	}
+	... on InvalidContractAddress {
+		contractAddress {
+			index
+			subIndex
+		}
+	}
+	... on InvalidInitMethod {
+		moduleRef
+		initName
+	}
+	... on InvalidModuleReference {
+		moduleRef
+	}
+	... on InvalidReceiveMethod {
+		moduleRef
+		receiveName
+	}
+	... on ModuleHashAlreadyExists {
+		moduleRef
+	}
+	... on NonExistentCredIds {
+		credIds
+	}
+	... on NonExistentRewardAccount {
+		accountAddress
+	}
+	... on NotABaker {
+		accountAddress
+	}
+	... on RejectedInit {
+		rejectReason
+	}
+	... on RejectedReceive {
+		rejectReason
+		contractAddress {
+			index
+			subIndex
+		}
+		receiveName
+	}
+	... on ScheduledSelfTransfer {
+		accountAddress
+	}
+}
+`
+
 const TransactionQuery = gql<TransactionResponse>`
 	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		transaction(id: $id) {
@@ -162,11 +236,7 @@ const TransactionQuery = gql<TransactionResponse>`
 						}
 					}
 				}
-				... on Rejected {
-					reason {
-						__typename
-					}
-				}
+				... on Rejected { ${rejectionFragment} }
 			}
 			transactionType {
 				__typename
@@ -216,11 +286,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 						}
 					}
 				}
-				... on Rejected {
-					reason {
-						__typename
-					}
-				}
+				... on Rejected { ${rejectionFragment} }
 			}
 			transactionType {
 				__typename

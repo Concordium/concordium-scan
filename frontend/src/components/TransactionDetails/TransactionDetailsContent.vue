@@ -116,7 +116,9 @@
 			</Accordion>
 			<Accordion v-if="props.transaction?.result.__typename === 'Rejected'">
 				Reject reason
-				<template #content>{{ props.transaction?.result.reason }}</template>
+				<template #content>
+					<RejectionReason :reason="props.transaction.result.reason" />
+				</template>
 			</Accordion>
 		</DrawerContent>
 	</div>
@@ -131,6 +133,7 @@ import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import Accordion from '~/components/Accordion.vue'
 import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
+import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
