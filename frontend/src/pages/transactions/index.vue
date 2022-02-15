@@ -51,7 +51,7 @@
 							{{ translateTransactionType(transaction.transactionType) }}
 						</TableTd>
 						<TableTd>
-							<HashtagIcon :class="$style.cellIcon" />
+							<TransactionIcon class="h-4 w-4" />
 							<LinkButton
 								:class="$style.numerical"
 								@click="
@@ -97,8 +97,9 @@
 </template>
 
 <script lang="ts" setup>
-import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
+import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,

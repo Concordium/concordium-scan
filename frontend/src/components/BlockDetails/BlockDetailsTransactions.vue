@@ -31,7 +31,7 @@
 						}}
 					</TableTd>
 					<TableTd class="numerical">
-						<HashtagIcon class="h-4 text-theme-white inline align-baseline" />
+						<TransactionIcon class="h-4 w-4" />
 						<LinkButton
 							class="numerical"
 							@click="
@@ -78,7 +78,8 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon, HashtagIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
+import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'

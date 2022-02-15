@@ -1,45 +1,9 @@
 <template>
 	<div>
-		<DrawerTitle v-if="props.transaction" class="font-mono">
-			<div v-if="$route.name != 'transactions-transactionHash'" class="inline">
-				<LinkButton
-					class="numerical"
-					@click="
-						drawer.push(
-							'transaction',
-							props.transaction?.transactionHash,
-							props.transaction.id
-						)
-					"
-				>
-					{{ shortenHash(props.transaction?.transactionHash) }}
-				</LinkButton>
-			</div>
-			<div v-else class="inline">
-				{{ shortenHash(props.transaction?.transactionHash) }}
-			</div>
-
-			<TextCopy
-				:text="props.transaction?.transactionHash"
-				label="Click to copy transaction hash to clipboard"
-				class="h-5 inline align-baseline mr-3"
-				tooltip-class="font-sans"
-			/>
-
-			<Badge
-				:type="
-					props.transaction?.result.__typename === 'Success'
-						? 'success'
-						: 'failure'
-				"
-			>
-				{{
-					props.transaction?.result.__typename === 'Success'
-						? 'Success'
-						: 'Rejected'
-				}}
-			</Badge>
-		</DrawerTitle>
+		<TransactionDetailsHeader
+			v-if="props.transaction"
+			:transaction="props.transaction"
+		/>
 		<DrawerContent v-if="props.transaction">
 			<div class="grid gap-6 grid-cols-2 mb-16">
 				<DetailsCard>
@@ -126,11 +90,9 @@
 
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
-import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
+import TransactionDetailsHeader from './TransactionDetailsHeader.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import Badge from '~/components/Badge.vue'
-import TextCopy from '~/components/atoms/TextCopy.vue'
 import Accordion from '~/components/Accordion.vue'
 import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
 import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'

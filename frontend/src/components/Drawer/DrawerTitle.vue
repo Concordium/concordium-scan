@@ -1,6 +1,6 @@
 <template>
 	<header :class="$style.drawerTitle">
-		<h1 class="text-2xl"><slot /></h1>
+		<slot />
 	</header>
 </template>
 

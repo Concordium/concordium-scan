@@ -44,7 +44,7 @@
 									}
 								"
 							>
-								<HashtagIcon :class="$style.cellIcon" />
+								<BlockIcon :class="$style.cellIcon" />
 								<Tooltip :text="block.blockHash" text-class="text-theme-body">
 									{{ shortenHash(block.blockHash) }}
 								</Tooltip>
@@ -74,7 +74,8 @@
 </template>
 
 <script lang="ts" setup>
-import { HashtagIcon, UserIcon } from '@heroicons/vue/solid/index.js'
+import { UserIcon } from '@heroicons/vue/solid/index.js'
+import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import { convertTimestampToRelative, shortenHash } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
