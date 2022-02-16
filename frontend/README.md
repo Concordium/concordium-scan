@@ -20,12 +20,22 @@ yarn dev
 
 Go to [http://localhost:3000](http://localhost:3000)
 
-### Build/Run SSR enabled application
+### Build and run Firebase server locally
+
+Some times, you might want to run the build on a local emulated Firebase server. This is useful for debugging issues only occuring on the server. For this, you need to install [Firebase CLI](https://www.npmjs.com/package/firebase-tools) on your machine.
+
+```sh
+yarn global add firebase-tools
+```
+
+When building locally, you also need to modify the local Firebase config (`firebase.json`) so the `public` path is `".output/public"`, as the build target will differ from when the app is built in CI. You're now ready to build and serve the app.
 
 ```sh
 yarn build
-yarn start
+firebase emulators:start
 ```
+
+The app itself will now run on [http://localhost:5000](http://localhost:5000), while the Firebase Emulator UU can be seen on [http://localhost:5000](http://localhost:5000).
 
 ## Quality control
 
