@@ -2,6 +2,52 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4 pb-0">
+			<div v-if="metricsData" class="block lg:flex">
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						:x-values="metricsData.blockMetrics.buckets.x_Time"
+						:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
+					>
+						<template #title>Blocks added</template>
+						<template #value>{{
+							metricsData.blockMetrics.blocksAdded
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						:x-values="metricsData.blockMetrics.buckets.x_Time"
+						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
+					>
+						<template #title>Avg block time</template>
+						<template #value>{{
+							metricsData.blockMetrics.avgBlockTime
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						:x-values="metricsData.blockMetrics.buckets.x_Time"
+						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
+					>
+						<template #title>Min block time</template>
+						<template #value>{{
+							metricsData.blockMetrics.buckets.y_BlockTimeMin[0]
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						:x-values="metricsData.blockMetrics.buckets.x_Time"
+						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
+					>
+						<template #title>Max block time</template>
+						<template #value>{{
+							metricsData.blockMetrics.buckets.y_BlockTimeMax[0]
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+			</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -83,6 +129,7 @@ import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 import { useDrawer } from '~/composables/useDrawer'
+import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 const {
 	pagedData,
 	first,
@@ -122,6 +169,7 @@ watch(
 	}
 )
 const drawer = useDrawer()
+const { data: metricsData } = useBlockMetricsQuery()
 </script>
 
 <style module>
@@ -146,5 +194,10 @@ const drawer = useDrawer()
 
 .hello:hover {
 	background-color: hsl(0deg 0% 83% / 6%);
+}
+.cardShadow {
+	filter: drop-shadow(0px 24px 38px rgba(0, 0, 0, 0.14))
+		drop-shadow(0px 9px 46px rgba(0, 0, 0, 0.12))
+		drop-shadow(0px 11px 15px rgba(0, 0, 0, 0.2));
 }
 </style>
