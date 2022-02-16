@@ -13,7 +13,7 @@
 		"noEmit": true,
 		"baseUrl": ".",
 		"importsNotUsedAsValues": "preserve",
-		"types": ["@types/node", "@types/jest"]
+		"types": ["@types/node", "@types/jest", "@types/chart.js"]
 	},
 	"exclude": ["node_modules"]
 }

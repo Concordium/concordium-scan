@@ -36,6 +36,7 @@
 		"@nuxtjs/eslint-config-typescript": "8.0.0",
 		"@testing-library/jest-dom": "^5.16.1",
 		"@testing-library/vue": "^6.4.2",
+		"@types/chart.js": "^2.9.35",
 		"@types/jest": "26",
 		"@types/node": "^16.11.11",
 		"@typescript-eslint/eslint-plugin": "^5.5.0",
