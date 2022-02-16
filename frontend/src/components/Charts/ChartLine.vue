@@ -3,7 +3,7 @@
 </template>
 <script lang="ts" setup>
 import { LineChart, useLineChart } from 'vue-chart-3'
-import { Chart, registerables } from 'chart.js'
+import { Chart, registerables } from 'chart.js/dist/chart.esm'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
