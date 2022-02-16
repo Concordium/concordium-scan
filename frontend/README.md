@@ -20,7 +20,7 @@ yarn dev
 
 Go to [http://localhost:3000](http://localhost:3000)
 
-### Build and run Firebase server locally
+### Build and serve on local Firebase emulator
 
 Some times, you might want to run the build on a local emulated Firebase server. This is useful for debugging issues only occuring on the server. For this, you need to install [Firebase CLI](https://www.npmjs.com/package/firebase-tools) on your machine.
 
@@ -35,7 +35,7 @@ yarn build
 firebase emulators:start
 ```
 
-The app itself will now run on [http://localhost:5000](http://localhost:5000), while the Firebase Emulator UU can be seen on [http://localhost:5000](http://localhost:5000).
+The app itself will now run on [http://localhost:5000](http://localhost:5000), while the Firebase Emulator UI can be seen on [http://localhost:5000](http://localhost:5000).
 
 ## Quality control
 
