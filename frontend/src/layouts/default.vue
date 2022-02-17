@@ -5,7 +5,9 @@
 
 		<DrawerContainer />
 		<div id="app" class="bg-theme-background-primary max-w-screen min-h-screen">
-			<PageHeader />
+			<ClientOnly>
+				<PageHeader />
+			</ClientOnly>
 			<slot />
 		</div>
 	</div>
