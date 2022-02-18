@@ -22,7 +22,8 @@
 				class="h-full"
 				:x-values="props.xValues"
 				:y-values="props.yValues"
-				:chart-id="props.chartId"
+				:chart-height="100"
+				:chart-width="286"
 			></ChartLine>
 		</div>
 	</div>
@@ -36,7 +37,6 @@ type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
 	unitIconName?: string
-	chartId?: string
 }
 const props = defineProps<Props>()
 const isMounted = ref(false)

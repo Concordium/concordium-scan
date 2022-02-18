@@ -5,7 +5,6 @@
 			<div v-if="metricsData" class="block lg:flex">
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
-						chart-id="TotalTransactions"
 						:x-values="metricsData.transactionMetrics.buckets.x_Time"
 						:y-values="
 							metricsData.transactionMetrics.buckets
@@ -21,7 +20,6 @@
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
-						chart-id="LastTransactionCount"
 						:x-values="metricsData.transactionMetrics.buckets.x_Time"
 						:y-values="
 							metricsData.transactionMetrics.buckets.y_TransactionCount

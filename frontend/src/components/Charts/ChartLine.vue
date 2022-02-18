@@ -1,13 +1,14 @@
 ﻿<template>
-	<div ref="containerDiv" height="100" width="286"></div>
+	<div ref="containerDiv"></div>
 </template>
 <script lang="ts" setup>
-import { Chart, registerables } from 'chart.js'
-import * as Chartjs from 'chart.js'
+import { Chart, registerables } from 'chart.js/dist/chart.esm'
+import * as Chartjs from 'chart.js/dist/chart.esm'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
-	chartId: string
+	chartHeight: number
+	chartWidth: number
 }
 Chart.register(...registerables)
 const props = defineProps<Props>()
@@ -78,22 +79,28 @@ const defaultOptions = ref({
 	},
 })
 const chartInstance = ref()
+const firstFrame = ref(false)
 let canvasEl: HTMLCanvasElement
 onMounted(() => {
 	canvasEl = document.createElement('canvas')
-	canvasEl.setAttribute('height', 100)
-	canvasEl.setAttribute('width', 286)
+	canvasEl.setAttribute('height', props.chartHeight.toString())
+	canvasEl.setAttribute('width', props.chartWidth.toString())
 
 	containerDiv.value.appendChild(canvasEl)
-	setTimeout(() => {
+	firstFrame.value = true
+})
+onUpdated(() => {
+	if (firstFrame && firstFrame.value) {
 		chartInstance.value = new Chartjs.Chart(canvasEl, {
 			data: chartData,
 			type: 'line',
 			options: defaultOptions.value as Chartjs.ChartOptions<'line'>,
 		})
-	}, 100)
+		firstFrame.value = false
+	}
 })
 onBeforeUnmount(() => {
+	chartInstance.value.destroy()
 	containerDiv.value.removeChild(canvasEl)
 })
 </script>

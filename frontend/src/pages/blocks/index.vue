@@ -6,7 +6,6 @@
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeepAlive>
 						<KeyValueChartCard
-							chart-id="Blocks added"
 							:x-values="metricsData.blockMetrics.buckets.x_Time"
 							:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
 							unit-icon-name="block"
@@ -20,7 +19,6 @@
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
-						chart-id="Avg block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
 					>
@@ -33,7 +31,6 @@
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
-						chart-id="Min block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
 					>
@@ -46,7 +43,6 @@
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
-						chart-id="Max block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
 					>
