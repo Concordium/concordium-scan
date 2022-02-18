@@ -21,14 +21,14 @@
 type Props = {
 	disabled?: boolean
 	groupPosition?: 'first' | 'middle' | 'last'
-	onClick: () => void
+	onClick?: () => void
 }
 
 const props = defineProps<Props>()
 
 const handleOnClick = () => {
 	if (!props.disabled) {
-		props.onClick()
+		props.onClick?.()
 	}
 }
 </script>

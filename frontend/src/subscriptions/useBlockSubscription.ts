@@ -12,6 +12,41 @@ const BlockSubscription = gql<BlockSubscriptionResponse>`
 			transactionCount
 			blockHash
 			blockHeight
+			bakerId
+			id
+			finalized
+			specialEvents {
+				blockRewards {
+					bakerReward
+				}
+			}
+			transactions {
+				nodes {
+					id
+					ccdCost
+					transactionHash
+					senderAccountAddress
+					block {
+						blockHeight
+						blockSlotTime
+					}
+					result {
+						__typename
+					}
+					transactionType {
+						__typename
+						... on AccountTransaction {
+							accountTransactionType
+						}
+						... on CredentialDeploymentTransaction {
+							credentialDeploymentTransactionType
+						}
+						... on UpdateTransaction {
+							updateTransactionType
+						}
+					}
+				}
+			}
 		}
 	}
 `

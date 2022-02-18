@@ -21,6 +21,11 @@ const BlocksQuery = gql<BlockListResponse>`
 				blockSlotTime
 				finalized
 				transactionCount
+				specialEvents {
+					blockRewards {
+						bakerReward
+					}
+				}
 			}
 			pageInfo {
 				startCursor
@@ -32,7 +37,7 @@ const BlocksQuery = gql<BlockListResponse>`
 	}
 `
 
-export const useBlockListQuery = (variables: QueryVariables) => {
+export const useBlockListQuery = (variables: Partial<QueryVariables>) => {
 	const { data } = useQuery({
 		query: BlocksQuery,
 		requestPolicy: 'cache-and-network',

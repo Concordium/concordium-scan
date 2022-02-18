@@ -13,6 +13,10 @@ import type { Route } from '~/types/route'
 
 const routes: Route[] = [
 	{
+		title: 'Home',
+		path: '/',
+	},
+	{
 		title: 'Blocks',
 		path: '/blocks',
 	},

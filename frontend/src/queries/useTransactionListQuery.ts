@@ -54,7 +54,9 @@ const TransactionsQuery = gql<TransactionListResponse>`
 	}
 `
 
-export const useTransactionsListQuery = (variables: QueryVariables) => {
+export const useTransactionsListQuery = (
+	variables: Partial<QueryVariables>
+) => {
 	const { data, executeQuery } = useQuery({
 		query: TransactionsQuery,
 		requestPolicy: 'cache-and-network',
