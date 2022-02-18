@@ -26,7 +26,7 @@
 						<template #value>{{
 							metricsData.blockMetrics.avgBlockTime
 						}}</template>
-						<template #unit>ms</template>
+						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
@@ -38,7 +38,7 @@
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMin[0]
 						}}</template>
-						<template #unit>ms</template>
+						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
@@ -50,7 +50,7 @@
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMax[0]
 						}}</template>
-						<template #unit>ms</template>
+						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
 			</div>

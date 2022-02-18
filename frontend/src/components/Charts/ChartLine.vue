@@ -1,5 +1,11 @@
 ﻿<template>
-	<div ref="containerDiv"></div>
+	<div>
+		<canvas
+			ref="canvasRef"
+			:width="props.chartWidth"
+			:height="props.chartHeight"
+		></canvas>
+	</div>
 </template>
 <script lang="ts" setup>
 import { Chart, registerables } from 'chart.js/dist/chart.esm'
@@ -10,11 +16,11 @@ type Props = {
 	chartHeight: number
 	chartWidth: number
 }
+const canvasRef = ref()
 Chart.register(...registerables)
 const props = defineProps<Props>()
-const containerDiv = ref()
 
-const chartData = reactive({
+const chartData = {
 	labels: props.xValues,
 	datasets: [
 		{
@@ -30,16 +36,18 @@ const chartData = reactive({
 			backgroundColor: '#39DBAA99',
 		},
 	],
-})
+}
 watch(props, () => {
 	if (
-		props.yValues[0] === chartData.datasets[0].data[0] &&
-		props.xValues[0] === chartData.labels[0]
+		(props.yValues[0] === chartData.datasets[0].data[0] &&
+			props.xValues[0] === chartData.labels[0]) ||
+		!chartInstance
 	)
 		return
 
-	chartData.labels = props.xValues
-	chartData.datasets[0].data = props.yValues as number[]
+	chartInstance.data.labels = props.xValues
+	chartInstance.data.datasets[0].data = props.yValues as number[]
+	chartInstance.update()
 })
 const defaultOptions = ref({
 	plugins: {
@@ -50,7 +58,6 @@ const defaultOptions = ref({
 			},
 		},
 	},
-
 	responsive: true,
 	maintainAspectRatio: false,
 	scales: {
@@ -78,29 +85,19 @@ const defaultOptions = ref({
 		},
 	},
 })
-const chartInstance = ref()
+let chartInstance: Chart
 const firstFrame = ref(false)
-let canvasEl: HTMLCanvasElement
 onMounted(() => {
-	canvasEl = document.createElement('canvas')
-	canvasEl.setAttribute('height', props.chartHeight.toString())
-	canvasEl.setAttribute('width', props.chartWidth.toString())
-
-	containerDiv.value.appendChild(canvasEl)
 	firstFrame.value = true
 })
 onUpdated(() => {
 	if (firstFrame && firstFrame.value) {
-		chartInstance.value = new Chartjs.Chart(canvasEl, {
+		chartInstance = new Chartjs.Chart(canvasRef.value, {
 			data: chartData,
 			type: 'line',
 			options: defaultOptions.value as Chartjs.ChartOptions<'line'>,
 		})
 		firstFrame.value = false
 	}
-})
-onBeforeUnmount(() => {
-	chartInstance.value.destroy()
-	containerDiv.value.removeChild(canvasEl)
 })
 </script>
