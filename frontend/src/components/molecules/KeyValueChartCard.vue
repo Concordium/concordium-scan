@@ -2,7 +2,7 @@
 	<div
 		class="flex flex-row cardShadow rounded-2xl shadow-2xl m-4 relative overflow-hidden bg-theme-background-primary-elevated"
 	>
-		<div class="flex flex-col flex-shrink-0 items-center">
+		<div class="flex flex-col flex-shrink-0 items-center w-full">
 			<div class="text-xl pt-4 w-72 text-center">
 				<slot name="title"></slot>
 			</div>
@@ -16,11 +16,9 @@
 				</div>
 			</div>
 			<ChartLine
-				class="h-full"
+				class="h-full w-full"
 				:x-values="props.xValues"
 				:y-values="props.yValues"
-				:chart-height="100"
-				:chart-width="286"
 			></ChartLine>
 		</div>
 	</div>

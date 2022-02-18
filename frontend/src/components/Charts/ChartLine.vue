@@ -1,10 +1,6 @@
 ﻿<template>
-	<div>
-		<canvas
-			ref="canvasRef"
-			:width="props.chartWidth"
-			:height="props.chartHeight"
-		></canvas>
+	<div class="relative">
+		<canvas ref="canvasRef"></canvas>
 	</div>
 </template>
 <script lang="ts" setup>
@@ -13,8 +9,6 @@ import * as Chartjs from 'chart.js/dist/chart.esm'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
-	chartHeight: number
-	chartWidth: number
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -60,6 +54,7 @@ const defaultOptions = ref({
 	},
 	responsive: true,
 	maintainAspectRatio: false,
+
 	scales: {
 		x: {
 			axis: 'x',
