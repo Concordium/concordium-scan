@@ -26,8 +26,7 @@
 		"graphql": "^16.1.0",
 		"nuxt3": "^3.0.0-27356801.e9128f3",
 		"subscriptions-transport-ws": "^0.11.0",
-		"vue": "^3.2.26",
-		"vue-chart-3": "^3.1.0"
+		"vue": "^3.2.26"
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "^7.16.0",

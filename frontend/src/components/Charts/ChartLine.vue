@@ -1,26 +1,19 @@
 ﻿<template>
-	<LineChart
-		v-bind="lineChartProps"
-		ref="lineChartRef"
-		:height="100"
-		:width="286"
-		:chart-id="props.chartId"
-	/>
+	<div ref="containerDiv" height="100" width="286"></div>
 </template>
 <script lang="ts" setup>
-import { LineChart, useLineChart } from 'vue-chart-3'
-import { Chart, registerables } from 'chart.js/dist/chart.esm'
-
+import { Chart, registerables } from 'chart.js'
+import * as Chartjs from 'chart.js'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
 	chartId: string
 }
-
 Chart.register(...registerables)
 const props = defineProps<Props>()
+const containerDiv = ref()
 
-const testData = reactive({
+const chartData = reactive({
 	labels: props.xValues,
 	datasets: [
 		{
@@ -37,16 +30,15 @@ const testData = reactive({
 		},
 	],
 })
-
 watch(props, () => {
 	if (
-		props.yValues[0] === testData.datasets[0].data[0] &&
-		props.xValues[0] === testData.labels[0]
+		props.yValues[0] === chartData.datasets[0].data[0] &&
+		props.xValues[0] === chartData.labels[0]
 	)
 		return
 
-	testData.labels = props.xValues
-	testData.datasets[0].data = props.yValues as number[]
+	chartData.labels = props.xValues
+	chartData.datasets[0].data = props.yValues as number[]
 })
 const defaultOptions = ref({
 	plugins: {
@@ -85,8 +77,23 @@ const defaultOptions = ref({
 		},
 	},
 })
-const { lineChartProps, lineChartRef } = useLineChart({
-	chartData: testData,
-	options: defaultOptions,
+const chartInstance = ref()
+let canvasEl: HTMLCanvasElement
+onMounted(() => {
+	canvasEl = document.createElement('canvas')
+	canvasEl.setAttribute('height', 100)
+	canvasEl.setAttribute('width', 286)
+
+	containerDiv.value.appendChild(canvasEl)
+	setTimeout(() => {
+		chartInstance.value = new Chartjs.Chart(canvasEl, {
+			data: chartData,
+			type: 'line',
+			options: defaultOptions.value as Chartjs.ChartOptions<'line'>,
+		})
+	}, 100)
+})
+onBeforeUnmount(() => {
+	containerDiv.value.removeChild(canvasEl)
 })
 </script>

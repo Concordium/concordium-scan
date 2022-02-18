@@ -63,5 +63,4 @@ watch(route, to => {
 })
 
 provideClient(client)
-definePageMeta({ keepalive: true })
 </script>
