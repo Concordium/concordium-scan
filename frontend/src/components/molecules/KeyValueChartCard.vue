@@ -16,7 +16,6 @@
 				</div>
 			</div>
 			<ChartLine
-				v-if="isMounted"
 				class="h-full"
 				:x-values="props.xValues"
 				:y-values="props.yValues"
@@ -27,18 +26,10 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { onMounted } from 'vue'
 import ChartLine from '~/components/Charts/ChartLine.vue'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
 }
 const props = defineProps<Props>()
-const isMounted = ref(false)
-onMounted(() => {
-	isMounted.value = true
-})
-onUnmounted(() => {
-	isMounted.value = false
-})
 </script>
