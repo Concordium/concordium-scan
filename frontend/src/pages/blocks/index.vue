@@ -4,18 +4,23 @@
 		<main class="p-4 pb-0">
 			<div v-if="metricsData" class="block lg:flex">
 				<div v-if="metricsData" class="w-full lg:w-80">
-					<KeyValueChartCard
-						:x-values="metricsData.blockMetrics.buckets.x_Time"
-						:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
-					>
-						<template #title>Blocks added</template>
-						<template #value>{{
-							metricsData.blockMetrics.blocksAdded
-						}}</template>
-					</KeyValueChartCard>
+					<KeepAlive>
+						<KeyValueChartCard
+							chart-id="Blocks added"
+							:x-values="metricsData.blockMetrics.buckets.x_Time"
+							:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
+							unit-icon-name="block"
+						>
+							<template #title>Blocks added</template>
+							<template #value>{{
+								metricsData.blockMetrics.blocksAdded
+							}}</template>
+						</KeyValueChartCard>
+					</KeepAlive>
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
+						chart-id="Avg block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
 					>
@@ -23,10 +28,12 @@
 						<template #value>{{
 							metricsData.blockMetrics.avgBlockTime
 						}}</template>
+						<template #unit>ms</template>
 					</KeyValueChartCard>
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
+						chart-id="Min block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
 					>
@@ -34,10 +41,12 @@
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMin[0]
 						}}</template>
+						<template #unit>ms</template>
 					</KeyValueChartCard>
 				</div>
 				<div v-if="metricsData" class="w-full lg:w-80">
 					<KeyValueChartCard
+						chart-id="Max block time"
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
 					>
@@ -45,6 +54,7 @@
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMax[0]
 						}}</template>
+						<template #unit>ms</template>
 					</KeyValueChartCard>
 				</div>
 			</div>
@@ -70,7 +80,7 @@
 						<TableTd>
 							<StatusCircle
 								:class="[
-									'h-4 mr-2 text-theme-interactive',
+									'h-4 w-6 mr-2 text-theme-interactive',
 									{ 'text-theme-info': !block.finalized },
 								]"
 							/>
@@ -127,9 +137,11 @@ import { convertTimestampToRelative, shortenHash } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
+import type { Block, BlockSubscriptionResponse } from '~/types/blocks'
 import { useDrawer } from '~/composables/useDrawer'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
+import { MetricsPeriod } from '~/types/generated'
+
 const {
 	pagedData,
 	first,
@@ -169,12 +181,18 @@ watch(
 	}
 )
 const drawer = useDrawer()
-const { data: metricsData } = useBlockMetricsQuery()
+const { data: metricsData, executeQuery: metricsRefetchData } =
+	useBlockMetricsQuery(MetricsPeriod.LastHour)
+
+// Poor man's subscription
+setInterval(() => {
+	metricsRefetchData()
+}, 2000)
 </script>
 
 <style module>
 .cellIcon {
-	@apply h-4 text-theme-white inline align-baseline;
+	@apply h-4 w-6 text-theme-white inline align-baseline;
 }
 
 .numerical {

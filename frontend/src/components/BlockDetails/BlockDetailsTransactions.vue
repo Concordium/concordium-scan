@@ -17,7 +17,7 @@
 					<TableTd>
 						<StatusCircle
 							:class="[
-								'h-4 mr-2 text-theme-interactive',
+								'h-4 w-6 mr-2 text-theme-interactive',
 								{
 									'text-theme-error':
 										transaction.result.__typename === 'Rejected',

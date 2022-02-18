@@ -1,6 +1,6 @@
 <template>
 	<svg
-		class="w-6 h-6 inline align-baseline"
+		class="inline align-baseline"
 		fill="none"
 		stroke="currentColor"
 		viewBox="0 0 24 24"

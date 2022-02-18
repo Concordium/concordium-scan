@@ -2,6 +2,38 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
+			<div v-if="metricsData" class="block lg:flex">
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						chart-id="TotalTransactions"
+						:x-values="metricsData.transactionMetrics.buckets.x_Time"
+						:y-values="
+							metricsData.transactionMetrics.buckets
+								.y_LastCumulativeTransactionCount
+						"
+						unit-icon-name="transaction"
+					>
+						<template #title>Total Transactions</template>
+						<template #value>{{
+							metricsData.transactionMetrics.lastCumulativeTransactionCount
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+				<div v-if="metricsData" class="w-full lg:w-80">
+					<KeyValueChartCard
+						chart-id="LastTransactionCount"
+						:x-values="metricsData.transactionMetrics.buckets.x_Time"
+						:y-values="
+							metricsData.transactionMetrics.buckets.y_TransactionCount
+						"
+					>
+						<template #title>Last Transaction Count</template>
+						<template #value>{{
+							metricsData.transactionMetrics.transactionCount
+						}}</template>
+					</KeyValueChartCard>
+				</div>
+			</div>
 			<Table>
 				<TableHead>
 					<TableRow>
@@ -27,7 +59,7 @@
 						<TableTd>
 							<StatusCircle
 								:class="[
-									'h-4 mr-2 text-theme-interactive',
+									'h-4 w-6 mr-2 text-theme-interactive',
 									{
 										'text-theme-error':
 											transaction.result.__typename === 'Rejected',
@@ -111,7 +143,8 @@ import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'
-
+import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
+import { MetricsPeriod } from '~/types/generated'
 const {
 	pagedData,
 	first,
@@ -153,6 +186,12 @@ watch(
 		addPagedData(value?.transactions.nodes || [], value?.transactions.pageInfo)
 	}
 )
+const { data: metricsData, executeQuery: metricsRefetchData } =
+	useTransactionMetricsQuery(MetricsPeriod.LastHour)
+// Poor man's subscription
+setInterval(() => {
+	metricsRefetchData()
+}, 2000)
 </script>
 
 <style module>

@@ -1,35 +1,16 @@
 ﻿import { useQuery, gql } from '@urql/vue'
+import { BlockMetrics, MetricsPeriod } from '~/types/generated'
 
-type BlockMetricsResponse = {
-	blockMetrics: {
-		avgBlockTime: number
-		blocksAdded: number
-		buckets: {
-			x_Time: Date[]
-			y_BlocksAdded: number[]
-			y_BlockTimeMin: number[]
-			y_BlockTimeAvg: number[]
-			y_BlockTimeMax: number[]
-			y_LastTotalMicroCcd: number[]
-			y_MinTotalEncryptedMicroCcd: number[]
-			y_MaxTotalEncryptedMicroCcd: number[]
-			y_LastTotalEncryptedMicroCcd: number[]
-		}
-		lastBlockHeight: number
-		lastTotalEncryptedMicroCcd: number
-		lastTotalMicroCcd: number
-	}
-}
-
-const BlockMetricsQuery = gql<BlockMetricsResponse>`
-	query {
-		blockMetrics(period: LAST7_DAYS) {
+const BlockMetricsQuery = gql<BlockMetrics>`
+	query ($period: MetricsPeriod!) {
+		blockMetrics(period: $period) {
 			lastBlockHeight
 			blocksAdded
 			avgBlockTime
 			lastTotalMicroCcd
 			lastTotalEncryptedMicroCcd
 			buckets {
+				bucketWidth
 				x_Time
 				y_BlocksAdded
 				y_BlockTimeMin
@@ -44,12 +25,12 @@ const BlockMetricsQuery = gql<BlockMetricsResponse>`
 	}
 `
 
-export const useBlockMetricsQuery = () => {
-	// variables: QueryVariables
-	const { data } = useQuery({
+export const useBlockMetricsQuery = (period: MetricsPeriod) => {
+	const { data, executeQuery } = useQuery({
 		query: BlockMetricsQuery,
 		requestPolicy: 'cache-and-network',
+		variables: { period },
 	})
 
-	return { data }
+	return { data, executeQuery }
 }

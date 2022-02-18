@@ -37,6 +37,7 @@ module.exports = {
 			theme: {
 				'common-white': withHslOpacity('--color-white'),
 				'background-primary': withHslOpacity('--color-background-primary'),
+				'background-primary-elevated': 'var(--color-background-elevated)',
 				'button-primary': withHslOpacity('--color-button-bg-primary'),
 				'button-primary-hover': withHslOpacity(
 					'--color-button-bg-primary-hover'
@@ -57,7 +58,13 @@ module.exports = {
 				info: withHslOpacity('--color-info'),
 				error: withHslOpacity('--color-error'),
 			},
+
 		},
+		borderColor: {
+				theme: {
+					primary: withHslOpacity('--color-interactive'),
+				},
+			},
 		extend: {},
 	},
 	variants: {
