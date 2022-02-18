@@ -2,13 +2,16 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4 pb-0">
-			<div v-if="metricsData" class="block lg:flex">
-				<div v-if="metricsData" class="w-full lg:w-80">
+			<div v-if="metricsData" class="block lg:grid grid-cols-4">
+				<div v-if="metricsData" class="w-full">
 					<KeepAlive>
 						<KeyValueChartCard
 							:x-values="metricsData.blockMetrics.buckets.x_Time"
 							:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
 						>
+							<template #topRight
+								><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+							/></template>
 							<template #icon><BlockIcon></BlockIcon></template>
 							<template #title>Blocks added</template>
 							<template #value>{{
@@ -17,11 +20,14 @@
 						</KeyValueChartCard>
 					</KeepAlive>
 				</div>
-				<div v-if="metricsData" class="w-full lg:w-80">
+				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
 					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
 						<template #title>Avg block time</template>
 						<template #icon><StopwatchIcon /></template>
 						<template #value>{{
@@ -30,11 +36,14 @@
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full lg:w-80">
+				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
 					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
 						<template #icon><StopwatchIcon /></template>
 						<template #title>Min block time</template>
 						<template #value>{{
@@ -43,11 +52,14 @@
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full lg:w-80">
+				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
 					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
 						<template #icon><StopwatchIcon /></template>
 						<template #title>Max block time</template>
 						<template #value>{{
@@ -141,6 +153,7 @@ import { useDrawer } from '~/composables/useDrawer'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod } from '~/types/generated'
 import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
+import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 
 const {
 	pagedData,
@@ -159,7 +172,7 @@ const subscriptionHandler = (
 ) => {
 	newItems.value++
 }
-
+const selectedMetricsPeriod = ref(MetricsPeriod.LastHour)
 useBlockSubscription(subscriptionHandler)
 
 const refetch = () => {
@@ -180,9 +193,10 @@ watch(
 		addPagedData(value?.blocks.nodes || [], value?.blocks.pageInfo)
 	}
 )
+
 const drawer = useDrawer()
 const { data: metricsData, executeQuery: metricsRefetchData } =
-	useBlockMetricsQuery(MetricsPeriod.LastHour)
+	useBlockMetricsQuery(selectedMetricsPeriod)
 
 // Poor man's subscription
 setInterval(() => {

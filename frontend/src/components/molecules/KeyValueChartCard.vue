@@ -2,7 +2,11 @@
 	<div
 		class="flex flex-row cardShadow rounded-2xl shadow-2xl m-4 relative overflow-hidden bg-theme-background-primary-elevated"
 	>
-		<div class="flex flex-col flex-shrink-0 items-center w-full">
+		<div class="flex flex-col items-center w-full">
+			<div class="absolute top-4 right-4 text-xs">
+				<slot name="topRight"></slot>
+			</div>
+
 			<div class="text-xl pt-4 w-72 text-center">
 				<slot name="title"></slot>
 			</div>
@@ -25,6 +29,7 @@
 </template>
 <script lang="ts" setup>
 import ChartLine from '~/components/Charts/ChartLine.vue'
+
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]

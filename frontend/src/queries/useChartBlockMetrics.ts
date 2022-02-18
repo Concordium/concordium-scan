@@ -1,7 +1,12 @@
 ﻿import { useQuery, gql } from '@urql/vue'
+import { Ref } from 'vue'
 import { BlockMetrics, MetricsPeriod } from '~/types/generated'
 
-const BlockMetricsQuery = gql<BlockMetrics>`
+type BlockMetricsQueryResponse = {
+	blockMetrics: BlockMetrics
+}
+
+const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 	query ($period: MetricsPeriod!) {
 		blockMetrics(period: $period) {
 			lastBlockHeight
@@ -25,7 +30,7 @@ const BlockMetricsQuery = gql<BlockMetrics>`
 	}
 `
 
-export const useBlockMetricsQuery = (period: MetricsPeriod) => {
+export const useBlockMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery } = useQuery({
 		query: BlockMetricsQuery,
 		requestPolicy: 'cache-and-network',

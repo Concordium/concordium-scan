@@ -1,7 +1,11 @@
 ﻿import { useQuery, gql } from '@urql/vue'
+import { Ref } from 'vue'
 import { MetricsPeriod, TransactionMetrics } from '~/types/generated'
+type TransactionMetricsQueryResponse = {
+	transactionMetrics: TransactionMetrics
+}
 
-const TransactionMetricsQuery = gql<TransactionMetrics>`
+const TransactionMetricsQuery = gql<TransactionMetricsQueryResponse>`
 	query ($period: MetricsPeriod!) {
 		transactionMetrics(period: $period) {
 			lastCumulativeTransactionCount
@@ -16,7 +20,7 @@ const TransactionMetricsQuery = gql<TransactionMetrics>`
 	}
 `
 
-export const useTransactionMetricsQuery = (period: MetricsPeriod) => {
+export const useTransactionMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery } = useQuery({
 		query: TransactionMetricsQuery,
 		requestPolicy: 'cache-and-network',

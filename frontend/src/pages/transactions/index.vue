@@ -2,8 +2,8 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
-			<div v-if="metricsData" class="block lg:flex">
-				<div v-if="metricsData" class="w-full lg:w-80">
+			<div v-if="metricsData" class="block lg:grid grid-cols-4">
+				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.transactionMetrics.buckets.x_Time"
 						:y-values="
@@ -11,6 +11,9 @@
 								.y_LastCumulativeTransactionCount
 						"
 					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
 						<template #title>Total Transactions</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
@@ -18,13 +21,16 @@
 						}}</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full lg:w-80">
+				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.transactionMetrics.buckets.x_Time"
 						:y-values="
 							metricsData.transactionMetrics.buckets.y_TransactionCount
 						"
 					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
 						<template #title>Last Transaction Count</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
@@ -154,7 +160,7 @@ const {
 	fetchNew,
 	loadMore,
 } = usePagedData<Transaction>()
-
+const selectedMetricsPeriod = ref(MetricsPeriod.LastHour)
 const newItems = ref(0)
 const subscriptionHandler = (
 	_prevData: void,
@@ -186,7 +192,7 @@ watch(
 	}
 )
 const { data: metricsData, executeQuery: metricsRefetchData } =
-	useTransactionMetricsQuery(MetricsPeriod.LastHour)
+	useTransactionMetricsQuery(selectedMetricsPeriod)
 // Poor man's subscription
 setInterval(() => {
 	metricsRefetchData()
