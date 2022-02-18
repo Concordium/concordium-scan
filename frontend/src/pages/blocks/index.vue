@@ -8,8 +8,8 @@
 						<KeyValueChartCard
 							:x-values="metricsData.blockMetrics.buckets.x_Time"
 							:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
-							unit-icon-name="block"
 						>
+							<template #icon><BlockIcon></BlockIcon></template>
 							<template #title>Blocks added</template>
 							<template #value>{{
 								metricsData.blockMetrics.blocksAdded
@@ -23,6 +23,7 @@
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
 					>
 						<template #title>Avg block time</template>
+						<template #icon><StopwatchIcon /></template>
 						<template #value>{{
 							metricsData.blockMetrics.avgBlockTime
 						}}</template>
@@ -34,6 +35,7 @@
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
 					>
+						<template #icon><StopwatchIcon /></template>
 						<template #title>Min block time</template>
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMin[0]
@@ -46,6 +48,7 @@
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
 					>
+						<template #icon><StopwatchIcon /></template>
 						<template #title>Max block time</template>
 						<template #value>{{
 							metricsData.blockMetrics.buckets.y_BlockTimeMax[0]
@@ -137,6 +140,7 @@ import type { Block, BlockSubscriptionResponse } from '~/types/blocks'
 import { useDrawer } from '~/composables/useDrawer'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod } from '~/types/generated'
+import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
 
 const {
 	pagedData,

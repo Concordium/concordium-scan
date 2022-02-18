@@ -7,11 +7,9 @@
 				<slot name="title"></slot>
 			</div>
 			<div class="flex flex-row">
-				<BlockIcon v-if="props.unitIconName === 'block'" class="w-4 h-4 mr-2" />
-				<TransactionIcon
-					v-if="props.unitIconName === 'transaction'"
-					class="w-4 h-4 mr-2"
-				/>
+				<div class="w-4 h-4 mr-2 text-theme-interactive">
+					<slot name="icon"></slot>
+				</div>
 				<div class="text-sm text-theme-interactive">
 					<slot name="value"></slot>
 					<slot name="unit"></slot>
@@ -31,12 +29,9 @@
 <script lang="ts" setup>
 import { onMounted } from 'vue'
 import ChartLine from '~/components/Charts/ChartLine.vue'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
-import BlockIcon from '~/components/icons/BlockIcon.vue'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
-	unitIconName?: string
 }
 const props = defineProps<Props>()
 const isMounted = ref(false)

@@ -10,9 +10,9 @@
 							metricsData.transactionMetrics.buckets
 								.y_LastCumulativeTransactionCount
 						"
-						unit-icon-name="transaction"
 					>
 						<template #title>Total Transactions</template>
+						<template #icon><TransactionIcon /></template>
 						<template #value>{{
 							metricsData.transactionMetrics.lastCumulativeTransactionCount
 						}}</template>
@@ -26,6 +26,7 @@
 						"
 					>
 						<template #title>Last Transaction Count</template>
+						<template #icon><TransactionIcon /></template>
 						<template #value>{{
 							metricsData.transactionMetrics.transactionCount
 						}}</template>
