@@ -2,8 +2,15 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4 pb-0">
-			<div v-if="metricsData" class="block lg:grid grid-cols-4">
-				<div v-if="metricsData" class="w-full">
+			<div
+				v-if="
+					metricsData &&
+					metricsData.blockMetrics &&
+					metricsData.blockMetrics.buckets
+				"
+				class="block lg:grid grid-cols-4"
+			>
+				<div class="w-full">
 					<KeepAlive>
 						<KeyValueChartCard
 							:x-values="metricsData.blockMetrics.buckets.x_Time"
@@ -20,7 +27,7 @@
 						</KeyValueChartCard>
 					</KeepAlive>
 				</div>
-				<div v-if="metricsData" class="w-full">
+				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
@@ -36,7 +43,7 @@
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full">
+				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
@@ -52,7 +59,7 @@
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full">
+				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.blockMetrics.buckets.x_Time"
 						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"

@@ -2,7 +2,14 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
-			<div v-if="metricsData" class="block lg:grid grid-cols-4">
+			<div
+				v-if="
+					metricsData &&
+					metricsData.transactionMetrics &&
+					metricsData.transactionMetrics.buckets
+				"
+				class="block lg:grid grid-cols-4"
+			>
 				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData.transactionMetrics.buckets.x_Time"
