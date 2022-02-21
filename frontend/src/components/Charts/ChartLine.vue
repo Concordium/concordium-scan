@@ -25,7 +25,7 @@ const chartData = {
 			tension: 0.5,
 
 			pointRadius: 0, // Disables the small points
-			pointHitRadius: 0, // Disables the tooltip
+			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: '#39DBAA99',
 		},
@@ -54,29 +54,66 @@ const defaultOptions = ref({
 	},
 	responsive: true,
 	maintainAspectRatio: false,
-
+	tooltip: {
+		mode: 'label',
+	},
+	layout: {
+		padding: {
+			left: 0,
+			bottom: 0,
+			right: 0,
+		},
+	},
+	interaction: {
+		mode: 'nearest',
+		axis: 'x',
+		intersect: false,
+	},
 	scales: {
 		x: {
 			axis: 'x',
 			display: false,
 			grid: { display: false, drawBorder: false },
 			label: { display: false },
+			afterFit: axis => {
+				axis.paddingRight = 0
+				axis.paddingLeft = 0
+				axis.paddingBottom = 0
+			},
 		},
 		xAxes: {
 			display: false,
 			ticks: {
 				display: false,
 			},
+			afterFit: axis => {
+				axis.paddingRight = 0
+				axis.paddingLeft = 0
+				axis.paddingBottom = 0
+			},
 		},
 
 		y: {
 			beginAtZero: false,
 			axis: 'y',
-			display: false,
+			display: true,
 			grid: { display: false, drawBorder: false },
+			ticks: {
+				mirror: true,
+			},
+			afterFit: axis => {
+				axis.paddingRight = 0
+				axis.paddingLeft = 0
+				axis.paddingBottom = 0
+			},
 		},
 		yAxes: {
 			display: false,
+			afterFit: axis => {
+				axis.paddingRight = 0
+				axis.paddingLeft = 0
+				axis.paddingBottom = 0
+			},
 		},
 	},
 })

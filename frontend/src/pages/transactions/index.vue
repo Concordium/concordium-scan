@@ -8,7 +8,7 @@
 					metricsData.transactionMetrics &&
 					metricsData.transactionMetrics.buckets
 				"
-				class="block lg:grid grid-cols-4"
+				class="block lg:grid grid-cols-3"
 			>
 				<div v-if="metricsData" class="w-full">
 					<KeyValueChartCard
@@ -21,7 +21,7 @@
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
 						/></template>
-						<template #title>Total Transactions</template>
+						<template #title>Cumulative Transactions</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
 							metricsData.transactionMetrics.lastCumulativeTransactionCount
@@ -38,7 +38,7 @@
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
 						/></template>
-						<template #title>Last Transaction Count</template>
+						<template #title>Transactions</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
 							metricsData.transactionMetrics.transactionCount
@@ -198,12 +198,7 @@ watch(
 		addPagedData(value?.transactions.nodes || [], value?.transactions.pageInfo)
 	}
 )
-const { data: metricsData, executeQuery: metricsRefetchData } =
-	useTransactionMetricsQuery(selectedMetricsPeriod)
-// Poor man's subscription
-setInterval(() => {
-	metricsRefetchData()
-}, 2000)
+const { data: metricsData } = useTransactionMetricsQuery(selectedMetricsPeriod)
 </script>
 
 <style module>

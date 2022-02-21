@@ -202,13 +202,7 @@ watch(
 )
 
 const drawer = useDrawer()
-const { data: metricsData, executeQuery: metricsRefetchData } =
-	useBlockMetricsQuery(selectedMetricsPeriod)
-
-// Poor man's subscription
-setInterval(() => {
-	metricsRefetchData()
-}, 2000)
+const { data: metricsData } = useBlockMetricsQuery(selectedMetricsPeriod)
 </script>
 
 <style module>
