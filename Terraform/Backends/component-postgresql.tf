@@ -6,7 +6,7 @@ resource "azurerm_postgresql_server" "this" {
   administrator_login          = local.postgres_user
   administrator_login_password = data.azurerm_key_vault_secret.postgres-password.value
 
-  sku_name   = "B_Gen5_1"
+  sku_name   = "B_Gen5_2"
   version    = "11"
   storage_mb = 131072
 

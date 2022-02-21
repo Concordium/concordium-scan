@@ -147,6 +147,10 @@ resource "azurerm_automation_account" "this" {
 
   sku_name = "Basic"
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   tags = {
     environment = local.environment
   }
@@ -228,28 +232,18 @@ resource "azurerm_automation_job_schedule" "this" {
   }
 }
 
-locals {
-  # HACK: With the current version of the provider (v2.94.0) it is not possible to create the automation account
-  #       with a system assigned identity. Therefore this must be set manually after creation. Copy the principal
-  #       ID here afterwards and run again to set access permissions.
-  #       (https://github.com/hashicorp/terraform-provider-azurerm/issues/11503)
-  #       (https://github.com/hashicorp/terraform-provider-azurerm/pull/15072) seems this will be added in v2.96.0
-#  automation_account_system_assigned_user_identity_principal_id = "df547db4-6f83-41b5-ad09-f871e792e9a5"
-  automation_account_system_assigned_user_identity_principal_id = "c37ae625-b376-47f3-804f-4ba2ca760338"
-}
-
 resource "azurerm_role_assignment" "automation-account-key-vault-sslcert-pfx-password" {
   # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = "${data.azurerm_key_vault_secret.ssl-cert-password.key_vault_id}/secrets/${data.azurerm_key_vault_secret.ssl-cert-password.name}"  
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = local.automation_account_system_assigned_user_identity_principal_id
+  principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "automation-account-key-vault-sslcert-pfx" {
   # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = "${data.azurerm_key_vault_secret.ssl-cert-data.key_vault_id}/secrets/${data.azurerm_key_vault_secret.ssl-cert-data.name}"  
   role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = local.automation_account_system_assigned_user_identity_principal_id
+  principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }
 
 data "azurerm_key_vault_secret" "godaddy-dns-api-key" {
@@ -266,19 +260,19 @@ resource "azurerm_role_assignment" "automation_account_key_vault_godaddy_dns_api
   # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = "${data.azurerm_key_vault_secret.godaddy-dns-api-key.key_vault_id}/secrets/${data.azurerm_key_vault_secret.godaddy-dns-api-key.name}"  
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = local.automation_account_system_assigned_user_identity_principal_id
+  principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "automation-account-key-vault-godaddy-dns-api-key-secret" {
   # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = "${data.azurerm_key_vault_secret.godaddy-dns-api-key-secret.key_vault_id}/secrets/${data.azurerm_key_vault_secret.godaddy-dns-api-key-secret.name}"  
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = local.automation_account_system_assigned_user_identity_principal_id
+  principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }
 
 resource "azurerm_role_assignment" "automation-account-app-gateway" {
   # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = azurerm_application_gateway.this.id
   role_definition_name = "Managed Application Operator Role"
-  principal_id         = local.automation_account_system_assigned_user_identity_principal_id
+  principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }
