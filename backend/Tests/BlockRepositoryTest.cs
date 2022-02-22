@@ -20,7 +20,6 @@ public class BlockRepositoryTest : IClassFixture<DatabaseFixture>
         
         using var connection = _dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE block");
-        connection.Execute("TRUNCATE TABLE transaction_summary");
     }
 
     [Fact]

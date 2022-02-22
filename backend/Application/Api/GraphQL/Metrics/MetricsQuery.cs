@@ -83,27 +83,33 @@ public class MetricsQuery
 
         var queryParams = CreateQueryParams(period);
 
-        // TODO: Still need to figure out what to do if no new transactions have been created in requested time interval! Not very likely!
-        var sql = @"select max(cumulative_transaction_count) as last_cumulative_transaction_count,
-                           count(*) as transaction_count
+        var lastValuesSql = @"select cumulative_transaction_count
+                    from metrics_transactions
+                    order by time desc
+                    limit 1;";
+        var lastValuesData = await conn.QuerySingleAsync(lastValuesSql, queryParams);
+        
+        var sql = @"select count(*) as transaction_count
                     from metrics_transactions
                     where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
-        if (data.transaction_count == 0)
-            return null; // Means "no data"
         
-        var lastCumulativeTransactionCount = (long)data.last_cumulative_transaction_count;
+        var lastCumulativeTransactionCount = (long)lastValuesData.cumulative_transaction_count;
         var transactionCount = (int)data.transaction_count;
 
         var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
         var bucketsSql = 
-            @"select time_bucket(@BucketWidth, time) as interval_start,
-                     last(cumulative_transaction_count, time) as last_cumulative_transaction_count,
-                     count(*) as transaction_count
+            @"select time_bucket_gapfill(@BucketWidth, time) as interval_start,
+                     locf(
+                         last(cumulative_transaction_count, time),
+                         coalesce(
+                             (SELECT cumulative_transaction_count FROM metrics_transactions m2 WHERE m2.time < @FromTime ORDER BY time DESC LIMIT 1), 0)
+                     ) as last_cumulative_transaction_count,
+                     coalesce(count(*), 0) as transaction_count
               from metrics_transactions
               where time between @FromTime and @ToTime
               group by interval_start
-              order by interval_start desc;";
+              order by interval_start;";
         var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
 
         bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
