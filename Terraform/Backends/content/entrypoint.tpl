@@ -11,24 +11,32 @@ sudo apt-get update
 sudo mkdir /home/setup
 cd /home/setup
 
-## Mount data drive
-## TODO: Partition device name is hard-coded, maybe it should be read dynamically?
-##       Should probably check if drive is already partitioned/formatted before 
-##       (https://docs.microsoft.com/en-us/azure/virtual-machines/linux/attach-disk-portal)
+## mount data drive
 until [ -e /dev/disk/azure/scsi1/lun1 ]; do echo waiting on data disk to be attached...; sleep 1; done
 
-parted /dev/sdc --script mklabel gpt mkpart primary ext4 0% 100%
-mkfs -t ext4 /dev/sdc1
-partprobe /dev/sdc1
+data_drive_device_name=$(ls -l /dev/disk/azure/scsi1/lun1 | grep '\b[a-z]*$' -o)
+data_drive_partition_name="$${data_drive_device_name}1"
+
+if ls -l "/dev" | grep $data_drive_partition_name; then
+	echo "Data disk seems to be partitioned. Will skip partitioning and formatting disk..."
+else
+	echo "Data disk does not seem to be partitioned. Will partition and format..."
+
+  parted /dev/$data_drive_device_name --script mklabel gpt mkpart primary ext4 0% 100%
+  mkfs -t ext4 /dev/$data_drive_partition_name
+  partprobe /dev/$data_drive_partition_name
+  
+  echo "Data disk partitioned and formatted"
+fi
 
 echo 
-echo "#========= FDISK after partitioning ======(start)#"
+echo "#========= FDISK ======(start)#"
 fdisk -l
-echo "#========= FDISK after partitioning ========(end)#"
+echo "#========= FDISK ========(end)#"
 echo 
 
-sudo mkdir /data
-sudo mount /dev/sdc1 /data
+mkdir /data
+mount /dev/$data_drive_partition_name /data
 
 
 ## Set up docker
@@ -55,6 +63,9 @@ docker network create -d bridge testnetDocker
 
 
 # Set up Concordium node containers
+wget https://catchup.mainnet.concordium.software/blocks_to_import.mdb --directory-prefix /data/concordium.mainnet/
+wget https://catchup.testnet.concordium.com/blocks_to_import.mdb --directory-prefix /data/concordium.testnet/
+
 docker run -td \
  -p 10000:10000 \
  -p 8888:8888 \
@@ -66,6 +77,7 @@ docker run -td \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_LISTEN_PORT=8888 \
+ -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-mainnet:3.0.1-0
 
@@ -80,9 +92,33 @@ docker run -td  \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_LISTEN_PORT=18888 \
+ -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.testnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-testnet:3.0.1-0
 
+
+# Set up postgresql containers
+docker run -td \
+ --network=mainnetDocker \
+ --name postgres-mainnet \
+ --hostname postgres \
+ --log-driver local \
+ -e POSTGRES_PASSWORD=${postgres_password} \
+ -e POSTGRES_USER=${postgres_user} \
+ -e POSTGRES_DB=ccscan \
+ -v /data/postgres.mainnet:/var/lib/postgresql/data \
+ timescale/timescaledb:latest-pg14
+
+docker run -td \
+ --network=testnetDocker \
+ --name postgres-testnet \
+ --hostname postgres \
+ --log-driver local \
+ -e POSTGRES_PASSWORD=${postgres_password} \
+ -e POSTGRES_USER=${postgres_user} \
+ -e POSTGRES_DB=ccscan \
+ -v /data/postgres.testnet:/var/lib/postgresql/data \
+ timescale/timescaledb:latest-pg14
 
 # Set up backend containers
 docker run -td \
@@ -91,7 +127,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-mainnet \
   --log-driver none \
-  -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-mainnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
+  -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.mainnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
@@ -102,7 +138,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-testnet \
   --log-driver none \
-  -e PostgresDatabase:ConnectionString="Host=${postgres_hostname}.postgres.database.azure.com;Port=5432;Database=ccscan-testnet;User ID=${postgres_user}@${postgres_hostname};password=${postgres_password};SSL Mode=Require;Trust Server Certificate=true" \
+  -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.testnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
