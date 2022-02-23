@@ -1,6 +1,10 @@
 ﻿<template>
 	<Drawer
-		:is-open="!!currentTopItem?.id || !!currentTopItem?.hash"
+		:is-open="
+			!!currentTopItem?.id ||
+			!!currentTopItem?.hash ||
+			!!currentTopItem?.address
+		"
 		:on-close="() => softReset()"
 	>
 		<template #content>
@@ -13,6 +17,11 @@
 				v-if="currentTopItem && currentTopItem.entityTypeName == 'transaction'"
 				:id="currentTopItem?.id"
 				:hash="currentTopItem?.hash"
+			/>
+			<AccountDetailsContainer
+				v-if="currentTopItem && currentTopItem.entityTypeName == 'account'"
+				:id="currentTopItem?.id"
+				:address="currentTopItem?.address"
 			/>
 		</template>
 
@@ -27,6 +36,7 @@
 <script lang="ts" setup>
 import { useDrawer } from '~/composables/useDrawer'
 import Drawer from '~/components/Drawer/Drawer.vue'
+import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContainer.vue'
 const { softReset } = useDrawer()
 const { currentTopItem } = useDrawer()
 </script>

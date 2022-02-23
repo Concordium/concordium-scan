@@ -51,17 +51,30 @@
 						</LinkButton>
 					</TableTd>
 					<TableTd class="numerical">
-						<UserIcon
-							v-if="transaction.senderAccountAddress"
-							class="h-4 text-theme-white inline align-baseline"
-						/>
-						<Tooltip
-							v-if="transaction.senderAccountAddress"
-							:text="transaction.senderAccountAddress"
-							text-class="text-theme-body"
+						<LinkButton
+							@click="
+								() => {
+									drawer.push(
+										'account',
+										null,
+										null,
+										transaction.senderAccountAddress
+									)
+								}
+							"
 						>
-							{{ shortenHash(transaction.senderAccountAddress) }}
-						</Tooltip>
+							<UserIcon
+								v-if="transaction.senderAccountAddress"
+								class="h-4 text-theme-white inline align-baseline"
+							/>
+							<Tooltip
+								v-if="transaction.senderAccountAddress"
+								:text="transaction.senderAccountAddress"
+								text-class="text-theme-body"
+							>
+								{{ shortenHash(transaction.senderAccountAddress) }}
+							</Tooltip>
+						</LinkButton>
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						{{ convertMicroCcdToCcd(transaction.ccdCost) }}

@@ -111,11 +111,24 @@
 							{{ transaction.block.blockHeight }}
 						</TableTd>
 						<TableTd :class="$style.numerical">
-							<UserIcon
-								v-if="transaction.senderAccountAddress"
-								:class="$style.cellIcon"
-							/>
-							{{ shortenHash(transaction.senderAccountAddress) }}
+							<LinkButton
+								@click="
+									() => {
+										drawer.push(
+											'account',
+											null,
+											null,
+											transaction.senderAccountAddress
+										)
+									}
+								"
+							>
+								<UserIcon
+									v-if="transaction.senderAccountAddress"
+									:class="$style.cellIcon"
+								/>
+								{{ shortenHash(transaction.senderAccountAddress) }}
+							</LinkButton>
 						</TableTd>
 						<TableTd align="right" :class="$style.numerical">
 							{{ convertMicroCcdToCcd(transaction.ccdCost) }}

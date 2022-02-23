@@ -4,8 +4,9 @@ import { RouteLocationNormalizedLoaded } from 'vue-router'
 import { useState } from '#app'
 type DrawerItem = {
 	entityTypeName: string
-	hash: string
+	hash?: string
 	id?: string
+	address?: string
 }
 type DrawerList = {
 	items: DrawerItem[]
@@ -20,11 +21,12 @@ export const useDrawer = () => {
 	const router = useRouter()
 
 	const handleInitialLoad = (route: RouteLocationNormalizedLoaded) => {
-		if (route.query.dentity && route.query.dhash) {
+		if (route.query.dentity && (route.query.dhash || route.query.daddress)) {
 			push(
 				route.query.dentity as string,
 				route.query.dhash as string,
 				undefined,
+				route.query.daddress as string,
 				false
 			)
 		} else router.push({ query: {} })
@@ -55,11 +57,12 @@ export const useDrawer = () => {
 
 	const push = (
 		entityTypeName: string,
-		hash: string,
+		hash?: string,
 		id?: string,
+		address?: string,
 		resetList = true
 	) => {
-		const item = { entityTypeName, hash, id }
+		const item = { entityTypeName, hash, id, address }
 
 		if (currentDrawerCount.value === 0 && resetList) {
 			reset()
@@ -72,6 +75,7 @@ export const useDrawer = () => {
 				dcount: resetList ? drawerState.value.items.length : 1,
 				dentity: entityTypeName,
 				dhash: hash,
+				daddress: address,
 			},
 		})
 	}

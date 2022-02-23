@@ -41,38 +41,6 @@
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<!--<div class="w-full">
-					<KeyValueChartCard
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="metricsData?.blockMetrics?.buckets?.y_BlockTimeMin"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #icon><StopwatchIcon /></template>
-						<template #title>Min block time</template>
-						<template #value>{{
-							metricsData?.blockMetrics?.buckets?.y_BlockTimeMin[0]
-						}}</template>
-						<template #unit>s</template>
-					</KeyValueChartCard>
-				</div>
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="metricsData?.blockMetrics?.buckets?.y_BlockTimeMax"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #icon><StopwatchIcon /></template>
-						<template #title>Max block time</template>
-						<template #value>{{
-							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax[0]
-						}}</template>
-						<template #unit>s</template>
-					</KeyValueChartCard>
-				</div>-->
 			</div>
 			<Table>
 				<TableHead>
