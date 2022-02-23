@@ -25,4 +25,13 @@ public class AccountsQuery
             .AsNoTracking()
             .SingleOrDefault(account => account.Address == accountAddress);
     }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(ProviderName = "account_by_descending_id")]
+    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.Accounts
+            .AsNoTracking()
+            .OrderByDescending(a => a.Id);
+    }
 }
