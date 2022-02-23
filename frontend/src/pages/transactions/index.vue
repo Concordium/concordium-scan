@@ -2,20 +2,13 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
-			<div
-				v-if="
-					metricsData &&
-					metricsData.transactionMetrics &&
-					metricsData.transactionMetrics.buckets
-				"
-				class="block lg:grid grid-cols-3"
-			>
-				<div v-if="metricsData" class="w-full">
+			<div class="block lg:grid grid-cols-3">
+				<div class="w-full">
 					<KeyValueChartCard
-						:x-values="metricsData.transactionMetrics.buckets.x_Time"
+						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
 						:y-values="
-							metricsData.transactionMetrics.buckets
-								.y_LastCumulativeTransactionCount
+							metricsData?.transactionMetrics?.buckets
+								?.y_LastCumulativeTransactionCount
 						"
 					>
 						<template #topRight
@@ -24,15 +17,15 @@
 						<template #title>Cumulative Transactions</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
-							metricsData.transactionMetrics.lastCumulativeTransactionCount
+							metricsData?.transactionMetrics?.lastCumulativeTransactionCount
 						}}</template>
 					</KeyValueChartCard>
 				</div>
-				<div v-if="metricsData" class="w-full">
+				<div class="w-full">
 					<KeyValueChartCard
-						:x-values="metricsData.transactionMetrics.buckets.x_Time"
+						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
 						:y-values="
-							metricsData.transactionMetrics.buckets.y_TransactionCount
+							metricsData?.transactionMetrics?.buckets?.y_TransactionCount
 						"
 					>
 						<template #topRight
@@ -41,7 +34,7 @@
 						<template #title>Transactions</template>
 						<template #icon><TransactionIcon /></template>
 						<template #value>{{
-							metricsData.transactionMetrics.transactionCount
+							metricsData?.transactionMetrics?.transactionCount
 						}}</template>
 					</KeyValueChartCard>
 				</div>

@@ -31,7 +31,7 @@ const chartData = {
 		},
 	],
 }
-/*
+
 watch(props, () => {
 	if (
 		(props.yValues[0] === chartData.datasets[0].data[0] &&
@@ -43,7 +43,7 @@ watch(props, () => {
 	chartInstance.data.labels = props.xValues
 	chartInstance.data.datasets[0].data = props.yValues as number[]
 	chartInstance.update()
-}) */
+})
 const defaultOptions = ref({
 	plugins: {
 		legend: {
@@ -58,18 +58,7 @@ const defaultOptions = ref({
 					return new Date(context[0].label).toLocaleTimeString()
 				},
 				label(context) {
-					/* let label = context.dataset.label || ''
-
-					if (label) {
-						label += ': '
-					}
-					if (context.parsed.y !== null) {
-						label += new Intl.NumberFormat('en-US', {
-							style: 'currency',
-							currency: 'USD',
-						}).format(context.parsed.y)
-					} */
-					return context.parsed.y
+					return context.parsed.y + ''
 				},
 			},
 		},
@@ -120,6 +109,7 @@ const defaultOptions = ref({
 				margin: 10,
 				labelOffset: -5,
 				autoSkip: true,
+				suggestedMin: 0,
 			},
 			padding: 0,
 			margin: 0,
@@ -132,9 +122,10 @@ const defaultOptions = ref({
 		},
 	},
 })
+let chartInstance: Chart
 onMounted(() => {
 	/* eslint-disable no-new */
-	new Chartjs.Chart(canvasRef.value, {
+	chartInstance = new Chartjs.Chart(canvasRef.value, {
 		data: chartData,
 		type: 'line',
 		options: defaultOptions.value as Chartjs.ChartOptions<'line'>,

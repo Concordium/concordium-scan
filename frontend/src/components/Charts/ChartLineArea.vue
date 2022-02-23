@@ -57,19 +57,21 @@ const chartData = {
 		},
 	],
 }
-/*
+
 watch(props, () => {
 	if (
-		(props.yValues[0] === chartData.datasets[0].data[0] &&
+		(props.yValuesHigh[0] === chartData.datasets[0].data[0] &&
 			props.xValues[0] === chartData.labels[0]) ||
 		!chartInstance
 	)
 		return
 
 	chartInstance.data.labels = props.xValues
-	chartInstance.data.datasets[0].data = props.yValues as number[]
+	chartInstance.data.datasets[0].data = props.yValuesHigh as number[]
+	chartInstance.data.datasets[1].data = props.yValuesMid as number[]
+	chartInstance.data.datasets[2].data = props.yValuesLow as number[]
 	chartInstance.update()
-}) */
+})
 const defaultOptions = ref({
 	plugins: {
 		legend: {
@@ -162,9 +164,10 @@ const defaultOptions = ref({
 		},
 	},
 })
+let chartInstance: Chart
 onMounted(() => {
 	/* eslint-disable no-new */
-	new Chartjs.Chart(canvasRef.value, {
+	chartInstance = new Chartjs.Chart(canvasRef.value, {
 		data: chartData,
 		type: 'line',
 		options: defaultOptions.value as Chartjs.ChartOptions<'line'>,
