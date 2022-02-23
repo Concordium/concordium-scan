@@ -23,40 +23,57 @@ public class MetricsQuery
 
         var queryParams = CreateQueryParams(period);
 
-        // TODO: Still need to figure out what to do if no new blocks have been created in requested time interval! Not very likely!
+        var lastValuesSql = @"select block_height, total_microccd, total_encrypted_microccd
+                    from metrics_blocks
+                    where time <= @ToTime
+                    order by time desc
+                    limit 1;";
+        var lastValuesData = await conn.QuerySingleAsync(lastValuesSql, queryParams);
+
+        var lastBlockHeight = (long)lastValuesData.block_height;
+        var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
+        var lastTotalEncryptedMicroCcd = (long)lastValuesData.total_encrypted_microccd;
+
         var sql = 
-            @"select max(block_height) as last_block_height,
-                     count(*) as total_block_count,
-                     avg(block_time_secs) as avg_block_time_secs,
-                     max(total_microccd) as last_total_microccd,
-                     last(total_encrypted_microccd, time) as last_total_encrypted_microccd
+            @"select count(*) as total_block_count,
+                     avg(block_time_secs) as avg_block_time_secs
               from metrics_blocks
               where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
-        if (data.total_block_count == 0)
-            return null; // "No data"
 
-        var lastBlockHeight = (long)data.last_block_height;
         var totalBlockCount = (int)data.total_block_count;
-        var avgBlockTime = Math.Round((double)data.avg_block_time_secs, 1);
-        var lastTotalMicroCcd = (long)data.last_total_microccd;
-        var lastTotalEncryptedMicroCcd = (long)data.last_total_encrypted_microccd;
+        var avgBlockTime = data.avg_block_time_secs != null ? Math.Round((double)data.avg_block_time_secs, 1) : (double?)null;
         
-        var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
+        var bucketParams = queryParams with
+        {
+            // make sure that the first bucket is a "full bucket" by moving the from-time one bucket
+            // width back (and then afterwards remove any buckets that are entirely outside requested interval)
+            FromTime = queryParams.FromTime - queryParams.BucketWidth
+        };
         var bucketsSql = 
-            @"select time_bucket(@BucketWidth, time) as interval_start, 
-                     count(*) as count, 
-                     min(block_time_secs) as min_block_time_secs, 
-                     avg(block_time_secs) as avg_block_time_secs, 
-                     max(block_time_secs) as max_block_time_secs,
-                     last(total_microccd, time) as last_total_microccd,
-                     min(total_encrypted_microccd) as min_total_encrypted_microccd,
-                     max(total_encrypted_microccd) as max_total_encrypted_microccd,
-                     last(total_encrypted_microccd, time) as last_total_encrypted_microccd
-              from metrics_blocks
-              where time between @FromTime and @ToTime
-              group by interval_start
-              order by interval_start desc;";
+            @"select time_bucket_gapfill(@BucketWidth, time) as interval_start,
+                   coalesce(count(*), 0)                  as count,
+                   min(block_time_secs)                   as min_block_time_secs,
+                   avg(block_time_secs)                   as avg_block_time_secs,
+                   max(block_time_secs)                   as max_block_time_secs,
+                   locf(last(total_microccd, time),
+                        coalesce((SELECT total_microccd
+                                  FROM metrics_blocks m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as last_total_microccd,
+                   min(total_encrypted_microccd)          as min_total_encrypted_microccd,
+                   max(total_encrypted_microccd)          as max_total_encrypted_microccd,
+                   locf(last(total_encrypted_microccd, time),
+                        coalesce((SELECT total_encrypted_microccd
+                                  FROM metrics_blocks m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as last_total_encrypted_microccd
+            from metrics_blocks
+            where time between @FromTime and @ToTime
+            group by interval_start
+            order by interval_start;";
         var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
 
         bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
@@ -65,12 +82,12 @@ public class MetricsQuery
             queryParams.BucketWidth,
             bucketData.Select(row => AsUtcDateTimeOffset((DateTime)row.interval_start)).ToArray(),
             bucketData.Select(row => (int)row.count).ToArray(),
-            bucketData.Select(row => (double)row.min_block_time_secs).ToArray(),
-            bucketData.Select(row => Math.Round((double)row.avg_block_time_secs, 1)).ToArray(),
-            bucketData.Select(row => (double)row.max_block_time_secs).ToArray(),
+            bucketData.Select(row => (double?)row.min_block_time_secs).ToArray(),
+            bucketData.Select(row => row.avg_block_time_secs != null ? Math.Round((double)row.avg_block_time_secs, 1) : (double?)null).ToArray(),
+            bucketData.Select(row => (double?)row.max_block_time_secs).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd).ToArray(),
-            bucketData.Select(row => (long)row.min_total_encrypted_microccd).ToArray(),
-            bucketData.Select(row => (long)row.max_total_encrypted_microccd).ToArray(),
+            bucketData.Select(row => (long?)row.min_total_encrypted_microccd).ToArray(),
+            bucketData.Select(row => (long?)row.max_total_encrypted_microccd).ToArray(),
             bucketData.Select(row => (long)row.last_total_encrypted_microccd).ToArray());
         var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
         return result;
@@ -85,6 +102,7 @@ public class MetricsQuery
 
         var lastValuesSql = @"select cumulative_transaction_count
                     from metrics_transactions
+                    where time <= @ToTime
                     order by time desc
                     limit 1;";
         var lastValuesData = await conn.QuerySingleAsync(lastValuesSql, queryParams);
@@ -97,7 +115,13 @@ public class MetricsQuery
         var lastCumulativeTransactionCount = (long)lastValuesData.cumulative_transaction_count;
         var transactionCount = (int)data.transaction_count;
 
-        var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
+        var bucketParams = queryParams with
+        {
+            // make sure that the first bucket is a "full bucket" by moving the from-time one bucket
+            // width back (and then afterwards remove any buckets that are entirely outside requested interval)
+            FromTime = queryParams.FromTime - queryParams.BucketWidth
+        };
+        
         var bucketsSql = 
             @"select time_bucket_gapfill(@BucketWidth, time) as interval_start,
                      locf(

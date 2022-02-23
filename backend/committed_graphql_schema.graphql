@@ -188,8 +188,8 @@ type BlockMetrics {
   lastBlockHeight: Long!
   "Total number of blocks added in requested period."
   blocksAdded: Int!
-  "The average block time (slot-time difference between two adjacent blocks) in the requested period."
-  avgBlockTime: Float!
+  "The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period."
+  avgBlockTime: Float
   "The total amount of CCD in existence."
   lastTotalMicroCcd: Long!
   "The total amount of CCD in encrypted balances."
@@ -204,18 +204,18 @@ type BlockMetricsBuckets {
   x_Time: [DateTime!]!
   "Number of blocks added within the bucket time period. Intended y-axis value."
   y_BlocksAdded: [Int!]!
-  "The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
-  y_BlockTimeMin: [Float!]!
-  "The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
-  y_BlockTimeAvg: [Float!]!
-  "The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value."
-  y_BlockTimeMax: [Float!]!
+  "The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_BlockTimeMin: [Float]!
+  "The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_BlockTimeAvg: [Float]!
+  "The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_BlockTimeMax: [Float]!
   "The total amount of CCD in existence at the end of the bucket period. Intended y-axis value."
   y_LastTotalMicroCcd: [Long!]!
-  "The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value."
-  y_MinTotalEncryptedMicroCcd: [Long!]!
-  "The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value."
-  y_MaxTotalEncryptedMicroCcd: [Long!]!
+  "The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_MinTotalEncryptedMicroCcd: [Long]!
+  "The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_MaxTotalEncryptedMicroCcd: [Long]!
   "The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value."
   y_LastTotalEncryptedMicroCcd: [Long!]!
 }

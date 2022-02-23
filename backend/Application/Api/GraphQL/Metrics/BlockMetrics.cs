@@ -7,8 +7,8 @@ public record BlockMetrics(
     long LastBlockHeight, 
     [property:GraphQLDescription("Total number of blocks added in requested period.")]
     int BlocksAdded, 
-    [property:GraphQLDescription("The average block time (slot-time difference between two adjacent blocks) in the requested period.")]
-    double AvgBlockTime, 
+    [property:GraphQLDescription("The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period.")]
+    double? AvgBlockTime, 
     [property:GraphQLDescription("The total amount of CCD in existence.")]
     long LastTotalMicroCcd, 
     [property:GraphQLDescription("The total amount of CCD in encrypted balances.")]
@@ -25,23 +25,23 @@ public record BlockMetricsBuckets(
     [property:GraphQLDescription("Number of blocks added within the bucket time period. Intended y-axis value.")]
     int[] Y_BlocksAdded,
     
-    [property:GraphQLDescription("The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value.")]
-    double[] Y_BlockTimeMin,
+    [property:GraphQLDescription("The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    double?[] Y_BlockTimeMin,
     
-    [property:GraphQLDescription("The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value.")]
-    double[] Y_BlockTimeAvg,
+    [property:GraphQLDescription("The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    double?[] Y_BlockTimeAvg,
     
-    [property:GraphQLDescription("The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value.")]
-    double[] Y_BlockTimeMax,
+    [property:GraphQLDescription("The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    double?[] Y_BlockTimeMax,
     
     [property:GraphQLDescription("The total amount of CCD in existence at the end of the bucket period. Intended y-axis value.")]
     long[] Y_LastTotalMicroCcd,
     
-    [property:GraphQLDescription("The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value.")]
-    long[] Y_MinTotalEncryptedMicroCcd,
+    [property:GraphQLDescription("The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    long?[] Y_MinTotalEncryptedMicroCcd,
     
-    [property:GraphQLDescription("The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value.")]
-    long[] Y_MaxTotalEncryptedMicroCcd,
+    [property:GraphQLDescription("The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    long?[] Y_MaxTotalEncryptedMicroCcd,
     
     [property:GraphQLDescription("The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value.")]
     long[] Y_LastTotalEncryptedMicroCcd);
