@@ -19,20 +19,33 @@
 					<slot name="unit"></slot>
 				</div>
 			</div>
-			<ChartLine
-				class="h-full w-full"
-				:x-values="props.xValues"
-				:y-values="props.yValues"
-			></ChartLine>
+			<div v-if="props.chartType == 'area'" class="h-full w-full">
+				<ChartLineArea
+					v-if="props.xValues && props.yValues"
+					:x-values="props.xValues"
+					:y-values-high="props.yValues[0]"
+					:y-values-mid="props.yValues[1]"
+					:y-values-low="props.yValues[2]"
+				></ChartLineArea>
+			</div>
+			<div v-else class="h-full w-full">
+				<ChartLine
+					v-if="props.xValues && props.yValues"
+					:x-values="props.xValues"
+					:y-values="props.yValues"
+				></ChartLine>
+			</div>
 		</div>
 	</div>
 </template>
 <script lang="ts" setup>
 import ChartLine from '~/components/Charts/ChartLine.vue'
+import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 
 type Props = {
-	xValues: unknown[]
-	yValues: unknown[]
+	xValues?: unknown[]
+	yValues?: unknown[]
+	chartType?: string
 }
 const props = defineProps<Props>()
 </script>

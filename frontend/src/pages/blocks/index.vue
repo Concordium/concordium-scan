@@ -2,19 +2,12 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<main class="p-4 pb-0">
-			<div
-				v-if="
-					metricsData &&
-					metricsData.blockMetrics &&
-					metricsData.blockMetrics.buckets
-				"
-				class="block lg:grid grid-cols-4"
-			>
+			<div class="block lg:grid grid-cols-2">
 				<div class="w-full">
 					<KeepAlive>
 						<KeyValueChartCard
-							:x-values="metricsData.blockMetrics.buckets.x_Time"
-							:y-values="metricsData.blockMetrics.buckets.y_BlocksAdded"
+							:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+							:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
 						>
 							<template #topRight
 								><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
@@ -22,15 +15,20 @@
 							<template #icon><BlockIcon></BlockIcon></template>
 							<template #title>Blocks added</template>
 							<template #value>{{
-								metricsData.blockMetrics.blocksAdded
+								metricsData?.blockMetrics?.blocksAdded
 							}}</template>
 						</KeyValueChartCard>
 					</KeepAlive>
 				</div>
 				<div class="w-full">
 					<KeyValueChartCard
-						:x-values="metricsData.blockMetrics.buckets.x_Time"
-						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeAvg"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						chart-type="area"
+						:y-values="[
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
+						]"
 					>
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
@@ -38,15 +36,15 @@
 						<template #title>Avg block time</template>
 						<template #icon><StopwatchIcon /></template>
 						<template #value>{{
-							metricsData.blockMetrics.avgBlockTime
+							metricsData?.blockMetrics?.avgBlockTime
 						}}</template>
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
-				<div class="w-full">
+				<!--<div class="w-full">
 					<KeyValueChartCard
-						:x-values="metricsData.blockMetrics.buckets.x_Time"
-						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMin"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:y-values="metricsData?.blockMetrics?.buckets?.y_BlockTimeMin"
 					>
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
@@ -54,15 +52,15 @@
 						<template #icon><StopwatchIcon /></template>
 						<template #title>Min block time</template>
 						<template #value>{{
-							metricsData.blockMetrics.buckets.y_BlockTimeMin[0]
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMin[0]
 						}}</template>
 						<template #unit>s</template>
 					</KeyValueChartCard>
 				</div>
 				<div class="w-full">
 					<KeyValueChartCard
-						:x-values="metricsData.blockMetrics.buckets.x_Time"
-						:y-values="metricsData.blockMetrics.buckets.y_BlockTimeMax"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:y-values="metricsData?.blockMetrics?.buckets?.y_BlockTimeMax"
 					>
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
@@ -70,11 +68,11 @@
 						<template #icon><StopwatchIcon /></template>
 						<template #title>Max block time</template>
 						<template #value>{{
-							metricsData.blockMetrics.buckets.y_BlockTimeMax[0]
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax[0]
 						}}</template>
 						<template #unit>s</template>
 					</KeyValueChartCard>
-				</div>
+				</div>-->
 			</div>
 			<Table>
 				<TableHead>

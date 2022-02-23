@@ -8,7 +8,9 @@ import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
 type Props = {
 	xValues: unknown[]
-	yValues: unknown[]
+	yValuesHigh: unknown[]
+	yValuesMid: unknown[]
+	yValuesLow: unknown[]
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -18,16 +20,40 @@ const chartData = {
 	labels: props.xValues,
 	datasets: [
 		{
-			label: '',
-			data: props.yValues as number[],
+			label: 'High',
+			data: props.yValuesHigh as number[],
+			borderColor: '#EB5837',
+			fill: '1',
+			tension: 0.5,
+
+			pointRadius: 0, // Disables the small points
+			// pointHitRadius: 10, // Disables the tooltip
+			hoverBackgroundColor: '#FFFFFF',
+			backgroundColor: '#95270f',
+		},
+		{
+			label: 'Avg',
+			data: props.yValuesMid as number[],
 			borderColor: '#39DBAA',
-			fill: 'start',
+			fill: 'false',
 			tension: 0.5,
 
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: '#39DBAA99',
+		},
+		{
+			label: 'Low',
+			data: props.yValuesLow as number[],
+			borderColor: '#4edfb3',
+			fill: '-1',
+			tension: 0.5,
+
+			pointRadius: 0, // Disables the small points
+			// pointHitRadius: 10, // Disables the tooltip
+			hoverBackgroundColor: '#FFFFFF',
+			backgroundColor: '#177d5e',
 		},
 	],
 }
@@ -69,7 +95,11 @@ const defaultOptions = ref({
 							currency: 'USD',
 						}).format(context.parsed.y)
 					} */
-					return context.parsed.y
+					let label = context.dataset.label || ''
+					if (label) {
+						label += ': '
+					}
+					return label + context.parsed.y
 				},
 			},
 		},
