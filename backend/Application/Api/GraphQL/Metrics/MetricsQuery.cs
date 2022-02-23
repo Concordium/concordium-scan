@@ -154,30 +154,40 @@ public class MetricsQuery
 
         var queryParams = CreateQueryParams(period);
 
-        // TODO: Still need to figure out what to do if no new accounts have been created in requested time interval!
-        //       For "sum_accounts_created": Should use gap-filling setting value to zero
-        //       For "last_cumulative_accounts_created": LOCF (last object carried forward).
-        //                                               A little tricky though, because the first value would be outside the dataset
-        //       Besides that: LOCF and gap filling in timescaledb is community edition, requires non-azure-hosted instance
-        var sql = @"select max(cumulative_accounts_created) as last_cumulative_accounts_created, sum(accounts_created) as sum_accounts_created
+        var lastValuesSql = @"select cumulative_accounts_created
+                    from metrics_accounts
+                    where time <= @ToTime
+                    order by time desc
+                    limit 1;";
+        var lastValuesData = await conn.QuerySingleAsync(lastValuesSql, queryParams);
+        var lastCumulativeAccountsCreated = (long)lastValuesData.cumulative_accounts_created;
+
+        var sql = @"select coalesce(sum(accounts_created), 0) as sum_accounts_created
                     from metrics_accounts
                     where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
-        if (data.total_transaction_count == 0)
-            return null; // Means "no data" - makes no sense (there will always be accounts - maybe not any new accounts)
-                         // will be removed once TODO above is taken care of!
         
-        var lastCumulativeAccountsCreated = (long)data.last_cumulative_accounts_created;
         var sumAccountsCreated = (int)data.sum_accounts_created;
 
-        var bucketParams = queryParams with { FromTime = queryParams.FromTime - queryParams.BucketWidth }; 
-        var bucketsSql = @"select time_bucket(@BucketWidth, time) as interval_start, 
-                                  last(cumulative_accounts_created, time) as last_cumulative_accounts_created,
-                                  sum(accounts_created) as sum_accounts_created
-                           from metrics_accounts
-                           where time between @FromTime and @ToTime
-                           group by interval_start
-                           order by interval_start desc;";
+        var bucketParams = queryParams with
+        {
+            // make sure that the first bucket is a "full bucket" by moving the from-time one bucket
+            // width back (and then afterwards remove any buckets that are entirely outside requested interval)
+            FromTime = queryParams.FromTime - queryParams.BucketWidth
+        };
+        var bucketsSql = @"
+            select time_bucket_gapfill(@BucketWidth, time) as interval_start,
+                   locf(last(cumulative_accounts_created, time),
+                        coalesce((SELECT cumulative_accounts_created
+                                  FROM metrics_accounts m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as last_cumulative_accounts_created,
+                   coalesce(sum(accounts_created), 0)     as sum_accounts_created
+            from metrics_accounts
+            where time  between @FromTime and @ToTime
+            group by interval_start
+            order by interval_start;";
         var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
 
         bucketData.RemoveAll(row => AsUtcDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
