@@ -23,7 +23,7 @@ const chartData = {
 			borderColor: '#39DBAA',
 			fill: 'start',
 			tension: 0.5,
-
+			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',

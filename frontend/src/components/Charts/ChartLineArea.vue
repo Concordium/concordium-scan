@@ -22,22 +22,24 @@ const chartData = {
 		{
 			label: 'High',
 			data: props.yValuesHigh as number[],
-			borderColor: '#EB5837',
+			borderColor: '#1C6D55',
 			fill: '1',
 			tension: 0.5,
-
+			borderWidth: 1,
+			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
-			backgroundColor: '#95270f',
+			backgroundColor: '#1C6D5599',
 		},
 		{
 			label: 'Avg',
 			data: props.yValuesMid as number[],
 			borderColor: '#39DBAA',
+			borderWidth: 3, // This is actually default.
 			fill: 'false',
 			tension: 0.5,
-
+			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
@@ -46,14 +48,15 @@ const chartData = {
 		{
 			label: 'Low',
 			data: props.yValuesLow as number[],
-			borderColor: '#4edfb3',
+			borderColor: '#9CEDD4',
 			fill: '-1',
+			borderWidth: 1,
 			tension: 0.5,
-
+			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
-			backgroundColor: '#177d5e',
+			backgroundColor: '#9CEDD499',
 		},
 	],
 }
@@ -139,7 +142,7 @@ const defaultOptions = ref({
 		},
 
 		y: {
-			beginAtZero: false,
+			beginAtZero: true,
 			axis: 'y',
 			display: false,
 			grid: { display: false, drawBorder: false },
