@@ -163,7 +163,7 @@ const {
 	fetchNew,
 	loadMore,
 } = usePagedData<Transaction>()
-const selectedMetricsPeriod = ref(MetricsPeriod.LastHour)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const newItems = ref(0)
 const subscriptionHandler = (
 	_prevData: void,

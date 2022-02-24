@@ -47,6 +47,6 @@
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 
-const selectedMetricsPeriod = ref(MetricsPeriod.LastHour)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const { data: metricsData } = useAccountsMetricsQuery(selectedMetricsPeriod)
 </script>

@@ -147,7 +147,7 @@ const subscriptionHandler = (
 ) => {
 	newItems.value++
 }
-const selectedMetricsPeriod = ref(MetricsPeriod.LastHour)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 useBlockSubscription(subscriptionHandler)
 
 const refetch = () => {
