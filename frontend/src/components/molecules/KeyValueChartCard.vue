@@ -27,6 +27,7 @@
 					:y-values-high="props.yValues[0]"
 					:y-values-mid="props.yValues[1]"
 					:y-values-low="props.yValues[2]"
+					:bucket-width="props.bucketWidth"
 				></ChartLineArea>
 			</div>
 			<div v-else class="h-full w-full">
@@ -35,6 +36,7 @@
 					class="h-20"
 					:x-values="props.xValues"
 					:y-values="props.yValues"
+					:bucket-width="props.bucketWidth"
 				></ChartLine>
 			</div>
 		</div>
@@ -48,6 +50,7 @@ type Props = {
 	xValues?: unknown[]
 	yValues?: unknown[]
 	chartType?: string
+	bucketWidth?: string
 }
 const props = defineProps<Props>()
 </script>

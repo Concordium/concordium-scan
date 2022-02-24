@@ -7,6 +7,7 @@
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
+						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
 						:y-values="
 							metricsData?.accountsMetrics?.buckets
 								?.y_LastCumulativeAccountsCreated
@@ -26,6 +27,7 @@
 					<KeyValueChartCard
 						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
 						:y-values="metricsData?.accountsMetrics?.buckets?.y_AccountsCreated"
+						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
 					>
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"

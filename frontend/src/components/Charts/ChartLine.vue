@@ -6,9 +6,11 @@
 <script lang="ts" setup>
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
+import { formatTimestampByBucketWidth } from '~/utils/format'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
+	bucketWidth: string
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -44,6 +46,7 @@ watch(props, () => {
 	chartInstance.data.datasets[0].data = props.yValues as number[]
 	chartInstance.update()
 })
+
 const defaultOptions = ref({
 	plugins: {
 		legend: {
@@ -55,7 +58,10 @@ const defaultOptions = ref({
 		tooltip: {
 			callbacks: {
 				title(context) {
-					return new Date(context[0].label).toLocaleTimeString()
+					return formatTimestampByBucketWidth(
+						props.bucketWidth,
+						context[0].label
+					)
 				},
 				label(context) {
 					return context.parsed.y + ''

@@ -7,6 +7,7 @@
 					<KeyValueChartCard
 						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
 						:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
 					>
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
@@ -22,6 +23,7 @@
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
 						chart-type="area"
 						:y-values="[
 							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,

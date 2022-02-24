@@ -6,11 +6,14 @@
 <script lang="ts" setup>
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
+import { onMounted } from 'vue'
+import { formatTimestampByBucketWidth } from '~/utils/format'
 type Props = {
 	xValues: unknown[]
 	yValuesHigh: unknown[]
 	yValuesMid: unknown[]
 	yValuesLow: unknown[]
+	bucketWidth: string
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -92,7 +95,10 @@ const defaultOptions = ref({
 			},
 			callbacks: {
 				title(context) {
-					return new Date(context[0].label).toLocaleTimeString()
+					return formatTimestampByBucketWidth(
+						props.bucketWidth,
+						context[0].label
+					)
 				},
 				label(context) {
 					/* let label = context.dataset.label || ''

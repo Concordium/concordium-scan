@@ -23,6 +23,7 @@
 		"@urql/vue": "^0.6.1",
 		"chart.js": "^3.7.1",
 		"date-fns": "^2.27.0",
+		"duration-fns": "^3.0.0",
 		"graphql": "^16.1.0",
 		"nuxt3": "^3.0.0-27356801.e9128f3",
 		"subscriptions-transport-ws": "^0.11.0",

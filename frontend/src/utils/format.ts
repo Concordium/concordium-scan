@@ -1,5 +1,27 @@
 import { formatDistance, parseISO } from 'date-fns'
 
+import * as duration from 'duration-fns'
+
+/**
+ * Converts an ISO 8601 duration (e.g. PT10M) to an object with the amount in years, days, months, hours, seconds, etc.
+ * @param d {string} - ISO 8601 duration string.
+ */
+export const parseISODuration = (d: string) => {
+	return duration.parse(d)
+}
+export const formatTimestampByBucketWidth = (
+	bucketWidth: string,
+	date: string
+) => {
+	const durationObject = parseISODuration(bucketWidth)
+	if (durationObject.days && durationObject.days > 0)
+		return new Date(date).toLocaleDateString()
+	else if (durationObject.hours > 1) {
+		return new Date(date).toLocaleString()
+	} else {
+		return new Date(date).toLocaleTimeString()
+	}
+}
 export const convertTimestampToRelative = (
 	timestamp: string,
 	compareDate: Date = new Date()

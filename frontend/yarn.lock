@@ -4962,6 +4962,11 @@ duplexify@^4.0.0, duplexify@^4.1.1:
     readable-stream "^3.1.1"
     stream-shift "^1.0.0"
 
+duration-fns@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/duration-fns/-/duration-fns-3.0.0.tgz#5bef5e392d50d60caaff808f62c12d2e06f1f631"
+  integrity sha512-QehORmN6cDPvD4q8MT6H0d3ZkC6T5CEMTlrIaU+DI7VkJk4GC3Jx4rIB2tlVRtvZpObIzc/OCCEWIpXZqaHf5A==
+
 ecdsa-sig-formatter@1.0.11, ecdsa-sig-formatter@^1.0.11:
   version "1.0.11"
   resolved "https://registry.yarnpkg.com/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz#ae0f0fa2d85045ef14a817daa3ce9acd0489e5bf"

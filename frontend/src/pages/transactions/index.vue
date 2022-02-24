@@ -6,6 +6,9 @@
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
+						:bucket-width="
+							metricsData?.transactionMetrics?.buckets?.bucketWidth
+						"
 						:y-values="
 							metricsData?.transactionMetrics?.buckets
 								?.y_LastCumulativeTransactionCount
@@ -25,6 +28,9 @@
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
+						:bucket-width="
+							metricsData?.transactionMetrics?.buckets?.bucketWidth
+						"
 						:y-values="
 							metricsData?.transactionMetrics?.buckets?.y_TransactionCount
 						"
