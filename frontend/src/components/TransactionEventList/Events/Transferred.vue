@@ -37,6 +37,6 @@ const fromAddressType = computed(() =>
 	props.event.from.__typename === 'AccountAddress' ? ' account' : ' contract'
 )
 const toAddressType = computed(() =>
-	props.event.from.__typename === 'AccountAddress' ? ' account' : ' contract'
+	props.event.to.__typename === 'AccountAddress' ? ' account' : ' contract'
 )
 </script>
