@@ -24,13 +24,14 @@ const chartData = {
 			data: props.yValuesHigh as number[],
 			borderColor: '#1C6D55',
 			fill: '1',
-			tension: 0.5,
+			tension: 0.1,
 			borderWidth: 1,
 			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: '#1C6D5599',
+			order: 2,
 		},
 		{
 			label: 'Avg',
@@ -38,12 +39,13 @@ const chartData = {
 			borderColor: '#39DBAA',
 			borderWidth: 3, // This is actually default.
 			fill: 'false',
-			tension: 0.5,
+			tension: 0.1,
 			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: '#39DBAA99',
+			order: 1,
 		},
 		{
 			label: 'Low',
@@ -51,12 +53,13 @@ const chartData = {
 			borderColor: '#9CEDD4',
 			fill: '-1',
 			borderWidth: 1,
-			tension: 0.5,
+			tension: 0.1,
 			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
 			backgroundColor: '#9CEDD499',
+			order: 3,
 		},
 	],
 }
@@ -84,6 +87,9 @@ const defaultOptions = ref({
 			},
 		},
 		tooltip: {
+			itemSort(a, b) {
+				return b.raw - a.raw
+			},
 			callbacks: {
 				title(context) {
 					return new Date(context[0].label).toLocaleTimeString()

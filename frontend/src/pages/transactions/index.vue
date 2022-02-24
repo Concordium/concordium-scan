@@ -19,6 +19,7 @@
 						<template #value>{{
 							metricsData?.transactionMetrics?.lastCumulativeTransactionCount
 						}}</template>
+						<template #chip>latest</template>
 					</KeyValueChartCard>
 				</div>
 				<div class="w-full">
@@ -36,6 +37,7 @@
 						<template #value>{{
 							metricsData?.transactionMetrics?.transactionCount
 						}}</template>
+						<template #chip>sum</template>
 					</KeyValueChartCard>
 				</div>
 			</div>

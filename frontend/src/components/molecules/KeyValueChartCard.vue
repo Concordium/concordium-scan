@@ -7,21 +7,22 @@
 				<slot name="topRight"></slot>
 			</div>
 
-			<div class="text-xl pt-4 w-72 text-center">
+			<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 				<slot name="title"></slot>
 			</div>
-			<div class="flex flex-row">
-				<div class="w-4 h-4 mr-2 text-theme-interactive">
+
+			<div class="text-xl text-theme-interactive flex flex-row gap-2">
+				<div class="w-6 h-6 mr-2 text-theme-interactive">
 					<slot name="icon"></slot>
 				</div>
-				<div class="text-sm text-theme-interactive">
-					<slot name="value"></slot>
-					<slot name="unit"></slot>
-				</div>
+				<div><slot name="value"></slot></div>
+				<div><slot name="unit"></slot></div>
+				<Chip class="self-center"><slot name="chip"></slot></Chip>
 			</div>
 			<div v-if="props.chartType == 'area'" class="h-full w-full">
 				<ChartLineArea
 					v-if="props.xValues && props.yValues"
+					class="h-20"
 					:x-values="props.xValues"
 					:y-values-high="props.yValues[0]"
 					:y-values-mid="props.yValues[1]"
@@ -31,6 +32,7 @@
 			<div v-else class="h-full w-full">
 				<ChartLine
 					v-if="props.xValues && props.yValues"
+					class="h-20"
 					:x-values="props.xValues"
 					:y-values="props.yValues"
 				></ChartLine>
@@ -41,7 +43,7 @@
 <script lang="ts" setup>
 import ChartLine from '~/components/Charts/ChartLine.vue'
 import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
-
+import Chip from '~/components/atoms/Chip.vue'
 type Props = {
 	xValues?: unknown[]
 	yValues?: unknown[]

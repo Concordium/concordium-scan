@@ -46,6 +46,7 @@ module.exports = {
 				'button-text-primary-disabled':
 					'var(--color-button-text-primary-disabled)',
 				'input-primary': withHslOpacity('--color-input-bg-primary', '25%'),
+				'background-interactive':  withHslOpacity('--color-interactive'),
 			},
 		},
 		textColor: {

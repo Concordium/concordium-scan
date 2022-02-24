@@ -4,21 +4,20 @@
 		<main class="p-4 pb-0">
 			<div class="block lg:grid grid-cols-2">
 				<div class="w-full">
-					<KeepAlive>
-						<KeyValueChartCard
-							:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-							:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
-						>
-							<template #topRight
-								><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-							/></template>
-							<template #icon><BlockIcon></BlockIcon></template>
-							<template #title>Blocks added</template>
-							<template #value>{{
-								metricsData?.blockMetrics?.blocksAdded
-							}}</template>
-						</KeyValueChartCard>
-					</KeepAlive>
+					<KeyValueChartCard
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+					>
+						<template #topRight
+							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						/></template>
+						<template #icon><BlockIcon></BlockIcon></template>
+						<template #title>Blocks added</template>
+						<template #value>{{
+							metricsData?.blockMetrics?.blocksAdded
+						}}</template>
+						<template #chip>latest</template>
+					</KeyValueChartCard>
 				</div>
 				<div class="w-full">
 					<KeyValueChartCard
@@ -39,6 +38,7 @@
 							metricsData?.blockMetrics?.avgBlockTime
 						}}</template>
 						<template #unit>s</template>
+						<template #chip>average</template>
 					</KeyValueChartCard>
 				</div>
 			</div>

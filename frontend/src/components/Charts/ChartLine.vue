@@ -22,7 +22,7 @@ const chartData = {
 			data: props.yValues as number[],
 			borderColor: '#39DBAA',
 			fill: 'start',
-			tension: 0.5,
+			tension: 0.1,
 			spanGaps: false,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
