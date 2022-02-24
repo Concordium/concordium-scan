@@ -22,6 +22,29 @@ export const formatTimestampByBucketWidth = (
 		return new Date(date).toLocaleTimeString()
 	}
 }
+export const prettyFormatBucketDuration = (d: string) => {
+	const durationObject = duration.parse(d)
+	if (durationObject.days)
+		return durationObject.days + (durationObject.days > 1 ? ' days' : ' day')
+	if (durationObject.minutes)
+		return (
+			durationObject.minutes +
+			(durationObject.minutes > 1 ? ' minutes' : ' minute')
+		)
+	if (durationObject.hours)
+		return (
+			durationObject.hours + (durationObject.hours > 1 ? ' hours' : ' hour')
+		)
+	if (durationObject.seconds)
+		return (
+			durationObject.seconds +
+			(durationObject.seconds > 1 ? ' seconds' : ' second')
+		)
+	if (durationObject.years)
+		return (
+			durationObject.years + (durationObject.years > 1 ? ' years' : ' year')
+		)
+}
 export const convertTimestampToRelative = (
 	timestamp: string,
 	compareDate: Date = new Date()

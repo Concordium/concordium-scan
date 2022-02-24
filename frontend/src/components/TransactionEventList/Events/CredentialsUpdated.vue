@@ -1,6 +1,7 @@
 <template>
 	<span>
-		Account <Hash :hash="event.accountAddress" /> updated the credentials
+		Account <AccountLink :address="event.accountAddress" /> updated the
+		credentials
 	</span>
 </template>
 

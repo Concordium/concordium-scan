@@ -7,7 +7,7 @@
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
 import { onMounted } from 'vue'
-import { formatTimestampByBucketWidth } from '~/utils/format'
+import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
 	xValues: unknown[]
 	yValuesHigh: unknown[]
@@ -95,10 +95,10 @@ const defaultOptions = ref({
 			},
 			callbacks: {
 				title(context) {
-					return formatTimestampByBucketWidth(
-						props.bucketWidth,
-						context[0].label
-					)
+					return new Date(context[0].label).toLocaleString()
+				},
+				beforeBody() {
+					return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
 				},
 				label(context) {
 					/* let label = context.dataset.label || ''

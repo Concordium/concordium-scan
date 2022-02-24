@@ -1,6 +1,7 @@
 <template>
 	<span>
-		Deployed account with address <Hash :hash="event.accountAddress" /> from
+		Deployed account with address
+		<AccountLink :address="event.accountAddress" /> from
 		<Hash :hash="event.regId" />
 	</span>
 </template>

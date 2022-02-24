@@ -14,25 +14,27 @@
 </template>
 
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import { useBlockQuery, useBlockQueryByHash } from '~/queries/useBlockQuery'
 import { usePagination } from '~/composables/usePagination'
 const { first, last, after, before, goToPage } = usePagination()
-
 type Props = {
 	id?: string
 	hash?: string
 }
 const props = defineProps<Props>()
+const refId = toRef(props, 'id')
+const refHash = toRef(props, 'hash')
 const blockQueryResult = ref()
 if (props.id) {
-	blockQueryResult.value = useBlockQuery(props.id, {
+	blockQueryResult.value = useBlockQuery(refId as Ref<string>, {
 		first,
 		last,
 		after,
 		before,
 	})
 } else if (props.hash) {
-	blockQueryResult.value = useBlockQueryByHash(props.hash, {
+	blockQueryResult.value = useBlockQueryByHash(refHash as Ref<string>, {
 		first,
 		last,
 		after,

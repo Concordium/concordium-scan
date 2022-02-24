@@ -45,20 +45,10 @@
 					>Transaction
 					{{ queryData.search.transactions[0].transactionHash }}
 				</LinkButton>
-				<LinkButton
-					v-if="queryData.search.accounts.length > 0"
-					class="numerical"
-					@click="
-						drawer.push(
-							'account',
-							null,
-							null,
-							queryData.search.accounts[0].address
-						)
-					"
-					>Account
-					{{ queryData.search.accounts[0].address }}
-				</LinkButton>
+				<div v-if="queryData.search.accounts.length > 0">
+					Account
+					<AccountLink :address="queryData.search.accounts[0].address" />
+				</div>
 			</div>
 		</div>
 		<button :class="$style.button">

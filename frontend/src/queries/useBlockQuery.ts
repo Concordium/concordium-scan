@@ -1,4 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
+import { Ref } from 'vue'
 import type { Block } from '~/types/blocks'
 import type { QueryVariables } from '~/types/queryVariables'
 
@@ -126,7 +127,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 	}
 `
 export const useBlockQueryByHash = (
-	hash: string,
+	hash: Ref<string>,
 	eventsVariables?: QueryVariables
 ) => {
 	const { data } = useQuery({
@@ -140,7 +141,10 @@ export const useBlockQueryByHash = (
 	return { data }
 }
 
-export const useBlockQuery = (id: string, eventsVariables?: QueryVariables) => {
+export const useBlockQuery = (
+	id: Ref<string>,
+	eventsVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: BlockQuery,
 		requestPolicy: 'cache-first',

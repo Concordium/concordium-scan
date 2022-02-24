@@ -124,11 +124,7 @@
 									</LinkButton>
 								</TableTd>
 								<TableTd class="numerical">
-									<UserIcon
-										v-if="transaction.senderAccountAddress"
-										class="h-4 text-theme-white inline align-baseline"
-									/>
-									{{ shortenHash(transaction.senderAccountAddress) }}
+									<AccountLink :address="transaction.senderAccountAddress" />
 								</TableTd>
 								<TableTd align="right" class="numerical">
 									{{ convertMicroCcdToCcd(transaction.ccdCost) }}

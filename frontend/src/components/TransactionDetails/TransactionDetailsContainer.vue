@@ -14,12 +14,12 @@
 </template>
 
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import {
 	useTransactionQuery,
 	useTransactionQueryByHash,
 } from '~/queries/useTransactionQuery'
 import { usePagination } from '~/composables/usePagination'
-
 const { first, last, after, before, goToPage } = usePagination()
 
 type Props = {
@@ -28,19 +28,24 @@ type Props = {
 }
 
 const props = defineProps<Props>()
+const refId = toRef(props, 'id')
+const refHash = toRef(props, 'hash')
 const transactionQueryResult = ref()
 if (props.id)
-	transactionQueryResult.value = useTransactionQuery(props.id, {
+	transactionQueryResult.value = useTransactionQuery(refId as Ref<string>, {
 		first,
 		last,
 		after,
 		before,
 	})
 else if (props.hash)
-	transactionQueryResult.value = useTransactionQueryByHash(props.hash, {
-		first,
-		last,
-		after,
-		before,
-	})
+	transactionQueryResult.value = useTransactionQueryByHash(
+		refHash as Ref<string>,
+		{
+			first,
+			last,
+			after,
+			before,
+		}
+	)
 </script>

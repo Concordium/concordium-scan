@@ -34,7 +34,7 @@
 						<template #topRight
 							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
 						/></template>
-						<template #title>Avg block time</template>
+						<template #title>Block time</template>
 						<template #icon><StopwatchIcon /></template>
 						<template #value>{{
 							metricsData?.blockMetrics?.avgBlockTime

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<div>
 		<Table>
 			<TableHead>
@@ -12,7 +12,7 @@
 			<TableBody>
 				<TableRow
 					v-for="transaction in transactions"
-					:key="transaction.transactionHash"
+					:key="transaction.transaction.transactionHash"
 				>
 					<TableTd>
 						<StatusCircle
@@ -20,12 +20,12 @@
 								'h-4 w-6 mr-2 text-theme-interactive',
 								{
 									'text-theme-error':
-										transaction.result.__typename === 'Rejected',
+										transaction.transaction.result.__typename === 'Rejected',
 								},
 							]"
 						/>
 						{{
-							transaction.result.__typename === 'Success'
+							transaction.transaction.result.__typename === 'Success'
 								? 'Success'
 								: 'Rejected'
 						}}
@@ -37,24 +37,26 @@
 							@click="
 								drawer.push(
 									'transaction',
-									transaction.transactionHash,
-									transaction.id
+									transaction.transaction.transactionHash,
+									transaction.transaction.id
 								)
 							"
 						>
 							<Tooltip
-								:text="transaction.transactionHash"
+								:text="transaction.transaction.transactionHash"
 								text-class="text-theme-body"
 							>
-								{{ shortenHash(transaction.transactionHash) }}
+								{{ shortenHash(transaction.transaction.transactionHash) }}
 							</Tooltip>
 						</LinkButton>
 					</TableTd>
 					<TableTd class="numerical">
-						<AccountLink :address="transaction.senderAccountAddress" />
+						<AccountLink
+							:address="transaction.transaction.senderAccountAddress"
+						/>
 					</TableTd>
 					<TableTd align="right" class="numerical">
-						{{ convertMicroCcdToCcd(transaction.ccdCost) }}
+						{{ convertMicroCcdToCcd(transaction.transaction.ccdCost) }}
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -78,8 +80,8 @@ import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {
 	transactions: Transaction[]
-	totalCount: number
 	pageInfo: PageInfo
+	totalCount: number
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 const drawer = useDrawer()

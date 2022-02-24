@@ -19,8 +19,25 @@
 					<template #default>
 						{{ convertTimestampToRelative(props.account?.createdAt) }}
 					</template>
+					<template #secondary>
+						{{ props.account?.createdAt }}
+					</template>
 				</DetailsCard>
 			</div>
+			<Accordion>
+				Transactions
+				<!--<span class="text-theme-faded ml-1">
+					({{ props.account?.trans }})
+				</span>-->
+				<template #content>
+					<AccountDetailsTransactions
+						:transactions="props.account?.transactions.nodes"
+						:total-count="props.account?.transactions.nodes.length"
+						:page-info="props.account.transactions?.pageInfo"
+						:go-to-page="props.goToPage"
+					/>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -29,10 +46,13 @@
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import { convertTimestampToRelative } from '~/utils/format'
-import type { Account } from '~/types/generated'
+import type { Account, PageInfo } from '~/types/generated'
 import AccountDetailsHeader from '~/components/Accounts/AccountDetailsHeader.vue'
+import AccountDetailsTransactions from '~/components/Accounts/AccountDetailsTransactions.vue'
+import type { PaginationTarget } from '~/composables/usePagination'
 type Props = {
 	account: Account
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()

@@ -54,8 +54,10 @@
 				<DetailsCard v-if="props.transaction?.senderAccountAddress">
 					<template #title>Sender</template>
 					<template #default>
-						<UserIcon class="h-5 inline align-baseline mr-3" />
-						{{ shortenHash(props.transaction?.senderAccountAddress) }}
+						<AccountLink
+							icon-size="big"
+							:address="props.transaction?.senderAccountAddress"
+						/>
 					</template>
 				</DetailsCard>
 			</div>
@@ -89,7 +91,6 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import TransactionDetailsHeader from './TransactionDetailsHeader.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'

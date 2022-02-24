@@ -1,7 +1,8 @@
 <template>
 	<span>
-		<Hash :hash="event.fromAccountAddress" /> initiated a scheduled transfer to
-		<Hash :hash="event.toAccountAddress" />
+		<AccountLink :address="event.fromAccountAddress" /> initiated a scheduled
+		transfer to
+		<AccountLink :address="event.toAccountAddress" />
 	</span>
 </template>
 

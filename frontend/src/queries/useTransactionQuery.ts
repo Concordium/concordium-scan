@@ -1,4 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
+import { Ref } from 'vue'
 import type { Transaction } from '~/types/transactions'
 import type { QueryVariables } from '~/types/queryVariables'
 
@@ -304,7 +305,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 	}
 `
 export const useTransactionQueryByHash = (
-	hash: string,
+	hash: Ref<string>,
 	eventsVariables?: QueryVariables
 ) => {
 	const { data } = useQuery({
@@ -320,7 +321,7 @@ export const useTransactionQueryByHash = (
 }
 
 export const useTransactionQuery = (
-	id: string,
+	id: Ref<string>,
 	eventsVariables?: QueryVariables
 ) => {
 	const { data } = useQuery({

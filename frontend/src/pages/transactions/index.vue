@@ -119,24 +119,7 @@
 							{{ transaction.block.blockHeight }}
 						</TableTd>
 						<TableTd :class="$style.numerical">
-							<LinkButton
-								@click="
-									() => {
-										drawer.push(
-											'account',
-											null,
-											null,
-											transaction.senderAccountAddress
-										)
-									}
-								"
-							>
-								<UserIcon
-									v-if="transaction.senderAccountAddress"
-									:class="$style.cellIcon"
-								/>
-								{{ shortenHash(transaction.senderAccountAddress) }}
-							</LinkButton>
+							<AccountLink :address="transaction.senderAccountAddress" />
 						</TableTd>
 						<TableTd align="right" :class="$style.numerical">
 							{{ convertMicroCcdToCcd(transaction.ccdCost) }}
@@ -155,7 +138,6 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {

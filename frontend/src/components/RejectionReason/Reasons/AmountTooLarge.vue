@@ -1,9 +1,9 @@
 <template>
 	<span>
 		The {{ addressType }}
-		<Hash
+		<AccountLink
 			v-if="reason.address.__typename === 'AccountAddress'"
-			:hash="reason.address.address"
+			:address="reason.address.address"
 		/>
 		<Contract
 			v-else-if="reason.address.__typename === 'ContractAddress'"
@@ -17,7 +17,6 @@
 <script setup lang="ts">
 import { convertMicroCcdToCcd } from '~/utils/format'
 import Contract from '~/components/molecules/Contract.vue'
-import Hash from '~/components/molecules/Hash.vue'
 import type { AmountTooLarge } from '~/types/generated'
 
 type Props = {

@@ -2,18 +2,18 @@
 	<span>
 		Transferred {{ convertMicroCcdToCcd(event.amount) }}Ͼ from
 		{{ fromAddressType }}
-		<Hash
+		<AccountLink
 			v-if="event.from.__typename === 'AccountAddress'"
-			:hash="event.from.address"
+			:address="event.from.address"
 		/>
 		<Contract
 			v-else-if="event.from.__typename === 'ContractAddress'"
 			:address="event.from"
 		/>
 		to {{ toAddressType }}
-		<Hash
+		<AccountLink
 			v-if="event.to.__typename === 'AccountAddress'"
-			:hash="event.to.address"
+			:address="event.to.address"
 		/>
 		<Contract
 			v-else-if="event.to.__typename === 'ContractAddress'"
@@ -25,7 +25,6 @@
 <script setup lang="ts">
 import { convertMicroCcdToCcd } from '~/utils/format'
 import Contract from '~/components/molecules/Contract.vue'
-import Hash from '~/components/molecules/Hash.vue'
 import type { Transferred } from '~/types/generated'
 
 type Props = {

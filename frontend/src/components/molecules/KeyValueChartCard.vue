@@ -22,7 +22,7 @@
 			<div v-if="props.chartType == 'area'" class="h-full w-full">
 				<ChartLineArea
 					v-if="props.xValues && props.yValues"
-					class="h-20"
+					class="h-28"
 					:x-values="props.xValues"
 					:y-values-high="props.yValues[0]"
 					:y-values-mid="props.yValues[1]"
@@ -33,7 +33,7 @@
 			<div v-else class="h-full w-full">
 				<ChartLine
 					v-if="props.xValues && props.yValues"
-					class="h-20"
+					class="h-28"
 					:x-values="props.xValues"
 					:y-values="props.yValues"
 					:bucket-width="props.bucketWidth"

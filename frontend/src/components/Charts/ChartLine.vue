@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
-import { formatTimestampByBucketWidth } from '~/utils/format'
+import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
 	xValues: unknown[]
 	yValues: unknown[]
@@ -58,10 +58,10 @@ const defaultOptions = ref({
 		tooltip: {
 			callbacks: {
 				title(context) {
-					return formatTimestampByBucketWidth(
-						props.bucketWidth,
-						context[0].label
-					)
+					return new Date(context[0].label).toLocaleString()
+				},
+				beforeBody() {
+					return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
 				},
 				label(context) {
 					return context.parsed.y + ''
