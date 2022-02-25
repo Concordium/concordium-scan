@@ -191,24 +191,10 @@
 									{{ translateTransactionType(transaction.transactionType) }}
 								</TableTd>
 								<TableTd>
-									<TransactionIcon class="h-4 w-4" />
-									<LinkButton
-										class="numerical"
-										@click="
-											drawer.push(
-												'transaction',
-												transaction.transactionHash,
-												transaction.id
-											)
-										"
-									>
-										<Tooltip
-											:text="transaction.transactionHash"
-											text-class="text-theme-body"
-										>
-											{{ shortenHash(transaction.transactionHash) }}
-										</Tooltip>
-									</LinkButton>
+									<TransactionLink
+										:id="transaction.id"
+										:hash="transaction.transactionHash"
+									/>
 								</TableTd>
 								<TableTd class="numerical">
 									<AccountLink :address="transaction.senderAccountAddress" />

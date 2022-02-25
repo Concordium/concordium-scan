@@ -31,24 +31,10 @@
 						}}
 					</TableTd>
 					<TableTd class="numerical">
-						<TransactionIcon class="h-4 w-4" />
-						<LinkButton
-							class="numerical"
-							@click="
-								drawer.push(
-									'transaction',
-									transaction.transactionHash,
-									transaction.id
-								)
-							"
-						>
-							<Tooltip
-								:text="transaction.transactionHash"
-								text-class="text-theme-body"
-							>
-								{{ shortenHash(transaction.transactionHash) }}
-							</Tooltip>
-						</LinkButton>
+						<TransactionLink
+							:id="transaction.id"
+							:hash="transaction.transactionHash"
+						/>
 					</TableTd>
 					<TableTd class="numerical">
 						<AccountLink :address="transaction.senderAccountAddress" />
@@ -68,13 +54,11 @@
 </template>
 
 <script lang="ts" setup>
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
-import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
+import { convertMicroCcdToCcd } from '~/utils/format'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/generated'
-import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {
 	transactions: Transaction[]
@@ -82,6 +66,5 @@ type Props = {
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
-const drawer = useDrawer()
 defineProps<Props>()
 </script>

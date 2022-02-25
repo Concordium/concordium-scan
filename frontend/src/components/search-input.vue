@@ -32,19 +32,14 @@
 					"
 					>Block {{ queryData.search.blocks[0].blockHash }}
 				</LinkButton>
-				<LinkButton
-					v-if="queryData.search.transactions.length > 0"
-					class="numerical"
-					@click="
-						drawer.push(
-							'transaction',
-							queryData.search.transactions[0].transactionHash,
-							queryData.search.transactions[0].id
-						)
-					"
-					>Transaction
-					{{ queryData.search.transactions[0].transactionHash }}
-				</LinkButton>
+				<div v-if="queryData.search.transactions.length > 0">
+					Transaction
+					<TransactionLink
+						:id="queryData.search.transactions[0].id"
+						:hash="queryData.search.transactions[0].transactionHash"
+					/>
+				</div>
+
 				<div v-if="queryData.search.accounts.length > 0">
 					Account
 					<AccountLink :address="queryData.search.accounts[0].address" />

@@ -96,24 +96,10 @@
 							{{ translateTransactionType(transaction.transactionType) }}
 						</TableTd>
 						<TableTd>
-							<TransactionIcon class="h-4 w-4" />
-							<LinkButton
-								:class="$style.numerical"
-								@click="
-									drawer.push(
-										'transaction',
-										transaction.transactionHash,
-										transaction.id
-									)
-								"
-							>
-								<Tooltip
-									:text="transaction.transactionHash"
-									text-class="text-theme-body"
-								>
-									{{ shortenHash(transaction.transactionHash) }}
-								</Tooltip>
-							</LinkButton>
+							<TransactionLink
+								:id="transaction.id"
+								:hash="transaction.transactionHash"
+							/>
 						</TableTd>
 						<TableTd :class="$style.numerical">
 							{{ transaction.block.blockHeight }}
@@ -143,7 +129,6 @@ import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
-	shortenHash,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { usePagedData } from '~/composables/usePagedData'
@@ -171,8 +156,6 @@ const subscriptionHandler = (
 ) => {
 	newItems.value += newData.blockAdded.transactionCount
 }
-
-const drawer = useDrawer()
 
 useBlockSubscription(subscriptionHandler)
 
