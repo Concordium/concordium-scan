@@ -62,6 +62,21 @@ export const useDrawer = () => {
 		address?: string,
 		resetList = true
 	) => {
+		if (
+			currentTopItem.value &&
+			currentTopItem.value.entityTypeName === entityTypeName &&
+			((currentTopItem.value.hash !== null &&
+				hash !== null &&
+				currentTopItem.value.hash === hash) ||
+				(currentTopItem.value.id !== null &&
+					id !== null &&
+					currentTopItem.value.id === id) ||
+				(currentTopItem.value.address !== null &&
+					address !== null &&
+					currentTopItem.value.address === address))
+		) {
+			return
+		}
 		const item = { entityTypeName, hash, id, address }
 
 		if (currentDrawerCount.value === 0 && resetList) {
