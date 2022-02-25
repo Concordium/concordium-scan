@@ -1,10 +1,11 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
 import type { Account } from '~/types/generated'
+import type { QueryVariables } from '~/types/queryVariables'
 const AccountQuery = gql<Account>`
-	query ($id: ID!) {
+	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
 		account(id: $id) {
-			transactions {
+			transactions(after: $after, before: $before, first: $first, last: $last) {
 				pageInfo {
 					startCursor
 					endCursor
@@ -33,9 +34,15 @@ const AccountQuery = gql<Account>`
 `
 
 const AccountQueryByAddress = gql<Account>`
-	query ($address: String!) {
+	query (
+		$address: String!
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+	) {
 		accountByAddress(accountAddress: $address) {
-			transactions {
+			transactions(after: $after, before: $before, first: $first, last: $last) {
 				pageInfo {
 					hasNextPage
 					hasPreviousPage
@@ -64,23 +71,31 @@ const AccountQueryByAddress = gql<Account>`
 	}
 `
 
-export const useAccountQuery = (id: Ref<string>) => {
+export const useAccountQuery = (
+	id: Ref<string>,
+	transactionVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: AccountQuery,
 		requestPolicy: 'cache-first',
 		variables: {
 			id,
+			...transactionVariables,
 		},
 	})
 
 	return { data }
 }
-export const useAccountQueryByAddress = (address: Ref<string>) => {
+export const useAccountQueryByAddress = (
+	address: Ref<string>,
+	transactionVariables?: QueryVariables
+) => {
 	const { data } = useQuery({
 		query: AccountQueryByAddress,
 		requestPolicy: 'cache-first',
 		variables: {
 			address,
+			...transactionVariables,
 		},
 	})
 

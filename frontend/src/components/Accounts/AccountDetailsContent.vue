@@ -2,18 +2,7 @@
 	<div>
 		<AccountDetailsHeader v-if="props.account" :account="props.account" />
 		<DrawerContent v-if="props.account">
-			<div
-				class="
-"
-			>
-				<DetailsCard>
-					<template #title>Address</template>
-					<template #default>
-						{{ props.account?.address }}
-					</template>
-				</DetailsCard>
-			</div>
-			<div>
+			<div class="grid gap-6 grid-cols-2 mb-16">
 				<DetailsCard v-if="props.account?.createdAt">
 					<template #title>Created At</template>
 					<template #default>

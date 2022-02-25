@@ -2,7 +2,7 @@
 	<div>
 		<Title>CCDScan | Dashboard</Title>
 		<main class="p-4 pb-0 xl:container xl:mx-auto">
-			<div class="block lg:grid grid-cols-2">
+			<div class="block lg:grid grid-cols-4">
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
@@ -43,8 +43,6 @@
 						<template #chip>average</template>
 					</KeyValueChartCard>
 				</div>
-			</div>
-			<div class="block lg:grid grid-cols-2">
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="

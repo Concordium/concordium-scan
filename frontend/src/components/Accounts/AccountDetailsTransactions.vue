@@ -61,18 +61,13 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination
-			v-if="pageInfo && totalCount > PAGE_SIZE"
-			:page-info="pageInfo"
-			:go-to-page="goToPage"
-		/>
+		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
 	</div>
 </template>
 
 <script lang="ts" setup>
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
-import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/generated'

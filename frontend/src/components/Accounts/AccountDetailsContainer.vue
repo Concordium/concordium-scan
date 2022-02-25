@@ -20,7 +20,7 @@ import {
 	useAccountQuery,
 	useAccountQueryByAddress,
 } from '~/queries/useAccountQuery'
-const { goToPage } = usePagination()
+const { first, last, after, before, goToPage } = usePagination()
 
 type Props = {
 	id?: string
@@ -31,7 +31,21 @@ const refId = toRef(props, 'id')
 const refAddress = toRef(props, 'address')
 
 const accountQueryResult = ref()
-if (props.id) accountQueryResult.value = useAccountQuery(refId as Ref<string>)
+if (props.id)
+	accountQueryResult.value = useAccountQuery(refId as Ref<string>, {
+		first,
+		last,
+		after,
+		before,
+	})
 else if (props.address)
-	accountQueryResult.value = useAccountQueryByAddress(refAddress as Ref<string>)
+	accountQueryResult.value = useAccountQueryByAddress(
+		refAddress as Ref<string>,
+		{
+			first,
+			last,
+			after,
+			before,
+		}
+	)
 </script>
