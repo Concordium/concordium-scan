@@ -2,7 +2,7 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<main class="p-4 pb-0">
-			<div class="block lg:grid grid-cols-3">
+			<div class="block lg:grid grid-cols-2">
 				<div class="w-full">
 					<KeyValueChartCard
 						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
