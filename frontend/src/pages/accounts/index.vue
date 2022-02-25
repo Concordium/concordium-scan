@@ -21,6 +21,7 @@
 						<template #value>{{
 							metricsData?.accountsMetrics?.lastCumulativeAccountsCreated
 						}}</template>
+						<template #chip>sum</template>
 					</KeyValueChartCard>
 				</div>
 				<div class="w-full">
@@ -34,6 +35,7 @@
 						/></template>
 						<template #title>Accounts Created</template>
 						<template #icon></template>
+						<template #chip>sum</template>
 						<template #value>{{
 							metricsData?.accountsMetrics?.accountsCreated
 						}}</template>
