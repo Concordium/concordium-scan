@@ -4,7 +4,7 @@
 			v-model="searchValue"
 			:class="$style.input"
 			class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none hidden md:block"
-			placeholder="Search for block or transaction &hellip;"
+			placeholder="Search for account, block or transaction &hellip;"
 			type="search"
 			@keyup.enter="gotoSearchResult"
 		/>
