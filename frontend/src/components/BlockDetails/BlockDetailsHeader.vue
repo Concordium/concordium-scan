@@ -9,12 +9,9 @@
 				class="inline-block text-2xl"
 				:class="$style.title"
 			>
-				<LinkButton
-					class="numerical truncate w-full"
-					@click="drawer.push('block', block.blockHash, block.id)"
-				>
+				<div class="numerical truncate w-full">
 					{{ block.blockHash }}
-				</LinkButton>
+				</div>
 			</h1>
 			<h1 v-else class="inline-block text-2xl" :class="$style.title">
 				<span class="numerical truncate inline-block w-full">
@@ -42,8 +39,6 @@ import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import type { Block } from '~/types/blocks'
-
-const drawer = useDrawer()
 
 type Props = {
 	block: Block

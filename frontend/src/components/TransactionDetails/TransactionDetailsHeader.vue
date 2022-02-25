@@ -9,18 +9,9 @@
 				class="font-mono inline-block text-2xl"
 				:class="$style.title"
 			>
-				<LinkButton
-					class="numerical truncate w-full"
-					@click="
-						drawer.push(
-							'transaction',
-							transaction.transactionHash,
-							transaction.id
-						)
-					"
-				>
+				<div class="numerical truncate w-full">
 					{{ transaction.transactionHash }}
-				</LinkButton>
+				</div>
 			</h1>
 			<h1 v-else class="inline-block text-2xl" :class="$style.title">
 				<span class="numerical truncate inline-block w-full">
@@ -52,8 +43,6 @@ import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import type { Transaction } from '~/types/transactions'
-
-const drawer = useDrawer()
 
 type Props = {
 	transaction: Transaction
