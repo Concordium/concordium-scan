@@ -13,6 +13,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<Account> Accounts { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
+    public DbSet<IdentityProvider> IdentityProviders { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
@@ -145,6 +146,15 @@ public class GraphQlDbContext : DbContext
         accountTransactionRelationBuilder.Property(x => x.AccountId).HasColumnName("account_id");
         accountTransactionRelationBuilder.Property(x => x.Index).HasColumnName("index");
         accountTransactionRelationBuilder.Property(x => x.TransactionId).HasColumnName("transaction_id");
+
+        var identityProviderBuilder = modelBuilder.Entity<IdentityProvider>()
+            .ToTable("graphql_identity_providers");
+
+        identityProviderBuilder.HasKey(x => new { x.IpIdentity });
+        identityProviderBuilder.Property(x => x.IpIdentity).HasColumnName("ip_identity").ValueGeneratedNever();
+        identityProviderBuilder.Property(x => x.Name).HasColumnName("name");
+        identityProviderBuilder.Property(x => x.Url).HasColumnName("url");
+        identityProviderBuilder.Property(x => x.Description).HasColumnName("description");
     }
 }
 

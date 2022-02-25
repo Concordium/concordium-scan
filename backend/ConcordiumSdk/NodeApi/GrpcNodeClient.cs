@@ -234,4 +234,17 @@ public class GrpcNodeClient : INodeClient, IDisposable
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
     }
+
+    public async Task<IdentityProviderInfo[]> GetIdentityProvidersAsync(BlockHash blockHash)
+    {
+        var request = new Concordium.BlockHash
+        {
+            BlockHash_ = blockHash.AsString
+        };
+        var call = _client.GetIdentityProvidersAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<IdentityProviderInfo[]>(response.Value, _jsonSerializerOptions);
+        if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
+        return result;
+    }
 }

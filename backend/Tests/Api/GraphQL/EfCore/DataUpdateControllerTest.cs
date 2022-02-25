@@ -23,7 +23,7 @@ public class DataUpdateControllerTest : IClassFixture<DatabaseFixture>
     public DataUpdateControllerTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new DataUpdateController(_dbContextFactory, new TopicEventSenderStub());
+        _target = new DataUpdateController(_dbContextFactory, new TopicEventSenderStub(), new IdentityProviderWriter(_dbContextFactory));
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");

@@ -109,13 +109,17 @@ public class ImportController : BackgroundService
             
             var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
 
+            var genesisIdentityProviders = blockInfo.BlockHeight == 0 ? await _client.GetIdentityProvidersAsync(blockHash) : null;
+
             var readDuration = sw.ElapsedMilliseconds;
             sw.Restart();
-            
+
             // TODO: Publish result - for now just write directly to db
             await Task.WhenAll(
                 _repository.Insert(blockInfo, blockSummaryString, blockSummary),
-                _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts),
+                blockInfo.BlockHeight == 0 
+                    ? _dataUpdateController.GenesisBlockDataReceived(blockInfo, blockSummary, createdAccounts, genesisIdentityProviders!) 
+                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts),
                 _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
 
             var writeDuration = sw.ElapsedMilliseconds;

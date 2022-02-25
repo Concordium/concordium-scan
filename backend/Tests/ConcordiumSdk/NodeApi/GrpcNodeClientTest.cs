@@ -23,8 +23,8 @@ public class GrpcNodeClientTest : IDisposable
         _httpClient = new HttpClient();
         var grpcNodeClientSettings = new GrpcNodeClientSettings()
         {
-            Address = "http://ftbccscandevnode.northeurope.cloudapp.azure.com:10000",
-            AuthenticationToken = "FTBgrpc2021"
+            Address = "http://dev-ccdscan-vm.northeurope.cloudapp.azure.com:10000",
+            AuthenticationToken = "test-ccnode-auth-token"
         };
         _target = new GrpcNodeClient(grpcNodeClientSettings, _httpClient);
     }
@@ -86,6 +86,14 @@ public class GrpcNodeClientTest : IDisposable
         Assert.NotNull(result);
     }
 
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetIdentityProvidersAsync()
+    {
+        var blockHashes = await _target.GetBlocksAtHeightAsync(2224396);
+        var result = await _target.GetIdentityProvidersAsync(blockHashes.Single());
+        result.Should().NotBeNull();
+    }
+    
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task HarvestAccounts()
     {

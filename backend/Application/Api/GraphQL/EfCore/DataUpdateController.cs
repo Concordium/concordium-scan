@@ -1,5 +1,5 @@
-﻿using System.Data;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using System.Transactions;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using HotChocolate.Subscriptions;
@@ -10,20 +10,48 @@ namespace Application.Api.GraphQL.EfCore;
 public class DataUpdateController
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
-    private readonly ITopicEventSender _sender;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender)
+    private readonly ITopicEventSender _sender;
+    private readonly IdentityProviderWriter _identityProviderWriter;
+
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender, IdentityProviderWriter identityProviderWriter)
     {
         _dcContextFactory = dcContextFactory;
         _sender = sender;
+        _identityProviderWriter = identityProviderWriter;
+    }
+
+    public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts, IdentityProviderInfo[] identityProviders)
+    {
+        using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
+
+        await HandleGenesisOnlyWrites(blockInfo, identityProviders);
+        await HandleCommonWrites(blockInfo, blockSummary, createdAccounts);
+        
+        scope.Complete();
     }
 
     public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
     {
+        using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
+
+        await HandleCommonWrites(blockInfo, blockSummary, createdAccounts);
+
+        scope.Complete();
+    }
+
+    private async Task HandleGenesisOnlyWrites(BlockInfo blockInfo, IdentityProviderInfo[] identityProviders)
+    {
+        await _identityProviderWriter.AddGenesisIdentityProviders(identityProviders);
+    }
+
+    private async Task HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
+    {
+        await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
+
         // TODO: Handle updates later - consider also implementing a replay feature to support migrations?
 
         await using var context = await _dcContextFactory.CreateDbContextAsync();
-        await using var tx = await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
 
         var block = MapBlock(blockInfo, blockSummary);
         context.Blocks.Add(block);
@@ -107,8 +135,6 @@ public class DataUpdateController
                 insert into graphql_account_transactions (account_id, transaction_id)
                 select id, @TransactionId from graphql_accounts where address = @AccountAddress;", accountTransactions);
         }
-
-        await tx.CommitAsync();
 
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
