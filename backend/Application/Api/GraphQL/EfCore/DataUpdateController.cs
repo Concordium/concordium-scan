@@ -116,7 +116,9 @@ public class DataUpdateController
         }
 
         await _accountReleaseScheduleWriter.AddAccountReleaseScheduleItems(transactions);
+        await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
         
+        // TODO: Subscriptions should be sent AFTER db-tx is committed!
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
 

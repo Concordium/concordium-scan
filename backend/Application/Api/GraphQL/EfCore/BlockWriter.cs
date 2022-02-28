@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using ConcordiumSdk.NodeApi.Types;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.EfCore;
@@ -81,6 +82,7 @@ public class BlockWriter
         return new BalanceStatistics(
             rewardStatus.TotalAmount.MicroCcdValue, 
             rewardStatus.TotalEncryptedAmount.MicroCcdValue, 
+            0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
             rewardStatus.BakingRewardAccount.MicroCcdValue, 
             rewardStatus.FinalizationRewardAccount.MicroCcdValue, 
             rewardStatus.GasAccount.MicroCcdValue);
@@ -187,5 +189,25 @@ public class BlockWriter
                 Signed = value.Signed
             }
         };
+    }
+
+    public async Task CalculateAndUpdateTotalAmountLockedInSchedules(long blockId, DateTimeOffset blockSlotTime)
+    {
+        await using var context = await _dcContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+        
+        var sql = "select sum(amount) from graphql_account_release_schedule where timestamp > @BlockSlotTime";
+        var result = await conn.ExecuteScalarAsync<long>(sql, new { BlockSlotTime = blockSlotTime });
+        
+        var updateSql = @"
+            update graphql_blocks 
+            set bal_stats_total_amount_locked_in_schedules = @AmountLockedInSchedules 
+            where id = @BlockId";
+        
+        await conn.ExecuteAsync(updateSql, new
+        {
+            AmountLockedInSchedules = result, 
+            BlockId = blockId
+        });
     }
 }

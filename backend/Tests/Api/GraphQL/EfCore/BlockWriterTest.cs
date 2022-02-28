@@ -1,9 +1,12 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using System.Collections.Generic;
+using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.EfCore;
 
@@ -324,7 +327,57 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         block.BalanceStatistics.FinalizationRewardAccount.Should().Be(922438);
         block.BalanceStatistics.GasAccount.Should().Be(35882);
     }
+
+    [Fact]
+    public async Task CalculateAndUpdateTotalAmountLockedInSchedules_NoReleaseSchedulesExist()
+    {
+        // Create and get a block
+        await WriteData();
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var block = dbContext.Blocks.Single();
+
+        // act!
+        await _target.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+
+        // assert!
+        block = dbContext.Blocks.Single();
+        block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(0);
+    }
     
+    [Fact]
+    public async Task CalculateAndUpdateTotalAmountLockedInSchedules_ReleaseSchedulesExist()
+    {
+        await WriteData();
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var block = dbContext.Blocks.AsNoTracking().Single();
+
+        var schedules = new List<object>
+        {
+            new { Timestamp = block.BlockSlotTime.AddHours(-1), Amount = 10 },  // not expected included 
+            new { Timestamp = block.BlockSlotTime.AddHours(0), Amount = 100 },  // not expected included
+            new { Timestamp = block.BlockSlotTime.AddHours(1), Amount = 1000 }, // expected included
+            new { Timestamp = block.BlockSlotTime.AddHours(2), Amount = 10000 } // expected included
+        };
+        await SetReleaseSchedule(schedules);
+
+        await _target.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+
+        block = dbContext.Blocks.AsNoTracking().Single();
+        block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(11000);
+    }
+
+    private async Task SetReleaseSchedule(List<object> schedules)
+    {
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var conn = dbContext.Database.GetDbConnection();
+        await conn.ExecuteAsync("TRUNCATE TABLE graphql_account_release_schedule");
+        
+        // account_id, transaction_id and schedule_index values do not matter!
+        await conn.ExecuteAsync(@"
+                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount)
+                values (1, 1, 1, @Timestamp, @Amount)", schedules);
+    }
+
     private async Task WriteData()
     {
         var blockInfo = _blockInfoBuilder.Build();

@@ -193,6 +193,8 @@ type BalanceStatistics {
   totalAmount: UnsignedLong!
   "The total CCD in encrypted balances"
   totalEncryptedAmount: UnsignedLong!
+  "The total CCD locked in release schedules (from transfers with schedule)"
+  totalAmountLockedInReleaseSchedules: UnsignedLong!
   "The amount in the baking reward account"
   bakingRewardAccount: UnsignedLong!
   "The amount in the finalization reward account"
