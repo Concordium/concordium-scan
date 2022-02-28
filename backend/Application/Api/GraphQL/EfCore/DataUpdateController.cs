@@ -12,78 +12,55 @@ public class DataUpdateController
     private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
 
     private readonly ITopicEventSender _sender;
+    private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender, IdentityProviderWriter identityProviderWriter)
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender,
+        BlockWriter blockWriter, IdentityProviderWriter identityProviderWriter)
     {
         _dcContextFactory = dcContextFactory;
         _sender = sender;
+        _blockWriter = blockWriter;
         _identityProviderWriter = identityProviderWriter;
     }
 
-    public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts, IdentityProviderInfo[] identityProviders)
+    public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary,
+        AccountInfo[] createdAccounts, RewardStatus rewardStatus, IdentityProviderInfo[] identityProviders)
     {
         using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
 
-        await HandleGenesisOnlyWrites(blockInfo, identityProviders);
-        await HandleCommonWrites(blockInfo, blockSummary, createdAccounts);
+        await HandleGenesisOnlyWrites(identityProviders);
+        await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
         
         scope.Complete();
     }
 
-    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
+    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts,
+        RewardStatus rewardStatus)
     {
         using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
 
-        await HandleCommonWrites(blockInfo, blockSummary, createdAccounts);
+        await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
 
         scope.Complete();
     }
 
-    private async Task HandleGenesisOnlyWrites(BlockInfo blockInfo, IdentityProviderInfo[] identityProviders)
+    private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
     {
         await _identityProviderWriter.AddGenesisIdentityProviders(identityProviders);
     }
 
-    private async Task HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts)
+    private async Task HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
+        AccountInfo[] createdAccounts)
     {
-        await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
-
         // TODO: Handle updates later - consider also implementing a replay feature to support migrations?
 
+        await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
+        var block = await _blockWriter.AddBlock(blockInfo, blockSummary, rewardStatus);
+        
         await using var context = await _dcContextFactory.CreateDbContextAsync();
 
-        var block = MapBlock(blockInfo, blockSummary);
-        context.Blocks.Add(block);
-        
-        await context.SaveChangesAsync(); // assigns block id
 
-        var finalizationRewards = blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault();
-        if (finalizationRewards != null)
-        {
-            var toSave = finalizationRewards.FinalizationRewards
-                .Select((x, ix) => MapFinalizationReward(block, ix, x))
-                .ToArray();
-            context.FinalizationRewards.AddRange(toSave);
-        }
-
-        var bakingRewards = blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault();
-        if (bakingRewards != null)
-        {
-            var toSave = bakingRewards.BakerRewards
-                .Select((x, ix) => MapBakingReward(block, ix, x))
-                .ToArray();
-            context.BakingRewards.AddRange(toSave);
-        }
-
-        var finalizationData = blockSummary.FinalizationData;
-        if (finalizationData != null)
-        {
-            var toSave = finalizationData.Finalizers
-                .Select((x, ix) => MapFinalizer(block, ix, x))
-                .ToArray();
-            context.FinalizationSummaryFinalizers.AddRange(toSave);
-        }
 
         var transactions = blockSummary.TransactionSummaries
             .Select(x => new { Source = x, Mapped = MapTransaction(block, x)})
@@ -196,70 +173,7 @@ public class DataUpdateController
         return new ContractAddress(value.Index, value.SubIndex);
     }
 
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary)
-    {
-        var block = new Block
-        {
-            BlockHash = blockInfo.BlockHash.AsString,
-            BlockHeight = blockInfo.BlockHeight,
-            BlockSlotTime = blockInfo.BlockSlotTime,
-            BakerId = blockInfo.BlockBaker,
-            Finalized = blockInfo.Finalized,
-            TransactionCount = blockInfo.TransactionCount,
-            SpecialEvents = new SpecialEvents
-            {
-                Mint = MapMint(blockSummary.SpecialEvents.OfType<MintSpecialEvent>().SingleOrDefault()),
-                FinalizationRewards = MapFinalizationRewards(blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault()),
-                BlockRewards = MapBlockRewards(blockSummary.SpecialEvents.OfType<BlockRewardSpecialEvent>().SingleOrDefault()),
-                BakingRewards = MapBakingRewards(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
-            },
-            FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData)
-        };
-        return block;
-    }
 
-    private static BlockRelated<FinalizationReward> MapFinalizationReward(Block block, int index, AccountAddressAmount value)
-    {
-        return new BlockRelated<FinalizationReward>
-        {
-            BlockId = block.Id,
-            Index = index,
-            Entity = new FinalizationReward
-            {
-                Address = value.Address.AsString,
-                Amount = value.Amount.MicroCcdValue
-            }
-        };
-    }
-
-    private static BlockRelated<BakingReward> MapBakingReward(Block block, int index, AccountAddressAmount value)
-    {
-        return new BlockRelated<BakingReward>
-        {
-            BlockId = block.Id,
-            Index = index,
-            Entity = new BakingReward()
-            {
-                Address = value.Address.AsString,
-                Amount = value.Amount.MicroCcdValue
-            }
-        };
-    }
-
-    private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, ConcordiumSdk.NodeApi.Types.FinalizationSummaryParty value)
-    {
-        return new BlockRelated<FinalizationSummaryParty>
-        {
-            BlockId = block.Id,
-            Index = index,
-            Entity = new FinalizationSummaryParty
-            {
-                BakerId = value.BakerId,
-                Weight = value.Weight,
-                Signed = value.Signed
-            }
-        };
-    }
 
     private Transaction MapTransaction(Block block, TransactionSummary value)
     {
@@ -327,63 +241,4 @@ public class DataUpdateController
         };
     }
 
-    private FinalizationSummary? MapFinalizationSummary(FinalizationData? data)
-    {
-        if (data == null) return null;
-        return new FinalizationSummary
-        {
-            FinalizedBlockHash = data.FinalizationBlockPointer.AsString,
-            FinalizationIndex = data.FinalizationIndex,
-            FinalizationDelay = data.FinalizationDelay,
-        };
-    }
-
-    private BakingRewards? MapBakingRewards(BakingRewardsSpecialEvent? rewards)
-    {
-        if (rewards == null) return null;
-
-        return new BakingRewards
-        {
-            Remainder = rewards.Remainder.MicroCcdValue,
-        };
-    }
-
-    private BlockRewards? MapBlockRewards(BlockRewardSpecialEvent? rewards)
-    {
-        if (rewards == null) return null;
-
-        return new BlockRewards
-        {
-            TransactionFees = rewards.TransactionFees.MicroCcdValue,
-            OldGasAccount = rewards.OldGasAccount.MicroCcdValue,
-            NewGasAccount = rewards.NewGasAccount.MicroCcdValue,
-            BakerReward = rewards.BakerReward.MicroCcdValue,
-            FoundationCharge = rewards.FoundationCharge.MicroCcdValue,
-            BakerAccountAddress = rewards.Baker.AsString,
-            FoundationAccountAddress = rewards.FoundationAccount.AsString
-        };
-    }
-
-    private FinalizationRewards? MapFinalizationRewards(FinalizationRewardsSpecialEvent? rewards)
-    {
-        if (rewards == null) return null;
-
-        return new FinalizationRewards
-        {
-            Remainder = rewards.Remainder.MicroCcdValue,
-        };
-    }
-
-    private Mint? MapMint(MintSpecialEvent? mint)
-    {
-        if (mint == null) return null;
-
-        return new Mint
-        {
-            BakingReward = mint.MintBakingReward.MicroCcdValue,
-            FinalizationReward = mint.MintFinalizationReward.MicroCcdValue,
-            PlatformDevelopmentCharge = mint.MintPlatformDevelopmentCharge.MicroCcdValue,
-            FoundationAccount = mint.FoundationAccount.AsString
-        };
-    }
 }

@@ -19,6 +19,8 @@ public class Block
     public int TransactionCount { get; init; }
     public SpecialEvents SpecialEvents { get; init; }
     public FinalizationSummary? FinalizationSummary { get; init; }
+    
+    public BalanceStatistics BalanceStatistics { get; init; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]

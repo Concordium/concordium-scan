@@ -70,6 +70,14 @@ public class GraphQlDbContext : DbContext
             builder.Property(x => x.FinalizationIndex).HasColumnName("finalization_data_index");
             builder.Property(x => x.FinalizationDelay).HasColumnName("finalization_data_delay");
         });
+        blockBuilder.OwnsOne(block => block.BalanceStatistics, builder =>
+        {
+            builder.Property(x => x.TotalAmount).HasColumnName("bal_stats_total_amount");
+            builder.Property(x => x.TotalEncryptedAmount).HasColumnName("bal_stats_total_encrypted_amount");
+            builder.Property(x => x.BakingRewardAccount).HasColumnName("bal_stats_baking_reward_account");
+            builder.Property(x => x.FinalizationRewardAccount).HasColumnName("bal_stats_finalization_reward_account");
+            builder.Property(x => x.GasAccount).HasColumnName("bal_stats_gas_account");
+        });
 
         var finalizationRewardsBuilder = modelBuilder.Entity<BlockRelated<FinalizationReward>>()
             .ToTable("graphql_finalization_rewards");

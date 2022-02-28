@@ -118,8 +118,8 @@ public class ImportController : BackgroundService
             await Task.WhenAll(
                 _repository.Insert(blockInfo, blockSummaryString, blockSummary),
                 blockInfo.BlockHeight == 0 
-                    ? _dataUpdateController.GenesisBlockDataReceived(blockInfo, blockSummary, createdAccounts, genesisIdentityProviders!) 
-                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts),
+                    ? _dataUpdateController.GenesisBlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus, genesisIdentityProviders!) 
+                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus),
                 _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
 
             var writeDuration = sw.ElapsedMilliseconds;

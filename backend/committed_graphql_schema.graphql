@@ -188,6 +188,19 @@ type BakingRewards {
   remainder: UnsignedLong!
 }
 
+type BalanceStatistics {
+  "The total CCD in existence"
+  totalAmount: UnsignedLong!
+  "The total CCD in encrypted balances"
+  totalEncryptedAmount: UnsignedLong!
+  "The amount in the baking reward account"
+  bakingRewardAccount: UnsignedLong!
+  "The amount in the finalization reward account"
+  finalizationRewardAccount: UnsignedLong!
+  "The amount in the GAS account"
+  gasAccount: UnsignedLong!
+}
+
 type Block {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   id: ID!
@@ -199,6 +212,7 @@ type Block {
   transactionCount: Int!
   specialEvents: SpecialEvents!
   finalizationSummary: FinalizationSummary
+  balanceStatistics: BalanceStatistics!
 }
 
 type BlockMetrics {
