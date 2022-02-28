@@ -14,14 +14,16 @@ public class DataUpdateController
     private readonly ITopicEventSender _sender;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
+    private readonly AccountReleaseScheduleWriter _accountReleaseScheduleWriter;
 
     public DataUpdateController(IDbContextFactory<GraphQlDbContext> dcContextFactory, ITopicEventSender sender,
-        BlockWriter blockWriter, IdentityProviderWriter identityProviderWriter)
+        BlockWriter blockWriter, IdentityProviderWriter identityProviderWriter, AccountReleaseScheduleWriter accountReleaseScheduleWriter)
     {
         _dcContextFactory = dcContextFactory;
         _sender = sender;
         _blockWriter = blockWriter;
         _identityProviderWriter = identityProviderWriter;
+        _accountReleaseScheduleWriter = accountReleaseScheduleWriter;
     }
 
     public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary,
@@ -63,9 +65,9 @@ public class DataUpdateController
 
 
         var transactions = blockSummary.TransactionSummaries
-            .Select(x => new { Source = x, Mapped = MapTransaction(block, x)})
+            .Select(x => new TransactionPair(x, MapTransaction(block, x)))
             .ToArray();
-        context.Transactions.AddRange(transactions.Select(x => x.Mapped));
+        context.Transactions.AddRange(transactions.Select(x => x.Target));
         
         await context.SaveChangesAsync();  // assigns transaction ids
 
@@ -74,7 +76,7 @@ public class DataUpdateController
             if (transaction.Source.Result is TransactionSuccessResult successResult)
             {
                 var events = successResult.Events
-                    .Select((x, ix) => MapTransactionEvent(transaction.Mapped, ix, x))
+                    .Select((x, ix) => MapTransactionEvent(transaction.Target, ix, x))
                     .ToArray();
 
                 context.TransactionResultEvents.AddRange(events);
@@ -92,8 +94,8 @@ public class DataUpdateController
         var accountTransactions = transactions
             .Select(x => new
             {
-                TransactionId = x.Mapped.Id,
-                DistinctAccountAddresses = FindAccountAddresses(x.Source, x.Mapped).Distinct()
+                TransactionId = x.Target.Id,
+                DistinctAccountAddresses = FindAccountAddresses(x.Source, x.Target).Distinct()
             })
             .SelectMany(x => x.DistinctAccountAddresses
                 .Select(accountAddress => new
@@ -113,6 +115,8 @@ public class DataUpdateController
                 select id, @TransactionId from graphql_accounts where address = @AccountAddress;", accountTransactions);
         }
 
+        await _accountReleaseScheduleWriter.AddAccountReleaseScheduleItems(transactions);
+        
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
 
@@ -240,5 +244,4 @@ public class DataUpdateController
             _ => throw new NotImplementedException("Reject reason not mapped!")
         };
     }
-
 }

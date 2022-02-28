@@ -4,7 +4,7 @@ namespace Tests.TestUtilities.Builders.GraphQL;
 
 public class AccountBuilder
 {
-    private long _id = 1;
+    private long _id = 0;
     private string _address = "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P";
 
     public AccountBuilder WithId(long value)

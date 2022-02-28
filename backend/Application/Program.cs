@@ -47,6 +47,7 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 builder.Services.AddSingleton<DataUpdateController>();
 builder.Services.AddSingleton<BlockWriter>();
 builder.Services.AddSingleton<IdentityProviderWriter>();
+builder.Services.AddSingleton<AccountReleaseScheduleWriter>();
 builder.Services.AddSingleton<MetricsUpdateController>();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
