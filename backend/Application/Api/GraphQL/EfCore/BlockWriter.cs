@@ -7,16 +7,16 @@ namespace Application.Api.GraphQL.EfCore;
 
 public class BlockWriter
 {
-    private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
+    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
 
-    public BlockWriter(IDbContextFactory<GraphQlDbContext> dcContextFactory)
+    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
-        _dcContextFactory = dcContextFactory;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus)
     {
-        await using var context = await _dcContextFactory.CreateDbContextAsync();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var block = MapBlock(blockInfo, blockSummary, rewardStatus);
         context.Blocks.Add(block);
@@ -193,7 +193,7 @@ public class BlockWriter
 
     public async Task CalculateAndUpdateTotalAmountLockedInSchedules(long blockId, DateTimeOffset blockSlotTime)
     {
-        await using var context = await _dcContextFactory.CreateDbContextAsync();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
         
         var sql = "select sum(amount) from graphql_account_release_schedule where timestamp > @BlockSlotTime";

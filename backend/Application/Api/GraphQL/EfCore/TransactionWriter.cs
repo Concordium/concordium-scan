@@ -6,16 +6,16 @@ namespace Application.Api.GraphQL.EfCore;
 
 public class TransactionWriter
 {
-    private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
+    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
 
-    public TransactionWriter(IDbContextFactory<GraphQlDbContext> dcContextFactory)
+    public TransactionWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
-        _dcContextFactory = dcContextFactory;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId)
     {
-        await using var context = await _dcContextFactory.CreateDbContextAsync();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var transactions = blockSummary.TransactionSummaries
             .Select(x => new TransactionPair(x, MapTransaction(x, blockId)))

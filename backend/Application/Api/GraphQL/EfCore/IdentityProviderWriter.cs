@@ -7,11 +7,11 @@ namespace Application.Api.GraphQL.EfCore;
 
 public class IdentityProviderWriter
 {
-    private readonly IDbContextFactory<GraphQlDbContext> _dcContextFactory;
+    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
 
-    public IdentityProviderWriter(IDbContextFactory<GraphQlDbContext> dcContextFactory)
+    public IdentityProviderWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
-        _dcContextFactory = dcContextFactory;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task AddGenesisIdentityProviders(IdentityProviderInfo[] identityProviders)
@@ -34,7 +34,7 @@ public class IdentityProviderWriter
 
     public async Task AddOrUpdate(IdentityProviderInfo[] identityProviders)
     {
-        await using var context = await _dcContextFactory.CreateDbContextAsync();
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
         foreach (var identityProvider in identityProviders)
         {
             var existing = await context.IdentityProviders
