@@ -6,11 +6,10 @@
 				class="h-5 inline align-baseline mr-3"
 			/>
 			<UserIcon v-else class="h-4 text-theme-white inline align-baseline" />
-			<Tooltip
-				v-if="props.address"
-				:text="props.address"
-				text-class="text-theme-body"
-			>
+			<div v-if="props.hideTooltip" text-class="text-theme-body">
+				{{ shortenHash(props.address) }}
+			</div>
+			<Tooltip v-else :text="props.address" text-class="text-theme-body">
 				{{ shortenHash(props.address) }}
 			</Tooltip>
 		</LinkButton>
@@ -24,6 +23,7 @@ import LinkButton from '~/components/atoms/LinkButton.vue'
 type Props = {
 	address?: string
 	iconSize?: string
+	hideTooltip: boolean
 }
 const props = defineProps<Props>()
 const drawer = useDrawer()

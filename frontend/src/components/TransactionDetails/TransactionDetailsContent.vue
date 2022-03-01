@@ -12,23 +12,10 @@
 						{{ props.transaction?.block.blockHeight }}
 					</template>
 					<template #secondary>
-						<LinkButton
-							class="numerical"
-							@click="
-								drawer.push(
-									'block',
-									props.transaction?.block.blockHash,
-									props.transaction?.block.id
-								)
-							"
-						>
-							<Tooltip
-								:text="props.transaction?.block.blockHash"
-								text-class="text-theme-body"
-							>
-								{{ shortenHash(props.transaction?.block.blockHash) }}
-							</Tooltip>
-						</LinkButton>
+						<BlockLink
+							:id="props.transaction?.block.id"
+							:hash="props.transaction?.block.blockHash"
+						/>
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.block.blockSlotTime">
@@ -100,16 +87,13 @@ import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'
 import {
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
-	shortenHash,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { Transaction } from '~/types/transactions'
-import { useDrawer } from '~/composables/useDrawer'
 import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const selectedTxId = useTransactionDetails()
-const drawer = useDrawer()
 
 type Props = {
 	transaction: Transaction

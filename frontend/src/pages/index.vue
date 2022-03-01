@@ -119,24 +119,7 @@
 									{{ block.blockHeight }}
 								</TableTd>
 								<TableTd>
-									<LinkButton
-										class="numerical"
-										@click="
-											() => {
-												drawer.push('block', block.blockHash, block.id)
-											}
-										"
-									>
-										<BlockIcon
-											class="h-4 text-theme-white inline align-baseline"
-										/>
-										<Tooltip
-											:text="block.blockHash"
-											text-class="text-theme-body"
-										>
-											{{ shortenHash(block.blockHash) }}
-										</Tooltip>
-									</LinkButton>
+									<BlockLink :id="block.id" :hash="block.blockHash" />
 								</TableTd>
 								<TableTd class="numerical">
 									<UserIcon
@@ -214,12 +197,10 @@
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
-import Tooltip from '~/components/atoms/Tooltip.vue'
-import { useDrawer } from '~/composables/useDrawer'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
+import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'
@@ -265,7 +246,6 @@ watch(
 		transactions.value = value?.transactions.nodes || []
 	}
 )
-const drawer = useDrawer()
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const { data: accountMetricsData } = useAccountsMetricsQuery(

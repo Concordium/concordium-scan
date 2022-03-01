@@ -20,29 +20,30 @@
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
 				<h3>Search hits:</h3>
-				<LinkButton
-					v-if="queryData.search.blocks.length > 0"
-					class="numerical"
-					@click="
-						drawer.push(
-							'block',
-							queryData.search.blocks[0].blockHash,
-							queryData.search.blocks[0].id
-						)
-					"
-					>Block {{ queryData.search.blocks[0].blockHash }}
-				</LinkButton>
+				<div v-if="queryData.search.blocks.length > 0">
+					Block
+					<BlockLink
+						:id="queryData.search.blocks[0].id"
+						:hash="queryData.search.blocks[0].blockHash"
+						:hide-tooltip="true"
+					/>
+				</div>
+
 				<div v-if="queryData.search.transactions.length > 0">
 					Transaction
 					<TransactionLink
 						:id="queryData.search.transactions[0].id"
 						:hash="queryData.search.transactions[0].transactionHash"
+						:hide-tooltip="true"
 					/>
 				</div>
 
 				<div v-if="queryData.search.accounts.length > 0">
 					Account
-					<AccountLink :address="queryData.search.accounts[0].address" />
+					<AccountLink
+						:address="queryData.search.accounts[0].address"
+						:hide-tooltip="true"
+					/>
 				</div>
 			</div>
 		</div>

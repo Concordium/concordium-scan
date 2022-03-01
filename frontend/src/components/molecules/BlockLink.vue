@@ -1,9 +1,9 @@
 ﻿<template>
 	<div v-if="props.hash || props.id" class="inline-block">
-		<TransactionIcon class="h-4 w-4" />
+		<BlockIcon class="h-4 w-4" />
 		<LinkButton
 			class="numerical"
-			@click="drawer.push('transaction', props.hash, props.id)"
+			@click="drawer.push('block', props.hash, props.id)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.hash) }}
@@ -18,7 +18,7 @@
 import { shortenHash } from '~/utils/format'
 import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
+import BlockIcon from '~/components/icons/BlockIcon.vue'
 type Props = {
 	hash?: string
 	id?: string

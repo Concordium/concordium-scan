@@ -78,19 +78,7 @@
 							</Tooltip>
 						</TableTd>
 						<TableTd>
-							<LinkButton
-								class="numerical"
-								@click="
-									() => {
-										drawer.push('block', block.blockHash, block.id)
-									}
-								"
-							>
-								<BlockIcon :class="$style.cellIcon" />
-								<Tooltip :text="block.blockHash" text-class="text-theme-body">
-									{{ shortenHash(block.blockHash) }}
-								</Tooltip>
-							</LinkButton>
+							<BlockLink :id="block.id" :hash="block.blockHash" />
 						</TableTd>
 						<TableTd :class="$style.numerical">
 							<UserIcon
@@ -119,12 +107,11 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import { convertTimestampToRelative, shortenHash } from '~/utils/format'
+import { convertTimestampToRelative } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { Block, BlockSubscriptionResponse } from '~/types/blocks'
-import { useDrawer } from '~/composables/useDrawer'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod } from '~/types/generated'
 import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
@@ -169,7 +156,6 @@ watch(
 	}
 )
 
-const drawer = useDrawer()
 const { data: metricsData } = useBlockMetricsQuery(selectedMetricsPeriod)
 </script>
 
