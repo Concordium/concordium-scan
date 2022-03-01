@@ -16,9 +16,9 @@ resource "azurerm_application_gateway" "this" {
   location            = azurerm_resource_group.this.location
 
   sku {
-    name     = "Standard_Small"
-    tier     = "Standard"
-    capacity = 1
+    name     = local.envs[local.environment].app_gateway_sku.name
+    tier     = local.envs[local.environment].app_gateway_sku.tier
+    capacity = local.envs[local.environment].app_gateway_sku.capacity
   }
 
   gateway_ip_configuration {

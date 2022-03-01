@@ -6,12 +6,33 @@ locals {
         azure_vm_size = "Standard_D8s_v4"
         container_repository_backend = "backend.dev"
         domain_name = "dev-api.ccdscan.io"
+        app_gateway_sku: {
+          name     = "Standard_Small"
+          tier     = "Standard"
+          capacity = 1
+        }
     }
     "test": {
         resource_group_name = "ccscan-env-test"
         azure_vm_size = "Standard_D8s_v4"
         container_repository_backend = "backend.test"
         domain_name = "test-api.ccdscan.io"
+        app_gateway_sku: {
+          name     = "Standard_Small"
+          tier     = "Standard"
+          capacity = 1
+        }
+    }
+    "prod": {
+        resource_group_name = "ccscan-env-prod"
+        azure_vm_size = "Standard_D8s_v4"
+        container_repository_backend = "backend.prod"
+        domain_name = "api.ccdscan.io"
+        app_gateway_sku: {
+          name     = "Standard_Medium"
+          tier     = "Standard"
+          capacity = 1
+        }
     }
   }
 
