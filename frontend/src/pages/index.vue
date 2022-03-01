@@ -234,11 +234,14 @@ const subscriptionHandler = (
 	_prevData: void,
 	newData: BlockSubscriptionResponse
 ) => {
-	blocks.value = [newData.blockAdded, ...blocks.value].slice(0, pageSize)
-	transactions.value = [
-		...newData.blockAdded.transactions.nodes,
-		...transactions.value,
-	].slice(0, pageSize)
+	if (!blocks.value.some(oldBlock => oldBlock.id === newData.blockAdded.id)) {
+		blocks.value = [newData.blockAdded, ...blocks.value].slice(0, pageSize)
+
+		transactions.value = [
+			...newData.blockAdded.transactions.nodes,
+			...transactions.value,
+		].slice(0, pageSize)
+	}
 }
 
 useBlockSubscription(subscriptionHandler)
