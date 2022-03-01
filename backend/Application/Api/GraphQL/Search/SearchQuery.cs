@@ -11,30 +11,24 @@ public class SearchQuery
 {
     public async Task<SearchResult> Search([Service] IDbContextFactory<GraphQlDbContext> dbContextFactory, string query)
     {
-        if (long.TryParse(query, out var blockHeight))
-        {
-            await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-            return new SearchResult
-            {
-                Blocks = dbContext.Blocks.AsNoTracking()
-                    .Where(block => block.BlockHeight == blockHeight)
-                    .ToArray()
-            };
-        }
-
+        var isQueryNumeric = long.TryParse(query, out var queryNumeric);
+            
         await using var blocksDbContext = await dbContextFactory.CreateDbContextAsync();
         var blocksTask = blocksDbContext.Blocks.AsNoTracking()
-            .Where(block => block.BlockHash == query)
+            .Where(block => block.BlockHash.StartsWith(query) || isQueryNumeric && block.BlockHeight == queryNumeric)
+            .OrderByDescending(block => block.Id)
             .ToArrayAsync();
 
         await using var transactionsDbContext = await dbContextFactory.CreateDbContextAsync();
         var transactionsTask = transactionsDbContext.Transactions.AsNoTracking()
-            .Where(transaction => transaction.TransactionHash == query)
+            .Where(transaction => transaction.TransactionHash.StartsWith(query))
+            .OrderByDescending(transaction => transaction.Id)
             .ToArrayAsync();
 
         await using var accountsDbContext = await dbContextFactory.CreateDbContextAsync();
         var accountsTask = accountsDbContext.Accounts.AsNoTracking()
-            .Where(account => account.Address == query)
+            .Where(account => account.Address.StartsWith(query))
+            .OrderByDescending(account => account.Id)
             .ToArrayAsync();
 
         await Task.WhenAll(blocksTask, transactionsTask, accountsTask);
