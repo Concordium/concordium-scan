@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using System.Transactions;
-using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -12,19 +11,16 @@ public class DataUpdateController
     private readonly ITopicEventSender _sender;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
-    private readonly AccountReleaseScheduleWriter _accountReleaseScheduleWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountWriter _accountWriter;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings databaseSettings,
-        ITopicEventSender sender)
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, ITopicEventSender sender)
     {
         _sender = sender;
         _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
-        _accountReleaseScheduleWriter = new AccountReleaseScheduleWriter(databaseSettings);
     }
 
     public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary,
@@ -64,7 +60,7 @@ public class DataUpdateController
 
         await _accountWriter.AddAccounts(createdAccounts, blockInfo.BlockSlotTime);
         await _accountWriter.AddAccountTransactionRelations(transactions);
-        await _accountReleaseScheduleWriter.AddAccountReleaseScheduleItems(transactions);
+        await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 
         await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
 

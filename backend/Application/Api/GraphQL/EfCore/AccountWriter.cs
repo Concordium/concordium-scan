@@ -55,6 +55,35 @@ public class AccountWriter
         }
     }
     
+    public async Task AddAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
+    {
+        var result = transactions
+            .Where(transaction => transaction.Source.Result is TransactionSuccessResult)
+            .SelectMany(transaction =>
+            {
+                return ((TransactionSuccessResult)transaction.Source.Result).Events
+                    .OfType<ConcordiumSdk.NodeApi.Types.TransferredWithSchedule>()
+                    .SelectMany(scheduleEvent => scheduleEvent.Amount.Select((amount, ix) => new
+                    {
+                        AccountAddress = scheduleEvent.To.AsString,
+                        TransactionId = transaction.Target.Id,
+                        ScheduleIndex = ix,
+                        Timestamp = amount.Timestamp,
+                        Amount = Convert.ToInt64(amount.Amount.MicroCcdValue)
+                    }));
+            }).ToArray();
+
+        if (result.Length > 0)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+            var connection = context.Database.GetDbConnection();
+
+            await connection.ExecuteAsync(@"
+                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount)
+                select id, @TransactionId, @ScheduleIndex, @Timestamp, @Amount from graphql_accounts where address = @AccountAddress;",
+                result);
+        }
+    }
     private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source, Transaction mapped)
     {
         if (source.Sender != null) yield return source.Sender;
