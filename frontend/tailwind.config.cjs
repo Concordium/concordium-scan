@@ -38,6 +38,7 @@ module.exports = {
 				'common-white': withHslOpacity('--color-white'),
 				'background-primary': withHslOpacity('--color-background-primary'),
 				'background-primary-elevated': 'var(--color-background-elevated)',
+				'background-primary-elevated-nontrans': 'var(--color-background-elevated-nontrans)',
 				'button-primary': withHslOpacity('--color-button-bg-primary'),
 				'button-primary-hover': withHslOpacity(
 					'--color-button-bg-primary-hover'

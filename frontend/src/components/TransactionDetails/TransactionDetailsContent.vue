@@ -14,6 +14,7 @@
 					<template #secondary>
 						<BlockLink
 							:id="props.transaction?.block.id"
+							icon-size="big"
 							:hash="props.transaction?.block.blockHash"
 						/>
 					</template>

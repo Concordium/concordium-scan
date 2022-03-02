@@ -1,6 +1,6 @@
 ﻿<template>
 	<div v-if="props.hash || props.id" class="inline-block">
-		<TransactionIcon class="h-4 w-4" />
+		<TransactionIcon class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical"
 			@click="drawer.push('transaction', props.hash, props.id)"
@@ -22,7 +22,7 @@ import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 type Props = {
 	hash?: string
 	id?: string
-	hideTooltip: boolean
+	hideTooltip?: boolean
 }
 const props = defineProps<Props>()
 const drawer = useDrawer()

@@ -5,9 +5,9 @@ import type { Transaction } from '~/types/transactions'
 import type { Account } from '~/types/generated'
 type SearchResponse = {
 	search: {
-		blocks: Block[]
-		transactions: Transaction[]
-		accounts: Account[]
+		blocks: { nodes: Block[] }
+		transactions: { nodes: Transaction[] }
+		accounts: { nodes: Account[] }
 	}
 }
 
@@ -15,28 +15,49 @@ const SearchQuery = gql<SearchResponse>`
 	query Search($query: String!) {
 		search(query: $query) {
 			blocks {
-				id
-				blockHash
+				nodes {
+					id
+					blockHash
+					transactions {
+						nodes {
+							transactionHash
+							id
+						}
+					}
+				}
 			}
 			transactions {
-				id
-				transactionHash
+				nodes {
+					id
+					transactionHash
+				}
 			}
 			accounts {
-				id
-				address
+				nodes {
+					id
+					address
+					transactions {
+						nodes {
+							transaction {
+								transactionHash
+								id
+							}
+						}
+					}
+				}
 			}
 		}
 	}
 `
 
-export const useSearchQuery = (query: Ref<string>) => {
-	const { data } = useQuery({
+export const useSearchQuery = (query: Ref<string>, paused = true) => {
+	const { data, executeQuery } = useQuery({
 		query: SearchQuery,
 		requestPolicy: 'cache-first',
 		variables: {
 			query,
 		},
+		pause: paused,
 	})
-	return { data }
+	return { data, executeQuery }
 }

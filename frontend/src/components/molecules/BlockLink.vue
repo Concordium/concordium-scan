@@ -1,6 +1,10 @@
 ﻿<template>
 	<div v-if="props.hash || props.id" class="inline-block">
-		<BlockIcon class="h-4 w-4" />
+		<BlockIcon
+			v-if="props.iconSize == 'big'"
+			class="h-5 inline align-middle mr-3"
+		/>
+		<BlockIcon v-else class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical"
 			@click="drawer.push('block', props.hash, props.id)"
@@ -22,7 +26,8 @@ import BlockIcon from '~/components/icons/BlockIcon.vue'
 type Props = {
 	hash?: string
 	id?: string
-	hideTooltip: boolean
+	iconSize?: string
+	hideTooltip?: boolean
 }
 const props = defineProps<Props>()
 const drawer = useDrawer()
