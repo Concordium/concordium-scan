@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System.Transactions;
+using Application.Common;
+using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -13,14 +15,26 @@ public class DataUpdateController
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountWriter _accountWriter;
+    private readonly MetricsWriter _metricsWriter;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, ITopicEventSender sender)
+    private readonly MemoryCacheManager _cacheManager;
+    private readonly IMemoryCachedValue<DateTimeOffset> _previousBlockSlotTime;
+    private readonly IMemoryCachedValue<long> _cumulativeTransactionCountState;
+    private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedState;
+
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender)
     {
         _sender = sender;
         _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
+        _metricsWriter = new MetricsWriter(dbSettings);
+        
+        _cacheManager = new();
+        _previousBlockSlotTime = _cacheManager.CreateCachedValue<DateTimeOffset>();
+        _cumulativeTransactionCountState = _cacheManager.CreateCachedValue<long>();
+        _cumulativeAccountsCreatedState = _cacheManager.CreateCachedValue<long>();
     }
 
     public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary,
@@ -32,6 +46,7 @@ public class DataUpdateController
         await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
         
         scope.Complete();
+        _cacheManager.CommitEnqueuedUpdates();
     }
 
     public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts,
@@ -42,6 +57,7 @@ public class DataUpdateController
         await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
 
         scope.Complete();
+        _cacheManager.CommitEnqueuedUpdates();
     }
 
     private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
@@ -55,14 +71,18 @@ public class DataUpdateController
         await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
         
         var block = await _blockWriter.AddBlock(blockInfo, blockSummary, rewardStatus);
-
         var transactions = await _transactionWriter.AddTransactions(blockSummary, block.Id);
 
         await _accountWriter.AddAccounts(createdAccounts, blockInfo.BlockSlotTime);
+
         await _accountWriter.AddAccountTransactionRelations(transactions);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 
         await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+
+        await _metricsWriter.AddBlockMetrics(blockInfo, rewardStatus, _previousBlockSlotTime);
+        await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary, _cumulativeTransactionCountState);
+        await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts, _cumulativeAccountsCreatedState);
 
         // TODO: Subscriptions should be sent AFTER db-tx is committed!
         await _sender.SendAsync(nameof(Subscription.BlockAdded), block);

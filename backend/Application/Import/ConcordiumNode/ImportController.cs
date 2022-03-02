@@ -19,10 +19,10 @@ public class ImportController : BackgroundService
     private readonly BlockRepository _repository;
     private readonly IFeatureFlags _featureFlags;
     private readonly DataUpdateController _dataUpdateController;
-    private readonly MetricsUpdateController _metricsUpdateController;
+    private readonly MetricsWriter _metricsUpdateController;
     private readonly ILogger _logger;
 
-    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController, MetricsUpdateController metricsUpdateController)
+    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController, MetricsWriter metricsUpdateController)
     {
         _client = client;
         _repository = repository;
@@ -119,8 +119,7 @@ public class ImportController : BackgroundService
                 _repository.Insert(blockInfo, blockSummaryString, blockSummary),
                 blockInfo.BlockHeight == 0 
                     ? _dataUpdateController.GenesisBlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus, genesisIdentityProviders!) 
-                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus),
-                _metricsUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
+                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
 
             var writeDuration = sw.ElapsedMilliseconds;
             
