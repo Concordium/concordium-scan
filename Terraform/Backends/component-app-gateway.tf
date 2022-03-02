@@ -271,8 +271,7 @@ resource "azurerm_role_assignment" "automation-account-key-vault-godaddy-dns-api
 }
 
 resource "azurerm_role_assignment" "automation-account-app-gateway" {
-  # HACK: For some reason the id (or versionless_id) of the secret is not valid as scope for role assignments (https://github.com/hashicorp/terraform-provider-azurerm/issues/11529)
   scope                = azurerm_application_gateway.this.id
-  role_definition_name = "Managed Application Operator Role"
+  role_definition_name = "Contributor"
   principal_id         = azurerm_automation_account.this.identity[0].principal_id
 }

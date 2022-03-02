@@ -80,7 +80,8 @@ if ($acmeResponse -ne $NULL) {
 
 	Write-Output "Updating application gateway..."
 	$appGW = Get-AzApplicationGateway -Name $applicationGatewayName -ResourceGroupName $resourceGroupName
-	$cert = Set-AzApplicationGatewaySslCertificate -ApplicationGateway $AppGW -Name $applicationGatewaySslName -CertificateFile $acmeResponse.PfxFile -Password $pfxPassSecure.SecretValue
+	Set-AzApplicationGatewaySslCertificate -ApplicationGateway $AppGW -Name $applicationGatewaySslName -CertificateFile $acmeResponse.PfxFile -Password $pfxPassSecure.SecretValue | Out-Null
+	Set-AzApplicationGateway -ApplicationGateway $appgw | Out-Null
 
 	Write-Output "Compressing ACME context and sending to blob storage..."
 	$zipPath = ".\${blobFileName}"
