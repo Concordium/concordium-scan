@@ -43,10 +43,12 @@ public class DataUpdateController
         using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
 
         await HandleGenesisOnlyWrites(identityProviders);
-        await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
+        var block = await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
         
         scope.Complete();
         _cacheManager.CommitEnqueuedUpdates();
+        
+        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
 
     public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts,
@@ -54,10 +56,12 @@ public class DataUpdateController
     {
         using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
 
-        await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
+        var block = await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
 
         scope.Complete();
         _cacheManager.CommitEnqueuedUpdates();
+
+        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
     }
 
     private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
@@ -65,7 +69,7 @@ public class DataUpdateController
         await _identityProviderWriter.AddGenesisIdentityProviders(identityProviders);
     }
 
-    private async Task HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
+    private async Task<Block> HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
         AccountInfo[] createdAccounts)
     {
         await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
@@ -84,7 +88,6 @@ public class DataUpdateController
         await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary, _cumulativeTransactionCountState);
         await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts, _cumulativeAccountsCreatedState);
 
-        // TODO: Subscriptions should be sent AFTER db-tx is committed!
-        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
+        return block;
     }
 }
