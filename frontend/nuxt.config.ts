@@ -12,8 +12,8 @@ export default defineNuxtConfig({
 		'~/components/BlockDetails',
 	],
 	publicRuntimeConfig: {
-		apiUrl: 'https://mainnet.test-api.ccdscan.io/graphql',
-		wsUrl: 'wss://mainnet.test-api.ccdscan.io/graphql',
+		apiUrl: 'https://mainnet.dev-api.ccdscan.io/graphql',
+		wsUrl: 'wss://mainnet.dev-api.ccdscan.io/graphql',
 		includeDevTools: true,
 	},
 	nitro: {
