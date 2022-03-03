@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Api.GraphQL.EfCore;
+using Application.Common;
 using Application.Common.FeatureFlags;
-using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -16,19 +15,15 @@ namespace Application.Import.ConcordiumNode;
 public class ImportController : BackgroundService
 {
     private readonly GrpcNodeClient _client;
-    private readonly BlockRepository _repository;
     private readonly IFeatureFlags _featureFlags;
-    private readonly DataUpdateController _dataUpdateController;
-    private readonly MetricsWriter _metricsUpdateController;
     private readonly ILogger _logger;
+    private readonly ImportChannel _channel;
 
-    public ImportController(GrpcNodeClient client, BlockRepository repository, IFeatureFlags featureFlags, DataUpdateController dataUpdateController, MetricsWriter metricsUpdateController)
+    public ImportController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel)
     {
         _client = client;
-        _repository = repository;
         _featureFlags = featureFlags;
-        _dataUpdateController = dataUpdateController;
-        _metricsUpdateController = metricsUpdateController;
+        _channel = channel;
         _logger = Log.ForContext(GetType());
     }
 
@@ -36,30 +31,36 @@ public class ImportController : BackgroundService
     {
         if (!_featureFlags.IsEnabled("ccnode-import"))
         {
-            _logger.Warning("Data import from Concordium node is disabled.");
+            _logger.Warning("Reading data from Concordium node is disabled. No data will be imported!");
             return;
         }
-            
-        _logger.Information("Execute started...");
-        
-        await Policy
-            .Handle<RpcException>()
-            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnEnsurePreconditionRetry)
-            .ExecuteAsync(EnsurePreconditions);
 
-        await Policy
-            .Handle<RpcException>()
-            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnImportDataRetry)
-            .ExecuteAsync(() => ImportData(stoppingToken)); 
+        try
+        {
+            _logger.Information("Awaiting initial import state...");
+            var initialState = await _channel.GetInitialImportStateAsync();
 
-        _logger.Information("Execute finished!");
+            await Policy
+                .Handle<RpcException>()
+                .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnEnsurePreconditionRetry)
+                .ExecuteAsync(() => EnsurePreconditions(initialState));
+
+            await Policy
+                .Handle<RpcException>()
+                .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnImportDataRetry)
+                .ExecuteAsync(() => ImportData(initialState, stoppingToken));
+        }
+        finally
+        {
+            _logger.Information("Stopped");
+        } 
     }
 
-    private async Task ImportData(CancellationToken stoppingToken)
+    private async Task ImportData(ImportState initialState, CancellationToken stoppingToken)
     {
-        _logger.Information("Starting data import...");
+        _logger.Information("Starting reading data from Concordium node...");
         
-        var importedMaxBlockHeight = _repository.GetMaxBlockHeight();
+        var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
             var consensusStatus = await _client.GetConsensusStatusAsync();
@@ -84,49 +85,68 @@ public class ImportController : BackgroundService
         }
     }
 
-    private async Task ImportBatch(int startBlockHeight, int endBlockHeight, CancellationToken stoppingToken)
+    private async Task ImportBatch(long startBlockHeight, long endBlockHeight, CancellationToken stoppingToken)
     {
-        var nextHeight = startBlockHeight;
-        while (endBlockHeight >= nextHeight && !stoppingToken.IsCancellationRequested)
+        const int numberOfParallelTasks = 5;
+        
+        IEnumerable<long> range = new RangeOfLong(startBlockHeight, endBlockHeight);
+        var hasMore = true;
+        while (hasMore)
         {
-            var sw = Stopwatch.StartNew();
+            stoppingToken.ThrowIfCancellationRequested();
             
-            var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)nextHeight);
-            if (blocksAtHeight.Length != 1)
-                throw new InvalidOperationException("Unexpected with more than one block at a given height."); // TODO: consider how/if this should be handled
-            var blockHash = blocksAtHeight.Single();
-
-            var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
-            var blockSummaryStringTask = _client.GetBlockSummaryStringAsync(blockHash);
-            var rewardStatusTask = _client.GetRewardStatusAsync(blockHash);
-
-            var blockInfo = await blockInfoTask;
-            var blockSummaryString = await blockSummaryStringTask;
-            var rewardStatus = await rewardStatusTask;
-
-            // Should be fetched from cache!
-            var blockSummary = await _client.GetBlockSummaryAsync(blockHash);
-            
-            var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
-
-            var genesisIdentityProviders = blockInfo.BlockHeight == 0 ? await _client.GetIdentityProvidersAsync(blockHash) : null;
-
-            var readDuration = sw.ElapsedMilliseconds;
-            sw.Restart();
-
-            // TODO: Publish result - for now just write directly to db
-            await Task.WhenAll(
-                _repository.Insert(blockInfo, blockSummaryString, blockSummary),
-                blockInfo.BlockHeight == 0 
-                    ? _dataUpdateController.GenesisBlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus, genesisIdentityProviders!) 
-                    : _dataUpdateController.BlockDataReceived(blockInfo, blockSummary, createdAccounts, rewardStatus));
-
-            var writeDuration = sw.ElapsedMilliseconds;
-            
-            _logger.Information("Imported block {blockhash} at block height {blockheight} [read: {readDuration}ms] [write: {writeDuration}ms]", blockHash.AsString, nextHeight, readDuration, writeDuration);
-
-            nextHeight++;
+            var blockHeights = range.Take(numberOfParallelTasks).ToArray();
+            if (blockHeights.Length > 0)
+            {
+                var readTasks = blockHeights.Select(ReadBlockDataPayload);
+                foreach (var readTask in readTasks)
+                {
+                    var payload = await readTask;
+                    await _channel.Writer.WriteAsync(payload, stoppingToken);
+                }
+                
+                range = range.Skip(numberOfParallelTasks);
+            }
+            else hasMore = false;
         }
+    }
+
+    private async Task<BlockDataPayload> ReadBlockDataPayload(long blockHeight)
+    {
+        var sw = Stopwatch.StartNew();
+
+        var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)blockHeight);
+        if (blocksAtHeight.Length != 1)
+            throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
+        var blockHash = blocksAtHeight.Single();
+
+        var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
+        var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
+        var rewardStatusTask = _client.GetRewardStatusAsync(blockHash);
+
+        var blockInfo = await blockInfoTask;
+        var blockSummary = await blockSummaryTask;
+        var rewardStatus = await rewardStatusTask;
+
+        var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
+
+        BlockDataPayload payload;
+        if (blockInfo.BlockHeight == 0)
+        {
+            var genesisIdentityProviders = await _client.GetIdentityProvidersAsync(blockHash);
+
+            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus,
+                genesisIdentityProviders);
+        }
+        else
+        {
+            payload = new BlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus);
+        }
+
+        var readDuration = sw.ElapsedMilliseconds;
+        // _logger.Information("Data read for block {blockhash} at block height {blockheight} from node in {readDuration}ms",
+        //     blockHash.AsString, blockHeight, readDuration);
+        return payload;
     }
 
     private async Task<AccountInfo[]> GetCreatedAccounts(BlockInfo blockInfo, BlockSummary blockSummary)
@@ -156,11 +176,11 @@ public class ImportController : BackgroundService
         }
     }
 
-    private async Task EnsurePreconditions()
+    private async Task EnsurePreconditions(ImportState initialState)
     {
         _logger.Information("Checking preconditions for importing data from Concordium node...");
         
-        var importedGenesisBlockHash = _repository.GetGenesisBlockHash();
+        var importedGenesisBlockHash = initialState.GenesisBlockHash;
         if (importedGenesisBlockHash != null)
         {
             var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash);

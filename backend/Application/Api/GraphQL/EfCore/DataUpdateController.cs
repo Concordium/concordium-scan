@@ -1,35 +1,46 @@
-﻿using System.Threading.Tasks;
+﻿using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Transactions;
 using Application.Common;
 using Application.Database;
+using Application.Import;
+using Application.Import.ConcordiumNode;
 using ConcordiumSdk.NodeApi.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace Application.Api.GraphQL.EfCore;
 
-public class DataUpdateController
+public class DataUpdateController : BackgroundService
 {
+    private readonly ImportStateReader _stateReader;
     private readonly ITopicEventSender _sender;
+    private readonly ImportChannel _channel;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountWriter _accountWriter;
     private readonly MetricsWriter _metricsWriter;
+    private readonly ILogger _logger;
 
     private readonly MemoryCacheManager _cacheManager;
     private readonly IMemoryCachedValue<DateTimeOffset> _previousBlockSlotTime;
     private readonly IMemoryCachedValue<long> _cumulativeTransactionCountState;
     private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedState;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender)
+    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
     {
+        _stateReader = new ImportStateReader(dbSettings);
         _sender = sender;
+        _channel = channel;
         _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
         _metricsWriter = new MetricsWriter(dbSettings);
+        _logger = Log.ForContext(GetType());
         
         _cacheManager = new();
         _previousBlockSlotTime = _cacheManager.CreateCachedValue<DateTimeOffset>();
@@ -37,31 +48,38 @@ public class DataUpdateController
         _cumulativeAccountsCreatedState = _cacheManager.CreateCachedValue<long>();
     }
 
-    public async Task GenesisBlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary,
-        AccountInfo[] createdAccounts, RewardStatus rewardStatus, IdentityProviderInfo[] identityProviders)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
-
-        await HandleGenesisOnlyWrites(identityProviders);
-        var block = await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
+        try
+        {
+            var importState = await _stateReader.ReadImportStatus();
+            _channel.SetInitialImportState(importState);
         
-        scope.Complete();
-        _cacheManager.CommitEnqueuedUpdates();
+            await foreach (var data in _channel.Reader.ReadAllAsync(stoppingToken))
+            {
+                stoppingToken.ThrowIfCancellationRequested();
+
+                var sw = Stopwatch.StartNew();
+
+                using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
+
+                if (data is GenesisBlockDataPayload genesisData)
+                    await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
+            
+                var block = await HandleCommonWrites(data.BlockInfo, data.BlockSummary, data.RewardStatus, data.CreatedAccounts);
         
-        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
-    }
+                scope.Complete();
+                _cacheManager.CommitEnqueuedUpdates();
 
-    public async Task BlockDataReceived(BlockInfo blockInfo, BlockSummary blockSummary, AccountInfo[] createdAccounts,
-        RewardStatus rewardStatus)
-    {
-        using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
+                _logger.Information("Data written for block {blockhash} at block height {blockheight} from node in {duration}ms", block.BlockHash, block.BlockHeight, sw.ElapsedMilliseconds);
 
-        var block = await HandleCommonWrites(blockInfo, blockSummary, rewardStatus, createdAccounts);
-
-        scope.Complete();
-        _cacheManager.CommitEnqueuedUpdates();
-
-        await _sender.SendAsync(nameof(Subscription.BlockAdded), block);
+                await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
+            }
+        }
+        finally
+        {
+            _logger.Information("Stopped");
+        }
     }
 
     private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
