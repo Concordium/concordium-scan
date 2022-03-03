@@ -8,7 +8,10 @@
 			<ClientOnly>
 				<PageHeader />
 			</ClientOnly>
-			<slot />
+
+			<main class="p-4 pb-0 xl:container xl:mx-auto">
+				<slot />
+			</main>
 		</div>
 	</div>
 </template>

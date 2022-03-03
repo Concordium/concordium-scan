@@ -1,196 +1,194 @@
 ﻿<template>
 	<div>
 		<Title>CCDScan | Dashboard</Title>
-		<main class="p-4 pb-0 xl:container xl:mx-auto">
-			<div class="block lg:grid grid-cols-4">
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
-						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #icon><BlockIcon></BlockIcon></template>
-						<template #title>Blocks added</template>
-						<template #value>{{
-							blockMetricsData?.blockMetrics?.blocksAdded
-						}}</template>
-						<template #chip>latest</template>
-					</KeyValueChartCard>
-				</div>
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-						chart-type="area"
-						:y-values="[
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
-						]"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #title>Block time</template>
-						<template #icon><StopwatchIcon /></template>
-						<template #value>{{
-							blockMetricsData?.blockMetrics?.avgBlockTime
-						}}</template>
-						<template #unit>s</template>
-						<template #chip>average</template>
-					</KeyValueChartCard>
-				</div>
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="
-							transactionMetricsData?.transactionMetrics?.buckets?.x_Time
-						"
-						:bucket-width="
-							transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
-						"
-						:y-values="
-							transactionMetricsData?.transactionMetrics?.buckets
-								?.y_TransactionCount
-						"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #title>Transactions</template>
-						<template #icon><TransactionIcon /></template>
-						<template #value>{{
-							transactionMetricsData?.transactionMetrics?.transactionCount
-						}}</template>
-						<template #chip>sum</template>
-					</KeyValueChartCard>
-				</div>
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
-						:y-values="
-							accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated
-						"
-						:bucket-width="
-							accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
-						"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #title>Accounts Created</template>
-						<template #icon></template>
-						<template #chip>sum</template>
-						<template #value>{{
-							accountMetricsData?.accountsMetrics?.accountsCreated
-						}}</template>
-					</KeyValueChartCard>
-				</div>
+		<div class="block lg:grid grid-cols-4">
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
+					:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+					:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #icon><BlockIcon></BlockIcon></template>
+					<template #title>Blocks added</template>
+					<template #value>{{
+						blockMetricsData?.blockMetrics?.blocksAdded
+					}}</template>
+					<template #chip>latest</template>
+				</KeyValueChartCard>
 			</div>
-			<section class="flex flex-wrap gap-10">
-				<article class="flex flex-col flex-1 mb-12">
-					<header class="flex justify-between items-center mb-4">
-						<h1 class="text-xl">Latest blocks</h1>
-						<NuxtLink to="/blocks">
-							<Button>Show all blocks</Button>
-						</NuxtLink>
-					</header>
-					<Table>
-						<TableHead>
-							<TableRow>
-								<TableTh>Height</TableTh>
-								<TableTh>Block hash</TableTh>
-								<TableTh>Baker</TableTh>
-								<TableTh align="right">Baker reward (Ͼ)</TableTh>
-							</TableRow>
-						</TableHead>
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
+					:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
+					chart-type="area"
+					:y-values="[
+						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
+						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
+						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
+					]"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #title>Block time</template>
+					<template #icon><StopwatchIcon /></template>
+					<template #value>{{
+						blockMetricsData?.blockMetrics?.avgBlockTime
+					}}</template>
+					<template #unit>s</template>
+					<template #chip>average</template>
+				</KeyValueChartCard>
+			</div>
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="
+						transactionMetricsData?.transactionMetrics?.buckets?.x_Time
+					"
+					:bucket-width="
+						transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
+					"
+					:y-values="
+						transactionMetricsData?.transactionMetrics?.buckets
+							?.y_TransactionCount
+					"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #title>Transactions</template>
+					<template #icon><TransactionIcon /></template>
+					<template #value>{{
+						transactionMetricsData?.transactionMetrics?.transactionCount
+					}}</template>
+					<template #chip>sum</template>
+				</KeyValueChartCard>
+			</div>
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
+					:y-values="
+						accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated
+					"
+					:bucket-width="
+						accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
+					"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #title>Accounts Created</template>
+					<template #icon></template>
+					<template #chip>sum</template>
+					<template #value>{{
+						accountMetricsData?.accountsMetrics?.accountsCreated
+					}}</template>
+				</KeyValueChartCard>
+			</div>
+		</div>
+		<section class="flex flex-wrap gap-10">
+			<article class="flex flex-col flex-1 mb-12">
+				<header class="flex justify-between items-center mb-4">
+					<h1 class="text-xl">Latest blocks</h1>
+					<NuxtLink to="/blocks">
+						<Button>Show all blocks</Button>
+					</NuxtLink>
+				</header>
+				<Table>
+					<TableHead>
+						<TableRow>
+							<TableTh>Height</TableTh>
+							<TableTh>Block hash</TableTh>
+							<TableTh>Baker</TableTh>
+							<TableTh align="right">Baker reward (Ͼ)</TableTh>
+						</TableRow>
+					</TableHead>
 
-						<TransitionGroup name="list" tag="tbody">
-							<TableRow v-for="block in blocks" :key="block.blockHash">
-								<TableTd class="numerical">
-									<StatusCircle
-										:class="[
-											'h-4 mr-2 text-theme-interactive',
-											{ 'text-theme-info': !block.finalized },
-										]"
-									/>
-									{{ block.blockHeight }}
-								</TableTd>
-								<TableTd>
-									<BlockLink :id="block.id" :hash="block.blockHash" />
-								</TableTd>
-								<TableTd class="numerical">
-									<UserIcon
-										v-if="block.bakerId || block.bakerId === 0"
-										class="h-4 text-theme-white inline align-baseline"
-									/>
-									{{ block.bakerId }}
-								</TableTd>
-								<TableTd align="right" class="numerical">
-									{{
-										convertMicroCcdToCcd(
-											block.specialEvents.blockRewards?.bakerReward
-										)
-									}}
-								</TableTd>
-							</TableRow>
-						</TransitionGroup>
-					</Table>
-				</article>
+					<TransitionGroup name="list" tag="tbody">
+						<TableRow v-for="block in blocks" :key="block.blockHash">
+							<TableTd class="numerical">
+								<StatusCircle
+									:class="[
+										'h-4 mr-2 text-theme-interactive',
+										{ 'text-theme-info': !block.finalized },
+									]"
+								/>
+								{{ block.blockHeight }}
+							</TableTd>
+							<TableTd>
+								<BlockLink :id="block.id" :hash="block.blockHash" />
+							</TableTd>
+							<TableTd class="numerical">
+								<UserIcon
+									v-if="block.bakerId || block.bakerId === 0"
+									class="h-4 text-theme-white inline align-baseline"
+								/>
+								{{ block.bakerId }}
+							</TableTd>
+							<TableTd align="right" class="numerical">
+								{{
+									convertMicroCcdToCcd(
+										block.specialEvents.blockRewards?.bakerReward
+									)
+								}}
+							</TableTd>
+						</TableRow>
+					</TransitionGroup>
+				</Table>
+			</article>
 
-				<article class="flex flex-col flex-1 mb-12">
-					<header class="flex justify-between items-center mb-4">
-						<h1 class="text-xl">Latest transactions</h1>
-						<NuxtLink to="/transactions">
-							<Button>Show all transactions</Button>
-						</NuxtLink>
-					</header>
-					<Table>
-						<TableHead>
-							<TableRow>
-								<TableTh>Type</TableTh>
-								<TableTh>Transaction hash</TableTh>
-								<TableTh>Sender</TableTh>
-								<TableTh align="right">Cost (Ͼ)</TableTh>
-							</TableRow>
-						</TableHead>
-						<TableBody>
-							<TableRow
-								v-for="transaction in transactions"
-								:key="transaction.transactionHash"
-							>
-								<TableTd>
-									<StatusCircle
-										:class="[
-											'h-4 mr-2 text-theme-interactive',
-											{
-												'text-theme-error':
-													transaction.result.__typename === 'Rejected',
-											},
-										]"
-									/>
-									{{ translateTransactionType(transaction.transactionType) }}
-								</TableTd>
-								<TableTd>
-									<TransactionLink
-										:id="transaction.id"
-										:hash="transaction.transactionHash"
-									/>
-								</TableTd>
-								<TableTd class="numerical">
-									<AccountLink :address="transaction.senderAccountAddress" />
-								</TableTd>
-								<TableTd align="right" class="numerical">
-									{{ convertMicroCcdToCcd(transaction.ccdCost) }}
-								</TableTd>
-							</TableRow>
-						</TableBody>
-					</Table>
-				</article>
-			</section>
-		</main>
+			<article class="flex flex-col flex-1 mb-12">
+				<header class="flex justify-between items-center mb-4">
+					<h1 class="text-xl">Latest transactions</h1>
+					<NuxtLink to="/transactions">
+						<Button>Show all transactions</Button>
+					</NuxtLink>
+				</header>
+				<Table>
+					<TableHead>
+						<TableRow>
+							<TableTh>Type</TableTh>
+							<TableTh>Transaction hash</TableTh>
+							<TableTh>Sender</TableTh>
+							<TableTh align="right">Cost (Ͼ)</TableTh>
+						</TableRow>
+					</TableHead>
+					<TableBody>
+						<TableRow
+							v-for="transaction in transactions"
+							:key="transaction.transactionHash"
+						>
+							<TableTd>
+								<StatusCircle
+									:class="[
+										'h-4 mr-2 text-theme-interactive',
+										{
+											'text-theme-error':
+												transaction.result.__typename === 'Rejected',
+										},
+									]"
+								/>
+								{{ translateTransactionType(transaction.transactionType) }}
+							</TableTd>
+							<TableTd>
+								<TransactionLink
+									:id="transaction.id"
+									:hash="transaction.transactionHash"
+								/>
+							</TableTd>
+							<TableTd class="numerical">
+								<AccountLink :address="transaction.senderAccountAddress" />
+							</TableTd>
+							<TableTd align="right" class="numerical">
+								{{ convertMicroCcdToCcd(transaction.ccdCost) }}
+							</TableTd>
+						</TableRow>
+					</TableBody>
+				</Table>
+			</article>
+		</section>
 	</div>
 </template>
 

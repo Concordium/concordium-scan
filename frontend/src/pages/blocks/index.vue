@@ -1,105 +1,103 @@
 <template>
 	<div>
 		<Title>CCDScan | Blocks</Title>
-		<main class="p-4 pb-0">
-			<div class="block lg:grid grid-cols-2">
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
-						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #icon><BlockIcon></BlockIcon></template>
-						<template #title>Blocks added</template>
-						<template #value>{{
-							metricsData?.blockMetrics?.blocksAdded
-						}}</template>
-						<template #chip>latest</template>
-					</KeyValueChartCard>
-				</div>
-				<div class="w-full">
-					<KeyValueChartCard
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-						chart-type="area"
-						:y-values="[
-							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
-							metricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-							metricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
-						]"
-					>
-						<template #topRight
-							><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-						/></template>
-						<template #title>Block time</template>
-						<template #icon><StopwatchIcon /></template>
-						<template #value>{{
-							metricsData?.blockMetrics?.avgBlockTime
-						}}</template>
-						<template #unit>s</template>
-						<template #chip>average</template>
-					</KeyValueChartCard>
-				</div>
+		<div class="block lg:grid grid-cols-2">
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+					:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #icon><BlockIcon></BlockIcon></template>
+					<template #title>Blocks added</template>
+					<template #value>{{
+						metricsData?.blockMetrics?.blocksAdded
+					}}</template>
+					<template #chip>latest</template>
+				</KeyValueChartCard>
 			</div>
-			<Table>
-				<TableHead>
-					<TableRow>
-						<TableTh width="20%">Height</TableTh>
-						<TableTh width="20%">Status</TableTh>
-						<TableTh width="30%">Timestamp</TableTh>
-						<TableTh width="10%">Block hash</TableTh>
-						<TableTh width="10%">Baker</TableTh>
-						<TableTh width="10%" align="right">Transactions</TableTh>
-					</TableRow>
-				</TableHead>
-				<TableBody>
-					<TableRow>
-						<TableTd colspan="6" align="center" class="p-0 tdlol">
-							<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
-						</TableTd>
-					</TableRow>
-					<TableRow v-for="block in pagedData" :key="block.blockHash">
-						<TableTd :class="$style.numerical">{{ block.blockHeight }}</TableTd>
-						<TableTd>
-							<StatusCircle
-								:class="[
-									'h-4 w-6 mr-2 text-theme-interactive',
-									{ 'text-theme-info': !block.finalized },
-								]"
-							/>
-							{{ block.finalized ? 'Finalised' : 'Pending' }}
-						</TableTd>
-						<TableTd>
-							<Tooltip :text="block.blockSlotTime">
-								{{ convertTimestampToRelative(block.blockSlotTime) }}
-							</Tooltip>
-						</TableTd>
-						<TableTd>
-							<BlockLink :id="block.id" :hash="block.blockHash" />
-						</TableTd>
-						<TableTd :class="$style.numerical">
-							<UserIcon
-								v-if="block.bakerId || block.bakerId === 0"
-								:class="$style.cellIcon"
-							/>
-							{{ block.bakerId }}
-						</TableTd>
-						<TableTd align="right" :class="$style.numerical">
-							{{ block.transactionCount }}
-						</TableTd>
-					</TableRow>
-				</TableBody>
-			</Table>
+			<div class="w-full">
+				<KeyValueChartCard
+					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
+					chart-type="area"
+					:y-values="[
+						metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
+						metricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
+						metricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
+					]"
+				>
+					<template #topRight
+						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+					/></template>
+					<template #title>Block time</template>
+					<template #icon><StopwatchIcon /></template>
+					<template #value>{{
+						metricsData?.blockMetrics?.avgBlockTime
+					}}</template>
+					<template #unit>s</template>
+					<template #chip>average</template>
+				</KeyValueChartCard>
+			</div>
+		</div>
+		<Table>
+			<TableHead>
+				<TableRow>
+					<TableTh width="20%">Height</TableTh>
+					<TableTh width="20%">Status</TableTh>
+					<TableTh width="30%">Timestamp</TableTh>
+					<TableTh width="10%">Block hash</TableTh>
+					<TableTh width="10%">Baker</TableTh>
+					<TableTh width="10%" align="right">Transactions</TableTh>
+				</TableRow>
+			</TableHead>
+			<TableBody>
+				<TableRow>
+					<TableTd colspan="6" align="center" class="p-0 tdlol">
+						<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
+					</TableTd>
+				</TableRow>
+				<TableRow v-for="block in pagedData" :key="block.blockHash">
+					<TableTd :class="$style.numerical">{{ block.blockHeight }}</TableTd>
+					<TableTd>
+						<StatusCircle
+							:class="[
+								'h-4 w-6 mr-2 text-theme-interactive',
+								{ 'text-theme-info': !block.finalized },
+							]"
+						/>
+						{{ block.finalized ? 'Finalised' : 'Pending' }}
+					</TableTd>
+					<TableTd>
+						<Tooltip :text="block.blockSlotTime">
+							{{ convertTimestampToRelative(block.blockSlotTime) }}
+						</Tooltip>
+					</TableTd>
+					<TableTd>
+						<BlockLink :id="block.id" :hash="block.blockHash" />
+					</TableTd>
+					<TableTd :class="$style.numerical">
+						<UserIcon
+							v-if="block.bakerId || block.bakerId === 0"
+							:class="$style.cellIcon"
+						/>
+						{{ block.bakerId }}
+					</TableTd>
+					<TableTd align="right" :class="$style.numerical">
+						{{ block.transactionCount }}
+					</TableTd>
+				</TableRow>
+			</TableBody>
+		</Table>
 
-			<LoadMore
-				v-if="data?.blocks.pageInfo"
-				:page-info="data?.blocks.pageInfo"
-				:on-load-more="loadMore"
-			/>
-		</main>
+		<LoadMore
+			v-if="data?.blocks.pageInfo"
+			:page-info="data?.blocks.pageInfo"
+			:on-load-more="loadMore"
+		/>
 	</div>
 </template>
 
