@@ -15,12 +15,12 @@
 					<template #topRight
 						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
 					/></template>
-					<template #title>Last Cumulative Accounts Created</template>
+					<template #title>Cumulative Accounts Created</template>
 					<template #icon></template>
 					<template #value>{{
 						metricsData?.accountsMetrics?.lastCumulativeAccountsCreated
 					}}</template>
-					<template #chip>sum</template>
+					<template #chip>latest</template>
 				</KeyValueChartCard>
 			</div>
 			<div class="w-full">

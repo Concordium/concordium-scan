@@ -16,7 +16,7 @@
 					<template #value>{{
 						metricsData?.blockMetrics?.blocksAdded
 					}}</template>
-					<template #chip>latest</template>
+					<template #chip>sum</template>
 				</KeyValueChartCard>
 			</div>
 			<div class="w-full">
