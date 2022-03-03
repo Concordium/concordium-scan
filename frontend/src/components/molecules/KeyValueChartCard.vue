@@ -1,7 +1,7 @@
 ﻿<template>
 	<ClientOnly>
 		<div
-			class="flex flex-row cardShadow rounded-2xl shadow-2xl m-4 relative overflow-hidden bg-theme-background-primary-elevated"
+			class="flex flex-row cardShadow rounded-2xl shadow-2xl my-4 relative overflow-hidden bg-theme-background-primary-elevated"
 		>
 			<div class="flex flex-col items-center w-full">
 				<div class="absolute top-4 right-4 text-xs">

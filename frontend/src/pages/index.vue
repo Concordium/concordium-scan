@@ -1,7 +1,7 @@
 ﻿<template>
 	<div>
 		<Title>CCDScan | Dashboard</Title>
-		<div class="block lg:grid grid-cols-4">
+		<div class="block lg:grid grid-cols-4 mb-20 gap-4">
 			<div class="w-full">
 				<KeyValueChartCard
 					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
