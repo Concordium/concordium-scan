@@ -29,7 +29,6 @@ public class MetricsWriter
             BlockTimeSecs = GetBlockTime(blockInfo, previousBlockSlotTime),
             TotalMicroCcd = (long)rewardStatus.TotalAmount.MicroCcdValue,
             TotalEncryptedMicroCcd = (long)rewardStatus.TotalEncryptedAmount.MicroCcdValue
-            
         };
 
         var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
