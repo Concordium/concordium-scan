@@ -34,6 +34,8 @@ public class MetricsWriter
         var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
                     values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
         await conn.ExecuteAsync(sql, blockParam);
+        
+        previousBlockSlotTime.EnqueueUpdate(blockInfo.BlockSlotTime);
     }
 
     public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, IMemoryCachedValue<long> cumulativeTransactionCountCache)
