@@ -5,7 +5,10 @@
 			class="h-5 inline align-text-top mr-3"
 		/>
 		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
-		<LinkButton @click="drawer.push('account', null, null, props.address)">
+		<LinkButton
+			@blur="emitBlur"
+			@click="drawer.push('account', null, null, props.address)"
+		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.address) }}
 			</div>
@@ -27,4 +30,8 @@ type Props = {
 }
 const props = defineProps<Props>()
 const drawer = useDrawer()
+const emit = defineEmits(['blur'])
+const emitBlur = (newTarget: FocusEvent) => {
+	emit('blur', newTarget)
+}
 </script>

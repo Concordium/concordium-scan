@@ -3,6 +3,7 @@
 		<TransactionIcon class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical"
+			@blur="emitBlur"
 			@click="drawer.push('transaction', props.hash, props.id)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
@@ -26,4 +27,8 @@ type Props = {
 }
 const props = defineProps<Props>()
 const drawer = useDrawer()
+const emit = defineEmits(['blur'])
+const emitBlur = (newTarget: FocusEvent) => {
+	emit('blur', newTarget)
+}
 </script>

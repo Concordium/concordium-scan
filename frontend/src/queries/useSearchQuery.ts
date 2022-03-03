@@ -2,48 +2,52 @@
 import { Ref } from 'vue'
 import type { Block } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'
-import type { Account } from '~/types/generated'
+import type { Account, PageInfo } from '~/types/generated'
 type SearchResponse = {
 	search: {
-		blocks: { nodes: Block[] }
-		transactions: { nodes: Transaction[] }
-		accounts: { nodes: Account[] }
+		blocks: { nodes: Block[]; pageInfo: PageInfo }
+		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
+		accounts: { nodes: Account[]; pageInfo: PageInfo }
 	}
 }
 
 const SearchQuery = gql<SearchResponse>`
 	query Search($query: String!) {
 		search(query: $query) {
-			blocks {
+			blocks(first: 3) {
 				nodes {
 					id
 					blockHash
-					transactions {
-						nodes {
-							transactionHash
-							id
-						}
-					}
+					blockHeight
+					blockSlotTime
+					transactionCount
+				}
+				pageInfo {
+					hasNextPage
 				}
 			}
-			transactions {
+			transactions(first: 3) {
 				nodes {
 					id
 					transactionHash
+					block {
+						blockHash
+						blockHeight
+						blockSlotTime
+					}
+				}
+				pageInfo {
+					hasNextPage
 				}
 			}
-			accounts {
+			accounts(first: 3) {
 				nodes {
 					id
 					address
-					transactions {
-						nodes {
-							transaction {
-								transactionHash
-								id
-							}
-						}
-					}
+					createdAt
+				}
+				pageInfo {
+					hasNextPage
 				}
 			}
 		}
@@ -53,7 +57,7 @@ const SearchQuery = gql<SearchResponse>`
 export const useSearchQuery = (query: Ref<string>, paused = true) => {
 	const { data, executeQuery } = useQuery({
 		query: SearchQuery,
-		requestPolicy: 'cache-first',
+		requestPolicy: 'network-only',
 		variables: {
 			query,
 		},
