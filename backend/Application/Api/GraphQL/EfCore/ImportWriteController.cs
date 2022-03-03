@@ -5,7 +5,6 @@ using System.Transactions;
 using Application.Common;
 using Application.Database;
 using Application.Import;
-using Application.Import.ConcordiumNode;
 using ConcordiumSdk.NodeApi.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +12,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Application.Api.GraphQL.EfCore;
 
-public class DataUpdateController : BackgroundService
+public class ImportWriteController : BackgroundService
 {
     private readonly ImportStateReader _stateReader;
     private readonly ITopicEventSender _sender;
@@ -30,7 +29,7 @@ public class DataUpdateController : BackgroundService
     private readonly IMemoryCachedValue<long> _cumulativeTransactionCountState;
     private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedState;
 
-    public DataUpdateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
+    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
     {
         _stateReader = new ImportStateReader(dbSettings);
         _sender = sender;
@@ -52,26 +51,17 @@ public class DataUpdateController : BackgroundService
     {
         try
         {
-            var importState = await _stateReader.ReadImportStatus();
-            _channel.SetInitialImportState(importState);
-        
-            await foreach (var data in _channel.Reader.ReadAllAsync(stoppingToken))
+            await ReadAndPublishInitialState();
+
+            await foreach (var envelope in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 stoppingToken.ThrowIfCancellationRequested();
 
                 var sw = Stopwatch.StartNew();
+                var block = await WriteData(envelope.Payload);
 
-                using var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }, TransactionScopeAsyncFlowOption.Enabled);
-
-                if (data is GenesisBlockDataPayload genesisData)
-                    await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
-            
-                var block = await HandleCommonWrites(data.BlockInfo, data.BlockSummary, data.RewardStatus, data.CreatedAccounts);
-        
-                scope.Complete();
-                _cacheManager.CommitEnqueuedUpdates();
-
-                _logger.Information("Data written for block {blockhash} at block height {blockheight} from node in {duration}ms", block.BlockHash, block.BlockHeight, sw.ElapsedMilliseconds);
+                _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] [write: {writeDuration:0}ms]", 
+                    block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds, sw.Elapsed.TotalMilliseconds);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
             }
@@ -80,6 +70,30 @@ public class DataUpdateController : BackgroundService
         {
             _logger.Information("Stopped");
         }
+    }
+
+    private async Task ReadAndPublishInitialState()
+    {
+        _logger.Information("Reading initial import state...");
+        var importState = await _stateReader.ReadImportStatus();
+        _logger.Information("Initial import state read");
+
+        _channel.SetInitialImportState(importState);
+    }
+
+    private async Task<Block> WriteData(BlockDataPayload payload)
+    {
+        using var txScope = CreateTransactionScope();
+
+        if (payload is GenesisBlockDataPayload genesisData)
+            await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
+
+        var block = await HandleCommonWrites(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, payload.CreatedAccounts);
+
+        txScope.Complete();
+        _cacheManager.CommitEnqueuedUpdates();
+        
+        return block;
     }
 
     private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
@@ -107,5 +121,16 @@ public class DataUpdateController : BackgroundService
         await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts, _cumulativeAccountsCreatedState);
 
         return block;
+    }
+
+    private static TransactionScope CreateTransactionScope()
+    {
+        return new TransactionScope(
+            TransactionScopeOption.Required,
+            new TransactionOptions
+            {
+                IsolationLevel = IsolationLevel.ReadCommitted
+            },
+            TransactionScopeAsyncFlowOption.Enabled);
     }
 }

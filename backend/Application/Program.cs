@@ -40,8 +40,8 @@ logger.Information("Using Postgres connection string: {postgresConnectionString}
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().Configure();
 builder.Services.AddSingleton<ImportChannel>();
-builder.Services.AddHostedService<ImportController>();
-builder.Services.AddHostedService<DataUpdateController>();
+builder.Services.AddHostedService<ImportReadController>();
+builder.Services.AddHostedService<ImportWriteController>();
 builder.Services.AddControllers();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {

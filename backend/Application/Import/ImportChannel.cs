@@ -7,7 +7,7 @@ namespace Application.Import;
 
 public class ImportChannel
 {
-    private readonly Channel<BlockDataPayload> _channel;
+    private readonly Channel<BlockDataEnvelope> _channel;
     private readonly TaskCompletionSource<ImportState> _importStateTaskCompletionSource;
 
     public ImportChannel()
@@ -16,12 +16,12 @@ public class ImportChannel
         {
             FullMode = BoundedChannelFullMode.Wait
         };
-        _channel = Channel.CreateBounded<BlockDataPayload>(options);
+        _channel = Channel.CreateBounded<BlockDataEnvelope>(options);
         _importStateTaskCompletionSource = new TaskCompletionSource<ImportState>();
     }
 
-    public ChannelWriter<BlockDataPayload> Writer => _channel.Writer;
-    public ChannelReader<BlockDataPayload> Reader => _channel.Reader;
+    public ChannelWriter<BlockDataEnvelope> Writer => _channel.Writer;
+    public ChannelReader<BlockDataEnvelope> Reader => _channel.Reader;
 
     public void SetInitialImportState(ImportState importState)
     {
@@ -36,6 +36,14 @@ public class ImportChannel
 
 public record ImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHash);
 
+public record BlockDataEnvelope(BlockDataPayload Payload, TimeSpan ReadDuration);
+
+public record BlockDataPayload(
+    BlockInfo BlockInfo, 
+    BlockSummary BlockSummary, 
+    AccountInfo[] CreatedAccounts,
+    RewardStatus RewardStatus);
+
 public record GenesisBlockDataPayload(
     BlockInfo BlockInfo,
     BlockSummary BlockSummary,
@@ -43,8 +51,3 @@ public record GenesisBlockDataPayload(
     RewardStatus RewardStatus, 
     IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, CreatedAccounts, RewardStatus);
 
-public record BlockDataPayload(
-    BlockInfo BlockInfo, 
-    BlockSummary BlockSummary, 
-    AccountInfo[] CreatedAccounts,
-    RewardStatus RewardStatus);

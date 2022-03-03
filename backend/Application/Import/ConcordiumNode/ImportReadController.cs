@@ -12,14 +12,14 @@ using Polly;
 
 namespace Application.Import.ConcordiumNode;
 
-public class ImportController : BackgroundService
+public class ImportReadController : BackgroundService
 {
     private readonly GrpcNodeClient _client;
     private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
 
-    public ImportController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel)
+    public ImportReadController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel)
     {
         _client = client;
         _featureFlags = featureFlags;
@@ -111,7 +111,7 @@ public class ImportController : BackgroundService
         }
     }
 
-    private async Task<BlockDataPayload> ReadBlockDataPayload(long blockHeight)
+    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight)
     {
         var sw = Stopwatch.StartNew();
 
@@ -143,10 +143,10 @@ public class ImportController : BackgroundService
             payload = new BlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus);
         }
 
-        var readDuration = sw.ElapsedMilliseconds;
+        var readDuration = sw.Elapsed;
         // _logger.Information("Data read for block {blockhash} at block height {blockheight} from node in {readDuration}ms",
         //     blockHash.AsString, blockHeight, readDuration);
-        return payload;
+        return new BlockDataEnvelope(payload, readDuration);
     }
 
     private async Task<AccountInfo[]> GetCreatedAccounts(BlockInfo blockInfo, BlockSummary blockSummary)
