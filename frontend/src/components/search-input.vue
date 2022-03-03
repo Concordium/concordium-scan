@@ -186,9 +186,10 @@ let searchQueryTimeout: NodeJS.Timeout | null = null
 const drawer = useDrawer()
 const loading = ref(true)
 const lastSearchTerm = ref('')
-const NOW = new Date()
+const NOW = ref(new Date())
 watch(rawQueryData, () => {
 	loading.value = false
+	NOW.value = new Date()
 	if (lastSearchTerm.value === searchValue.value) {
 		queryData.value = rawQueryData.value
 	} else {
@@ -264,7 +265,10 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 .input {
 	background: var(--color-input-bg);
 }
-
+.input::-webkit-search-cancel-button {
+	color: white;
+	background: white;
+}
 .input::placeholder {
 	@apply italic;
 	color: var(--color-input-placeholder);

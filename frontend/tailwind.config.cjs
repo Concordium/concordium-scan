@@ -65,7 +65,9 @@ module.exports = {
 		borderColor: {
 				theme: {
 					primary: withHslOpacity('--color-interactive'),
+					selected: withHslOpacity('--color-selected')
 				},
+
 			},
 		extend: {},
 	},
