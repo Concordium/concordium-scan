@@ -7,7 +7,6 @@ using Application.Common.Logging;
 using Application.Database;
 using Application.Import;
 using Application.Import.ConcordiumNode;
-using Application.Persistence;
 using ConcordiumSdk.NodeApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
