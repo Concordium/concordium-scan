@@ -1,5 +1,20 @@
 {
   "projects": {
     "default": "test-97464"
+  },
+  "targets": {
+    "test-97464": {
+      "hosting": {
+        "dev": [
+          "ccscandev"
+        ],
+        "test": [
+          "ccscantest"
+        ],
+        "prod": [
+          "ccscanprod"
+        ]
+      }
+    }
   }
 }

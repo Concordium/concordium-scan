@@ -1,0 +1,20 @@
+parameters:
+  - name: environment
+    type: string
+
+steps:
+  - task: NodeTool@0
+    displayName: 'Install Node.js'
+    inputs:
+      versionSpec: '16.x'
+
+  # Install all dependencies (including devDependencies) for DEV stage
+  # This is to allow this stage running automated quality checks
+  - script: cd frontend && yarn
+    displayName: 'Install dependencies'
+    condition: and(succeeded(), eq('${{ parameters.environment }}', 'dev'))
+
+  # Install non-dev dependencies only (for TEST and PROD stages)
+  - script: cd frontend && yarn install --production
+    displayName: 'Install dependencies'
+    condition: and(succeeded(), ne('${{ parameters.environment }}', 'dev'))

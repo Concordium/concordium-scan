@@ -1,5 +1,28 @@
 import { defineNuxtConfig } from 'nuxt3'
 
+type Environment = 'dev' | 'test' | 'prod'
+type Config = {
+	apiUrl: string
+	wsUrl: string
+}
+
+const ENVIRONMENT = (process.env.ENVIRONMENT as Environment) || 'dev'
+
+const VARS: Record<Environment, Config> = {
+	dev: {
+		apiUrl: 'https://mainnet.dev-api.ccdscan.io/graphql',
+		wsUrl: 'wss://mainnet.dev-api.ccdscan.io/graphql',
+	},
+	test: {
+		apiUrl: 'https://mainnet.test-api.ccdscan.io/graphql',
+		wsUrl: 'wss://mainnet.test-api.ccdscan.io/graphql',
+	},
+	prod: {
+		apiUrl: 'https://mainnet.api.ccdscan.io/graphql/',
+		wsUrl: 'wss://mainnet.api.ccdscan.io/graphql',
+	},
+}
+
 export default defineNuxtConfig({
 	srcDir: 'src/',
 	components: [
@@ -12,8 +35,7 @@ export default defineNuxtConfig({
 		'~/components/BlockDetails',
 	],
 	publicRuntimeConfig: {
-		apiUrl: 'https://mainnet.dev-api.ccdscan.io/graphql',
-		wsUrl: 'wss://mainnet.dev-api.ccdscan.io/graphql',
+		...VARS[ENVIRONMENT],
 		includeDevTools: true,
 	},
 	nitro: {

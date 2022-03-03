@@ -1,0 +1,43 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - "backend/*"
+
+resources:
+  - repo: self
+
+variables:
+  # Agent VM image name
+  vmImageName: "windows-latest"
+  backend.image.name: "backend"
+
+stages:
+  - stage: BuildBackend
+    displayName: Build Backend
+    dependsOn: []
+    jobs:
+      - job: Build
+        displayName: Build
+        steps:
+          - task: Docker@2
+            displayName: "Build image"
+            inputs:
+              repository: "$(backend.image.name)"
+              command: "build"
+              Dockerfile: "$(Build.SourcesDirectory)/backend/Dockerfile"
+              tags: $(Build.BuildNumber)
+          - task: Docker@2
+            displayName: "Save image to TAR"
+            inputs:
+              repository: "$(backend.image.name)"
+              command: save
+              arguments: "--output $(build.artifactstagingdirectory)/$(backend.image.name).image.tar $(backend.image.name):$(Build.BuildNumber)"
+              addPipelineData: false
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish image as build artifact"
+            inputs:
+              path: $(build.artifactstagingdirectory)/$(backend.image.name).image.tar
+              artifact: BackendContainerImage

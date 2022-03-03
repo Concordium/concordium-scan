@@ -1,11 +1,8 @@
 {
-  "functions": { "source": "server" },
-  "hosting": [
-    {
-      "site": "SITE_ID_INSERTION_BY_RELEASEPIPE",
-      "public": "public",
-      "cleanUrls": true,
-      "rewrites": [{ "source": "**", "function": "server" }]
-    }
-  ]
+	"functions": { "source": ".output/server" },
+	"hosting": {
+		"public": ".output/public",
+		"cleanUrls": true,
+		"rewrites": [{ "source": "**", "function": "server" }]
+	}
 }

@@ -28,7 +28,7 @@ Some times, you might want to run the build on a local emulated Firebase server.
 yarn global add firebase-tools
 ```
 
-When building locally, you also need to modify the local Firebase config (`firebase.json`) so the `public` path is `".output/public"`, as the build target will differ from when the app is built in CI. You're now ready to build and serve the app.
+You're now ready to build and serve the app.
 
 ```sh
 yarn build
@@ -36,6 +36,16 @@ firebase emulators:start
 ```
 
 The app itself will now run on [http://localhost:5000](http://localhost:5000), while the Firebase Emulator UI can be seen on [http://localhost:5000](http://localhost:5000).
+
+## Deployment
+
+The app is currently hosted in [Firebase](https://console.firebase.google.com/), in three different projects (one for each environment). This is the suggested way to do it, because each environment needs its own server (as Nuxt3 does not currently support static builds).
+
+Currently, the app is automatically deployed to DEV and TEST in true CD fashion on any change to `main` (pending successful quality checks). PROD deployment currently requires manual approval, although this is subject to change when we have more automated quality control in place. You can see [the entire CI/CD pipeline](https://dev.azure.com/fintechbuilders/ConcordiumScan/_build?definitionId=15) in Azure.
+
+Please note that the pipeline itself has a single secret variable for the Firebase token.
+
+The pipeline configuration itself can be seen in [azure-pipelines-frontend.yml](devops/azure-pipelines-frontend.yml).
 
 ## Quality control
 
