@@ -264,6 +264,7 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 <style module>
 .input {
 	background: var(--color-input-bg);
+	-webkit-appearance: none;
 }
 .input::-webkit-search-cancel-button {
 	-webkit-appearance: none;
