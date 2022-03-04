@@ -225,8 +225,14 @@ const subscriptionHandler = (
 	}
 }
 
-useBlockSubscription(subscriptionHandler)
-
+const { pause: pauseSubscription, resume: resumeSubscription } =
+	useBlockSubscription(subscriptionHandler)
+onMounted(() => {
+	resumeSubscription()
+})
+onUnmounted(() => {
+	pauseSubscription()
+})
 const blocks = ref<Block[]>([])
 const transactions = ref<Transaction[]>([])
 

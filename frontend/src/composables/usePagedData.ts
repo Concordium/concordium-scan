@@ -36,10 +36,10 @@ export const usePagedData = <PageData>(initialData: PageData[] = []) => {
 			before.value = topCursor.value
 		} else {
 			intention.value = 'fetchNew'
-			first.value = newItems
-			last.value = undefined
+			first.value = undefined
+			last.value = newItems
 			after.value = undefined
-			before.value = undefined
+			before.value = topCursor.value
 		}
 	}
 

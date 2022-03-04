@@ -133,13 +133,19 @@ const subscriptionHandler = (
 	newItems.value++
 }
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
-useBlockSubscription(subscriptionHandler)
+const { pause: pauseSubscription, resume: resumeSubscription } =
+	useBlockSubscription(subscriptionHandler)
 
 const refetch = () => {
 	fetchNew(newItems.value)
 	newItems.value = 0
 }
-
+onMounted(() => {
+	resumeSubscription()
+})
+onUnmounted(() => {
+	pauseSubscription()
+})
 const { data } = useBlockListQuery({
 	first,
 	last,

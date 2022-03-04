@@ -152,8 +152,14 @@ const subscriptionHandler = (
 	newItems.value += newData.blockAdded.transactionCount
 }
 
-useBlockSubscription(subscriptionHandler)
-
+const { pause: pauseSubscription, resume: resumeSubscription } =
+	useBlockSubscription(subscriptionHandler)
+onMounted(() => {
+	resumeSubscription()
+})
+onUnmounted(() => {
+	pauseSubscription()
+})
 const refetch = () => {
 	fetchNew(newItems.value)
 	newItems.value = 0

@@ -53,12 +53,13 @@ const BlockSubscription = gql<BlockSubscriptionResponse>`
 export const useBlockSubscription = (
 	handleFunction: BlockSubscriptionHandler<BlockSubscriptionResponse, void>
 ) => {
-	const { data } = useSubscription(
+	const { data, pause, resume } = useSubscription(
 		{
 			query: BlockSubscription,
+			pause: true,
 		},
 		handleFunction
 	)
 
-	return { data }
+	return { data, pause, resume }
 }
