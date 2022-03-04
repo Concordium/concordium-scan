@@ -1,8 +1,9 @@
 <template>
 	<div>
 		<Title>CCDScan | Blocks</Title>
-		<div class="block lg:grid grid-cols-2 mb-20 gap-4">
-			<div class="w-full">
+		<!--<div class="block lg:grid grid-cols-2 mb-20 gap-4">-->
+		<FtbCarousel>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
 					:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
@@ -18,8 +19,8 @@
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
-			</div>
-			<div class="w-full">
+			</CarouselSlide>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
 					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
@@ -41,8 +42,9 @@
 					<template #unit>s</template>
 					<template #chip>average</template>
 				</KeyValueChartCard>
-			</div>
-		</div>
+			</CarouselSlide>
+		</FtbCarousel>
+		<!--</div>-->
 		<Table>
 			<TableHead>
 				<TableRow>
@@ -114,6 +116,8 @@ import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod } from '~/types/generated'
 import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
+import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
+import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 
 const {
 	pagedData,

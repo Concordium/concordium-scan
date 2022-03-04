@@ -1,8 +1,8 @@
 ﻿<template>
 	<div>
 		<Title>CCDScan | Dashboard</Title>
-		<div class="block lg:grid grid-cols-4 mb-20 gap-4">
-			<div class="w-full">
+		<FtbCarousel>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
 					:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
@@ -18,8 +18,8 @@
 					}}</template>
 					<template #chip>latest</template>
 				</KeyValueChartCard>
-			</div>
-			<div class="w-full">
+			</CarouselSlide>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
 					:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
@@ -41,8 +41,8 @@
 					<template #unit>s</template>
 					<template #chip>average</template>
 				</KeyValueChartCard>
-			</div>
-			<div class="w-full">
+			</CarouselSlide>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="
 						transactionMetricsData?.transactionMetrics?.buckets?.x_Time
@@ -67,8 +67,8 @@
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
-			</div>
-			<div class="w-full">
+			</CarouselSlide>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
 					:y-values="
@@ -88,8 +88,8 @@
 						formatNumber(accountMetricsData?.accountsMetrics?.accountsCreated)
 					}}</template>
 				</KeyValueChartCard>
-			</div>
-		</div>
+			</CarouselSlide>
+		</FtbCarousel>
 		<section class="flex flex-wrap gap-16">
 			<article class="max-w-full flex flex-col flex-1 mb-12">
 				<header class="flex justify-between items-center mb-4">
@@ -208,7 +208,7 @@ import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
-
+import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 const pageSize = 10
 
 const subscriptionHandler = (

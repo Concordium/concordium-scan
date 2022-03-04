@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;700&family=Overpass:wght@400;700&display=swap');
 
+@import 'vue3-carousel/dist/carousel.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

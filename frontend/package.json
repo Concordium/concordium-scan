@@ -31,7 +31,8 @@
 		"nuxt3": "^3.0.0-27356801.e9128f3",
 		"subscriptions-transport-ws": "^0.11.0",
 		"tailwindcss": "^2.2.19",
-		"vue": "^3.2.26"
+		"vue": "^3.2.26",
+		"vue3-carousel": "^0.1.36"
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "^7.16.0",

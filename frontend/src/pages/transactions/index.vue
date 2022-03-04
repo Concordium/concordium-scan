@@ -1,8 +1,8 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
-		<div class="block lg:grid grid-cols-2 mb-20 gap-4">
-			<div class="w-full">
+		<FtbCarousel>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
 					:bucket-width="metricsData?.transactionMetrics?.buckets?.bucketWidth"
@@ -23,8 +23,8 @@
 					}}</template>
 					<template #chip>latest</template>
 				</KeyValueChartCard>
-			</div>
-			<div class="w-full">
+			</CarouselSlide>
+			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
 					:bucket-width="metricsData?.transactionMetrics?.buckets?.bucketWidth"
@@ -42,8 +42,8 @@
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
-			</div>
-		</div>
+			</CarouselSlide>
+		</FtbCarousel>
 		<Table>
 			<TableHead>
 				<TableRow>
