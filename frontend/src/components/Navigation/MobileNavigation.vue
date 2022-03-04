@@ -2,7 +2,6 @@
 	<div class="md:hidden">
 		<button
 			type="button"
-			class="md:hidden"
 			aria-label="Open navigation"
 			@click="() => (isNavigationOpen = true)"
 		>
