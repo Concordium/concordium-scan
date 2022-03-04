@@ -257,7 +257,9 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 		rootSearchContainer.value.contains(x.relatedTarget)
 	)
 		return
-	searchValue.value = ''
+	setTimeout(() => {
+		searchValue.value = ''
+	}, 100)
 }
 </script>
 
