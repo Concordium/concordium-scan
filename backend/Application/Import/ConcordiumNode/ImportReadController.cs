@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Common;
 using Application.Common.FeatureFlags;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
@@ -40,15 +39,8 @@ public class ImportReadController : BackgroundService
             _logger.Information("Awaiting initial import state...");
             var initialState = await _channel.GetInitialImportStateAsync();
 
-            await Policy
-                .Handle<RpcException>()
-                .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnEnsurePreconditionRetry)
-                .ExecuteAsync(() => EnsurePreconditions(initialState));
-
-            await Policy
-                .Handle<RpcException>()
-                .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), OnImportDataRetry)
-                .ExecuteAsync(() => ImportData(initialState, stoppingToken));
+            await EnsurePreconditions(initialState, stoppingToken);
+            await ImportData(initialState, stoppingToken);
         }
         finally
         {
@@ -63,7 +55,7 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consensusStatus = await _client.GetConsensusStatusAsync();
+            var consensusStatus = await GetWithGrpcRetryAsync(_client.GetConsensusStatusAsync, "GetConsensusStatus", stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
@@ -90,34 +82,34 @@ public class ImportReadController : BackgroundService
         for (var blockHeight = startBlockHeight; blockHeight <= endBlockHeight; blockHeight++)
         {
             stoppingToken.ThrowIfCancellationRequested();
-            var readFromNodeTask = ReadBlockDataPayload(blockHeight);
+            var readFromNodeTask = ReadBlockDataPayload(blockHeight, stoppingToken);
             await _channel.Writer.WriteAsync(readFromNodeTask, stoppingToken);
         }
     }
 
-    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight)
+    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, CancellationToken stoppingToken)
     {
         var sw = Stopwatch.StartNew();
 
-        var blocksAtHeight = await _client.GetBlocksAtHeightAsync((ulong)blockHeight);
+        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight), "GetBlocksAtHeight", stoppingToken);
         if (blocksAtHeight.Length != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
         var blockHash = blocksAtHeight.Single();
 
-        var blockInfoTask = _client.GetBlockInfoAsync(blockHash);
-        var blockSummaryTask = _client.GetBlockSummaryAsync(blockHash);
-        var rewardStatusTask = _client.GetRewardStatusAsync(blockHash);
+        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash), "GetBlockInfo", stoppingToken);
+        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash), "GetBlockSummary", stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash), "GetRewardStatus", stoppingToken);
 
         var blockInfo = await blockInfoTask;
         var blockSummary = await blockSummaryTask;
         var rewardStatus = await rewardStatusTask;
 
-        var createdAccounts = await GetCreatedAccounts(blockInfo, blockSummary);
+        var createdAccounts = await GetWithGrpcRetryAsync(() => GetCreatedAccountsAsync(blockInfo, blockSummary), "GetCreatedAccounts", stoppingToken);
 
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var genesisIdentityProviders = await _client.GetIdentityProvidersAsync(blockHash);
+            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash), "GetIdentityProviders", stoppingToken);
 
             payload = new GenesisBlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus,
                 genesisIdentityProviders);
@@ -128,12 +120,10 @@ public class ImportReadController : BackgroundService
         }
 
         var readDuration = sw.Elapsed;
-        // _logger.Information("Data read for block {blockhash} at block height {blockheight} from node in {readDuration}ms",
-        //     blockHash.AsString, blockHeight, readDuration);
         return new BlockDataEnvelope(payload, readDuration);
     }
 
-    private async Task<AccountInfo[]> GetCreatedAccounts(BlockInfo blockInfo, BlockSummary blockSummary)
+    private async Task<AccountInfo[]> GetCreatedAccountsAsync(BlockInfo blockInfo, BlockSummary blockSummary)
     {
         if (blockInfo.BlockHeight == 0)
         {
@@ -160,7 +150,7 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private async Task EnsurePreconditions(ImportState initialState)
+    private async Task EnsurePreconditions(ImportState initialState, CancellationToken stoppingToken)
     {
         _logger.Information("Checking preconditions for importing data from Concordium node...");
         
@@ -172,7 +162,7 @@ public class ImportReadController : BackgroundService
                 "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
                 importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
 
-            var consensusStatus = await _client.GetConsensusStatusAsync();
+            var consensusStatus = await GetWithGrpcRetryAsync(_client.GetConsensusStatusAsync, "GetConsensusStatus", stoppingToken);
             var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
             _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
                 consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
@@ -185,15 +175,24 @@ public class ImportReadController : BackgroundService
             _logger.Information("Database does not contain genesis blocks hash. No data was previously imported.");
     }
 
-    private void OnEnsurePreconditionRetry(Exception exception, TimeSpan ts)
+    private async Task<T> GetWithGrpcRetryAsync<T>(Func<Task<T>> func, string operationName, CancellationToken stoppingToken)
     {
-        var message = exception is RpcException rpcException ? $"{rpcException.Status.StatusCode}: {rpcException.Status.Detail}" : exception.Message;
-        _logger.Error("Error while ensuring preconditions for data import. Will retry shortly! [message={errorMessage}] [exception-type={exceptionType}]",  message, exception.GetType());
+        var policyResult = await Policy
+            .Handle<RpcException>()
+            .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), (exception, span) => OnGetRetry(exception, operationName))
+            .ExecuteAndCaptureAsync(_ => func(), stoppingToken);
+
+        if (policyResult.Outcome == OutcomeType.Successful)
+            return policyResult.Result;
+        
+        stoppingToken.ThrowIfCancellationRequested();
+
+        throw new ApplicationException($"An unexpected exception occurred during operation '{operationName}'", policyResult.FinalException);
     }
 
-    private void OnImportDataRetry(Exception exception, TimeSpan ts)
+    private void OnGetRetry(Exception exception, string operationName)
     {
         var message = exception is RpcException rpcException ? $"{rpcException.Status.StatusCode}: {rpcException.Status.Detail}" : exception.Message;
-        _logger.Error("Error while importing data. Will wait a while and then start import again! [message={errorMessage}] [exception-type={exceptionType}]",  message, exception.GetType());
+        _logger.Error("Error while executing operation '{operationName}. Will wait a while and then try again! [message={errorMessage}] [exception-type={exceptionType}]", operationName, message, exception.GetType());
     }
 }
