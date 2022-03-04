@@ -11,11 +11,11 @@
 		<transition name="drawer">
 			<section v-if="isOpen" :class="$style.drawer">
 				<button
-					:class="$style.closeButton"
+					class="rounded fixed right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
 					aria-label="Close"
 					@click="props.onClose"
 				>
-					<XIcon :class="$style.closeIcon" />
+					<XIcon class="h-6" />
 				</button>
 
 				<div>
@@ -78,13 +78,6 @@ const toggleClasses = (isOpen: boolean) => {
 	@apply h-screen w-screen fixed top-0 left-0 z-10;
 	background: hsla(247, 40%, 4%, 0.5);
 	backdrop-filter: blur(2px);
-}
-
-.closeButton {
-	@apply rounded fixed right-5 top-5 z-10 p-2 hover:bg-theme-button-primary-hover transition-colors;
-}
-.closeIcon {
-	@apply h-6;
 }
 </style>
 
