@@ -37,18 +37,20 @@
 					/>
 				</template>
 			</Accordion>
-			<Accordion v-if="props.block?.transactionCount > 0">
+			<Accordion>
 				Transactions
 				<span class="text-theme-faded ml-1">
 					({{ props.block?.transactionCount }})
 				</span>
 				<template #content>
 					<BlockDetailsTransactions
+						v-if="props.block?.transactionCount > 0"
 						:transactions="props.block?.transactions.nodes"
 						:total-count="props.block?.transactionCount"
 						:page-info="props.block.transactions?.pageInfo"
 						:go-to-page="props.goToPage"
 					/>
+					<div class="p-4">No transactions</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
