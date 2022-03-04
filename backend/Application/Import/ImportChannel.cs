@@ -7,21 +7,23 @@ namespace Application.Import;
 
 public class ImportChannel
 {
-    private readonly Channel<BlockDataEnvelope> _channel;
+    private readonly Channel<Task<BlockDataEnvelope>> _channel;
     private readonly TaskCompletionSource<ImportState> _importStateTaskCompletionSource;
 
     public ImportChannel()
     {
-        var options = new BoundedChannelOptions(30)
+        // The capacity controls the level of parallelism in the import from the concordium node
+        // Currently set to 8, which is cc-node-threads X 2.
+        var options = new BoundedChannelOptions(8)
         {
             FullMode = BoundedChannelFullMode.Wait
         };
-        _channel = Channel.CreateBounded<BlockDataEnvelope>(options);
+        _channel = Channel.CreateBounded<Task<BlockDataEnvelope>>(options);
         _importStateTaskCompletionSource = new TaskCompletionSource<ImportState>();
     }
 
-    public ChannelWriter<BlockDataEnvelope> Writer => _channel.Writer;
-    public ChannelReader<BlockDataEnvelope> Reader => _channel.Reader;
+    public ChannelWriter<Task<BlockDataEnvelope>> Writer => _channel.Writer;
+    public ChannelReader<Task<BlockDataEnvelope>> Reader => _channel.Reader;
 
     public void SetInitialImportState(ImportState importState)
     {

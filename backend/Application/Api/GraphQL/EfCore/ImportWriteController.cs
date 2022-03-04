@@ -53,10 +53,11 @@ public class ImportWriteController : BackgroundService
         {
             await ReadAndPublishInitialState();
 
-            await foreach (var envelope in _channel.Reader.ReadAllAsync(stoppingToken))
+            await foreach (var readFromNodeTask in _channel.Reader.ReadAllAsync(stoppingToken))
             {
+                var envelope = await readFromNodeTask;
                 stoppingToken.ThrowIfCancellationRequested();
-
+                
                 var sw = Stopwatch.StartNew();
                 var block = await WriteData(envelope.Payload);
 

@@ -77,6 +77,7 @@ docker run -td \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token}  \
  -e CONCORDIUM_NODE_LISTEN_PORT=8888 \
+ -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
  -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-mainnet:3.0.1-0
@@ -92,6 +93,7 @@ docker run -td  \
  -e CONCORDIUM_NODE_RPC_SERVER_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_LISTEN_PORT=18888 \
+ -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
  -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.testnet:/var/lib/concordium/data \
  ccscan.azurecr.io/ccnode-testnet:3.0.1-0
