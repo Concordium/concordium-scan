@@ -37,7 +37,7 @@
 					/>
 				</template>
 			</Accordion>
-			<Accordion>
+			<Accordion v-if="props.block?.transactionCount > 0">
 				Transactions
 				<span class="text-theme-faded ml-1">
 					({{ props.block?.transactionCount }})

@@ -15,14 +15,11 @@
 			</div>
 			<Accordion>
 				Transactions
-				<!--<span class="text-theme-faded ml-1">
-					({{ props.account?.trans }})
-				</span>-->
 				<template #content>
 					<AccountDetailsTransactions
-						:transactions="props.account?.transactions.nodes"
-						:total-count="props.account?.transactions.nodes.length"
-						:page-info="props.account.transactions?.pageInfo"
+						:transactions="props.account?.transactions?.nodes"
+						:total-count="props.account?.transactions?.nodes.length"
+						:page-info="props.account?.transactions?.pageInfo"
 						:go-to-page="props.goToPage"
 					/>
 				</template>
