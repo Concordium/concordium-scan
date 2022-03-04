@@ -165,7 +165,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
 # This needs to be done manually by running apply with -replace:
 # terraform apply -replace="azurerm_linux_virtual_machine.vm"
 resource "azurerm_managed_disk" "vm_data" {
-  name                 = "vm_disk_data_${azurerm_linux_virtual_machine.vm.virtual_machine_id}"
+  name                 = "vm_disk_data"
   location             = azurerm_resource_group.this.location
   resource_group_name  = azurerm_resource_group.this.name
   storage_account_type = "Premium_LRS"
