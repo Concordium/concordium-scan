@@ -87,7 +87,7 @@ public class ImportReadController : BackgroundService
 
     private async Task ImportBatch(long startBlockHeight, long endBlockHeight, CancellationToken stoppingToken)
     {
-        const int numberOfParallelTasks = 5;
+        const int numberOfParallelTasks = 10;
         
         IEnumerable<long> range = new RangeOfLong(startBlockHeight, endBlockHeight);
         var hasMore = true;

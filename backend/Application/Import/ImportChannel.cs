@@ -12,7 +12,7 @@ public class ImportChannel
 
     public ImportChannel()
     {
-        var options = new BoundedChannelOptions(10)
+        var options = new BoundedChannelOptions(30)
         {
             FullMode = BoundedChannelFullMode.Wait
         };
