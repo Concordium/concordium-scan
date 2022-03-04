@@ -32,7 +32,10 @@ const updateSize = () => {
 
 <style>
 .carousel__pagination-button {
-	background-color: hsla(var(--color-interactive), 20%);
+	background-color: hsla(var(--color-interactive), 40%);
+	width: 10px;
+	height: 10px;
+	border-radius: 100%;
 }
 .carousel__pagination-button--active {
 	background-color: hsl(var(--color-interactive));
