@@ -14,7 +14,7 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 md:left-auto absolute border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-10"
+			class="left-0 md:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-10"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
