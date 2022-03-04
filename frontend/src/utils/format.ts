@@ -67,15 +67,16 @@ export const convertMicroCcdToCcd = (amount = 0): string =>
 	)
 
 /**
- * Converts microCCD to CCD with fixed decimals
- * @param {number} number - Value in microCCD
- * @returns {string} - Value in CCD
+ * Formats a number to browser locale (with thousand separators and decimal)
+ * @param {number} number - Any number
+ * @returns {string} - Formatted number
  * @example
- * // returns 0.001337
- * convertMicroCcdToCcd(1337);
+ * // in en-US (standard)
+ * // returns 1,337.42
+ * convertMicroCcdToCcd(1337.42);
  */
-export const formatNumber = (amount = 0): string =>
-	new Intl.NumberFormat().format(amount)
+export const formatNumber = (num = 0): string =>
+	new Intl.NumberFormat().format(num)
 
 /**
  * Calculates and formats weight of total in percentage
