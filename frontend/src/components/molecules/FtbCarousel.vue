@@ -3,7 +3,7 @@
 		<div v-if="!isMobile" class="block grid grid-cols-2 mb-20 gap-4">
 			<slot></slot>
 		</div>
-		<carousel v-if="isMobile" :items-to-show="1">
+		<carousel v-else :items-to-show="1">
 			<template #addons>
 				<pagination />
 			</template>
