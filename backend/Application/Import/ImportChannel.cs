@@ -13,8 +13,8 @@ public class ImportChannel
     public ImportChannel()
     {
         // The capacity controls the level of parallelism in the import from the concordium node
-        // Currently set to 8, which is cc-node-threads X 2.
-        var options = new BoundedChannelOptions(8)
+        // Currently set to 8, which is cc-node-threads X 1.5
+        var options = new BoundedChannelOptions(6)
         {
             FullMode = BoundedChannelFullMode.Wait
         };
