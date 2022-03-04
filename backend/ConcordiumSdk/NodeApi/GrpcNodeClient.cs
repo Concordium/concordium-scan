@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Concordium;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -244,6 +245,33 @@ public class GrpcNodeClient : INodeClient, IDisposable
         var call = _client.GetIdentityProvidersAsync(request, CreateCallOptions());
         var response = await call;
         var result = JsonSerializer.Deserialize<IdentityProviderInfo[]>(response.Value, _jsonSerializerOptions);
+        if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
+        return result;
+    }
+
+    public async Task<ContractAddress[]> GetInstancesAsync(BlockHash blockHash)
+    {
+        var request = new Concordium.BlockHash
+        {
+            BlockHash_ = blockHash.AsString
+        };
+        var call = _client.GetInstancesAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<ContractAddress[]>(response.Value, _jsonSerializerOptions);
+        if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
+        return result;
+    }
+    
+    public async Task<ContractInstanceInfo> GetInstanceInfoAsync(ContractAddress contractAddress, BlockHash blockHash)
+    {
+        var request = new GetAddressInfoRequest
+        {
+            Address = JsonSerializer.Serialize(contractAddress, _jsonSerializerOptions),
+            BlockHash = blockHash.AsString 
+        };
+        var call = _client.GetInstanceInfoAsync(request, CreateCallOptions());
+        var response = await call;
+        var result = JsonSerializer.Deserialize<ContractInstanceInfo>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
     }

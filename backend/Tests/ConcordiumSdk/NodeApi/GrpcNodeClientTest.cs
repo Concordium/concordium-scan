@@ -5,6 +5,7 @@ using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
+using Xunit.Abstractions;
 
 namespace Tests.ConcordiumSdk.NodeApi;
 
@@ -15,11 +16,13 @@ namespace Tests.ConcordiumSdk.NodeApi;
 /// </summary>
 public class GrpcNodeClientTest : IDisposable
 {
+    private readonly ITestOutputHelper _outputHelper;
     private readonly HttpClient _httpClient;
     private readonly GrpcNodeClient _target;
 
-    public GrpcNodeClientTest()
+    public GrpcNodeClientTest(ITestOutputHelper outputHelper)
     {
+        _outputHelper = outputHelper;
         _httpClient = new HttpClient();
         var grpcNodeClientSettings = new GrpcNodeClientSettings()
         {
@@ -114,5 +117,22 @@ public class GrpcNodeClientTest : IDisposable
             await using var connection = databaseFixture.GetOpenConnection();
             await connection.ExecuteAsync("insert into raw_account_harvest (data, harvest_name) values (CAST(@Data AS json), @HarvestName)", param);
         }
+    }
+
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetInstancesAsync()
+    {
+        var blockHash = new BlockHash("994bbe734c8bf62f8aa2502e1ddb5bdf8abc997e5456d7f3347ece8864b54d3b");
+        var contractAddresses = await _target.GetInstancesAsync(blockHash);
+        contractAddresses.Should().NotBeNullOrEmpty();
+    }
+    
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetInstanceInfoAsync()
+    {
+        var blockHash = new BlockHash("994bbe734c8bf62f8aa2502e1ddb5bdf8abc997e5456d7f3347ece8864b54d3b");
+        var contractAddresses = await _target.GetInstancesAsync(blockHash);
+        var contractInfo = await _target.GetInstanceInfoAsync(contractAddresses.First(), blockHash);
+        contractInfo.Should().NotBeNull();
     }
 }
