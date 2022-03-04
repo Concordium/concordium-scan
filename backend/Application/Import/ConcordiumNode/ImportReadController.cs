@@ -87,7 +87,7 @@ public class ImportReadController : BackgroundService
 
     private async Task ImportBatch(long startBlockHeight, long endBlockHeight, CancellationToken stoppingToken)
     {
-        const int numberOfParallelTasks = 10;
+        const int numberOfParallelBlockImports = 5;
         
         IEnumerable<long> range = new RangeOfLong(startBlockHeight, endBlockHeight);
         var hasMore = true;
@@ -95,7 +95,7 @@ public class ImportReadController : BackgroundService
         {
             stoppingToken.ThrowIfCancellationRequested();
             
-            var blockHeights = range.Take(numberOfParallelTasks).ToArray();
+            var blockHeights = range.Take(numberOfParallelBlockImports).ToArray();
             if (blockHeights.Length > 0)
             {
                 var readTasks = blockHeights
@@ -108,7 +108,7 @@ public class ImportReadController : BackgroundService
                     await _channel.Writer.WriteAsync(payload, stoppingToken);
                 }
                 
-                range = range.Skip(numberOfParallelTasks);
+                range = range.Skip(numberOfParallelBlockImports);
             }
             else hasMore = false;
         }
