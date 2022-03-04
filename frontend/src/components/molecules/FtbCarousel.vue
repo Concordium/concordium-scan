@@ -30,4 +30,11 @@ const updateSize = () => {
 }
 </script>
 
-<style module></style>
+<style>
+.carousel__pagination-button {
+	background-color: hsla(var(--color-interactive), 20%);
+}
+.carousel__pagination-button--active {
+	background-color: hsl(var(--color-interactive));
+}
+</style>
