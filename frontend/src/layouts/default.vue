@@ -4,7 +4,7 @@
 		<Link rel="icon" href="/favicon.svg" />
 
 		<DrawerContainer />
-		<div id="app" class="bg-theme-background-primary max-w-screen min-h-screen">
+		<div id="app" class="bg-theme-background-primary w-screen min-h-screen">
 			<ClientOnly>
 				<PageHeader />
 			</ClientOnly>

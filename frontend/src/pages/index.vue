@@ -88,12 +88,12 @@
 				</KeyValueChartCard>
 			</div>
 		</div>
-		<section class="flex flex-wrap gap-10">
-			<article class="flex flex-col flex-1 mb-12">
+		<section class="flex flex-wrap gap-16">
+			<article class="max-w-full flex flex-col flex-1 mb-12">
 				<header class="flex justify-between items-center mb-4">
 					<h1 class="text-xl">Latest blocks</h1>
 					<NuxtLink to="/blocks">
-						<Button>Show all blocks</Button>
+						<Button title="Show all blocks">Show all</Button>
 					</NuxtLink>
 				</header>
 				<Table>
@@ -139,11 +139,11 @@
 				</Table>
 			</article>
 
-			<article class="flex flex-col flex-1 mb-12">
+			<article class="max-w-full flex flex-col flex-1 mb-12">
 				<header class="flex justify-between items-center mb-4">
 					<h1 class="text-xl">Latest transactions</h1>
 					<NuxtLink to="/transactions">
-						<Button>Show all transactions</Button>
+						<Button title="Show all transactions">Show all</Button>
 					</NuxtLink>
 				</header>
 				<Table>
