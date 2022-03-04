@@ -47,7 +47,11 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
+		<Pagination
+			v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
+			:page-info="pageInfo"
+			:go-to-page="goToPage"
+		/>
 	</div>
 </template>
 
