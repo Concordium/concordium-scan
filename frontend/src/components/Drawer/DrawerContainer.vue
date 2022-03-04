@@ -6,6 +6,7 @@
 			!!currentTopItem?.address
 		"
 		:on-close="() => softReset()"
+		class="relative"
 	>
 		<template #content>
 			<BlockDetailsContainer
@@ -37,6 +38,8 @@
 import { useDrawer } from '~/composables/useDrawer'
 import Drawer from '~/components/Drawer/Drawer.vue'
 import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContainer.vue'
+import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
+import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 const { softReset } = useDrawer()
 const { currentTopItem } = useDrawer()
 </script>
