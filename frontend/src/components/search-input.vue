@@ -162,7 +162,7 @@
 				</div>
 			</div>
 		</div>
-		<div :class="$style.button">
+		<div class="hidden md:block" :class="$style.button">
 			<SearchIcon class="h-6 md:h-5" />
 		</div>
 	</div>

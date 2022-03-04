@@ -1,5 +1,5 @@
 <template>
-	<header :class="$style.drawerTitle">
+	<header class="z-10" :class="$style.drawerTitle">
 		<slot />
 	</header>
 </template>

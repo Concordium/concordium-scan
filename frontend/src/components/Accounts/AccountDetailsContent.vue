@@ -2,7 +2,7 @@
 	<div>
 		<AccountDetailsHeader v-if="props.account" :account="props.account" />
 		<DrawerContent v-if="props.account">
-			<div class="grid gap-6 grid-cols-2 mb-16">
+			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard v-if="props.account?.createdAt">
 					<template #title>Created At</template>
 					<template #default>
@@ -43,17 +43,3 @@ type Props = {
 
 const props = defineProps<Props>()
 </script>
-
-<style module>
-.statusIcon {
-	@apply h-4 mr-2 text-theme-interactive;
-}
-.cellIcon {
-	@apply h-4 text-theme-white inline align-baseline;
-}
-
-.numerical {
-	@apply font-mono;
-	font-variant-ligatures: none;
-}
-</style>

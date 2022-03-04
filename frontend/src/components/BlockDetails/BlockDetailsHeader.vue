@@ -4,21 +4,12 @@
 
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">Block</h3>
-			<h1
-				v-if="$route.name != 'blocks-blockHash'"
-				class="inline-block text-2xl"
-				:class="$style.title"
-			>
-				<div class="numerical truncate w-full">
-					{{ block.blockHash }}
-				</div>
-			</h1>
-			<h1 v-else class="inline-block text-2xl" :class="$style.title">
-				<span class="numerical truncate inline-block w-full">
-					{{ block.blockHash }}
-				</span>
-			</h1>
-			<div>
+			<div class="w-full flex items-center justify-items-stretch">
+				<h1 class="inline-block text-2xl" :class="$style.title">
+					<div class="numerical truncate w-full">
+						{{ block.blockHash }}
+					</div>
+				</h1>
 				<TextCopy
 					:text="block.blockHash"
 					label="Click to copy block hash to clipboard"
@@ -49,6 +40,6 @@ defineProps<Props>()
 
 <style module>
 .title {
-	max-width: calc(100% - 200px);
+	max-width: calc(100% - 160px);
 }
 </style>

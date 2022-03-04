@@ -5,7 +5,7 @@
 			:transaction="props.transaction"
 		/>
 		<DrawerContent v-if="props.transaction">
-			<div class="grid gap-6 grid-cols-2 mb-16">
+			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard>
 					<template #title>Block height / block hash</template>
 					<template #default>
@@ -108,17 +108,3 @@ watch(route, _to => {
 	selectedTxId.value = ''
 })
 </script>
-
-<style module>
-.statusIcon {
-	@apply h-4 mr-2 text-theme-interactive;
-}
-.cellIcon {
-	@apply h-4 text-theme-white inline align-baseline;
-}
-
-.numerical {
-	@apply font-mono;
-	font-variant-ligatures: none;
-}
-</style>

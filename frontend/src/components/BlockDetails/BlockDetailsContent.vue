@@ -2,7 +2,7 @@
 	<div>
 		<BlockDetailsHeader v-if="props.block" :block="props.block" />
 		<DrawerContent v-if="props.block">
-			<div class="grid gap-6 grid-cols-2 mb-16">
+			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard v-if="props.block?.blockSlotTime">
 					<template #title>Timestamp</template>
 					<template #default>
@@ -80,14 +80,3 @@ const props = defineProps<Props>()
 
 const NOW = new Date()
 </script>
-
-<style module>
-.numerical {
-	@apply font-mono;
-	font-variant-ligatures: none;
-}
-
-.lol {
-	max-width: calc(100% - 150px);
-}
-</style>

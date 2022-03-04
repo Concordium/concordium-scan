@@ -24,7 +24,7 @@
 					</span>
 					Ͼ
 				</dd>
-				<dt class="totalRow">= TOTAL MINTED</dt>
+				<dt class="totalRow">TOTAL</dt>
 				<dd class="totalRow text-right mb-2">
 					<span class="numerical">
 						{{

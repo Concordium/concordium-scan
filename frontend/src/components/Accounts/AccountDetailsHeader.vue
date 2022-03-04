@@ -1,19 +1,22 @@
 ﻿<template>
 	<DrawerTitle class="flex flex-row flex-wrap">
-		<UserIcon class="w-12 h-12 mr-4 none md:block" />
+		<UserIcon class="w-12 h-12 mr-4 hidden md:block" />
+
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">Account</h3>
-			<h1 class="inline-block text-2xl" :class="$style.title">
-				<span class="numerical truncate inline-block w-full">
-					{{ account.address }}
-				</span>
-			</h1>
-			<TextCopy
-				:text="account.address"
-				label="Click to copy account address to clipboard"
-				class="h-5 inline align-baseline mr-3"
-				tooltip-class="font-sans"
-			/>
+			<div class="w-full flex items-center justify-items-stretch">
+				<h1 class="inline-block text-2xl" :class="$style.title">
+					<div class="numerical truncate w-full">
+						{{ account.address }}
+					</div>
+				</h1>
+				<TextCopy
+					:text="account.address"
+					label="Click to copy account address to clipboard"
+					class="h-5 inline align-baseline mr-3"
+					tooltip-class="font-sans"
+				/>
+			</div>
 		</div>
 	</DrawerTitle>
 </template>
@@ -33,6 +36,6 @@ defineProps<Props>()
 
 <style module>
 .title {
-	max-width: calc(100% - 200px);
+	max-width: calc(100% - 40px);
 }
 </style>

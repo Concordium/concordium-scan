@@ -3,7 +3,6 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Status</TableTh>
 					<TableTh>Transaction hash</TableTh>
 					<TableTh>Sender</TableTh>
 					<TableTh align="right">Cost (Ͼ)</TableTh>
@@ -14,7 +13,7 @@
 					v-for="transaction in transactions"
 					:key="transaction.transactionHash"
 				>
-					<TableTd>
+					<TableTd class="numerical">
 						<StatusCircle
 							:class="[
 								'h-4 w-6 mr-2 text-theme-interactive',
@@ -24,13 +23,7 @@
 								},
 							]"
 						/>
-						{{
-							transaction.result.__typename === 'Success'
-								? 'Success'
-								: 'Rejected'
-						}}
-					</TableTd>
-					<TableTd class="numerical">
+
 						<TransactionLink
 							:id="transaction.id"
 							:hash="transaction.transactionHash"
