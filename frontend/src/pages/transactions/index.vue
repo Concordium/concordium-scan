@@ -17,7 +17,9 @@
 					<template #title>Cumulative Transactions</template>
 					<template #icon><TransactionIcon /></template>
 					<template #value>{{
-						metricsData?.transactionMetrics?.lastCumulativeTransactionCount
+						formatNumber(
+							metricsData?.transactionMetrics?.lastCumulativeTransactionCount
+						)
 					}}</template>
 					<template #chip>latest</template>
 				</KeyValueChartCard>
@@ -36,7 +38,7 @@
 					<template #title>Transactions</template>
 					<template #icon><TransactionIcon /></template>
 					<template #value>{{
-						metricsData?.transactionMetrics?.transactionCount
+						formatNumber(metricsData?.transactionMetrics?.transactionCount)
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
@@ -119,6 +121,7 @@
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {
+	formatNumber,
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
 } from '~/utils/format'

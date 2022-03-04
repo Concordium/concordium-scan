@@ -2,6 +2,7 @@ import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 	calculateWeight,
+	formatNumber,
 	shortenHash,
 } from './format'
 
@@ -39,6 +40,12 @@ describe('format', () => {
 
 		it('should default to 0 if no number is provided', () => {
 			expect(convertMicroCcdToCcd(undefined)).toStrictEqual('0.000000')
+		})
+	})
+
+	describe('formatNumber', () => {
+		it('should format a number to use thousand seperators', () => {
+			expect(formatNumber(1_337_666.42)).toStrictEqual('1,337,666.42')
 		})
 	})
 

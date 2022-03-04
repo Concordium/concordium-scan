@@ -14,7 +14,7 @@
 					<template #icon><BlockIcon></BlockIcon></template>
 					<template #title>Blocks added</template>
 					<template #value>{{
-						metricsData?.blockMetrics?.blocksAdded
+						formatNumber(metricsData?.blockMetrics?.blocksAdded)
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
@@ -36,7 +36,7 @@
 					<template #title>Block time</template>
 					<template #icon><StopwatchIcon /></template>
 					<template #value>{{
-						metricsData?.blockMetrics?.avgBlockTime
+						formatNumber(metricsData?.blockMetrics?.avgBlockTime)
 					}}</template>
 					<template #unit>s</template>
 					<template #chip>average</template>
@@ -105,7 +105,7 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { convertTimestampToRelative, formatNumber } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'

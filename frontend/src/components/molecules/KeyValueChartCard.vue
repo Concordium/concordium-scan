@@ -16,7 +16,7 @@
 					<div class="w-6 h-6 mr-2 text-theme-interactive">
 						<slot name="icon"></slot>
 					</div>
-					<div><slot name="value"></slot></div>
+					<div class="numerical"><slot name="value"></slot></div>
 					<div><slot name="unit"></slot></div>
 					<Chip class="self-center"><slot name="chip"></slot></Chip>
 				</div>

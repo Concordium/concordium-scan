@@ -14,7 +14,7 @@
 					<template #icon><BlockIcon></BlockIcon></template>
 					<template #title>Blocks added</template>
 					<template #value>{{
-						blockMetricsData?.blockMetrics?.blocksAdded
+						formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
 					}}</template>
 					<template #chip>latest</template>
 				</KeyValueChartCard>
@@ -61,7 +61,9 @@
 					<template #title>Transactions</template>
 					<template #icon><TransactionIcon /></template>
 					<template #value>{{
-						transactionMetricsData?.transactionMetrics?.transactionCount
+						formatNumber(
+							transactionMetricsData?.transactionMetrics?.transactionCount
+						)
 					}}</template>
 					<template #chip>sum</template>
 				</KeyValueChartCard>
@@ -83,7 +85,7 @@
 					<template #icon></template>
 					<template #chip>sum</template>
 					<template #value>{{
-						accountMetricsData?.accountsMetrics?.accountsCreated
+						formatNumber(accountMetricsData?.accountsMetrics?.accountsCreated)
 					}}</template>
 				</KeyValueChartCard>
 			</div>
@@ -198,7 +200,7 @@ import BlockIcon from '~/components/icons/BlockIcon.vue'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import { convertMicroCcdToCcd, formatNumber } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'

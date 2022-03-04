@@ -18,7 +18,9 @@
 					<template #title>Cumulative Accounts Created</template>
 					<template #icon></template>
 					<template #value>{{
-						metricsData?.accountsMetrics?.lastCumulativeAccountsCreated
+						formatNumber(
+							metricsData?.accountsMetrics?.lastCumulativeAccountsCreated
+						)
 					}}</template>
 					<template #chip>latest</template>
 				</KeyValueChartCard>
@@ -36,7 +38,7 @@
 					<template #icon></template>
 					<template #chip>sum</template>
 					<template #value>{{
-						metricsData?.accountsMetrics?.accountsCreated
+						formatNumber(metricsData?.accountsMetrics?.accountsCreated)
 					}}</template>
 				</KeyValueChartCard>
 			</div>
@@ -85,7 +87,7 @@ import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import type { Account } from '~/types/generated'
-import { convertTimestampToRelative } from '~/utils/format'
+import { convertTimestampToRelative, formatNumber } from '~/utils/format'
 import TransactionLink from '~/components/molecules/TransactionLink.vue'
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<Account>()
