@@ -98,7 +98,10 @@ public class ImportReadController : BackgroundService
             var blockHeights = range.Take(numberOfParallelTasks).ToArray();
             if (blockHeights.Length > 0)
             {
-                var readTasks = blockHeights.Select(ReadBlockDataPayload);
+                var readTasks = blockHeights
+                    .Select(ReadBlockDataPayload)
+                    .ToArray();
+                
                 foreach (var readTask in readTasks)
                 {
                     var payload = await readTask;
