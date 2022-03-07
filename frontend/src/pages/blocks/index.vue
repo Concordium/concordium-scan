@@ -2,7 +2,7 @@
 	<div>
 		<Title>CCDScan | Blocks</Title>
 		<!--<div class="block lg:grid grid-cols-2 mb-20 gap-4">-->
-		<FtbCarousel>
+		<FtbCarousel non-carousel-classes="grid-cols-2">
 			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
@@ -10,7 +10,9 @@
 					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
 				>
 					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
+						><MetricsPeriodDropdown
+							v-model="selectedMetricsPeriod"
+							class="z-20"
 					/></template>
 					<template #icon><BlockIcon></BlockIcon></template>
 					<template #title>Blocks added</template>

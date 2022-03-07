@@ -1,6 +1,10 @@
 ﻿<template>
 	<ClientOnly>
-		<div v-if="!isMobile" class="block grid grid-cols-2 mb-20 gap-4">
+		<div
+			v-if="!isMobile"
+			class="block grid mb-20 gap-4"
+			:class="props.nonCarouselClasses"
+		>
 			<slot></slot>
 		</div>
 		<carousel v-else :items-to-show="1">
@@ -14,20 +18,12 @@
 
 <script lang="ts" setup>
 import { Carousel, Pagination } from 'vue3-carousel'
-const isMobile = ref(false)
-onMounted(() => {
-	window.addEventListener('resize', updateSize)
-	window.addEventListener('orientationchange', updateSize)
-
-	updateSize()
-})
-onUnmounted(() => {
-	window.removeEventListener('resize', updateSize)
-	window.removeEventListener('orientationchange', updateSize)
-})
-const updateSize = () => {
-	isMobile.value = window.innerWidth <= 1024
+import { useIsMobile } from '~/composables/useIsMobile'
+const { isMobile } = useIsMobile()
+type Props = {
+	nonCarouselClasses?: string
 }
+const props = defineProps<Props>()
 </script>
 
 <style>

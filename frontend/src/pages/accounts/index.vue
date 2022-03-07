@@ -2,7 +2,7 @@
 	<div>
 		<Title>CCDScan | Accounts</Title>
 
-		<FtbCarousel>
+		<FtbCarousel non-carousel-classes="grid-cols-2">
 			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"

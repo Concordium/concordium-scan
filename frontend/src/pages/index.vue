@@ -1,7 +1,7 @@
 ﻿<template>
 	<div>
 		<Title>CCDScan | Dashboard</Title>
-		<FtbCarousel>
+		<FtbCarousel non-carousel-classes="grid-cols-4">
 			<CarouselSlide class="w-full">
 				<KeyValueChartCard
 					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
