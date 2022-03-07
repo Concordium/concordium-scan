@@ -6,7 +6,7 @@
 				<TableHead>
 					<TableRow>
 						<TableTh>Finaliser</TableTh>
-						<TableTh>Weight</TableTh>
+						<TableTh align="right">Weight</TableTh>
 						<TableTh align="right">Reward (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>

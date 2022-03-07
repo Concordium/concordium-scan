@@ -11,7 +11,7 @@
 		<transition name="drawer">
 			<section v-if="isOpen" :class="$style.drawer">
 				<button
-					class="rounded fixed right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
+					class="rounded absolute right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
 					aria-label="Close"
 					@click="props.onClose"
 				>

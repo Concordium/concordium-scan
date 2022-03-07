@@ -50,7 +50,9 @@
 						:page-info="props.block.transactions?.pageInfo"
 						:go-to-page="props.goToPage"
 					/>
-					<div class="p-4">No transactions</div>
+					<div v-if="!props.block?.transactionCount" class="p-4">
+						No transactions
+					</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
