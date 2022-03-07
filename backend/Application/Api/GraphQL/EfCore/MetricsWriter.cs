@@ -17,16 +17,21 @@ public class MetricsWriter
     }
 
     public async Task AddBlockMetrics(BlockInfo blockInfo, RewardStatus rewardStatus,
-        IMemoryCachedValue<DateTimeOffset> previousBlockSlotTime)
+        IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
+
+        var previousBlockSlotTime = await GetPreviousBlockSlotTime(blockInfo, previousBlockSlotTimeCache, conn);
+        var blockTime = previousBlockSlotTime.HasValue 
+            ? GetBlockTime(blockInfo.BlockSlotTime, previousBlockSlotTime.Value)
+            : 0;
         
         var blockParam = new
         {
             Time = blockInfo.BlockSlotTime,
             blockInfo.BlockHeight,
-            BlockTimeSecs = GetBlockTime(blockInfo, previousBlockSlotTime),
+            BlockTimeSecs = blockTime,
             TotalMicroCcd = (long)rewardStatus.TotalAmount.MicroCcdValue,
             TotalEncryptedMicroCcd = (long)rewardStatus.TotalEncryptedAmount.MicroCcdValue
         };
@@ -35,7 +40,7 @@ public class MetricsWriter
                     values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
         await conn.ExecuteAsync(sql, blockParam);
         
-        previousBlockSlotTime.EnqueueUpdate(blockInfo.BlockSlotTime);
+        previousBlockSlotTimeCache.EnqueueUpdate(blockInfo.BlockSlotTime);
     }
 
     public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, IMemoryCachedValue<long> cumulativeTransactionCountCache)
@@ -99,12 +104,32 @@ public class MetricsWriter
         cumulativeAccountsCreatedCache.EnqueueUpdate(cumulativeAccountsCreated.Value);
     }
 
-    private double GetBlockTime(BlockInfo blockInfo, IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache)
+    private double GetBlockTime(DateTimeOffset currentBlockSlotTime, DateTimeOffset previousBlockSlotTime)
+    {
+        var blockTime = currentBlockSlotTime - previousBlockSlotTime;
+        return Math.Round(blockTime.TotalSeconds, 1);
+    }
+
+    private async Task<DateTimeOffset?> GetPreviousBlockSlotTime(BlockInfo blockInfo, IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache, NpgsqlConnection conn)
     {
         var previousBlockSlotTime = previousBlockSlotTimeCache.GetCommittedValue();
-        if (!previousBlockSlotTime.HasValue)
-            return 0; // TODO: Should only be valid for genesis block, but right now every time the app starts the first imported data item will be zero. Will be corrected later...
-        var blockTime = blockInfo.BlockSlotTime - previousBlockSlotTime.Value;
-        return Math.Round(blockTime.TotalSeconds, 1);
+        if (previousBlockSlotTime.HasValue) 
+            return previousBlockSlotTime;
+        
+        if (blockInfo.BlockHeight == 0)
+            return null;
+
+        var sql = @"select time, block_height
+                    from metrics_blocks  
+                    order by time desc limit 1;";
+            
+        var expectedBlockHeight = blockInfo.BlockHeight - 1;
+
+        var result = await conn.QuerySingleOrDefaultAsync(sql);
+        if (result == null)
+            throw new InvalidOperationException($"Could not find any existing block metric data!");
+        if (result.block_height != expectedBlockHeight)
+            throw new InvalidOperationException($"Latest block metric data did not have expected block height {expectedBlockHeight}.");
+        return (DateTimeOffset)DateTime.SpecifyKind(result.time, DateTimeKind.Utc);
     }
 }
