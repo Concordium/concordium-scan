@@ -20,7 +20,7 @@
 	--color-background-primary: 247, 40%, 18%;
 	--color-background-elevated: hsla(245, 24%, 51%, 20%); /* grayish purple */
 	--color-background-elevated-hover: hsla(245, 24%, 51%, 20%);
-	--color-background-elevated-nontrans: hsl(246, 32%, 23%);
+	--color-background-elevated-nontrans: hsl(246, 32%, 24%);
 	--color-border-primary: var(--color-primary);
 	--color-interactive: 162, 69%, 54%; /* green */
 	--color-interactive-hover: 162, 69%, 59%; /* green */

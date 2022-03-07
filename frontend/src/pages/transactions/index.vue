@@ -1,49 +1,56 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
-		<FtbCarousel non-carousel-classes="grid-cols-2">
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
-					:bucket-width="metricsData?.transactionMetrics?.buckets?.bucketWidth"
-					:y-values="
-						metricsData?.transactionMetrics?.buckets
-							?.y_LastCumulativeTransactionCount
-					"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Cumulative Transactions</template>
-					<template #icon><TransactionIcon /></template>
-					<template #value>{{
-						formatNumber(
-							metricsData?.transactionMetrics?.lastCumulativeTransactionCount
-						)
-					}}</template>
-					<template #chip>latest</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
-					:bucket-width="metricsData?.transactionMetrics?.buckets?.bucketWidth"
-					:y-values="
-						metricsData?.transactionMetrics?.buckets?.y_TransactionCount
-					"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Transactions</template>
-					<template #icon><TransactionIcon /></template>
-					<template #value>{{
-						formatNumber(metricsData?.transactionMetrics?.transactionCount)
-					}}</template>
-					<template #chip>sum</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-		</FtbCarousel>
+		<div class="">
+			<div class="flex flex-row justify-center lg:place-content-end">
+				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" class="z-20" />
+			</div>
+			<FtbCarousel non-carousel-classes="grid-cols-2">
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
+						:bucket-width="
+							metricsData?.transactionMetrics?.buckets?.bucketWidth
+						"
+						:y-values="
+							metricsData?.transactionMetrics?.buckets
+								?.y_LastCumulativeTransactionCount
+						"
+					>
+						<template #topRight></template>
+						<template #title>Cumulative Transactions</template>
+						<template #icon><TransactionIcon /></template>
+						<template #value>{{
+							formatNumber(
+								metricsData?.transactionMetrics?.lastCumulativeTransactionCount
+							)
+						}}</template>
+						<template #chip>latest</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
+						:bucket-width="
+							metricsData?.transactionMetrics?.buckets?.bucketWidth
+						"
+						:y-values="
+							metricsData?.transactionMetrics?.buckets?.y_TransactionCount
+						"
+					>
+						<template #topRight></template>
+						<template #title>Transactions</template>
+						<template #icon><TransactionIcon /></template>
+						<template #value>{{
+							formatNumber(metricsData?.transactionMetrics?.transactionCount)
+						}}</template>
+						<template #chip>sum</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+			</FtbCarousel>
+		</div>
 		<Table>
 			<TableHead>
 				<TableRow>

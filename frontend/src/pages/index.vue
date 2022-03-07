@@ -1,95 +1,96 @@
 ﻿<template>
 	<div>
 		<Title>CCDScan | Dashboard</Title>
-		<FtbCarousel non-carousel-classes="grid-cols-4">
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-					:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
-					:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #icon><BlockIcon></BlockIcon></template>
-					<template #title>Blocks added</template>
-					<template #value>{{
-						formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
-					}}</template>
-					<template #chip>latest</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-					:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-					chart-type="area"
-					:y-values="[
-						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
-						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-						blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
-					]"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Block time</template>
-					<template #icon><StopwatchIcon /></template>
-					<template #value>{{
-						blockMetricsData?.blockMetrics?.avgBlockTime
-					}}</template>
-					<template #unit>s</template>
-					<template #chip>average</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="
-						transactionMetricsData?.transactionMetrics?.buckets?.x_Time
-					"
-					:bucket-width="
-						transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
-					"
-					:y-values="
-						transactionMetricsData?.transactionMetrics?.buckets
-							?.y_TransactionCount
-					"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Transactions</template>
-					<template #icon><TransactionIcon /></template>
-					<template #value>{{
-						formatNumber(
-							transactionMetricsData?.transactionMetrics?.transactionCount
-						)
-					}}</template>
-					<template #chip>sum</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
-					:y-values="
-						accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated
-					"
-					:bucket-width="
-						accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
-					"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Accounts Created</template>
-					<template #icon></template>
-					<template #chip>sum</template>
-					<template #value>{{
-						formatNumber(accountMetricsData?.accountsMetrics?.accountsCreated)
-					}}</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-		</FtbCarousel>
+		<div class="">
+			<div class="flex flex-row justify-center lg:place-content-end">
+				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" class="z-20" />
+			</div>
+			<FtbCarousel non-carousel-classes="grid-cols-4">
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
+						:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
+					>
+						<template #topRight></template>
+						<template #icon><BlockIcon></BlockIcon></template>
+						<template #title>Blocks added</template>
+						<template #value>{{
+							formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
+						}}</template>
+						<template #chip>latest</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
+						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
+						chart-type="area"
+						:y-values="[
+							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
+							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
+							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
+						]"
+					>
+						<template #topRight></template>
+						<template #title>Block time</template>
+						<template #icon><StopwatchIcon /></template>
+						<template #value>{{
+							blockMetricsData?.blockMetrics?.avgBlockTime
+						}}</template>
+						<template #unit>s</template>
+						<template #chip>average</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="
+							transactionMetricsData?.transactionMetrics?.buckets?.x_Time
+						"
+						:bucket-width="
+							transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
+						"
+						:y-values="
+							transactionMetricsData?.transactionMetrics?.buckets
+								?.y_TransactionCount
+						"
+					>
+						<template #topRight></template>
+						<template #title>Transactions</template>
+						<template #icon><TransactionIcon /></template>
+						<template #value>{{
+							formatNumber(
+								transactionMetricsData?.transactionMetrics?.transactionCount
+							)
+						}}</template>
+						<template #chip>sum</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
+						:y-values="
+							accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated
+						"
+						:bucket-width="
+							accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
+						"
+					>
+						<template #topRight></template>
+						<template #title>Accounts Created</template>
+						<template #icon><UserIcon /></template>
+						<template #chip>sum</template>
+						<template #value>{{
+							formatNumber(accountMetricsData?.accountsMetrics?.accountsCreated)
+						}}</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+			</FtbCarousel>
+		</div>
 		<section class="flex flex-wrap gap-16">
 			<article class="max-w-full flex flex-col flex-1 mb-12">
 				<header class="flex justify-between items-center mb-4">

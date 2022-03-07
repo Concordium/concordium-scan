@@ -7,7 +7,7 @@
 		>
 			<slot></slot>
 		</div>
-		<carousel v-else :items-to-show="1">
+		<carousel v-else slide-width="350px" :items-to-show="1">
 			<template #addons>
 				<pagination />
 			</template>

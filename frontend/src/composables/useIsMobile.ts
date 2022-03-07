@@ -10,7 +10,7 @@
 		window.removeEventListener('orientationchange', updateSize)
 	})
 	const updateSize = () => {
-		isMobile.value = window.innerWidth <= 1024
+		isMobile.value = !window.matchMedia('(min-width: 1024px)').matches
 	}
 	return { isMobile }
 }

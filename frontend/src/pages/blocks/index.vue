@@ -1,52 +1,51 @@
 <template>
 	<div>
 		<Title>CCDScan | Blocks</Title>
-		<!--<div class="block lg:grid grid-cols-2 mb-20 gap-4">-->
-		<FtbCarousel non-carousel-classes="grid-cols-2">
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-					:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
-					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown
-							v-model="selectedMetricsPeriod"
-							class="z-20"
-					/></template>
-					<template #icon><BlockIcon></BlockIcon></template>
-					<template #title>Blocks added</template>
-					<template #value>{{
-						formatNumber(metricsData?.blockMetrics?.blocksAdded)
-					}}</template>
-					<template #chip>sum</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-			<CarouselSlide class="w-full">
-				<KeyValueChartCard
-					:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-					:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-					chart-type="area"
-					:y-values="[
-						metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
-						metricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-						metricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
-					]"
-				>
-					<template #topRight
-						><MetricsPeriodDropdown v-model="selectedMetricsPeriod"
-					/></template>
-					<template #title>Block time</template>
-					<template #icon><StopwatchIcon /></template>
-					<template #value>{{
-						formatNumber(metricsData?.blockMetrics?.avgBlockTime)
-					}}</template>
-					<template #unit>s</template>
-					<template #chip>average</template>
-				</KeyValueChartCard>
-			</CarouselSlide>
-		</FtbCarousel>
-		<!--</div>-->
+		<div class="">
+			<div class="flex flex-row justify-center lg:place-content-end">
+				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" class="z-20" />
+			</div>
+			<FtbCarousel non-carousel-classes="grid-cols-2">
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
+					>
+						<template #topRight></template>
+						<template #icon><BlockIcon></BlockIcon></template>
+						<template #title>Blocks added</template>
+						<template #value>{{
+							formatNumber(metricsData?.blockMetrics?.blocksAdded)
+						}}</template>
+						<template #chip>sum</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
+						chart-type="area"
+						:y-values="[
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
+							metricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
+						]"
+					>
+						<template #topRight></template>
+						<template #title>Block time</template>
+						<template #icon><StopwatchIcon /></template>
+						<template #value>{{
+							formatNumber(metricsData?.blockMetrics?.avgBlockTime)
+						}}</template>
+						<template #unit>s</template>
+						<template #chip>average</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+			</FtbCarousel>
+		</div>
 		<Table>
 			<TableHead>
 				<TableRow>
