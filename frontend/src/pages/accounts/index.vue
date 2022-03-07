@@ -3,7 +3,7 @@
 		<Title>CCDScan | Accounts</Title>
 		<div class="">
 			<div class="flex flex-row justify-center lg:place-content-end">
-				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" class="z-20" />
+				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full">
