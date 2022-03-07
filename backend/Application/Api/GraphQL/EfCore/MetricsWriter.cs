@@ -10,45 +10,41 @@ namespace Application.Api.GraphQL.EfCore;
 public class MetricsWriter
 {
     private readonly DatabaseSettings _settings;
+    private readonly IMemoryCachedValue<long> _cumulativeTransactionCountCache;
+    private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedCache;
 
-    public MetricsWriter(DatabaseSettings settings)
+    public MetricsWriter(DatabaseSettings settings, IMemoryCachedValue<long> cumulativeTransactionCountCache, IMemoryCachedValue<long> cumulativeAccountsCreatedCache)
     {
         _settings = settings;
+        _cumulativeTransactionCountCache = cumulativeTransactionCountCache;
+        _cumulativeAccountsCreatedCache = cumulativeAccountsCreatedCache;
     }
 
-    public async Task AddBlockMetrics(BlockInfo blockInfo, RewardStatus rewardStatus,
-        IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache)
+    public async Task AddBlockMetrics(Block block)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var previousBlockSlotTime = await GetPreviousBlockSlotTime(blockInfo, previousBlockSlotTimeCache, conn);
-        var blockTime = previousBlockSlotTime.HasValue 
-            ? GetBlockTime(blockInfo.BlockSlotTime, previousBlockSlotTime.Value)
-            : 0;
-        
         var blockParam = new
         {
-            Time = blockInfo.BlockSlotTime,
-            blockInfo.BlockHeight,
-            BlockTimeSecs = blockTime,
-            TotalMicroCcd = (long)rewardStatus.TotalAmount.MicroCcdValue,
-            TotalEncryptedMicroCcd = (long)rewardStatus.TotalEncryptedAmount.MicroCcdValue
+            Time = block.BlockSlotTime,
+            block.BlockHeight,
+            BlockTimeSecs = block.BlockStatistics.BlockTime,
+            TotalMicroCcd = (long)block.BalanceStatistics.TotalAmount,
+            TotalEncryptedMicroCcd = (long)block.BalanceStatistics.TotalEncryptedAmount
         };
 
         var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
                     values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
         await conn.ExecuteAsync(sql, blockParam);
-        
-        previousBlockSlotTimeCache.EnqueueUpdate(blockInfo.BlockSlotTime);
     }
 
-    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, IMemoryCachedValue<long> cumulativeTransactionCountCache)
+    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var cumulativeTransactionCount = cumulativeTransactionCountCache.GetCommittedValue();
+        var cumulativeTransactionCount = _cumulativeTransactionCountCache.GetCommittedValue();
         if (!cumulativeTransactionCount.HasValue)
         {
             var initSql = @"select max(cumulative_transaction_count)
@@ -71,15 +67,15 @@ public class MetricsWriter
         await conn.ExecuteAsync(sql, transactionParams);
 
         var newValue = cumulativeTransactionCount.Value + blockSummary.TransactionSummaries.Length;
-        cumulativeTransactionCountCache.EnqueueUpdate(newValue);
+        _cumulativeTransactionCountCache.EnqueueUpdate(newValue);
     }
 
-    public async Task AddAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, IMemoryCachedValue<long> cumulativeAccountsCreatedCache)
+    public async Task AddAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var cumulativeAccountsCreated = cumulativeAccountsCreatedCache.GetCommittedValue();
+        var cumulativeAccountsCreated = _cumulativeAccountsCreatedCache.GetCommittedValue();
         if (!cumulativeAccountsCreated.HasValue)
         {
             var initSql = @"select max(cumulative_accounts_created)
@@ -101,35 +97,6 @@ public class MetricsWriter
         var sql = "insert into metrics_accounts (time, cumulative_accounts_created, accounts_created) values (@Time, @CumulativeAccountsCreated, @AccountsCreated)";
         await conn.ExecuteAsync(sql, accountsParams);
 
-        cumulativeAccountsCreatedCache.EnqueueUpdate(cumulativeAccountsCreated.Value);
-    }
-
-    private double GetBlockTime(DateTimeOffset currentBlockSlotTime, DateTimeOffset previousBlockSlotTime)
-    {
-        var blockTime = currentBlockSlotTime - previousBlockSlotTime;
-        return Math.Round(blockTime.TotalSeconds, 1);
-    }
-
-    private async Task<DateTimeOffset?> GetPreviousBlockSlotTime(BlockInfo blockInfo, IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache, NpgsqlConnection conn)
-    {
-        var previousBlockSlotTime = previousBlockSlotTimeCache.GetCommittedValue();
-        if (previousBlockSlotTime.HasValue) 
-            return previousBlockSlotTime;
-        
-        if (blockInfo.BlockHeight == 0)
-            return null;
-
-        var sql = @"select time, block_height
-                    from metrics_blocks  
-                    order by time desc limit 1;";
-            
-        var expectedBlockHeight = blockInfo.BlockHeight - 1;
-
-        var result = await conn.QuerySingleOrDefaultAsync(sql);
-        if (result == null)
-            throw new InvalidOperationException($"Could not find any existing block metric data!");
-        if (result.block_height != expectedBlockHeight)
-            throw new InvalidOperationException($"Latest block metric data did not have expected block height {expectedBlockHeight}.");
-        return (DateTimeOffset)DateTime.SpecifyKind(result.time, DateTimeKind.Utc);
+        _cumulativeAccountsCreatedCache.EnqueueUpdate(cumulativeAccountsCreated.Value);
     }
 }

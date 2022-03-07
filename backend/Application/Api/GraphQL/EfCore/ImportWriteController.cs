@@ -25,9 +25,6 @@ public class ImportWriteController : BackgroundService
     private readonly ILogger _logger;
 
     private readonly MemoryCacheManager _cacheManager;
-    private readonly IMemoryCachedValue<DateTimeOffset> _previousBlockSlotTime;
-    private readonly IMemoryCachedValue<long> _cumulativeTransactionCountState;
-    private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedState;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
     {
@@ -40,12 +37,8 @@ public class ImportWriteController : BackgroundService
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
-        _metricsWriter = new MetricsWriter(dbSettings);
+        _metricsWriter = new MetricsWriter(dbSettings, _cacheManager.CreateCachedValue<long>(), _cacheManager.CreateCachedValue<long>());
         _logger = Log.ForContext(GetType());
-        
-        _previousBlockSlotTime = _cacheManager.CreateCachedValue<DateTimeOffset>();
-        _cumulativeTransactionCountState = _cacheManager.CreateCachedValue<long>();
-        _cumulativeAccountsCreatedState = _cacheManager.CreateCachedValue<long>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -118,9 +111,9 @@ public class ImportWriteController : BackgroundService
 
         await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
 
-        await _metricsWriter.AddBlockMetrics(blockInfo, rewardStatus, _previousBlockSlotTime);
-        await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary, _cumulativeTransactionCountState);
-        await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts, _cumulativeAccountsCreatedState);
+        await _metricsWriter.AddBlockMetrics(block);
+        await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary);
+        await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts);
 
         return block;
     }
