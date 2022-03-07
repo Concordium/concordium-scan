@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Common;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -8,16 +9,20 @@ namespace Application.Api.GraphQL.EfCore;
 public class BlockWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMemoryCachedValue<DateTimeOffset> _previousBlockSlotTime;
 
-    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMemoryCachedValue<DateTimeOffset> previousBlockSlotTime)
     {
         _dbContextFactory = dbContextFactory;
+        _previousBlockSlotTime = previousBlockSlotTime;
     }
 
     public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
+        await _previousBlockSlotTime.EnsureInitialized(() => InitializePreviousBlockSlotTime(blockInfo, context));
+        
         var block = MapBlock(blockInfo, blockSummary, rewardStatus);
         context.Blocks.Add(block);
         
@@ -71,10 +76,26 @@ public class BlockWriter
                 BakingRewards = MapBakingRewards(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
             },
             FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData),
-            BalanceStatistics = MapBalanceStatistics(rewardStatus)
-            
+            BalanceStatistics = MapBalanceStatistics(rewardStatus),
+            BlockStatistics = new BlockStatistics
+            {
+                BlockTime = GetBlockTime(blockInfo), 
+                FinalizationTime = null
+            }
         };
         return block;
+    }
+
+    private double GetBlockTime(BlockInfo blockInfo)
+    {
+        if (blockInfo.BlockHeight == 0) return 0;
+        
+        var previousBlockSlotTime = _previousBlockSlotTime.GetCommittedValue();
+        if (!previousBlockSlotTime.HasValue)
+            throw new InvalidOperationException("Expected previous block slot time to have a value!");
+        
+        var blockTime = blockInfo.BlockSlotTime - previousBlockSlotTime.Value;
+        return Math.Round(blockTime.TotalSeconds, 1);
     }
 
     private static BalanceStatistics MapBalanceStatistics(RewardStatus rewardStatus)
@@ -210,4 +231,22 @@ public class BlockWriter
             BlockId = blockId
         });
     }
+    
+    private async Task<DateTimeOffset?> InitializePreviousBlockSlotTime(BlockInfo blockInfo, GraphQlDbContext dbContext)
+    {
+        if (blockInfo.BlockHeight == 0)
+            return null;
+
+        var previousBlockHeight = blockInfo.BlockHeight - 1;
+        var result = await dbContext.Blocks
+            .Where(x => x.BlockHeight == previousBlockHeight)
+            .Select(x => x.BlockSlotTime)
+            .ToArrayAsync();
+        
+        if (result.Length == 0)
+            throw new InvalidOperationException($"Could not find previous block in database [previous block height={previousBlockHeight}]");
+
+        return result.Single();
+    }
+
 }

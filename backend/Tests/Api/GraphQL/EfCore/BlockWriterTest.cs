@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using Tests.TestUtilities.Builders.GraphQL;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.EfCore;
@@ -18,11 +19,15 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
+    private readonly MemoryCachedValueStub<DateTimeOffset> _previousBlockSlotTimeCachedValue;
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
+        _previousBlockSlotTimeCachedValue = new MemoryCachedValueStub<DateTimeOffset>();
+        _previousBlockSlotTimeCachedValue.Initialize(new DateTimeOffset(2020, 10, 1, 12, 30, 0, TimeSpan.Zero));
+        
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new BlockWriter(_dbContextFactory);
+        _target = new BlockWriter(_dbContextFactory, _previousBlockSlotTimeCachedValue);
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
@@ -364,6 +369,68 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         block = dbContext.Blocks.AsNoTracking().Single();
         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(11000);
+    }
+
+    [Fact]
+    public async Task BlockStatistics_BlockTime_GenesisBlock()
+    {
+        _previousBlockSlotTimeCachedValue.Reset();
+
+        _blockInfoBuilder.WithBlockHeight(0);
+        
+        await WriteData();
+
+        var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.Blocks.Single();
+        result.BlockStatistics.Should().NotBeNull();
+        result.BlockStatistics.BlockTime.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(2200, 2.2)]
+    [InlineData(2250, 2.2)] // rounding to nearest even, in this case down
+    [InlineData(2350, 2.4)] // rounding to nearest even, in this case up
+    public async Task BlockStatistics_BlockTime_NotGenesisBlock_CacheInitialized(int blockSlotTimeAdjustment, double expectedResult)
+    {
+        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+        _previousBlockSlotTimeCachedValue.Initialize(baseTime);
+
+        _blockInfoBuilder
+            .WithBlockHeight(1)
+            .WithBlockSlotTime(baseTime.AddMilliseconds(blockSlotTimeAdjustment));
+        
+        await WriteData();
+
+        var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.Blocks.Single();
+        result.BlockStatistics.Should().NotBeNull();
+        result.BlockStatistics.BlockTime.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public async Task BlockStatistics_BlockTime_NotGenesisBlock_CacheNotInitialized()
+    {
+        _previousBlockSlotTimeCachedValue.Reset();
+
+        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+
+        var previousBlock = new BlockBuilder()
+            .WithBlockHeight(10)
+            .WithBlockSlotTime(baseTime)
+            .Build();
+        
+        var dbContext = _dbContextFactory.CreateDbContext();
+        dbContext.Blocks.Add(previousBlock);
+        await dbContext.SaveChangesAsync();
+
+        _blockInfoBuilder
+            .WithBlockHeight(11)
+            .WithBlockSlotTime(baseTime.AddSeconds(11));
+
+        await WriteData();
+
+        var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 11);
+        result.BlockStatistics.BlockTime.Should().Be(11);
     }
 
     private async Task SetReleaseSchedule(List<object> schedules)

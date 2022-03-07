@@ -79,6 +79,11 @@ public class GraphQlDbContext : DbContext
             builder.Property(x => x.FinalizationRewardAccount).HasColumnName("bal_stats_finalization_reward_account");
             builder.Property(x => x.GasAccount).HasColumnName("bal_stats_gas_account");
         });
+        blockBuilder.OwnsOne(block => block.BlockStatistics, builder =>
+        {
+            builder.Property(x => x.BlockTime).HasColumnName("block_stats_block_time_secs");
+            builder.Property(x => x.FinalizationTime).HasColumnName("block_stats_finalization_time_secs");
+        });
 
         var finalizationRewardsBuilder = modelBuilder.Entity<BlockRelated<FinalizationReward>>()
             .ToTable("graphql_finalization_rewards");

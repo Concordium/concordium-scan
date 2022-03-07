@@ -1,4 +1,6 @@
-﻿namespace Application.Common;
+﻿using System.Threading.Tasks;
+
+namespace Application.Common;
 
 public class MemoryCacheManager
 {
@@ -21,6 +23,7 @@ public class MemoryCacheManager
     {
         private T? _committedValue;
         private T? _enqueuedUpdatedValue;
+        private bool _isInitialized = false;
 
         public T? GetCommittedValue()
         {
@@ -30,6 +33,13 @@ public class MemoryCacheManager
         public void EnqueueUpdate(T updatedValue)
         {
             _enqueuedUpdatedValue = updatedValue;
+        }
+
+        public async Task EnsureInitialized(Func<Task<T?>> initializeFunc)
+        {
+            if (!_isInitialized)
+                _committedValue = await initializeFunc();
+            _isInitialized = true;
         }
 
         public void Commit()
@@ -49,4 +59,5 @@ public interface IMemoryCachedValue<T> where T : struct
 {
     T? GetCommittedValue();
     void EnqueueUpdate(T updatedValue);
+    Task EnsureInitialized(Func<Task<T?>> initializeFunc);
 }

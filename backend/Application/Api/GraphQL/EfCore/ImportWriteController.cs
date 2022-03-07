@@ -31,17 +31,18 @@ public class ImportWriteController : BackgroundService
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
     {
+        _cacheManager = new();
+
         _stateReader = new ImportStateReader(dbSettings);
         _sender = sender;
         _channel = channel;
-        _blockWriter = new BlockWriter(dbContextFactory);
+        _blockWriter = new BlockWriter(dbContextFactory, _cacheManager.CreateCachedValue<DateTimeOffset>());
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
         _metricsWriter = new MetricsWriter(dbSettings);
         _logger = Log.ForContext(GetType());
         
-        _cacheManager = new();
         _previousBlockSlotTime = _cacheManager.CreateCachedValue<DateTimeOffset>();
         _cumulativeTransactionCountState = _cacheManager.CreateCachedValue<long>();
         _cumulativeAccountsCreatedState = _cacheManager.CreateCachedValue<long>();
