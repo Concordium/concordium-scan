@@ -211,18 +211,29 @@ import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 const pageSize = 10
+const queueSize = 50
+const drawInterval = 200 // in ms
+let loopInterval: NodeJS.Timeout
 
 const subscriptionHandler = (
 	_prevData: void,
 	newData: BlockSubscriptionResponse
 ) => {
-	if (!blocks.value.some(oldBlock => oldBlock.id === newData.blockAdded.id)) {
-		blocks.value = [newData.blockAdded, ...blocks.value].slice(0, pageSize)
-
-		transactions.value = [
-			...newData.blockAdded.transactions.nodes,
-			...transactions.value,
-		].slice(0, pageSize)
+	if (
+		!blocksQueue.value.some(
+			oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
+		) &&
+		!blocks.value.some(
+			oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
+		)
+	) {
+		if (blocksQueue.value.length === queueSize) blocksQueue.value.shift()
+		blocksQueue.value.push(newData.blockAdded)
+		for (let i = 0; i < newData.blockAdded.transactions.nodes.length; i++) {
+			if (transactionsQueue.value.length === queueSize)
+				transactionsQueue.value.shift()
+			transactionsQueue.value.push(newData.blockAdded.transactions.nodes[i])
+		}
 	}
 }
 
@@ -230,29 +241,22 @@ const { pause: pauseSubscription, resume: resumeSubscription } =
 	useBlockSubscription(subscriptionHandler)
 onMounted(() => {
 	resumeSubscription()
+	loopInterval = setInterval(drawFunc, drawInterval)
 })
 onUnmounted(() => {
 	pauseSubscription()
+	clearInterval(loopInterval)
+	blocks.value = []
+	transactions.value = []
+	blocksQueue.value = []
+	transactionsQueue.value = []
 })
 const blocks = ref<Block[]>([])
 const transactions = ref<Transaction[]>([])
-
+const blocksQueue = ref<Block[]>([])
+const transactionsQueue = ref<Transaction[]>([])
 const { data: blockData } = useBlockListQuery({ first: pageSize })
 const { data: txData } = useTransactionsListQuery({ first: pageSize })
-
-watch(
-	() => blockData.value,
-	value => {
-		blocks.value = value?.blocks.nodes || []
-	}
-)
-
-watch(
-	() => txData.value,
-	value => {
-		transactions.value = value?.transactions.nodes || []
-	}
-)
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const { data: accountMetricsData } = useAccountsMetricsQuery(
@@ -262,6 +266,58 @@ const { data: transactionMetricsData } = useTransactionMetricsQuery(
 	selectedMetricsPeriod
 )
 const { data: blockMetricsData } = useBlockMetricsQuery(selectedMetricsPeriod)
+const loadInitialValuesIfEmpty = () => {
+	if (
+		blocks.value.length === 0 &&
+		blockData &&
+		blockData.value &&
+		blockData.value.blocks
+	)
+		blocks.value = blockData.value.blocks.nodes.slice(0, pageSize)
+	if (
+		transactions.value.length === 0 &&
+		txData &&
+		txData.value &&
+		txData.value?.transactions
+	)
+		transactions.value = txData.value.transactions.nodes.slice(0, pageSize)
+}
+const drawFunc = () => {
+	loadInitialValuesIfEmpty()
+
+	if (blocksQueue.value.length > 0) {
+		let blockAdded = false
+		while (!blockAdded && blocksQueue.value.length > 0) {
+			const nextBlock = blocksQueue.value.shift() as Block
+			if (
+				blocks.value.some(
+					oldBlock => oldBlock.blockHash === nextBlock.blockHash
+				)
+			)
+				continue
+			if (blocks.value.length >= pageSize) blocks.value.pop()
+			blocks.value.unshift(nextBlock)
+			blockAdded = true
+		}
+	}
+
+	if (transactionsQueue.value.length > 0) {
+		let transactionAdded = false
+		while (!transactionAdded && transactionsQueue.value.length > 0) {
+			const nextTransaction = transactionsQueue.value.shift() as Transaction
+			if (
+				transactions.value.some(
+					oldTransaction =>
+						oldTransaction.transactionHash === nextTransaction.transactionHash
+				)
+			)
+				continue
+			if (transactions.value.length >= pageSize) transactions.value.pop()
+			transactions.value.unshift(nextTransaction)
+			transactionAdded = true
+		}
+	}
+}
 </script>
 
 <style>
