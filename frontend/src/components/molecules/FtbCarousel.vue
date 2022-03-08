@@ -7,7 +7,7 @@
 		>
 			<slot></slot>
 		</div>
-		<carousel v-else slide-width="350px" :items-to-show="1">
+		<carousel v-else ref="carouselRef" slide-width="350px" :items-to-show="1">
 			<template #addons>
 				<pagination />
 			</template>
@@ -24,6 +24,12 @@ type Props = {
 	nonCarouselClasses?: string
 }
 const props = defineProps<Props>()
+const carouselRef = ref<Carousel>()
+onMounted(() => {
+	setTimeout(() => {
+		if (carouselRef.value) carouselRef.value.restartCarousel()
+	}, 200)
+})
 </script>
 
 <style>
