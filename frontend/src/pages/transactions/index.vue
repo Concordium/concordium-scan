@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<Title>CCDScan | Transactions</Title>
-		<div class="">
+		<div>
 			<div class="flex flex-row justify-center lg:place-content-end">
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
@@ -54,18 +54,24 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="10%">Status</TableTh>
-					<TableTh width="20%">Timestamp</TableTh>
-					<TableTh width="30%">Type</TableTh>
 					<TableTh width="10%">Transaction hash</TableTh>
+					<TableTh width="10%">Status</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG" width="20%">
+						Timestamp
+					</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.MD" width="30%">Type</TableTh>
 					<TableTh width="10%">Block height</TableTh>
-					<TableTh width="10%">Sender</TableTh>
-					<TableTh width="10%" align="right">Cost (Ͼ)</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XL" width="10%">
+						Sender
+					</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG" width="10%" align="right">
+						Cost (Ͼ)
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
 				<TableRow>
-					<TableTd colspan="7" align="center" class="p-0 tdlol">
+					<TableTd colspan="7" align="center" class="p-0">
 						<ShowMoreButton :new-item-count="newItems" :refetch="refetch" />
 					</TableTd>
 				</TableRow>
@@ -73,6 +79,12 @@
 					v-for="transaction in pagedData"
 					:key="transaction.transactionHash"
 				>
+					<TableTd>
+						<TransactionLink
+							:id="transaction.id"
+							:hash="transaction.transactionHash"
+						/>
+					</TableTd>
 					<TableTd>
 						<StatusCircle
 							:class="[
@@ -83,33 +95,35 @@
 								},
 							]"
 						/>
-						{{
-							transaction.result.__typename === 'Success'
-								? 'Success'
-								: 'Rejected'
-						}}
+						<span v-if="breakpoint >= Breakpoint.MD">
+							{{
+								transaction.result.__typename === 'Success'
+									? 'Success'
+									: 'Rejected'
+							}}
+						</span>
 					</TableTd>
-					<TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
 						<Tooltip :text="transaction.block.blockSlotTime">
 							{{ convertTimestampToRelative(transaction.block.blockSlotTime) }}
 						</Tooltip>
 					</TableTd>
-					<TableTd>
-						{{ translateTransactionType(transaction.transactionType) }}
+					<TableTd v-if="breakpoint >= Breakpoint.MD">
+						<div class="whitespace-normal">
+							{{ translateTransactionType(transaction.transactionType) }}
+						</div>
 					</TableTd>
-					<TableTd>
-						<TransactionLink
-							:id="transaction.id"
-							:hash="transaction.transactionHash"
-						/>
-					</TableTd>
-					<TableTd :class="$style.numerical">
+					<TableTd class="numerical">
 						{{ transaction.block.blockHeight }}
 					</TableTd>
-					<TableTd :class="$style.numerical">
+					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
 						<AccountLink :address="transaction.senderAccountAddress" />
 					</TableTd>
-					<TableTd align="right" :class="$style.numerical">
+					<TableTd
+						v-if="breakpoint >= Breakpoint.LG"
+						align="right"
+						class="numerical"
+					>
 						{{ convertMicroCcdToCcd(transaction.ccdCost) }}
 					</TableTd>
 				</TableRow>
@@ -134,12 +148,16 @@ import {
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { usePagedData } from '~/composables/usePagedData'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import type { BlockSubscriptionResponse } from '~/types/blocks'
 import type { Transaction } from '~/types/transactions'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { MetricsPeriod } from '~/types/generated'
+
+const { breakpoint } = useBreakpoint()
+
 const {
 	pagedData,
 	first,
@@ -187,18 +205,3 @@ watch(
 )
 const { data: metricsData } = useTransactionMetricsQuery(selectedMetricsPeriod)
 </script>
-
-<style module>
-.statusIcon {
-	@apply h-4 mr-2 text-theme-interactive;
-}
-
-.cellIcon {
-	@apply h-4 text-theme-white inline align-baseline;
-}
-
-.numerical {
-	@apply font-mono;
-	font-variant-ligatures: none;
-}
-</style>
