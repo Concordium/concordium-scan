@@ -1,8 +1,8 @@
 ﻿<template>
 	<ClientOnly>
 		<div
-			v-if="!isMobile"
-			class="block grid mb-20 gap-4"
+			v-if="breakpoint >= Breakpoint.LG"
+			class="grid mb-20 gap-4"
 			:class="props.nonCarouselClasses"
 		>
 			<slot></slot>
@@ -18,8 +18,10 @@
 
 <script lang="ts" setup>
 import { Carousel, Pagination } from 'vue3-carousel'
-import { useIsMobile } from '~/composables/useIsMobile'
-const { isMobile } = useIsMobile()
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
+
+const { breakpoint } = useBreakpoint()
+
 type Props = {
 	nonCarouselClasses?: string
 }
