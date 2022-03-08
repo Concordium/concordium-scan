@@ -37,7 +37,7 @@ export default defineNuxtConfig({
 	publicRuntimeConfig: {
 		...VARS[ENVIRONMENT],
 		environment: ENVIRONMENT,
-		includeDevTools: true,
+		includeDevTools: ENVIRONMENT === 'dev' || ENVIRONMENT === 'test',
 	},
 	nitro: {
 		preset: 'firebase',
