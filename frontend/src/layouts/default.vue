@@ -3,6 +3,8 @@
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
+		<Breakpoint v-if="environment === 'dev'" />
+
 		<DrawerContainer />
 		<div id="app" class="bg-theme-background-primary w-screen min-h-screen">
 			<ClientOnly>
@@ -24,6 +26,7 @@ import {
 	provideClient,
 } from '@urql/vue'
 import { SubscriptionClient } from 'subscriptions-transport-ws'
+import Breakpoint from '~/components/molecules/Breakpoint.vue'
 import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
@@ -31,7 +34,7 @@ useMeta({
 	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
 })
 
-const { apiUrl, wsUrl, includeDevTools } = useRuntimeConfig()
+const { apiUrl, wsUrl, includeDevTools, environment } = useRuntimeConfig()
 
 let subscriptionClient: SubscriptionClient
 if (process.client) {

@@ -36,6 +36,7 @@ export default defineNuxtConfig({
 	],
 	publicRuntimeConfig: {
 		...VARS[ENVIRONMENT],
+		environment: ENVIRONMENT,
 		includeDevTools: true,
 	},
 	nitro: {
