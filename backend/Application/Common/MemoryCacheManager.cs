@@ -44,8 +44,11 @@ public class MemoryCacheManager
 
         public void Commit()
         {
-            _committedValue = _enqueuedUpdatedValue;
-            _enqueuedUpdatedValue = null;
+            if (_enqueuedUpdatedValue.HasValue)
+            {
+                _committedValue = _enqueuedUpdatedValue;
+                _enqueuedUpdatedValue = null;
+            }
         }
     }
 

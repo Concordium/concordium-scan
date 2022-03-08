@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -20,14 +21,17 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly MemoryCachedValueStub<DateTimeOffset> _previousBlockSlotTimeCachedValue;
+    private readonly MemoryCachedValueStub<long> _fooCache;
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
         _previousBlockSlotTimeCachedValue = new MemoryCachedValueStub<DateTimeOffset>();
         _previousBlockSlotTimeCachedValue.Initialize(new DateTimeOffset(2020, 10, 1, 12, 30, 0, TimeSpan.Zero));
         
+        _fooCache = new MemoryCachedValueStub<long>();
+
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new BlockWriter(_dbContextFactory, _previousBlockSlotTimeCachedValue);
+        _target = new BlockWriter(_dbContextFactory, _previousBlockSlotTimeCachedValue, _fooCache);
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
@@ -431,6 +435,78 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 11);
         result.BlockStatistics.BlockTime.Should().Be(11);
+    }
+
+    [Fact]
+    public async Task UpdateFinalizedBlocks_NoFinalizationProof()
+    {
+        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+
+        var block = new BlockBuilder()
+            .WithBlockSlotTime(baseTime)
+            .WithFinalizationSummary(null)
+            .Build();
+
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(block);
+    }
+    
+    [Fact]
+    public async Task UpdateFinalizedBlocks_FinalizationProofForSingleBlock()
+    {
+        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+
+        await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
+
+        var blockWithProof = new BlockBuilder()
+            .WithBlockSlotTime(baseTime.AddSeconds(9))
+            .WithFinalizationSummary(new FinalizationSummaryBuilder()
+                .WithFinalizedBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1")
+                .Build())
+            .Build();
+
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof);
+        
+        var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 10);
+        result.BlockStatistics.FinalizationTime.Should().Be(9);
+
+        _fooCache.GetEnqueuedUpdate().Should().Be(10);
+    }
+
+    [Fact]
+    public async Task UpdateFinalizedBlocks_FinalizationProofForMultipleBlocks()
+    {
+        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+
+        await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime.AddSeconds(10)).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
+        await AddBlock(new BlockBuilder().WithBlockHeight(11).WithBlockSlotTime(baseTime.AddSeconds(19)).WithBlockHash("01cc0746f74640292e2f1bcc5fd4a542678c88c7a840adfca365612278160845").Build());
+        await AddBlock(new BlockBuilder().WithBlockHeight(12).WithBlockSlotTime(baseTime.AddSeconds(31)).WithBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2").Build());
+
+        _fooCache.Initialize(10);
+        
+        var blockWithProof = new BlockBuilder()
+            .WithBlockSlotTime(baseTime.AddSeconds(40))
+            .WithFinalizationSummary(new FinalizationSummaryBuilder()
+                .WithFinalizedBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2")
+                .Build())
+            .Build();
+
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof);
+        
+        var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.Blocks.ToArrayAsync();
+        result.Should().ContainSingle(x => x.BlockHeight == 10).Which.BlockStatistics.FinalizationTime.Should().BeNull();
+        result.Should().ContainSingle(x => x.BlockHeight == 11).Which.BlockStatistics.FinalizationTime.Should().Be(21);
+        result.Should().ContainSingle(x => x.BlockHeight == 12).Which.BlockStatistics.FinalizationTime.Should().Be(9);
+
+        _fooCache.GetEnqueuedUpdate().Should().Be(12);
+    }
+
+    private async Task AddBlock(Block finalizedBlock)
+    {
+        var dbContext = _dbContextFactory.CreateDbContext();
+        dbContext.Blocks.Add(finalizedBlock);
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task SetReleaseSchedule(List<object> schedules)

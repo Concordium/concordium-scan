@@ -33,7 +33,7 @@ public class ImportWriteController : BackgroundService
         _stateReader = new ImportStateReader(dbSettings);
         _sender = sender;
         _channel = channel;
-        _blockWriter = new BlockWriter(dbContextFactory, _cacheManager.CreateCachedValue<DateTimeOffset>());
+        _blockWriter = new BlockWriter(dbContextFactory, _cacheManager.CreateCachedValue<DateTimeOffset>(), _cacheManager.CreateCachedValue<long>());
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
@@ -115,6 +115,8 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary);
         await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts);
 
+        await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block);
+        
         return block;
     }
 

@@ -39,4 +39,9 @@ public class MemoryCachedValueStub<T> : IMemoryCachedValue<T> where T : struct
         _isInitialized = false;
         _queuedUpdate = null;
     }
+
+    public T? GetEnqueuedUpdate()
+    {
+        return _queuedUpdate;
+    }
 }
