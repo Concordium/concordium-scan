@@ -1,7 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/vue'
-import type { RenderOptions } from '@testing-library/vue'
-import { fireEvent } from '@testing-library/dom'
 import Tooltip from './Tooltip.vue'
+import { setupComponent, screen, fireEvent, waitFor } from '~/utils/testing'
 
 const defaultProps = {
 	text: 'Hello, World!',
@@ -11,30 +9,23 @@ const defaultSlots = {
 	default: 'Hover me!',
 }
 
-const renderComponent = (
-	props?: RenderOptions['props'],
-	slots?: RenderOptions['slots']
-) =>
-	render(Tooltip, {
-		props: { ...defaultProps, ...props },
-		slots: { ...defaultSlots, ...slots },
-	})
+const { render } = setupComponent(Tooltip, { defaultProps, defaultSlots })
 
 describe('Tooltip', () => {
 	it('will show the content', () => {
-		renderComponent()
+		render({})
 
 		expect(screen.getByText(defaultSlots.default)).toBeInTheDocument()
 	})
 
 	it('will not show the tooltip by default', () => {
-		renderComponent()
+		render({})
 
 		expect(screen.queryByText(defaultProps.text)).not.toBeVisible()
 	})
 
 	it('will show the tooltip when hovering the trigger element', () => {
-		renderComponent()
+		render({})
 
 		fireEvent.mouseEnter(screen.getByText(defaultProps.text))
 
@@ -44,7 +35,7 @@ describe('Tooltip', () => {
 	})
 
 	it('will hide the tooltip when hovering off again', () => {
-		renderComponent()
+		render({})
 
 		fireEvent.mouseEnter(screen.getByText(defaultProps.text))
 
@@ -63,7 +54,9 @@ describe('Tooltip', () => {
 
 	it('will execute mouseenter handler prop when hovered', () => {
 		const onMouseEnter = jest.fn()
-		renderComponent({ onMouseEnter })
+		const props = { onMouseEnter }
+
+		render({ props })
 
 		expect(onMouseEnter).not.toHaveBeenCalled()
 

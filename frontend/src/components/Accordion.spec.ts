@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/vue'
 import Accordion from './Accordion.vue'
+import { setupComponent, screen, fireEvent, waitFor } from '~/utils/testing'
 
 const TITLE = 'Hello, World!'
 const CONTENT = 'Body text'
@@ -8,18 +8,18 @@ const defaultSlots = {
 	default: TITLE,
 }
 
-const renderComponent = (slots: { default?: string; content?: string }) =>
-	render(Accordion, { slots: { ...defaultSlots, ...slots } })
+const { render } = setupComponent(Accordion, { defaultSlots })
 
 describe('Accordion', () => {
 	it('has a title', () => {
-		renderComponent({})
+		render({})
 
 		expect(screen.getByText(TITLE)).toBeVisible()
 	})
 
 	it('will show content when clicking header', () => {
-		renderComponent({ content: CONTENT })
+		const slots = { content: CONTENT }
+		render({ slots })
 
 		expect(screen.getByText(CONTENT)).not.toBeVisible()
 
@@ -31,7 +31,8 @@ describe('Accordion', () => {
 	})
 
 	it('will hide content when closing the accordion', () => {
-		renderComponent({ content: CONTENT })
+		const slots = { content: CONTENT }
+		render({ slots })
 
 		fireEvent.click(screen.getByText(TITLE))
 

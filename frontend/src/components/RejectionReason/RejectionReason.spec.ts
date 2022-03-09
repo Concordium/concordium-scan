@@ -1,28 +1,27 @@
-import { render, screen } from '@testing-library/vue'
-import type { RenderOptions } from '@testing-library/vue'
 import RejectionReason from './RejectionReason.vue'
+import { setupComponent, screen } from '~/utils/testing'
 
 const defaultProps = {
 	reason: { __typename: 'RuntimeFailure' },
 }
 
-const renderComponent = (props?: RenderOptions['props']) =>
-	render(RejectionReason, { props: { ...defaultProps, ...props } })
+const { render } = setupComponent(RejectionReason, { defaultProps })
 
 describe('ShowMoreButton', () => {
 	it('will fall back to string translations for simple rejection reasons', () => {
-		renderComponent({})
+		render({})
 
 		expect(screen.getByText('Runtime failure')).toBeInTheDocument()
 	})
 
 	it('will render specialised component for more complex rejections', () => {
-		renderComponent({
+		const props = {
 			reason: {
 				__typename: 'DuplicateCredIds',
 				credIds: ['1337', '42'],
 			},
-		})
+		}
+		render({ props })
 
 		expect(
 			screen.getByText('Duplicate credentials (1337, 42)')

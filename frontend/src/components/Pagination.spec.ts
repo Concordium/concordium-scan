@@ -1,6 +1,5 @@
-import { render, screen, fireEvent, within } from '@testing-library/vue'
-import type { RenderOptions } from '@testing-library/vue'
 import Pagination from './Pagination.vue'
+import { setupComponent, screen, fireEvent, within } from '~/utils/testing'
 
 const noop = () => {
 	/* noop */
@@ -25,12 +24,11 @@ const dom = {
 	NEXT_ARIA: 'Go to the next page',
 }
 
-const renderComponent = (props?: RenderOptions['props']) =>
-	render(Pagination, { props: { ...defaultProps, ...props } })
+const { render } = setupComponent(Pagination, { defaultProps })
 
 describe('Pagination', () => {
 	it('has three accessible navigation buttons', () => {
-		renderComponent()
+		render({})
 
 		expect(
 			within(screen.getByLabelText(dom.FIRST_ARIA)).getByText(dom.FIRST_TEXT)
@@ -56,7 +54,7 @@ describe('Pagination', () => {
 				goToPage,
 				pageInfo,
 			}
-			renderComponent(props)
+			render({ props })
 
 			expect(goToPage).not.toHaveBeenCalled()
 
@@ -67,7 +65,7 @@ describe('Pagination', () => {
 		})
 
 		it('is disabled if there are no previous pages', () => {
-			renderComponent()
+			render({})
 
 			expect(screen.getByLabelText(dom.FIRST_ARIA)).toBeDisabled()
 		})
@@ -86,7 +84,7 @@ describe('Pagination', () => {
 				goToPage,
 				pageInfo,
 			}
-			renderComponent(props)
+			render({ props })
 
 			expect(goToPage).not.toHaveBeenCalled()
 
@@ -97,7 +95,7 @@ describe('Pagination', () => {
 		})
 
 		it('is disabled if there are no previous pages', () => {
-			renderComponent()
+			render({})
 
 			expect(screen.getByLabelText(dom.PREV_ARIA)).toBeDisabled()
 		})
@@ -111,7 +109,7 @@ describe('Pagination', () => {
 			const props = {
 				goToPage,
 			}
-			renderComponent(props)
+			render({ props })
 
 			expect(goToPage).not.toHaveBeenCalled()
 
@@ -128,7 +126,7 @@ describe('Pagination', () => {
 					hasNextPage: false,
 				},
 			}
-			renderComponent(props)
+			render({ props })
 
 			expect(screen.getByLabelText(dom.NEXT_ARIA)).toBeDisabled()
 		})

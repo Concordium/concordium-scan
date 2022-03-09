@@ -1,19 +1,16 @@
-import { render, screen } from '@testing-library/vue'
-import type { RenderOptions } from '@testing-library/vue'
-import { fireEvent } from '@testing-library/dom'
 import TextCopy from './TextCopy.vue'
+import { setupComponent, screen, fireEvent } from '~/utils/testing'
 
 const defaultProps = {
 	text: 'Hello, World!',
 	label: 'Click to copy super secret text',
 }
 
-const renderComponent = (props?: RenderOptions['props']) =>
-	render(TextCopy, { props: { ...defaultProps, ...props } })
+const { render } = setupComponent(TextCopy, { defaultProps })
 
 describe('TextCopy', () => {
 	it('will have an accessible label', () => {
-		renderComponent()
+		render({})
 
 		expect(screen.getByLabelText(defaultProps.label)).toBeInTheDocument()
 	})
@@ -27,7 +24,7 @@ describe('TextCopy', () => {
 			},
 		})
 
-		renderComponent()
+		render({})
 
 		fireEvent.click(screen.getByLabelText(defaultProps.label))
 
