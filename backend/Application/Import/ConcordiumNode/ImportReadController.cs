@@ -48,7 +48,7 @@ public class ImportReadController : BackgroundService
         } 
     }
 
-    private async Task ImportData(ImportState initialState, CancellationToken stoppingToken)
+    private async Task ImportData(InitialImportState initialState, CancellationToken stoppingToken)
     {
         _logger.Information("Starting reading data from Concordium node...");
         
@@ -150,7 +150,7 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private async Task EnsurePreconditions(ImportState initialState, CancellationToken stoppingToken)
+    private async Task EnsurePreconditions(InitialImportState initialState, CancellationToken stoppingToken)
     {
         _logger.Information("Checking preconditions for importing data from Concordium node...");
         

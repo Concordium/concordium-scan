@@ -5,6 +5,7 @@ namespace Application.Api.GraphQL.EfCore;
 
 public class GraphQlDbContext : DbContext
 {
+    public DbSet<ImportState> ImportState { get; private set; }
     public DbSet<Block> Blocks { get; private set; }
     public DbSet<BlockRelated<FinalizationReward>> FinalizationRewards { get; private set; }
     public DbSet<BlockRelated<BakingReward>> BakingRewards { get; private set; }
@@ -21,6 +22,18 @@ public class GraphQlDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var importStateBuilder = modelBuilder.Entity<ImportState>()
+            .ToTable("graphql_import_state");
+
+        importStateBuilder.HasKey(x => x.Id);
+        importStateBuilder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+        importStateBuilder.Property(x => x.GenesisBlockHash).HasColumnName("genesis_block_hash");
+        importStateBuilder.Property(x => x.MaxImportedBlockHeight).HasColumnName("max_imported_block_height");
+        importStateBuilder.Property(x => x.CumulativeAccountsCreated).HasColumnName("cumulative_accounts_created");
+        importStateBuilder.Property(x => x.CumulativeTransactionCount).HasColumnName("cumulative_transaction_count");
+        importStateBuilder.Property(x => x.LastBlockSlotTime).HasColumnName("last_block_slot_time").HasConversion<DateTimeOffsetToTimestampConverter>();
+        importStateBuilder.Property(x => x.MaxBlockHeightWithUpdatedFinalizationTime).HasColumnName("max_block_height_with_updated_finalization_time");
+        
         var blockBuilder = modelBuilder.Entity<Block>()
             .ToTable("graphql_blocks");
 

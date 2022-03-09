@@ -28,7 +28,9 @@ create table graphql_blocks
     bal_stats_total_amount_locked_in_schedules bigint    not null,
     bal_stats_baking_reward_account            bigint    not null,
     bal_stats_finalization_reward_account      bigint    not null,
-    bal_stats_gas_account                      bigint    not null
+    bal_stats_gas_account                      bigint    not null,
+    block_stats_block_time_secs                float     null,
+    block_stats_finalization_time_secs         float     null
 );
 
 create index graphql_blocks_block_hash_index

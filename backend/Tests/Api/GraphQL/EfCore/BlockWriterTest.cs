@@ -20,18 +20,12 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
-    private readonly MemoryCachedValueStub<DateTimeOffset> _previousBlockSlotTimeCachedValue;
-    private readonly MemoryCachedValueStub<long> _fooCache;
+    private readonly ImportState _importState = new();
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
-        _previousBlockSlotTimeCachedValue = new MemoryCachedValueStub<DateTimeOffset>();
-        _previousBlockSlotTimeCachedValue.Initialize(new DateTimeOffset(2020, 10, 1, 12, 30, 0, TimeSpan.Zero));
-        
-        _fooCache = new MemoryCachedValueStub<long>();
-
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new BlockWriter(_dbContextFactory, _previousBlockSlotTimeCachedValue, _fooCache);
+        _target = new BlockWriter(_dbContextFactory);
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
@@ -375,21 +369,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(11000);
     }
 
-    [Fact]
-    public async Task BlockStatistics_BlockTime_GenesisBlock()
-    {
-        _previousBlockSlotTimeCachedValue.Reset();
-
-        _blockInfoBuilder.WithBlockHeight(0);
-        
-        await WriteData();
-
-        var dbContext = _dbContextFactory.CreateDbContext();
-        var result = dbContext.Blocks.Single();
-        result.BlockStatistics.Should().NotBeNull();
-        result.BlockStatistics.BlockTime.Should().Be(0);
-    }
-
     [Theory]
     [InlineData(2200, 2.2)]
     [InlineData(2250, 2.2)] // rounding to nearest even, in this case down
@@ -397,7 +376,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     public async Task BlockStatistics_BlockTime_NotGenesisBlock_CacheInitialized(int blockSlotTimeAdjustment, double expectedResult)
     {
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
-        _previousBlockSlotTimeCachedValue.Initialize(baseTime);
+        _importState.LastBlockSlotTime = baseTime;
 
         _blockInfoBuilder
             .WithBlockHeight(1)
@@ -412,32 +391,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task BlockStatistics_BlockTime_NotGenesisBlock_CacheNotInitialized()
-    {
-        _previousBlockSlotTimeCachedValue.Reset();
-
-        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
-
-        var previousBlock = new BlockBuilder()
-            .WithBlockHeight(10)
-            .WithBlockSlotTime(baseTime)
-            .Build();
-        
-        var dbContext = _dbContextFactory.CreateDbContext();
-        dbContext.Blocks.Add(previousBlock);
-        await dbContext.SaveChangesAsync();
-
-        _blockInfoBuilder
-            .WithBlockHeight(11)
-            .WithBlockSlotTime(baseTime.AddSeconds(11));
-
-        await WriteData();
-
-        var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 11);
-        result.BlockStatistics.BlockTime.Should().Be(11);
-    }
-
-    [Fact]
     public async Task UpdateFinalizedBlocks_NoFinalizationProof()
     {
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
@@ -447,12 +400,14 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
             .WithFinalizationSummary(null)
             .Build();
 
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(block);
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, _importState);
     }
     
     [Fact]
     public async Task UpdateFinalizedBlocks_FinalizationProofForSingleBlock()
     {
+        _importState.MaxBlockHeightWithUpdatedFinalizationTime = 0;
+        
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
 
         await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
@@ -464,13 +419,13 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
                 .Build())
             .Build();
 
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof);
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof, _importState);
         
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 10);
         result.BlockStatistics.FinalizationTime.Should().Be(9);
 
-        _fooCache.GetEnqueuedUpdate().Should().Be(10);
+        _importState.MaxBlockHeightWithUpdatedFinalizationTime.Should().Be(10);
     }
 
     [Fact]
@@ -482,7 +437,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         await AddBlock(new BlockBuilder().WithBlockHeight(11).WithBlockSlotTime(baseTime.AddSeconds(19)).WithBlockHash("01cc0746f74640292e2f1bcc5fd4a542678c88c7a840adfca365612278160845").Build());
         await AddBlock(new BlockBuilder().WithBlockHeight(12).WithBlockSlotTime(baseTime.AddSeconds(31)).WithBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2").Build());
 
-        _fooCache.Initialize(10);
+        _importState.MaxBlockHeightWithUpdatedFinalizationTime = 10;
         
         var blockWithProof = new BlockBuilder()
             .WithBlockSlotTime(baseTime.AddSeconds(40))
@@ -491,7 +446,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
                 .Build())
             .Build();
 
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof);
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof, _importState);
         
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.ToArrayAsync();
@@ -499,7 +454,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result.Should().ContainSingle(x => x.BlockHeight == 11).Which.BlockStatistics.FinalizationTime.Should().Be(21);
         result.Should().ContainSingle(x => x.BlockHeight == 12).Which.BlockStatistics.FinalizationTime.Should().Be(9);
 
-        _fooCache.GetEnqueuedUpdate().Should().Be(12);
+        _importState.MaxBlockHeightWithUpdatedFinalizationTime.Should().Be(12);
     }
 
     private async Task AddBlock(Block finalizedBlock)
@@ -526,6 +481,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
         var rewardStatus = _rewardStatusBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus);
+        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _importState);
     }
 }

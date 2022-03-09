@@ -2,10 +2,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
-using Application.Common;
 using Application.Database;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +14,6 @@ namespace Application.Api.GraphQL.EfCore;
 
 public class ImportWriteController : BackgroundService
 {
-    private readonly ImportStateReader _stateReader;
     private readonly ITopicEventSender _sender;
     private readonly ImportChannel _channel;
     private readonly BlockWriter _blockWriter;
@@ -23,22 +22,19 @@ public class ImportWriteController : BackgroundService
     private readonly AccountWriter _accountWriter;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
-
-    private readonly MemoryCacheManager _cacheManager;
+    private readonly ImportStateController _importStateController;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
     {
-        _cacheManager = new();
-
-        _stateReader = new ImportStateReader(dbSettings);
         _sender = sender;
         _channel = channel;
-        _blockWriter = new BlockWriter(dbContextFactory, _cacheManager.CreateCachedValue<DateTimeOffset>(), _cacheManager.CreateCachedValue<long>());
+        _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
-        _metricsWriter = new MetricsWriter(dbSettings, _cacheManager.CreateCachedValue<long>(), _cacheManager.CreateCachedValue<long>());
+        _metricsWriter = new MetricsWriter(dbSettings);
         _logger = Log.ForContext(GetType());
+        _importStateController = new ImportStateController(dbContextFactory);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -70,23 +66,35 @@ public class ImportWriteController : BackgroundService
     private async Task ReadAndPublishInitialState()
     {
         _logger.Information("Reading initial import state...");
-        var importState = await _stateReader.ReadImportStatus();
+        var state = await _importStateController.GetStateIfExists();
         _logger.Information("Initial import state read");
 
-        _channel.SetInitialImportState(importState);
+        var initialState = state != null
+            ? new InitialImportState(state.MaxImportedBlockHeight, new BlockHash(state.GenesisBlockHash))
+            : new InitialImportState(null, null);
+        _channel.SetInitialImportState(initialState);
     }
 
     private async Task<Block> WriteData(BlockDataPayload payload)
     {
         using var txScope = CreateTransactionScope();
 
+        var importState = payload switch
+        {
+            GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(genesisPayload),
+            _ => await _importStateController.GetState()
+        };
+
         if (payload is GenesisBlockDataPayload genesisData)
             await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
 
-        var block = await HandleCommonWrites(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, payload.CreatedAccounts);
+        var block = await HandleCommonWrites(payload, importState);
 
+        importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
+        await _importStateController.SaveChanges(importState);
         txScope.Complete();
-        _cacheManager.CommitEnqueuedUpdates();
+
+        _importStateController.SavedChangesCommitted();
         
         return block;
     }
@@ -96,15 +104,14 @@ public class ImportWriteController : BackgroundService
         await _identityProviderWriter.AddGenesisIdentityProviders(identityProviders);
     }
 
-    private async Task<Block> HandleCommonWrites(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
-        AccountInfo[] createdAccounts)
+    private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
-        await _identityProviderWriter.AddOrUpdateIdentityProviders(blockSummary.TransactionSummaries);
+        await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         
-        var block = await _blockWriter.AddBlock(blockInfo, blockSummary, rewardStatus);
-        var transactions = await _transactionWriter.AddTransactions(blockSummary, block.Id);
+        var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, importState);
+        var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
-        await _accountWriter.AddAccounts(createdAccounts, blockInfo.BlockSlotTime);
+        await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
 
         await _accountWriter.AddAccountTransactionRelations(transactions);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
@@ -112,10 +119,11 @@ public class ImportWriteController : BackgroundService
         await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
 
         await _metricsWriter.AddBlockMetrics(block);
-        await _metricsWriter.AddTransactionMetrics(blockInfo, blockSummary);
-        await _metricsWriter.AddAccountsMetrics(blockInfo, createdAccounts);
+        await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
+        await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.CreatedAccounts, importState);
 
-        await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block);
+        var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
+        await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
         
         return block;
     }

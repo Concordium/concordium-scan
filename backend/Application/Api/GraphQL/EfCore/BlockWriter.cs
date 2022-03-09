@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Application.Common;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -9,24 +8,20 @@ namespace Application.Api.GraphQL.EfCore;
 public class BlockWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-    private readonly IMemoryCachedValue<DateTimeOffset> _previousBlockSlotTimeCache;
-    private readonly IMemoryCachedValue<long> _maxBlockHeightWithUpdatedFinalizationTimeCache;
 
-    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMemoryCachedValue<DateTimeOffset> previousBlockSlotTimeCache, IMemoryCachedValue<long> maxBlockHeightWithUpdatedFinalizationTimeCache)
+    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
-        _previousBlockSlotTimeCache = previousBlockSlotTimeCache;
-        _maxBlockHeightWithUpdatedFinalizationTimeCache = maxBlockHeightWithUpdatedFinalizationTimeCache;
     }
 
-    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus)
+    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, ImportState importState)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-        await _previousBlockSlotTimeCache.EnsureInitialized(() => InitializePreviousBlockSlotTime(blockInfo, context));
-        _previousBlockSlotTimeCache.EnqueueUpdate(blockInfo.BlockSlotTime);
-        
-        var block = MapBlock(blockInfo, blockSummary, rewardStatus);
+        var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);
+        importState.LastBlockSlotTime = blockInfo.BlockSlotTime;
+
+        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime);
         context.Blocks.Add(block);
         
         await context.SaveChangesAsync(); // assign ID to block!
@@ -61,7 +56,7 @@ public class BlockWriter
         return block; 
     }
     
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus)
+    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime)
     {
         var block = new Block
         {
@@ -82,22 +77,16 @@ public class BlockWriter
             BalanceStatistics = MapBalanceStatistics(rewardStatus),
             BlockStatistics = new BlockStatistics
             {
-                BlockTime = GetBlockTime(blockInfo), 
+                BlockTime = blockTime, 
                 FinalizationTime = null // Updated when the block with proof of finalization for this block is imported
             }
         };
         return block;
     }
 
-    private double GetBlockTime(BlockInfo blockInfo)
+    private double GetBlockTime(BlockInfo blockInfo, DateTimeOffset previousBlockSlotTime)
     {
-        if (blockInfo.BlockHeight == 0) return 0;
-        
-        var previousBlockSlotTime = _previousBlockSlotTimeCache.GetCommittedValue();
-        if (!previousBlockSlotTime.HasValue)
-            throw new InvalidOperationException("Expected previous block slot time to have a value!");
-        
-        var blockTime = blockInfo.BlockSlotTime - previousBlockSlotTime.Value;
+        var blockTime = blockInfo.BlockSlotTime - previousBlockSlotTime;
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
@@ -235,26 +224,9 @@ public class BlockWriter
         });
     }
     
-    private async Task<DateTimeOffset?> InitializePreviousBlockSlotTime(BlockInfo blockInfo, GraphQlDbContext dbContext)
+    public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(Block block, ImportState importState)
     {
-        if (blockInfo.BlockHeight == 0)
-            return null;
-
-        var previousBlockHeight = blockInfo.BlockHeight - 1;
-        var result = await dbContext.Blocks
-            .Where(x => x.BlockHeight == previousBlockHeight)
-            .Select(x => x.BlockSlotTime)
-            .ToArrayAsync();
-        
-        if (result.Length == 0)
-            throw new InvalidOperationException($"Could not find previous block in database [previous block height={previousBlockHeight}]");
-
-        return result.Single();
-    }
-
-    public async Task UpdateFinalizationTimeOnBlocksInFinalizationProof(Block block)
-    {
-        if (block.FinalizationSummary == null) return;
+        if (block.FinalizationSummary == null) return Array.Empty<FinalizationTimeUpdate>();
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var finalizedBlockHeights = await context.Blocks
@@ -264,22 +236,22 @@ public class BlockWriter
 
         if (finalizedBlockHeights.Length != 1) throw new InvalidOperationException();
         var maxBlockHeight = finalizedBlockHeights.Single();
-        var minBlockHeight = _maxBlockHeightWithUpdatedFinalizationTimeCache.GetCommittedValue() ?? maxBlockHeight - 1;
+        var minBlockHeight = importState.MaxBlockHeightWithUpdatedFinalizationTime;
         
         var result = await context.Blocks
             .Where(x => x.BlockHeight > minBlockHeight && x.BlockHeight <= maxBlockHeight)
-            .Select(x => new
-            {
-                x.BlockHeight, 
-                x.BlockSlotTime,
-                FinalizationTimeSecs = Math.Round((block.BlockSlotTime - x.BlockSlotTime).TotalSeconds, 1)
-            })
+            .Select(x => new FinalizationTimeUpdate(x.BlockHeight, x.BlockSlotTime,
+                Math.Round((block.BlockSlotTime - x.BlockSlotTime).TotalSeconds, 1)
+            ))
             .ToArrayAsync();
 
         var conn = context.Database.GetDbConnection();
         await conn.ExecuteAsync(
             "update graphql_blocks set block_stats_finalization_time_secs = @FinalizationTimeSecs where block_height = @BlockHeight",
             result);
-        _maxBlockHeightWithUpdatedFinalizationTimeCache.EnqueueUpdate(maxBlockHeight);
+        
+        importState.MaxBlockHeightWithUpdatedFinalizationTime = maxBlockHeight;
+        
+        return result;
     }
 }

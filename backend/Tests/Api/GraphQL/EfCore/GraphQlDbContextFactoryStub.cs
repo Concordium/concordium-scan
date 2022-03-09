@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.EfCore;
 using Application.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Tests.Api.GraphQL.EfCore;
 
@@ -17,7 +18,16 @@ public class GraphQlDbContextFactoryStub : IDbContextFactory<GraphQlDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<GraphQlDbContext>()
             .UseNpgsql(_settings.ConnectionString);
-        
+
+        return new GraphQlDbContext(optionsBuilder.Options);
+    }
+    
+    public GraphQlDbContext CreateDbContextWithLog(Action<string> action, LogLevel level = LogLevel.Information)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<GraphQlDbContext>()
+            .UseNpgsql(_settings.ConnectionString);
+
+        optionsBuilder.LogTo(action, level);
         return new GraphQlDbContext(optionsBuilder.Options);
     }
 }

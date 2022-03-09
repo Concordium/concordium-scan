@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using Application.Common;
 using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
@@ -10,14 +9,10 @@ namespace Application.Api.GraphQL.EfCore;
 public class MetricsWriter
 {
     private readonly DatabaseSettings _settings;
-    private readonly IMemoryCachedValue<long> _cumulativeTransactionCountCache;
-    private readonly IMemoryCachedValue<long> _cumulativeAccountsCreatedCache;
 
-    public MetricsWriter(DatabaseSettings settings, IMemoryCachedValue<long> cumulativeTransactionCountCache, IMemoryCachedValue<long> cumulativeAccountsCreatedCache)
+    public MetricsWriter(DatabaseSettings settings)
     {
         _settings = settings;
-        _cumulativeTransactionCountCache = cumulativeTransactionCountCache;
-        _cumulativeAccountsCreatedCache = cumulativeAccountsCreatedCache;
     }
 
     public async Task AddBlockMetrics(Block block)
@@ -39,24 +34,16 @@ public class MetricsWriter
         await conn.ExecuteAsync(sql, blockParam);
     }
 
-    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary)
+    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, ImportState importState)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var cumulativeTransactionCount = _cumulativeTransactionCountCache.GetCommittedValue();
-        if (!cumulativeTransactionCount.HasValue)
-        {
-            var initSql = @"select max(cumulative_transaction_count)
-                            from metrics_transactions
-                            where time = (select max(time) from metrics_transactions)";
-            var maxCumulativeTxCount = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
-            cumulativeTransactionCount = maxCumulativeTxCount ?? 0;
-        }
+        var cumulativeTransactionCount = importState.CumulativeTransactionCount;
 
         var transactionParams = blockSummary.TransactionSummaries.Select((txs, ix) => new
         {
-            CumulativeTransactionCount = cumulativeTransactionCount.Value + ix + 1,
+            CumulativeTransactionCount = cumulativeTransactionCount + ix + 1,
             Time = blockInfo.BlockSlotTime,
             TransactionType = TransactionTypeUnion.CreateFrom(txs.Type).ToCompactString(),
             MicroCcdCost = Convert.ToInt64(txs.Cost.MicroCcdValue),
@@ -66,37 +53,39 @@ public class MetricsWriter
         var sql = "insert into metrics_transactions (time, cumulative_transaction_count, transaction_type, micro_ccd_cost, success) values (@Time, @CumulativeTransactionCount, @TransactionType, @MicroCcdCost, @Success)";
         await conn.ExecuteAsync(sql, transactionParams);
 
-        var newValue = cumulativeTransactionCount.Value + blockSummary.TransactionSummaries.Length;
-        _cumulativeTransactionCountCache.EnqueueUpdate(newValue);
+        var newValue = cumulativeTransactionCount + blockSummary.TransactionSummaries.Length;
+        importState.CumulativeTransactionCount = newValue;
     }
 
-    public async Task AddAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts)
+    public async Task AddAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, ImportState importState)
     {
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
-        var cumulativeAccountsCreated = _cumulativeAccountsCreatedCache.GetCommittedValue();
-        if (!cumulativeAccountsCreated.HasValue)
-        {
-            var initSql = @"select max(cumulative_accounts_created)
-                            from metrics_accounts
-                            where time = (select max(time) from metrics_accounts)";
-            var maxTotalAccounts = await conn.QuerySingleOrDefaultAsync<long?>(initSql);
-            cumulativeAccountsCreated = maxTotalAccounts ?? 0;
-        }
-
-        cumulativeAccountsCreated = cumulativeAccountsCreated.Value + createdAccounts.Length;
+        var cumulativeAccountsCreated = importState.CumulativeAccountsCreated + createdAccounts.Length;
         
         var accountsParams = new
         {
             Time = blockInfo.BlockSlotTime,
-            CumulativeAccountsCreated = cumulativeAccountsCreated.Value,
+            CumulativeAccountsCreated = cumulativeAccountsCreated,
             AccountsCreated = createdAccounts.Length
         };
         
         var sql = "insert into metrics_accounts (time, cumulative_accounts_created, accounts_created) values (@Time, @CumulativeAccountsCreated, @AccountsCreated)";
         await conn.ExecuteAsync(sql, accountsParams);
 
-        _cumulativeAccountsCreatedCache.EnqueueUpdate(cumulativeAccountsCreated.Value);
+        importState.CumulativeAccountsCreated = cumulativeAccountsCreated;
+    }
+
+    public async Task UpdateFinalizationTimes(FinalizationTimeUpdate[] updates)
+    {
+        if (updates.Length == 0) return;
+        
+        var sql = @"update metrics_blocks  
+                    set finalization_time_secs = @FinalizationTimeSecs
+                    where time = @BlockSlotTime and block_height = @BlockHeight";
+        await using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+        await conn.ExecuteAsync(sql, updates);
     }
 }
