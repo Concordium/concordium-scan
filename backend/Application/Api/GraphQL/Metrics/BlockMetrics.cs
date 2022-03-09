@@ -4,15 +4,17 @@ namespace Application.Api.GraphQL.Metrics;
 
 public record BlockMetrics(
     [property:GraphQLDescription("The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero).")]
-    long LastBlockHeight, 
+    long LastBlockHeight,
     [property:GraphQLDescription("Total number of blocks added in requested period.")]
     int BlocksAdded, 
     [property:GraphQLDescription("The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period.")]
-    double? AvgBlockTime, 
+    double? AvgBlockTime,
+    [property:GraphQLDescription("The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period.")]
+    double? AvgFinalizationTime,
     [property:GraphQLDescription("The total amount of CCD in existence.")]
-    long LastTotalMicroCcd, 
+    long LastTotalMicroCcd,
     [property:GraphQLDescription("The total amount of CCD in encrypted balances.")]
-    long LastTotalEncryptedMicroCcd, 
+    long LastTotalEncryptedMicroCcd,
     BlockMetricsBuckets Buckets);
     
 public record BlockMetricsBuckets(

@@ -36,13 +36,15 @@ public class MetricsQuery
 
         var sql = 
             @"select count(*) as total_block_count,
-                     avg(block_time_secs) as avg_block_time_secs
+                     avg(block_time_secs) as avg_block_time_secs,
+                     avg(finalization_time_secs) as avg_finalization_time_secs
               from metrics_blocks
               where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
 
         var totalBlockCount = (int)data.total_block_count;
         var avgBlockTime = data.avg_block_time_secs != null ? Math.Round((double)data.avg_block_time_secs, 1) : (double?)null;
+        var avgFinalizationTime = data.avg_finalization_time_secs != null ? Math.Round((double)data.avg_finalization_time_secs, 1) : (double?)null;
         
         var bucketParams = queryParams with
         {
@@ -89,7 +91,7 @@ public class MetricsQuery
             bucketData.Select(row => (long?)row.min_total_encrypted_microccd).ToArray(),
             bucketData.Select(row => (long?)row.max_total_encrypted_microccd).ToArray(),
             bucketData.Select(row => (long)row.last_total_encrypted_microccd).ToArray());
-        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
+        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
         return result;
     }
 
