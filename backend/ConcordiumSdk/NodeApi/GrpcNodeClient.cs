@@ -40,15 +40,15 @@ public class GrpcNodeClient : INodeClient, IDisposable
         _jsonSerializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
     }
 
-    public async Task<ConsensusStatus> GetConsensusStatusAsync()
+    public async Task<ConsensusStatus> GetConsensusStatusAsync(CancellationToken cancellationToken = default)
     {
-        var callOptions = CreateCallOptions();
+        var callOptions = CreateCallOptions(cancellationToken);
         var call = _client.GetConsensusStatusAsync(new Empty(), callOptions);
         var response = await call;
         return JsonSerializer.Deserialize<ConsensusStatus>(response.Value, _jsonSerializerOptions);
     }
 
-    public async Task<BlockHash[]> GetBlocksAtHeightAsync(ulong blockHeight)
+    public async Task<BlockHash[]> GetBlocksAtHeightAsync(ulong blockHeight, CancellationToken cancellationToken = default)
     {
         var request = new BlockHeight()
         {
@@ -56,35 +56,35 @@ public class GrpcNodeClient : INodeClient, IDisposable
             RestrictToGenesisIndex = false
         };
 
-        var call = _client.GetBlocksAtHeightAsync(request, CreateCallOptions());
+        var call = _client.GetBlocksAtHeightAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         return JsonSerializer.Deserialize<BlockHash[]>(response.Value, _jsonSerializerOptions);
     }
 
-    public async Task<ConcordiumSdk.Types.AccountAddress[]> GetAccountListAsync(BlockHash blockHash)
+    public async Task<ConcordiumSdk.Types.AccountAddress[]> GetAccountListAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
         };
-        var call = _client.GetAccountListAsync(request, CreateCallOptions());
+        var call = _client.GetAccountListAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         return JsonSerializer.Deserialize<ConcordiumSdk.Types.AccountAddress[]>(response.Value, _jsonSerializerOptions)!;
     }
     
-    public async Task<BlockInfo> GetBlockInfoAsync(BlockHash blockHash)
+    public async Task<BlockInfo> GetBlockInfoAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
         };
-        var call = _client.GetBlockInfoAsync(request, CreateCallOptions());
+        var call = _client.GetBlockInfoAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         
         return JsonSerializer.Deserialize<BlockInfo>(response.Value, _jsonSerializerOptions);
     }
 
-    public async Task<string> GetBlockSummaryStringAsync(BlockHash blockHash)
+    public async Task<string> GetBlockSummaryStringAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var blockSummary = _lastBlockSummary;
         if (blockSummary?.Item1 == blockHash)
@@ -95,7 +95,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
             BlockHash_ = blockHash.AsString
         };
         
-        var call = _client.GetBlockSummaryAsync(request, CreateCallOptions());
+        var call = _client.GetBlockSummaryAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         _lastBlockSummary = new Tuple<BlockHash, string>(blockHash, response.Value);
         return response.Value;
@@ -103,101 +103,101 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
     private Tuple<BlockHash, string> _lastBlockSummary;
     
-    public async Task<BlockSummary> GetBlockSummaryAsync(BlockHash blockHash)
+    public async Task<BlockSummary> GetBlockSummaryAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
-        var stringResponse = await GetBlockSummaryStringAsync(blockHash);
+        var stringResponse = await GetBlockSummaryStringAsync(blockHash, cancellationToken);
         var result = JsonSerializer.Deserialize<BlockSummary>(stringResponse, _jsonSerializerOptions)!;
         return result;
     }
 
-    public async Task<AccountInfo> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
+    public async Task<AccountInfo> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new GetAddressInfoRequest()
         {
             Address = accountAddress.AsString,
             BlockHash = blockHash.AsString
         };
-        var call = _client.GetAccountInfoAsync(request, CreateCallOptions());
+        var call = _client.GetAccountInfoAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<AccountInfo>(response.Value, _jsonSerializerOptions)!;
         return result;
     }
 
-    public async Task<RewardStatus> GetRewardStatusAsync(BlockHash blockHash)
+    public async Task<RewardStatus> GetRewardStatusAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
         };
 
-        var call = _client.GetRewardStatusAsync(request, CreateCallOptions());
+        var call = _client.GetRewardStatusAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<RewardStatus>(response.Value, _jsonSerializerOptions)!;
         return result;
     }
 
-    public async Task<string> GetAccountInfoStringAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash)
+    public async Task<string> GetAccountInfoStringAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new GetAddressInfoRequest()
         {
             Address = accountAddress.AsString,
             BlockHash = blockHash.AsString
         };
-        var call = _client.GetAccountInfoAsync(request, CreateCallOptions());
+        var call = _client.GetAccountInfoAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         return response.Value;
     }
 
-    public async Task<PeerListResponse> PeerListAsync(bool includeBootstrappers = false)
+    public async Task<PeerListResponse> PeerListAsync(bool includeBootstrappers = false, CancellationToken cancellationToken = default)
     {
         var request = new PeersRequest
         {
             IncludeBootstrappers = includeBootstrappers
         };
 
-        var callOptions = CreateCallOptions();
+        var callOptions = CreateCallOptions(cancellationToken);
         var call = _client.PeerListAsync(request, callOptions);
         var response = await call;
         return response;
     }
 
-    public async Task<PeerStatsResponse> PeerStatsAsync(bool includeBootstrappers = false)
+    public async Task<PeerStatsResponse> PeerStatsAsync(bool includeBootstrappers = false, CancellationToken cancellationToken = default)
     {
         var request = new PeersRequest
         {
             IncludeBootstrappers = includeBootstrappers
         };
 
-        var callOptions = CreateCallOptions();
+        var callOptions = CreateCallOptions(cancellationToken);
         var call = _client.PeerStatsAsync(request, callOptions);
         var response = await call;
         return response;
     }
 
-    public async Task<TransactionStatus> GetTransactionStatusAsync(ConcordiumSdk.Types.TransactionHash transactionHash)
+    public async Task<TransactionStatus> GetTransactionStatusAsync(ConcordiumSdk.Types.TransactionHash transactionHash, CancellationToken cancellationToken = default)
     {
         var request = new TransactionHash { TransactionHash_ = transactionHash.AsString };
-        var call = _client.GetTransactionStatusAsync(request, CreateCallOptions());
+        var call = _client.GetTransactionStatusAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<TransactionStatus>(response.Value, _jsonSerializerOptions);
         return result;
     }
 
-    public async Task<string> GetTransactionStatusInBlockAsync(string transactionHash, BlockHash blockHash)
+    public async Task<string> GetTransactionStatusInBlockAsync(string transactionHash, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new GetTransactionStatusInBlockRequest()
         {
             TransactionHash = transactionHash,
             BlockHash = blockHash.AsString
         };
-        var call = _client.GetTransactionStatusInBlockAsync(request, CreateCallOptions());
+        var call = _client.GetTransactionStatusInBlockAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         return response.Value;
     }
 
-    private CallOptions CreateCallOptions()
+    private CallOptions CreateCallOptions(CancellationToken cancellationToken)
     {
-        return new CallOptions(_metadata, DateTime.UtcNow.AddSeconds(30), CancellationToken.None);
+        return new CallOptions(_metadata, DateTime.UtcNow.AddSeconds(30), cancellationToken);
     }
 
     public void Dispose()
@@ -205,14 +205,14 @@ public class GrpcNodeClient : INodeClient, IDisposable
         _grpcChannel?.Dispose();
     }
 
-    public async Task SendTransactionAsync(byte[] payload, uint networkId = 100)
+    public async Task SendTransactionAsync(byte[] payload, uint networkId = 100, CancellationToken cancellationToken = default)
     {
         var request = new SendTransactionRequest
         {
             NetworkId = networkId,
             Payload = ByteString.CopyFrom(payload)
         };
-        var call = _client.SendTransactionAsync(request, CreateCallOptions());
+        var call = _client.SendTransactionAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         if (!response.Value)
             throw new InvalidOperationException("Response indicated that transaction was not successfully sent.");
@@ -223,53 +223,53 @@ public class GrpcNodeClient : INodeClient, IDisposable
     /// If all account transactions are finalized then this information is reliable.
     /// Otherwise this is the best guess, assuming all other transactions will be committed to blocks and eventually finalized.
     /// </summary>
-    public async Task<NextAccountNonceResponse> GetNextAccountNonceAsync(ConcordiumSdk.Types.AccountAddress address)
+    public async Task<NextAccountNonceResponse> GetNextAccountNonceAsync(ConcordiumSdk.Types.AccountAddress address, CancellationToken cancellationToken = default)
     {
         var request = new AccountAddress
         {
             AccountAddress_ = address.AsString
         };
-        var call = _client.GetNextAccountNonceAsync(request, CreateCallOptions());
+        var call = _client.GetNextAccountNonceAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<NextAccountNonceResponse>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
     }
 
-    public async Task<IdentityProviderInfo[]> GetIdentityProvidersAsync(BlockHash blockHash)
+    public async Task<IdentityProviderInfo[]> GetIdentityProvidersAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
         };
-        var call = _client.GetIdentityProvidersAsync(request, CreateCallOptions());
+        var call = _client.GetIdentityProvidersAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<IdentityProviderInfo[]>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
     }
 
-    public async Task<ContractAddress[]> GetInstancesAsync(BlockHash blockHash)
+    public async Task<ContractAddress[]> GetInstancesAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
         };
-        var call = _client.GetInstancesAsync(request, CreateCallOptions());
+        var call = _client.GetInstancesAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<ContractAddress[]>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
     }
     
-    public async Task<ContractInstanceInfo> GetInstanceInfoAsync(ContractAddress contractAddress, BlockHash blockHash)
+    public async Task<ContractInstanceInfo> GetInstanceInfoAsync(ContractAddress contractAddress, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new GetAddressInfoRequest
         {
             Address = JsonSerializer.Serialize(contractAddress, _jsonSerializerOptions),
             BlockHash = blockHash.AsString 
         };
-        var call = _client.GetInstanceInfoAsync(request, CreateCallOptions());
+        var call = _client.GetInstanceInfoAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
         var result = JsonSerializer.Deserialize<ContractInstanceInfo>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");

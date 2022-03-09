@@ -87,6 +87,4 @@ catch (Exception e)
     logger.Fatal(e, "Unhandled exception caught. Terminating application.");
     Environment.ExitCode = -1;
 }
-logger.Information("Pause before exit!");
-await Task.Delay(TimeSpan.FromSeconds(3));
 logger.Information("Exiting application!");

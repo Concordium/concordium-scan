@@ -55,7 +55,7 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consensusStatus = await GetWithGrpcRetryAsync(_client.GetConsensusStatusAsync, "GetConsensusStatus", stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
@@ -91,25 +91,25 @@ public class ImportReadController : BackgroundService
     {
         var sw = Stopwatch.StartNew();
 
-        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight), "GetBlocksAtHeight", stoppingToken);
+        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), "GetBlocksAtHeight", stoppingToken);
         if (blocksAtHeight.Length != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
         var blockHash = blocksAtHeight.Single();
 
-        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash), "GetBlockInfo", stoppingToken);
-        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash), "GetBlockSummary", stoppingToken);
-        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash), "GetRewardStatus", stoppingToken);
+        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash, stoppingToken), "GetBlockInfo", stoppingToken);
+        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash, stoppingToken), "GetBlockSummary", stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash, stoppingToken), "GetRewardStatus", stoppingToken);
 
         var blockInfo = await blockInfoTask;
         var blockSummary = await blockSummaryTask;
         var rewardStatus = await rewardStatusTask;
 
-        var createdAccounts = await GetWithGrpcRetryAsync(() => GetCreatedAccountsAsync(blockInfo, blockSummary), "GetCreatedAccounts", stoppingToken);
+        var createdAccounts = await GetWithGrpcRetryAsync(() => GetCreatedAccountsAsync(blockInfo, blockSummary, stoppingToken), "GetCreatedAccounts", stoppingToken);
 
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash), "GetIdentityProviders", stoppingToken);
+            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), "GetIdentityProviders", stoppingToken);
 
             payload = new GenesisBlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus,
                 genesisIdentityProviders);
@@ -123,13 +123,13 @@ public class ImportReadController : BackgroundService
         return new BlockDataEnvelope(payload, readDuration);
     }
 
-    private async Task<AccountInfo[]> GetCreatedAccountsAsync(BlockInfo blockInfo, BlockSummary blockSummary)
+    private async Task<AccountInfo[]> GetCreatedAccountsAsync(BlockInfo blockInfo, BlockSummary blockSummary, CancellationToken stoppingToken)
     {
         if (blockInfo.BlockHeight == 0)
         {
-            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash);
+            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash, stoppingToken);
             var accountInfoTasks = accountList
-                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash))
+                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
             
             return await Task.WhenAll(accountInfoTasks);
@@ -144,7 +144,7 @@ public class ImportReadController : BackgroundService
             if (accountsCreated.Length == 0) return Array.Empty<AccountInfo>();
             
             var accountInfoTasks = accountsCreated
-                .Select(x => _client.GetAccountInfoAsync(x.Contents, blockInfo.BlockHash))
+                .Select(x => _client.GetAccountInfoAsync(x.Contents, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
             return await Task.WhenAll(accountInfoTasks);
         }
@@ -162,7 +162,7 @@ public class ImportReadController : BackgroundService
                 "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
                 importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
 
-            var consensusStatus = await GetWithGrpcRetryAsync(_client.GetConsensusStatusAsync, "GetConsensusStatus", stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
             var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
             _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
                 consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
@@ -178,7 +178,7 @@ public class ImportReadController : BackgroundService
     private async Task<T> GetWithGrpcRetryAsync<T>(Func<Task<T>> func, string operationName, CancellationToken stoppingToken)
     {
         var policyResult = await Policy
-            .Handle<RpcException>()
+            .Handle<RpcException>(ex => ex.StatusCode != StatusCode.Cancelled) 
             .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), (exception, span) => OnGetRetry(exception, operationName))
             .ExecuteAndCaptureAsync(_ => func(), stoppingToken);
 
