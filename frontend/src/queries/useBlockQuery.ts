@@ -27,6 +27,18 @@ const BlockQuery = gql<BlockResponse>`
 					result {
 						__typename
 					}
+					transactionType {
+						__typename
+						... on AccountTransaction {
+							accountTransactionType
+						}
+						... on CredentialDeploymentTransaction {
+							credentialDeploymentTransactionType
+						}
+						... on UpdateTransaction {
+							updateTransactionType
+						}
+					}
 				}
 				pageInfo {
 					startCursor

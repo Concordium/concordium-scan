@@ -1,11 +1,14 @@
 <template>
-	<div>
+	<div class="w-full">
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Transaction hash</TableTh>
-					<TableTh>Sender</TableTh>
-					<TableTh align="right">Cost (Ͼ)</TableTh>
+					<TableTh>Status / Hash</TableTh>
+					<TableTh>Type</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Sender</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG" align="right">
+						Cost (Ͼ)
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -29,10 +32,19 @@
 							:hash="transaction.transactionHash"
 						/>
 					</TableTd>
-					<TableTd class="numerical">
+					<TableTd>
+						<div class="whitespace-normal">
+							{{ translateTransactionType(transaction.transactionType) }}
+						</div>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
 						<AccountLink :address="transaction.senderAccountAddress" />
 					</TableTd>
-					<TableTd align="right" class="numerical">
+					<TableTd
+						v-if="breakpoint >= Breakpoint.LG"
+						align="right"
+						class="numerical"
+					>
 						{{ convertMicroCcdToCcd(transaction.ccdCost) }}
 					</TableTd>
 				</TableRow>
@@ -48,10 +60,14 @@
 
 <script lang="ts" setup>
 import { convertMicroCcdToCcd } from '~/utils/format'
+import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/generated'
+
+const { breakpoint } = useBreakpoint()
 
 type Props = {
 	transactions: Transaction[]

@@ -104,8 +104,10 @@
 						<TableRow>
 							<TableTh>Height</TableTh>
 							<TableTh>Block hash</TableTh>
-							<TableTh>Baker</TableTh>
-							<TableTh align="right">Baker reward (Ͼ)</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.MD">Baker</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.SM" align="right"
+								>Baker reward (Ͼ)</TableTh
+							>
 						</TableRow>
 					</TableHead>
 
@@ -123,14 +125,18 @@
 							<TableTd>
 								<BlockLink :id="block.id" :hash="block.blockHash" />
 							</TableTd>
-							<TableTd class="numerical">
+							<TableTd v-if="breakpoint >= Breakpoint.MD" class="numerical">
 								<UserIcon
 									v-if="block.bakerId || block.bakerId === 0"
 									class="h-4 text-theme-white inline align-baseline"
 								/>
 								{{ block.bakerId }}
 							</TableTd>
-							<TableTd align="right" class="numerical">
+							<TableTd
+								v-if="breakpoint >= Breakpoint.SM"
+								align="right"
+								class="numerical"
+							>
 								{{
 									convertMicroCcdToCcd(
 										block.specialEvents.blockRewards?.bakerReward
@@ -154,8 +160,10 @@
 						<TableRow>
 							<TableTh>Type</TableTh>
 							<TableTh>Transaction hash</TableTh>
-							<TableTh>Sender</TableTh>
-							<TableTh align="right">Cost (Ͼ)</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.MD">Sender</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.MD" align="right">
+								Cost (Ͼ)
+							</TableTh>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -164,16 +172,22 @@
 							:key="transaction.transactionHash"
 						>
 							<TableTd>
-								<StatusCircle
-									:class="[
-										'h-4 mr-2 text-theme-interactive',
-										{
-											'text-theme-error':
-												transaction.result.__typename === 'Rejected',
-										},
-									]"
-								/>
-								{{ translateTransactionType(transaction.transactionType) }}
+								<div class="flex">
+									<div class="w-4 mr-2">
+										<StatusCircle
+											:class="[
+												'h-4 text-theme-interactive',
+												{
+													'text-theme-error':
+														transaction.result.__typename === 'Rejected',
+												},
+											]"
+										/>
+									</div>
+									<div class="whitespace-normal lg:whitespace-nowrap">
+										{{ translateTransactionType(transaction.transactionType) }}
+									</div>
+								</div>
 							</TableTd>
 							<TableTd>
 								<TransactionLink
@@ -181,10 +195,14 @@
 									:hash="transaction.transactionHash"
 								/>
 							</TableTd>
-							<TableTd class="numerical">
+							<TableTd v-if="breakpoint >= Breakpoint.MD" class="numerical">
 								<AccountLink :address="transaction.senderAccountAddress" />
 							</TableTd>
-							<TableTd align="right" class="numerical">
+							<TableTd
+								v-if="breakpoint >= Breakpoint.MD"
+								align="right"
+								class="numerical"
+							>
 								{{ convertMicroCcdToCcd(transaction.ccdCost) }}
 							</TableTd>
 						</TableRow>
@@ -198,6 +216,7 @@
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
@@ -212,8 +231,10 @@ import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 const pageSize = 10
 const queueSize = 50
-const drawInterval = 200 // in ms
+const drawInterval = 2000 // in ms
 let loopInterval: NodeJS.Timeout
+
+const { breakpoint } = useBreakpoint()
 
 const subscriptionHandler = (
 	_prevData: void,
