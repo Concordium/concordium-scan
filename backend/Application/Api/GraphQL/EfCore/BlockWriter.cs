@@ -204,24 +204,17 @@ public class BlockWriter
         };
     }
 
-    public async Task CalculateAndUpdateTotalAmountLockedInSchedules(long blockId, DateTimeOffset blockSlotTime)
+    public async Task UpdateTotalAmountLockedInReleaseSchedules(Block block)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
         
         var sql = "select sum(amount) from graphql_account_release_schedule where timestamp > @BlockSlotTime";
-        var result = await conn.ExecuteScalarAsync<long>(sql, new { BlockSlotTime = blockSlotTime });
-        
-        var updateSql = @"
-            update graphql_blocks 
-            set bal_stats_total_amount_locked_in_schedules = @AmountLockedInSchedules 
-            where id = @BlockId";
-        
-        await conn.ExecuteAsync(updateSql, new
-        {
-            AmountLockedInSchedules = result, 
-            BlockId = blockId
-        });
+        var result = await conn.ExecuteScalarAsync<long>(sql, new { block.BlockSlotTime });
+
+        context.Blocks.Attach(block);
+        block.BalanceStatistics.TotalAmountLockedInReleaseSchedules = (ulong)result;
+        await context.SaveChangesAsync();
     }
     
     public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(Block block, ImportState importState)

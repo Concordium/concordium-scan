@@ -332,29 +332,32 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task CalculateAndUpdateTotalAmountLockedInSchedules_NoReleaseSchedulesExist()
+    public async Task UpdateTotalAmountLockedInReleaseSchedules_NoReleaseSchedulesExist()
     {
         // Create and get a block
         await WriteData();
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
 
+        await SetReleaseSchedule(Array.Empty<object>());
+
         // act!
-        await _target.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+        await _target.UpdateTotalAmountLockedInReleaseSchedules(block);
 
         // assert!
-        block = dbContext.Blocks.Single();
+        var writtenResult = dbContext.Blocks.Single();
+        writtenResult.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(0);
         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(0);
     }
     
     [Fact]
-    public async Task CalculateAndUpdateTotalAmountLockedInSchedules_ReleaseSchedulesExist()
+    public async Task UpdateTotalAmountLockedInReleaseSchedules_ReleaseSchedulesExist()
     {
         await WriteData();
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.AsNoTracking().Single();
 
-        var schedules = new List<object>
+        var schedules = new object[]
         {
             new { Timestamp = block.BlockSlotTime.AddHours(-1), Amount = 10 },  // not expected included 
             new { Timestamp = block.BlockSlotTime.AddHours(0), Amount = 100 },  // not expected included
@@ -363,9 +366,10 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         };
         await SetReleaseSchedule(schedules);
 
-        await _target.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+        await _target.UpdateTotalAmountLockedInReleaseSchedules(block);
 
-        block = dbContext.Blocks.AsNoTracking().Single();
+        var writtenResult = dbContext.Blocks.AsNoTracking().Single();
+        writtenResult.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(11000);
         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules.Should().Be(11000);
     }
 
@@ -464,7 +468,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         await dbContext.SaveChangesAsync();
     }
 
-    private async Task SetReleaseSchedule(List<object> schedules)
+    private async Task SetReleaseSchedule(object[] schedules)
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var conn = dbContext.Database.GetDbConnection();

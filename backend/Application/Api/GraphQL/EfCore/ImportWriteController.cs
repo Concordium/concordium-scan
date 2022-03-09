@@ -116,7 +116,7 @@ public class ImportWriteController : BackgroundService
         await _accountWriter.AddAccountTransactionRelations(transactions);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 
-        await _blockWriter.CalculateAndUpdateTotalAmountLockedInSchedules(block.Id, block.BlockSlotTime);
+        await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
 
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
