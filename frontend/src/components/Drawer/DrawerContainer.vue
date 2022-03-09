@@ -1,37 +1,62 @@
 ﻿<template>
-	<Drawer
-		:is-open="
-			!!currentTopItem?.id ||
-			!!currentTopItem?.hash ||
-			!!currentTopItem?.address
-		"
-		:on-close="() => softReset()"
-		class="relative"
-	>
-		<template #content>
-			<BlockDetailsContainer
-				v-if="currentTopItem && currentTopItem.entityTypeName == 'block'"
-				:id="currentTopItem?.id"
-				:hash="currentTopItem?.hash"
-			/>
-			<TransactionDetailsContainer
-				v-if="currentTopItem && currentTopItem.entityTypeName == 'transaction'"
-				:id="currentTopItem?.id"
-				:hash="currentTopItem?.hash"
-			/>
-			<AccountDetailsContainer
-				v-if="currentTopItem && currentTopItem.entityTypeName == 'account'"
-				:id="currentTopItem?.id"
-				:address="currentTopItem?.address"
-			/>
-		</template>
+	<div>
+		<transition name="drawer-mask">
+			<div
+				v-if="currentDrawerCount > 0"
+				:class="$style.drawerMask"
+				style="z-index: 1"
+				@click="() => softReset()"
+			></div>
+		</transition>
+		<Drawer
+			v-for="(drawerItem, index) in getItems()"
+			:key="drawerItem.hash"
+			:is-open="currentDrawerCount > 0"
+			:on-close="() => softReset()"
+			class="relative"
+			:style="[
+				'z-index:' + (index == currentDrawerCount - 1 ? 2 : 1),
+				'transform:' +
+					'translateX(-' +
+					(currentDrawerCount - 1 - index) * 10 +
+					'px)',
+			]"
+		>
+			<template #content>
+				<BlockDetailsContainer
+					v-if="drawerItem && drawerItem.entityTypeName == 'block'"
+					:id="drawerItem?.id"
+					:hash="drawerItem?.hash"
+				/>
+				<TransactionDetailsContainer
+					v-if="drawerItem && drawerItem.entityTypeName == 'transaction'"
+					:id="drawerItem?.id"
+					:hash="drawerItem?.hash"
+				/>
+				<AccountDetailsContainer
+					v-if="drawerItem && drawerItem.entityTypeName == 'account'"
+					:id="drawerItem?.id"
+					:address="drawerItem?.address"
+				/>
+			</template>
 
-		<template #actions>
-			<DrawerActions>
-				<Button class="self-end" :on-click="() => softReset()"> Close </Button>
-			</DrawerActions>
-		</template>
-	</Drawer>
+			<template #actions>
+				<DrawerActions class="flex flex-grow-0 justify-between">
+					<div class="flex gap-4">
+						<Button class="self-start" @click="back">
+							<ChevronBackIcon class="align-text-top" /> Back
+						</Button>
+						<Button v-if="canGoForward" class="self-start" @click="forward">
+							Forward <ChevronForwardIcon class="align-text-top" />
+						</Button>
+					</div>
+					<Button class="self-end" :on-click="() => softReset()">
+						Close
+					</Button>
+				</DrawerActions>
+			</template>
+		</Drawer>
+	</div>
 </template>
 
 <script lang="ts" setup>
@@ -40,6 +65,24 @@ import Drawer from '~/components/Drawer/Drawer.vue'
 import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContainer.vue'
 import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
-const { softReset } = useDrawer()
-const { currentTopItem } = useDrawer()
+import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
+import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
+const { softReset, currentDepth, canGoForward, getItems, currentDrawerCount } =
+	useDrawer()
+const router = useRouter()
+const back = () => {
+	// Depth is only 1 if it was a direct link to the drawer
+	if (currentDepth() > 1) router.go(-1)
+	else softReset()
+}
+const forward = () => {
+	if (canGoForward) router.go(1)
+}
 </script>
+<style module>
+.drawerMask {
+	@apply h-screen w-screen fixed top-0 left-0 z-10;
+	background: hsla(247, 40%, 4%, 0.5);
+	backdrop-filter: blur(2px);
+}
+</style>
