@@ -23,7 +23,13 @@
 import { ref } from 'vue'
 import { ChevronRightIcon } from '@heroicons/vue/solid/index.js'
 
-const isOpen = ref(false)
+type Props = {
+	isInitialOpen?: boolean
+}
+
+const props = defineProps<Props>()
+
+const isOpen = ref(!!props.isInitialOpen)
 const ID = `accordion-${Math.floor(Math.random() * 1000)}`
 
 const toggleOpenState = () => {

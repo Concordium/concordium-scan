@@ -54,6 +54,7 @@
 					props.transaction?.result.__typename === 'Success' &&
 					props.transaction.result.events
 				"
+				:is-initial-open="true"
 			>
 				Events
 				<span class="text-theme-faded ml-1">

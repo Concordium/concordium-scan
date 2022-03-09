@@ -46,4 +46,26 @@ describe('Accordion', () => {
 			expect(screen.getByText(CONTENT)).not.toBeVisible()
 		})
 	})
+
+	it('can be open by default', () => {
+		const slots = { content: CONTENT }
+		const props = { isInitialOpen: true }
+		render({ slots, props })
+
+		expect(screen.getByText(CONTENT)).toBeVisible()
+	})
+
+	it('can be closed after being initially open', () => {
+		const slots = { content: CONTENT }
+		const props = { isInitialOpen: true }
+		render({ slots, props })
+
+		expect(screen.getByText(CONTENT)).toBeVisible()
+
+		fireEvent.click(screen.getByText(TITLE))
+
+		waitFor(() => {
+			expect(screen.getByText(CONTENT)).not.toBeVisible()
+		})
+	})
 })
