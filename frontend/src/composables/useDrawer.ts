@@ -78,7 +78,6 @@ export const useDrawer = () => {
 		) {
 			return
 		}
-
 		let scrollY = 0
 		if (process.client) {
 			scrollY = window.scrollY
@@ -93,9 +92,11 @@ export const useDrawer = () => {
 
 		if (currentDrawerCount.value === 0 && resetList) {
 			reset()
-		} else {
-			currentDrawerCount.value = 1
 		}
+		drawerState.value.items = drawerState.value.items.slice(
+			0,
+			currentDrawerCount.value
+		)
 		drawerState.value.items.push(item)
 		router.push({
 			query: {
@@ -108,6 +109,9 @@ export const useDrawer = () => {
 	}
 	const getItems = () => {
 		return drawerState.value.items
+	}
+	const getDisplayItems = () => {
+		return drawerState.value.items.slice(0, currentDrawerCount.value)
 	}
 	const currentDepth = () => {
 		return drawerState.value.items.length
@@ -124,6 +128,7 @@ export const useDrawer = () => {
 		handleInitialLoad,
 		currentDepth,
 		canGoForward,
+		getDisplayItems,
 		currentDrawerCount,
 	}
 }

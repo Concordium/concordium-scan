@@ -1,20 +1,18 @@
 <template>
-	<transition name="drawer">
-		<section v-if="isOpen" :class="$style.drawer">
-			<button
-				class="rounded absolute right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
-				aria-label="Close"
-				@click="props.onClose"
-			>
-				<XIcon class="h-6" />
-			</button>
+	<section>
+		<button
+			class="rounded absolute right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
+			aria-label="Close"
+			@click="props.onClose"
+		>
+			<XIcon class="h-6" />
+		</button>
 
-			<div>
-				<slot name="content" />
-			</div>
-			<slot name="actions" />
-		</section>
-	</transition>
+		<div>
+			<slot name="content" />
+		</div>
+		<slot name="actions" />
+	</section>
 </template>
 
 <script lang="ts" setup>
@@ -62,44 +60,5 @@ const toggleClasses = (isOpen: boolean) => {
 	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
-}
-</style>
-
-<style>
-.drawer-enter-active,
-.drawer-leave-active {
-	transition: all 0.3s ease-out;
-}
-
-.drawer-leave-active {
-	transition: all 0.2s ease-in;
-}
-
-.drawer-enter-from,
-.drawer-leave-to {
-	transform: translateX(100%);
-}
-
-.drawer-enter-to,
-.drawer-leave-from {
-	transform: translateX(0);
-}
-
-.drawer-mask-enter-active {
-	transition: all 0.3s ease-out;
-}
-
-.drawer-mask-leave-active {
-	transition: all 0.3s ease-in;
-}
-
-.drawer-mask-enter-from,
-.drawer-mask-leave-to {
-	opacity: 0;
-}
-
-.drawer-mask-enter-to,
-.drawer-mask-leave-from {
-	opacity: 1;
 }
 </style>

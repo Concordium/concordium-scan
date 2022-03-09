@@ -7,26 +7,29 @@
 		>
 			<MenuIcon class="h-6" />
 		</button>
-		<Drawer
-			:is-mobile="true"
-			:is-open="isNavigationOpen"
-			:on-close="() => (isNavigationOpen = false)"
-		>
-			<template #content>
-				<nav class="flex flex-col items-end p-6 pt-24">
-					<div
-						v-for="route in navRoutes"
-						:key="route.path"
-						class="py-3"
-						@click="isNavigationOpen = false"
-					>
-						<NuxtLink :to="route.path" class="text-2xl font-bold">
-							{{ route.title }}
-						</NuxtLink>
-					</div>
-				</nav>
-			</template>
-		</Drawer>
+		<transition v-if="isNavigationOpen" name="drawer">
+			<Drawer
+				:class="$style.drawer"
+				:is-mobile="true"
+				:is-open="isNavigationOpen"
+				:on-close="() => (isNavigationOpen = false)"
+			>
+				<template #content>
+					<nav class="flex flex-col items-end p-6 pt-24">
+						<div
+							v-for="route in navRoutes"
+							:key="route.path"
+							class="py-3"
+							@click="isNavigationOpen = false"
+						>
+							<NuxtLink :to="route.path" class="text-2xl font-bold">
+								{{ route.title }}
+							</NuxtLink>
+						</div>
+					</nav>
+				</template>
+			</Drawer>
+		</transition>
 	</div>
 </template>
 
@@ -43,7 +46,13 @@ type Props = {
 
 defineProps<Props>()
 </script>
-
+<style module>
+.drawer {
+	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
+	background: hsl(247, 40%, 18%);
+	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
+}
+</style>
 <style>
 .router-link-active {
 	color: hsl(var(--color-interactive));
