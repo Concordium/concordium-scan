@@ -215,6 +215,7 @@ type Block {
   specialEvents: SpecialEvents!
   finalizationSummary: FinalizationSummary
   balanceStatistics: BalanceStatistics!
+  blockStatistics: BlockStatistics!
 }
 
 type BlockMetrics {
@@ -262,6 +263,11 @@ type BlockRewards {
   foundationCharge: UnsignedLong!
   bakerAccountAddress: String!
   foundationAccountAddress: String!
+}
+
+type BlockStatistics {
+  blockTime: Float!
+  finalizationTime: Float
 }
 
 "A connection to a list of items."

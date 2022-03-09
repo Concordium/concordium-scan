@@ -20,7 +20,6 @@ public class Block
     public SpecialEvents SpecialEvents { get; init; }
     public FinalizationSummary? FinalizationSummary { get; init; }
     public BalanceStatistics BalanceStatistics { get; init; }
-    [GraphQLIgnore] // TODO: Add block stats to graphql queries
     public BlockStatistics BlockStatistics { get; init; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
