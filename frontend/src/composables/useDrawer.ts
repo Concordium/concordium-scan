@@ -7,6 +7,7 @@ type DrawerItem = {
 	hash?: string
 	id?: string
 	address?: string
+	scrollY?: number
 }
 type DrawerList = {
 	items: DrawerItem[]
@@ -77,7 +78,18 @@ export const useDrawer = () => {
 		) {
 			return
 		}
-		const item = { entityTypeName, hash, id, address }
+
+		let scrollY = 0
+		if (process.client) {
+			scrollY = window.scrollY
+		}
+		const item = {
+			entityTypeName,
+			hash,
+			id,
+			address,
+			scrollY,
+		}
 
 		if (currentDrawerCount.value === 0 && resetList) {
 			reset()

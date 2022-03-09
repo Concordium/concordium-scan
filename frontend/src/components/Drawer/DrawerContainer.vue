@@ -16,6 +16,8 @@
 			class="relative"
 			:style="[
 				'z-index:' + (index == currentDrawerCount - 1 ? 2 : 1),
+				'max-height:' + (index == currentDrawerCount - 1 ? '' : '100vh'),
+				'position:' + (index == currentDrawerCount - 1 ? 'absolute' : 'fixed'),
 				'transform:' +
 					'translateX(-' +
 					(currentDrawerCount - 1 - index) * 10 +
@@ -67,8 +69,14 @@ import TransactionDetailsContainer from '~/components/TransactionDetails/Transac
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
 import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
-const { softReset, currentDepth, canGoForward, getItems, currentDrawerCount } =
-	useDrawer()
+const {
+	softReset,
+	currentDepth,
+	canGoForward,
+	getItems,
+	currentDrawerCount,
+	currentTopItem,
+} = useDrawer()
 const router = useRouter()
 const back = () => {
 	// Depth is only 1 if it was a direct link to the drawer
@@ -78,6 +86,11 @@ const back = () => {
 const forward = () => {
 	if (canGoForward) router.go(1)
 }
+watch(currentTopItem, () => {
+	if (currentTopItem && currentTopItem.value) {
+		window.scrollTo(0, currentTopItem.value.scrollY ?? 0)
+	}
+})
 </script>
 <style module>
 .drawerMask {
