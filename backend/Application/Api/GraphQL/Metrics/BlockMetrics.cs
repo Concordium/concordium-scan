@@ -36,6 +36,15 @@ public record BlockMetricsBuckets(
     [property:GraphQLDescription("The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
     double?[] Y_BlockTimeMax,
     
+    [property:GraphQLDescription("The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.")]
+    double?[] Y_FinalizationTimeMin,
+    
+    [property:GraphQLDescription("The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.")]
+    double?[] Y_FinalizationTimeAvg,
+    
+    [property:GraphQLDescription("The maximum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.")]
+    double?[] Y_FinalizationTimeMax,
+
     [property:GraphQLDescription("The total amount of CCD in existence at the end of the bucket period. Intended y-axis value.")]
     long[] Y_LastTotalMicroCcd,
     

@@ -247,6 +247,12 @@ type BlockMetricsBuckets {
   y_BlockTimeAvg: [Float]!
   "The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
   y_BlockTimeMax: [Float]!
+  "The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period."
+  y_FinalizationTimeMin: [Float]!
+  "The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period."
+  y_FinalizationTimeAvg: [Float]!
+  "The maximum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period."
+  y_FinalizationTimeMax: [Float]!
   "The total amount of CCD in existence at the end of the bucket period. Intended y-axis value."
   y_LastTotalMicroCcd: [Long!]!
   "The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."

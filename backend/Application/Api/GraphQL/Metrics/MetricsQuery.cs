@@ -58,6 +58,9 @@ public class MetricsQuery
                    min(block_time_secs)                   as min_block_time_secs,
                    avg(block_time_secs)                   as avg_block_time_secs,
                    max(block_time_secs)                   as max_block_time_secs,
+                   min(finalization_time_secs)            as min_finalization_time_secs,
+                   avg(finalization_time_secs)            as avg_finalization_time_secs,
+                   max(finalization_time_secs)            as max_finalization_time_secs,
                    locf(last(total_microccd, time),
                         coalesce((SELECT total_microccd
                                   FROM metrics_blocks m2
@@ -87,6 +90,9 @@ public class MetricsQuery
             bucketData.Select(row => (double?)row.min_block_time_secs).ToArray(),
             bucketData.Select(row => row.avg_block_time_secs != null ? Math.Round((double)row.avg_block_time_secs, 1) : (double?)null).ToArray(),
             bucketData.Select(row => (double?)row.max_block_time_secs).ToArray(),
+            bucketData.Select(row => (double?)row.min_finalization_time_secs).ToArray(),
+            bucketData.Select(row => row.avg_finalization_time_secs != null ? Math.Round((double)row.avg_finalization_time_secs, 1) : (double?)null).ToArray(),
+            bucketData.Select(row => (double?)row.max_finalization_time_secs).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd).ToArray(),
             bucketData.Select(row => (long?)row.min_total_encrypted_microccd).ToArray(),
             bucketData.Select(row => (long?)row.max_total_encrypted_microccd).ToArray(),
