@@ -11,6 +11,7 @@ public class ContractAddress : Address
     public ulong Index { get; }
 
     public ulong SubIndex { get; }
+    public string AsString => $"<{Index}, {SubIndex}>";
 
     public override bool Equals(object? obj)
     {

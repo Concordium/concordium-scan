@@ -1,13 +1,18 @@
+using HotChocolate;
+
 namespace Application.Api.GraphQL;
 
 public class AccountAddress : Address
 {
     public AccountAddress(string address)
     {
-        Address = address ?? throw new ArgumentNullException(nameof(address));
+        AsString = address ?? throw new ArgumentNullException(nameof(address));
+        Address = address;
     }
 
+    [GraphQLDeprecated("Use 'asString' instead. This field will be removed in the near future.")]
     public string Address { get; }
+    public string AsString { get; }
 
     public override bool Equals(object? obj)
     {
@@ -15,12 +20,12 @@ public class AccountAddress : Address
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != GetType()) return false;
         var other = (AccountAddress)obj;
-        return Address == other.Address;
+        return AsString == other.AsString;
     }
 
     public override int GetHashCode()
     {
-        return Address.GetHashCode();
+        return AsString.GetHashCode();
     }
 
     public static bool operator ==(AccountAddress? left, AccountAddress? right)

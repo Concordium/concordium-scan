@@ -6,12 +6,14 @@
 type Account {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
   id: ID!
-  address: String!
+  address: String! @deprecated(reason: "Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  addressString: String!
   createdAt: DateTime!
 }
 
 type AccountAddress {
-  address: String!
+  address: String! @deprecated(reason: "Use 'asString' instead. This field will be removed in the near future.")
+  asString: String!
 }
 
 type AccountCreated {
@@ -162,7 +164,8 @@ type BakerStakeIncreased {
 
 type BakingReward {
   amount: UnsignedLong!
-  address: String!
+  address: String! @deprecated(reason: "Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  addressString: String!
 }
 
 "A connection to a list of items."
@@ -269,8 +272,10 @@ type BlockRewards {
   newGasAccount: UnsignedLong!
   bakerReward: UnsignedLong!
   foundationCharge: UnsignedLong!
-  bakerAccountAddress: String!
-  foundationAccountAddress: String!
+  bakerAccountAddress: String! @deprecated(reason: "Use 'bakerAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  bakerAccountAddressString: String!
+  foundationAccountAddress: String! @deprecated(reason: "Use 'foundationAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  foundationAccountAddressString: String!
 }
 
 type BlockStatistics {
@@ -303,6 +308,7 @@ type ChainUpdateEnqueued {
 type ContractAddress {
   index: UnsignedLong!
   subIndex: UnsignedLong!
+  asString: String!
 }
 
 type ContractInitialized {
@@ -408,7 +414,8 @@ type EventsEdge {
 
 type FinalizationReward {
   amount: UnsignedLong!
-  address: String!
+  address: String! @deprecated(reason: "Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  addressString: String!
 }
 
 "A connection to a list of items."
@@ -536,7 +543,8 @@ type Mint {
   bakingReward: UnsignedLong!
   finalizationReward: UnsignedLong!
   platformDevelopmentCharge: UnsignedLong!
-  foundationAccount: String!
+  foundationAccount: String! @deprecated(reason: "Use 'foundationAccountAddress' instead.This field will be removed in the near future.")
+  foundationAccountAddress: AccountAddress!
 }
 
 type ModuleHashAlreadyExists {
@@ -708,7 +716,8 @@ type Transaction {
   id: ID!
   transactionIndex: Int!
   transactionHash: String!
-  senderAccountAddress: String
+  senderAccountAddress: String @deprecated(reason: "Use 'senderAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
+  senderAccountAddressString: String
   ccdCost: UnsignedLong!
   energyCost: UnsignedLong!
   transactionType: TransactionType!

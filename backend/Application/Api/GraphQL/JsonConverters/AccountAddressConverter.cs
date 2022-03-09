@@ -15,6 +15,6 @@ public class AccountAddressConverter : JsonConverter<AccountAddress>
 
     public override void Write(Utf8JsonWriter writer, AccountAddress value, JsonSerializerOptions options)
     {
-        writer.WriteStringValue(value.Address);
+        writer.WriteStringValue(value.AsString);
     }
 }

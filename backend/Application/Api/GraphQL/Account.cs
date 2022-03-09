@@ -11,7 +11,9 @@ public class Account
 {
     [ID]
     public long Id { get; set; }
+    [GraphQLDeprecated("Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     public string Address { get; set; }
+    public string AddressString => Address;
     public DateTimeOffset CreatedAt { get; init; }
     
     [UseDbContext(typeof(GraphQlDbContext))]
