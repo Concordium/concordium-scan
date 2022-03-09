@@ -23,7 +23,7 @@
 						? ''
 						: 'transform:' +
 						  'translateX(-' +
-						  (currentDrawerCount - 1 - index) * 10 +
+						  (currentDrawerCount - 1 - index) * 20 +
 						  'px)',
 				]"
 			>
@@ -108,6 +108,8 @@ watch(currentTopItem, () => {
 	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
+	transition: 0.3s ease-in-out;
+	-webkit-transition: 0.3s ease-in-out;
 }
 </style>
 
