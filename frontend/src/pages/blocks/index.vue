@@ -89,7 +89,7 @@
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.MD">
 						<Tooltip :text="block.blockSlotTime">
-							{{ convertTimestampToRelative(block.blockSlotTime) }}
+							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
@@ -124,6 +124,7 @@ import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import { convertTimestampToRelative, formatNumber } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
+import { useDateNow } from '~/composables/useDateNow'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
@@ -135,6 +136,7 @@ import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 
+const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
 const {

@@ -6,7 +6,7 @@
 				<DetailsCard v-if="props.account?.createdAt">
 					<template #title>Created At</template>
 					<template #default>
-						{{ convertTimestampToRelative(props.account?.createdAt) }}
+						{{ convertTimestampToRelative(props.account?.createdAt, NOW) }}
 					</template>
 					<template #secondary>
 						{{ props.account?.createdAt }}
@@ -35,7 +35,11 @@ import { convertTimestampToRelative } from '~/utils/format'
 import type { Account, PageInfo } from '~/types/generated'
 import AccountDetailsHeader from '~/components/Accounts/AccountDetailsHeader.vue'
 import AccountDetailsTransactions from '~/components/Accounts/AccountDetailsTransactions.vue'
+import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
+
+const { NOW } = useDateNow()
+
 type Props = {
 	account: Account
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void

@@ -176,17 +176,21 @@ import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import { convertTimestampToRelative } from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
+
+const { NOW } = useDateNow()
+const drawer = useDrawer()
+
 const tooltipPositionBottom = 'bottom' as Position
 const searchValue = ref('')
 const delayedSearchValue = ref('')
 const queryData = ref()
 const { data: rawQueryData, executeQuery } = useSearchQuery(delayedSearchValue)
 let searchQueryTimeout: NodeJS.Timeout | null = null
-const drawer = useDrawer()
 const loading = ref(true)
 const lastSearchTerm = ref('')
-const NOW = ref(new Date())
+
 watch(rawQueryData, () => {
 	loading.value = false
 	NOW.value = new Date()

@@ -60,7 +60,7 @@
 					</TableTd>
 					<TableTd>
 						<Tooltip :text="account.createdAt">
-							{{ convertTimestampToRelative(account.createdAt) }}
+							{{ convertTimestampToRelative(account.createdAt, NOW) }}
 						</Tooltip>
 					</TableTd>
 					<TableTd>
@@ -92,6 +92,9 @@ import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import type { Account } from '~/types/generated'
 import { convertTimestampToRelative, formatNumber } from '~/utils/format'
 import TransactionLink from '~/components/molecules/TransactionLink.vue'
+import { useDateNow } from '~/composables/useDateNow'
+
+const { NOW } = useDateNow()
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<Account>()
 const { data } = useAccountsListQuery({

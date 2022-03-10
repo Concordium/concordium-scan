@@ -23,7 +23,10 @@
 					<template #title>Timestamp</template>
 					<template #default>
 						{{
-							convertTimestampToRelative(props.transaction?.block.blockSlotTime)
+							convertTimestampToRelative(
+								props.transaction?.block.blockSlotTime,
+								NOW
+							)
 						}}
 					</template>
 					<template #secondary>
@@ -91,11 +94,13 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
+import { useDateNow } from '~/composables/useDateNow'
 import type { Transaction } from '~/types/transactions'
 import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const selectedTxId = useTransactionDetails()
+const { NOW } = useDateNow()
 
 type Props = {
 	transaction: Transaction

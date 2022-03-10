@@ -68,10 +68,13 @@ import Accordion from '~/components/Accordion.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
+import { useDateNow } from '~/composables/useDateNow'
 import { convertTimestampToRelative } from '~/utils/format'
 import type { Block } from '~/types/blocks'
 import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
+
+const { NOW } = useDateNow()
 
 type Props = {
 	block: Block
@@ -79,6 +82,4 @@ type Props = {
 }
 
 const props = defineProps<Props>()
-
-const NOW = new Date()
 </script>

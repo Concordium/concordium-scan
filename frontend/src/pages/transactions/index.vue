@@ -105,7 +105,9 @@
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
 						<Tooltip :text="transaction.block.blockSlotTime">
-							{{ convertTimestampToRelative(transaction.block.blockSlotTime) }}
+							{{
+								convertTimestampToRelative(transaction.block.blockSlotTime, NOW)
+							}}
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.MD">
@@ -147,6 +149,7 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
+import { useDateNow } from '~/composables/useDateNow'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
@@ -156,6 +159,7 @@ import type { Transaction } from '~/types/transactions'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { MetricsPeriod } from '~/types/generated'
 
+const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
 const {
