@@ -87,6 +87,56 @@ During development, you can run the tests in watch mode:
 yarn test:watch
 ```
 
+#### Testing utility
+
+We have a tiny testing utility, which gets rid of some of the boilerplate and makes testing Vue components simpler. It's advised to use this whenever you're testing a Vue component, in order to keep a consistent language and to make migration to a different testing library in the future easy.
+
+Here is how to use it:
+
+```typescript
+import Button from './Button.vue'
+import { setupComponent, screen, fireEvent } from '~/utils/testing'
+
+const defaultSlots = {
+	default: 'Hello',
+}
+
+const defaultProps = {
+	onClick: () => {
+		/* noop */
+	},
+}
+
+const defaultAttrs = {
+	disabled: false,
+}
+
+// Setup component with default props, slots and attributes
+const { render } = setupComponent(Button, {
+	defaultProps,
+	defaultSlots,
+	defaultAttrs,
+})
+
+describe('Button', () => {
+	it('can be clicked', () => {
+		const onClick = jest.fn()
+		const props = { onClick }
+
+		// render button (combining default props with new props)
+		render({ props })
+
+		expect(onClick).not.toHaveBeenCalled()
+
+		const button = screen.getByText(defaultSlots.default)
+
+		fireEvent.click(button)
+
+		expect(onClick).toHaveBeenCalledTimes(1)
+	})
+})
+```
+
 ### Git hooks
 
 We're using [Husky](https://typicode.github.io/husky/#/) to write our git hooks. We only have one git hook; **pre-commit**. It will make sure, that when committing, the staged code is linted (using ESLint), formatted (using Prettier) and typechecked.
