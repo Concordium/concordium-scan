@@ -15,6 +15,8 @@ public class TransactionWriter
 
     public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId)
     {
+        if (blockSummary.TransactionSummaries.Length == 0) return Array.Empty<TransactionPair>();
+        
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var transactions = blockSummary.TransactionSummaries
