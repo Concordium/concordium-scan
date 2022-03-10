@@ -20,7 +20,9 @@ public class AccountWriter
 
         var accounts = createdAccounts.Select(x => new Account
         {
-            Address = x.AccountAddress.AsString,
+            Id = (long)x.AccountIndex,
+            CanonicalAddress = x.AccountAddress.AsString,
+            BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().AsString),
             CreatedAt = blockSlotTime
         }).ToArray();
         context.Accounts.AddRange(accounts);
@@ -33,12 +35,14 @@ public class AccountWriter
             .Select(x => new
             {
                 TransactionId = x.Target.Id,
-                DistinctAccountAddresses = FindAccountAddresses(x.Source, x.Target).Distinct()
+                DistinctAccountBaseAddresses = FindAccountAddresses(x.Source, x.Target)
+                    .Select(address => address.GetBaseAddress())
+                    .Distinct()
             })
-            .SelectMany(x => x.DistinctAccountAddresses
-                .Select(accountAddress => new
+            .SelectMany(x => x.DistinctAccountBaseAddresses
+                .Select(accountBaseAddress => new
                 {
-                    AccountAddress = accountAddress.AsString, 
+                    AccountBaseAddress = accountBaseAddress.AsString, 
                     x.TransactionId
                 }))
             .ToArray();
@@ -51,7 +55,7 @@ public class AccountWriter
             // Inserted via dapper to inline lookup of account id from account address directly in insert
             await connection.ExecuteAsync(@"
                 insert into graphql_account_transactions (account_id, transaction_id)
-                select id, @TransactionId from graphql_accounts where address = @AccountAddress;", accountTransactions);
+                select id, @TransactionId from graphql_accounts where base_address = @AccountBaseAddress;", accountTransactions);
         }
     }
     
@@ -65,7 +69,7 @@ public class AccountWriter
                     .OfType<ConcordiumSdk.NodeApi.Types.TransferredWithSchedule>()
                     .SelectMany(scheduleEvent => scheduleEvent.Amount.Select((amount, ix) => new
                     {
-                        AccountAddress = scheduleEvent.To.AsString,
+                        AccountBaseAddress = scheduleEvent.To.GetBaseAddress().AsString,
                         TransactionId = transaction.Target.Id,
                         ScheduleIndex = ix,
                         Timestamp = amount.Timestamp,
@@ -80,7 +84,7 @@ public class AccountWriter
 
             await connection.ExecuteAsync(@"
                 insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount)
-                select id, @TransactionId, @ScheduleIndex, @Timestamp, @Amount from graphql_accounts where address = @AccountAddress;",
+                select id, @TransactionId, @ScheduleIndex, @Timestamp, @Amount from graphql_accounts where base_address = @AccountBaseAddress;",
                 result);
         }
     }

@@ -26,11 +26,11 @@ public class AccountsQueryTest : IAsyncLifetime
     {
         // Create some initial accounts...
         await _testHelper.DbContext.Accounts.AddRangeAsync(
-            new AccountBuilder().WithId(1).WithAddress("3wxwKbVMNj6ER4CnFteedrJxqSYgdnV6KEvvjXaBaCSYVDNfEL").Build(),
-            new AccountBuilder().WithId(2).WithAddress("4QkDsFc22r86cUusXfCKTuT3Sf15vASAyBqyMyDiFQqeHxwUX4").Build(),
-            new AccountBuilder().WithId(3).WithAddress("3xR6FKrXt35Vn3bBbQNVEFaTZinwWfEcFayhVWFpH4KkXBtVGP").Build(),
-            new AccountBuilder().WithId(4).WithAddress("3ECDy9yqSppefrias43nm1rntu1tLYFbBL52u8xnPaKQgVwEb6").Build(),
-            new AccountBuilder().WithId(5).WithAddress("3G47kjPEXKyDW82MuwUi6y6wcY96pRh8PPZn7zPUreK4QEpNkc").Build());
+            new AccountBuilder().WithId(1).WithCanonicalAddress("3wxwKbVMNj6ER4CnFteedrJxqSYgdnV6KEvvjXaBaCSYVDNfEL").Build(),
+            new AccountBuilder().WithId(2).WithCanonicalAddress("4QkDsFc22r86cUusXfCKTuT3Sf15vASAyBqyMyDiFQqeHxwUX4").Build(),
+            new AccountBuilder().WithId(3).WithCanonicalAddress("3xR6FKrXt35Vn3bBbQNVEFaTZinwWfEcFayhVWFpH4KkXBtVGP").Build(),
+            new AccountBuilder().WithId(4).WithCanonicalAddress("3ECDy9yqSppefrias43nm1rntu1tLYFbBL52u8xnPaKQgVwEb6").Build(),
+            new AccountBuilder().WithId(5).WithCanonicalAddress("3G47kjPEXKyDW82MuwUi6y6wcY96pRh8PPZn7zPUreK4QEpNkc").Build());
         await _testHelper.DbContext.SaveChangesAsync();
 
         // ... request the "first" two of them...
@@ -56,7 +56,7 @@ public class AccountsQueryTest : IAsyncLifetime
         var endCursor = (string)accountsNode?["pageInfo"]?["endCursor"]!;
 
         // ... and add a new block to the top of the chain (in the database)...
-        await _testHelper.DbContext.Accounts.AddRangeAsync(new AccountBuilder().WithId(6).WithAddress("33jdgehzu3RFEMwLRRxyMtPxQgsGX3xzPagEx6L32Jsdphw7ys").Build());
+        await _testHelper.DbContext.Accounts.AddRangeAsync(new AccountBuilder().WithId(6).WithCanonicalAddress("33jdgehzu3RFEMwLRRxyMtPxQgsGX3xzPagEx6L32Jsdphw7ys").Build());
         await _testHelper.DbContext.SaveChangesAsync();
         
         // ... and make a new request using the cursor from the previous query...

@@ -23,7 +23,7 @@ public class AccountsQuery
     {
         return dbContext.Accounts
             .AsNoTracking()
-            .SingleOrDefault(account => account.Address == accountAddress);
+            .SingleOrDefault(account => account.CanonicalAddress == accountAddress);
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]

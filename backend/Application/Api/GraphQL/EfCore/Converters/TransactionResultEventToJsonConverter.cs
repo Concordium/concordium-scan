@@ -16,7 +16,7 @@ public class TransactionResultEventToJsonConverter : ObjectToJsonConverter<Trans
             {
                 new TransactionResultEventConverter(),
                 new AddressConverter(),
-                new AccountAddressConverter(),
+                new Application.Api.GraphQL.JsonConverters.AccountAddressConverter(),
                 new ContractAddressConverter()
             }
         };

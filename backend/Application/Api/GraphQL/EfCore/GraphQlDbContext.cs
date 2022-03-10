@@ -162,8 +162,9 @@ public class GraphQlDbContext : DbContext
             .ToTable("graphql_accounts");
 
         accountBuilder.HasKey(x => x.Id);
-        accountBuilder.Property(x => x.Id).HasColumnName("id");
-        accountBuilder.Property(x => x.Address).HasColumnName("address");
+        accountBuilder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
+        accountBuilder.Property(x => x.BaseAddress).HasColumnName("base_address").HasConversion<AccountAddressConverter>();
+        accountBuilder.Property(x => x.CanonicalAddress).HasColumnName("canonical_address");
         accountBuilder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();
 
         var accountTransactionRelationBuilder = modelBuilder.Entity<AccountTransactionRelation>()

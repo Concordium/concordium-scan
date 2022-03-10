@@ -88,4 +88,15 @@ public class AccountAddress : Address
     {
         return !Equals(left, right);
     }
+
+    public AccountAddress GetBaseAddress()
+    {
+        return CreateAliasAddress(0, 0, 0);
+    }
+    
+    public AccountAddress CreateAliasAddress(byte byte1, byte byte2, byte byte3)
+    {
+        var aliasBytes = AsBytes.Take(29).Concat(new[] { byte1, byte2, byte3 }).ToArray();
+        return new AccountAddress(aliasBytes);
+    }
 }

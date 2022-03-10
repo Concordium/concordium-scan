@@ -50,7 +50,7 @@ public class SearchResult
         if (string.IsNullOrEmpty(_queryString)) return new List<Account>().AsQueryable();
 
         return dbContext.Accounts.AsNoTracking()
-            .Where(account => account.Address.StartsWith(_queryString))
+            .Where(account => account.CanonicalAddress.StartsWith(_queryString))
             .OrderByDescending(account => account.Id);
     }
 }

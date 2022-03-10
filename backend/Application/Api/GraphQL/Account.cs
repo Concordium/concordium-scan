@@ -11,9 +11,16 @@ public class Account
 {
     [ID]
     public long Id { get; set; }
+
+    [GraphQLIgnore] // Base address is only used internally for handling alias account addresses
+    public AccountAddress BaseAddress { get; set; }
+    
+    [GraphQLName("address")]
     [GraphQLDeprecated("Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string Address { get; set; }
-    public string AddressString => Address;
+    public string CanonicalAddress { get; set; }
+    
+    public string AddressString => CanonicalAddress;
+    
     public DateTimeOffset CreatedAt { get; init; }
     
     [UseDbContext(typeof(GraphQlDbContext))]
