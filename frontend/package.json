@@ -11,8 +11,8 @@
 		"build": "nuxt build",
 		"start": "nuxi start",
 		"generate": "nuxt generate",
-		"test": "jest",
-		"test:watch": "jest --watch",
+		"test": "TZ=Universal jest",
+		"test:watch": "TZ=Universal jest --watch",
 		"typecheck": "vue-tsc --noEmit",
 		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue .",
 		"gql-codegen": "graphql-codegen --config graphql-codegen.yml"

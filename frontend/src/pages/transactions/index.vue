@@ -104,7 +104,7 @@
 						</span>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
-						<Tooltip :text="transaction.block.blockSlotTime">
+						<Tooltip :text="formatTimestamp(transaction.block.blockSlotTime)">
 							{{
 								convertTimestampToRelative(transaction.block.blockSlotTime, NOW)
 							}}
@@ -145,6 +145,7 @@ import Tooltip from '~/components/atoms/Tooltip.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {
 	formatNumber,
+	formatTimestamp,
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
 } from '~/utils/format'

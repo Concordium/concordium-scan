@@ -30,7 +30,7 @@
 						}}
 					</template>
 					<template #secondary>
-						{{ props.transaction?.block.blockSlotTime }}
+						{{ formatTimestamp(props.transaction?.block.blockSlotTime) }}
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.transactionType">
@@ -90,6 +90,7 @@ import Accordion from '~/components/Accordion.vue'
 import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
 import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'
 import {
+	formatTimestamp,
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
 } from '~/utils/format'

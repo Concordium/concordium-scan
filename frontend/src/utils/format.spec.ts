@@ -3,10 +3,20 @@ import {
 	convertMicroCcdToCcd,
 	calculateWeight,
 	formatNumber,
+	formatTimestamp,
 	shortenHash,
 } from './format'
 
 describe('format', () => {
+	describe('formatTimestamp', () => {
+		it('should format a date to locale', () => {
+			const timestamp = '1969-07-20T20:17:40.000Z'
+
+			// assuming en-US in UTC
+			expect(formatTimestamp(timestamp)).toStrictEqual('Jul 20, 1969, 8:17 PM')
+		})
+	})
+
 	describe('convertTimestampToRelative', () => {
 		it('should convert a timestamp into a relative time distance', () => {
 			const timestamp = '2000-01-01T00:00:00.000Z'

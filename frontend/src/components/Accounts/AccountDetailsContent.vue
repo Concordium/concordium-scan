@@ -9,7 +9,7 @@
 						{{ convertTimestampToRelative(props.account?.createdAt, NOW) }}
 					</template>
 					<template #secondary>
-						{{ props.account?.createdAt }}
+						{{ formatTimestamp(props.account?.createdAt) }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -31,7 +31,7 @@
 <script lang="ts" setup>
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import type { Account, PageInfo } from '~/types/generated'
 import AccountDetailsHeader from '~/components/Accounts/AccountDetailsHeader.vue'
 import AccountDetailsTransactions from '~/components/Accounts/AccountDetailsTransactions.vue'

@@ -45,6 +45,27 @@ export const prettyFormatBucketDuration = (d: string) => {
 			durationObject.years + (durationObject.years > 1 ? ' years' : ' year')
 		)
 }
+
+/**
+ * Formats timestamp using browser locale
+ * @param {string} timestamp - ISO string
+ * @returns {string} - Nicely formatted string
+ * @example
+ * // returns "Jul 20, 1969, 8:17 PM"
+ * formatTimestamp(1969-07-20T20:17:40.000Z);
+ */
+export const formatTimestamp = (timestamp: string) => {
+	const options = {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+		hour: 'numeric',
+		minute: 'numeric',
+	} as Intl.DateTimeFormatOptions
+
+	return new Intl.DateTimeFormat('default', options).format(new Date(timestamp))
+}
+
 export const convertTimestampToRelative = (
 	timestamp: string,
 	compareDate: Date = new Date()

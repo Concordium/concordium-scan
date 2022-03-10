@@ -88,7 +88,7 @@
 						{{ block.blockHeight }}
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.MD">
-						<Tooltip :text="block.blockSlotTime">
+						<Tooltip :text="formatTimestamp(block.blockSlotTime)">
 							{{ convertTimestampToRelative(block.blockSlotTime, NOW) }}
 						</Tooltip>
 					</TableTd>
@@ -122,7 +122,11 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import { convertTimestampToRelative, formatNumber } from '~/utils/format'
+import {
+	formatTimestamp,
+	convertTimestampToRelative,
+	formatNumber,
+} from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useDateNow } from '~/composables/useDateNow'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'

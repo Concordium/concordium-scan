@@ -59,7 +59,7 @@
 						<AccountLink :address="account.address" />
 					</TableTd>
 					<TableTd>
-						<Tooltip :text="account.createdAt">
+						<Tooltip :text="formatTimestamp(account.createdAt)">
 							{{ convertTimestampToRelative(account.createdAt, NOW) }}
 						</Tooltip>
 					</TableTd>
@@ -90,7 +90,11 @@ import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import type { Account } from '~/types/generated'
-import { convertTimestampToRelative, formatNumber } from '~/utils/format'
+import {
+	formatTimestamp,
+	convertTimestampToRelative,
+	formatNumber,
+} from '~/utils/format'
 import TransactionLink from '~/components/molecules/TransactionLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 

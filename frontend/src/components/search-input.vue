@@ -67,7 +67,7 @@
 							<div>
 								Created
 								<Tooltip
-									:text="block.blockSlotTime"
+									:text="formatTimestamp(block.blockSlotTime)"
 									:position="index === 0 ? tooltipPositionBottom : ''"
 								>
 									{{
@@ -109,7 +109,7 @@
 							<div>
 								Created
 								<Tooltip
-									:text="transaction.block.blockSlotTime"
+									:text="formatTimestamp(transaction.block.blockSlotTime)"
 									:position="index === 0 ? tooltipPositionBottom : ''"
 								>
 									{{
@@ -145,7 +145,7 @@
 							<div>
 								Created
 								<Tooltip
-									:text="account.createdAt"
+									:text="formatTimestamp(account.createdAt)"
 									:position="index === 0 ? tooltipPositionBottom : ''"
 								>
 									{{ convertTimestampToRelative(account.createdAt || '', NOW) }}
@@ -173,7 +173,7 @@ import { SearchIcon } from '@heroicons/vue/outline/index.js'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
