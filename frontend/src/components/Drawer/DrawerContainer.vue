@@ -15,11 +15,11 @@
 				:class="$style.drawer"
 				class="relative"
 				:style="[
-					'z-index:' + (index == currentDrawerCount - 1 ? 2 : 1),
-					'max-height:' + (index == currentDrawerCount - 1 ? '' : '100vh'),
+					'z-index:' + (index === currentDrawerCount - 1 ? 2 : 1),
+					'max-height:' + (index === currentDrawerCount - 1 ? '' : '100vh'),
 					'position:' +
-						(index == currentDrawerCount - 1 ? 'absolute' : 'fixed'),
-					currentDrawerCount - 1 - index == 0
+						(index === currentDrawerCount - 1 ? 'absolute' : 'fixed'),
+					currentDrawerCount - 1 === index
 						? ''
 						: 'transform:' +
 						  'translateX(-' +
@@ -27,7 +27,10 @@
 						  'px)',
 				]"
 			>
-				<Drawer :is-open="currentDrawerCount > 0" :on-close="() => softReset()">
+				<Drawer
+					:is-open="currentDrawerCount > -1"
+					:on-close="() => softReset()"
+				>
 					<template #content>
 						<BlockDetailsContainer
 							v-if="drawerItem && drawerItem.entityTypeName == 'block'"
@@ -97,6 +100,28 @@ watch(currentTopItem, () => {
 		window.scrollTo(0, currentTopItem.value.scrollY ?? 0)
 	}
 })
+
+watch(currentDrawerCount, v => {
+	toggleClasses(v > 0)
+})
+const toggleClasses = (isOpen: boolean) => {
+	const appEl = document.getElementById('app')
+
+	const classes = [
+		'max-h-screen',
+		'w-full',
+		'overflow-hidden',
+		'fixed',
+		'top-0',
+		'left-0',
+	]
+
+	if (isOpen) {
+		appEl?.classList.add(...classes)
+	} else {
+		appEl?.classList.remove(...classes)
+	}
+}
 </script>
 <style module>
 .drawerMask {
