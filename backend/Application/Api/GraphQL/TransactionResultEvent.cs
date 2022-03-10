@@ -1,3 +1,4 @@
+using HotChocolate;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL;
@@ -11,7 +12,11 @@ public record Transferred(
     Address To) : TransactionResultEvent;
 
 public record AccountCreated(
-    string AccountAddress) : TransactionResultEvent;
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
+    string AccountAddress) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// The public balance of the account was increased via a transfer from
@@ -19,42 +24,70 @@ public record AccountCreated(
 /// </summary>
 public record AmountAddedByDecryption(
     ulong Amount,
-    string AccountAddress) : TransactionResultEvent;
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
+    string AccountAddress) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerAdded(
     ulong StakedAmount,
     bool RestakeEarnings,
     ulong BakerId,
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     string SignKey,
     string ElectionKey,
-    string AggregationKey) : TransactionResultEvent;
+    string AggregationKey) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerKeysUpdated(
     ulong BakerId,
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     string SignKey,
     string ElectionKey,
-    string AggregationKey) : TransactionResultEvent;
+    string AggregationKey) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerRemoved(
     ulong BakerId,
-    string AccountAddress) : TransactionResultEvent;
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
+    string AccountAddress) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerSetRestakeEarnings(
     ulong BakerId,
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
-    bool RestakeEarnings) : TransactionResultEvent;
+    bool RestakeEarnings) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerStakeDecreased(
     ulong BakerId,
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
-    ulong NewStakedAmount) : TransactionResultEvent;
+    ulong NewStakedAmount) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record BakerStakeIncreased(
     ulong BakerId,
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
-    ulong NewStakedAmount) : TransactionResultEvent;
+    ulong NewStakedAmount) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// A new smart contract instance was created.
@@ -99,7 +132,11 @@ public record ContractUpdated(
 
 public record CredentialDeployed(
     string RegId,
-    string AccountAddress) : TransactionResultEvent;
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
+    string AccountAddress) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// Keys of the given credential were updated.
@@ -116,10 +153,14 @@ public record CredentialKeysUpdated(
 /// <param name="RemovedCredIds">The credential ids that were removed.</param>
 /// <param name="NewThreshold">The (possibly) updated account threshold.</param>
 public record CredentialsUpdated(
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     string[] NewCredIds,
     string[] RemovedCredIds,
-    byte NewThreshold) : TransactionResultEvent;
+    byte NewThreshold) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// Data was registered on the chain.
@@ -136,10 +177,14 @@ public record DataRegistered(
 /// <param name="InputAmount">The input encrypted amount that was removed</param>
 /// <param name="UpToIndex">The index indicating which amounts were used</param>
 public record EncryptedAmountsRemoved(
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     string NewEncryptedAmount,
     string InputAmount,
-    ulong UpToIndex) : TransactionResultEvent;
+    ulong UpToIndex) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// The encrypted balance of the account was updated due to transfer from
@@ -149,9 +194,13 @@ public record EncryptedAmountsRemoved(
 /// <param name="NewEncryptedAmount">The new self encrypted amount of the account</param>
 /// <param name="Amount">The amount that was transferred from public to encrypted balance</param>
 public record EncryptedSelfAmountAdded(
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     string NewEncryptedAmount,
-    ulong Amount) : TransactionResultEvent;
+    ulong Amount) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 /// <summary>
 /// A new encrypted amount was added to the account.
@@ -160,9 +209,13 @@ public record EncryptedSelfAmountAdded(
 /// <param name="NewIndex">The index the amount was assigned.</param>
 /// <param name="EncryptedAmount">The encrypted amount that was added.</param>
 public record NewEncryptedAmount(
+    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string AccountAddress,
     ulong NewIndex,
-    string EncryptedAmount) : TransactionResultEvent;
+    string EncryptedAmount) : TransactionResultEvent
+{
+    public string AccountAddressString => AccountAddress;
+}
 
 public record TransferMemo(string RawHex) : TransactionResultEvent
 {
@@ -179,10 +232,16 @@ public record TransferMemo(string RawHex) : TransactionResultEvent
 /// <param name="ToAccountAddress">Receiver account address.</param>
 /// <param name="AmountsSchedule">The list of releases. Ordered by increasing timestamp.</param>
 public record TransferredWithSchedule(
+    [property:GraphQLDeprecated("Use 'FromAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string FromAccountAddress,
+    [property:GraphQLDeprecated("Use 'ToAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
     string ToAccountAddress,
-    [property: UsePaging] 
-    TimestampedAmount[] AmountsSchedule) : TransactionResultEvent;
+    [property: UsePaging] TimestampedAmount[] AmountsSchedule) : TransactionResultEvent
+{
+    public string FromAccountAddressString => FromAccountAddress;
+    public string ToAccountAddressString => ToAccountAddress;
+
+}
 
 public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
 

@@ -11,6 +11,7 @@ public class TransactionResultEventToJsonConverter : ObjectToJsonConverter<Trans
     {
         SerializerOptions = new JsonSerializerOptions
         {
+            IgnoreReadOnlyProperties = true,
             Converters =
             {
                 new TransactionResultEventConverter(),

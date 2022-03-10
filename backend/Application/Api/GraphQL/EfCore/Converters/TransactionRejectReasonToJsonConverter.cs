@@ -11,6 +11,7 @@ public class TransactionRejectReasonToJsonConverter : ObjectToJsonConverter<Tran
     {
         SerializerOptions = new JsonSerializerOptions
         {
+            IgnoreReadOnlyProperties = true,
             Converters =
             {
                 new TransactionRejectReasonConverter(),
