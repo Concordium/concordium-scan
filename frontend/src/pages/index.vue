@@ -166,7 +166,7 @@
 							</TableTh>
 						</TableRow>
 					</TableHead>
-					<TableBody>
+					<TransitionGroup name="list" tag="tbody">
 						<TableRow
 							v-for="transaction in transactions"
 							:key="transaction.transactionHash"
@@ -206,7 +206,7 @@
 								{{ convertMicroCcdToCcd(transaction.ccdCost) }}
 							</TableTd>
 						</TableRow>
-					</TableBody>
+					</TransitionGroup>
 				</Table>
 			</article>
 		</section>
@@ -230,7 +230,7 @@ import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 const pageSize = 10
-const queueSize = 50
+const queueSize = 10
 const drawInterval = 2000 // in ms
 let loopInterval: NodeJS.Timeout
 
@@ -305,37 +305,39 @@ const loadInitialValuesIfEmpty = () => {
 }
 const drawFunc = () => {
 	loadInitialValuesIfEmpty()
+	for (let i = 0; i < pageSize; i++) {
+		if (blocksQueue.value.length > 0) {
+			let blockAdded = false
 
-	if (blocksQueue.value.length > 0) {
-		let blockAdded = false
-		while (!blockAdded && blocksQueue.value.length > 0) {
-			const nextBlock = blocksQueue.value.shift() as Block
-			if (
-				blocks.value.some(
-					oldBlock => oldBlock.blockHash === nextBlock.blockHash
+			while (!blockAdded && blocksQueue.value.length > 0) {
+				const nextBlock = blocksQueue.value.shift() as Block
+				if (
+					blocks.value.some(
+						oldBlock => oldBlock.blockHash === nextBlock.blockHash
+					)
 				)
-			)
-				continue
-			if (blocks.value.length >= pageSize) blocks.value.pop()
-			blocks.value.unshift(nextBlock)
-			blockAdded = true
+					continue
+				if (blocks.value.length >= pageSize) blocks.value.pop()
+				blocks.value.unshift(nextBlock)
+				blockAdded = true
+			}
 		}
-	}
 
-	if (transactionsQueue.value.length > 0) {
-		let transactionAdded = false
-		while (!transactionAdded && transactionsQueue.value.length > 0) {
-			const nextTransaction = transactionsQueue.value.shift() as Transaction
-			if (
-				transactions.value.some(
-					oldTransaction =>
-						oldTransaction.transactionHash === nextTransaction.transactionHash
+		if (transactionsQueue.value.length > 0) {
+			let transactionAdded = false
+			while (!transactionAdded && transactionsQueue.value.length > 0) {
+				const nextTransaction = transactionsQueue.value.shift() as Transaction
+				if (
+					transactions.value.some(
+						oldTransaction =>
+							oldTransaction.transactionHash === nextTransaction.transactionHash
+					)
 				)
-			)
-				continue
-			if (transactions.value.length >= pageSize) transactions.value.pop()
-			transactions.value.unshift(nextTransaction)
-			transactionAdded = true
+					continue
+				if (transactions.value.length >= pageSize) transactions.value.pop()
+				transactions.value.unshift(nextTransaction)
+				transactionAdded = true
+			}
 		}
 	}
 }
