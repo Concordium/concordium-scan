@@ -99,8 +99,7 @@ import {
 } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useDateNow } from '~/composables/useDateNow'
-import type { Transaction } from '~/types/transactions'
-import type { PageInfo } from '~/types/generated'
+import type { PageInfo, Transaction } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const selectedTxId = useTransactionDetails()

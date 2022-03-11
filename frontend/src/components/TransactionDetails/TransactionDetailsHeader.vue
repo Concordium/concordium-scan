@@ -36,7 +36,7 @@ import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
-import type { Transaction } from '~/types/transactions'
+import type { Transaction } from '~/types/generated'
 
 type Props = {
 	transaction: Transaction
