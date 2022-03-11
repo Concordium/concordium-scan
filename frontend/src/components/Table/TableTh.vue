@@ -15,7 +15,7 @@ export default defineComponent({
 
 <style module>
 .th {
-	@apply px-6 py-3 font-normal whitespace-nowrap;
+	@apply px-6 py-3 font-normal whitespace-nowrap relative z-10;
 	background-color: var(--color-thead-bg);
 }
 

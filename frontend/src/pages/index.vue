@@ -102,12 +102,18 @@
 				<Table>
 					<TableHead>
 						<TableRow>
-							<TableTh>Height</TableTh>
-							<TableTh>Block hash</TableTh>
-							<TableTh v-if="breakpoint >= Breakpoint.MD">Baker</TableTh>
-							<TableTh v-if="breakpoint >= Breakpoint.SM" align="right"
-								>Baker reward (Ͼ)</TableTh
+							<TableTh width="25%">Height</TableTh>
+							<TableTh width="25%">Block hash</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.MD" width="25%"
+								>Baker</TableTh
 							>
+							<TableTh
+								v-if="breakpoint >= Breakpoint.SM"
+								align="right"
+								width="25%"
+							>
+								Baker reward (Ͼ)
+							</TableTh>
 						</TableRow>
 					</TableHead>
 
@@ -158,10 +164,16 @@
 				<Table>
 					<TableHead>
 						<TableRow>
-							<TableTh>Type</TableTh>
-							<TableTh>Transaction hash</TableTh>
-							<TableTh v-if="breakpoint >= Breakpoint.MD">Sender</TableTh>
-							<TableTh v-if="breakpoint >= Breakpoint.MD" align="right">
+							<TableTh width="25%">Type</TableTh>
+							<TableTh width="25%">Transaction hash</TableTh>
+							<TableTh v-if="breakpoint >= Breakpoint.MD" width="25%"
+								>Sender</TableTh
+							>
+							<TableTh
+								v-if="breakpoint >= Breakpoint.MD"
+								align="right"
+								width="25%"
+							>
 								Cost (Ͼ)
 							</TableTh>
 						</TableRow>
@@ -229,9 +241,10 @@ import { MetricsPeriod } from '~/types/generated'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
+
 const pageSize = 10
 const queueSize = 10
-const drawInterval = 2000 // in ms
+const drawInterval = 1000 // in ms
 let loopInterval: NodeJS.Timeout
 
 const { breakpoint } = useBreakpoint()
@@ -347,16 +360,12 @@ const drawFunc = () => {
 .list-move,
 .list-enter-active,
 .list-leave-active {
-	transition: all 0.5s ease;
+	transition: transform 0.2s ease-out;
 }
 
 .list-enter-from,
 .list-leave-to {
-	opacity: 0;
 	transform: translateY(-30px);
-}
-
-.list-leave-active {
-	position: absolute;
+	opacity: 0;
 }
 </style>

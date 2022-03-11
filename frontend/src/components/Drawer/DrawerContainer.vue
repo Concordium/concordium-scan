@@ -4,18 +4,17 @@
 			<div
 				v-if="currentDrawerCount > 0"
 				:class="$style.drawerMask"
-				style="z-index: 1"
 				@click="() => softReset()"
 			></div>
 		</transition>
 		<TransitionGroup name="drawer">
 			<div
 				v-for="(drawerItem, index) in getDisplayItems()"
-				:key="drawerItem"
+				:key="index"
 				:class="$style.drawer"
 				class="relative"
 				:style="[
-					'z-index:' + (index === currentDrawerCount - 1 ? 2 : 1),
+					'z-index:' + (index === currentDrawerCount - 1 ? 22 : 21),
 					'max-height:' + (index === currentDrawerCount - 1 ? '' : '100vh'),
 					'position:' +
 						(index === currentDrawerCount - 1 ? 'absolute' : 'fixed'),
@@ -125,7 +124,7 @@ const toggleClasses = (isOpen: boolean) => {
 </script>
 <style module>
 .drawerMask {
-	@apply h-screen w-screen fixed top-0 left-0 z-10;
+	@apply h-screen w-screen fixed top-0 left-0 z-20;
 	background: hsla(247, 40%, 4%, 0.5);
 	backdrop-filter: blur(2px);
 }
