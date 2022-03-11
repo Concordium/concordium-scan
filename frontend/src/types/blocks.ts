@@ -1,5 +1,4 @@
-import type { Transaction } from './transactions'
-import type { PageInfo } from './pageInfo'
+import type { PageInfo, Transaction } from './generated'
 
 export type Mint = {
 	bakingReward: number

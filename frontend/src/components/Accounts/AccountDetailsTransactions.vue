@@ -3,46 +3,56 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Status</TableTh>
-					<TableTh>Transaction hash</TableTh>
-					<TableTh>Sender</TableTh>
-					<TableTh align="right">Cost (Ͼ)</TableTh>
+					<TableTh>Hash</TableTh>
+					<TableTh>Type</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Sender</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG" align="right">
+						Cost (Ͼ)
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
 				<TableRow
-					v-for="transaction in transactions"
-					:key="transaction.transaction.transactionHash"
+					v-for="accountTxRelation in transactions"
+					:key="accountTxRelation.transaction.transactionHash"
 				>
-					<TableTd>
+					<TableTd class="numerical">
 						<StatusCircle
 							:class="[
 								'h-4 w-6 mr-2 text-theme-interactive',
 								{
 									'text-theme-error':
-										transaction.transaction.result.__typename === 'Rejected',
+										accountTxRelation.transaction.result.__typename ===
+										'Rejected',
 								},
 							]"
 						/>
-						{{
-							transaction.transaction.result.__typename === 'Success'
-								? 'Success'
-								: 'Rejected'
-						}}
-					</TableTd>
-					<TableTd class="numerical">
+
 						<TransactionLink
-							:id="transaction.transaction.id"
-							:hash="transaction.transaction.transactionHash"
+							:id="accountTxRelation.transaction.id"
+							:hash="accountTxRelation.transaction.transactionHash"
 						/>
 					</TableTd>
-					<TableTd class="numerical">
+					<TableTd>
+						<div class="whitespace-normal">
+							{{
+								translateTransactionType(
+									accountTxRelation.transaction.transactionType
+								)
+							}}
+						</div>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
 						<AccountLink
-							:address="transaction.transaction.senderAccountAddress"
+							:address="accountTxRelation.transaction.senderAccountAddress"
 						/>
 					</TableTd>
-					<TableTd align="right" class="numerical">
-						{{ convertMicroCcdToCcd(transaction.transaction.ccdCost) }}
+					<TableTd
+						v-if="breakpoint >= Breakpoint.LG"
+						align="right"
+						class="numerical"
+					>
+						{{ convertMicroCcdToCcd(accountTxRelation.transaction.ccdCost) }}
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -57,12 +67,15 @@
 
 <script lang="ts" setup>
 import { convertMicroCcdToCcd } from '~/utils/format'
+import { translateTransactionType } from '~/utils/translateTransactionTypes'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { Transaction } from '~/types/transactions'
-import type { PageInfo } from '~/types/generated'
+import type { PageInfo, AccountTransactionRelation } from '~/types/generated'
+
+const { breakpoint } = useBreakpoint()
 
 type Props = {
-	transactions: Transaction[]
+	transactions: AccountTransactionRelation[]
 	pageInfo: PageInfo
 	totalCount: number
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void

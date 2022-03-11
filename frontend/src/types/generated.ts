@@ -24,24 +24,64 @@ export type Scalars = {
 
 export type Account = {
   __typename?: 'Account';
+  /** @deprecated Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   address: Scalars['String'];
+  addressString: Scalars['String'];
   createdAt: Scalars['DateTime'];
   id: Scalars['ID'];
+  transactions?: Maybe<AccountTransactionRelationConnection>;
+};
+
+
+export type AccountTransactionsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type AccountAddress = {
   __typename?: 'AccountAddress';
+  /** @deprecated Use 'asString' instead. This field will be removed in the near future. */
   address: Scalars['String'];
+  asString: Scalars['String'];
 };
 
 export type AccountCreated = {
   __typename?: 'AccountCreated';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type AccountTransaction = {
   __typename?: 'AccountTransaction';
   accountTransactionType?: Maybe<AccountTransactionType>;
+};
+
+export type AccountTransactionRelation = {
+  __typename?: 'AccountTransactionRelation';
+  transaction: Transaction;
+};
+
+/** A connection to a list of items. */
+export type AccountTransactionRelationConnection = {
+  __typename?: 'AccountTransactionRelationConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountTransactionRelationEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<AccountTransactionRelation>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountTransactionRelationEdge = {
+  __typename?: 'AccountTransactionRelationEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: AccountTransactionRelation;
 };
 
 export enum AccountTransactionType {
@@ -65,6 +105,26 @@ export enum AccountTransactionType {
   UpdateCredentialKeys = 'UPDATE_CREDENTIAL_KEYS',
   UpdateSmartContractInstance = 'UPDATE_SMART_CONTRACT_INSTANCE'
 }
+
+/** A connection to a list of items. */
+export type AccountsConnection = {
+  __typename?: 'AccountsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Account>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountsEdge = {
+  __typename?: 'AccountsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Account;
+};
 
 export type AccountsMetrics = {
   __typename?: 'AccountsMetrics';
@@ -98,7 +158,9 @@ export type AlreadyABaker = {
 
 export type AmountAddedByDecryption = {
   __typename?: 'AmountAddedByDecryption';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -132,7 +194,9 @@ export type AmountsScheduleEdge = {
 
 export type BakerAdded = {
   __typename?: 'BakerAdded';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   aggregationKey: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   electionKey: Scalars['String'];
@@ -149,7 +213,9 @@ export type BakerInCooldown = {
 
 export type BakerKeysUpdated = {
   __typename?: 'BakerKeysUpdated';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   aggregationKey: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   electionKey: Scalars['String'];
@@ -158,34 +224,44 @@ export type BakerKeysUpdated = {
 
 export type BakerRemoved = {
   __typename?: 'BakerRemoved';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
 };
 
 export type BakerSetRestakeEarnings = {
   __typename?: 'BakerSetRestakeEarnings';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   restakeEarnings: Scalars['Boolean'];
 };
 
 export type BakerStakeDecreased = {
   __typename?: 'BakerStakeDecreased';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
 export type BakerStakeIncreased = {
   __typename?: 'BakerStakeIncreased';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
 export type BakingReward = {
   __typename?: 'BakingReward';
+  /** @deprecated Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   address: Scalars['String'];
+  addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -223,12 +299,30 @@ export type BakingRewardsRewardsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type BalanceStatistics = {
+  __typename?: 'BalanceStatistics';
+  /** The amount in the baking reward account */
+  bakingRewardAccount: Scalars['UnsignedLong'];
+  /** The amount in the finalization reward account */
+  finalizationRewardAccount: Scalars['UnsignedLong'];
+  /** The amount in the GAS account */
+  gasAccount: Scalars['UnsignedLong'];
+  /** The total CCD in existence */
+  totalAmount: Scalars['UnsignedLong'];
+  /** The total CCD locked in release schedules (from transfers with schedule) */
+  totalAmountLockedInReleaseSchedules: Scalars['UnsignedLong'];
+  /** The total CCD in encrypted balances */
+  totalEncryptedAmount: Scalars['UnsignedLong'];
+};
+
 export type Block = {
   __typename?: 'Block';
   bakerId?: Maybe<Scalars['Int']>;
+  balanceStatistics: BalanceStatistics;
   blockHash: Scalars['String'];
   blockHeight: Scalars['Int'];
   blockSlotTime: Scalars['DateTime'];
+  blockStatistics: BlockStatistics;
   finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
@@ -247,8 +341,10 @@ export type BlockTransactionsArgs = {
 
 export type BlockMetrics = {
   __typename?: 'BlockMetrics';
-  /** The average block time (slot-time difference between two adjacent blocks) in the requested period. */
-  avgBlockTime: Scalars['Float'];
+  /** The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period. */
+  avgBlockTime?: Maybe<Scalars['Float']>;
+  /** The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period. */
+  avgFinalizationTime?: Maybe<Scalars['Float']>;
   /** Total number of blocks added in requested period. */
   blocksAdded: Scalars['Int'];
   buckets: BlockMetricsBuckets;
@@ -266,33 +362,49 @@ export type BlockMetricsBuckets = {
   bucketWidth: Scalars['TimeSpan'];
   /** Start of the bucket time period. Intended x-axis value. */
   x_Time: Array<Scalars['DateTime']>;
-  /** The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
-  y_BlockTimeAvg: Array<Scalars['Float']>;
-  /** The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
-  y_BlockTimeMax: Array<Scalars['Float']>;
-  /** The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. */
-  y_BlockTimeMin: Array<Scalars['Float']>;
+  /** The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_BlockTimeAvg: Array<Maybe<Scalars['Float']>>;
+  /** The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_BlockTimeMax: Array<Maybe<Scalars['Float']>>;
+  /** The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_BlockTimeMin: Array<Maybe<Scalars['Float']>>;
   /** Number of blocks added within the bucket time period. Intended y-axis value. */
   y_BlocksAdded: Array<Scalars['Int']>;
+  /** The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
+  y_FinalizationTimeAvg: Array<Maybe<Scalars['Float']>>;
+  /** The maximum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
+  y_FinalizationTimeMax: Array<Maybe<Scalars['Float']>>;
+  /** The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
+  y_FinalizationTimeMin: Array<Maybe<Scalars['Float']>>;
   /** The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value. */
   y_LastTotalEncryptedMicroCcd: Array<Scalars['Long']>;
   /** The total amount of CCD in existence at the end of the bucket period. Intended y-axis value. */
   y_LastTotalMicroCcd: Array<Scalars['Long']>;
-  /** The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. */
-  y_MaxTotalEncryptedMicroCcd: Array<Scalars['Long']>;
-  /** The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. */
-  y_MinTotalEncryptedMicroCcd: Array<Scalars['Long']>;
+  /** The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_MaxTotalEncryptedMicroCcd: Array<Maybe<Scalars['Long']>>;
+  /** The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_MinTotalEncryptedMicroCcd: Array<Maybe<Scalars['Long']>>;
 };
 
 export type BlockRewards = {
   __typename?: 'BlockRewards';
+  /** @deprecated Use 'bakerAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   bakerAccountAddress: Scalars['String'];
+  bakerAccountAddressString: Scalars['String'];
   bakerReward: Scalars['UnsignedLong'];
+  /** @deprecated Use 'foundationAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   foundationAccountAddress: Scalars['String'];
+  foundationAccountAddressString: Scalars['String'];
   foundationCharge: Scalars['UnsignedLong'];
   newGasAccount: Scalars['UnsignedLong'];
   oldGasAccount: Scalars['UnsignedLong'];
   transactionFees: Scalars['UnsignedLong'];
+};
+
+export type BlockStatistics = {
+  __typename?: 'BlockStatistics';
+  blockTime: Scalars['Float'];
+  finalizationTime?: Maybe<Scalars['Float']>;
 };
 
 /** A connection to a list of items. */
@@ -322,6 +434,7 @@ export type ChainUpdateEnqueued = {
 
 export type ContractAddress = {
   __typename?: 'ContractAddress';
+  asString: Scalars['String'];
   index: Scalars['UnsignedLong'];
   subIndex: Scalars['UnsignedLong'];
 };
@@ -368,7 +481,9 @@ export type ContractUpdatedEventsAsHexArgs = {
 
 export type CredentialDeployed = {
   __typename?: 'CredentialDeployed';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   regId: Scalars['String'];
 };
 
@@ -395,7 +510,9 @@ export type CredentialKeysUpdated = {
 
 export type CredentialsUpdated = {
   __typename?: 'CredentialsUpdated';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   newCredIds: Array<Scalars['String']>;
   newThreshold: Scalars['Byte'];
   removedCredIds: Array<Scalars['String']>;
@@ -430,12 +547,16 @@ export type EncryptedAmountSelfTransfer = {
   __typename?: 'EncryptedAmountSelfTransfer';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type EncryptedAmountsRemoved = {
   __typename?: 'EncryptedAmountsRemoved';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   inputAmount: Scalars['String'];
   newEncryptedAmount: Scalars['String'];
   upToIndex: Scalars['UnsignedLong'];
@@ -443,7 +564,9 @@ export type EncryptedAmountsRemoved = {
 
 export type EncryptedSelfAmountAdded = {
   __typename?: 'EncryptedSelfAmountAdded';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
   newEncryptedAmount: Scalars['String'];
 };
@@ -473,7 +596,9 @@ export type EventsEdge = {
 
 export type FinalizationReward = {
   __typename?: 'FinalizationReward';
+  /** @deprecated Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   address: Scalars['String'];
+  addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -570,7 +695,9 @@ export type InvalidAccountReference = {
   __typename?: 'InvalidAccountReference';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type InvalidAccountThreshold = {
@@ -663,7 +790,9 @@ export type Mint = {
   __typename?: 'Mint';
   bakingReward: Scalars['UnsignedLong'];
   finalizationReward: Scalars['UnsignedLong'];
+  /** @deprecated Use 'foundationAccountAddress' instead.This field will be removed in the near future. */
   foundationAccount: Scalars['String'];
+  foundationAccountAddress: AccountAddress;
   platformDevelopmentCharge: Scalars['UnsignedLong'];
 };
 
@@ -682,7 +811,9 @@ export type ModuleNotWf = {
 
 export type NewEncryptedAmount = {
   __typename?: 'NewEncryptedAmount';
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
   encryptedAmount: Scalars['String'];
   newIndex: Scalars['UnsignedLong'];
 };
@@ -704,7 +835,9 @@ export type NonExistentRewardAccount = {
   __typename?: 'NonExistentRewardAccount';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type NonIncreasingSchedule = {
@@ -717,7 +850,9 @@ export type NotABaker = {
   __typename?: 'NotABaker';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type NotAllowedMultipleCredentials = {
@@ -761,6 +896,7 @@ export type Query = {
   __typename?: 'Query';
   account?: Maybe<Account>;
   accountByAddress?: Maybe<Account>;
+  accounts?: Maybe<AccountsConnection>;
   accountsMetrics?: Maybe<AccountsMetrics>;
   block?: Maybe<Block>;
   blockByBlockHash?: Maybe<Block>;
@@ -781,6 +917,14 @@ export type QueryAccountArgs = {
 
 export type QueryAccountByAddressArgs = {
   accountAddress: Scalars['String'];
+};
+
+
+export type QueryAccountsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -877,14 +1021,40 @@ export type ScheduledSelfTransfer = {
   __typename?: 'ScheduledSelfTransfer';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+  /** @deprecated Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   accountAddress: Scalars['String'];
+  accountAddressString: Scalars['String'];
 };
 
 export type SearchResult = {
   __typename?: 'SearchResult';
-  accounts: Array<Account>;
-  blocks: Array<Block>;
-  transactions: Array<Transaction>;
+  accounts?: Maybe<AccountsConnection>;
+  blocks?: Maybe<BlocksConnection>;
+  transactions?: Maybe<TransactionsConnection>;
+};
+
+
+export type SearchResultAccountsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultBlocksArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultTransactionsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type SerializationFailure = {
@@ -963,7 +1133,9 @@ export type Transaction = {
   energyCost: Scalars['UnsignedLong'];
   id: Scalars['ID'];
   result: TransactionResult;
+  /** @deprecated Use 'senderAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   senderAccountAddress?: Maybe<Scalars['String']>;
+  senderAccountAddressString?: Maybe<Scalars['String']>;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['Int'];
   transactionType: TransactionType;
@@ -1032,8 +1204,12 @@ export type Transferred = {
 export type TransferredWithSchedule = {
   __typename?: 'TransferredWithSchedule';
   amountsSchedule?: Maybe<AmountsScheduleConnection>;
+  /** @deprecated Use 'FromAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   fromAccountAddress: Scalars['String'];
+  fromAccountAddressString: Scalars['String'];
+  /** @deprecated Use 'ToAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   toAccountAddress: Scalars['String'];
+  toAccountAddressString: Scalars['String'];
 };
 
 

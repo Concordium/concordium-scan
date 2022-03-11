@@ -1,5 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
-import type { Transaction } from '~/types/transactions'
+import type { Transaction } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type PageInfo = {

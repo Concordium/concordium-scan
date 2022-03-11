@@ -155,10 +155,9 @@ import { usePagedData } from '~/composables/usePagedData'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import type { BlockSubscriptionResponse } from '~/types/blocks'
-import type { Transaction } from '~/types/transactions'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
-import { MetricsPeriod } from '~/types/generated'
+import { MetricsPeriod, type Transaction } from '~/types/generated'
+import type { BlockSubscriptionResponse } from '~/types/blocks'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

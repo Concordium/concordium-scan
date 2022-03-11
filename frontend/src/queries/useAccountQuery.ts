@@ -22,6 +22,18 @@ const AccountQuery = gql<Account>`
 						result {
 							__typename
 						}
+						transactionType {
+							__typename
+							... on AccountTransaction {
+								accountTransactionType
+							}
+							... on CredentialDeploymentTransaction {
+								credentialDeploymentTransactionType
+							}
+							... on UpdateTransaction {
+								updateTransactionType
+							}
+						}
 					}
 				}
 			}
@@ -59,6 +71,18 @@ const AccountQueryByAddress = gql<Account>`
 						ccdCost
 						result {
 							__typename
+						}
+						transactionType {
+							__typename
+							... on AccountTransaction {
+								accountTransactionType
+							}
+							... on CredentialDeploymentTransaction {
+								credentialDeploymentTransactionType
+							}
+							... on UpdateTransaction {
+								updateTransactionType
+							}
 						}
 					}
 				}

@@ -1,15 +1,15 @@
 ﻿<template>
 	<div>
-		<AccountDetailsHeader v-if="props.account" :account="props.account" />
-		<DrawerContent v-if="props.account">
+		<AccountDetailsHeader :account="account" />
+		<DrawerContent>
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
-				<DetailsCard v-if="props.account?.createdAt">
+				<DetailsCard>
 					<template #title>Created At</template>
 					<template #default>
-						{{ convertTimestampToRelative(props.account?.createdAt, NOW) }}
+						{{ convertTimestampToRelative(account.createdAt, NOW) }}
 					</template>
 					<template #secondary>
-						{{ formatTimestamp(props.account?.createdAt) }}
+						{{ formatTimestamp(account.createdAt) }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -17,10 +17,11 @@
 				Transactions
 				<template #content>
 					<AccountDetailsTransactions
-						:transactions="props.account?.transactions?.nodes"
-						:total-count="props.account?.transactions?.nodes.length"
-						:page-info="props.account?.transactions?.pageInfo"
-						:go-to-page="props.goToPage"
+						v-if="account.transactions?.nodes?.length"
+						:transactions="account.transactions.nodes"
+						:total-count="account.transactions!.nodes.length"
+						:page-info="account!.transactions!.pageInfo"
+						:go-to-page="goToPage"
 					/>
 				</template>
 			</Accordion>
@@ -45,5 +46,5 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>

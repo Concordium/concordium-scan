@@ -1,4 +1,4 @@
-import type { TransactionType } from '~/types/transactions'
+import type { TransactionType } from '~/types/generated'
 
 const translations = {
 	accountTransactionTypes: {
@@ -21,10 +21,12 @@ const translations = {
 		SIMPLE_TRANSFER_WITH_MEMO: 'Simple transfer with memo',
 		ENCRYPTED_TRANSFER_WITH_MEMO: 'Encrypted transfer with memo',
 		TRANSFER_WITH_SCHEDULE_WITH_MEMO: 'Transfer with schedule and memo',
+		UNKNOWN: 'Unknown account transaction',
 	},
 	credentialDeploymentTypes: {
 		NORMAL: 'Normal credential deployment',
 		INITIAL: 'Initial credential deployment',
+		UNKNOWN: 'Unknown credential deployment',
 	},
 	updateTransactionTypes: {
 		UPDATE_PROTOCOL: 'Update protocol',
@@ -41,29 +43,33 @@ const translations = {
 		UPDATE_ROOT_KEYS: 'Update root keys',
 		UPDATE_LEVEL1_KEYS: 'Update level1 keys',
 		UPDATE_LEVEL2_KEYS: 'Update level2 keys',
+		UNKNOWN: 'Unknown update transaction',
 	},
 }
 
 export const translateTransactionType = (txType: TransactionType) => {
 	if (txType.__typename === 'AccountTransaction') {
+		const translationKey = txType.accountTransactionType || 'UNKNOWN'
 		return (
-			translations.accountTransactionTypes[txType.accountTransactionType] ||
-			'Unknown account transaction'
+			translations.accountTransactionTypes[translationKey] ||
+			translations.accountTransactionTypes.UNKNOWN
 		)
 	}
 
 	if (txType.__typename === 'CredentialDeploymentTransaction') {
+		const translationKey =
+			txType.credentialDeploymentTransactionType || 'UNKNOWN'
 		return (
-			translations.credentialDeploymentTypes[
-				txType.credentialDeploymentTransactionType
-			] || 'Unknown credential deployment'
+			translations.credentialDeploymentTypes[translationKey] ||
+			translations.credentialDeploymentTypes.UNKNOWN
 		)
 	}
 
 	if (txType.__typename === 'UpdateTransaction') {
+		const translationKey = txType.updateTransactionType || 'UNKNOWN'
 		return (
-			translations.updateTransactionTypes[txType.updateTransactionType] ||
-			'Unknown update transaction'
+			translations.updateTransactionTypes[translationKey] ||
+			translations.updateTransactionTypes.UNKNOWN
 		)
 	}
 

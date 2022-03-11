@@ -64,11 +64,11 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd>
-						<div v-if="account?.transactions?.nodes?.length > 0">
+						<div v-if="account.transactions?.nodes?.length">
 							<TransactionLink
-								:id="account?.transactions?.nodes[0].transaction.id"
+								:id="account.transactions.nodes[0].transaction.id"
 								:hash="
-									account?.transactions?.nodes[0].transaction.transactionHash
+									account.transactions.nodes[0].transaction.transactionHash
 								"
 							/>
 						</div>
