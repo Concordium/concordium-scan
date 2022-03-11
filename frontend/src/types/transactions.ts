@@ -1,6 +1,7 @@
 import type { Block } from './blocks'
 import type { TransactionResult } from '~/types/generated'
 
+/** @deprecated Use generated type "AccountTransactionType" instead */
 type AccountTransactionTypes =
 	| 'DEPLOY_MODULE'
 	| 'INITIALIZE_SMART_CONTRACT_INSTANCE'
@@ -22,8 +23,10 @@ type AccountTransactionTypes =
 	| 'ENCRYPTED_TRANSFER_WITH_MEMO'
 	| 'TRANSFER_WITH_SCHEDULE_WITH_MEMO'
 
+/** @deprecated Use generated type "CredentialDeploymentTransactionType" instead */
 type CredentialDeploymentTypes = 'INITIAL' | 'NORMAL'
 
+/** @deprecated Use generated type "UpdateTransactionType" instead */
 type UpdateTransactionTypes =
 	| 'UPDATE_PROTOCOL'
 	| 'UPDATE_ELECTION_DIFFICULTY'
@@ -40,39 +43,47 @@ type UpdateTransactionTypes =
 	| 'UPDATE_LEVEL1_KEYS'
 	| 'UPDATE_LEVEL2_KEYS'
 
+/** @deprecated Use generated type "AccountTransaction" instead */
 export type AccountTransaction = {
 	__typename: 'AccountTransaction'
 	accountTransactionType: AccountTransactionTypes
 }
 
+/** @deprecated Use generated type "CredentialDeploymentTransaction" instead */
 export type CredentialDeploymentTransaction = {
 	__typename: 'CredentialDeploymentTransaction'
 	credentialDeploymentTransactionType: CredentialDeploymentTypes
 }
 
+/** @deprecated Use generated type "UpdateTransaction" instead */
 export type UpdateTransaction = {
 	__typename: 'UpdateTransaction'
 	updateTransactionType: UpdateTransactionTypes
 }
 
+/** @deprecated Use generated type "TransactionType" instead */
 export type TransactionType =
 	| AccountTransaction
 	| UpdateTransaction
 	| CredentialDeploymentTransaction
 
+/** @deprecated Use generated type "AccountAddress" instead (beware of incoming breaking change!) */
 type AccountAddress = {
 	__typename: 'AccountAddress'
 	address: string
 }
 
+/** @deprecated Use generated type "ContractAddress" instead (beware of incoming breaking change!) */
 type ContractAddress = {
 	__typename: 'ContractAddress'
 	index: number
 	subIndex: string
 }
 
+/** @deprecated Use generated type "Address" instead */
 export type TransferAddress = AccountAddress | ContractAddress
 
+/** @deprecated Use generated type "Transaction" instead */
 export type Transaction = {
 	id: string
 	transactionHash: string
