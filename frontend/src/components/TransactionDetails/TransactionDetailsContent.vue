@@ -72,7 +72,10 @@
 					/>
 				</template>
 			</Accordion>
-			<Accordion v-if="props.transaction?.result.__typename === 'Rejected'">
+			<Accordion
+				v-if="props.transaction?.result.__typename === 'Rejected'"
+				:is-initial-open="true"
+			>
 				Reject reason
 				<template #content>
 					<RejectionReason :reason="props.transaction.result.reason" />
