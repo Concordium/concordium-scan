@@ -11,26 +11,23 @@
 			<div
 				v-for="(drawerItem, index) in getDisplayItems()"
 				:key="index"
-				:class="$style.drawer"
-				class="relative"
-				:style="[
-					'z-index:' + (index === currentDrawerCount - 1 ? 22 : 21),
-					'max-height:' + (index === currentDrawerCount - 1 ? '' : '100vh'),
-					'position:' +
-						(index === currentDrawerCount - 1 ? 'absolute' : 'fixed'),
+				:class="[
+					$style.drawer,
 					currentDrawerCount - 1 === index
-						? ''
-						: 'transform:' +
-						  'translateX(-' +
-						  (currentDrawerCount - 1 - index) * 20 +
-						  'px)',
+						? 'absolute'
+						: $style.fixedAndMaxHeight,
+					$style['drawertranslate-x-' + (currentDrawerCount - 1 - index)],
+					currentDrawerCount - 1 === index ? $style.drawerItemActive : '',
 				]"
+				class="relative"
+				:style="['z-index:' + (currentDrawerCount - 1 === index ? 22 : 21)]"
 			>
 				<Drawer
 					:is-open="currentDrawerCount > -1"
 					:on-close="() => softReset()"
 				>
 					<template #content>
+						{{ index }}, {{ currentDrawerCount }}
 						<BlockDetailsContainer
 							v-if="drawerItem && drawerItem.entityTypeName == 'block'"
 							:id="drawerItem?.id"
@@ -134,6 +131,49 @@ const toggleClasses = (isOpen: boolean) => {
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
 	transition: 0.3s ease-in-out;
 	-webkit-transition: 0.3s ease-in-out;
+}
+.drawerItemActive {
+}
+.fixedAndMaxHeight {
+	transition: none;
+	max-height: 100vh;
+	position: fixed;
+}
+.drawertranslate-x-1 {
+	transform: translateX(-20px);
+}
+.drawertranslate-x-2 {
+	transform: translateX(-40px);
+}
+.drawertranslate-x-3 {
+	transform: translateX(-60px);
+}
+.drawertranslate-x-4 {
+	transform: translateX(-80px);
+}
+.drawertranslate-x-5 {
+	transform: translateX(-100px);
+}
+.drawertranslate-x-6 {
+	transform: translateX(-120px);
+}
+.drawertranslate-x-7 {
+	transform: translateX(-140px);
+}
+.drawertranslate-x-8 {
+	transform: translateX(-160px);
+}
+.drawertranslate-x-9 {
+	transform: translateX(-180px);
+}
+.drawertranslate-x-10 {
+	transform: translateX(-200px);
+}
+.drawertranslate-x-11 {
+	transform: translateX(-220px);
+}
+.drawertranslate-x-12 {
+	transform: translateX(-240px);
 }
 </style>
 
