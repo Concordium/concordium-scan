@@ -13,9 +13,7 @@
 				:key="index"
 				:class="[
 					$style.drawer,
-					currentDrawerCount - 1 === index
-						? 'absolute'
-						: $style.fixedAndMaxHeight,
+					$style.fixedAndMaxHeight,
 					$style['drawertranslate-x-' + (currentDrawerCount - 1 - index)],
 					currentDrawerCount - 1 === index ? $style.drawerItemActive : '',
 				]"
@@ -135,7 +133,6 @@ const toggleClasses = (isOpen: boolean) => {
 .drawerItemActive {
 }
 .fixedAndMaxHeight {
-	transition: none;
 	max-height: 100vh;
 	position: fixed;
 }
