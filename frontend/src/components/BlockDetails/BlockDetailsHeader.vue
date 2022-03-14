@@ -29,7 +29,7 @@ import BlockIcon from '~/components/icons/BlockIcon.vue'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
-import type { Block } from '~/types/blocks'
+import type { Block } from '~/types/generated'
 
 type Props = {
 	block: Block

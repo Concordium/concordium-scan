@@ -11,10 +11,10 @@
 						class="w-96 lg:w-full"
 						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
 						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
-						:y-values="
+						:y-values="[
 							metricsData?.accountsMetrics?.buckets
-								?.y_LastCumulativeAccountsCreated
-						"
+								?.y_LastCumulativeAccountsCreated,
+						]"
 					>
 						<template #topRight></template>
 						<template #title>Cumulative Accounts Created</template>

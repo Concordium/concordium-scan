@@ -7,20 +7,21 @@
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
 import { onMounted } from 'vue'
+import type { TooltipItem } from 'chart.js'
 import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
-	xValues: unknown[]
-	yValuesHigh: unknown[]
-	yValuesMid: unknown[]
-	yValuesLow: unknown[]
-	bucketWidth: string
+	xValues: string[] | undefined
+	yValuesHigh: number[] | undefined
+	yValuesMid: number[] | undefined
+	yValuesLow: number[] | undefined
+	bucketWidth?: string
 }
 const canvasRef = ref()
 Chart.register(...registerables)
 const props = defineProps<Props>()
 
 const chartData = {
-	labels: props.xValues,
+	labels: props.xValues as string[],
 	datasets: [
 		{
 			label: 'High',
@@ -69,7 +70,9 @@ const chartData = {
 
 watch(props, () => {
 	if (
-		(props.yValuesHigh[0] === chartData.datasets[0].data[0] &&
+		(props.yValuesHigh &&
+			props.xValues &&
+			props.yValuesHigh[0] === chartData.datasets[0].data[0] &&
 			props.xValues[0] === chartData.labels[0]) ||
 		!chartInstance
 	)
@@ -90,28 +93,19 @@ const defaultOptions = ref({
 			},
 		},
 		tooltip: {
-			itemSort(a, b) {
-				return b.raw - a.raw
+			itemSort(a: TooltipItem<'line'>, b: TooltipItem<'line'>) {
+				return (b.raw as number) - (a.raw as number)
 			},
 			callbacks: {
-				title(context) {
+				title(context: TooltipItem<'line'>[]) {
 					return new Date(context[0].label).toLocaleString()
 				},
 				beforeBody() {
-					return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
+					if (props.bucketWidth)
+						return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
+					return ''
 				},
-				label(context) {
-					/* let label = context.dataset.label || ''
-
-					if (label) {
-						label += ': '
-					}
-					if (context.parsed.y !== null) {
-						label += new Intl.NumberFormat('en-US', {
-							style: 'currency',
-							currency: 'USD',
-						}).format(context.parsed.y)
-					} */
+				label(context: TooltipItem<'line'>) {
 					let label = context.dataset.label || ''
 					if (label) {
 						label += ': '

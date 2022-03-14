@@ -45,7 +45,7 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd } from '~/utils/format'
-import type { Mint } from '~/types/blocks'
+import type { Mint } from '~/types/generated'
 
 type Props = {
 	data: Mint

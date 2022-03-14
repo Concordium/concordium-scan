@@ -13,10 +13,10 @@
 						:bucket-width="
 							metricsData?.transactionMetrics?.buckets?.bucketWidth
 						"
-						:y-values="
+						:y-values="[
 							metricsData?.transactionMetrics?.buckets
-								?.y_LastCumulativeTransactionCount
-						"
+								?.y_LastCumulativeTransactionCount,
+						]"
 					>
 						<template #topRight></template>
 						<template #title>Cumulative Transactions</template>
@@ -36,9 +36,9 @@
 						:bucket-width="
 							metricsData?.transactionMetrics?.buckets?.bucketWidth
 						"
-						:y-values="
-							metricsData?.transactionMetrics?.buckets?.y_TransactionCount
-						"
+						:y-values="[
+							metricsData?.transactionMetrics?.buckets?.y_TransactionCount,
+						]"
 					>
 						<template #topRight></template>
 						<template #title>Transactions</template>
@@ -119,7 +119,7 @@
 						{{ transaction.block.blockHeight }}
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
-						<AccountLink :address="transaction.senderAccountAddress" />
+						<AccountLink :address="transaction.senderAccountAddressString" />
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.LG"
@@ -156,8 +156,11 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
-import { MetricsPeriod, type Transaction } from '~/types/generated'
-import type { BlockSubscriptionResponse } from '~/types/blocks'
+import {
+	MetricsPeriod,
+	type Transaction,
+	type Subscription,
+} from '~/types/generated'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
@@ -174,10 +177,7 @@ const {
 } = usePagedData<Transaction>()
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const newItems = ref(0)
-const subscriptionHandler = (
-	_prevData: void,
-	newData: BlockSubscriptionResponse
-) => {
+const subscriptionHandler = (_prevData: void, newData: Subscription) => {
 	newItems.value += newData.blockAdded.transactionCount
 }
 

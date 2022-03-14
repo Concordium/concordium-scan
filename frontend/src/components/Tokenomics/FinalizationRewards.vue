@@ -31,13 +31,16 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd, calculateWeight } from '~/utils/format'
-import type { FinalizationReward } from '~/types/blocks'
+import type { FinalizationReward } from '~/types/generated'
 
 type Props = {
-	data: FinalizationReward[]
+	data?: FinalizationReward[]
 }
 
 const props = defineProps<Props>()
 
-const totalAmount = props.data.reduce((sum, curr) => sum + curr.amount, 0)
+const totalAmount =
+	props.data !== undefined
+		? props.data.reduce((sum, curr) => sum + curr.amount, 0)
+		: 0
 </script>

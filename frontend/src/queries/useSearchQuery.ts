@@ -1,8 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
-import type { Block } from '~/types/blocks'
-import type { Transaction } from '~/types/transactions'
-import type { Account, PageInfo } from '~/types/generated'
+import type { Account, PageInfo, Block, Transaction } from '~/types/generated'
 type SearchResponse = {
 	search: {
 		blocks: { nodes: Block[]; pageInfo: PageInfo }

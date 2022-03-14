@@ -1,5 +1,4 @@
-import type { Block } from './blocks'
-import type { TransactionResult } from '~/types/generated'
+import type { TransactionResult, Block } from '~/types/generated'
 
 /** @deprecated Use generated type "AccountTransactionType" instead */
 type AccountTransactionTypes =

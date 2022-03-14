@@ -36,7 +36,7 @@
 						v-if="props.xValues && props.yValues"
 						class="h-28"
 						:x-values="props.xValues"
-						:y-values="props.yValues"
+						:y-values="props.yValues[0]"
 						:bucket-width="props.bucketWidth"
 					></ChartLine>
 				</div>
@@ -49,8 +49,8 @@ import ChartLine from '~/components/Charts/ChartLine.vue'
 import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 import Chip from '~/components/atoms/Chip.vue'
 type Props = {
-	xValues?: unknown[]
-	yValues?: unknown[]
+	yValues?: number[][] | undefined[] | undefined
+	xValues?: string[] | undefined
 	chartType?: string
 	bucketWidth?: string
 }

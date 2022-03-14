@@ -7,7 +7,7 @@
 		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
 		<LinkButton
 			@blur="emitBlur"
-			@click="drawer.push('account', null, null, props.address)"
+			@click="drawer.push('account', undefined, undefined, props.address)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.address) }}

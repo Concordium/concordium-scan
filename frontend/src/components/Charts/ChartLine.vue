@@ -6,18 +6,19 @@
 <script lang="ts" setup>
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
+import type { TooltipItem } from 'chart.js'
 import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
-	xValues: unknown[]
-	yValues: unknown[]
-	bucketWidth: string
+	xValues: string[] | undefined
+	yValues: number[] | undefined
+	bucketWidth?: string
 }
 const canvasRef = ref()
 Chart.register(...registerables)
 const props = defineProps<Props>()
 
 const chartData = {
-	labels: props.xValues,
+	labels: props.xValues as string[],
 	datasets: [
 		{
 			label: '',
@@ -36,7 +37,9 @@ const chartData = {
 
 watch(props, () => {
 	if (
-		(props.yValues[0] === chartData.datasets[0].data[0] &&
+		(props.yValues &&
+			props.xValues &&
+			props.yValues[0] === chartData.datasets[0].data[0] &&
 			props.xValues[0] === chartData.labels[0]) ||
 		!chartInstance
 	)
@@ -57,13 +60,15 @@ const defaultOptions = ref({
 		},
 		tooltip: {
 			callbacks: {
-				title(context) {
+				title(context: TooltipItem<'line'>[]) {
 					return new Date(context[0].label).toLocaleString()
 				},
 				beforeBody() {
-					return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
+					if (props.bucketWidth)
+						return 'Interval: ' + prettyFormatBucketDuration(props.bucketWidth)
+					return ''
 				},
-				label(context) {
+				label(context: TooltipItem<'line'>) {
 					return context.parsed.y + ''
 				},
 			},

@@ -13,6 +13,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
+import { Ref } from 'vue'
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 import { useBlockQueryByHash, useBlockQuery } from '~/queries/useBlockQuery'
 import { usePagination } from '~/composables/usePagination'
@@ -21,15 +22,19 @@ const { first, last, after, before, goToPage } = usePagination()
 
 const route = useRoute()
 const blockQueryResult = ref()
+
+const blockHashRef = ref(route.params.blockHash)
+const internalIdRef = ref(route.params.internalId)
+
 if (!route.params.internalId)
-	blockQueryResult.value = useBlockQueryByHash(route.params.blockHash + '', {
+	blockQueryResult.value = useBlockQueryByHash(blockHashRef as Ref<string>, {
 		first,
 		last,
 		after,
 		before,
 	})
 else
-	blockQueryResult.value = useBlockQuery(route.params.internalId + '', {
+	blockQueryResult.value = useBlockQuery(internalIdRef as Ref<string>, {
 		first,
 		last,
 		after,

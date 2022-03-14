@@ -31,7 +31,9 @@
 					/>
 					<FinalizationRewards
 						v-if="props.block?.specialEvents.finalizationRewards"
-						:data="props.block.specialEvents.finalizationRewards.rewards.nodes"
+						:data="
+							props.block.specialEvents.finalizationRewards?.rewards?.nodes
+						"
 					/>
 					<BlockRewards
 						v-if="props.block?.specialEvents.blockRewards"
@@ -47,7 +49,7 @@
 				<template #content>
 					<BlockDetailsTransactions
 						v-if="props.block?.transactionCount > 0"
-						:transactions="props.block?.transactions.nodes"
+						:transactions="props.block?.transactions?.nodes"
 						:total-count="props.block?.transactionCount"
 						:page-info="props.block.transactions?.pageInfo"
 						:go-to-page="props.goToPage"
@@ -72,8 +74,7 @@ import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
-import type { Block } from '~/types/blocks'
-import type { PageInfo } from '~/types/generated'
+import type { PageInfo, Block } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 const { NOW } = useDateNow()

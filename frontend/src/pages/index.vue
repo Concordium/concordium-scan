@@ -10,7 +10,7 @@
 					<KeyValueChartCard
 						class="w-96 lg:w-full"
 						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+						:y-values="[blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded]"
 						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
 					>
 						<template #topRight></template>
@@ -53,10 +53,10 @@
 						:bucket-width="
 							transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
 						"
-						:y-values="
+						:y-values="[
 							transactionMetricsData?.transactionMetrics?.buckets
-								?.y_TransactionCount
-						"
+								?.y_TransactionCount,
+						]"
 					>
 						<template #topRight></template>
 						<template #title>Transactions</template>
@@ -73,9 +73,9 @@
 					<KeyValueChartCard
 						class="w-96 lg:w-full"
 						:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
-						:y-values="
-							accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated
-						"
+						:y-values="[
+							accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated,
+						]"
 						:bucket-width="
 							accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
 						"
@@ -234,12 +234,18 @@ import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import { convertMicroCcdToCcd, formatNumber } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-import type { BlockSubscriptionResponse, Block } from '~/types/blocks'
+
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
-import { MetricsPeriod, type Transaction } from '~/types/generated'
+import {
+	MetricsPeriod,
+	type Transaction,
+	type Block,
+	type Subscription,
+} from '~/types/generated'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
+import AccountLink from '~/components/molecules/AccountLink.vue'
 
 const pageSize = 10
 const queueSize = 10
@@ -248,24 +254,28 @@ let loopInterval: NodeJS.Timeout
 
 const { breakpoint } = useBreakpoint()
 
-const subscriptionHandler = (
-	_prevData: void,
-	newData: BlockSubscriptionResponse
-) => {
-	if (
-		!blocksQueue.value.some(
-			oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
-		) &&
-		!blocks.value.some(
-			oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
-		)
-	) {
-		if (blocksQueue.value.length === queueSize) blocksQueue.value.shift()
-		blocksQueue.value.push(newData.blockAdded)
-		for (let i = 0; i < newData.blockAdded.transactions.nodes.length; i++) {
-			if (transactionsQueue.value.length === queueSize)
-				transactionsQueue.value.shift()
-			transactionsQueue.value.push(newData.blockAdded.transactions.nodes[i])
+const subscriptionHandler = (_prevData: void, newData: Subscription) => {
+	if (newData && newData.blockAdded) {
+		if (
+			!blocksQueue.value.some(
+				oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
+			) &&
+			!blocks.value.some(
+				oldBlock => oldBlock.blockHash === newData.blockAdded.blockHash
+			)
+		) {
+			if (blocksQueue.value.length === queueSize) blocksQueue.value.shift()
+			blocksQueue.value.push(newData.blockAdded)
+			if (
+				newData.blockAdded.transactions &&
+				newData.blockAdded.transactions.nodes
+			) {
+				for (let i = 0; i < newData.blockAdded.transactions.nodes.length; i++) {
+					if (transactionsQueue.value.length === queueSize)
+						transactionsQueue.value.shift()
+					transactionsQueue.value.push(newData.blockAdded.transactions.nodes[i])
+				}
+			}
 		}
 	}
 }

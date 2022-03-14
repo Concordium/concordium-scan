@@ -52,7 +52,7 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
-import type { BlockRewards } from '~/types/blocks'
+import type { BlockRewards } from '~/types/generated'
 
 type Props = {
 	data: BlockRewards

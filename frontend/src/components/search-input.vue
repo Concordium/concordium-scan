@@ -110,7 +110,9 @@
 								Created
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="
+										index === 0 ? tooltipPositionBottom : tooltipPositionTop
+									"
 								>
 									{{
 										convertTimestampToRelative(
@@ -183,6 +185,7 @@ const { NOW } = useDateNow()
 const drawer = useDrawer()
 
 const tooltipPositionBottom = 'bottom' as Position
+const tooltipPositionTop = 'top' as Position
 const searchValue = ref('')
 const delayedSearchValue = ref('')
 const queryData = ref()
@@ -246,8 +249,8 @@ const gotoSearchResult = () => {
 		else if (queryData.value.search.accounts.nodes[0])
 			drawer.push(
 				'account',
-				null,
-				null,
+				undefined,
+				undefined,
 				queryData.value.search.accounts.nodes[0].address
 			)
 		searchValue.value = ''

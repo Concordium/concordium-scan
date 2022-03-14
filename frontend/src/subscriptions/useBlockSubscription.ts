@@ -1,12 +1,12 @@
 ﻿import { useSubscription, gql } from '@urql/vue'
-import type { BlockSubscriptionResponse } from '~/types/blocks'
+import { type Subscription } from '~/types/generated'
 
-type BlockSubscriptionHandler<BlockSubscriptionResponse, R> = (
+type BlockSubscriptionHandler<Subscription, R> = (
 	previousData: R | undefined,
-	data: BlockSubscriptionResponse
+	data: Subscription
 ) => R
 
-const BlockSubscription = gql<BlockSubscriptionResponse>`
+const BlockSubscription = gql<Subscription>`
 	subscription blockAddedSubscription {
 		blockAdded {
 			transactionCount
@@ -51,7 +51,7 @@ const BlockSubscription = gql<BlockSubscriptionResponse>`
 	}
 `
 export const useBlockSubscription = (
-	handleFunction: BlockSubscriptionHandler<BlockSubscriptionResponse, void>
+	handleFunction: BlockSubscriptionHandler<Subscription, void>
 ) => {
 	const { data, pause, resume } = useSubscription(
 		{

@@ -13,6 +13,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
+import { Ref } from 'vue'
 import TransactionDetailsContent from '~/components/TransactionDetails/TransactionDetailsContent.vue'
 import {
 	useTransactionQueryByHash,
@@ -24,14 +25,16 @@ const { first, last, after, before, goToPage } = usePagination()
 
 const route = useRoute()
 const transactionQueryResult = ref()
+const transactionHashRef = ref(route.params.transactionHash)
+const internalIdRef = ref(route.params.internalId)
 if (!route.params.internalId)
 	transactionQueryResult.value = useTransactionQueryByHash(
-		route.params.transactionHash + '',
+		transactionHashRef as Ref<string>,
 		{ first, last, after, before }
 	)
 else
 	transactionQueryResult.value = useTransactionQuery(
-		route.params.internalId + '',
+		internalIdRef as Ref<string>,
 		{ first, last, after, before }
 	)
 </script>

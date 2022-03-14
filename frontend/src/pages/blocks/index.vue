@@ -10,7 +10,7 @@
 					<KeyValueChartCard
 						class="w-96 lg:w-full"
 						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="metricsData?.blockMetrics?.buckets?.y_BlocksAdded"
+						:y-values="[metricsData?.blockMetrics?.buckets?.y_BlocksAdded]"
 						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
 					>
 						<template #topRight></template>
@@ -132,9 +132,8 @@ import { useDateNow } from '~/composables/useDateNow'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import type { Block, BlockSubscriptionResponse } from '~/types/blocks'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
-import { MetricsPeriod } from '~/types/generated'
+import { MetricsPeriod, type Block, type Subscription } from '~/types/generated'
 import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
@@ -154,10 +153,7 @@ const {
 	loadMore,
 } = usePagedData<Block>()
 const newItems = ref(0)
-const subscriptionHandler = (
-	_prevData: void,
-	_newData: BlockSubscriptionResponse
-) => {
+const subscriptionHandler = (_prevData: void, _newData: Subscription) => {
 	newItems.value++
 }
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
