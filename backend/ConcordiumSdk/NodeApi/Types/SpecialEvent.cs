@@ -2,4 +2,5 @@
 
 public abstract class SpecialEvent
 {
+    public abstract IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates();
 }

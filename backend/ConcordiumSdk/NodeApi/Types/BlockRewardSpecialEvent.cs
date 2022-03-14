@@ -11,4 +11,10 @@ public class BlockRewardSpecialEvent : SpecialEvent
     public CcdAmount FoundationCharge { get; init; }
     public AccountAddress Baker { get; init; }
     public AccountAddress FoundationAccount { get; init; }
+    
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
+    {
+        yield return new AccountBalanceUpdate(FoundationAccount, (long)FoundationCharge.MicroCcdValue);
+        yield return new AccountBalanceUpdate(Baker, (long)BakerReward.MicroCcdValue);
+    }
 }
