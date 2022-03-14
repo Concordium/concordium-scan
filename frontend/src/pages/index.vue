@@ -367,4 +367,10 @@ const drawFunc = () => {
 	transform: translateY(-30px);
 	opacity: 0;
 }
+
+.list-leave-active {
+	transition: transform 0s;
+	position: absolute;
+	opacity: 0;
+}
 </style>
