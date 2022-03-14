@@ -25,7 +25,6 @@
 					:on-close="() => softReset()"
 				>
 					<template #content>
-						{{ index }}, {{ currentDrawerCount }}
 						<BlockDetailsContainer
 							v-if="drawerItem && drawerItem.entityTypeName == 'block'"
 							:id="drawerItem?.id"
