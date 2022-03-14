@@ -3,6 +3,7 @@ using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Application.Api.GraphQL.EfCore;
 
@@ -86,19 +87,25 @@ public class AccountWriter
                         balanceUpdates.Add(new AccountBalanceUpdate(accountAddress.GetBaseAddress(), -1 * (long)contractsUpdated.Amount.MicroCcdValue));
             }
         }
-        
         // TODO: Added "RETURNING base_address, ccd_amount" to be able to write metrics for account balances!
         var sql = @"UPDATE graphql_accounts SET ccd_amount = ccd_amount + @AmountAdjustment WHERE base_address = @BaseAddress";
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var connection = context.Database.GetDbConnection();
-
-        var param = balanceUpdates.Select(x => new
+        
+        await connection.OpenAsync();
+        
+        var batch = connection.CreateBatch();
+        foreach (var balanceUpdate in balanceUpdates)
         {
-            AmountAdjustment = x.AmountAdjustment,
-            BaseAddress = x.BaseAddress.AsString
-        });
-        await connection.ExecuteAsync(sql, param);
+            var cmd = batch.CreateBatchCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", balanceUpdate.AmountAdjustment));
+            cmd.Parameters.Add(new NpgsqlParameter<string>("BaseAddress", balanceUpdate.BaseAddress.AsString));
+            batch.BatchCommands.Add(cmd);
+        }
+        await batch.ExecuteNonQueryAsync();
+        await connection.CloseAsync();
     }
 
     public class AccountBalanceUpdate
