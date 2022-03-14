@@ -16,6 +16,7 @@
 					$style.fixedAndMaxHeight,
 					$style['drawertranslate-x-' + (currentDrawerCount - 1 - index)],
 					currentDrawerCount - 1 === index ? $style.drawerItemActive : '',
+					index < currentDrawerCount - 2 ? 'hidden md:flex' : 'flex',
 				]"
 				class="relative"
 			>
@@ -98,7 +99,7 @@ const toggleClasses = (isOpen: boolean) => {
 	backdrop-filter: blur(2px);
 }
 .drawer {
-	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
+	@apply flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
 	transition: 0.3s ease-in-out;
@@ -115,50 +116,62 @@ const toggleClasses = (isOpen: boolean) => {
 }
 .drawertranslate-x-1 {
 	transform: translate3d(-20px, 0, 0);
+	pointer-events: none;
 	z-index: 49;
 }
 .drawertranslate-x-2 {
 	transform: translate3d(-40px, 0, 0);
+	pointer-events: none;
 	z-index: 48;
 }
 .drawertranslate-x-3 {
 	transform: translate3d(-60px, 0, 0);
+	pointer-events: none;
 	z-index: 47;
 }
 .drawertranslate-x-4 {
 	transform: translate3d(-80px, 0, 0);
+	pointer-events: none;
 	z-index: 46;
 }
 .drawertranslate-x-5 {
 	transform: translate3d(-100px, 0, 0);
+	pointer-events: none;
 	z-index: 45;
 }
 .drawertranslate-x-6 {
 	transform: translate3d(-120px, 0, 0);
+	pointer-events: none;
 	z-index: 44;
 }
 .drawertranslate-x-7 {
 	transform: translate3d(-140px, 0, 0);
+	pointer-events: none;
 	z-index: 43;
 }
 .drawertranslate-x-8 {
 	transform: translate3d(-160px, 0, 0);
 	z-index: 42;
+	pointer-events: none;
 }
 .drawertranslate-x-9 {
 	transform: translate3d(-180px, 0, 0);
+	pointer-events: none;
 	z-index: 41;
 }
 .drawertranslate-x-10 {
 	transform: translate3d(-200px, 0, 0);
+	pointer-events: none;
 	z-index: 40;
 }
 .drawertranslate-x-11 {
 	transform: translate3d(-220px, 0, 0);
+	pointer-events: none;
 	z-index: 39;
 }
 .drawertranslate-x-12 {
 	transform: translate3d(-240px, 0, 0);
+	pointer-events: none;
 	z-index: 38;
 }
 </style>
