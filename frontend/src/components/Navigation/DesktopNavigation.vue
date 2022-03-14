@@ -31,7 +31,7 @@ defineProps<Props>()
 }
 
 .linkInner {
-	@apply divide-x md:border-r-2 px-4;
+	@apply divide-x md:border-r-2 border-theme-white px-4;
 }
 
 .link:last-child .linkInner {

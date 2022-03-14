@@ -38,7 +38,8 @@ module.exports = {
 				'common-white': withHslOpacity('--color-white'),
 				'background-primary': withHslOpacity('--color-background-primary'),
 				'background-primary-elevated': 'var(--color-background-elevated)',
-				'background-primary-elevated-nontrans': 'var(--color-background-elevated-nontrans)',
+				'background-primary-elevated-nontrans':
+					'var(--color-background-elevated-nontrans)',
 				'button-primary': withHslOpacity('--color-button-bg-primary'),
 				'button-primary-hover': withHslOpacity(
 					'--color-button-bg-primary-hover'
@@ -47,7 +48,7 @@ module.exports = {
 				'button-text-primary-disabled':
 					'var(--color-button-text-primary-disabled)',
 				'input-primary': withHslOpacity('--color-input-bg-primary', '25%'),
-				'background-interactive':  withHslOpacity('--color-interactive'),
+				'background-interactive': withHslOpacity('--color-interactive'),
 			},
 		},
 		textColor: {
@@ -60,15 +61,14 @@ module.exports = {
 				info: withHslOpacity('--color-info'),
 				error: withHslOpacity('--color-error'),
 			},
-
 		},
 		borderColor: {
-				theme: {
-					primary: withHslOpacity('--color-interactive'),
-					selected: withHslOpacity('--color-selected')
-				},
-
+			theme: {
+				primary: withHslOpacity('--color-interactive'),
+				selected: withHslOpacity('--color-selected'),
+				white: withHslOpacity('--color-white'),
 			},
+		},
 		extend: {},
 	},
 	variants: {
