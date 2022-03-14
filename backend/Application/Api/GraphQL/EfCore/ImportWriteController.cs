@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Application.Api.GraphQL.Validations;
 using Application.Database;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -16,6 +17,7 @@ public class ImportWriteController : BackgroundService
 {
     private readonly ITopicEventSender _sender;
     private readonly ImportChannel _channel;
+    private readonly AccountBalanceValidator _accountBalanceValidator;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly TransactionWriter _transactionWriter;
@@ -24,10 +26,11 @@ public class ImportWriteController : BackgroundService
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
 
-    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel)
+    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel, AccountBalanceValidator accountBalanceValidator)
     {
         _sender = sender;
         _channel = channel;
+        _accountBalanceValidator = accountBalanceValidator;
         _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
@@ -55,6 +58,9 @@ public class ImportWriteController : BackgroundService
                     block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds, sw.Elapsed.TotalMilliseconds);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
+                
+                if (block.BlockHeight % 50000 == 0)
+                    await _accountBalanceValidator.ValidateAccountBalances((ulong)block.BlockHeight);
             }
         }
         finally
@@ -112,6 +118,7 @@ public class ImportWriteController : BackgroundService
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
         await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
+        await _accountWriter.UpdateAccountBalances(payload.BlockSummary);
 
         await _accountWriter.AddAccountTransactionRelations(transactions);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Validations;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
@@ -42,6 +43,7 @@ builder.Services.AddGraphQLServer().Configure();
 builder.Services.AddSingleton<ImportChannel>();
 builder.Services.AddHostedService<ImportReadController>();
 builder.Services.AddHostedService<ImportWriteController>();
+builder.Services.AddSingleton<AccountBalanceValidator>();
 builder.Services.AddControllers();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {

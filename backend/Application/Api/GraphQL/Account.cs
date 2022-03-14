@@ -21,6 +21,9 @@ public class Account
     
     public string AddressString => CanonicalAddress;
     
+    [GraphQLIgnore] // TODO: Add to graphql schema when implementation done and validated.
+    public ulong Amount { get; set; }
+    
     public DateTimeOffset CreatedAt { get; init; }
     
     [UseDbContext(typeof(GraphQlDbContext))]

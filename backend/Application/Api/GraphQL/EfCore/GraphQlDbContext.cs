@@ -165,6 +165,7 @@ public class GraphQlDbContext : DbContext
         accountBuilder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         accountBuilder.Property(x => x.BaseAddress).HasColumnName("base_address").HasConversion<AccountAddressConverter>();
         accountBuilder.Property(x => x.CanonicalAddress).HasColumnName("canonical_address");
+        accountBuilder.Property(x => x.Amount).HasColumnName("ccd_amount");
         accountBuilder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();
 
         var accountTransactionRelationBuilder = modelBuilder.Entity<AccountTransactionRelation>()

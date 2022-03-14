@@ -3,6 +3,7 @@
     id                bigint primary key,
     base_address      text      not null,
     canonical_address text      not null,
+    ccd_amount        bigint    not null,
     created_at        timestamp not null
 );
 

@@ -48,7 +48,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             new AccountInfo
             {
                 AccountIndex = (ulong)accountIndex,
-                AccountAddress = accountAddress
+                AccountAddress = accountAddress,
+                AccountAmount = CcdAmount.FromMicroCcd(57290)
             }};
 
         await _target.AddAccounts(createdAccounts, slotTime);
@@ -58,6 +59,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         account.Id.Should().Be(accountIndex);
         account.CanonicalAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         account.BaseAddress.AsString.Should().Be(accountAddress.GetBaseAddress().AsString);
+        account.Amount.Should().Be(57290);
         account.CreatedAt.Should().Be(slotTime);
     }
 
