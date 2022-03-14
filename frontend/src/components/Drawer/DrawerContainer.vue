@@ -20,10 +20,7 @@
 				]"
 				class="relative"
 			>
-				<Drawer
-					:is-open="currentDrawerCount > -1"
-					:on-close="() => softReset()"
-				>
+				<Drawer :is-open="currentDrawerCount > -1">
 					<template #content>
 						<BlockDetailsContainer
 							v-if="drawerItem && drawerItem.entityTypeName == 'block'"

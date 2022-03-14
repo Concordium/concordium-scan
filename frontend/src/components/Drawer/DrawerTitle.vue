@@ -1,8 +1,13 @@
 <template>
 	<header class="z-10" :class="$style.drawerTitle">
+		<DrawerNavigation />
+
 		<slot />
 	</header>
 </template>
+<script lang="ts" setup>
+import DrawerNavigation from '~/components/Drawer/DrawerNavigation.vue'
+</script>
 
 <style module>
 .drawerTitle {

@@ -6,7 +6,7 @@
 
 <style module>
 .drawerActions {
-	@apply sticky bottom-0 mt-8 p-8;
+	@apply bottom-0 mt-8 p-8;
 	background: hsl(247, 40%, 18%);
 }
 
