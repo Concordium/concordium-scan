@@ -5,8 +5,9 @@
 				<TableRow>
 					<TableTh>Hash</TableTh>
 					<TableTh>Type</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.LG">Sender</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.LG" align="right">
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Timestamp</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sender</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">
 						Cost (Ͼ)
 					</TableTh>
 				</TableRow>
@@ -42,13 +43,29 @@
 							}}
 						</div>
 					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
+						<Tooltip
+							:text="
+								formatTimestamp(
+									accountTxRelation.transaction.block.blockSlotTime
+								)
+							"
+						>
+							{{
+								convertTimestampToRelative(
+									accountTxRelation.transaction.block.blockSlotTime,
+									NOW
+								)
+							}}
+						</Tooltip>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
 						<AccountLink
 							:address="accountTxRelation.transaction.senderAccountAddress"
 						/>
 					</TableTd>
 					<TableTd
-						v-if="breakpoint >= Breakpoint.LG"
+						v-if="breakpoint >= Breakpoint.XXL"
 						align="right"
 						class="numerical"
 					>
@@ -66,12 +83,19 @@
 </template>
 
 <script lang="ts" setup>
-import { convertMicroCcdToCcd } from '~/utils/format'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import {
+	convertMicroCcdToCcd,
+	formatTimestamp,
+	convertTimestampToRelative,
+} from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
+import { useDateNow } from '~/composables/useDateNow'
 import type { PageInfo, AccountTransactionRelation } from '~/types/generated'
 
+const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
 type Props = {

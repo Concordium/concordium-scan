@@ -22,6 +22,9 @@ const AccountQuery = gql<Account>`
 						result {
 							__typename
 						}
+						block {
+							blockSlotTime
+						}
 						transactionType {
 							__typename
 							... on AccountTransaction {
@@ -69,6 +72,9 @@ const AccountQueryByAddress = gql<Account>`
 						transactionHash
 						senderAccountAddress
 						ccdCost
+						block {
+							blockSlotTime
+						}
 						result {
 							__typename
 						}
