@@ -1,5 +1,5 @@
 <template>
-	<header class="z-10" :class="$style.drawerTitle">
+	<header class="z-20" :class="$style.drawerTitle">
 		<DrawerNavigation />
 
 		<slot />
