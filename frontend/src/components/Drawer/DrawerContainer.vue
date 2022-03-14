@@ -18,7 +18,6 @@
 					currentDrawerCount - 1 === index ? $style.drawerItemActive : '',
 				]"
 				class="relative"
-				:style="['z-index:' + (currentDrawerCount - 1 === index ? 22 : 21)]"
 			>
 				<Drawer
 					:is-open="currentDrawerCount > -1"
@@ -44,14 +43,6 @@
 
 					<template #actions>
 						<DrawerActions class="flex flex-grow-0 justify-between">
-							<div class="flex gap-4">
-								<Button class="self-start" @click="back">
-									<ChevronBackIcon class="align-text-top" /> Back
-								</Button>
-								<Button v-if="canGoForward" class="self-start" @click="forward">
-									Forward <ChevronForwardIcon class="align-text-top" />
-								</Button>
-							</div>
 							<Button class="self-end" :on-click="() => softReset()">
 								Close
 							</Button>
@@ -69,25 +60,9 @@ import Drawer from '~/components/Drawer/Drawer.vue'
 import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContainer.vue'
 import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
-import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
-import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
-const {
-	softReset,
-	currentDepth,
-	canGoForward,
-	getDisplayItems,
-	currentDrawerCount,
-	currentTopItem,
-} = useDrawer()
-const router = useRouter()
-const back = () => {
-	// Depth is only 1 if it was a direct link to the drawer
-	if (currentDepth() > 1) router.go(-1)
-	else softReset()
-}
-const forward = () => {
-	if (canGoForward) router.go(1)
-}
+const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
+	useDrawer()
+
 watch(currentTopItem, () => {
 	if (currentTopItem && currentTopItem.value) {
 		window.scrollTo(0, currentTopItem.value.scrollY ?? 0)
@@ -135,41 +110,56 @@ const toggleClasses = (isOpen: boolean) => {
 	max-height: 100vh;
 	position: fixed;
 }
+.drawertranslate-x-0 {
+	z-index: 50;
+}
 .drawertranslate-x-1 {
-	transform: translateX(-20px);
+	transform: translate3d(-20px, 0, 0);
+	z-index: 49;
 }
 .drawertranslate-x-2 {
-	transform: translateX(-40px);
+	transform: translate3d(-40px, 0, 0);
+	z-index: 48;
 }
 .drawertranslate-x-3 {
-	transform: translateX(-60px);
+	transform: translate3d(-60px, 0, 0);
+	z-index: 47;
 }
 .drawertranslate-x-4 {
-	transform: translateX(-80px);
+	transform: translate3d(-80px, 0, 0);
+	z-index: 46;
 }
 .drawertranslate-x-5 {
-	transform: translateX(-100px);
+	transform: translate3d(-100px, 0, 0);
+	z-index: 45;
 }
 .drawertranslate-x-6 {
-	transform: translateX(-120px);
+	transform: translate3d(-120px, 0, 0);
+	z-index: 44;
 }
 .drawertranslate-x-7 {
-	transform: translateX(-140px);
+	transform: translate3d(-140px, 0, 0);
+	z-index: 43;
 }
 .drawertranslate-x-8 {
-	transform: translateX(-160px);
+	transform: translate3d(-160px, 0, 0);
+	z-index: 42;
 }
 .drawertranslate-x-9 {
-	transform: translateX(-180px);
+	transform: translate3d(-180px, 0, 0);
+	z-index: 41;
 }
 .drawertranslate-x-10 {
-	transform: translateX(-200px);
+	transform: translate3d(-200px, 0, 0);
+	z-index: 40;
 }
 .drawertranslate-x-11 {
-	transform: translateX(-220px);
+	transform: translate3d(-220px, 0, 0);
+	z-index: 39;
 }
 .drawertranslate-x-12 {
-	transform: translateX(-240px);
+	transform: translate3d(-240px, 0, 0);
+	z-index: 38;
 }
 </style>
 

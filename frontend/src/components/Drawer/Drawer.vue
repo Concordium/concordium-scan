@@ -1,13 +1,25 @@
 <template>
 	<section>
 		<button
-			class="rounded absolute right-5 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
+			class="rounded absolute right-16 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
+			@click="back"
+		>
+			<ChevronBackIcon class="h-6" />
+		</button>
+		<button
+			class="rounded absolute right-10 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
 			aria-label="Close"
 			@click="props.onClose"
 		>
 			<XIcon class="h-6" />
 		</button>
-
+		<button
+			v-if="canGoForward"
+			class="rounded absolute right-6 top-5 z-20 p-2 hover:bg-theme-button-primary-hover transition-colors"
+			@click="forward"
+		>
+			<ChevronForwardIcon class="h-6" />
+		</button>
 		<div>
 			<slot name="content" />
 		</div>
@@ -18,13 +30,24 @@
 <script lang="ts" setup>
 import { XIcon } from '@heroicons/vue/solid/index.js'
 import { onMounted } from 'vue'
+import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
+import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
 
 type Props = {
 	isOpen: boolean
 	onClose: () => void
 	isMobile?: boolean
 }
-
+const { softReset, currentDepth, canGoForward } = useDrawer()
+const router = useRouter()
+const back = () => {
+	// Depth is only 1 if it was a direct link to the drawer
+	if (currentDepth() > 1) router.go(-1)
+	else softReset()
+}
+const forward = () => {
+	if (canGoForward) router.go(1)
+}
 const props = defineProps<Props>()
 onMounted(() => {
 	if (!props.isMobile) toggleClasses(props.isOpen)
