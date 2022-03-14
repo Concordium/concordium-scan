@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Application.Api.GraphQL.Validations;
+using Application.Common;
 using Application.Database;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -46,21 +47,28 @@ public class ImportWriteController : BackgroundService
         {
             await ReadAndPublishInitialState();
 
+            var splitTime = new SplitTimeDiagnosticsLogger();
+            splitTime.Start("wait");
+            
             await foreach (var readFromNodeTask in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 var envelope = await readFromNodeTask;
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var sw = Stopwatch.StartNew();
+                splitTime.Restart("write");
                 var block = await WriteData(envelope.Payload);
 
-                _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] [write: {writeDuration:0}ms]", 
-                    block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds, sw.Elapsed.TotalMilliseconds);
-
+                splitTime.Restart("notify");
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
+                
+                var measurements = splitTime.Stop();
+                _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] " + measurements, 
+                    block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds);
                 
                 if (block.BlockHeight % 50000 == 0)
                     await _accountBalanceValidator.ValidateAccountBalances((ulong)block.BlockHeight);
+                
+                splitTime.Start("wait");
             }
         }
         finally
