@@ -13,6 +13,5 @@
 .drawerActions::after {
 	@apply absolute top-0 w-full h-full left-0 pointer-events-none;
 	content: '';
-	box-shadow: 50px -20px 50px 10px hsl(247, 40%, 18%);
 }
 </style>
