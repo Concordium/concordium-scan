@@ -31,7 +31,9 @@
 					<KeyValueChartCard
 						class="w-96 lg:w-full"
 						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
-						:y-values="metricsData?.accountsMetrics?.buckets?.y_AccountsCreated"
+						:y-values="[
+							metricsData?.accountsMetrics?.buckets?.y_AccountsCreated,
+						]"
 						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
 					>
 						<template #topRight></template>
