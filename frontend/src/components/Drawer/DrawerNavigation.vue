@@ -1,6 +1,7 @@
 ﻿<template>
 	<div class="absolute right-6 top-5 z-20 p-2 flex gap-4">
 		<button
+			v-if="currentDrawerCount > 1"
 			class="rounded hover:bg-theme-button-primary-hover transition-colors px-1"
 			aria-label="Back"
 			@click="back"
@@ -29,11 +30,11 @@
 import { XIcon } from '@heroicons/vue/solid/index.js'
 import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
 import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
-const { softReset, currentDepth, canGoForward } = useDrawer()
+const { softReset, currentDrawerCount, canGoForward } = useDrawer()
 const router = useRouter()
 const back = () => {
 	// Depth is only 1 if it was a direct link to the drawer
-	if (currentDepth() > 1) router.go(-1)
+	if (currentDrawerCount.value > 1) router.go(-1)
 	else softReset()
 }
 const forward = () => {

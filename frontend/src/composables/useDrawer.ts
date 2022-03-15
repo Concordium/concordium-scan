@@ -114,9 +114,7 @@ export const useDrawer = () => {
 	const getDisplayItems = () => {
 		return drawerState.value.items.slice(0, currentDrawerCount.value)
 	}
-	const currentDepth = () => {
-		return drawerState.value.items.length
-	}
+
 	const canGoForward = computed(() => {
 		return getItems().indexOf(currentTopItem.value) !== getItems().length - 1
 	})
@@ -127,7 +125,6 @@ export const useDrawer = () => {
 		softReset,
 		updateByRouteData,
 		handleInitialLoad,
-		currentDepth,
 		canGoForward,
 		getDisplayItems,
 		currentDrawerCount,
