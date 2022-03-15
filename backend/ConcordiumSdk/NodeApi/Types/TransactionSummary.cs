@@ -39,7 +39,7 @@ public class TransactionSummary
                 yield return new AccountBalanceUpdate(x.Account, (long)x.Amount.MicroCcdValue);
             
             foreach (var x in success.Events.OfType<EncryptedSelfAmountAdded>())
-                yield return new AccountBalanceUpdate(x.Account, (long)x.Amount.MicroCcdValue);
+                yield return new AccountBalanceUpdate(x.Account, -1 * (long)x.Amount.MicroCcdValue);
 
             foreach (var x in success.Events.OfType<Transferred>())
             {
