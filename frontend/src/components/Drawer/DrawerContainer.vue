@@ -66,30 +66,6 @@ watch(currentTopItem, () => {
 		window.scrollTo(0, currentTopItem.value.scrollY ?? 0)
 	}
 })
-onMounted(() => {
-	toggleClasses(currentDrawerCount.value > 0)
-})
-watch(currentDrawerCount, v => {
-	toggleClasses(v > 0)
-})
-const toggleClasses = (isOpen: boolean) => {
-	const appEl = document.getElementById('app')
-
-	const classes = [
-		'max-h-screen',
-		'w-full',
-		'overflow-hidden',
-		'fixed',
-		'top-0',
-		'left-0',
-	]
-
-	if (isOpen) {
-		appEl?.classList.add(...classes)
-	} else {
-		appEl?.classList.remove(...classes)
-	}
-}
 </script>
 <style module>
 .drawerMask {

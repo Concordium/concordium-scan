@@ -14,10 +14,10 @@ type Props = {
 	isOpen: boolean
 	isMobile?: boolean
 }
-
+const { currentDrawerCount } = useDrawer()
 const props = defineProps<Props>()
 onMounted(() => {
-	if (!props.isMobile) toggleClasses(props.isOpen)
+	if (!props.isMobile) toggleClasses(currentDrawerCount.value > 0)
 })
 watch(
 	() => props.isOpen,
@@ -25,6 +25,10 @@ watch(
 		toggleClasses(value)
 	}
 )
+watch(currentDrawerCount, v => {
+	toggleClasses(v > 0)
+})
+
 const toggleClasses = (isOpen: boolean) => {
 	const appEl = document.getElementById('app')
 
@@ -44,11 +48,3 @@ const toggleClasses = (isOpen: boolean) => {
 	}
 }
 </script>
-
-<style module>
-.drawer {
-	@apply flex flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
-	background: hsl(247, 40%, 18%);
-	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
-}
-</style>
