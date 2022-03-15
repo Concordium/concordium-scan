@@ -240,7 +240,7 @@ public record TransferredWithSchedule(
 {
     public string FromAccountAddressString => FromAccountAddress;
     public string ToAccountAddressString => ToAccountAddress;
-
+    public ulong TotalAmount => AmountsSchedule.Aggregate(0UL, (val, item) => val + item.Amount);
 }
 
 /// <summary>
