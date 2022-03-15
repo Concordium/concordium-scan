@@ -8,6 +8,7 @@ type Account {
   id: ID!
   address: String! @deprecated(reason: "Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")
   addressString: String!
+  amount: UnsignedLong!
   createdAt: DateTime!
 }
 
