@@ -18,7 +18,7 @@ public class ImportWriteController : BackgroundService
 {
     private readonly ITopicEventSender _sender;
     private readonly ImportChannel _channel;
-    private readonly AccountBalanceValidator _accountBalanceValidator;
+    private readonly ImportValidationController _accountBalanceValidator;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly TransactionWriter _transactionWriter;
@@ -27,7 +27,7 @@ public class ImportWriteController : BackgroundService
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
 
-    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel, AccountBalanceValidator accountBalanceValidator)
+    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator)
     {
         _sender = sender;
         _channel = channel;
@@ -65,8 +65,7 @@ public class ImportWriteController : BackgroundService
                 _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] " + measurements, 
                     block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds);
                 
-                if (block.BlockHeight % 5000 == 0)
-                    await _accountBalanceValidator.ValidateAccountBalances((ulong)block.BlockHeight);
+                await _accountBalanceValidator.PerformValidations(block);
                 
                 splitTime.Start("wait");
             }

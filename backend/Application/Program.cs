@@ -36,6 +36,8 @@ var logger = Log.ForContext<Program>();
 logger.Information("Application starting...");
 
 var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
+var importValidationSettings = builder.Configuration.GetSection("ImportValidation").Get<ImportValidationSettings>();
+
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 
 builder.Services.AddCors();
@@ -43,7 +45,8 @@ builder.Services.AddGraphQLServer().Configure();
 builder.Services.AddSingleton<ImportChannel>();
 builder.Services.AddHostedService<ImportReadController>();
 builder.Services.AddHostedService<ImportWriteController>();
-builder.Services.AddSingleton<AccountBalanceValidator>();
+builder.Services.AddSingleton<ImportValidationController>();
+builder.Services.AddSingleton(importValidationSettings);
 builder.Services.AddControllers();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
