@@ -39,6 +39,7 @@ var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<
 var importValidationSettings = builder.Configuration.GetSection("ImportValidation").Get<ImportValidationSettings>();
 
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
+logger.Information("Import validation enabled: {enabled}", importValidationSettings.Enabled);
 
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().Configure();
