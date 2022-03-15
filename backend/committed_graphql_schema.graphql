@@ -4,6 +4,7 @@
 }
 
 type Account {
+  releaseSchedule: AccountReleaseSchedule!
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
   id: ID!
   address: String! @deprecated(reason: "Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")
@@ -20,6 +21,35 @@ type AccountAddress {
 type AccountCreated {
   accountAddress: String! @deprecated(reason: "Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
   accountAddressString: String!
+}
+
+type AccountReleaseSchedule {
+  schedule("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountReleaseScheduleItemConnection
+  totalAmount: UnsignedLong!
+}
+
+type AccountReleaseScheduleItem {
+  transaction: Transaction!
+  timestamp: DateTime!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type AccountReleaseScheduleItemConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [AccountReleaseScheduleItemEdge!]
+  "A flattened list of the nodes."
+  nodes: [AccountReleaseScheduleItem!]
+}
+
+"An edge in a connection."
+type AccountReleaseScheduleItemEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: AccountReleaseScheduleItem!
 }
 
 type AccountTransaction {

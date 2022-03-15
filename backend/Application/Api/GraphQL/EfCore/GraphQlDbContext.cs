@@ -14,6 +14,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<Account> Accounts { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
+    public DbSet<AccountReleaseScheduleItem> AccountReleaseScheduleItems { get; private set; }
     public DbSet<IdentityProvider> IdentityProviders { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
@@ -184,6 +185,17 @@ public class GraphQlDbContext : DbContext
         identityProviderBuilder.Property(x => x.Name).HasColumnName("name");
         identityProviderBuilder.Property(x => x.Url).HasColumnName("url");
         identityProviderBuilder.Property(x => x.Description).HasColumnName("description");
+        
+        var accountReleaseScheduleItemBuilder = modelBuilder.Entity<AccountReleaseScheduleItem>()
+            .ToTable("graphql_account_release_schedule");
+
+        accountReleaseScheduleItemBuilder.HasKey(x => new { x.AccountId, x.Timestamp, x.TransactionId, x.Index });
+        accountReleaseScheduleItemBuilder.Property(x => x.AccountId).HasColumnName("account_id");
+        accountReleaseScheduleItemBuilder.Property(x => x.TransactionId).HasColumnName("transaction_id");
+        accountReleaseScheduleItemBuilder.Property(x => x.Index).HasColumnName("schedule_index");
+        accountReleaseScheduleItemBuilder.Property(x => x.Timestamp).HasColumnName("timestamp").HasConversion<DateTimeOffsetToTimestampConverter>();
+        accountReleaseScheduleItemBuilder.Property(x => x.Amount).HasColumnName("amount");
+        accountReleaseScheduleItemBuilder.Property(x => x.FromAccountId).HasColumnName("from_account_id");
     }
 }
 

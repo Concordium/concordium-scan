@@ -243,8 +243,6 @@ public record TransferredWithSchedule(
 
 }
 
-public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
-
 /// <summary>
 /// A chain update was enqueued for the given time.
 /// </summary>

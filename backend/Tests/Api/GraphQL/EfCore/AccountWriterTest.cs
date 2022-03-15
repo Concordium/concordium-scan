@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL;
+﻿using System.Xml.Schema;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -188,8 +189,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         await _target.AddAccountReleaseScheduleItems(new []{ input });
 
-        await using var conn = _dbFixture.GetOpenConnection();
-        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount, from_account_id from graphql_account_release_schedule").ToArray();
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.AccountReleaseScheduleItems.ToArrayAsync();
 
         result.Length.Should().Be(2);
         AssertEqual(result[0], 13, 42, 0, baseTime.AddHours(1), 515151, 14);
@@ -226,8 +227,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         await _target.AddAccountReleaseScheduleItems(new []{ input });
 
-        await using var conn = _dbFixture.GetOpenConnection();
-        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount, from_account_id from graphql_account_release_schedule").ToArray();
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.AccountReleaseScheduleItems.ToArrayAsync();
 
         result.Length.Should().Be(2);
         AssertEqual(result[0], 10, 42, 0, baseTime.AddHours(1), 515151, 27);
@@ -258,14 +259,14 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await Assert.ThrowsAnyAsync<PostgresException>(() => _target.AddAccountReleaseScheduleItems(new []{ input }));
     }
 
-    private static void AssertEqual(dynamic actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, int expectedAmount, long expectedFromAccountId)
+    private static void AssertEqual(AccountReleaseScheduleItem actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, ulong expectedAmount, long expectedFromAccountId)
     {
-        Assert.Equal(expectedAccountId, actual.account_id);
-        Assert.Equal(expectedTransactionId, actual.transaction_id);
-        Assert.Equal(expectedScheduleIndex, actual.schedule_index);
-        Assert.Equal(expectedTimestamp, DateTime.SpecifyKind(actual.timestamp, DateTimeKind.Utc));
-        Assert.Equal(expectedAmount, actual.amount);
-        Assert.Equal(expectedFromAccountId, actual.from_account_id);
+        Assert.Equal(expectedAccountId, actual.AccountId);
+        Assert.Equal(expectedTransactionId, actual.TransactionId);
+        Assert.Equal(expectedScheduleIndex, actual.Index);
+        Assert.Equal(expectedTimestamp, actual.Timestamp);
+        Assert.Equal(expectedAmount, actual.Amount);
+        Assert.Equal(expectedFromAccountId, actual.FromAccountId);
     }
     
     private async Task CreateAccount(long accountId, AccountAddress canonicalAccountAddress)
