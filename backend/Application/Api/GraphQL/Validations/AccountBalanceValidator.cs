@@ -24,22 +24,47 @@ public class AccountBalanceValidator
         var blockHash = blockHashes.Single();
             
         var accountAddresses = await _nodeClient.GetAccountListAsync(blockHash);
-        var accountInfos = await Task.WhenAll(accountAddresses
-            .Select(x => _nodeClient.GetAccountInfoAsync(x, blockHash)));
-        var nodeBalances = accountInfos
-            .Select(x => new Item(x.AccountAddress.AsString, (long)x.AccountAmount.MicroCcdValue))
-            .OrderBy(x => x.Address)
-            .ToArray();
+        var nodeBalances = new List<Item>();
 
+        foreach (var chunk in Chunk(accountAddresses, 10))
+        {
+            var accountInfos = await Task.WhenAll(chunk
+                .Select(x => _nodeClient.GetAccountInfoAsync(x, blockHash)));
+            
+            nodeBalances.AddRange(accountInfos
+                .Select(x => new Item(x.AccountAddress.AsString, (long)x.AccountAmount.MicroCcdValue)));
+        }
+        
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var dbBalances = await dbContext.Accounts
             .Select(x => new Item(x.CanonicalAddress, (long)x.Amount))
             .ToArrayAsync();
-        dbBalances = dbBalances.OrderBy(x => x.Address).ToArray();
         
-        var equal = nodeBalances.SequenceEqual(dbBalances);
-        _logger.Information("Validated {accountCount} accounts at block height {blockHeight}. Node and database balances equal: {result}", nodeBalances.Length, blockHeight, equal);
+        var equal = nodeBalances.OrderBy(x => x.Address)
+            .SequenceEqual(dbBalances.OrderBy(x => x.Address));
+        _logger.Information("Validated {accountCount} accounts at block height {blockHeight}. Node and database balances equal: {result}", nodeBalances.Count, blockHeight, equal);
+        
+        if (!equal)
+        {
+            var diff1 = nodeBalances.Except(dbBalances);
+            var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
+            _logger.Warning($"NodeBalances.Except(dbBalances): {Environment.NewLine}{format}");
+
+            var diff2 = dbBalances.Except(nodeBalances);
+             format = String.Join(Environment.NewLine, diff2.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
+            _logger.Warning($"dbBalances.Except(nodeBalances): {Environment.NewLine}{format}");
+        }
     }
     
     private record Item(string Address, long Amount);
+    
+    private IEnumerable<IEnumerable<T>> Chunk<T>(T[] list, int batchSize)
+    {
+        int total = 0;
+        while (total < list.Length)
+        {
+            yield return list.Skip(total).Take(batchSize);
+            total += batchSize;
+        }
+    }
 }

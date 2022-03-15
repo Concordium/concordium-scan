@@ -65,7 +65,7 @@ public class ImportWriteController : BackgroundService
                 _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] " + measurements, 
                     block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds);
                 
-                if (block.BlockHeight % 50000 == 0)
+                if (block.BlockHeight % 5000 == 0)
                     await _accountBalanceValidator.ValidateAccountBalances((ulong)block.BlockHeight);
                 
                 splitTime.Start("wait");
