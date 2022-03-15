@@ -101,7 +101,8 @@ public class AccountWriter
                         TransactionId = transaction.Target.Id,
                         ScheduleIndex = ix,
                         Timestamp = amount.Timestamp,
-                        Amount = Convert.ToInt64(amount.Amount.MicroCcdValue)
+                        Amount = Convert.ToInt64(amount.Amount.MicroCcdValue),
+                        FromAccountBaseAddress = scheduleEvent.From.GetBaseAddress().AsString
                     }));
             }).ToArray();
 
@@ -111,8 +112,8 @@ public class AccountWriter
             var connection = context.Database.GetDbConnection();
 
             await connection.ExecuteAsync(@"
-                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount)
-                select id, @TransactionId, @ScheduleIndex, @Timestamp, @Amount from graphql_accounts where base_address = @AccountBaseAddress;",
+                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount, from_account_id)
+                values ((select id from graphql_accounts where base_address = @AccountBaseAddress limit 1), @TransactionId, @ScheduleIndex, @Timestamp, @Amount, (select id from graphql_accounts where base_address = @FromAccountBaseAddress limit 1));",
                 result);
         }
     }

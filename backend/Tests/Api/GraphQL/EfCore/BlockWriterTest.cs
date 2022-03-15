@@ -476,8 +476,8 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         
         // account_id, transaction_id and schedule_index values do not matter!
         await conn.ExecuteAsync(@"
-                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount)
-                values (1, 1, 1, @Timestamp, @Amount)", schedules);
+                insert into graphql_account_release_schedule (account_id, transaction_id, schedule_index, timestamp, amount, from_account_id)
+                values (1, 1, 1, @Timestamp, @Amount, 2)", schedules);
     }
 
     private async Task WriteData()

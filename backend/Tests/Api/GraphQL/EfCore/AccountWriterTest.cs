@@ -5,6 +5,7 @@ using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
@@ -66,7 +67,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
     {
-        var account = await CreateAccount(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(13, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
 
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
@@ -83,14 +84,14 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
         result.Length.Should().Be(1);
-        result[0].AccountId.Should().Be(account.Id);
+        result[0].AccountId.Should().Be(13);
         result[0].TransactionId.Should().Be(42);
     }
     
     [Fact]
     public async Task AddAccountTransactionRelations_AccountExists_MultipleTransactionsWithSameAddress()
     {
-        var account = await CreateAccount(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(15, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
 
         var input1 = new TransactionPair(
             new TransactionSummaryBuilder()
@@ -108,9 +109,9 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
         result.Length.Should().Be(2);
-        result[0].AccountId.Should().Be(account.Id);
+        result[0].AccountId.Should().Be(15);
         result[0].TransactionId.Should().Be(42);
-        result[1].AccountId.Should().Be(account.Id);
+        result[1].AccountId.Should().Be(15);
         result[1].TransactionId.Should().Be(43);
     }
     
@@ -140,7 +141,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var aliasAddress = canonicalAddress.CreateAliasAddress(48, 11, 99);
         
-        var account = await CreateAccount(canonicalAddress);
+        await CreateAccount(15, canonicalAddress);
         
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
@@ -155,15 +156,18 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
         result.Length.Should().Be(1);
-        result[0].AccountId.Should().Be(account.Id);
+        result[0].AccountId.Should().Be(15);
         result[0].TransactionId.Should().Be(42);
     }
     
     [Fact]
-    public async Task AddAccountReleaseScheduleItems_AccountExists_CanonicalAddress()
+    public async Task AddAccountReleaseScheduleItems_AccountsExists_CanonicalAddress()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        var account = await CreateAccount(canonicalAddress);
+        var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        await CreateAccount(13, toCanonicalAddress);
+        
+        var fromCanonicalAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        await CreateAccount(14, fromCanonicalAddress);
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
@@ -171,8 +175,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new TransferredWithSchedule(
-                        new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"), 
-                        canonicalAddress,
+                        fromCanonicalAddress, 
+                        toCanonicalAddress,
                         new []
                         {
                             new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
@@ -185,20 +189,23 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await _target.AddAccountReleaseScheduleItems(new []{ input });
 
         await using var conn = _dbFixture.GetOpenConnection();
-        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount from graphql_account_release_schedule").ToArray();
+        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount, from_account_id from graphql_account_release_schedule").ToArray();
 
         result.Length.Should().Be(2);
-        AssertEqual(result[0], account.Id, 42, 0, baseTime.AddHours(1), 515151);
-        AssertEqual(result[1], account.Id, 42, 1, baseTime.AddHours(2), 4242);
+        AssertEqual(result[0], 13, 42, 0, baseTime.AddHours(1), 515151, 14);
+        AssertEqual(result[1], 13, 42, 1, baseTime.AddHours(2), 4242, 14);
     }
 
     [Fact]
-    public async Task AddAccountReleaseScheduleItems_AccountExists_AliasAddress()
+    public async Task AddAccountReleaseScheduleItems_AccountsExists_AliasAddresses()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        var aliasAddress = canonicalAddress.CreateAliasAddress(38, 11, 200);
+        var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        await CreateAccount(10, toCanonicalAddress);
+        var toAliasAddress = toCanonicalAddress.CreateAliasAddress(38, 11, 200);
         
-        var account = await CreateAccount(canonicalAddress);
+        var fromCanonicalAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        await CreateAccount(27, fromCanonicalAddress);
+        var fromAliasAddress = fromCanonicalAddress.CreateAliasAddress(10, 79, 5);
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
@@ -206,8 +213,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new TransferredWithSchedule(
-                        new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"), 
-                        aliasAddress,
+                        fromAliasAddress, 
+                        toAliasAddress,
                         new []
                         {
                             new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
@@ -220,11 +227,11 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await _target.AddAccountReleaseScheduleItems(new []{ input });
 
         await using var conn = _dbFixture.GetOpenConnection();
-        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount from graphql_account_release_schedule").ToArray();
+        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount, from_account_id from graphql_account_release_schedule").ToArray();
 
         result.Length.Should().Be(2);
-        AssertEqual(result[0], account.Id, 42, 0, baseTime.AddHours(1), 515151);
-        AssertEqual(result[1], account.Id, 42, 1, baseTime.AddHours(2), 4242);
+        AssertEqual(result[0], 10, 42, 0, baseTime.AddHours(1), 515151, 27);
+        AssertEqual(result[1], 10, 42, 1, baseTime.AddHours(2), 4242, 27);
     }
 
     [Fact]
@@ -247,26 +254,24 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
                 .Build(),
             new Transaction { Id = 42 });
         
-        await _target.AddAccountReleaseScheduleItems(new []{ input });
-
-        await using var conn = _dbFixture.GetOpenConnection();
-        var result = conn.Query("select account_id, transaction_id, schedule_index, timestamp, amount from graphql_account_release_schedule").ToArray();
-
-        result.Length.Should().Be(0);
+        // We do not ever expect a scheduled transfer to complete successfully if either sender or receiver does not exist!
+        await Assert.ThrowsAnyAsync<PostgresException>(() => _target.AddAccountReleaseScheduleItems(new []{ input }));
     }
 
-    private static void AssertEqual(dynamic actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, int expectedAmount)
+    private static void AssertEqual(dynamic actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, int expectedAmount, long expectedFromAccountId)
     {
         Assert.Equal(expectedAccountId, actual.account_id);
         Assert.Equal(expectedTransactionId, actual.transaction_id);
         Assert.Equal(expectedScheduleIndex, actual.schedule_index);
         Assert.Equal(expectedTimestamp, DateTime.SpecifyKind(actual.timestamp, DateTimeKind.Utc));
         Assert.Equal(expectedAmount, actual.amount);
+        Assert.Equal(expectedFromAccountId, actual.from_account_id);
     }
     
-    private async Task<Account> CreateAccount(AccountAddress canonicalAccountAddress)
+    private async Task CreateAccount(long accountId, AccountAddress canonicalAccountAddress)
     {
         var account = new AccountBuilder()
+            .WithId(accountId)
             .WithCanonicalAddress(canonicalAccountAddress.AsString)
             .WithBaseAddress(canonicalAccountAddress.GetBaseAddress().AsString)
             .Build();
@@ -274,7 +279,5 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         dbContext.Accounts.Add(account);
         await dbContext.SaveChangesAsync();
-
-        return account;
     }
 }
