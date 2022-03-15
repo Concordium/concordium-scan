@@ -4,7 +4,7 @@
 		<DrawerContent>
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard>
-					<template #title>Created</template>
+					<template #title>Age</template>
 					<template #default>
 						{{ convertTimestampToRelative(account.createdAt, NOW) }}
 					</template>
