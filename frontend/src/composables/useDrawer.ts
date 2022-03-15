@@ -67,13 +67,13 @@ export const useDrawer = () => {
 			currentTopItem.value &&
 			currentTopItem.value.entityTypeName === entityTypeName &&
 			((currentTopItem.value.hash !== null &&
-				hash !== null &&
+				(hash !== undefined || null) &&
 				currentTopItem.value.hash === hash) ||
 				(currentTopItem.value.id !== null &&
-					id !== null &&
+					(id !== undefined || null) &&
 					currentTopItem.value.id === id) ||
 				(currentTopItem.value.address !== null &&
-					address !== null &&
+					(address !== undefined || null) &&
 					currentTopItem.value.address === address))
 		) {
 			return
