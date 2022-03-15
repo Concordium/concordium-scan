@@ -93,11 +93,7 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
-						<UserIcon
-							v-if="block.bakerId || block.bakerId === 0"
-							class="h-4 w-6 text-theme-white inline align-baseline"
-						/>
-						{{ block.bakerId }}
+						<Baker :id="block.bakerId" />
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.SM"
@@ -119,7 +115,6 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import {
@@ -138,6 +133,7 @@ import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
+import Baker from '~/components/molecules/Baker.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

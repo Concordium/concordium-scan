@@ -132,11 +132,7 @@
 								<BlockLink :id="block.id" :hash="block.blockHash" />
 							</TableTd>
 							<TableTd v-if="breakpoint >= Breakpoint.MD" class="numerical">
-								<UserIcon
-									v-if="block.bakerId || block.bakerId === 0"
-									class="h-4 text-theme-white inline align-baseline"
-								/>
-								{{ block.bakerId }}
+								<Baker :id="block.bakerId" />
 							</TableTd>
 							<TableTd
 								v-if="breakpoint >= Breakpoint.SM"
