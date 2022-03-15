@@ -119,7 +119,7 @@
 						{{ transaction.block.blockHeight }}
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XL" class="numerical">
-						<AccountLink :address="transaction.senderAccountAddressString" />
+						<AccountLink :address="transaction.senderAccountAddress" />
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.LG"
