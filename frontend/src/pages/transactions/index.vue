@@ -86,22 +86,7 @@
 						/>
 					</TableTd>
 					<TableTd>
-						<StatusCircle
-							:class="[
-								'h-4 w-6 mr-2 text-theme-interactive',
-								{
-									'text-theme-error':
-										transaction.result.__typename === 'Rejected',
-								},
-							]"
-						/>
-						<span v-if="breakpoint >= Breakpoint.MD">
-							{{
-								transaction.result.__typename === 'Success'
-									? 'Success'
-									: 'Rejected'
-							}}
-						</span>
+						<TransactionResult :result="transaction.result" :show-text="true" />
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
 						<Tooltip :text="formatTimestamp(transaction.block.blockSlotTime)">
@@ -161,6 +146,7 @@ import {
 	type Transaction,
 	type Subscription,
 } from '~/types/generated'
+import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

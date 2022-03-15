@@ -120,13 +120,13 @@
 					<TransitionGroup name="list" tag="tbody">
 						<TableRow v-for="block in blocks" :key="block.blockHash">
 							<TableTd class="numerical">
-								<StatusCircle
-									:class="[
-										'h-4 mr-2 text-theme-interactive',
-										{ 'text-theme-info': !block.finalized },
-									]"
+								<BlockFinalized
+									:finalized="block.finalized"
+									:show-text="false"
 								/>
-								{{ block.blockHeight }}
+								<span>
+									{{ block.blockHeight }}
+								</span>
 							</TableTd>
 							<TableTd>
 								<BlockLink :id="block.id" :hash="block.blockHash" />
@@ -181,17 +181,8 @@
 						>
 							<TableTd>
 								<div class="flex">
-									<div class="w-4 mr-2">
-										<StatusCircle
-											:class="[
-												'h-4 text-theme-interactive',
-												{
-													'text-theme-error':
-														transaction.result.__typename === 'Rejected',
-												},
-											]"
-										/>
-									</div>
+									<TransactionResult :result="transaction.result" />
+
 									<div class="whitespace-normal lg:whitespace-nowrap">
 										{{ translateTransactionType(transaction.transactionType) }}
 									</div>
@@ -242,6 +233,8 @@ import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
+import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const pageSize = 10
 const queueSize = 10

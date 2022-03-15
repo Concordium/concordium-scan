@@ -74,15 +74,7 @@
 						<BlockLink :id="block.id" :hash="block.blockHash" />
 					</TableTd>
 					<TableTd>
-						<StatusCircle
-							:class="[
-								'h-4 w-6 mr-2 text-theme-interactive',
-								{ 'text-theme-info': !block.finalized },
-							]"
-						/>
-						<span v-if="breakpoint >= Breakpoint.SM">
-							{{ block.finalized ? 'Finalised' : 'Pending' }}
-						</span>
+						<BlockFinalized :finalized="block.finalized" :show-text="true" />
 					</TableTd>
 					<TableTd class="numerical">
 						{{ block.blockHeight }}
@@ -134,6 +126,7 @@ import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import Baker from '~/components/molecules/Baker.vue'
+import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

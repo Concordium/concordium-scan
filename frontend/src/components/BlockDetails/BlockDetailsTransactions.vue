@@ -17,16 +17,7 @@
 					:key="transaction.transactionHash"
 				>
 					<TableTd class="numerical">
-						<StatusCircle
-							:class="[
-								'h-4 w-6 mr-2 text-theme-interactive',
-								{
-									'text-theme-error':
-										transaction.result.__typename === 'Rejected',
-								},
-							]"
-						/>
-
+						<TransactionResult :result="transaction.result" />
 						<TransactionLink
 							:id="transaction.id"
 							:hash="transaction.transactionHash"
@@ -65,6 +56,7 @@ import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PageInfo, Transaction } from '~/types/generated'
+import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { breakpoint } = useBreakpoint()
 

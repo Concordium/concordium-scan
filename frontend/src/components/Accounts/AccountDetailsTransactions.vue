@@ -18,17 +18,7 @@
 					:key="accountTxRelation.transaction.transactionHash"
 				>
 					<TableTd class="numerical">
-						<StatusCircle
-							:class="[
-								'h-4 w-6 mr-2 text-theme-interactive',
-								{
-									'text-theme-error':
-										accountTxRelation.transaction.result.__typename ===
-										'Rejected',
-								},
-							]"
-						/>
-
+						<TransactionResult :result="accountTxRelation.transaction.result" />
 						<TransactionLink
 							:id="accountTxRelation.transaction.id"
 							:hash="accountTxRelation.transaction.transactionHash"
@@ -94,6 +84,7 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PageInfo, AccountTransactionRelation } from '~/types/generated'
+import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
