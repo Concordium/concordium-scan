@@ -193,6 +193,6 @@ public class ImportReadController : BackgroundService
     private void OnGetRetry(Exception exception, string operationName)
     {
         var message = exception is RpcException rpcException ? $"{rpcException.Status.StatusCode}: {rpcException.Status.Detail}" : exception.Message;
-        _logger.Error("Error while executing operation '{operationName}. Will wait a while and then try again! [message={errorMessage}] [exception-type={exceptionType}]", operationName, message, exception.GetType());
+        _logger.Error("Error while executing operation '{operationName}'. Will wait a while and then try again! [message={errorMessage}] [exception-type={exceptionType}]", operationName, message, exception.GetType());
     }
 }
