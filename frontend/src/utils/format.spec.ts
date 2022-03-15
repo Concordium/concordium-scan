@@ -24,7 +24,7 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp, compareDate)
 
-			expect(result).toStrictEqual('10 days ago')
+			expect(result).toStrictEqual('10 days')
 		})
 
 		it('should default the comparision date to current date', () => {
@@ -35,7 +35,7 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp)
 
-			expect(result).toStrictEqual('about 2 years ago')
+			expect(result).toStrictEqual('about 2 years')
 		})
 	})
 

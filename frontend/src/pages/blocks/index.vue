@@ -53,7 +53,7 @@
 					<TableTh width="20%">Status</TableTh>
 					<TableTh width="20%">Height</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.MD" width="30%">
-						Timestamp
+						Age
 					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" width="10%">
 						Baker

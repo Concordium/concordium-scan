@@ -57,7 +57,7 @@
 					<TableTh width="10%">Transaction hash</TableTh>
 					<TableTh width="10%">Status</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" width="20%">
-						Timestamp
+						Age
 					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.MD" width="30%">Type</TableTh>
 					<TableTh width="10%">Block height</TableTh>

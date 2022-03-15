@@ -5,7 +5,7 @@
 				<TableRow>
 					<TableTh>Hash</TableTh>
 					<TableTh>Type</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.LG">Timestamp</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Age</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sender</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">
 						Cost (Ͼ)

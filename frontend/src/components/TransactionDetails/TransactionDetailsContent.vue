@@ -20,7 +20,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.block.blockSlotTime">
-					<template #title>Timestamp</template>
+					<template #title>Age</template>
 					<template #default>
 						{{
 							convertTimestampToRelative(

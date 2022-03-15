@@ -71,7 +71,7 @@ export const convertTimestampToRelative = (
 	compareDate: Date = new Date()
 ) =>
 	formatDistance(parseISO(timestamp), compareDate, {
-		addSuffix: true,
+		addSuffix: false,
 	})
 
 /**

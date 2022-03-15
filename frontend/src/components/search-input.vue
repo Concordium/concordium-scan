@@ -65,7 +65,7 @@
 							<div>@ {{ block.blockHeight }}</div>
 
 							<div>
-								Created
+								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
 									:position="index === 0 ? tooltipPositionBottom : ''"
@@ -107,7 +107,7 @@
 								/>
 							</div>
 							<div>
-								Created
+								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
 									:position="
@@ -145,7 +145,7 @@
 							/>
 							<div></div>
 							<div>
-								Created
+								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
 									:position="index === 0 ? tooltipPositionBottom : ''"

@@ -4,7 +4,7 @@
 		<DrawerContent v-if="props.block">
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard v-if="props.block?.blockSlotTime">
-					<template #title>Timestamp</template>
+					<template #title>Age</template>
 					<template #default>
 						{{
 							convertTimestampToRelative(props.block?.blockSlotTime || '', NOW)

@@ -51,7 +51,7 @@
 			<TableHead>
 				<TableRow>
 					<TableTh width="10%">Address</TableTh>
-					<TableTh width="20%">Created At</TableTh>
+					<TableTh width="20%">Created</TableTh>
 					<TableTh width="20%">Latest transaction</TableTh>
 				</TableRow>
 			</TableHead>
