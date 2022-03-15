@@ -7,34 +7,50 @@ export type Position = 'top' | 'bottom'
  * Returns CSS values for triangle position, tooltip position and animation
  */
 export const useTooltip = (position: Position = 'top') => {
-	const TOOLTIP_OFFSET = '10px'
+	const TOOLTIP_OFFSET = 10
 
 	// Drawing of the triangle
-	const triangleTopBorder = ref(TOOLTIP_OFFSET)
-	const triangleBottomBorder = ref('unset')
+	const triangleTopBorder = position === 'top' ? `${TOOLTIP_OFFSET}px` : 'unset'
+	const triangleBottomBorder =
+		position === 'bottom' ? `${TOOLTIP_OFFSET}px` : 'unset'
 
 	// Positioning of the triangle
-	const trianglePosTop = ref('100%')
+	const trianglePosTop = position === 'top' ? '100%' : `-${TOOLTIP_OFFSET}px`
 
 	// Positioning of the tooltip
-	const tooltipPosYFrom = ref('-100% - 5px')
-	const tooltipPosYTo = ref(`-100% - ${TOOLTIP_OFFSET}`)
+	const tooltipX = ref('0px')
+	const tooltipY = ref('0px')
 
-	if (position === 'bottom') {
-		triangleTopBorder.value = 'unset'
-		triangleBottomBorder.value = TOOLTIP_OFFSET
+	// Animation values of the tooltip
+	const tooltipTransformYFrom =
+		position === 'top' ? `-100%` : `100% - ${1 * TOOLTIP_OFFSET}px`
+	const tooltipTransformYTo =
+		position === 'top'
+			? `-100% - ${0.5 * TOOLTIP_OFFSET}px`
+			: `100% - ${0.5 * TOOLTIP_OFFSET}px`
 
-		trianglePosTop.value = `-${TOOLTIP_OFFSET}`
+	const calculateCoordinates = (event: MouseEvent) => {
+		// compiler does not know if this is e.g. a SVGElement, on which `target` does not exist
+		const target = event.target as HTMLSpanElement
 
-		tooltipPosYFrom.value = '50% + 5px'
-		tooltipPosYTo.value = `50% + ${TOOLTIP_OFFSET}`
+		const { x, y } = target.getBoundingClientRect()
+
+		tooltipX.value = x + 0.5 * target.offsetWidth + 'px'
+
+		tooltipY.value =
+			position === 'top'
+				? y - 0.5 * target.offsetHeight + TOOLTIP_OFFSET + 'px'
+				: y + 0.5 * target.offsetHeight - TOOLTIP_OFFSET + 'px'
 	}
 
 	return {
 		triangleTopBorder,
 		triangleBottomBorder,
 		trianglePosTop,
-		tooltipPosYFrom,
-		tooltipPosYTo,
+		tooltipX,
+		tooltipY,
+		tooltipTransformYFrom,
+		tooltipTransformYTo,
+		calculateCoordinates,
 	}
 }

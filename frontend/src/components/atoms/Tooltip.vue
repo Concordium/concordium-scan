@@ -7,7 +7,7 @@
 		<transition name="tooltip">
 			<span
 				v-show="isVisible"
-				class="text-sm absolute left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip"
+				class="text-sm fixed left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip"
 				:class="textClass"
 			>
 				{{ text }}
@@ -35,7 +35,19 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const handleOnMouseEnter = () => {
+const {
+	triangleTopBorder,
+	triangleBottomBorder,
+	trianglePosTop,
+	tooltipX,
+	tooltipY,
+	tooltipTransformYFrom,
+	tooltipTransformYTo,
+	calculateCoordinates,
+} = useTooltip(props.position)
+
+const handleOnMouseEnter = (event: MouseEvent) => {
+	calculateCoordinates(event)
 	isVisible.value = true
 	props.onMouseEnter?.()
 }
@@ -43,20 +55,14 @@ const handleOnMouseEnter = () => {
 const handleOnMouseLeave = () => {
 	isVisible.value = false
 }
-
-const {
-	triangleTopBorder,
-	triangleBottomBorder,
-	trianglePosTop,
-	tooltipPosYFrom,
-	tooltipPosYTo,
-} = useTooltip(props.position)
 </script>
 
 <style>
 .tooltip {
 	background: var(--color-tooltip-bg);
-	transform: translate(-50%, calc(v-bind(tooltipPosYTo)));
+	transform: translate(-50%, calc(v-bind(tooltipTransformYTo)));
+	top: v-bind(tooltipY);
+	left: v-bind(tooltipX);
 }
 
 /* Binding variables from a composable to a pseudo element does not work in Vue */
@@ -87,13 +93,13 @@ const {
 
 .tooltip-enter-from,
 .tooltip-leave-to {
-	transform: translate(-50%, calc(v-bind(tooltipPosYFrom)));
+	transform: translate(-50%, calc(v-bind(tooltipTransformYFrom)));
 	opacity: 0;
 }
 
 .tooltip-enter-to,
 .tooltip-leave-from {
-	transform: translate(-50%, calc(v-bind(tooltipPosYTo)));
+	transform: translate(-50%, calc(v-bind(tooltipTransformYTo)));
 	opacity: 1;
 }
 </style>
