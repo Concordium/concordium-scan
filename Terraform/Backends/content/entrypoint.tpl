@@ -129,6 +129,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-mainnet \
   --log-driver none \
+  -e ImportValidation:Enabled=${backend_import_validation_enabled} \
   -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.mainnet:/app/logs \
@@ -140,6 +141,7 @@ docker run -td \
   --restart=on-failure:3 \
   --name backend-testnet \
   --log-driver none \
+  -e ImportValidation:Enabled=${backend_import_validation_enabled} \
   -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.testnet:/app/logs \

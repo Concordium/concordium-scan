@@ -11,6 +11,7 @@ locals {
           tier     = "Standard"
           capacity = 1
         }
+        backend_import_validation_enabled = true
     }
     "test": {
         resource_group_name = "ccscan-env-test"
@@ -22,6 +23,7 @@ locals {
           tier     = "Standard"
           capacity = 1
         }
+        backend_import_validation_enabled = false
     }
     "prod": {
         resource_group_name = "ccscan-env-prod"
@@ -33,6 +35,7 @@ locals {
           tier     = "Standard"
           capacity = 1
         }
+        backend_import_validation_enabled = false
     }
   }
 
@@ -47,5 +50,6 @@ locals {
     postgres_user = "postgres"
     postgres_password = data.azurerm_key_vault_secret.postgres-password.value
     cc_node_auth_token = data.azurerm_key_vault_secret.ccnode-auth-token.value
+    backend_import_validation_enabled = local.envs[local.environment].backend_import_validation_enabled
   })
 }
