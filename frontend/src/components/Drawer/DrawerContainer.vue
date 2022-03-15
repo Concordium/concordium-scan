@@ -66,7 +66,9 @@ watch(currentTopItem, () => {
 		window.scrollTo(0, currentTopItem.value.scrollY ?? 0)
 	}
 })
-
+onMounted(() => {
+	toggleClasses(currentDrawerCount.value > 0)
+})
 watch(currentDrawerCount, v => {
 	toggleClasses(v > 0)
 })

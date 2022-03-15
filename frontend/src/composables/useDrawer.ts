@@ -98,6 +98,7 @@ export const useDrawer = () => {
 			currentDrawerCount.value
 		)
 		drawerState.value.items.push(item)
+		currentDrawerCount.value = resetList ? drawerState.value.items.length : 1
 		router.push({
 			query: {
 				dcount: resetList ? drawerState.value.items.length : 1,
