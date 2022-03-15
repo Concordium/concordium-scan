@@ -19,7 +19,7 @@
 						<template #value>{{
 							formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
 						}}</template>
-						<template #chip>latest</template>
+						<template #chip>sum</template>
 					</KeyValueChartCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
