@@ -32,7 +32,8 @@ public class GrpcNodeClient : INodeClient, IDisposable
         {
             Credentials = ChannelCredentials.Insecure,
             HttpClient = httpClient,
-            DisposeHttpClient = false
+            DisposeHttpClient = false,
+            MaxReceiveMessageSize = 64 * 1024 * 1024, // 64 MB
         };
         _grpcChannel = GrpcChannel.ForAddress(settings.Address, options);
         _client = new P2P.P2PClient(_grpcChannel);
