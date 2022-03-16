@@ -17,12 +17,16 @@
 				Transactions
 				<template #content>
 					<AccountDetailsTransactions
-						v-if="account.transactions?.nodes?.length"
+						v-if="
+							account.transactions?.nodes?.length &&
+							account.transactions?.nodes?.length > 0
+						"
 						:transactions="account.transactions.nodes"
 						:total-count="account.transactions!.nodes.length"
 						:page-info="account!.transactions!.pageInfo"
 						:go-to-page="goToPage"
 					/>
+					<div v-else class="p-4">No transactions</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
