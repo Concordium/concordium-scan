@@ -13,6 +13,12 @@
 				{{ shortenHash(props.hash) }}
 			</Tooltip>
 		</LinkButton>
+		<TextCopy
+			:text="props.hash"
+			label="Click to copy transaction hash to clipboard"
+			class="h-5 inline align-baseline mr-3"
+			tooltip-class="font-sans"
+		/>
 	</div>
 </template>
 <script lang="ts" setup>

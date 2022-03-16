@@ -1,6 +1,6 @@
 <template>
 	<span
-		class="relative border-dotted border-b"
+		class="relative"
 		@mouseenter="handleOnMouseEnter"
 		@mouseleave="handleOnMouseLeave"
 	>

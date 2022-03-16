@@ -1,8 +1,16 @@
 <template>
-	<Tooltip :text="hash" text-class="text-theme-body">
-		<HashtagIcon class="h-4 inline align-baseline" :class="iconClass" />
-		{{ shortenHash(hash) }}
-	</Tooltip>
+	<div class="inline-block">
+		<Tooltip :text="hash" text-class="text-theme-body">
+			<HashtagIcon class="h-4 inline align-middle" :class="iconClass" />
+			<span>{{ shortenHash(hash) }}</span>
+		</Tooltip>
+		<TextCopy
+			:text="hash"
+			label="Click to copy hash to clipboard"
+			class="h-5 inline align-baseline mr-3"
+			tooltip-class="font-sans"
+		/>
+	</div>
 </template>
 
 <script setup lang="ts">

@@ -13,7 +13,8 @@
 				<TextCopy
 					:text="account.address"
 					label="Click to copy account address to clipboard"
-					class="h-5 inline align-baseline mr-3"
+					class="mx-3"
+					icon-size="h-5 w-5"
 					tooltip-class="font-sans"
 				/>
 			</div>

@@ -7,24 +7,28 @@
 	>
 		<button
 			:aria-label="label"
-			class="transition-colors text-theme-interactive hover:text-theme-interactiveHover"
+			class="transition-colors hover:text-theme-interactiveHover"
 			@click="handleOnCopy"
 		>
-			<ClipboardCopyIcon class="h-5 inline align-baseline" />
+			<ClipboardIcon
+				class="inline align-middle"
+				:class="props.iconSize ? props.iconSize : 'h-4'"
+			/>
 		</button>
 	</Tooltip>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { ClipboardCopyIcon } from '@heroicons/vue/solid/index.js'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import type { Position } from '~/composables/useTooltip'
+import ClipboardIcon from '~/components/icons/ClipboardIcon.vue'
 
 type Props = {
 	text: string
 	label: string
 	tooltipClass?: string
+	iconSize?: string
 }
 
 const props = defineProps<Props>()

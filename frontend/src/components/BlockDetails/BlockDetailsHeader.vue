@@ -13,7 +13,8 @@
 				<TextCopy
 					:text="block.blockHash"
 					label="Click to copy block hash to clipboard"
-					class="h-5 inline align-baseline mr-3"
+					class="mx-3"
+					icon-size="h-5 w-5"
 					tooltip-class="font-sans"
 				/>
 				<Badge :type="block.finalized ? 'success' : 'failure'">

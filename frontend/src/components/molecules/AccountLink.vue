@@ -16,6 +16,12 @@
 				{{ shortenHash(props.address) }}
 			</Tooltip>
 		</LinkButton>
+		<TextCopy
+			:text="props.address"
+			label="Click to copy account address to clipboard"
+			class="h-5 inline align-baseline mr-3"
+			tooltip-class="font-sans"
+		/>
 	</div>
 </template>
 <script lang="ts" setup>
@@ -23,6 +29,7 @@ import { UserIcon } from '@heroicons/vue/solid/index.js'
 import { shortenHash } from '~/utils/format'
 import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
+import TextCopy from '~/components/atoms/TextCopy.vue'
 type Props = {
 	address?: string
 	iconSize?: string
