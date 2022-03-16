@@ -11,9 +11,9 @@ import type { TooltipItem } from 'chart.js'
 import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
 	xValues: string[] | undefined
-	yValuesHigh: number[] | undefined
-	yValuesMid: number[] | undefined
-	yValuesLow: number[] | undefined
+	yValuesHigh?: (number | null)[]
+	yValuesMid?: (number | null)[]
+	yValuesLow?: (number | null)[]
 	bucketWidth?: string
 }
 const canvasRef = ref()
@@ -21,11 +21,11 @@ Chart.register(...registerables)
 const props = defineProps<Props>()
 
 const chartData = {
-	labels: props.xValues as string[],
+	labels: props.xValues?.filter(x => !!x) || [],
 	datasets: [
 		{
 			label: 'High',
-			data: props.yValuesHigh as number[],
+			data: props.yValuesHigh?.filter(x => x !== undefined) || [],
 			borderColor: '#1C6D55',
 			fill: '1',
 			tension: 0.1,
@@ -39,7 +39,7 @@ const chartData = {
 		},
 		{
 			label: 'Avg',
-			data: props.yValuesMid as number[],
+			data: props.yValuesMid?.filter(x => x !== undefined) || [],
 			borderColor: '#39DBAA',
 			borderWidth: 3, // This is actually default.
 			fill: 'false',
@@ -53,7 +53,7 @@ const chartData = {
 		},
 		{
 			label: 'Low',
-			data: props.yValuesLow as number[],
+			data: props.yValuesLow?.filter(x => x !== undefined) || [],
 			borderColor: '#9CEDD4',
 			fill: '-1',
 			borderWidth: 1,
@@ -79,9 +79,12 @@ watch(props, () => {
 		return
 
 	chartInstance.data.labels = props.xValues
-	chartInstance.data.datasets[0].data = props.yValuesHigh as number[]
-	chartInstance.data.datasets[1].data = props.yValuesMid as number[]
-	chartInstance.data.datasets[2].data = props.yValuesLow as number[]
+	chartInstance.data.datasets[0].data =
+		props.yValuesHigh?.filter(x => x !== undefined) || []
+	chartInstance.data.datasets[1].data =
+		props.yValuesMid?.filter(x => x !== undefined) || []
+	chartInstance.data.datasets[2].data =
+		props.yValuesLow?.filter(x => x !== undefined) || []
 	chartInstance.update()
 })
 const defaultOptions = ref({

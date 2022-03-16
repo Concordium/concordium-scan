@@ -7,7 +7,7 @@
 		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
 		<LinkButton
 			@blur="emitBlur"
-			@click="drawer.push('account', undefined, undefined, props.address)"
+			@click="drawer.push('account', undefined, undefined, props.address!)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.address) }}
@@ -31,7 +31,7 @@ import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 type Props = {
-	address?: string
+	address?: string | null
 	iconSize?: string
 	hideTooltip?: boolean
 }

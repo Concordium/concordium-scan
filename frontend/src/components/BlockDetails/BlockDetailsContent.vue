@@ -30,7 +30,9 @@
 						:data="props.block.specialEvents.mint"
 					/>
 					<FinalizationRewards
-						v-if="props.block?.specialEvents.finalizationRewards"
+						v-if="
+							props.block?.specialEvents.finalizationRewards?.rewards?.nodes
+						"
 						:data="
 							props.block.specialEvents.finalizationRewards?.rewards?.nodes
 						"

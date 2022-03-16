@@ -1,9 +1,10 @@
 ﻿<template>
 	<div class="bg-theme-background-primary-elevated pt-2 px-2 pb-1 rounded-xl">
-		<FunnelIcon class="w-3 h-3" /><select
+		<FunnelIcon class="w-3 h-3" />
+		<select
 			class="form-select bg-theme-background-primary-elevated-nontrans"
 			:value="refVal"
-			@input="emit('update:modelValue', $event.target.value)"
+			@input="handleOnChange"
 		>
 			<option
 				class="bg-theme-background-primary"
@@ -53,4 +54,10 @@ type Props = {
 }
 const props = defineProps<Props>()
 const refVal = toRef(props, 'modelValue')
+
+const handleOnChange = (event: Event) => {
+	// compiler does not know if `EventTarget` has a `value` (for example if it is a div)
+	const target = event.target as HTMLSelectElement
+	emit('update:modelValue', target.value)
+}
 </script>

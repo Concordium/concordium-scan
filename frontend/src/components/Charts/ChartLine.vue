@@ -9,8 +9,8 @@ import * as Chartjs from 'chart.js/dist/chart.esm'
 import type { TooltipItem } from 'chart.js'
 import { prettyFormatBucketDuration } from '~/utils/format'
 type Props = {
-	xValues: string[] | undefined
-	yValues: number[] | undefined
+	xValues?: string[]
+	yValues?: (number | null)[]
 	bucketWidth?: string
 }
 const canvasRef = ref()
@@ -18,11 +18,11 @@ Chart.register(...registerables)
 const props = defineProps<Props>()
 
 const chartData = {
-	labels: props.xValues as string[],
+	labels: props.xValues?.filter(x => !!x) || [],
 	datasets: [
 		{
 			label: '',
-			data: props.yValues as number[],
+			data: props.yValues?.filter(x => x !== undefined) || [],
 			borderColor: '#39DBAA',
 			fill: 'start',
 			tension: 0.1,
@@ -46,7 +46,8 @@ watch(props, () => {
 		return
 
 	chartInstance.data.labels = props.xValues
-	chartInstance.data.datasets[0].data = props.yValues as number[]
+	chartInstance.data.datasets[0].data =
+		props.yValues?.filter(x => x !== undefined) || []
 	chartInstance.update()
 })
 

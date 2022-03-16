@@ -22,10 +22,10 @@
 			<ClientOnly>
 				<div v-if="props.chartType == 'area'" class="h-full w-full">
 					<ChartLineArea
-						v-if="props.xValues && props.yValues"
+						v-if="props.xValues && props.yValues.length"
 						class="h-28"
 						:x-values="props.xValues"
-						:y-values-high="props.yValues[0]"
+						:y-values-high="props.yValues[0] ?? undefined"
 						:y-values-mid="props.yValues[1]"
 						:y-values-low="props.yValues[2]"
 						:bucket-width="props.bucketWidth"
@@ -48,9 +48,10 @@
 import ChartLine from '~/components/Charts/ChartLine.vue'
 import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 import Chip from '~/components/atoms/Chip.vue'
+
 type Props = {
-	yValues?: number[][] | undefined[] | undefined
-	xValues?: string[] | undefined
+	yValues: ((number | null)[] | undefined)[]
+	xValues?: string[]
 	chartType?: string
 	bucketWidth?: string
 }
