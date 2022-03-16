@@ -54,6 +54,16 @@ public class SearchResult
         if (string.IsNullOrEmpty(_queryString) || !AccountAddressRegex.IsMatch(_queryString)) 
             return new List<Account>().AsQueryable();
 
+        if (ConcordiumSdk.Types.AccountAddress.TryParse(_queryString, out var parsed))
+        {
+            // Valid (full) address given, search by base address to allow searching by an alias address
+            var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
+            return dbContext.Accounts
+                .AsNoTracking()
+                .Where(account => account.BaseAddress == baseAddress);
+        }
+        
+        // Cannot convert partial address to base address, so do a simple like-search on canonical address 
         return dbContext.Accounts.AsNoTracking()
             .Where(account => EF.Functions.Like(account.CanonicalAddress, _queryString + "%"))
             .OrderByDescending(account => account.Id);
