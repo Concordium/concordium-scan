@@ -1,13 +1,15 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using System.Text.RegularExpressions;
+using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Search;
-
 public class SearchResult
 {
+    private static readonly Regex HashRegex = new("^[a-fA-F0-9]{1,64}$");
+    private static readonly Regex AccountAddressRegex = new("^[a-zA-Z0-9]{1,64}$");
     private readonly string _queryString;
     private readonly long? _queryNumeric;
 
@@ -22,11 +24,12 @@ public class SearchResult
     [UsePaging]
     public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)
     {
-        if (string.IsNullOrEmpty(_queryString)) return new List<Block>().AsQueryable();
+        if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString)) 
+            return new List<Block>().AsQueryable();
         
-        var lowerCaseQuery = _queryString.ToLowerInvariant();
+        var lowerCaseQuery = _queryString.ToLowerInvariant() + "%";
         return dbContext.Blocks.AsNoTracking()
-            .Where(block => block.BlockHash.StartsWith(lowerCaseQuery) ||
+            .Where(block => EF.Functions.Like(block.BlockHash, lowerCaseQuery) ||
                             _queryNumeric.HasValue && block.BlockHeight == _queryNumeric.Value)
             .OrderByDescending(block => block.Id);
     }
@@ -35,11 +38,12 @@ public class SearchResult
     [UsePaging]
     public IQueryable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
     {
-        if (string.IsNullOrEmpty(_queryString)) return new List<Transaction>().AsQueryable();
+        if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString)) 
+            return new List<Transaction>().AsQueryable();
 
-        var lowerCaseQuery = _queryString.ToLowerInvariant();
+        var lowerCaseQuery = _queryString.ToLowerInvariant() + "%";
         return dbContext.Transactions.AsNoTracking()
-            .Where(transaction => transaction.TransactionHash.StartsWith(lowerCaseQuery))
+            .Where(transaction => EF.Functions.Like(transaction.TransactionHash, lowerCaseQuery))
             .OrderByDescending(transaction => transaction.Id);
     }
 
@@ -47,10 +51,11 @@ public class SearchResult
     [UsePaging]
     public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext)
     {
-        if (string.IsNullOrEmpty(_queryString)) return new List<Account>().AsQueryable();
+        if (string.IsNullOrEmpty(_queryString) || !AccountAddressRegex.IsMatch(_queryString)) 
+            return new List<Account>().AsQueryable();
 
         return dbContext.Accounts.AsNoTracking()
-            .Where(account => account.CanonicalAddress.StartsWith(_queryString))
+            .Where(account => EF.Functions.Like(account.CanonicalAddress, _queryString + "%"))
             .OrderByDescending(account => account.Id);
     }
 }
