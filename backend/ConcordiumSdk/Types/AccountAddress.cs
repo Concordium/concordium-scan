@@ -34,13 +34,14 @@ public class AccountAddress : Address
         _bytes = decodedBytes.Skip(1).ToArray(); // Remove version byte
     }
 
-    public static bool IsValid(string? base58CheckEncodedAddress)
+    public static bool TryParse(string? base58CheckEncodedAddress, out AccountAddress? result)
     {
+        result = null;
         if (base58CheckEncodedAddress == null) return false;
         
         try
         {
-            EncoderInstance.DecodeData(base58CheckEncodedAddress);
+            result = new AccountAddress(base58CheckEncodedAddress);
             return true;
         }
         catch (FormatException)
@@ -49,13 +50,18 @@ public class AccountAddress : Address
             return false;
         }
     }
-    
+
+    public static bool IsValid(string? base58CheckEncodedAddress)
+    {
+        return TryParse(base58CheckEncodedAddress, out _);
+    }
+
     /// <summary>
     /// Gets the address as a byte array (without leading version byte).
     /// Will always be 32 bytes. 
     /// </summary>
     public byte[] AsBytes => _bytes;
-    
+
     /// <summary>
     /// Gets the address as a base58-check encoded string.
     /// </summary>
@@ -93,7 +99,7 @@ public class AccountAddress : Address
     {
         return CreateAliasAddress(0, 0, 0);
     }
-    
+
     public AccountAddress CreateAliasAddress(byte byte1, byte byte2, byte byte3)
     {
         var aliasBytes = AsBytes.Take(29).Concat(new[] { byte1, byte2, byte3 }).ToArray();
