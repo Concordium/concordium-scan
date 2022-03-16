@@ -26,7 +26,7 @@ type Props = {
 	nonCarouselClasses?: string
 }
 const props = defineProps<Props>()
-const carouselRef = ref<Carousel>()
+const carouselRef = ref()
 onMounted(() => {
 	setTimeout(() => {
 		if (carouselRef.value) carouselRef.value.restartCarousel()

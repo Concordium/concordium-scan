@@ -184,3 +184,6 @@ This will generate a new set of types in `types/generated.ts`. You should never 
 - **Jest sometimes has problems with absolute- and auto imports**
 
   When running tests, Jest cannot find some components (e.g.) `Button` when they are imported with absolute paths or when they are auto-imported. This is illogical, as it can import other modules just fine (e.g. `Table`).
+
+- **Vue3 Carousel does not properly export it's types**
+  We've "solved" this by declaring the module on our own, but that just hides the problem. See https://github.com/ismail9k/vue3-carousel/issues/10.
