@@ -1,5 +1,5 @@
 <template>
-	<div v-if="id || id === 0">
+	<div v-if="id || id === 0" class="inline-block">
 		<UserIcon class="h-4 inline align-text-top" :class="iconClass" />
 		<span>{{ id }}</span>
 	</div>
