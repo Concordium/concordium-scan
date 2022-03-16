@@ -10,7 +10,7 @@ data "azurerm_ssh_public_key" "ssh_vm" {
 }
 
 resource "azurerm_resource_group" "this" {
-  name     = local.envs[local.environment].resource_group_name
+  name     = local.resource_group_name
   location = "northeurope"
 
   tags = {

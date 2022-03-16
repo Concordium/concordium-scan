@@ -70,6 +70,17 @@ resource "azurerm_application_gateway" "this" {
     require_sni                    = false
   }
 
+  # Staging-listener is used for testing if a new "environment" is provisioned to eventually replace an existing "environment"
+  http_listener {
+    name                           = "mainnet-staging-listener"
+    frontend_ip_configuration_name = "app-gateway-feip"
+    frontend_port_name             = "app-gateway-feport"
+    protocol                       = "Https"
+    ssl_certificate_name           = "ssl"
+    host_name                      = "staging-mainnet.${local.envs[local.environment].domain_name}"
+    require_sni                    = false
+  }
+
   http_listener {
     name                           = "testnet-listener"
     frontend_ip_configuration_name = "app-gateway-feip"
@@ -77,6 +88,17 @@ resource "azurerm_application_gateway" "this" {
     protocol                       = "Https"
     ssl_certificate_name           = "ssl"
     host_name                      = "testnet.${local.envs[local.environment].domain_name}"
+    require_sni                    = false
+  }
+
+  # Staging-listener is used for testing if a new "environment" is provisioned to eventually replace an existing "environment"
+  http_listener {
+    name                           = "testnet-staging-listener"
+    frontend_ip_configuration_name = "app-gateway-feip"
+    frontend_port_name             = "app-gateway-feport"
+    protocol                       = "Https"
+    ssl_certificate_name           = "ssl"
+    host_name                      = "staging-testnet.${local.envs[local.environment].domain_name}"
     require_sni                    = false
   }
 
@@ -89,9 +111,25 @@ resource "azurerm_application_gateway" "this" {
   }
 
   request_routing_rule {
+    name                       = "mainnet-staging-redirect"
+    rule_type                  = "Basic"
+    http_listener_name         = "mainnet-staging-listener"
+    backend_address_pool_name  = "app-gateway-backends"
+    backend_http_settings_name = "mainnet-http-settings"
+  }
+
+  request_routing_rule {
     name                       = "testnet-redirect"
     rule_type                  = "Basic"
     http_listener_name         = "testnet-listener"
+    backend_address_pool_name  = "app-gateway-backends"
+    backend_http_settings_name = "testnet-http-settings"
+  }
+
+  request_routing_rule {
+    name                       = "testnet-staging-redirect"
+    rule_type                  = "Basic"
+    http_listener_name         = "testnet-staging-listener"
     backend_address_pool_name  = "app-gateway-backends"
     backend_http_settings_name = "testnet-http-settings"
   }
