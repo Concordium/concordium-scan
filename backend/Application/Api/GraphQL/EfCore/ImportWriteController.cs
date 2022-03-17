@@ -123,7 +123,7 @@ public class ImportWriteController : BackgroundService
     {
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
 
-        var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary);
+        var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);

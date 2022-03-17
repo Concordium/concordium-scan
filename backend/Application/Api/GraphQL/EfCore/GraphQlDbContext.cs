@@ -35,6 +35,7 @@ public class GraphQlDbContext : DbContext
         importStateBuilder.Property(x => x.CumulativeTransactionCount).HasColumnName("cumulative_transaction_count");
         importStateBuilder.Property(x => x.LastBlockSlotTime).HasColumnName("last_block_slot_time").HasConversion<DateTimeOffsetToTimestampConverter>();
         importStateBuilder.Property(x => x.MaxBlockHeightWithUpdatedFinalizationTime).HasColumnName("max_block_height_with_updated_finalization_time");
+        importStateBuilder.Ignore(x => x.LatestWrittenChainParameters);
 
         var chainParametersBuilder = modelBuilder.Entity<ChainParameters>()
             .ToTable("graphql_chain_parameters");

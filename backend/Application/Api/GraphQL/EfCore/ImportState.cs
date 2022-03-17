@@ -11,6 +11,7 @@ public class ImportState
     public long CumulativeTransactionCount { get; set; }
     public DateTimeOffset LastBlockSlotTime { get; set; }
     public long MaxBlockHeightWithUpdatedFinalizationTime { get; set; }
+    public ChainParameters? LatestWrittenChainParameters { get; set; }
 
     public static ImportState CreateGenesisState(GenesisBlockDataPayload payload)
     {
@@ -21,7 +22,8 @@ public class ImportState
             CumulativeAccountsCreated = 0,
             CumulativeTransactionCount = 0,
             LastBlockSlotTime = payload.BlockInfo.BlockSlotTime,
-            MaxBlockHeightWithUpdatedFinalizationTime = -1
+            MaxBlockHeightWithUpdatedFinalizationTime = -1,
+            LatestWrittenChainParameters = null
         };
     }
 
@@ -34,5 +36,6 @@ public class ImportState
         CumulativeTransactionCount = source.CumulativeTransactionCount;
         LastBlockSlotTime = source.LastBlockSlotTime;
         MaxBlockHeightWithUpdatedFinalizationTime = source.MaxBlockHeightWithUpdatedFinalizationTime;
+        LatestWrittenChainParameters = source.LatestWrittenChainParameters;
     }
 }

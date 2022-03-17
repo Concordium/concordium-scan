@@ -13,16 +13,33 @@ public class ChainParametersWriter
         _dbContextFactory = dbContextFactory;
     }
     
-    public async Task<ChainParameters> GetOrCreateChainParameters(BlockSummary blockSummary)
+    public async Task<ChainParameters> GetOrCreateChainParameters(BlockSummary blockSummary, ImportState importState)
     {
-        var mapped = MapChainParameters(blockSummary.Updates.ChainParameters);
         await using var context = await _dbContextFactory.CreateDbContextAsync();
+        
+        if (importState.LatestWrittenChainParameters == null)
+            importState.LatestWrittenChainParameters = await context.ChainParameters
+                .AsNoTracking()
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+        var lastWritten = importState.LatestWrittenChainParameters;
+        if (lastWritten != null)
+        {
+            var mappedWithLatestId = MapChainParameters(blockSummary.Updates.ChainParameters, lastWritten.Id);
+            if (lastWritten.Equals(mappedWithLatestId))
+                return lastWritten;
+        }
+        
+        var mapped = MapChainParameters(blockSummary.Updates.ChainParameters);
         context.ChainParameters.Add(mapped);
         await context.SaveChangesAsync();
+        
+        importState.LatestWrittenChainParameters = mapped;
         return mapped;
     }
 
-    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input)
+    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input, int id = default)
     {
         var mintDistribution = input.RewardParameters.MintDistribution;
         var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
@@ -52,6 +69,7 @@ public class ChainParametersWriter
         
         return new ChainParameters
         {
+            Id = id,
             ElectionDifficulty = input.ElectionDifficulty, 
             EuroPerEnergy = MapExchangeRate(input.EuroPerEnergy),
             MicroCcdPerEuro = MapExchangeRate(input.MicroGTUPerEuro), 
