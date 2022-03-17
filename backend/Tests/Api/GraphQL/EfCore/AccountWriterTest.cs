@@ -120,6 +120,10 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         returnedResult.Should().BeEquivalentTo(readResult);
     }
     
+    /// <summary>
+    /// Some account addresses found in the hierarchy might not exist (example: some reject reasons will include non-existing addresses).
+    /// Therefore we will simply avoid creating relations for these addresses.
+    /// </summary>
     [Fact]
     public async Task AddAccountTransactionRelations_AccountDoesNotExist()
     {
@@ -133,7 +137,12 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
                 .Build(),
             new Transaction { Id = 42 });
 
-        await Assert.ThrowsAnyAsync<Exception>(() => _target.AddAccountTransactionRelations(new[] { input }));
+        var returnedResult = await _target.AddAccountTransactionRelations(new[] { input });
+        returnedResult.Should().BeEmpty();
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var readResult = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
+        readResult.Should().BeEmpty();
     }
     
     [Fact]

@@ -40,6 +40,8 @@ public class AccountWriter
     {
         var balanceUpdates = blockSummary.GetAccountBalanceUpdates();
         
+        // TODO: Unit test...
+        // TODO: "Flatten" the updates, so that multiple updates to the same account will be aggregated to a single update
         // TODO: Added "RETURNING base_address, ccd_amount" to be able to write metrics for account balances!
         var sql = @"UPDATE graphql_accounts SET ccd_amount = ccd_amount + @AmountAdjustment WHERE base_address = @BaseAddress";
 
@@ -57,6 +59,9 @@ public class AccountWriter
             cmd.Parameters.Add(new NpgsqlParameter<string>("BaseAddress", balanceUpdate.AccountAddress.GetBaseAddress().AsString));
             batch.BatchCommands.Add(cmd);
         }
+        
+        await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+
         await batch.ExecuteNonQueryAsync();
         await connection.CloseAsync();
     }
@@ -81,9 +86,6 @@ public class AccountWriter
 
         if (accountTransactions.Length > 0)
         {
-            var diagnostics = new SplitTimeDiagnosticsLogger();
-            diagnostics.Start("write");
-            
             // Inserted like this to inline lookup of account id from account address directly in insert statement!
             // We're using the more cumbersome ADO.NET instead of dapper since Dapper does not allow inserting multiple rows and selecting result in one go!
             await using var context = await _dbContextFactory.CreateDbContextAsync();
@@ -91,7 +93,7 @@ public class AccountWriter
 
             var sql = @"
                 insert into graphql_account_transactions (account_id, transaction_id)
-                values ((select id from graphql_accounts where base_address = @AccountBaseAddress), @TransactionId)
+                select id, @TransactionId from graphql_accounts where base_address = @AccountBaseAddress
                 returning account_id, index, transaction_id;";
 
             await connection.OpenAsync();
@@ -106,7 +108,7 @@ public class AccountWriter
                 batch.BatchCommands.Add(cmd);
             }
 
-            await batch.PrepareAsync();
+            await batch.PrepareAsync(); // Preparing will speed up the inserts, particularly when there are many!
             
             await using var reader = await batch.ExecuteReaderAsync();
             var result = IterateBatchDbDataReader(reader, row => new AccountTransactionRelation()
@@ -118,9 +120,6 @@ public class AccountWriter
                 .ToArray();
 
             await connection.CloseAsync();
-
-            _logger.Information("{count} account transaction relations written. " + diagnostics.Stop(), accountTransactions.Length);
-            
             return result;
         }
 
