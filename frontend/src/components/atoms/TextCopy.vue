@@ -11,7 +11,7 @@
 			@click="handleOnCopy"
 		>
 			<ClipboardIcon
-				class="inline align-middle"
+				class="inline align-text-top"
 				:class="props.iconSize ? props.iconSize : 'h-4'"
 			/>
 		</button>
