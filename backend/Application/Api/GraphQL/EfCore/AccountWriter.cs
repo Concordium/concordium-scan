@@ -1,6 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.Data;
+using System.Data.Common;
+using System.Threading.Tasks;
+using Application.Common;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -10,10 +12,12 @@ namespace Application.Api.GraphQL.EfCore;
 public class AccountWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly ILogger _logger;
 
     public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
+        _logger = Log.ForContext(GetType());
     }
 
     public async Task AddAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
@@ -57,13 +61,13 @@ public class AccountWriter
         await connection.CloseAsync();
     }
 
-    public async Task AddAccountTransactionRelations(TransactionPair[] transactions)
+    public async Task<AccountTransactionRelation[]> AddAccountTransactionRelations(TransactionPair[] transactions)
     {
         var accountTransactions = transactions
             .Select(x => new
             {
                 TransactionId = x.Target.Id,
-                DistinctAccountBaseAddresses = FindAccountAddresses(x.Source, x.Target)
+                DistinctAccountBaseAddresses = FindAccountAddresses(x.Source)
                     .Select(address => address.GetBaseAddress())
                     .Distinct()
             })
@@ -77,14 +81,59 @@ public class AccountWriter
 
         if (accountTransactions.Length > 0)
         {
+            var diagnostics = new SplitTimeDiagnosticsLogger();
+            diagnostics.Start("write");
+            
+            // Inserted like this to inline lookup of account id from account address directly in insert statement!
+            // We're using the more cumbersome ADO.NET instead of dapper since Dapper does not allow inserting multiple rows and selecting result in one go!
             await using var context = await _dbContextFactory.CreateDbContextAsync();
             var connection = context.Database.GetDbConnection();
 
-            // Inserted via dapper to inline lookup of account id from account address directly in insert
-            await connection.ExecuteAsync(@"
+            var sql = @"
                 insert into graphql_account_transactions (account_id, transaction_id)
-                select id, @TransactionId from graphql_accounts where base_address = @AccountBaseAddress;", accountTransactions);
+                values ((select id from graphql_accounts where base_address = @AccountBaseAddress), @TransactionId)
+                returning account_id, index, transaction_id;";
+
+            await connection.OpenAsync();
+        
+            var batch = connection.CreateBatch();
+            foreach (var accountTransaction in accountTransactions)
+            {
+                var cmd = batch.CreateBatchCommand();
+                cmd.CommandText = sql;
+                cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionId", accountTransaction.TransactionId));
+                cmd.Parameters.Add(new NpgsqlParameter<string>("AccountBaseAddress", accountTransaction.AccountBaseAddress));
+                batch.BatchCommands.Add(cmd);
+            }
+
+            await using var reader = await batch.ExecuteReaderAsync();
+            var result = IterateBatchDbDataReader(reader, row => new AccountTransactionRelation()
+                {
+                    AccountId = row.GetInt64(0),
+                    Index = row.GetInt64(1),
+                    TransactionId = row.GetInt64(2)
+                })
+                .ToArray();
+
+            await connection.CloseAsync();
+
+            _logger.Information("{count} account transaction relations written. " + diagnostics.Stop(), accountTransactions.Length);
+            
+            return result;
         }
+
+        return Array.Empty<AccountTransactionRelation>();
+    }
+
+    private static IEnumerable<T> IterateBatchDbDataReader<T>(DbDataReader reader, Func<IDataReader, T> projection)
+    {
+        do
+        {
+            while (reader.Read())
+            {
+                yield return projection(reader);
+            }
+        } while (reader.NextResult());
     }
     
     public async Task AddAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
@@ -117,7 +166,7 @@ public class AccountWriter
                 result);
         }
     }
-    private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source, Transaction mapped)
+    private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source)
     {
         if (source.Sender != null) yield return source.Sender;
         foreach (var address in source.Result.GetAccountAddresses())

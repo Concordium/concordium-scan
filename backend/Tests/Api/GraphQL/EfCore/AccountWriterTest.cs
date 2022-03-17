@@ -71,6 +71,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
 
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
+                .WithSender(null)
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(
                         new AccountCreated(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P")),
@@ -79,13 +80,15 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
                 .Build(),
             new Transaction { Id = 42 });
 
-        await _target.AddAccountTransactionRelations(new[] { input });
+        var returnedResult = await _target.AddAccountTransactionRelations(new[] { input });
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
-        var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
-        result.Length.Should().Be(1);
-        result[0].AccountId.Should().Be(13);
-        result[0].TransactionId.Should().Be(42);
+        var readResult = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
+        readResult.Length.Should().Be(1);
+        readResult[0].AccountId.Should().Be(13);
+        readResult[0].TransactionId.Should().Be(42);
+
+        returnedResult.Should().BeEquivalentTo(readResult);
     }
     
     [Fact]
@@ -104,15 +107,17 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
                 .Build(),
             new Transaction { Id = 43 });
 
-        await _target.AddAccountTransactionRelations(new[] { input1, input2 });
+        var returnedResult = await _target.AddAccountTransactionRelations(new[] { input1, input2 });
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
-        var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
-        result.Length.Should().Be(2);
-        result[0].AccountId.Should().Be(15);
-        result[0].TransactionId.Should().Be(42);
-        result[1].AccountId.Should().Be(15);
-        result[1].TransactionId.Should().Be(43);
+        var readResult = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
+        readResult.Length.Should().Be(2);
+        readResult[0].AccountId.Should().Be(15);
+        readResult[0].TransactionId.Should().Be(42);
+        readResult[1].AccountId.Should().Be(15);
+        readResult[1].TransactionId.Should().Be(43);
+        
+        returnedResult.Should().BeEquivalentTo(readResult);
     }
     
     [Fact]
@@ -128,11 +133,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
                 .Build(),
             new Transaction { Id = 42 });
 
-        await _target.AddAccountTransactionRelations(new[] { input });
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
-        result.Length.Should().Be(0);
+        await Assert.ThrowsAnyAsync<Exception>(() => _target.AddAccountTransactionRelations(new[] { input }));
     }
     
     [Fact]
@@ -145,19 +146,22 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
+                .WithSender(canonicalAddress)
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new Transferred(CcdAmount.FromCcd(10), canonicalAddress, aliasAddress))
                     .Build())
                 .Build(),
             new Transaction { Id = 42 });
 
-        await _target.AddAccountTransactionRelations(new[] { input });
+        var returnedResult = await _target.AddAccountTransactionRelations(new[] { input });
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
-        var result = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
-        result.Length.Should().Be(1);
-        result[0].AccountId.Should().Be(15);
-        result[0].TransactionId.Should().Be(42);
+        var readResult = await dbContext.AccountTransactionRelations.AsNoTracking().ToArrayAsync();
+        readResult.Length.Should().Be(1);
+        readResult[0].AccountId.Should().Be(15);
+        readResult[0].TransactionId.Should().Be(42);
+
+        returnedResult.Should().BeEquivalentTo(readResult);
     }
     
     [Fact]
