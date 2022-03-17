@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -33,4 +34,12 @@ public class Block
     
     [GraphQLIgnore]
     public int? ChainParametersId { get; init; }
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public Task<ChainParameters> GetChainParameters([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.ChainParameters
+            .AsNoTracking()
+            .SingleAsync(x => x.Id == ChainParametersId);
+    }
 }

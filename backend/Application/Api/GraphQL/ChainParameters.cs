@@ -4,6 +4,7 @@ namespace Application.Api.GraphQL;
 
 public class ChainParameters
 {
+    [GraphQLIgnore]
     public int Id { get; init; }
 
     public decimal ElectionDifficulty { get; init; }
@@ -17,7 +18,8 @@ public class ChainParameters
     public int CredentialsPerBlockLimit { get; init; }
     
     public RewardParameters RewardParameters { get; init; }
-
+    
+    [GraphQLIgnore]
     public long FoundationAccountId { get; init; }
     
     public AccountAddress FoundationAccountAddress { get; init; }
