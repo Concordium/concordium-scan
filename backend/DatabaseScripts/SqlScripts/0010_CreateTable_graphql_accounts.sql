@@ -11,5 +11,5 @@ create unique index graphql_accounts_base_address_uindex
     on graphql_accounts (base_address);
 
 create unique index graphql_accounts_canonical_address_uindex
-    on graphql_accounts (canonical_address);
+    on graphql_accounts (canonical_address text_pattern_ops);
 

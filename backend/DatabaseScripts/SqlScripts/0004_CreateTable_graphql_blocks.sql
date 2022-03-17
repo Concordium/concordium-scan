@@ -29,12 +29,13 @@ create table graphql_blocks
     bal_stats_baking_reward_account            bigint    not null,
     bal_stats_finalization_reward_account      bigint    not null,
     bal_stats_gas_account                      bigint    not null,
-    block_stats_block_time_secs                float     null,
-    block_stats_finalization_time_secs         float     null
+    block_stats_block_time_secs                float     not null,
+    block_stats_finalization_time_secs         float     null,
+    chain_parameters_id                        int       not null
 );
 
 create index graphql_blocks_block_hash_index
-    on graphql_blocks (block_hash);
+    on graphql_blocks (block_hash text_pattern_ops);
 
 create index graphql_blocks_block_height_index
     on graphql_blocks (block_height);

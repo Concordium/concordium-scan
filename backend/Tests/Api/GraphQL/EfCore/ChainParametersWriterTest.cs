@@ -76,6 +76,30 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
         returnedResult.Should().Be(persistedResult);
     }
 
+    /// <summary>
+    /// Values that cannot be stored in (signed) bigint are spotted in the wild.
+    /// Therefore we use the less effective "numeric" data type to store these! 
+    /// </summary>
+    [Fact]
+    public async Task GetOrCreateChainParameters_DatabaseEmpty_ExchangeRatesMaxUInt64Value()
+    {
+        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+
+        _chainParametersBuilder
+            .WithEuroPerEnergy(ulong.MaxValue, ulong.MaxValue)
+            .WithMicroGtuPerEuro(ulong.MaxValue, ulong.MaxValue);
+
+        await WriteData();
+
+        var dbContext = _dbContextFactory.CreateDbContext();
+        var persistedResult = await dbContext.ChainParameters.SingleAsync();
+
+        persistedResult.EuroPerEnergy.Numerator.Should().Be(ulong.MaxValue);
+        persistedResult.EuroPerEnergy.Denominator.Should().Be(ulong.MaxValue);
+        persistedResult.MicroCcdPerEuro.Numerator.Should().Be(ulong.MaxValue);
+        persistedResult.MicroCcdPerEuro.Denominator.Should().Be(ulong.MaxValue);
+    }
+    
     [Fact]
     public async Task GetOrCreateChainParameters_PreviousWrittenIsIdentical()
     {

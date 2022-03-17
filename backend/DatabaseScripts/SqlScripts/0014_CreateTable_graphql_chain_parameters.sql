@@ -2,10 +2,10 @@
 (
     id                             int primary key generated always as identity,
     election_difficulty            numeric not null,
-    euro_per_energy_numerator      bigint  not null,
-    euro_per_energy_denominator    bigint  not null,
-    micro_ccd_per_euro_numerator   bigint  not null,
-    micro_ccd_per_euro_denominator bigint  not null,
+    euro_per_energy_numerator      numeric not null,
+    euro_per_energy_denominator    numeric not null,
+    micro_ccd_per_euro_numerator   numeric not null,
+    micro_ccd_per_euro_denominator numeric not null,
     baker_cooldown_epochs          bigint  not null,
     credentials_per_block_limit    bigint  not null,
     mint_mint_per_slot             numeric not null,
@@ -21,4 +21,3 @@
     foundation_account_address     text    not null,
     minimum_threshold_for_baking   bigint  not null
 );
-

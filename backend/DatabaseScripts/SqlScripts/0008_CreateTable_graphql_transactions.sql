@@ -12,4 +12,4 @@ create table graphql_transactions
 );
 
 create index graphql_transactions_transaction_hash_index
-    on graphql_transactions (transaction_hash);
+    on graphql_transactions (transaction_hash text_pattern_ops);
