@@ -14,14 +14,14 @@ public class BlockWriter
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, ImportState importState)
+    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, int chainParametersId, ImportState importState)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);
         importState.LastBlockSlotTime = blockInfo.BlockSlotTime;
 
-        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime);
+        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId);
         context.Blocks.Add(block);
         
         await context.SaveChangesAsync(); // assign ID to block!
@@ -56,7 +56,7 @@ public class BlockWriter
         return block; 
     }
     
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime)
+    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime, int chainParametersId)
     {
         var block = new Block
         {
@@ -79,7 +79,8 @@ public class BlockWriter
             {
                 BlockTime = blockTime, 
                 FinalizationTime = null // Updated when the block with proof of finalization for this block is imported
-            }
+            },
+            ChainParametersId = chainParametersId
         };
         return block;
     }

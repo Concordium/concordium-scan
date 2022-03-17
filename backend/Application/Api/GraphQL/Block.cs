@@ -30,4 +30,7 @@ public class Block
             .AsNoTracking()
             .Where(tx => tx.BlockId == Id).OrderBy(x => x.TransactionIndex);
     }
+    
+    [GraphQLIgnore]
+    public int? ChainParametersId { get; init; }
 }

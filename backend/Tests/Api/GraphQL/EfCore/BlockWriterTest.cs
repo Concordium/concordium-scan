@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Application.Api.GraphQL;
+﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -21,6 +20,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new();
+    private int _chainParametersId = 20;
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
@@ -44,6 +44,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
             .WithBlockBaker(150)
             .WithFinalized(true)
             .WithTransactionCount(221);
+        _chainParametersId = 42;
 
         await WriteData();
 
@@ -57,6 +58,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result.BakerId.Should().Be(150);
         result.Finalized.Should().BeTrue();
         result.TransactionCount.Should().Be(221);
+        result.ChainParametersId.Should().Be(42);
     }
     
     [Fact]
@@ -485,6 +487,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
         var rewardStatus = _rewardStatusBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _importState);
+        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, _importState);
     }
 }

@@ -21,6 +21,7 @@ public class ImportWriteController : BackgroundService
     private readonly ImportValidationController _accountBalanceValidator;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
+    private readonly ChainParametersWriter _chainParametersWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountWriter _accountWriter;
     private readonly MetricsWriter _metricsWriter;
@@ -34,6 +35,7 @@ public class ImportWriteController : BackgroundService
         _accountBalanceValidator = accountBalanceValidator;
         _blockWriter = new BlockWriter(dbContextFactory);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
+        _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountWriter = new AccountWriter(dbContextFactory);
         _metricsWriter = new MetricsWriter(dbSettings);
@@ -120,8 +122,10 @@ public class ImportWriteController : BackgroundService
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
+
+        var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary);
         
-        var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, importState);
+        var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
         await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
