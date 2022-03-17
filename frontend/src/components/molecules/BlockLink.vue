@@ -20,7 +20,7 @@
 		<TextCopy
 			:text="props.hash"
 			label="Click to copy block hash to clipboard"
-			class="h-5 inline align-baseline mr-3"
+			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
 		/>
 	</div>

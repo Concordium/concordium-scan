@@ -19,7 +19,7 @@
 		<TextCopy
 			:text="props.address"
 			label="Click to copy account address to clipboard"
-			class="h-5 inline align-baseline mr-3"
+			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
 		/>
 	</div>
