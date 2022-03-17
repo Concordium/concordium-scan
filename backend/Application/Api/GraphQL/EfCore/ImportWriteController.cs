@@ -122,15 +122,14 @@ public class ImportWriteController : BackgroundService
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
+        await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
 
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
-        await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
         await _accountWriter.UpdateAccountBalances(payload.BlockSummary);
-
         await _accountWriter.AddAccountTransactionRelations(transactions);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 

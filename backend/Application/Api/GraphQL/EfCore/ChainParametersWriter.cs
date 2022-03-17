@@ -47,16 +47,13 @@ public class ChainParametersWriter
         if (lastWritten != null && currentFoundationAccountId == lastWritten.FoundationAccountId)
             return lastWritten.FoundationAccountAddress;
         
-        var addressString = await dbContext.Accounts
-            .Where(x => x.Id == currentFoundationAccountId)
-            .Take(1)
-            .Select(x => x.CanonicalAddress)
-            .ToArrayAsync();
+        var foundationAccount = await dbContext.Accounts
+            .SingleOrDefaultAsync(x => x.Id == currentFoundationAccountId);
 
-        if (addressString.Length == 0)
+        if (foundationAccount == null)
             throw new InvalidOperationException("Could not find the account in the database which was identified as foundation account in chain parameters.");
         
-        return new AccountAddress(addressString.Single());
+        return new AccountAddress(foundationAccount.CanonicalAddress);
     }
 
     private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input, AccountAddress foundationAccountAddress, int id = default)
