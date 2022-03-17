@@ -1,5 +1,4 @@
-﻿using System.Xml.Schema;
-using Application.Api.GraphQL;
+﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;

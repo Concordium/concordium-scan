@@ -24,14 +24,15 @@ public class ChainParametersWriter
                 .FirstOrDefaultAsync();
 
         var lastWritten = importState.LatestWrittenChainParameters;
+        var foundationAccountAddress = await GetFoundationAccountAddress(blockSummary.Updates.ChainParameters, lastWritten, context);
         if (lastWritten != null)
         {
-            var mappedWithLatestId = MapChainParameters(blockSummary.Updates.ChainParameters, lastWritten.Id);
+            var mappedWithLatestId = MapChainParameters(blockSummary.Updates.ChainParameters, foundationAccountAddress, lastWritten.Id);
             if (lastWritten.Equals(mappedWithLatestId))
                 return lastWritten;
         }
-        
-        var mapped = MapChainParameters(blockSummary.Updates.ChainParameters);
+
+        var mapped = MapChainParameters(blockSummary.Updates.ChainParameters, foundationAccountAddress);
         context.ChainParameters.Add(mapped);
         await context.SaveChangesAsync();
         
@@ -39,7 +40,26 @@ public class ChainParametersWriter
         return mapped;
     }
 
-    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input, int id = default)
+    private async Task<AccountAddress> GetFoundationAccountAddress(ConcordiumSdk.NodeApi.Types.ChainParameters current, ChainParameters? lastWritten, GraphQlDbContext dbContext)
+    {
+        var currentFoundationAccountId = (long)current.FoundationAccountIndex;
+        
+        if (lastWritten != null && currentFoundationAccountId == lastWritten.FoundationAccountId)
+            return lastWritten.FoundationAccountAddress;
+        
+        var addressString = await dbContext.Accounts
+            .Where(x => x.Id == currentFoundationAccountId)
+            .Take(1)
+            .Select(x => x.CanonicalAddress)
+            .ToArrayAsync();
+
+        if (addressString.Length == 0)
+            throw new InvalidOperationException("Could not find the account in the database which was identified as foundation account in chain parameters.");
+        
+        return new AccountAddress(addressString.Single());
+    }
+
+    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input, AccountAddress foundationAccountAddress, int id = default)
     {
         var mintDistribution = input.RewardParameters.MintDistribution;
         var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
@@ -77,7 +97,8 @@ public class ChainParametersWriter
             CredentialsPerBlockLimit = input.CredentialsPerBlockLimit, 
             RewardParameters = rewardParameters, 
             FoundationAccountId = (long)input.FoundationAccountIndex, 
-            MinimumThresholdForBaking = input.MinimumThresholdForBaking.MicroCcdValue        
+            FoundationAccountAddress = foundationAccountAddress,
+            MinimumThresholdForBaking = input.MinimumThresholdForBaking.MicroCcdValue
         };
     }
 

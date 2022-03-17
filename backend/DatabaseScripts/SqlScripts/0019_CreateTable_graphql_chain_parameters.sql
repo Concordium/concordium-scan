@@ -18,6 +18,7 @@
     gas_account_creation           numeric not null,
     gas_chain_update               numeric not null,
     foundation_account_id          bigint  not null,
+    foundation_account_address     text    not null,
     minimum_threshold_for_baking   bigint  not null
 );
 

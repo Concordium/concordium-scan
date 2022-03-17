@@ -77,6 +77,7 @@ public class GraphQlDbContext : DbContext
             });
         });
         chainParametersBuilder.Property(x => x.FoundationAccountId).HasColumnName("foundation_account_id");
+        chainParametersBuilder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
         chainParametersBuilder.Property(x => x.MinimumThresholdForBaking).HasColumnName("minimum_threshold_for_baking");
         
         var blockBuilder = modelBuilder.Entity<Block>()

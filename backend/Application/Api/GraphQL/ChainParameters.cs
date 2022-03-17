@@ -1,15 +1,27 @@
-﻿namespace Application.Api.GraphQL;
+﻿using HotChocolate;
+
+namespace Application.Api.GraphQL;
 
 public class ChainParameters
 {
     public int Id { get; init; }
+
     public decimal ElectionDifficulty { get; init; }
+    
     public ExchangeRate EuroPerEnergy { get; init; }
+    
     public ExchangeRate MicroCcdPerEuro { get; init; }
+    
     public ulong BakerCooldownEpochs { get; init; }
+    
     public int CredentialsPerBlockLimit { get; init; }
+    
     public RewardParameters RewardParameters { get; init; }
+
     public long FoundationAccountId { get; init; }
+    
+    public AccountAddress FoundationAccountAddress { get; init; }
+    
     public ulong MinimumThresholdForBaking { get; init; }
 
     public override bool Equals(object? obj)
