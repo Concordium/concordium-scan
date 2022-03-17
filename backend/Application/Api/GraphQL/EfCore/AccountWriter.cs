@@ -106,6 +106,8 @@ public class AccountWriter
                 batch.BatchCommands.Add(cmd);
             }
 
+            await batch.PrepareAsync();
+            
             await using var reader = await batch.ExecuteReaderAsync();
             var result = IterateBatchDbDataReader(reader, row => new AccountTransactionRelation()
                 {
