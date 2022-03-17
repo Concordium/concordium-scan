@@ -33,7 +33,7 @@ public class Block
     }
     
     [GraphQLIgnore]
-    public int? ChainParametersId { get; init; }
+    public int ChainParametersId { get; init; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     public Task<ChainParameters> GetChainParameters([ScopedService] GraphQlDbContext dbContext)

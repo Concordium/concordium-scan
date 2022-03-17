@@ -24,6 +24,7 @@ public class BlockBuilder
             SpecialEvents = new SpecialEvents(),
             FinalizationSummary = _finalizationSummary,
             BalanceStatistics = new BalanceStatistics(0, 0, 0, 0, 0, 0),
+            BlockStatistics = new BlockStatistics { BlockTime = 10.2d }
         };
     }
 
