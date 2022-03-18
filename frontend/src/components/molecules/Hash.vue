@@ -6,7 +6,7 @@
 		</Tooltip>
 		<TextCopy
 			:text="hash"
-			label="Click to copy hash to clipboard"
+			label="Click to copy to clipboard"
 			class="h-5 inline align-baseline mr-3"
 			tooltip-class="font-sans"
 		/>
