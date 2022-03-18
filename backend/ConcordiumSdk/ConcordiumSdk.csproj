@@ -7,15 +7,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.19.1" />
-        <PackageReference Include="Grpc.Net.Client" Version="2.40.0" />
-        <PackageReference Include="Grpc.Tools" Version="2.41.1">
+        <PackageReference Include="Google.Protobuf" Version="3.19.4" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.44.0" />
+        <PackageReference Include="Grpc.Tools" Version="2.44.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="NBitcoin" Version="6.0.18" />
+        <PackageReference Include="NBitcoin" Version="7.0.6" />
         <PackageReference Include="NSec.Cryptography" Version="20.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="6.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="6.0.3" />
         <PackageReference Include="System.Formats.Cbor" Version="6.0.0" />
     </ItemGroup>
 
