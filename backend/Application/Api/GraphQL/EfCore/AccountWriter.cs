@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
-using Application.Common;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +11,10 @@ namespace Application.Api.GraphQL.EfCore;
 public class AccountWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-    private readonly ILogger _logger;
 
     public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
-        _logger = Log.ForContext(GetType());
     }
 
     public async Task AddAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
@@ -39,32 +36,58 @@ public class AccountWriter
     public async Task UpdateAccountBalances(BlockSummary blockSummary)
     {
         var balanceUpdates = blockSummary.GetAccountBalanceUpdates();
+
+        var accountUpdates = GetAggregatedAccountUpdates(balanceUpdates);
         
-        // TODO: Unit test...
-        // TODO: "Flatten" the updates, so that multiple updates to the same account will be aggregated to a single update
-        // TODO: Added "RETURNING base_address, ccd_amount" to be able to write metrics for account balances!
-        var sql = @"UPDATE graphql_accounts SET ccd_amount = ccd_amount + @AmountAdjustment WHERE base_address = @BaseAddress";
+        await ExecuteAccountUpdates(accountUpdates);
+    }
+
+    private async Task ExecuteAccountUpdates(IEnumerable<AccountUpdate> accountUpdates)
+    {
+        var sql = @"
+            UPDATE graphql_accounts 
+            SET ccd_amount = ccd_amount + @AmountAdjustment 
+            WHERE base_address = @BaseAddress";
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var connection = context.Database.GetDbConnection();
-        
+
         await connection.OpenAsync();
-        
+
         var batch = connection.CreateBatch();
-        foreach (var balanceUpdate in balanceUpdates)
+        foreach (var accountUpdate in accountUpdates)
         {
             var cmd = batch.CreateBatchCommand();
             cmd.CommandText = sql;
-            cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", balanceUpdate.AmountAdjustment));
-            cmd.Parameters.Add(new NpgsqlParameter<string>("BaseAddress", balanceUpdate.AccountAddress.GetBaseAddress().AsString));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", accountUpdate.AmountAdjustment));
+            cmd.Parameters.Add(new NpgsqlParameter<string>("BaseAddress", accountUpdate.AccountBaseAddress));
             batch.BatchCommands.Add(cmd);
         }
-        
+
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
 
         await batch.ExecuteNonQueryAsync();
         await connection.CloseAsync();
     }
+
+    public IEnumerable<AccountUpdate> GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates)
+    {
+        var aggregatedBalanceUpdates = balanceUpdates
+            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
+            .GroupBy(x => x.BaseAddress)
+            .Select(addressGroup => new
+            {
+                BaseAddress = addressGroup.Key,
+                AmountAdjustment = addressGroup.Aggregate(0L, (acc, item) => acc + item.AmountAdjustment)
+            })
+            .ToArray();
+
+        return aggregatedBalanceUpdates
+            .Select(x => new AccountUpdate(x.BaseAddress, x.AmountAdjustment, 0))
+            .Where(x => x.AmountAdjustment != 0);
+    }
+    
+    public record AccountUpdate(string AccountBaseAddress, long AmountAdjustment, int TransactionsAdded);
 
     public async Task<AccountTransactionRelation[]> AddAccountTransactionRelations(TransactionPair[] transactions)
     {

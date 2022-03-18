@@ -271,6 +271,105 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await Assert.ThrowsAnyAsync<PostgresException>(() => _target.AddAccountReleaseScheduleItems(new []{ input }));
     }
 
+    [Fact]
+    public void GetAggregatedAccountUpdates_NoUpdates()
+    {
+        var result = _target.GetAggregatedAccountUpdates(Array.Empty<AccountBalanceUpdate>());
+        result.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void GetAggregatedAccountUpdates_SingleUpdate()
+    {
+        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        
+        var result = _target.GetAggregatedAccountUpdates(new []
+        {
+            new AccountBalanceUpdate(accountAddress, 100)
+        });
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, 100, 0)
+        });
+    }
+
+    [Fact] 
+    public void GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithSameAddress()
+    {
+        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        
+        var result = _target.GetAggregatedAccountUpdates(new []
+        {
+            new AccountBalanceUpdate(accountAddress, 100),
+            new AccountBalanceUpdate(accountAddress, -800),
+            new AccountBalanceUpdate(accountAddress, 300),
+        });
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, -400, 0)
+        });
+    }
+    
+    [Fact] 
+    public void GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithAliasAddresses()
+    {
+        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        
+        var result = _target.GetAggregatedAccountUpdates(new []
+        {
+            new AccountBalanceUpdate(accountAddress.CreateAliasAddress(10, 201, 8), 100),
+            new AccountBalanceUpdate(accountAddress, -800),
+            new AccountBalanceUpdate(accountAddress.CreateAliasAddress(10, 201, 8), 300),
+        });
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, -400, 0)
+        });
+    }
+
+    [Fact] public void GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts()
+    {
+        var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        
+        var result = _target.GetAggregatedAccountUpdates(new []
+        {
+            new AccountBalanceUpdate(accountAddress1, 100),
+            new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -800),
+            new AccountBalanceUpdate(accountAddress2, 250),
+            new AccountBalanceUpdate(accountAddress2.CreateAliasAddress(10, 201, 8), 300),
+        });
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(accountAddress1.GetBaseAddress().AsString, -700, 0),
+            new AccountWriter.AccountUpdate(accountAddress2.GetBaseAddress().AsString, 550, 0)
+        });
+    }
+    
+    [Fact] public void GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
+    {
+        var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        var accountAddress3 = new AccountAddress("3FYcaWUucnbXxvtnQQC5zpK91oN67MDbTiwzKzQUkVirKDrRce");
+        
+        var result = _target.GetAggregatedAccountUpdates(new []
+        {
+            new AccountBalanceUpdate(accountAddress1, 100),
+            new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -100),
+            new AccountBalanceUpdate(accountAddress2, 50),
+            new AccountBalanceUpdate(accountAddress3, 0),
+        });
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(accountAddress2.GetBaseAddress().AsString, 50, 0)
+        });
+    }
+    
     private static void AssertEqual(AccountReleaseScheduleItem actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, ulong expectedAmount, long expectedFromAccountId)
     {
         Assert.Equal(expectedAccountId, actual.AccountId);
