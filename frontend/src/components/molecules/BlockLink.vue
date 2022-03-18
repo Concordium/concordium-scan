@@ -1,5 +1,5 @@
 ﻿<template>
-	<div v-if="props.hash || props.id" class="inline-block">
+	<div v-if="props.hash || props.id" class="inline-block whitespace-nowrap">
 		<BlockIcon
 			v-if="props.iconSize == 'big'"
 			class="h-5 inline align-middle mr-3"

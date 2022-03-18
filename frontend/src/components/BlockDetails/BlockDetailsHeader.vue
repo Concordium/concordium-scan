@@ -5,10 +5,8 @@
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">Block</h3>
 			<div class="w-full flex items-center justify-items-stretch">
-				<h1 class="inline-block text-2xl" :class="$style.title">
-					<div class="numerical truncate w-full">
-						{{ block.blockHash }}
-					</div>
+				<h1 class="inline-block text-2xl numerical">
+					{{ shortenHash(block?.blockHash) }}
 				</h1>
 				<TextCopy
 					:text="block.blockHash"
@@ -30,6 +28,7 @@ import BlockIcon from '~/components/icons/BlockIcon.vue'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import Badge from '~/components/Badge.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
+import { shortenHash } from '~/utils/format'
 import type { Block } from '~/types/generated'
 
 type Props = {
@@ -38,9 +37,3 @@ type Props = {
 
 defineProps<Props>()
 </script>
-
-<style module>
-.title {
-	max-width: calc(100% - 160px);
-}
-</style>

@@ -1,5 +1,5 @@
 ﻿<template>
-	<div v-if="props.hash || props.id" class="inline-block">
+	<div v-if="props.hash || props.id" class="inline-block whitespace-nowrap">
 		<TransactionIcon class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical"

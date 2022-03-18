@@ -5,10 +5,8 @@
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">Account</h3>
 			<div class="w-full flex items-center justify-items-stretch">
-				<h1 class="inline-block text-2xl" :class="$style.title">
-					<div class="numerical truncate w-full">
-						{{ account.address }}
-					</div>
+				<h1 class="inline-block text-2xl numerical">
+					{{ shortenHash(account.address) }}
 				</h1>
 				<TextCopy
 					:text="account.address"
@@ -26,6 +24,7 @@
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
+import { shortenHash } from '~/utils/format'
 import type { Account } from '~/types/generated'
 
 type Props = {

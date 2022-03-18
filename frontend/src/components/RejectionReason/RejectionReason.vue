@@ -1,5 +1,5 @@
 <template>
-	<div>
+	<div class="px-4">
 		<ModuleHashAlreadyExists
 			v-if="reason.__typename === 'ModuleHashAlreadyExists'"
 			:reason="reason"

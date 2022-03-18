@@ -1,5 +1,5 @@
 ﻿<template>
-	<div v-if="props.address" class="inline-block">
+	<div v-if="props.address" class="inline-block whitespace-nowrap">
 		<UserIcon
 			v-if="props.iconSize == 'big'"
 			class="h-5 inline align-text-top mr-3"

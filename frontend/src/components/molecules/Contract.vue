@@ -1,5 +1,5 @@
 <template>
-	<span class="numerical">
+	<span class="numerical whitespace-nowrap">
 		<ChipIcon class="h-4 inline align-baseline" :class="iconClass" />
 		{{ `<${address.index}, ${address.subIndex}>` }}
 	</span>
