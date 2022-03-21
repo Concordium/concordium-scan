@@ -9,16 +9,15 @@ public class AccountLookupStub : IAccountLookup
     
     public Task<IDictionary<string, long?>> GetAccountIdsFromBaseAddressesAsync(IEnumerable<string> accountBaseAddresses)
     {
-        var result = accountBaseAddresses
+        var dictionary = accountBaseAddresses
             .Select(x =>
             {
                 if (_store.TryGetValue(x, out var value))
-                    return new LookupResult(x, value);
+                    return new { Key = x, Result = value };
                 throw new InvalidOperationException("Address not found in dictionary. Please set up expected result via AddToCache!");
             })
-            .ToArray();
+            .ToDictionary(x => x.Key, x => x.Result);
         
-        var dictionary = result.ToDictionary(x => x.Key, x => x.Result);
         return Task.FromResult<IDictionary<string, long?>>(dictionary);
     }
 
