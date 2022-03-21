@@ -9,6 +9,7 @@ using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
+using Tests.TestUtilities.Stubs;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 using AccountCreated = ConcordiumSdk.NodeApi.Types.AccountCreated;
 using CredentialDeployed = ConcordiumSdk.NodeApi.Types.CredentialDeployed;
@@ -24,12 +25,14 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     private readonly DatabaseFixture _dbFixture;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly AccountWriter _target;
+    private AccountLookupStub _accountLookupStub;
 
     public AccountWriterTest(DatabaseFixture dbFixture)
     {
         _dbFixture = dbFixture;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new AccountWriter(_dbContextFactory);
+        _accountLookupStub = new AccountLookupStub();
+        _target = new AccountWriter(_dbContextFactory, _accountLookupStub);
     
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
@@ -67,15 +70,16 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
     {
-        await CreateAccount(13, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 13);
 
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
                 .WithSender(null)
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(
-                        new AccountCreated(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P")),
-                        new CredentialDeployed("1234", new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P")))
+                        new AccountCreated(canonicalAddress),
+                        new CredentialDeployed("1234", canonicalAddress))
                     .Build())
                 .Build(),
             new Transaction { Id = 42 });
@@ -94,16 +98,17 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddAccountTransactionRelations_AccountExists_MultipleTransactionsWithSameAddress()
     {
-        await CreateAccount(15, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 15);
 
         var input1 = new TransactionPair(
             new TransactionSummaryBuilder()
-                .WithSender(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"))
+                .WithSender(canonicalAddress)
                 .Build(),
             new Transaction { Id = 42 });
         var input2 = new TransactionPair(
             new TransactionSummaryBuilder()
-                .WithSender(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"))
+                .WithSender(canonicalAddress)
                 .Build(),
             new Transaction { Id = 43 });
 
@@ -127,12 +132,16 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddAccountTransactionRelations_AccountDoesNotExist()
     {
+        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, null);
+
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
+                .WithSender(null)
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(
-                        new AccountCreated(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P")),
-                        new CredentialDeployed("1234", new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P")))
+                        new AccountCreated(canonicalAddress),
+                        new CredentialDeployed("1234", canonicalAddress))
                     .Build())
                 .Build(),
             new Transaction { Id = 42 });
@@ -151,7 +160,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var aliasAddress = canonicalAddress.CreateAliasAddress(48, 11, 99);
         
-        await CreateAccount(15, canonicalAddress);
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 15);
         
         var input = new TransactionPair(
             new TransactionSummaryBuilder()
@@ -272,34 +281,36 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public void GetAggregatedAccountUpdates_NoUpdates()
+    public async Task GetAggregatedAccountUpdates_NoUpdates()
     {
-        var result = _target.GetAggregatedAccountUpdates(Array.Empty<AccountBalanceUpdate>());
+        var result = await _target.GetAggregatedAccountUpdatesAsync(Array.Empty<AccountBalanceUpdate>());
         result.Should().BeEmpty();
     }
     
     [Fact]
-    public void GetAggregatedAccountUpdates_SingleUpdate()
+    public async Task GetAggregatedAccountUpdates_SingleUpdate()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
         
-        var result = _target.GetAggregatedAccountUpdates(new []
+        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
         {
             new AccountBalanceUpdate(accountAddress, 100)
         });
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, 100, 0)
+            new AccountWriter.AccountUpdate(10, 100, 0)
         });
     }
 
     [Fact] 
-    public void GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithSameAddress()
+    public async Task GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithSameAddress()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        
-        var result = _target.GetAggregatedAccountUpdates(new []
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
+
+        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
         {
             new AccountBalanceUpdate(accountAddress, 100),
             new AccountBalanceUpdate(accountAddress, -800),
@@ -308,16 +319,17 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, -400, 0)
+            new AccountWriter.AccountUpdate(10, -400, 0)
         });
     }
     
     [Fact] 
-    public void GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithAliasAddresses()
+    public async Task GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithAliasAddresses()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        
-        var result = _target.GetAggregatedAccountUpdates(new []
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
+
+        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
         {
             new AccountBalanceUpdate(accountAddress.CreateAliasAddress(10, 201, 8), 100),
             new AccountBalanceUpdate(accountAddress, -800),
@@ -326,16 +338,18 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountWriter.AccountUpdate(accountAddress.GetBaseAddress().AsString, -400, 0)
+            new AccountWriter.AccountUpdate(10, -400, 0)
         });
     }
 
-    [Fact] public void GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts()
+    [Fact] public async Task GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        
-        var result = _target.GetAggregatedAccountUpdates(new []
+        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
+        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);   
+
+        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
         {
             new AccountBalanceUpdate(accountAddress1, 100),
             new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -800),
@@ -345,18 +359,21 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountWriter.AccountUpdate(accountAddress1.GetBaseAddress().AsString, -700, 0),
-            new AccountWriter.AccountUpdate(accountAddress2.GetBaseAddress().AsString, 550, 0)
+            new AccountWriter.AccountUpdate(10, -700, 0),
+            new AccountWriter.AccountUpdate(11, 550, 0)
         });
     }
     
-    [Fact] public void GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
+    [Fact] public async Task GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var accountAddress3 = new AccountAddress("3FYcaWUucnbXxvtnQQC5zpK91oN67MDbTiwzKzQUkVirKDrRce");
-        
-        var result = _target.GetAggregatedAccountUpdates(new []
+        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
+        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);   
+        _accountLookupStub.AddToCache(accountAddress3.GetBaseAddress().AsString, 12);   
+
+        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
         {
             new AccountBalanceUpdate(accountAddress1, 100),
             new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -100),
@@ -366,7 +383,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountWriter.AccountUpdate(accountAddress2.GetBaseAddress().AsString, 50, 0)
+            new AccountWriter.AccountUpdate(11, 50, 0)
         });
     }
     

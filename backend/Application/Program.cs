@@ -41,11 +41,13 @@ var importValidationSettings = builder.Configuration.GetSection("ImportValidatio
 logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
 logger.Information("Import validation enabled: {enabled}", importValidationSettings.Enabled);
 
+builder.Services.AddMemoryCache();
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().Configure();
 builder.Services.AddSingleton<ImportChannel>();
 builder.Services.AddHostedService<ImportReadController>();
 builder.Services.AddHostedService<ImportWriteController>();
+builder.Services.AddSingleton<IAccountLookup, AccountLookup>();
 builder.Services.AddSingleton<ImportValidationController>();
 builder.Services.AddSingleton(importValidationSettings);
 builder.Services.AddControllers();

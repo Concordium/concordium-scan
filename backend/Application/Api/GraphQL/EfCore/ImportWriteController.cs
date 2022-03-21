@@ -28,7 +28,9 @@ public class ImportWriteController : BackgroundService
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
 
-    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator)
+    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
+        ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
+        IAccountLookup accountLookup)
     {
         _sender = sender;
         _channel = channel;
@@ -37,7 +39,7 @@ public class ImportWriteController : BackgroundService
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
-        _accountWriter = new AccountWriter(dbContextFactory);
+        _accountWriter = new AccountWriter(dbContextFactory, accountLookup);
         _metricsWriter = new MetricsWriter(dbSettings);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory);

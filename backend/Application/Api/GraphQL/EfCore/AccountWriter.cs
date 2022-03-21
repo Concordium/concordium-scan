@@ -11,10 +11,12 @@ namespace Application.Api.GraphQL.EfCore;
 public class AccountWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IAccountLookup _accountLookup;
 
-    public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IAccountLookup accountLookup)
     {
         _dbContextFactory = dbContextFactory;
+        _accountLookup = accountLookup;
     }
 
     public async Task AddAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
@@ -31,13 +33,16 @@ public class AccountWriter
         }).ToArray();
         context.Accounts.AddRange(accounts);
         await context.SaveChangesAsync();
+
+        foreach (var account in accounts)
+            _accountLookup.AddToCache(account.BaseAddress.AsString, account.Id);
     }
 
     public async Task UpdateAccountBalances(BlockSummary blockSummary)
     {
         var balanceUpdates = blockSummary.GetAccountBalanceUpdates();
 
-        var accountUpdates = GetAggregatedAccountUpdates(balanceUpdates);
+        var accountUpdates = await GetAggregatedAccountUpdatesAsync(balanceUpdates);
         
         await ExecuteAccountUpdates(accountUpdates);
     }
@@ -47,7 +52,7 @@ public class AccountWriter
         var sql = @"
             UPDATE graphql_accounts 
             SET ccd_amount = ccd_amount + @AmountAdjustment 
-            WHERE base_address = @BaseAddress";
+            WHERE id = @AccountId";
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var connection = context.Database.GetDbConnection();
@@ -60,7 +65,7 @@ public class AccountWriter
             var cmd = batch.CreateBatchCommand();
             cmd.CommandText = sql;
             cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", accountUpdate.AmountAdjustment));
-            cmd.Parameters.Add(new NpgsqlParameter<string>("BaseAddress", accountUpdate.AccountBaseAddress));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", accountUpdate.AccountId));
             batch.BatchCommands.Add(cmd);
         }
 
@@ -70,7 +75,7 @@ public class AccountWriter
         await connection.CloseAsync();
     }
 
-    public IEnumerable<AccountUpdate> GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates)
+    public async Task<IEnumerable<AccountUpdate>> GetAggregatedAccountUpdatesAsync(IEnumerable<AccountBalanceUpdate> balanceUpdates)
     {
         var aggregatedBalanceUpdates = balanceUpdates
             .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
@@ -82,12 +87,19 @@ public class AccountWriter
             })
             .ToArray();
 
+        var baseAddresses = aggregatedBalanceUpdates.Select(x => x.BaseAddress);
+        var accountIdLookup = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(baseAddresses);
+        
         return aggregatedBalanceUpdates
-            .Select(x => new AccountUpdate(x.BaseAddress, x.AmountAdjustment, 0))
+            .Select(x =>
+            {
+                var accountId = accountIdLookup[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
+                return new AccountUpdate(accountId, x.AmountAdjustment, 0);
+            })
             .Where(x => x.AmountAdjustment != 0);
     }
     
-    public record AccountUpdate(string AccountBaseAddress, long AmountAdjustment, int TransactionsAdded);
+    public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);
 
     public async Task<AccountTransactionRelation[]> AddAccountTransactionRelations(TransactionPair[] transactions)
     {
@@ -109,14 +121,17 @@ public class AccountWriter
 
         if (accountTransactions.Length > 0)
         {
-            // Inserted like this to inline lookup of account id from account address directly in insert statement!
-            // We're using the more cumbersome ADO.NET instead of dapper since Dapper does not allow inserting multiple rows and selecting result in one go!
+            var distinctBaseAddresses = accountTransactions
+                .Select(x => x.AccountBaseAddress)
+                .Distinct();
+            var accountIdLookup = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(distinctBaseAddresses);
+            
             await using var context = await _dbContextFactory.CreateDbContextAsync();
             var connection = context.Database.GetDbConnection();
 
             var sql = @"
                 insert into graphql_account_transactions (account_id, transaction_id)
-                select id, @TransactionId from graphql_accounts where base_address = @AccountBaseAddress
+                values (@AccountId, @TransactionId) 
                 returning account_id, index, transaction_id;";
 
             await connection.OpenAsync();
@@ -124,11 +139,15 @@ public class AccountWriter
             var batch = connection.CreateBatch();
             foreach (var accountTransaction in accountTransactions)
             {
-                var cmd = batch.CreateBatchCommand();
-                cmd.CommandText = sql;
-                cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionId", accountTransaction.TransactionId));
-                cmd.Parameters.Add(new NpgsqlParameter<string>("AccountBaseAddress", accountTransaction.AccountBaseAddress));
-                batch.BatchCommands.Add(cmd);
+                var accountId = accountIdLookup[accountTransaction.AccountBaseAddress];
+                if (accountId.HasValue)
+                {
+                    var cmd = batch.CreateBatchCommand();
+                    cmd.CommandText = sql;
+                    cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionId", accountTransaction.TransactionId));
+                    cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", accountId.Value));
+                    batch.BatchCommands.Add(cmd);
+                }
             }
 
             await batch.PrepareAsync(); // Preparing will speed up the inserts, particularly when there are many!
