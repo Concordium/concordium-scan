@@ -701,7 +701,7 @@ type Query {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
-  accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
+  accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   search(query: String!): SearchResult!
   blockMetrics(period: MetricsPeriod!): BlockMetrics
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
@@ -889,6 +889,15 @@ union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidA
 union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
+
+enum AccountSort {
+  AGE_ASC
+  AGE_DESC
+  AMOUNT_ASC
+  AMOUNT_DESC
+  TRANSACTION_COUNT_ASC
+  TRANSACTION_COUNT_DESC
+}
 
 enum AccountTransactionType {
   DEPLOY_MODULE

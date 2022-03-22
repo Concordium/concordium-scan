@@ -31,11 +31,31 @@ public class AccountsQuery
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(ProviderName = "account_by_descending_id")]
-    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext)
+    [UsePaging]  // NOTE: Sorting will cause pages to be unstable (if account is update between page loads it might have shifted between pages)  
+    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext, AccountSort sort = AccountSort.AgeDesc)
     {
-        return dbContext.Accounts
-            .AsNoTracking()
-            .OrderByDescending(a => a.Id);
+        var result = dbContext.Accounts
+            .AsNoTracking();
+
+        return sort switch
+        {
+            AccountSort.AgeAsc => result.OrderBy(x => x.Id),
+            AccountSort.AgeDesc => result.OrderByDescending(x => x.Id),
+            AccountSort.AmountAsc => result.OrderBy(x => x.Amount),
+            AccountSort.AmountDesc => result.OrderByDescending(x => x.Amount),
+            AccountSort.TransactionCountAsc => result.OrderBy(x => x.TransactionCount),
+            AccountSort.TransactionCountDesc => result.OrderByDescending(x => x.TransactionCount),
+            _ => throw new NotImplementedException()
+        };
     }
+}
+
+public enum AccountSort
+{
+    AgeAsc,
+    AgeDesc,
+    AmountAsc,
+    AmountDesc,
+    TransactionCountAsc,
+    TransactionCountDesc
 }

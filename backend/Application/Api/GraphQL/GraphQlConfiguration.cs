@@ -19,7 +19,6 @@ public static class GraphQlConfiguration
             .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
             .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
             .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(providerName:"transaction_by_descending_id")
-            .AddCursorPagingProvider<AccountByDescendingIdCursorPagingProvider>(providerName:"account_by_descending_id")
             .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"account_transaction_relation_by_descending_index");
     }
 

@@ -14,3 +14,8 @@ create unique index graphql_accounts_base_address_uindex
 create unique index graphql_accounts_canonical_address_uindex
     on graphql_accounts (canonical_address text_pattern_ops);
 
+create index graphql_accounts_ccd_amount_index
+    on graphql_accounts (ccd_amount);
+
+create index graphql_accounts_transaction_count_index
+    on graphql_accounts (transaction_count)
