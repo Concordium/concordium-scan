@@ -25,6 +25,8 @@ public static class GraphQlConfiguration
 
     private static void ConfigureSchema(ISchemaBuilder builder)
     {
+        builder.AddGlobalObjectIdentification(false);
+        
         builder.AddQueryType<Query>()
             .AddType<AccountsQuery>()
             .AddType<SearchQuery>()
