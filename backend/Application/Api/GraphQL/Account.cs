@@ -24,7 +24,6 @@ public class Account
     
     public ulong Amount { get; set; }
     
-    [GraphQLIgnore] // TODO: Add to schema when data import has been validated
     public int TransactionCount { get; set; }
     
     public DateTimeOffset CreatedAt { get; init; }
