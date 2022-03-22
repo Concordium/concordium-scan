@@ -22,14 +22,14 @@ namespace Tests.Api.GraphQL.EfCore;
 [Collection("Postgres Collection")]
 public class AccountWriterTest : IClassFixture<DatabaseFixture>
 {
-    private readonly DatabaseFixture _dbFixture;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly AccountWriter _target;
-    private AccountLookupStub _accountLookupStub;
+    private readonly AccountLookupStub _accountLookupStub;
+    private readonly AccountTransactionRelation[] _noTransactions = Array.Empty<AccountTransactionRelation>();
+    private AccountBalanceUpdate[] _noBalanceUpdates = Array.Empty<AccountBalanceUpdate>();
 
     public AccountWriterTest(DatabaseFixture dbFixture)
     {
-        _dbFixture = dbFixture;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _accountLookupStub = new AccountLookupStub();
         _target = new AccountWriter(_dbContextFactory, _accountLookupStub);
@@ -64,6 +64,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         account.CanonicalAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         account.BaseAddress.AsString.Should().Be(accountAddress.GetBaseAddress().AsString);
         account.Amount.Should().Be(57290);
+        account.TransactionCount.Should().Be(0);
         account.CreatedAt.Should().Be(slotTime);
     }
 
@@ -283,20 +284,21 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task GetAggregatedAccountUpdates_NoUpdates()
     {
-        var result = await _target.GetAggregatedAccountUpdatesAsync(Array.Empty<AccountBalanceUpdate>());
+        var result = await _target.GetAggregatedAccountUpdatesAsync(_noBalanceUpdates, _noTransactions);
         result.Should().BeEmpty();
     }
     
-    [Fact]
-    public async Task GetAggregatedAccountUpdates_SingleUpdate()
+    [Fact] public async Task GetAggregatedAccountUpdates_AmountAdjustment_SingleUpdate()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
-        
-        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
+
+        var balanceUpdates = new []
         {
             new AccountBalanceUpdate(accountAddress, 100)
-        });
+        };
+        
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -304,18 +306,19 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         });
     }
 
-    [Fact] 
-    public async Task GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithSameAddress()
+    [Fact] public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithSameAddress()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
 
-        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
+        var balanceUpdates = new []
         {
             new AccountBalanceUpdate(accountAddress, 100),
             new AccountBalanceUpdate(accountAddress, -800),
             new AccountBalanceUpdate(accountAddress, 300),
-        });
+        };
+        
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -323,18 +326,19 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         });
     }
     
-    [Fact] 
-    public async Task GetAggregatedAccountUpdates_MultipleUpdatesToSameAccountWithAliasAddresses()
+    [Fact] public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithAliasAddresses()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);   
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
 
-        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
+        var balanceUpdates = new []
         {
             new AccountBalanceUpdate(accountAddress.CreateAliasAddress(10, 201, 8), 100),
             new AccountBalanceUpdate(accountAddress, -800),
             new AccountBalanceUpdate(accountAddress.CreateAliasAddress(10, 201, 8), 300),
-        });
+        };
+        
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -342,20 +346,22 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         });
     }
 
-    [Fact] public async Task GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts()
+    [Fact] public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
-        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);   
+        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);
 
-        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
+        var balanceUpdates = new []
         {
             new AccountBalanceUpdate(accountAddress1, 100),
             new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -800),
             new AccountBalanceUpdate(accountAddress2, 250),
             new AccountBalanceUpdate(accountAddress2.CreateAliasAddress(10, 201, 8), 300),
-        });
+        };
+        
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -364,26 +370,101 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         });
     }
     
-    [Fact] public async Task GetAggregatedAccountUpdates_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
+    [Fact] public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var accountAddress3 = new AccountAddress("3FYcaWUucnbXxvtnQQC5zpK91oN67MDbTiwzKzQUkVirKDrRce");
         _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
         _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);   
-        _accountLookupStub.AddToCache(accountAddress3.GetBaseAddress().AsString, 12);   
+        _accountLookupStub.AddToCache(accountAddress3.GetBaseAddress().AsString, 12);
 
-        var result = await _target.GetAggregatedAccountUpdatesAsync(new []
+        var balanceUpdates = new []
         {
             new AccountBalanceUpdate(accountAddress1, 100),
             new AccountBalanceUpdate(accountAddress1.CreateAliasAddress(2, 10, 127), -100),
             new AccountBalanceUpdate(accountAddress2, 50),
             new AccountBalanceUpdate(accountAddress3, 0),
-        });
+        };
+        
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
             new AccountWriter.AccountUpdate(11, 50, 0)
+        });
+    }
+    
+    [Fact] 
+    public async Task GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountSingleTransaction()
+    {
+        var transactions = new[]
+        {
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build()
+        };
+        var result = await _target.GetAggregatedAccountUpdatesAsync(_noBalanceUpdates, transactions);
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(11, 0, 1)
+        });
+    }
+
+    [Fact] public async Task GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountMultipleTransactions()
+    {
+        var transactions = new[]
+        {
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build()
+        };
+        var result = await _target.GetAggregatedAccountUpdatesAsync(_noBalanceUpdates, transactions);
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(11, 0, 3)
+        });
+    }
+    
+    [Fact] public async Task GetAggregatedAccountUpdates_TransactionsAdded_MultipleAccountsMultipleTransactions()
+    {
+        var transactions = new[]
+        {
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(42).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(42).Build()
+        };
+        var result = await _target.GetAggregatedAccountUpdatesAsync(_noBalanceUpdates, transactions);
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(11, 0, 3),
+            new AccountWriter.AccountUpdate(42, 0, 2)
+        });
+    }
+    
+    [Fact] public async Task GetAggregatedAccountUpdates_ResultsFlattened()
+    {
+        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 11);
+
+        var balanceUpdates = new []
+        {
+            new AccountBalanceUpdate(accountAddress, 100),
+            new AccountBalanceUpdate(accountAddress, 300),
+        };
+        var transactions = new[]
+        {
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+            new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
+        };
+        var result = await _target.GetAggregatedAccountUpdatesAsync(balanceUpdates, transactions);
+        
+        result.Should().BeEquivalentTo(new []
+        {
+            new AccountWriter.AccountUpdate(11, 400, 2),
         });
     }
     

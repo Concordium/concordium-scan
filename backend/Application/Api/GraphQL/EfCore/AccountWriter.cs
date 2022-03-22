@@ -38,11 +38,11 @@ public class AccountWriter
             _accountLookup.AddToCache(account.BaseAddress.AsString, account.Id);
     }
 
-    public async Task UpdateAccountBalances(BlockSummary blockSummary)
+    public async Task UpdateAccountBalances(BlockSummary blockSummary, AccountTransactionRelation[] transactionRelations)
     {
         var balanceUpdates = blockSummary.GetAccountBalanceUpdates();
 
-        var accountUpdates = await GetAggregatedAccountUpdatesAsync(balanceUpdates);
+        var accountUpdates = await GetAggregatedAccountUpdatesAsync(balanceUpdates, transactionRelations);
         
         await ExecuteAccountUpdates(accountUpdates);
     }
@@ -51,7 +51,8 @@ public class AccountWriter
     {
         var sql = @"
             UPDATE graphql_accounts 
-            SET ccd_amount = ccd_amount + @AmountAdjustment 
+            SET ccd_amount = ccd_amount + @AmountAdjustment,
+                transaction_count = transaction_count + @TransactionsAdded
             WHERE id = @AccountId";
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
@@ -64,8 +65,9 @@ public class AccountWriter
         {
             var cmd = batch.CreateBatchCommand();
             cmd.CommandText = sql;
-            cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", accountUpdate.AmountAdjustment));
             cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", accountUpdate.AccountId));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AmountAdjustment", accountUpdate.AmountAdjustment));
+            cmd.Parameters.Add(new NpgsqlParameter<int>("TransactionsAdded", accountUpdate.TransactionsAdded));
             batch.BatchCommands.Add(cmd);
         }
 
@@ -75,7 +77,7 @@ public class AccountWriter
         await connection.CloseAsync();
     }
 
-    public async Task<IEnumerable<AccountUpdate>> GetAggregatedAccountUpdatesAsync(IEnumerable<AccountBalanceUpdate> balanceUpdates)
+    public async Task<IEnumerable<AccountUpdate>> GetAggregatedAccountUpdatesAsync(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
     {
         var aggregatedBalanceUpdates = balanceUpdates
             .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
@@ -90,13 +92,24 @@ public class AccountWriter
         var baseAddresses = aggregatedBalanceUpdates.Select(x => x.BaseAddress);
         var accountIdLookup = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(baseAddresses);
         
-        return aggregatedBalanceUpdates
+        var amountAdjustmentResults = aggregatedBalanceUpdates
             .Select(x =>
             {
                 var accountId = accountIdLookup[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
                 return new AccountUpdate(accountId, x.AmountAdjustment, 0);
             })
             .Where(x => x.AmountAdjustment != 0);
+
+        var transactionResults = transactionRelations
+            .GroupBy(x => x.AccountId)
+            .Select(x => new { AccountId = x.Key, TransactionsAdded = x.Aggregate(0, (acc, _) => ++acc) })
+            .Select(x => new AccountUpdate(x.AccountId, 0, x.TransactionsAdded));
+
+        return amountAdjustmentResults.Concat(transactionResults)
+            .GroupBy(x => x.AccountId)
+            .Select(group => new AccountUpdate(group.Key,
+                group.Aggregate(0L, (acc, item) => acc + item.AmountAdjustment),
+                group.Aggregate(0, (acc, item) => acc + item.TransactionsAdded)));
     }
     
     public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);

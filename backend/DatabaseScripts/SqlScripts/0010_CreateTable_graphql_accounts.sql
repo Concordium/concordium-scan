@@ -4,6 +4,7 @@
     base_address      text      not null,
     canonical_address text      not null,
     ccd_amount        bigint    not null,
+    transaction_count int       not null,
     created_at        timestamp not null
 );
 

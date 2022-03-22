@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Application.Api.GraphQL.Validations;
@@ -131,8 +130,8 @@ public class ImportWriteController : BackgroundService
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
-        await _accountWriter.UpdateAccountBalances(payload.BlockSummary);
-        await _accountWriter.AddAccountTransactionRelations(transactions);
+        var accountTransactionRelations = await _accountWriter.AddAccountTransactionRelations(transactions);
+        await _accountWriter.UpdateAccountBalances(payload.BlockSummary, accountTransactionRelations);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
