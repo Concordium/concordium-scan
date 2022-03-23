@@ -5,6 +5,7 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
+using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
@@ -45,6 +46,8 @@ logger.Information("Import validation enabled: {enabled}", importValidationSetti
 builder.Services.AddMemoryCache();
 builder.Services.AddCors();
 builder.Services.AddGraphQLServer().Configure();
+builder.Services.AddSingleton<IMetrics, Metrics>();
+builder.Services.AddSingleton<MetricsListener>();
 builder.Services.AddSingleton<ImportChannel>();
 builder.Services.AddHostedService<ImportReadController>();
 builder.Services.AddHostedService<ImportWriteController>();

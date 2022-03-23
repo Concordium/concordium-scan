@@ -3,9 +3,10 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.Validations;
-using Application.Common;
+using Application.Common.Diagnostics;
 using Application.Database;
 using Application.Import;
+using Application.Import.ConcordiumNode;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
@@ -19,6 +20,8 @@ public class ImportWriteController : BackgroundService
     private readonly ITopicEventSender _sender;
     private readonly ImportChannel _channel;
     private readonly ImportValidationController _accountBalanceValidator;
+    private readonly IMetrics _metrics;
+    private readonly MetricsListener _metricsListener;
     private readonly BlockWriter _blockWriter;
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly ChainParametersWriter _chainParametersWriter;
@@ -30,16 +33,18 @@ public class ImportWriteController : BackgroundService
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
-        IAccountLookup accountLookup)
+        IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
     {
         _sender = sender;
         _channel = channel;
         _accountBalanceValidator = accountBalanceValidator;
-        _blockWriter = new BlockWriter(dbContextFactory);
+        _metrics = metrics;
+        _metricsListener = metricsListener;
+        _blockWriter = new BlockWriter(dbContextFactory, metrics);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
-        _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup);
+        _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
         _metricsWriter = new MetricsWriter(dbSettings);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory);
@@ -51,27 +56,25 @@ public class ImportWriteController : BackgroundService
         {
             await ReadAndPublishInitialState();
 
-            var splitTime = new SplitTimeDiagnosticsLogger();
-            splitTime.Start("wait");
-            
+            var waitCounter = _metrics.MeasureDuration(nameof(ImportReadController), "Wait");
             await foreach (var readFromNodeTask in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 var envelope = await readFromNodeTask;
+                waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                splitTime.Restart("write");
                 var block = await WriteData(envelope.Payload);
 
-                splitTime.Restart("notify");
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
                 
-                var measurements = splitTime.Stop();
-                _logger.Information("Block {blockhash} at block height {blockheight} written [read: {readDuration:0}ms] " + measurements, 
-                    block.BlockHash, block.BlockHeight, envelope.ReadDuration.TotalMilliseconds);
+                _logger.Information("Block {blockhash} at block height {blockheight} written", block.BlockHash, block.BlockHeight);
                 
                 await _accountBalanceValidator.PerformValidations(block);
                 
-                splitTime.Start("wait");
+                if (block.BlockHeight % 5000 == 0)
+                    _metricsListener.DumpCapturedMetrics();
+                
+                waitCounter = _metrics.MeasureDuration(nameof(ImportReadController), "Wait");
             }
         }
         finally
@@ -94,6 +97,8 @@ public class ImportWriteController : BackgroundService
 
     private async Task<Block> WriteData(BlockDataPayload payload)
     {
+        using var counter = _metrics.MeasureDuration(nameof(ImportReadController), nameof(WriteData));
+        
         using var txScope = CreateTransactionScope();
 
         var importState = payload switch

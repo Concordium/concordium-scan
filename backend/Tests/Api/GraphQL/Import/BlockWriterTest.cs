@@ -26,7 +26,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new BlockWriter(_dbContextFactory);
+        _target = new BlockWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");

@@ -2,6 +2,7 @@
 using System.Data.Common;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -10,14 +11,18 @@ namespace Application.Api.GraphQL.Import;
 public class AccountWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-
-    public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    private readonly IMetrics _metrics;
+    
+    public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
 
     public async Task InsertAccounts(IEnumerable<Account> accounts)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccounts));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         context.Accounts.AddRange(accounts);
         await context.SaveChangesAsync();
@@ -25,6 +30,8 @@ public class AccountWriter
 
     public async Task UpdateAccounts(IEnumerable<AccountUpdate> accountUpdates)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
+        
         var sql = @"
             UPDATE graphql_accounts 
             SET ccd_amount = ccd_amount + @AmountAdjustment,
@@ -56,7 +63,9 @@ public class AccountWriter
     public async Task InsertAccountTransactionRelation(AccountTransactionRelation[] items)
     {
         if (items.Length == 0) return;
-        
+
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountTransactionRelation));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var connection = context.Database.GetDbConnection();
 
@@ -66,7 +75,7 @@ public class AccountWriter
                 returning account_id, index, transaction_id;";
 
         await connection.OpenAsync();
-        
+
         var batch = connection.CreateBatch();
         foreach (var item in items)
         {
@@ -78,9 +87,9 @@ public class AccountWriter
         }
 
         await batch.PrepareAsync(); // Preparing will speed up the inserts, particularly when there are many!
-            
+
         await using var reader = await batch.ExecuteReaderAsync();
-        var returnedItems = IterateBatchDbDataReader(reader, row => new 
+        var returnedItems = IterateBatchDbDataReader(reader, row => new
             {
                 AccountId = row.GetInt64(0),
                 Index = row.GetInt64(1),
@@ -90,15 +99,18 @@ public class AccountWriter
 
         foreach (var item in items)
         {
-            var returnedItem = returnedItems.Single(x => x.AccountId == item.AccountId && x.TransactionId == item.TransactionId);
+            var returnedItem =
+                returnedItems.Single(x => x.AccountId == item.AccountId && x.TransactionId == item.TransactionId);
             item.Index = returnedItem.Index;
         }
-        
+
         await connection.CloseAsync();
     }
-    
+
     public async Task InsertAccountStatementEntries(IEnumerable<AccountStatementEntry> entries)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountStatementEntries));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         context.AccountStatementEntries.AddRange(entries);
         await context.SaveChangesAsync();
@@ -106,11 +118,13 @@ public class AccountWriter
 
     public async Task InsertAccountReleaseScheduleItems(IEnumerable<AccountReleaseScheduleItem> items)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountReleaseScheduleItems));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         context.AddRange(items);
         await context.SaveChangesAsync();
     }
-    
+
     private static IEnumerable<T> IterateBatchDbDataReader<T>(DbDataReader reader, Func<IDataReader, T> projection)
     {
         do

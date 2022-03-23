@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
@@ -12,11 +13,11 @@ public class AccountImportHandler
     private readonly AccountChangeCalculator _changeCalculator;
     private readonly AccountWriter _writer;
 
-    public AccountImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IAccountLookup accountLookup)
+    public AccountImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IAccountLookup accountLookup, IMetrics metrics)
     {
         _accountLookup = accountLookup;
         _changeCalculator = new AccountChangeCalculator(_accountLookup);
-        _writer = new AccountWriter(dbContextFactory);
+        _writer = new AccountWriter(dbContextFactory, metrics);
     }
 
     public async Task AddNewAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)

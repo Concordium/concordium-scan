@@ -89,8 +89,6 @@ public class ImportReadController : BackgroundService
 
     private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, CancellationToken stoppingToken)
     {
-        var sw = Stopwatch.StartNew();
-
         var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), "GetBlocksAtHeight", stoppingToken);
         if (blocksAtHeight.Length != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
@@ -119,8 +117,7 @@ public class ImportReadController : BackgroundService
             payload = new BlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus);
         }
 
-        var readDuration = sw.Elapsed;
-        return new BlockDataEnvelope(payload, readDuration);
+        return new BlockDataEnvelope(payload);
     }
 
     private async Task<AccountInfo[]> GetCreatedAccountsAsync(BlockInfo blockInfo, BlockSummary blockSummary, CancellationToken stoppingToken)

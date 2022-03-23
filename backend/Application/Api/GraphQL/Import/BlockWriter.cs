@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +10,18 @@ namespace Application.Api.GraphQL.Import;
 public class BlockWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMetrics _metrics;
 
-    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
 
     public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, int chainParametersId, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddBlock));
+        
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);

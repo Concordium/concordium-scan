@@ -38,7 +38,7 @@ public class ImportChannel
 
 public record InitialImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHash);
 
-public record BlockDataEnvelope(BlockDataPayload Payload, TimeSpan ReadDuration);
+public record BlockDataEnvelope(BlockDataPayload Payload);
 
 public record BlockDataPayload(
     BlockInfo BlockInfo, 
