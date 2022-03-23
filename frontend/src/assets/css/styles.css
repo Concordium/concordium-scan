@@ -23,6 +23,7 @@
 	--color-background-elevated-nontrans: hsl(246, 32%, 24%);
 	--color-border-primary: var(--color-primary);
 	--color-interactive: 162, 69%, 54%; /* green */
+	--color-interactive-faded:247, 34%, 38%; /* green */
 	--color-interactive-hover: 162, 69%, 59%; /* green */
 	--color-interactive-dark: 162, 69%, 29%; /* green */
 	--color-info: 209, 100%, 52%; /* blue */

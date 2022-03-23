@@ -7,7 +7,7 @@
 	>
 		<button
 			:aria-label="label"
-			class="transition-colors hover:text-theme-interactiveHover inline"
+			class="transition-colors text-theme-interactiveFaded hover:text-theme-interactiveHover inline"
 			@click="handleOnCopy"
 		>
 			<ClipboardIcon
