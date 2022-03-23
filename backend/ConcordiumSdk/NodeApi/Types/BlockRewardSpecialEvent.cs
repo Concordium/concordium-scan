@@ -14,7 +14,7 @@ public class BlockRewardSpecialEvent : SpecialEvent
     
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        yield return new AccountBalanceUpdate(FoundationAccount, (long)FoundationCharge.MicroCcdValue);
-        yield return new AccountBalanceUpdate(Baker, (long)BakerReward.MicroCcdValue);
+        yield return new AccountBalanceUpdate(FoundationAccount, (long)FoundationCharge.MicroCcdValue, BalanceUpdateType.BlockReward);
+        yield return new AccountBalanceUpdate(Baker, (long)BakerReward.MicroCcdValue, BalanceUpdateType.BlockReward);
     }
 }

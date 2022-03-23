@@ -131,7 +131,7 @@ public class ImportWriteController : BackgroundService
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
         var accountTransactionRelations = await _accountWriter.AddAccountTransactionRelations(transactions);
-        await _accountWriter.UpdateAccountBalances(payload.BlockSummary, accountTransactionRelations);
+        await _accountWriter.UpdateAccountBalances(payload.BlockSummary, block, accountTransactionRelations);
         await _accountWriter.AddAccountReleaseScheduleItems(transactions);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);

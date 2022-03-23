@@ -23,7 +23,6 @@ public class Transaction
     public string TransactionHash { get; set; }
     
     [GraphQLDeprecated("Use 'senderAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-
     public string? SenderAccountAddress { get; set; }
 
     public string? SenderAccountAddressString => SenderAccountAddress;

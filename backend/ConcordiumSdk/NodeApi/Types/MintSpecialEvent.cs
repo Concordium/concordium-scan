@@ -11,6 +11,6 @@ public class MintSpecialEvent : SpecialEvent
 
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        yield return new AccountBalanceUpdate(FoundationAccount, (long)MintPlatformDevelopmentCharge.MicroCcdValue);
+        yield return new AccountBalanceUpdate(FoundationAccount, (long)MintPlatformDevelopmentCharge.MicroCcdValue, BalanceUpdateType.MintReward);
     }
 }

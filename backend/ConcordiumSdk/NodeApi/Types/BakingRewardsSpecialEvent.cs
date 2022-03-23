@@ -10,6 +10,6 @@ public class BakingRewardsSpecialEvent : SpecialEvent
     
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        return BakerRewards.Select(x => new AccountBalanceUpdate(x.Address, (long)x.Amount.MicroCcdValue));
+        return BakerRewards.Select(x => new AccountBalanceUpdate(x.Address, (long)x.Amount.MicroCcdValue, BalanceUpdateType.BakingReward));
     }
 }

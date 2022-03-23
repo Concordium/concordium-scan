@@ -10,6 +10,6 @@ public class FinalizationRewardsSpecialEvent : SpecialEvent
     
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        return FinalizationRewards.Select(x => new AccountBalanceUpdate(x.Address, (long)x.Amount.MicroCcdValue));
+        return FinalizationRewards.Select(x => new AccountBalanceUpdate(x.Address, (long)x.Amount.MicroCcdValue, BalanceUpdateType.FinalizationReward));
     }
 }

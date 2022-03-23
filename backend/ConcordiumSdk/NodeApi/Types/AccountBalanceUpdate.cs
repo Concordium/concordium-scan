@@ -2,4 +2,5 @@
 
 namespace ConcordiumSdk.NodeApi.Types;
 
-public record AccountBalanceUpdate(AccountAddress AccountAddress, long AmountAdjustment);
+public record AccountBalanceUpdate(AccountAddress AccountAddress, long AmountAdjustment,
+    BalanceUpdateType balanceUpdateType);

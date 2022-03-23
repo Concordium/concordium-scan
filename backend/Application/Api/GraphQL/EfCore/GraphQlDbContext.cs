@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.EfCore.Converters;
+using Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.EfCore;
@@ -17,6 +18,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
     public DbSet<AccountReleaseScheduleItem> AccountReleaseScheduleItems { get; private set; }
     public DbSet<IdentityProvider> IdentityProviders { get; private set; }
+    public DbSet<AccountStatementEntry> AccountStatementEntries { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
@@ -24,6 +26,8 @@ public class GraphQlDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.ApplyConfiguration(new AccountStatementEntryConfiguration());
+        
         var importStateBuilder = modelBuilder.Entity<ImportState>()
             .ToTable("graphql_import_state");
 
