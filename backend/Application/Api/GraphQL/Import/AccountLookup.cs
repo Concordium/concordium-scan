@@ -4,7 +4,7 @@ using Dapper;
 using Microsoft.Extensions.Caching.Memory;
 using Npgsql;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public interface IAccountLookup
 {

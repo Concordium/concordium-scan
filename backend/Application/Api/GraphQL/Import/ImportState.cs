@@ -1,6 +1,6 @@
 ﻿using Application.Import;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class ImportState
 {

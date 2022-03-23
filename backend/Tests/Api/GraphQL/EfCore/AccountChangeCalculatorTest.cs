@@ -1,5 +1,5 @@
 ﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using FluentAssertions;
 using Tests.TestUtilities.Builders.GraphQL;

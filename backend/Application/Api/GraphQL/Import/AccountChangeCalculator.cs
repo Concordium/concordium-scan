@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using ConcordiumSdk.NodeApi.Types;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class AccountChangeCalculator
 {

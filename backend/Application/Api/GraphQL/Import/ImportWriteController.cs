@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Validations;
 using Application.Common;
 using Application.Database;
@@ -11,7 +12,7 @@ using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class ImportWriteController : BackgroundService
 {

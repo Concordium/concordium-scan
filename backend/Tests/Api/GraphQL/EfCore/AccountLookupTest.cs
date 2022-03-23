@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import;
 using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;

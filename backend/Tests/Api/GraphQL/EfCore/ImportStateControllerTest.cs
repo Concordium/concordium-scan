@@ -1,5 +1,5 @@
 ﻿using System.Transactions;
-using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

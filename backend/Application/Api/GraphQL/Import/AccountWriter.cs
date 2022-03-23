@@ -1,12 +1,13 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class AccountWriter
 {

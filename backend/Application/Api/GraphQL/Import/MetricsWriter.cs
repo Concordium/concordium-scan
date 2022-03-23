@@ -4,7 +4,7 @@ using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Npgsql;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class MetricsWriter
 {

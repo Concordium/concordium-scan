@@ -1,8 +1,9 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Api.GraphQL.EfCore;
+namespace Application.Api.GraphQL.Import;
 
 public class TransactionWriter
 {

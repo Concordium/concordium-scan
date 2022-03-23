@@ -1,4 +1,4 @@
-﻿namespace Application.Api.GraphQL.EfCore;
+﻿namespace Application.Api.GraphQL.Import;
 
 public class TransactionRelated<T> 
 {

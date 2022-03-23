@@ -1,3 +1,3 @@
-﻿namespace Application.Api.GraphQL.EfCore;
+﻿namespace Application.Api.GraphQL.Import;
 
 public record FinalizationTimeUpdate(long BlockHeight, DateTimeOffset BlockSlotTime, double FinalizationTimeSecs);

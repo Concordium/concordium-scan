@@ -1,4 +1,4 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
