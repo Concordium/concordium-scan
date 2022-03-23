@@ -1,4 +1,4 @@
-﻿namespace Application.Api.GraphQL.Validations;
+﻿namespace Application.Api.GraphQL.Import.Validations;
 
 public class ImportValidationSettings
 {

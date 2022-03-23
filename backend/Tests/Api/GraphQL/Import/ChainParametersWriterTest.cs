@@ -6,10 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
+using Tests.TestUtilities.Stubs;
 using ChainParameters = Application.Api.GraphQL.ChainParameters;
 using ExchangeRate = Application.Api.GraphQL.ExchangeRate;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>

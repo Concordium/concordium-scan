@@ -3,7 +3,7 @@ using Application.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.TestUtilities.Stubs;
 
 public class GraphQlDbContextFactoryStub : IDbContextFactory<GraphQlDbContext>
 {

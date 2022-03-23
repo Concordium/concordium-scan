@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using System.Transactions;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Validations;
+using Application.Api.GraphQL.Import.Validations;
 using Application.Common;
 using Application.Database;
 using Application.Import;
@@ -23,7 +23,7 @@ public class ImportWriteController : BackgroundService
     private readonly IdentityProviderWriter _identityProviderWriter;
     private readonly ChainParametersWriter _chainParametersWriter;
     private readonly TransactionWriter _transactionWriter;
-    private readonly AccountWriter _accountWriter;
+    private readonly AccountImportHandler _accountHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
@@ -39,7 +39,7 @@ public class ImportWriteController : BackgroundService
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
-        _accountWriter = new AccountWriter(dbContextFactory, accountLookup);
+        _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup);
         _metricsWriter = new MetricsWriter(dbSettings);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory);
@@ -124,16 +124,14 @@ public class ImportWriteController : BackgroundService
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
-        await _accountWriter.AddAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
+        await _accountHandler.AddNewAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
 
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
 
-        var accountTransactionRelations = await _accountWriter.AddAccountTransactionRelations(transactions);
-        await _accountWriter.UpdateAccountBalances(payload.BlockSummary, block, accountTransactionRelations);
-        await _accountWriter.AddAccountReleaseScheduleItems(transactions);
+        await _accountHandler.HandleAccountUpdates(payload, transactions, block);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
 

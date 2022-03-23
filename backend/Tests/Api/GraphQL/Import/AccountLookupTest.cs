@@ -6,8 +6,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
+using Tests.TestUtilities.Stubs;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable

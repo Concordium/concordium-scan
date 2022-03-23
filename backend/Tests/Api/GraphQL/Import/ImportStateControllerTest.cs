@@ -4,9 +4,10 @@ using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class ImportStateControllerTest : IClassFixture<DatabaseFixture>

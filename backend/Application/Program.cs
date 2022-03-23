@@ -4,7 +4,7 @@ using Application;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
-using Application.Api.GraphQL.Validations;
+using Application.Api.GraphQL.Import.Validations;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;

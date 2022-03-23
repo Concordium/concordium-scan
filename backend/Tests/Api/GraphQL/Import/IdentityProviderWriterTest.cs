@@ -3,8 +3,9 @@ using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using Tests.TestUtilities.Stubs;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>

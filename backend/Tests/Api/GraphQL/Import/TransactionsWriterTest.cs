@@ -6,8 +6,9 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using Tests.TestUtilities.Stubs;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class TransactionsWriterTest : IClassFixture<DatabaseFixture>

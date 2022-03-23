@@ -7,9 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
+using Tests.TestUtilities.Stubs;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
-namespace Tests.Api.GraphQL.EfCore;
+namespace Tests.Api.GraphQL.Import;
 
 [Collection("Postgres Collection")]
 public class BlockWriterTest : IClassFixture<DatabaseFixture>
