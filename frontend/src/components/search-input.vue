@@ -1,10 +1,13 @@
 <template>
 	<div ref="rootSearchContainer" class="md:relative md:w-1/3 w-full">
-		<div class="relative">
+		<div class="relative flex flex-row">
+			<div class="hidden md:block pointer-events-none p-2 absolute left-0">
+				<SearchIcon class="h-6 md:h-5" />
+			</div>
 			<input
 				v-model="searchValue"
 				:class="$style.input"
-				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block"
+				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block pl-9"
 				placeholder="Search for account, block or transaction &hellip;"
 				type="search"
 				@blur="lostFocusOnSearch"
@@ -164,9 +167,6 @@
 				</div>
 			</div>
 		</div>
-		<div class="hidden md:block" :class="$style.button">
-			<SearchIcon class="h-6 md:h-5" />
-		</div>
 	</div>
 </template>
 
@@ -286,11 +286,6 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 	color: var(--color-input-placeholder);
 }
 
-.button {
-	@apply absolute top-1/2 right-8;
-	transform: translateY(-50%);
-	pointer-events: none;
-}
 .loading {
 	min-height: 100px;
 }
