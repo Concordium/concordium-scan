@@ -78,6 +78,7 @@ import { useDateNow } from '~/composables/useDateNow'
 import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
 import type { PageInfo, Block } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
+import BlockDetailsTransactions from '~/components/BlockDetails/BlockDetailsTransactions.vue'
 
 const { NOW } = useDateNow()
 

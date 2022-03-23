@@ -5,8 +5,7 @@
 			<dl class="grid grid-cols-2 col-span-2">
 				<dt>Baker</dt>
 				<dd class="text-right mb-2">
-					<UserIcon class="text-white inline h-4 align-baseline" />
-					{{ shortenHash(data.bakerAccountAddress) }}
+					<AccountLink :address="data.bakerAccountAddress" />
 				</dd>
 				<dt>Baker reward</dt>
 				<dd class="text-right mb-2">
@@ -49,10 +48,10 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
-import { convertMicroCcdToCcd, shortenHash } from '~/utils/format'
+import { convertMicroCcdToCcd } from '~/utils/format'
 import type { BlockRewards } from '~/types/generated'
+import AccountLink from '~/components/molecules/AccountLink.vue'
 
 type Props = {
 	data: BlockRewards

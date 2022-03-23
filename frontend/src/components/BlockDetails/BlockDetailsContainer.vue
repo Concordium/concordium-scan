@@ -22,6 +22,7 @@ import type { Ref } from 'vue'
 import { useBlockQuery, useBlockQueryByHash } from '~/queries/useBlockQuery'
 import { usePagination } from '~/composables/usePagination'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 const { first, last, after, before, goToPage } = usePagination()
 type Props = {
 	id?: string
