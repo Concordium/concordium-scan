@@ -1,5 +1,5 @@
 <template>
-	<div ref="rootSearchContainer" class="md:relative md:w-1/3 w-full">
+	<div ref="rootSearchContainer" class="lg:relative md:w-1/3 w-full">
 		<div class="relative flex flex-row">
 			<div class="hidden md:block pointer-events-none p-2 absolute left-0">
 				<SearchIcon class="h-6 md:h-5" />
@@ -17,7 +17,7 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 md:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-10"
+			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-10"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -55,7 +55,7 @@
 						<div
 							v-for="(block, index) in queryData.search.blocks.nodes"
 							:key="block.blockHash"
-							class="grid grid-cols-4"
+							class="grid grid-cols-4 gap-8"
 						>
 							<div>
 								<BlockLink
@@ -93,7 +93,7 @@
 							v-for="(transaction, index) in queryData.search.transactions
 								.nodes"
 							:key="transaction.transactionHash"
-							class="grid grid-cols-4"
+							class="grid grid-cols-4 gap-8"
 						>
 							<TransactionLink
 								:id="transaction.id"
@@ -139,7 +139,7 @@
 						<div
 							v-for="(account, index) in queryData.search.accounts.nodes"
 							:key="account.address"
-							class="grid grid-cols-4"
+							class="grid grid-cols-4 gap-8"
 						>
 							<AccountLink
 								:address="account.address"
