@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
-using Application.Api.GraphQL.JsonConverters;
+using Application.Api.GraphQL.EfCore.Converters.Json;
 
-namespace Application.Api.GraphQL.EfCore.Converters;
+namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
 
 public class TransactionRejectReasonToJsonConverter : ObjectToJsonConverter<TransactionRejectReason>
 {
@@ -16,7 +16,7 @@ public class TransactionRejectReasonToJsonConverter : ObjectToJsonConverter<Tran
             {
                 new TransactionRejectReasonConverter(),
                 new AddressConverter(),
-                new Application.Api.GraphQL.JsonConverters.AccountAddressConverter(),
+                new Json.AccountAddressConverter(),
                 new ContractAddressConverter()
             }
         };

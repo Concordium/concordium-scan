@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Application.Api.GraphQL;
-using Application.Api.GraphQL.JsonConverters;
+using Application.Api.GraphQL.EfCore.Converters.Json;
 using FluentAssertions;
 
 namespace Tests.Api.GraphQL.JsonConverters;

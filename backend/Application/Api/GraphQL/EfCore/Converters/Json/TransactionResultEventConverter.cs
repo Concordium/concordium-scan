@@ -1,4 +1,4 @@
-namespace Application.Api.GraphQL.JsonConverters;
+namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
 public class TransactionResultEventConverter : PolymorphicJsonConverter<TransactionResultEvent>
 {

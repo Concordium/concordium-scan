@@ -2,7 +2,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace Application.Api.GraphQL.EfCore.Converters;
+namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
 
 public abstract class ObjectToJsonConverter<T> : ValueConverter<T, string>
 {

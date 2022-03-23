@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Application.Api.GraphQL.JsonConverters;
+namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
 public class AccountAddressConverter : JsonConverter<AccountAddress> 
 {

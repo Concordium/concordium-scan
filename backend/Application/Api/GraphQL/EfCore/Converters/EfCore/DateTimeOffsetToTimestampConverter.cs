@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace Application.Api.GraphQL.EfCore.Converters;
+namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
 
 public class DateTimeOffsetToTimestampConverter : ValueConverter<DateTimeOffset, DateTime>
 {
