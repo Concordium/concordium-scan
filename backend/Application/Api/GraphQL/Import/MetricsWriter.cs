@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Common.Diagnostics;
 using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
@@ -9,14 +10,18 @@ namespace Application.Api.GraphQL.Import;
 public class MetricsWriter
 {
     private readonly DatabaseSettings _settings;
+    private readonly IMetrics _metrics;
 
-    public MetricsWriter(DatabaseSettings settings)
+    public MetricsWriter(DatabaseSettings settings, IMetrics metrics)
     {
         _settings = settings;
+        _metrics = metrics;
     }
 
     public async Task AddBlockMetrics(Block block)
     {
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddBlockMetrics));
+
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
@@ -36,6 +41,8 @@ public class MetricsWriter
 
     public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddTransactionMetrics));
+
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
@@ -59,6 +66,8 @@ public class MetricsWriter
 
     public async Task AddAccountsMetrics(BlockInfo blockInfo, AccountInfo[] createdAccounts, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddAccountsMetrics));
+
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
@@ -80,7 +89,9 @@ public class MetricsWriter
     public async Task UpdateFinalizationTimes(FinalizationTimeUpdate[] updates)
     {
         if (updates.Length == 0) return;
-        
+
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(UpdateFinalizationTimes));
+
         var sql = @"update metrics_blocks  
                     set finalization_time_secs = @FinalizationTimeSecs
                     where time = @BlockSlotTime and block_height = @BlockHeight";

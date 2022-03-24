@@ -213,6 +213,8 @@ public class BlockWriter
 
     public async Task UpdateTotalAmountLockedInReleaseSchedules(Block block)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(UpdateTotalAmountLockedInReleaseSchedules));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
         
@@ -227,6 +229,8 @@ public class BlockWriter
     public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(Block block, ImportState importState)
     {
         if (block.FinalizationSummary == null) return Array.Empty<FinalizationTimeUpdate>();
+
+        using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(UpdateFinalizationTimeOnBlocksInFinalizationProof));
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var finalizedBlockHeights = await context.Blocks

@@ -45,7 +45,7 @@ public class ImportWriteController : BackgroundService
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
         _transactionWriter = new TransactionWriter(dbContextFactory);
         _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
-        _metricsWriter = new MetricsWriter(dbSettings);
+        _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory);
     }
