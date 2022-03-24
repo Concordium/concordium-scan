@@ -24,7 +24,7 @@ locals {
       }
       backend_import_validation_enabled = false
     }
-    "prod": {
+    "prod1": {
       azure_vm_size = "Standard_D8s_v4"
       container_repository_backend = "backend.prod"
       domain_name = "api.ccdscan.io"
