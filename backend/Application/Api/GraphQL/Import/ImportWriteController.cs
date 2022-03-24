@@ -56,7 +56,7 @@ public class ImportWriteController : BackgroundService
         {
             await ReadAndPublishInitialState();
 
-            var waitCounter = _metrics.MeasureDuration(nameof(ImportReadController), "Wait");
+            var waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
             await foreach (var readFromNodeTask in _channel.Reader.ReadAllAsync(stoppingToken))
             {
                 var envelope = await readFromNodeTask;
@@ -74,7 +74,7 @@ public class ImportWriteController : BackgroundService
                 if (block.BlockHeight % 5000 == 0)
                     _metricsListener.DumpCapturedMetrics();
                 
-                waitCounter = _metrics.MeasureDuration(nameof(ImportReadController), "Wait");
+                waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
             }
         }
         finally
@@ -97,29 +97,36 @@ public class ImportWriteController : BackgroundService
 
     private async Task<Block> WriteData(BlockDataPayload payload)
     {
-        using var counter = _metrics.MeasureDuration(nameof(ImportReadController), nameof(WriteData));
+        using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         
-        using var txScope = CreateTransactionScope();
+        var txScope = CreateTransactionScope();
 
-        var importState = payload switch
+        Block block;
+        try
         {
-            GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(genesisPayload),
-            _ => await _importStateController.GetState()
-        };
+            var importState = payload switch
+            {
+                GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(genesisPayload),
+                _ => await _importStateController.GetState()
+            };
 
-        if (payload is GenesisBlockDataPayload genesisData)
-            await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
+            if (payload is GenesisBlockDataPayload genesisData)
+                await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
 
-        var block = await HandleCommonWrites(payload, importState);
+            block = await HandleCommonWrites(payload, importState);
 
-        importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
-        await _importStateController.SaveChanges(importState);
-        
-        using (_metrics.MeasureDuration(nameof(ImportWriteController), "commit"))
+            importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
+            await _importStateController.SaveChanges(importState);
+
             txScope.Complete();
+        }
+        finally
+        {
+            using (_metrics.MeasureDuration(nameof(ImportWriteController), "WriteDataDisposeTx"))
+                txScope.Dispose(); // this is where the actual commit or rollback is performed
+        }
 
         _importStateController.SavedChangesCommitted();
-        
         return block;
     }
 
