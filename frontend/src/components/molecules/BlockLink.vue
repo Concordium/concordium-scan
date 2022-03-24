@@ -6,7 +6,7 @@
 		/>
 		<BlockIcon v-else class="h-4 w-4 align-text-top" />
 		<LinkButton
-			class="numerical"
+			class="numerical px-2"
 			@blur="emitBlur"
 			@click="drawer.push('block', props.hash, props.id)"
 		>

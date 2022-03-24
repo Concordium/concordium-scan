@@ -6,6 +6,7 @@
 		/>
 		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
 		<LinkButton
+			class="px-2"
 			@blur="emitBlur"
 			@click="drawer.push('account', undefined, undefined, props.address!)"
 		>

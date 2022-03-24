@@ -2,7 +2,7 @@
 	<div class="inline-block">
 		<Tooltip :text="hash" text-class="text-theme-body">
 			<HashtagIcon class="h-4 inline align-middle" :class="iconClass" />
-			<span>{{ shortenHash(hash) }}</span>
+			<span class="px-2">{{ shortenHash(hash) }}</span>
 		</Tooltip>
 		<TextCopy
 			:text="hash"
