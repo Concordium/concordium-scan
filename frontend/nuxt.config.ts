@@ -14,8 +14,8 @@ const VARS: Record<Environment, Config> = {
 		wsUrl: 'wss://mainnet.dev-api.ccdscan.io/graphql',
 	},
 	test: {
-		apiUrl: 'https://mainnet.test-api.ccdscan.io/graphql',
-		wsUrl: 'wss://mainnet.test-api.ccdscan.io/graphql',
+		apiUrl: 'https://staging-mainnet.api.ccdscan.io/graphql/',
+		wsUrl: 'wss://staging-mainnet.api.ccdscan.io/graphql',
 	},
 	prod: {
 		apiUrl: 'https://mainnet.api.ccdscan.io/graphql/',
