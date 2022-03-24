@@ -114,7 +114,9 @@ public class ImportWriteController : BackgroundService
 
         importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
         await _importStateController.SaveChanges(importState);
-        txScope.Complete();
+        
+        using (_metrics.MeasureDuration(nameof(ImportWriteController), "commit"))
+            txScope.Complete();
 
         _importStateController.SavedChangesCommitted();
         
@@ -128,6 +130,8 @@ public class ImportWriteController : BackgroundService
 
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
+        
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
 
