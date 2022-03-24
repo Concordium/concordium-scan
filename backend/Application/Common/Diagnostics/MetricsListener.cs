@@ -43,9 +43,9 @@ public class MetricsListener : IDisposable
             {
                 Name = x.Key,
                 Count = $"{x.Value.Count}",
-                Average = $"{x.Value.Average():F1}ms",
-                Total = $"{x.Value.Sum()}ms",
-                Max = $"{x.Value.Max()}ms",
+                Average = $"{x.Value.Average():F1}",
+                Total = $"{x.Value.Sum()}",
+                Max = $"{x.Value.Max()}",
             })
             .ToList();
         
@@ -53,9 +53,9 @@ public class MetricsListener : IDisposable
         {
             Name = "Name",
             Count = "Count",
-            Average = "Avg",
-            Total = "Total",
-            Max = "Max"
+            Average = "Avg (ms)",
+            Total = "Total (ms)",
+            Max = "Max (ms)"
         });
         
         var col0Format = $"{{0, -{rows.Max(x => x.Name.Length)}}}";
