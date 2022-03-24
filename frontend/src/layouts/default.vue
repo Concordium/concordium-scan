@@ -15,15 +15,23 @@
 						<slot />
 					</main>
 				</GraphQLClient>
+
+				<template #fallback>
+					<div class="flex h-screen justify-center items-center">
+						<BWCubeLogoIcon class="w-10 h-10 animate-ping" />
+					</div>
+				</template>
 			</ClientOnly>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+import PageHeader from '~/components/PageHeader.vue'
 import Breakpoint from '~/components/molecules/Breakpoint.vue'
 import GraphQLClient from '~/components/molecules/GraphQLClient.vue'
 import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
+import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
 useMeta({
