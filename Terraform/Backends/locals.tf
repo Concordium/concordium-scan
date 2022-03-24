@@ -13,17 +13,6 @@ locals {
       }
       backend_import_validation_enabled = true
     }
-    "test": {
-      azure_vm_size = "Standard_D8s_v4"
-      container_repository_backend = "backend.test"
-      domain_name = "test-api.ccdscan.io"
-      app_gateway_sku: {
-        name     = "Standard_Small"
-        tier     = "Standard"
-        capacity = 1
-      }
-      backend_import_validation_enabled = false
-    }
     "prod1": {
       azure_vm_size = "Standard_D8s_v4"
       container_repository_backend = "backend.prod"
