@@ -10,18 +10,22 @@ namespace Application.Api.GraphQL.Import;
 public class AccountImportHandler
 {
     private readonly IAccountLookup _accountLookup;
+    private readonly IMetrics _metrics;
     private readonly AccountChangeCalculator _changeCalculator;
     private readonly AccountWriter _writer;
 
     public AccountImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IAccountLookup accountLookup, IMetrics metrics)
     {
         _accountLookup = accountLookup;
+        _metrics = metrics;
         _changeCalculator = new AccountChangeCalculator(_accountLookup);
         _writer = new AccountWriter(dbContextFactory, metrics);
     }
 
     public async Task AddNewAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
     {
+        if (createdAccounts.Length == 0) return;
+        
         var accounts = _changeCalculator.GetAccounts(createdAccounts, blockSlotTime).ToArray();
         await _writer.InsertAccounts(accounts);
 
@@ -31,6 +35,8 @@ public class AccountImportHandler
 
     public async Task HandleAccountUpdates(BlockDataPayload payload, TransactionPair[] transactions, Block block)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountImportHandler), nameof(HandleAccountUpdates));
+
         var transactionRelations = await _changeCalculator.GetAccountTransactionRelations(transactions);
         await _writer.InsertAccountTransactionRelation(transactionRelations);
         

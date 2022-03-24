@@ -43,7 +43,7 @@ public class ImportWriteController : BackgroundService
         _blockWriter = new BlockWriter(dbContextFactory, metrics);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory);
-        _transactionWriter = new TransactionWriter(dbContextFactory);
+        _transactionWriter = new TransactionWriter(dbContextFactory, metrics);
         _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());

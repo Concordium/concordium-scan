@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,16 +9,20 @@ namespace Application.Api.GraphQL.Import;
 public class TransactionWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMetrics _metrics;
 
-    public TransactionWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public TransactionWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
 
     public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId)
     {
         if (blockSummary.TransactionSummaries.Length == 0) return Array.Empty<TransactionPair>();
         
+        using var counter = _metrics.MeasureDuration(nameof(TransactionWriter), nameof(AddTransactions));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var transactions = blockSummary.TransactionSummaries
