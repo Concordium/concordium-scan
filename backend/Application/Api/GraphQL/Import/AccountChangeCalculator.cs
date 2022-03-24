@@ -169,7 +169,7 @@ public class AccountChangeCalculator
             Index = default, // Will be set by database
             Timestamp = blockSlotTime,
             Amount = x.AmountAdjustment,
-            EntryType = Map(x.balanceUpdateType)
+            EntryType = Map(x.BalanceUpdateType)
         });
     }
 

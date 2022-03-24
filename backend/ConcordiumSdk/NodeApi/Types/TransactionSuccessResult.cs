@@ -11,6 +11,11 @@ public class TransactionSuccessResult : TransactionResult
     {
         return Events.SelectMany(x => x.GetAccountAddresses());
     }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        return Events.SelectMany(evt => evt.GetAccountBalanceUpdates(owningTransaction));
+    }
 }
 
 public abstract record TransactionResultEvent
@@ -18,6 +23,11 @@ public abstract record TransactionResultEvent
     public virtual IEnumerable<AccountAddress> GetAccountAddresses()
     {
         return Array.Empty<AccountAddress>();
+    }
+
+    public virtual IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        return Enumerable.Empty<AccountBalanceUpdate>();
     }
 }
 
@@ -27,9 +37,19 @@ public record ModuleDeployed(
 public record ContractInitialized(
     ModuleRef Ref,
     ContractAddress Address,
-    CcdAmount Amount, 
+    CcdAmount Amount,
     string InitName,
-    BinaryData[] Events) : TransactionResultEvent;
+    BinaryData[] Events) : TransactionResultEvent
+{
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        if (Amount > CcdAmount.Zero)
+        {
+            var accountAddress = owningTransaction.Sender ?? throw new InvalidOperationException("Sender of transaction was null for transaction that included a contract initialized event.");
+            yield return new AccountBalanceUpdate(accountAddress, -1 * (long)Amount.MicroCcdValue, BalanceUpdateType.TransferOut);
+        }
+    }
+}
 
 public record Updated(
     ContractAddress Address,
@@ -44,6 +64,12 @@ public record Updated(
         if (Instigator is AccountAddress accountAddress)
             yield return accountAddress;
     }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        if (Instigator is AccountAddress accountAddress && Amount > CcdAmount.Zero)
+            yield return new AccountBalanceUpdate(accountAddress, -1 * (long)Amount.MicroCcdValue, BalanceUpdateType.TransferOut);
+    }
 }
 
 public record Transferred(
@@ -57,6 +83,14 @@ public record Transferred(
             yield return toAccountAddress;
         if (From is AccountAddress fromAccountAddress)
             yield return fromAccountAddress;
+    }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        if (From is AccountAddress fromAccountAddress)
+            yield return new AccountBalanceUpdate(fromAccountAddress, -1 * (long)Amount.MicroCcdValue, BalanceUpdateType.TransferOut);
+        if (To is AccountAddress toAccountAddress)
+            yield return new AccountBalanceUpdate(toAccountAddress, (long)Amount.MicroCcdValue, BalanceUpdateType.TransferIn);
     }
 }
 
@@ -184,6 +218,11 @@ public record AmountAddedByDecryption(
     {
         yield return Account;
     }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        yield return new AccountBalanceUpdate(Account, (long)Amount.MicroCcdValue, BalanceUpdateType.AmountDecrypted);
+    }
 }
 
 public record EncryptedSelfAmountAdded(
@@ -194,6 +233,11 @@ public record EncryptedSelfAmountAdded(
     public override IEnumerable<AccountAddress> GetAccountAddresses()
     {
         yield return Account;
+    }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        yield return new AccountBalanceUpdate(Account, -1 * (long)Amount.MicroCcdValue, BalanceUpdateType.AmountEncrypted);
     }
 }
 
@@ -217,6 +261,13 @@ public record TransferredWithSchedule(
     {
         yield return To;
         yield return From;
+    }
+
+    public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
+    {
+        var totalAmount = Amount.Sum(amount => (long)amount.Amount.MicroCcdValue);
+        yield return new AccountBalanceUpdate(From, -1 * totalAmount, BalanceUpdateType.TransferOut);
+        yield return new AccountBalanceUpdate(To, totalAmount, BalanceUpdateType.TransferIn);
     }
 }
 
