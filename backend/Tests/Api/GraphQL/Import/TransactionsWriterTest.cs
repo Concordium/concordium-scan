@@ -20,7 +20,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     public TransactionsWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new TransactionWriter(_dbContextFactory);
+        _target = new TransactionWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_transactions");

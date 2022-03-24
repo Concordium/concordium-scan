@@ -22,7 +22,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public ChainParametersWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new ChainParametersWriter(_dbContextFactory);
+        _target = new ChainParametersWriter(_dbContextFactory, new NullMetrics());
 
         _chainParametersBuilder = new ChainParametersBuilder()
             .WithElectionDifficulty(0.1m)

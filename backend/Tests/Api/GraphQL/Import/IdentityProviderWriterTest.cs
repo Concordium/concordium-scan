@@ -16,7 +16,7 @@ public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>
     public IdentityProviderWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new IdentityProviderWriter(_dbContextFactory);
+        _target = new IdentityProviderWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_identity_providers");

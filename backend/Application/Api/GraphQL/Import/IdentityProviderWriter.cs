@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +10,12 @@ namespace Application.Api.GraphQL.Import;
 public class IdentityProviderWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMetrics _metrics;
 
-    public IdentityProviderWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public IdentityProviderWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
 
     public async Task AddGenesisIdentityProviders(IdentityProviderInfo[] identityProviders)
@@ -22,6 +25,8 @@ public class IdentityProviderWriter
 
     public async Task AddOrUpdateIdentityProviders(TransactionSummary[] transactionSummaries)
     {
+        using var counter = _metrics.MeasureDuration(nameof(IdentityProviderWriter), nameof(AddOrUpdateIdentityProviders));
+
         var payloads = transactionSummaries
             .Where(x => x.Type.Equals(TransactionType.Get(UpdateTransactionType.UpdateAddIdentityProvider)))
             .Select(x => x.Result).OfType<TransactionSuccessResult>()

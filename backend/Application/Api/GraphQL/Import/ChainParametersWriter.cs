@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,14 +9,18 @@ namespace Application.Api.GraphQL.Import;
 public class ChainParametersWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMetrics _metrics;
 
-    public ChainParametersWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public ChainParametersWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
     
     public async Task<ChainParameters> GetOrCreateChainParameters(BlockSummary blockSummary, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(ChainParametersWriter), nameof(GetOrCreateChainParameters));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         
         if (importState.LatestWrittenChainParameters == null)

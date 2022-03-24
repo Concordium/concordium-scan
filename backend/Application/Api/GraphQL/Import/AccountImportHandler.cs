@@ -38,7 +38,8 @@ public class AccountImportHandler
         using var counter = _metrics.MeasureDuration(nameof(AccountImportHandler), nameof(HandleAccountUpdates));
 
         var transactionRelations = await _changeCalculator.GetAccountTransactionRelations(transactions);
-        await _writer.InsertAccountTransactionRelation(transactionRelations);
+        if (transactionRelations.Length > 0)
+            await _writer.InsertAccountTransactionRelation(transactionRelations);
         
         var balanceUpdates = payload.BlockSummary.GetAccountBalanceUpdates().ToArray();
         var accountUpdates = await _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
@@ -48,7 +49,8 @@ public class AccountImportHandler
         await _writer.InsertAccountStatementEntries(statementEntries);
 
         var releaseScheduleItems = await _changeCalculator.GetAccountReleaseScheduleItems(transactions);
-        await _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
+        if (releaseScheduleItems.Length > 0)
+            await _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
     }
 }
 
