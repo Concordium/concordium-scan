@@ -1,28 +1,28 @@
 <template>
-	<div>
+	<div class="bg-theme-background-primary w-screen min-h-screen">
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
 		<Breakpoint v-if="environment === 'dev'" />
 
-		<DrawerContainer />
-		<div id="app" class="bg-theme-background-primary w-screen min-h-screen">
-			<ClientOnly>
-				<GraphQLClient>
+		<ClientOnly>
+			<GraphQLClient>
+				<DrawerContainer />
+				<div id="app">
 					<PageHeader />
 
 					<main class="p-4 pb-0 xl:container xl:mx-auto">
 						<slot />
 					</main>
-				</GraphQLClient>
+				</div>
+			</GraphQLClient>
 
-				<template #fallback>
-					<div class="flex h-screen justify-center items-center">
-						<BWCubeLogoIcon class="w-10 h-10 animate-ping" />
-					</div>
-				</template>
-			</ClientOnly>
-		</div>
+			<template #fallback>
+				<div class="flex h-screen w-screen justify-center items-center">
+					<BWCubeLogoIcon class="w-10 h-10 animate-ping" />
+				</div>
+			</template>
+		</ClientOnly>
 	</div>
 </template>
 
