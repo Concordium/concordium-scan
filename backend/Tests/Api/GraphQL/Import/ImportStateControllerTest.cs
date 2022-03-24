@@ -20,7 +20,7 @@ public class ImportStateControllerTest : IClassFixture<DatabaseFixture>
     {
         _outputHelper = outputHelper;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new ImportStateController(_dbContextFactory);
+        _target = new ImportStateController(_dbContextFactory, new NullMetrics());
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_import_state");

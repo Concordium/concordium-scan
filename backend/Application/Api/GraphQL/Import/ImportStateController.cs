@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -7,12 +8,14 @@ namespace Application.Api.GraphQL.Import;
 public class ImportStateController
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IMetrics _metrics;
     private ImportState? _lastCommittedState;
     private ImportState? _lastSavedState;
 
-    public ImportStateController(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public ImportStateController(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _metrics = metrics;
     }
 
     public async Task<ImportState> GetState()
@@ -23,6 +26,8 @@ public class ImportStateController
 
     public async Task<ImportState?> GetStateIfExists()
     {
+        using var counter = _metrics.MeasureDuration(nameof(ImportStateController), nameof(GetStateIfExists));
+
         if (_lastCommittedState == null)
         {
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -38,6 +43,8 @@ public class ImportStateController
 
     public async Task SaveChanges(ImportState state)
     {
+        using var counter = _metrics.MeasureDuration(nameof(ImportStateController), nameof(SaveChanges));
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         if (state.Id == 0 && _lastCommittedState == null) // Genesis state
         {

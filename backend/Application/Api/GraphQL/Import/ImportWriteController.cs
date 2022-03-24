@@ -47,7 +47,7 @@ public class ImportWriteController : BackgroundService
         _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
-        _importStateController = new ImportStateController(dbContextFactory);
+        _importStateController = new ImportStateController(dbContextFactory, metrics);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
