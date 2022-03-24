@@ -1,5 +1,5 @@
 <template>
-	<span> <Hash :hash="reason.accountAddress" /> is not a baker </span>
+	<span> <Hash :hash="reason.accountAddressString" /> is not a baker </span>
 </template>
 
 <script setup lang="ts">

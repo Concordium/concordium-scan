@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Account <AccountLink :address="event.accountAddress" /> updated the
+		Account <AccountLink :address="event.accountAddressString" /> updated the
 		credentials
 	</span>
 </template>

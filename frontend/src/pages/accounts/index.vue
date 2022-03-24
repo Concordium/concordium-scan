@@ -56,9 +56,9 @@
 				</TableRow>
 			</TableHead>
 			<TableBody>
-				<TableRow v-for="account in pagedData" :key="account.address">
+				<TableRow v-for="account in pagedData" :key="account.addressString">
 					<TableTd>
-						<AccountLink :address="account.address" />
+						<AccountLink :address="account.addressString" />
 					</TableTd>
 					<TableTd>
 						<Tooltip :text="formatTimestamp(account.createdAt)">

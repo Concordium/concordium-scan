@@ -3,7 +3,7 @@
 		The {{ addressType }}
 		<AccountLink
 			v-if="reason.address.__typename === 'AccountAddress'"
-			:address="reason.address.address"
+			:address="reason.address.asString"
 		/>
 		<Contract
 			v-else-if="reason.address.__typename === 'ContractAddress'"

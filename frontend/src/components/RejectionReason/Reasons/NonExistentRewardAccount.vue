@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Reward account <Hash :hash="reason.accountAddress" /> does not exist
+		Reward account <Hash :hash="reason.accountAddressString" /> does not exist
 	</span>
 </template>
 

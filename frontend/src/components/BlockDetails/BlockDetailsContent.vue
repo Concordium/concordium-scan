@@ -50,10 +50,10 @@
 				</span>
 				<template #content>
 					<BlockDetailsTransactions
-						v-if="props.block?.transactionCount > 0"
-						:transactions="props.block?.transactions?.nodes"
+						v-if="props.block?.transactionCount > 0 && props.block.transactions"
+						:transactions="props.block?.transactions.nodes || []"
 						:total-count="props.block?.transactionCount"
-						:page-info="props.block.transactions?.pageInfo"
+						:page-info="props.block.transactions.pageInfo"
 						:go-to-page="props.goToPage"
 					/>
 					<div v-if="!props.block?.transactionCount" class="p-4">

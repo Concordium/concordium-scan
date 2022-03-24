@@ -5,7 +5,7 @@
 			<dl class="grid grid-cols-2 col-span-2">
 				<dt>Baker</dt>
 				<dd class="text-right mb-2">
-					<AccountLink :address="data.bakerAccountAddress" />
+					<AccountLink :address="data.bakerAccountAddressString" />
 				</dd>
 				<dt>Baker reward</dt>
 				<dd class="text-right mb-2">

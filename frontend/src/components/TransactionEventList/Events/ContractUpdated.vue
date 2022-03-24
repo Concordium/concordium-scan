@@ -6,7 +6,7 @@
 		/>
 		<AccountLink
 			v-else-if="event.instigator.__typename === 'AccountAddress'"
-			:address="event.instigator.address"
+			:address="event.instigator.asString"
 		/>
 		updated smart contract instance
 		<Contract :address="event.contractAddress" />

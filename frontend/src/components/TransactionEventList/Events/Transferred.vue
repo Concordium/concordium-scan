@@ -4,7 +4,7 @@
 		{{ fromAddressType }}
 		<AccountLink
 			v-if="event.from.__typename === 'AccountAddress'"
-			:address="event.from.address"
+			:address="event.from.asString"
 		/>
 		<Contract
 			v-else-if="event.from.__typename === 'ContractAddress'"
@@ -13,7 +13,7 @@
 		to {{ toAddressType }}
 		<AccountLink
 			v-if="event.to.__typename === 'AccountAddress'"
-			:address="event.to.address"
+			:address="event.to.asString"
 		/>
 		<Contract
 			v-else-if="event.to.__typename === 'ContractAddress'"

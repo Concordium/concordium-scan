@@ -138,11 +138,11 @@
 						<div class="text-xl">Accounts</div>
 						<div
 							v-for="(account, index) in queryData.search.accounts.nodes"
-							:key="account.address"
+							:key="account.addressString"
 							class="grid grid-cols-4 gap-8"
 						>
 							<AccountLink
-								:address="account.address"
+								:address="account.addressString"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>

@@ -6,10 +6,10 @@
 			<h3 class="w-full text-sm text-theme-faded">Account</h3>
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl numerical">
-					{{ shortenHash(account.address) }}
+					{{ shortenHash(account.addressString) }}
 				</h1>
 				<TextCopy
-					:text="account.address"
+					:text="account.addressString"
 					label="Click to copy account address to clipboard"
 					class="mx-3"
 					icon-size="h-5 w-5"

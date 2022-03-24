@@ -51,7 +51,9 @@
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
 						<AccountLink
-							:address="accountTxRelation.transaction.senderAccountAddress"
+							:address="
+								accountTxRelation.transaction.senderAccountAddressString
+							"
 						/>
 					</TableTd>
 					<TableTd

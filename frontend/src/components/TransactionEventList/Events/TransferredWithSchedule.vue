@@ -1,8 +1,8 @@
 <template>
 	<span>
-		<AccountLink :address="event.fromAccountAddress" /> initiated a scheduled
-		transfer to
-		<AccountLink :address="event.toAccountAddress" />
+		<AccountLink :address="event.fromAccountAddressString" /> initiated a
+		scheduled transfer to
+		<AccountLink :address="event.toAccountAddressString" />
 	</span>
 </template>
 

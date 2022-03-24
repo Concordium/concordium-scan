@@ -1,7 +1,7 @@
 <template>
 	<span>
 		Added an amount to the encrypted balance of account
-		<AccountLink :address="event.accountAddress" />
+		<AccountLink :address="event.accountAddressString" />
 	</span>
 </template>
 

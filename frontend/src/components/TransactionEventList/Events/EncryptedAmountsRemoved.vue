@@ -1,7 +1,7 @@
 <template>
 	<span>
 		Removed an amount from the encrypted balance of account
-		<AccountLink :address="event.accountAddress" />
+		<AccountLink :address="event.accountAddressString" />
 	</span>
 </template>
 
