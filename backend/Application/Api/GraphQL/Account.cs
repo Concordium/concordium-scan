@@ -8,34 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
-public class AccountStatementEntry
-{
-    public long AccountId { get; set; }
-    public int Index { get; set; }
-    public DateTimeOffset Timestamp { get; set; }
-    public EntryType EntryType { get; set; }
-    public long Amount { get; set; }
-    // TODO: Account balance (kontosaldo efter postering)
-    // TODO: Add reference - either block (rewards) or transaction (tx-fee or transfers)
-}
-
-/// <summary>
-/// NOTE:   Specific assigned values are important for reading and writing to database.
-///         Should not be modified without consideration!
-/// </summary>
-public enum EntryType
-{
-    TransferIn = 1,
-    TransferOut = 2,
-    AmountDecrypted = 3,
-    AmountEncrypted = 4,
-    TransactionFee = 5,
-    BakingReward = 6,
-    BlockReward = 7,
-    FinalizationReward = 8,
-    MintReward = 9,
-}
-
 public class Account
 {
     [ID]

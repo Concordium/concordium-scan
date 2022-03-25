@@ -156,7 +156,7 @@ public class AccountChangeCalculator
         return toInsert;
     }
 
-    public async Task<IEnumerable<AccountStatementEntry>> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, DateTimeOffset blockSlotTime)
+    public async Task<IEnumerable<AccountStatementEntry>> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block)
     {
         var distinctBaseAddresses = balanceUpdates
             .Select(x => x.AccountAddress.GetBaseAddress().AsString)
@@ -167,9 +167,10 @@ public class AccountChangeCalculator
         {
             AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
             Index = default, // Will be set by database
-            Timestamp = blockSlotTime,
+            Timestamp = block.BlockSlotTime,
             Amount = x.AmountAdjustment,
-            EntryType = Map(x.BalanceUpdateType)
+            EntryType = Map(x.BalanceUpdateType),
+            BlockId = block.Id
         });
     }
 

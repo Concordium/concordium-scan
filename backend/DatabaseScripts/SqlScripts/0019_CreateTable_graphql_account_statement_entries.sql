@@ -5,5 +5,6 @@
     time       timestamp not null,
     entry_type int       not null,
     amount     bigint    not null,
+    block_id   bigint    not null,
     PRIMARY KEY (account_id, index)
 );
