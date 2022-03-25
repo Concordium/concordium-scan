@@ -17,7 +17,7 @@ const AccountQuery = gql<Account>`
 					transaction {
 						id
 						transactionHash
-						senderAccountAddress
+						senderAccountAddressString
 						ccdCost
 						result {
 							__typename
@@ -41,7 +41,7 @@ const AccountQuery = gql<Account>`
 				}
 			}
 			id
-			address
+			addressString
 			createdAt
 			__typename
 		}
@@ -70,7 +70,7 @@ const AccountQueryByAddress = gql<Account>`
 					transaction {
 						id
 						transactionHash
-						senderAccountAddress
+						senderAccountAddressString
 						ccdCost
 						block {
 							blockSlotTime
@@ -94,7 +94,7 @@ const AccountQueryByAddress = gql<Account>`
 				}
 			}
 			id
-			address
+			addressString
 			createdAt
 			__typename
 		}

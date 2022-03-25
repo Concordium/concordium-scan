@@ -21,7 +21,7 @@ const AccountsQuery = gql<AccountsListResponse>`
 		accounts(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
 				id
-				address
+				addressString
 				createdAt
 				transactions {
 					nodes {

@@ -41,7 +41,7 @@ const SearchQuery = gql<SearchResponse>`
 			accounts(first: 3) {
 				nodes {
 					id
-					address
+					addressString
 					createdAt
 				}
 				pageInfo {

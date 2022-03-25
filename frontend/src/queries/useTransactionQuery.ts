@@ -13,15 +13,15 @@ type TransactionByTransactionHashResponse = {
 const eventsFragment = `
 __typename
 ... on AccountCreated {
-	accountAddress
+	accountAddressString
 }
 ... on AmountAddedByDecryption {
 	amount
-	accountAddress
+	accountAddressString
 }
 ... on BakerAdded {
 	bakerId
-	accountAddress
+	accountAddressString
 	stakedAmount
 	restakeEarnings
 }
@@ -59,7 +59,7 @@ __typename
 	instigator {
 		__typename
 		... on AccountAddress {
-			address
+			asString
 		}
 		... on ContractAddress {
 			index
@@ -76,7 +76,7 @@ __typename
 	credId
 }
 ... on CredentialsUpdated {
-	accountAddress
+	accountAddressString
 	newCredIds
 	removedCredIds
 }
@@ -84,14 +84,14 @@ __typename
 	__typename
 }
 ...on EncryptedAmountsRemoved {
-	accountAddress
+	accountAddressString
 }
 ... on EncryptedSelfAmountAdded {
-	accountAddress
+	accountAddressString
 	amount
 }
 ...on NewEncryptedAmount {
-	accountAddress
+	accountAddressString
 }
 ... on TransferMemo {
 	decoded {
@@ -111,7 +111,7 @@ __typename
 	from {
 		... on AccountAddress {
 			__typename
-			address
+			asString
 		}
 		... on ContractAddress {
 			__typename
@@ -122,7 +122,7 @@ __typename
 	to {
 		... on AccountAddress {
 			__typename
-			address
+			asString
 		}
 		... on ContractAddress {
 			__typename
@@ -133,7 +133,7 @@ __typename
 }
 ... on CredentialDeployed {
 	regId
-	accountAddress
+	accountAddressString
 }
 `
 
@@ -148,7 +148,7 @@ reason {
 		address {
 			__typename
 			... on AccountAddress {
-				address
+				asString
 			}
 			... on ContractAddress {
 				index
@@ -160,10 +160,10 @@ reason {
 		credIds
 	}
 	... on EncryptedAmountSelfTransfer {
-		accountAddress
+		accountAddressString
 	}
 	... on InvalidAccountReference {
-		accountAddress
+		accountAddressString
 	}
 	... on InvalidContractAddress {
 		contractAddress {
@@ -189,10 +189,10 @@ reason {
 		credIds
 	}
 	... on NonExistentRewardAccount {
-		accountAddress
+		accountAddressString
 	}
 	... on NotABaker {
-		accountAddress
+		accountAddressString
 	}
 	... on RejectedInit {
 		rejectReason
@@ -206,7 +206,7 @@ reason {
 		receiveName
 	}
 	... on ScheduledSelfTransfer {
-		accountAddress
+		accountAddressString
 	}
 }
 `
@@ -217,7 +217,7 @@ const TransactionQuery = gql<TransactionResponse>`
 			id
 			ccdCost
 			transactionHash
-			senderAccountAddress
+			senderAccountAddressString
 			block {
 				id
 				blockHash
@@ -267,7 +267,7 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			id
 			ccdCost
 			transactionHash
-			senderAccountAddress
+			senderAccountAddressString
 			block {
 				id
 				blockHash

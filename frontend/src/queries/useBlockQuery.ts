@@ -22,7 +22,7 @@ const BlockQuery = gql<BlockResponse>`
 				nodes {
 					id
 					transactionHash
-					senderAccountAddress
+					senderAccountAddressString
 					ccdCost
 					result {
 						__typename
@@ -59,7 +59,7 @@ const BlockQuery = gql<BlockResponse>`
 					rewards {
 						nodes {
 							amount
-							address
+							addressString
 						}
 					}
 				}
@@ -69,8 +69,8 @@ const BlockQuery = gql<BlockResponse>`
 					oldGasAccount
 					newGasAccount
 					foundationCharge
-					bakerAccountAddress
-					foundationAccountAddress
+					bakerAccountAddressString
+					foundationAccountAddressString
 				}
 			}
 		}
@@ -96,7 +96,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 				nodes {
 					id
 					transactionHash
-					senderAccountAddress
+					senderAccountAddressString
 					ccdCost
 					result {
 						__typename
@@ -121,7 +121,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					rewards {
 						nodes {
 							amount
-							address
+							addressString
 						}
 					}
 				}
@@ -131,8 +131,8 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					oldGasAccount
 					newGasAccount
 					foundationCharge
-					bakerAccountAddress
-					foundationAccountAddress
+					bakerAccountAddressString
+					foundationAccountAddressString
 				}
 			}
 		}
