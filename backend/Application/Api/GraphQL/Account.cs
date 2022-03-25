@@ -51,7 +51,7 @@ public class Account
     
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(InferConnectionNameFromField = false)] // TODO: Make a specific paging provider to ensure stable paging
-    public IQueryable<AccountStatementEntry> GetAccountStatementEntries([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<AccountStatementEntry> GetAccountStatement([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.AccountStatementEntries.AsNoTracking()
             .Where(x => x.AccountId == Id)
