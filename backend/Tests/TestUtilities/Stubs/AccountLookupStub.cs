@@ -7,7 +7,7 @@ public class AccountLookupStub : IAccountLookup
 {
     private readonly Dictionary<string, long?> _store = new();
     
-    public Task<IDictionary<string, long?>> GetAccountIdsFromBaseAddressesAsync(IEnumerable<string> accountBaseAddresses)
+    public IDictionary<string, long?> GetAccountIdsFromBaseAddresses(IEnumerable<string> accountBaseAddresses)
     {
         var dictionary = accountBaseAddresses
             .Select(x =>
@@ -17,8 +17,8 @@ public class AccountLookupStub : IAccountLookup
                 throw new InvalidOperationException("Address not found in dictionary. Please set up expected result via AddToCache!");
             })
             .ToDictionary(x => x.Key, x => x.Result);
-        
-        return Task.FromResult<IDictionary<string, long?>>(dictionary);
+
+        return dictionary;
     }
 
     public void AddToCache(string baseAddress, long? accountId)

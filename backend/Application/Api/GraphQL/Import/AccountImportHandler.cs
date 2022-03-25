@@ -33,24 +33,24 @@ public class AccountImportHandler
             _accountLookup.AddToCache(account.BaseAddress.AsString, account.Id);
     }
 
-    public async Task HandleAccountUpdates(BlockDataPayload payload, TransactionPair[] transactions, Block block)
+    public void HandleAccountUpdates(BlockDataPayload payload, TransactionPair[] transactions, Block block)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountImportHandler), nameof(HandleAccountUpdates));
 
-        var transactionRelations = await _changeCalculator.GetAccountTransactionRelations(transactions);
+        var transactionRelations = _changeCalculator.GetAccountTransactionRelations(transactions);
         if (transactionRelations.Length > 0)
-            await _writer.InsertAccountTransactionRelation(transactionRelations);
+            _writer.InsertAccountTransactionRelation(transactionRelations);
         
         var balanceUpdates = payload.BlockSummary.GetAccountBalanceUpdates().ToArray();
-        var accountUpdates = await _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
-        await _writer.UpdateAccounts(accountUpdates);
+        var accountUpdates = _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
+        _writer.UpdateAccounts(accountUpdates);
 
-        var statementEntries = await _changeCalculator.GetAccountStatementEntries(balanceUpdates, block, transactions);
-        await _writer.InsertAccountStatementEntries(statementEntries);
+        var statementEntries = _changeCalculator.GetAccountStatementEntries(balanceUpdates, block, transactions);
+        _writer.InsertAccountStatementEntries(statementEntries);
 
-        var releaseScheduleItems = await _changeCalculator.GetAccountReleaseScheduleItems(transactions);
+        var releaseScheduleItems = _changeCalculator.GetAccountReleaseScheduleItems(transactions);
         if (releaseScheduleItems.Length > 0)
-            await _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
+            _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
     }
 }
 

@@ -28,7 +28,7 @@ public class AccountWriter
         await context.SaveChangesAsync();
     }
 
-    public async Task UpdateAccounts(IEnumerable<AccountUpdate> accountUpdates)
+    public void UpdateAccounts(IEnumerable<AccountUpdate> accountUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
         
@@ -38,10 +38,10 @@ public class AccountWriter
                 transaction_count = transaction_count + @TransactionsAdded
             WHERE id = @AccountId";
 
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        using var context = _dbContextFactory.CreateDbContext();
         var connection = context.Database.GetDbConnection();
 
-        await connection.OpenAsync();
+        connection.Open();
 
         var batch = connection.CreateBatch();
         foreach (var accountUpdate in accountUpdates)
@@ -54,19 +54,19 @@ public class AccountWriter
             batch.BatchCommands.Add(cmd);
         }
 
-        await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+        batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
 
-        await batch.ExecuteNonQueryAsync();
-        await connection.CloseAsync();
+        batch.ExecuteNonQuery();
+        connection.Close();
     }
 
-    public async Task InsertAccountTransactionRelation(AccountTransactionRelation[] items)
+    public void InsertAccountTransactionRelation(AccountTransactionRelation[] items)
     {
         if (items.Length == 0) return;
 
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountTransactionRelation));
 
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        using var context = _dbContextFactory.CreateDbContext();
         var connection = context.Database.GetDbConnection();
 
         var sql = @"
@@ -74,7 +74,7 @@ public class AccountWriter
                 values (@AccountId, @TransactionId) 
                 returning account_id, index, transaction_id;";
 
-        await connection.OpenAsync();
+        connection.Open();
 
         var batch = connection.CreateBatch();
         foreach (var item in items)
@@ -86,9 +86,9 @@ public class AccountWriter
             batch.BatchCommands.Add(cmd);
         }
 
-        await batch.PrepareAsync(); // Preparing will speed up the inserts, particularly when there are many!
+        batch.Prepare(); // Preparing will speed up the inserts, particularly when there are many!
 
-        await using var reader = await batch.ExecuteReaderAsync();
+        using var reader = batch.ExecuteReader();
         var returnedItems = IterateBatchDbDataReader(reader, row => new
             {
                 AccountId = row.GetInt64(0),
@@ -104,25 +104,25 @@ public class AccountWriter
             item.Index = returnedItem.Index;
         }
 
-        await connection.CloseAsync();
+        connection.Close();
     }
 
-    public async Task InsertAccountStatementEntries(IEnumerable<AccountStatementEntry> entries)
+    public void InsertAccountStatementEntries(IEnumerable<AccountStatementEntry> entries)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountStatementEntries));
 
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        using var context = _dbContextFactory.CreateDbContext();
         context.AccountStatementEntries.AddRange(entries);
-        await context.SaveChangesAsync();
+        context.SaveChanges();
     }
 
-    public async Task InsertAccountReleaseScheduleItems(IEnumerable<AccountReleaseScheduleItem> items)
+    public void InsertAccountReleaseScheduleItems(IEnumerable<AccountReleaseScheduleItem> items)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(InsertAccountReleaseScheduleItems));
 
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        using var context = _dbContextFactory.CreateDbContext();
         context.AddRange(items);
-        await context.SaveChangesAsync();
+        context.SaveChanges();
     }
 
     private static IEnumerable<T> IterateBatchDbDataReader<T>(DbDataReader reader, Func<IDataReader, T> projection)

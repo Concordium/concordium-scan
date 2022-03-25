@@ -35,16 +35,16 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
-    public async Task GetAccountIdsFromBaseAddressesAsync_EmptyQuery()
+    public void GetAccountIdsFromBaseAddressesAsync_EmptyQuery()
     {
-        var result = await _target.GetAccountIdsFromBaseAddressesAsync(Array.Empty<string>());
+        var result = _target.GetAccountIdsFromBaseAddresses(Array.Empty<string>());
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetAccountIdsFromBaseAddressesAsync_QuerySingle_DoesntExist()
+    public void GetAccountIdsFromBaseAddressesAsync_QuerySingle_DoesntExist()
     {
-        var result = await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
+        var result = _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
         
         var expected = new Dictionary<string, long?>()
         {
@@ -58,7 +58,7 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         await CreateAccount(42, "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         
-        var result = await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
+        var result = _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
         
         var expected = new Dictionary<string, long?>()
         {
@@ -73,9 +73,9 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
         await CreateAccount(42, "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         await CreateAccount(47, "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         
-        await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
+        _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
         
-        var result = await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"});
+        var result = _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"});
         
         var expected = new Dictionary<string, long?>()
         {
@@ -92,10 +92,10 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
         await CreateAccount(47, "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
 
         // Put one in cache...
-        await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
+        _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"});
         
         // .. and now lookup with one in cache and one not in cache
-        var result = await _target.GetAccountIdsFromBaseAddressesAsync(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"});
+        var result = _target.GetAccountIdsFromBaseAddresses(new[]{"3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P", "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"});
         
         var expected = new Dictionary<string, long?>()
         {

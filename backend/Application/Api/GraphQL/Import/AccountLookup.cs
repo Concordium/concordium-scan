@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Application.Database;
+﻿using Application.Database;
 using Dapper;
 using Microsoft.Extensions.Caching.Memory;
 using Npgsql;
@@ -8,7 +7,7 @@ namespace Application.Api.GraphQL.Import;
 
 public interface IAccountLookup
 {
-    public Task<IDictionary<string, long?>> GetAccountIdsFromBaseAddressesAsync(IEnumerable<string> accountBaseAddresses);
+    public IDictionary<string, long?> GetAccountIdsFromBaseAddresses(IEnumerable<string> accountBaseAddresses);
     void AddToCache(string baseAddress, long? accountId);
 }
 
@@ -25,7 +24,7 @@ public class AccountLookup : IAccountLookup
         _logger = Log.ForContext(GetType());
     }
 
-    public async Task<IDictionary<string, long?>> GetAccountIdsFromBaseAddressesAsync(IEnumerable<string> accountBaseAddresses)
+    public IDictionary<string, long?> GetAccountIdsFromBaseAddresses(IEnumerable<string> accountBaseAddresses)
     {
         var result = new List<LookupResult>();
         var notCached = new List<string>();
@@ -42,7 +41,7 @@ public class AccountLookup : IAccountLookup
         {
             _logger.Debug("Cache-miss for {count} accounts", notCached.Count);
             
-            var accounts = await QueryDatabase(notCached);
+            var accounts = QueryDatabase(notCached);
             foreach (var account in accounts)
             {
                 AddToCache(account.Key, account.Result);
@@ -68,16 +67,16 @@ public class AccountLookup : IAccountLookup
         entry.Value = accountId;
     }
 
-    private async Task<IEnumerable<LookupResult>> QueryDatabase(IEnumerable<string> baseAddresses)
+    private IEnumerable<LookupResult> QueryDatabase(IEnumerable<string> baseAddresses)
     {
         var sql = @"
                 select base_address as Key, id as Result  
                 from graphql_accounts 
                 where base_address = any(@BaseAddresses)";
-        await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
-        await conn.OpenAsync();
+        using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
+        conn.Open();
 
-        return await conn.QueryAsync<LookupResult>(sql, new { BaseAddresses = baseAddresses });
+        return conn.Query<LookupResult>(sql, new { BaseAddresses = baseAddresses });
     }
 
     private record LookupResult (string Key, long? Result);

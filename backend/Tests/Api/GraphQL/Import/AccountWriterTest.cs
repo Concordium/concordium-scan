@@ -68,7 +68,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             BlockId = 11,
             TransactionId = 22
         };
-        await _target.InsertAccountStatementEntries(new[] { input });
+        _target.InsertAccountStatementEntries(new[] { input });
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.AccountStatementEntries.SingleAsync();

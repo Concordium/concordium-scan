@@ -24,7 +24,7 @@ public class AccountChangeCalculator
         });
     }
 
-    public async Task<AccountTransactionRelation[]> GetAccountTransactionRelations(TransactionPair[] transactions)
+    public AccountTransactionRelation[] GetAccountTransactionRelations(TransactionPair[] transactions)
     {
         var result = Array.Empty<AccountTransactionRelation>();
 
@@ -49,7 +49,7 @@ public class AccountChangeCalculator
             var distinctBaseAddresses = accountTransactions
                 .Select(x => x.AccountBaseAddress)
                 .Distinct();
-            var accountIdLookup = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(distinctBaseAddresses);
+            var accountIdLookup = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
             result = accountTransactions
                 .Select(x =>
@@ -77,7 +77,7 @@ public class AccountChangeCalculator
             yield return address;
     }
 
-    public async Task<IEnumerable<AccountUpdate>> GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
+    public IEnumerable<AccountUpdate> GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
     {
         var aggregatedBalanceUpdates = balanceUpdates
             .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
@@ -90,7 +90,7 @@ public class AccountChangeCalculator
             .ToArray();
 
         var baseAddresses = aggregatedBalanceUpdates.Select(x => x.BaseAddress);
-        var accountIdMap = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(baseAddresses);
+        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
         
         var amountAdjustmentResults = aggregatedBalanceUpdates
             .Select(x =>
@@ -107,12 +107,12 @@ public class AccountChangeCalculator
 
         return amountAdjustmentResults.Concat(transactionResults)
             .GroupBy(x => x.AccountId)
-            .Select(group => new AccountUpdate(group.Key,
-                group.Aggregate(0L, (acc, item) => acc + item.AmountAdjustment),
-                group.Aggregate(0, (acc, item) => acc + item.TransactionsAdded)));
+            .Select(group => new AccountUpdate(@group.Key,
+                @group.Aggregate(0L, (acc, item) => acc + item.AmountAdjustment),
+                @group.Aggregate(0, (acc, item) => acc + item.TransactionsAdded)));
     }
 
-    public async Task<AccountReleaseScheduleItem[]> GetAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
+    public AccountReleaseScheduleItem[] GetAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
     {
         AccountReleaseScheduleItem[] toInsert = Array.Empty<AccountReleaseScheduleItem>();
 
@@ -139,7 +139,7 @@ public class AccountChangeCalculator
                 .Select(x => x.AccountBaseAddress)
                 .Concat(result.Select(x => x.FromAccountBaseAddress))
                 .Distinct();
-            var accountIdMap = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(distinctBaseAddresses);
+            var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
             toInsert = result.Select(x => new AccountReleaseScheduleItem
                 {
@@ -156,12 +156,12 @@ public class AccountChangeCalculator
         return toInsert;
     }
 
-    public async Task<IEnumerable<AccountStatementEntry>> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block, TransactionPair[] transactions)
+    public IEnumerable<AccountStatementEntry> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block, TransactionPair[] transactions)
     {
         var distinctBaseAddresses = balanceUpdates
             .Select(x => x.AccountAddress.GetBaseAddress().AsString)
             .Distinct();
-        var accountIdMap = await _accountLookup.GetAccountIdsFromBaseAddressesAsync(distinctBaseAddresses);
+        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
         
         return balanceUpdates.Select(x => new AccountStatementEntry
         {

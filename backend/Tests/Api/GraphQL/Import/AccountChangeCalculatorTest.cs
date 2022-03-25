@@ -29,14 +29,14 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact]
-    public async Task GetAggregatedAccountUpdates_NoUpdates()
+    public void GetAggregatedAccountUpdates_NoUpdates()
     {
-        var result = await _target.GetAggregatedAccountUpdates(_noBalanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(_noBalanceUpdates, _noTransactions);
         result.Should().BeEmpty();
     }
     
     [Fact]
-    public async Task GetAggregatedAccountUpdates_AmountAdjustment_SingleUpdate()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_SingleUpdate()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
@@ -46,7 +46,7 @@ public class AccountChangeCalculatorTest
             new AccountBalanceUpdateBuilder().WithAccountAddress(accountAddress).WithAmountAdjustment(100).Build()
         };
         
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -55,7 +55,7 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact]
-    public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithSameAddress()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithSameAddress()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
@@ -67,7 +67,7 @@ public class AccountChangeCalculatorTest
             new AccountBalanceUpdateBuilder().WithAccountAddress(accountAddress).WithAmountAdjustment(300).Build(),
         };
         
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -76,7 +76,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithAliasAddresses()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithAliasAddresses()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
@@ -88,7 +88,7 @@ public class AccountChangeCalculatorTest
             new AccountBalanceUpdateBuilder().WithAccountAddress(accountAddress.CreateAliasAddress(10, 201, 8)).WithAmountAdjustment(300).Build(),
         };
         
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -97,7 +97,7 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
@@ -112,7 +112,7 @@ public class AccountChangeCalculatorTest
             new AccountBalanceUpdateBuilder().WithAccountAddress(accountAddress2.CreateAliasAddress(10, 201, 8)).WithAmountAdjustment(300).Build(),
         };
         
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -122,7 +122,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
@@ -139,7 +139,7 @@ public class AccountChangeCalculatorTest
             new AccountBalanceUpdateBuilder().WithAccountAddress(accountAddress3).WithAmountAdjustment(0).Build(),
         };
         
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, _noTransactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -148,13 +148,13 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountSingleTransaction()
+    public void GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountSingleTransaction()
     {
         var transactions = new[]
         {
             new AccountTransactionRelationBuilder().WithAccountId(11).Build()
         };
-        var result = await _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
+        var result = _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -163,7 +163,7 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountMultipleTransactions()
+    public void GetAggregatedAccountUpdates_TransactionsAdded_SingleAccountMultipleTransactions()
     {
         var transactions = new[]
         {
@@ -171,7 +171,7 @@ public class AccountChangeCalculatorTest
             new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
             new AccountTransactionRelationBuilder().WithAccountId(11).Build()
         };
-        var result = await _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
+        var result = _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -180,7 +180,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_TransactionsAdded_MultipleAccountsMultipleTransactions()
+    public void GetAggregatedAccountUpdates_TransactionsAdded_MultipleAccountsMultipleTransactions()
     {
         var transactions = new[]
         {
@@ -190,7 +190,7 @@ public class AccountChangeCalculatorTest
             new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
             new AccountTransactionRelationBuilder().WithAccountId(42).Build()
         };
-        var result = await _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
+        var result = _target.GetAggregatedAccountUpdates(_noBalanceUpdates, transactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -200,7 +200,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public async Task GetAggregatedAccountUpdates_ResultsFlattened()
+    public void GetAggregatedAccountUpdates_ResultsFlattened()
     {
         var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 11);
@@ -215,7 +215,7 @@ public class AccountChangeCalculatorTest
             new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
             new AccountTransactionRelationBuilder().WithAccountId(11).Build(),
         };
-        var result = await _target.GetAggregatedAccountUpdates(balanceUpdates, transactions);
+        var result = _target.GetAggregatedAccountUpdates(balanceUpdates, transactions);
         
         result.Should().BeEquivalentTo(new []
         {
@@ -225,7 +225,7 @@ public class AccountChangeCalculatorTest
     
     
     [Fact] 
-    public async Task GetAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
+    public void GetAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
     {
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 13);
@@ -241,7 +241,7 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 42 });
 
-        var result = await _target.GetAccountTransactionRelations(new[] { input });
+        var result = _target.GetAccountTransactionRelations(new[] { input });
 
         result.Length.Should().Be(1);
         result[0].AccountId.Should().Be(13);
@@ -249,7 +249,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact]
-    public async Task GetAccountTransactionRelations_AccountExists_MultipleTransactionsWithSameAddress()
+    public void GetAccountTransactionRelations_AccountExists_MultipleTransactionsWithSameAddress()
     {
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 15);
@@ -265,7 +265,7 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 43 });
 
-        var result = await _target.GetAccountTransactionRelations(new[] { input1, input2 });
+        var result = _target.GetAccountTransactionRelations(new[] { input1, input2 });
         result.Length.Should().Be(2);
         result[0].AccountId.Should().Be(15);
         result[0].TransactionId.Should().Be(42);
@@ -278,7 +278,7 @@ public class AccountChangeCalculatorTest
     /// Therefore we will simply avoid creating relations for these addresses.
     /// </summary>
     [Fact]
-    public async Task GetAccountTransactionRelations_AccountDoesNotExist()
+    public void GetAccountTransactionRelations_AccountDoesNotExist()
     {
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, null);
@@ -294,12 +294,12 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 42 });
 
-        var returnedResult = await _target.GetAccountTransactionRelations(new[] { input });
+        var returnedResult = _target.GetAccountTransactionRelations(new[] { input });
         returnedResult.Should().BeEmpty();
     }
     
     [Fact]
-    public async Task GetAccountTransactionRelations_AccountExists_SingleTransactionWithAnAliasAddress()
+    public void GetAccountTransactionRelations_AccountExists_SingleTransactionWithAnAliasAddress()
     {
         var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var aliasAddress = canonicalAddress.CreateAliasAddress(48, 11, 99);
@@ -315,14 +315,14 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 42 });
 
-        var result = await _target.GetAccountTransactionRelations(new[] { input });
+        var result = _target.GetAccountTransactionRelations(new[] { input });
         result.Length.Should().Be(1);
         result[0].AccountId.Should().Be(15);
         result[0].TransactionId.Should().Be(42);
     }
     
     [Fact]
-    public async Task GetAccountReleaseScheduleItems_AccountsExists_CanonicalAddress()
+    public void GetAccountReleaseScheduleItems_AccountsExists_CanonicalAddress()
     {
         var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().AsString, 13);
@@ -347,7 +347,7 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 42 });
         
-        var result = await _target.GetAccountReleaseScheduleItems(new []{ input });
+        var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
         AssertEqual(result[0], 13, 42, 0, baseTime.AddHours(1), 515151, 14);
@@ -355,7 +355,7 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact]
-    public async Task GetAccountReleaseScheduleItems_AccountsExists_AliasAddresses()
+    public void GetAccountReleaseScheduleItems_AccountsExists_AliasAddresses()
     {
         var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().AsString, 10);
@@ -382,7 +382,7 @@ public class AccountChangeCalculatorTest
                 .Build(),
             new Transaction { Id = 42 });
         
-        var result = await _target.GetAccountReleaseScheduleItems(new []{ input });
+        var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
         AssertEqual(result[0], 10, 42, 0, baseTime.AddHours(1), 515151, 27);
@@ -390,7 +390,7 @@ public class AccountChangeCalculatorTest
     }
 
     [Fact]
-    public async Task GetAccountReleaseScheduleItems_AccountDoesntExist()
+    public void GetAccountReleaseScheduleItems_AccountDoesntExist()
     {
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
@@ -410,7 +410,7 @@ public class AccountChangeCalculatorTest
             new Transaction { Id = 42 });
         
         // We do not ever expect a scheduled transfer to complete successfully if either sender or receiver does not exist!
-        await Assert.ThrowsAnyAsync<Exception>(() => _target.GetAccountReleaseScheduleItems(new []{ input }));
+        Assert.ThrowsAny<Exception>(() => _target.GetAccountReleaseScheduleItems(new []{ input }));
     }
 
     private static void AssertEqual(AccountReleaseScheduleItem actual, long expectedAccountId, int expectedTransactionId, int expectedScheduleIndex, DateTimeOffset expectedTimestamp, ulong expectedAmount, long expectedFromAccountId)
