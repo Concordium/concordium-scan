@@ -17,5 +17,6 @@ public class AccountStatementEntryConfiguration : IEntityTypeConfiguration<Accou
         builder.Property(x => x.EntryType).HasColumnName("entry_type"); // TODO: Should probably use specific converter to avoid future problems
         builder.Property(x => x.Amount).HasColumnName("amount");
         builder.Property(x => x.BlockId).HasColumnName("block_id");
+        builder.Property(x => x.TransactionId).HasColumnName("transaction_id");
     }
 }

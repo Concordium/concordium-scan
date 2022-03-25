@@ -65,7 +65,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             Timestamp = new DateTimeOffset(2020, 10, 01, 12, 31, 42, 123, TimeSpan.Zero),
             Amount = 132,
             EntryType = EntryType.AmountEncrypted,
-            BlockId = 11
+            BlockId = 11,
+            TransactionId = 22
         };
         await _target.InsertAccountStatementEntries(new[] { input });
 
@@ -79,5 +80,6 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         result.Amount.Should().Be(132);
         result.EntryType.Should().Be(EntryType.AmountEncrypted);
         result.BlockId.Should().Be(11);
+        result.TransactionId.Should().Be(22);
     }
 }

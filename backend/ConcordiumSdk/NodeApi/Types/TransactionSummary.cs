@@ -31,9 +31,9 @@ public class TransactionSummary
     public IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
         if (Sender != null && Cost > CcdAmount.Zero)
-            yield return new AccountBalanceUpdate(Sender, -1 * (long)Cost.MicroCcdValue, BalanceUpdateType.TransactionFee);
+            yield return new AccountBalanceUpdate(Sender, -1 * (long)Cost.MicroCcdValue, BalanceUpdateType.TransactionFee, Hash);
 
         foreach (var balanceUpdate in Result.GetAccountBalanceUpdates(this))
-            yield return balanceUpdate;
+            yield return balanceUpdate with { TransactionHash = Hash};
     }
 }

@@ -156,7 +156,7 @@ public class AccountChangeCalculator
         return toInsert;
     }
 
-    public async Task<IEnumerable<AccountStatementEntry>> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block)
+    public async Task<IEnumerable<AccountStatementEntry>> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block, TransactionPair[] transactions)
     {
         var distinctBaseAddresses = balanceUpdates
             .Select(x => x.AccountAddress.GetBaseAddress().AsString)
@@ -170,8 +170,17 @@ public class AccountChangeCalculator
             Timestamp = block.BlockSlotTime,
             Amount = x.AmountAdjustment,
             EntryType = Map(x.BalanceUpdateType),
-            BlockId = block.Id
+            BlockId = block.Id,
+            TransactionId = GetTransactionId(x, transactions)
         });
+    }
+
+    private long? GetTransactionId(AccountBalanceUpdate update, TransactionPair[] transactions)
+    {
+        if (update.TransactionHash == null) return null;
+        
+        var transaction = transactions.Single(x => x.Source.Hash == update.TransactionHash!);
+        return transaction.Target.Id;
     }
 
     private EntryType Map(BalanceUpdateType input)

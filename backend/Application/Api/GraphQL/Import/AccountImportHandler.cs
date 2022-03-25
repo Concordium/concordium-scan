@@ -45,7 +45,7 @@ public class AccountImportHandler
         var accountUpdates = await _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
         await _writer.UpdateAccounts(accountUpdates);
 
-        var statementEntries = await _changeCalculator.GetAccountStatementEntries(balanceUpdates, block);
+        var statementEntries = await _changeCalculator.GetAccountStatementEntries(balanceUpdates, block, transactions);
         await _writer.InsertAccountStatementEntries(statementEntries);
 
         var releaseScheduleItems = await _changeCalculator.GetAccountReleaseScheduleItems(transactions);
