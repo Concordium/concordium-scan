@@ -183,19 +183,19 @@ public class AccountChangeCalculator
         return transaction.Target.Id;
     }
 
-    private EntryType Map(BalanceUpdateType input)
+    private AccountStatementEntryType Map(BalanceUpdateType input)
     {
         return input switch
         {
-            BalanceUpdateType.AmountDecrypted => EntryType.AmountDecrypted,
-            BalanceUpdateType.AmountEncrypted => EntryType.AmountEncrypted,
-            BalanceUpdateType.BakingReward => EntryType.BakingReward,
-            BalanceUpdateType.BlockReward => EntryType.BlockReward,
-            BalanceUpdateType.FinalizationReward => EntryType.FinalizationReward,
-            BalanceUpdateType.MintReward => EntryType.MintReward,
-            BalanceUpdateType.TransactionFee => EntryType.TransactionFee,
-            BalanceUpdateType.TransferIn => EntryType.TransferIn,
-            BalanceUpdateType.TransferOut => EntryType.TransferOut,
+            BalanceUpdateType.AmountDecrypted => AccountStatementEntryType.AmountDecrypted,
+            BalanceUpdateType.AmountEncrypted => AccountStatementEntryType.AmountEncrypted,
+            BalanceUpdateType.BakingReward => AccountStatementEntryType.BakingReward,
+            BalanceUpdateType.BlockReward => AccountStatementEntryType.BlockReward,
+            BalanceUpdateType.FinalizationReward => AccountStatementEntryType.FinalizationReward,
+            BalanceUpdateType.MintReward => AccountStatementEntryType.MintReward,
+            BalanceUpdateType.TransactionFee => AccountStatementEntryType.TransactionFee,
+            BalanceUpdateType.TransferIn => AccountStatementEntryType.TransferIn,
+            BalanceUpdateType.TransferOut => AccountStatementEntryType.TransferOut,
             _ => throw new NotImplementedException()
         };
     }

@@ -4,7 +4,7 @@
 /// NOTE:   Specific assigned values are important for reading and writing to database.
 ///         Should not be modified without consideration!
 /// </summary>
-public enum EntryType
+public enum AccountStatementEntryType
 {
     TransferIn = 1,
     TransferOut = 2,
