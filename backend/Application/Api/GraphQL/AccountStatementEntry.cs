@@ -30,4 +30,12 @@ public class AccountStatementEntry
     /// </summary>
     [GraphQLIgnore]
     public long? TransactionId { get; set; }
+    
+    /*
+     * TODO: Expose either the block or the transaction on graphql schema.
+     *       Could be as a union type that is either a block or a transaction
+     *       It would be transaction if transaction id has a value otherwise block
+     *
+     *       Otherwise we should just expose both block and transaction, but that would most likely lead to over-fetching
+     */ 
 }
