@@ -23,7 +23,22 @@ import { useBlockQuery, useBlockQueryByHash } from '~/queries/useBlockQuery'
 import { usePagination } from '~/composables/usePagination'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
-const { first, last, after, before, goToPage } = usePagination()
+
+const {
+	first: firstTx,
+	last: lastTx,
+	after: afterTx,
+	before: beforeTx,
+	goToPage,
+} = usePagination()
+
+const paginationVars = {
+	firstTx,
+	lastTx,
+	afterTx,
+	beforeTx,
+}
+
 type Props = {
 	id?: string
 	hash?: string
@@ -33,18 +48,11 @@ const refId = toRef(props, 'id')
 const refHash = toRef(props, 'hash')
 const blockQueryResult = ref()
 if (props.id) {
-	blockQueryResult.value = useBlockQuery(refId as Ref<string>, {
-		first,
-		last,
-		after,
-		before,
-	})
+	blockQueryResult.value = useBlockQuery(refId as Ref<string>, paginationVars)
 } else if (props.hash) {
-	blockQueryResult.value = useBlockQueryByHash(refHash as Ref<string>, {
-		first,
-		last,
-		after,
-		before,
-	})
+	blockQueryResult.value = useBlockQueryByHash(
+		refHash as Ref<string>,
+		paginationVars
+	)
 }
 </script>

@@ -34,6 +34,24 @@ describe('NetworkSelect', () => {
 
 			locationCleanup()
 		})
+
+		it('will show a spinner instead of a chevron when in a loading state', async () => {
+			const { locationCleanup } = mockLocation()
+
+			render({})
+
+			expect(screen.getByTestId('network-chevron')).toBeInTheDocument()
+			expect(screen.queryByTestId('spinner')).not.toBeInTheDocument()
+
+			fireEvent.update(screen.getByRole('combobox'), 'testnet')
+
+			const spinner = await screen.findByTestId('network-spinner')
+
+			expect(spinner).toBeInTheDocument()
+			expect(screen.queryByTestId('network-chevron')).not.toBeInTheDocument()
+
+			locationCleanup()
+		})
 	})
 
 	describe('when user is on Testnet', () => {
