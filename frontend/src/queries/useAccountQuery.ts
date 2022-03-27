@@ -42,6 +42,24 @@ const AccountQuery = gql<Account>`
 			}
 			id
 			addressString
+			amount
+			releaseSchedule {
+				schedule {
+					pageInfo {
+						hasNextPage
+						hasPreviousPage
+						startCursor
+						endCursor
+					}
+					nodes {
+						transaction {
+							transactionHash
+						}
+						timestamp
+						amount
+					}
+				}
+			}
 			createdAt
 			__typename
 		}
@@ -95,6 +113,37 @@ const AccountQueryByAddress = gql<Account>`
 			}
 			id
 			addressString
+			amount
+			releaseSchedule {
+				totalAmount
+				schedule {
+					pageInfo {
+						hasNextPage
+						hasPreviousPage
+						startCursor
+						endCursor
+					}
+					nodes {
+						transaction {
+							transactionHash
+							senderAccountAddress
+							ccdCost
+							block {
+								blockSlotTime
+							}
+							id
+							transactionType {
+								__typename
+							}
+							result {
+								__typename
+							}
+						}
+						timestamp
+						amount
+					}
+				}
+			}
 			createdAt
 			__typename
 		}

@@ -51,8 +51,8 @@
 			<TableHead>
 				<TableRow>
 					<TableTh width="10%">Address</TableTh>
-					<TableTh width="20%">Age</TableTh>
-					<TableTh width="20%">Latest transaction</TableTh>
+					<TableTh width="20%" class="text-right">Amount (Ͼ)</TableTh>
+					<TableTh width="20%">Latest transaction age</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -60,20 +60,26 @@
 					<TableTd>
 						<AccountLink :address="account.addressString" />
 					</TableTd>
-					<TableTd>
-						<Tooltip :text="formatTimestamp(account.createdAt)">
-							{{ convertTimestampToRelative(account.createdAt, NOW) }}
-						</Tooltip>
+					<TableTd class="text-right">
+						<span class="numerical">
+							{{ convertMicroCcdToCcd(account.amount) }}
+						</span>
 					</TableTd>
 					<TableTd>
-						<div v-if="account.transactions?.nodes?.length">
-							<TransactionLink
-								:id="account.transactions.nodes[0].transaction.id"
-								:hash="
-									account.transactions.nodes[0].transaction.transactionHash
-								"
-							/>
-						</div>
+						<Tooltip
+							:text="
+								formatTimestamp(
+									account.transactions.nodes[0].transaction.block.blockSlotTime
+								)
+							"
+						>
+							{{
+								convertTimestampToRelative(
+									account.transactions.nodes[0].transaction.block.blockSlotTime,
+									NOW
+								)
+							}}
+						</Tooltip>
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -96,8 +102,8 @@ import {
 	formatTimestamp,
 	convertTimestampToRelative,
 	formatNumber,
+	convertMicroCcdToCcd,
 } from '~/utils/format'
-import TransactionLink from '~/components/molecules/TransactionLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 
 const { NOW } = useDateNow()

@@ -100,8 +100,21 @@ __typename
 	}
 }
 ... on TransferredWithSchedule {
-	fromAccountAddress
-	toAccountAddress
+	fromAccountAddressString
+	toAccountAddressString
+	totalAmount
+	amountsSchedule {
+		pageInfo {
+			hasNextPage
+			hasPreviousPage
+			startCursor
+			endCursor
+		}
+		nodes {
+			timestamp
+			amount
+		}
+	}
 }
 ...on ChainUpdateEnqueued {
 	__typename

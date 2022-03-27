@@ -14,6 +14,8 @@ export type Scalars = {
   Byte: any;
   /** The `DateTime` scalar represents an ISO-8601 compliant date time type. */
   DateTime: any;
+  /** The built-in `Decimal` scalar type. */
+  Decimal: any;
   /** The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1. */
   Long: any;
   /** The `TimeSpan` scalar represents an ISO-8601 compliant duration type. */
@@ -27,8 +29,11 @@ export type Account = {
   /** @deprecated Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   address: Scalars['String'];
   addressString: Scalars['String'];
+  amount: Scalars['UnsignedLong'];
   createdAt: Scalars['DateTime'];
   id: Scalars['ID'];
+  releaseSchedule: AccountReleaseSchedule;
+  transactionCount: Scalars['Int'];
   transactions?: Maybe<AccountTransactionRelationConnection>;
 };
 
@@ -53,6 +58,56 @@ export type AccountCreated = {
   accountAddress: Scalars['String'];
   accountAddressString: Scalars['String'];
 };
+
+export type AccountReleaseSchedule = {
+  __typename?: 'AccountReleaseSchedule';
+  schedule?: Maybe<AccountReleaseScheduleItemConnection>;
+  totalAmount: Scalars['UnsignedLong'];
+};
+
+
+export type AccountReleaseScheduleScheduleArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type AccountReleaseScheduleItem = {
+  __typename?: 'AccountReleaseScheduleItem';
+  amount: Scalars['UnsignedLong'];
+  timestamp: Scalars['DateTime'];
+  transaction: Transaction;
+};
+
+/** A connection to a list of items. */
+export type AccountReleaseScheduleItemConnection = {
+  __typename?: 'AccountReleaseScheduleItemConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountReleaseScheduleItemEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<AccountReleaseScheduleItem>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountReleaseScheduleItemEdge = {
+  __typename?: 'AccountReleaseScheduleItemEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: AccountReleaseScheduleItem;
+};
+
+export enum AccountSort {
+  AgeAsc = 'AGE_ASC',
+  AgeDesc = 'AGE_DESC',
+  AmountAsc = 'AMOUNT_ASC',
+  AmountDesc = 'AMOUNT_DESC',
+  TransactionCountAsc = 'TRANSACTION_COUNT_ASC',
+  TransactionCountDesc = 'TRANSACTION_COUNT_DESC'
+}
 
 export type AccountTransaction = {
   __typename?: 'AccountTransaction';
@@ -323,6 +378,7 @@ export type Block = {
   blockHeight: Scalars['Int'];
   blockSlotTime: Scalars['DateTime'];
   blockStatistics: BlockStatistics;
+  chainParameters: ChainParameters;
   finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
@@ -425,6 +481,18 @@ export type BlocksEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge. */
   node: Block;
+};
+
+export type ChainParameters = {
+  __typename?: 'ChainParameters';
+  bakerCooldownEpochs: Scalars['UnsignedLong'];
+  credentialsPerBlockLimit: Scalars['Int'];
+  electionDifficulty: Scalars['Decimal'];
+  euroPerEnergy: ExchangeRate;
+  foundationAccountAddress: AccountAddress;
+  microCcdPerEuro: ExchangeRate;
+  minimumThresholdForBaking: Scalars['UnsignedLong'];
+  rewardParameters: RewardParameters;
 };
 
 export type ChainUpdateEnqueued = {
@@ -594,6 +662,12 @@ export type EventsEdge = {
   node: Event;
 };
 
+export type ExchangeRate = {
+  __typename?: 'ExchangeRate';
+  denominator: Scalars['UnsignedLong'];
+  numerator: Scalars['UnsignedLong'];
+};
+
 export type FinalizationReward = {
   __typename?: 'FinalizationReward';
   /** @deprecated Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future. */
@@ -683,6 +757,14 @@ export type FirstScheduledReleaseExpired = {
   __typename?: 'FirstScheduledReleaseExpired';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type GasRewards = {
+  __typename?: 'GasRewards';
+  accountCreation: Scalars['Decimal'];
+  baker: Scalars['Decimal'];
+  chainUpdate: Scalars['Decimal'];
+  finalizationProof: Scalars['Decimal'];
 };
 
 export type InsufficientBalanceForBakerStake = {
@@ -794,6 +876,13 @@ export type Mint = {
   foundationAccount: Scalars['String'];
   foundationAccountAddress: AccountAddress;
   platformDevelopmentCharge: Scalars['UnsignedLong'];
+};
+
+export type MintDistribution = {
+  __typename?: 'MintDistribution';
+  bakingReward: Scalars['Decimal'];
+  finalizationReward: Scalars['Decimal'];
+  mintPerSlot: Scalars['Decimal'];
 };
 
 export type ModuleHashAlreadyExists = {
@@ -925,6 +1014,7 @@ export type QueryAccountsArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+  sort?: AccountSort;
 };
 
 
@@ -1009,6 +1099,13 @@ export type RemoveFirstCredential = {
   __typename?: 'RemoveFirstCredential';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type RewardParameters = {
+  __typename?: 'RewardParameters';
+  gasRewards: GasRewards;
+  mintDistribution: MintDistribution;
+  transactionFeeDistribution: TransactionFeeDistribution;
 };
 
 export type RuntimeFailure = {
@@ -1141,6 +1238,12 @@ export type Transaction = {
   transactionType: TransactionType;
 };
 
+export type TransactionFeeDistribution = {
+  __typename?: 'TransactionFeeDistribution';
+  baker: Scalars['Decimal'];
+  gasAccount: Scalars['Decimal'];
+};
+
 export type TransactionMetrics = {
   __typename?: 'TransactionMetrics';
   buckets: TransactionMetricsBuckets;
@@ -1210,6 +1313,7 @@ export type TransferredWithSchedule = {
   /** @deprecated Use 'ToAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future. */
   toAccountAddress: Scalars['String'];
   toAccountAddressString: Scalars['String'];
+  totalAmount: Scalars['UnsignedLong'];
 };
 
 

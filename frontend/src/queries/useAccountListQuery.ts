@@ -23,10 +23,14 @@ const AccountsQuery = gql<AccountsListResponse>`
 				id
 				addressString
 				createdAt
+				amount
 				transactions {
 					nodes {
 						transaction {
 							transactionHash
+							block {
+								blockSlotTime
+							}
 							id
 						}
 					}
