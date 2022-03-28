@@ -4,6 +4,7 @@ using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import;
@@ -18,7 +19,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new AccountWriter(_dbContextFactory, new NullMetrics());
-    
+        
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
         connection.Execute("TRUNCATE TABLE graphql_account_transactions");
@@ -64,6 +65,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             AccountId = 42,
             Timestamp = new DateTimeOffset(2020, 10, 01, 12, 31, 42, 123, TimeSpan.Zero),
             Amount = 132,
+            AccountBalance = 14002,
             EntryType = AccountStatementEntryType.AmountEncrypted,
             BlockId = 11,
             TransactionId = 22
@@ -78,8 +80,31 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         result.Index.Should().BeGreaterThan(0);
         result.Timestamp.Should().Be(new DateTimeOffset(2020, 10, 01, 12, 31, 42, 123, TimeSpan.Zero));
         result.Amount.Should().Be(132);
+        result.AccountBalance.Should().Be(14002);
         result.EntryType.Should().Be(AccountStatementEntryType.AmountEncrypted);
         result.BlockId.Should().Be(11);
         result.TransactionId.Should().Be(22);
+    }
+
+    [Fact]
+    public async Task UpdateAccounts()
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        context.Accounts.AddRange(
+            new AccountBuilder().WithId(10).WithAmount(0).WithTransactionCount(0).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(42).WithAmount(100000).WithTransactionCount(777).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(99).WithAmount(1500).WithTransactionCount(20).WithUniqueAddress().Build());
+        await context.SaveChangesAsync();
+
+        var updates = new[]
+        {
+            new AccountUpdate(10, 2222, 80),
+            new AccountUpdate(42, -1000, 3)
+        };
+        
+        var result = _target.UpdateAccounts(updates);
+        result.Should().Equal(
+            new AccountUpdateResult(10, 0, 2222),
+            new AccountUpdateResult(42, 100000, 99000));
     }
 }

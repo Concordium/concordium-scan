@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using ConcordiumSdk.NodeApi.Types;
+﻿using ConcordiumSdk.NodeApi.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -77,7 +76,7 @@ public class AccountChangeCalculator
             yield return address;
     }
 
-    public IEnumerable<AccountUpdate> GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
+    public AccountUpdate[] GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
     {
         var aggregatedBalanceUpdates = balanceUpdates
             .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
@@ -109,7 +108,8 @@ public class AccountChangeCalculator
             .GroupBy(x => x.AccountId)
             .Select(group => new AccountUpdate(@group.Key,
                 @group.Aggregate(0L, (acc, item) => acc + item.AmountAdjustment),
-                @group.Aggregate(0, (acc, item) => acc + item.TransactionsAdded)));
+                @group.Aggregate(0, (acc, item) => acc + item.TransactionsAdded)))
+            .ToArray();
     }
 
     public AccountReleaseScheduleItem[] GetAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
@@ -156,23 +156,42 @@ public class AccountChangeCalculator
         return toInsert;
     }
 
-    public IEnumerable<AccountStatementEntry> GetAccountStatementEntries(AccountBalanceUpdate[] balanceUpdates, Block block, TransactionPair[] transactions)
+    public IEnumerable<AccountStatementEntry> GetAccountStatementEntries(
+        AccountBalanceUpdate[] balanceUpdates, AccountUpdateResult[] accountUpdateResults, Block block, TransactionPair[] transactions)
     {
         var distinctBaseAddresses = balanceUpdates
             .Select(x => x.AccountAddress.GetBaseAddress().AsString)
             .Distinct();
         var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
-        
-        return balanceUpdates.Select(x => new AccountStatementEntry
+
+        var result = balanceUpdates.Select(x => new AccountStatementEntry
+            {
+                AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
+                Index = default, // Will be set by database
+                Timestamp = block.BlockSlotTime,
+                Amount = x.AmountAdjustment,
+                EntryType = Map(x.BalanceUpdateType),
+                BlockId = block.Id,
+                TransactionId = GetTransactionId(x, transactions)
+            })
+            .ToArray();
+
+        foreach (var accountGroup in result.GroupBy(x => x.AccountId))
         {
-            AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
-            Index = default, // Will be set by database
-            Timestamp = block.BlockSlotTime,
-            Amount = x.AmountAdjustment,
-            EntryType = Map(x.BalanceUpdateType),
-            BlockId = block.Id,
-            TransactionId = GetTransactionId(x, transactions)
-        });
+            var updateResult = accountUpdateResults.Single(x => x.AccountId == accountGroup.Key);
+            
+            var accountBalance = updateResult.AccountBalanceBeforeUpdate;
+            foreach (var entry in accountGroup)
+            {
+                accountBalance = (ulong)((long)accountBalance + entry.Amount);
+                entry.AccountBalance = accountBalance;
+            }
+
+            if (accountBalance != updateResult.AccountBalanceAfterUpdate)
+                throw new InvalidOperationException("Did not end up with the expected result!");
+        }
+        
+        return result;
     }
 
     private long? GetTransactionId(AccountBalanceUpdate update, TransactionPair[] transactions)

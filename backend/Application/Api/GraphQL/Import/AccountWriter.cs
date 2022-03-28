@@ -28,7 +28,7 @@ public class AccountWriter
         await context.SaveChangesAsync();
     }
 
-    public void UpdateAccounts(IEnumerable<AccountUpdate> accountUpdates)
+    public AccountUpdateResult[] UpdateAccounts(AccountUpdate[] accountUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
         
@@ -36,7 +36,8 @@ public class AccountWriter
             UPDATE graphql_accounts 
             SET ccd_amount = ccd_amount + @AmountAdjustment,
                 transaction_count = transaction_count + @TransactionsAdded
-            WHERE id = @AccountId";
+            WHERE id = @AccountId
+            RETURNING id, ccd_amount";
 
         using var context = _dbContextFactory.CreateDbContext();
         var connection = context.Database.GetDbConnection();
@@ -56,8 +57,22 @@ public class AccountWriter
 
         batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
 
-        batch.ExecuteNonQuery();
+        using var reader = batch.ExecuteReader();
+        var returnedItems = IterateBatchDbDataReader(reader, row => new
+            {
+                AccountId = row.GetInt64(0),
+                CcdAmount = row.GetInt64(1),
+            })
+            .ToArray();
+        
         connection.Close();
+
+        return accountUpdates.Select(update =>
+            {
+                var updateResult = returnedItems.Single(x => x.AccountId == update.AccountId);
+                return new AccountUpdateResult(update.AccountId, (ulong)(updateResult.CcdAmount - update.AmountAdjustment), (ulong)updateResult.CcdAmount);
+            })
+            .ToArray();
     }
 
     public void InsertAccountTransactionRelation(AccountTransactionRelation[] items)
@@ -136,3 +151,6 @@ public class AccountWriter
         } while (reader.NextResult());
     }
 }
+
+public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);
+public record AccountUpdateResult(long AccountId, ulong AccountBalanceBeforeUpdate, ulong AccountBalanceAfterUpdate);

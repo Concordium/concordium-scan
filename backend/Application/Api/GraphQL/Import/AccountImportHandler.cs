@@ -43,9 +43,9 @@ public class AccountImportHandler
         
         var balanceUpdates = payload.BlockSummary.GetAccountBalanceUpdates().ToArray();
         var accountUpdates = _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
-        _writer.UpdateAccounts(accountUpdates);
+        var updateResults = _writer.UpdateAccounts(accountUpdates);
 
-        var statementEntries = _changeCalculator.GetAccountStatementEntries(balanceUpdates, block, transactions);
+        var statementEntries = _changeCalculator.GetAccountStatementEntries(balanceUpdates, updateResults, block, transactions);
         _writer.InsertAccountStatementEntries(statementEntries);
 
         var releaseScheduleItems = _changeCalculator.GetAccountReleaseScheduleItems(transactions);
@@ -53,5 +53,3 @@ public class AccountImportHandler
             _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
     }
 }
-
-public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);

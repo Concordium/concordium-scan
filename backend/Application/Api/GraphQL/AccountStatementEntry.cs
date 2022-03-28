@@ -19,9 +19,10 @@ public class AccountStatementEntry
     public AccountStatementEntryType EntryType { get; set; }
     
     public long Amount { get; set; }
-    
-    // TODO: Account balance (kontosaldo efter postering)
-    
+
+    [GraphQLIgnore] // TODO: Add to graphql schema
+    public ulong AccountBalance { get; set; }
+
     /// <summary>
     /// Reference to the block containing the reward or the transaction that resulted in this entry. 
     /// Not directly part of graphql schema but exposed indirectly through the reference field.
