@@ -50,7 +50,7 @@ public class Account
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false)] // TODO: Make a specific paging provider to ensure stable paging
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_statement_entry_by_descending_index")] 
     // TODO: Add a filter on entry type
     public IQueryable<AccountStatementEntry> GetAccountStatement([ScopedService] GraphQlDbContext dbContext)
     {

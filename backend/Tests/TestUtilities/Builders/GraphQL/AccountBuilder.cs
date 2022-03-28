@@ -1,5 +1,5 @@
 ﻿using Application.Api.GraphQL;
-using Google.Protobuf.WellKnownTypes;
+
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
@@ -26,9 +26,11 @@ public class AccountBuilder
         };
     }
 
-    public AccountBuilder WithCanonicalAddress(string value)
+    public AccountBuilder WithCanonicalAddress(string value, bool updateBaseAddress = false)
     {
         _canonicalAddress = value;
+        if (updateBaseAddress)
+            _baseAddress = new AccountAddress(AccountAddressHelper.GetBaseAddress(value));
         return this;
     }
 
