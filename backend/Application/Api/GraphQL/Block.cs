@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
-public class Block
+public class Block : IBlockOrTransactionUnion
 {
     [ID]
     public long Id { get; set; }

@@ -1,4 +1,8 @@
-﻿using HotChocolate;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
+using HotChocolate;
+using HotChocolate.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
 
@@ -20,22 +24,26 @@ public class AccountStatementEntry
     
     /// <summary>
     /// Reference to the block containing the reward or the transaction that resulted in this entry. 
+    /// Not directly part of graphql schema but exposed indirectly through the reference field.
     /// </summary>
-    /// 
     [GraphQLIgnore]
     public long BlockId { get; set; }
 
     /// <summary>
-    /// Reference to the transaction that resulted in this entry. Will be null for rewards. 
+    /// Reference to the transaction that resulted in this entry. Will be null for rewards.
+    /// Not directly part of graphql schema but exposed indirectly through the reference field.
     /// </summary>
     [GraphQLIgnore]
     public long? TransactionId { get; set; }
-    
-    /*
-     * TODO: Expose either the block or the transaction on graphql schema.
-     *       Could be as a union type that is either a block or a transaction
-     *       It would be transaction if transaction id has a value otherwise block
-     *
-     *       Otherwise we should just expose both block and transaction, but that would most likely lead to over-fetching
-     */ 
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public async Task<IBlockOrTransactionUnion> GetReference([ScopedService] GraphQlDbContext dbContext)
+    {
+        if (TransactionId.HasValue)
+            return await dbContext.Transactions.AsNoTracking()
+                .SingleAsync(x => x.Id == TransactionId.Value);
+        
+        return await dbContext.Blocks.AsNoTracking()
+            .SingleAsync(x => x.Id == BlockId);
+    }
 }

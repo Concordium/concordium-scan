@@ -55,6 +55,7 @@ type AccountReleaseScheduleItemEdge {
 }
 
 type AccountStatementEntry {
+  reference: BlockOrTransaction!
   timestamp: DateTime!
   entryType: AccountStatementEntryType!
   amount: Long!
@@ -906,6 +907,8 @@ type ZeroScheduledAmount {
 }
 
 union Address = AccountAddress | ContractAddress
+
+union BlockOrTransaction = Block | Transaction
 
 union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
 

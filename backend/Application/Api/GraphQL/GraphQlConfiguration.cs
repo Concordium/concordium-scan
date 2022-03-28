@@ -42,6 +42,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<Address>(builder);
         AddAllTypesDerivedFrom<TransactionResultEvent>(builder);
         AddAllTypesDerivedFrom<TransactionRejectReason>(builder);
+        AddAllTypesDerivedFrom<IBlockOrTransactionUnion>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)
