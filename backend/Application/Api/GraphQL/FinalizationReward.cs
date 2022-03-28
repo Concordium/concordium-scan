@@ -5,7 +5,7 @@ namespace Application.Api.GraphQL;
 public class FinalizationReward
 {
     public ulong Amount { get; init; }
-    [GraphQLDeprecated("Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string Address { get; init; }
-    public string AddressString => Address;
+    public AccountAddress Address { get; init; }
+    [GraphQLDeprecated("Use 'address.asString' instead. This field will be removed in the near future.")]
+    public string AddressString => Address.AsString;
 }

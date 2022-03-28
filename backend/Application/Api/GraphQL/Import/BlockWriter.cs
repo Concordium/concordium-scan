@@ -153,8 +153,8 @@ public class BlockWriter
             NewGasAccount = rewards.NewGasAccount.MicroCcdValue,
             BakerReward = rewards.BakerReward.MicroCcdValue,
             FoundationCharge = rewards.FoundationCharge.MicroCcdValue,
-            BakerAccountAddress = rewards.Baker.AsString,
-            FoundationAccountAddress = rewards.FoundationAccount.AsString
+            BakerAccountAddress = new AccountAddress(rewards.Baker.AsString),
+            FoundationAccountAddress = new AccountAddress(rewards.FoundationAccount.AsString)
         };
     }
 
@@ -176,7 +176,7 @@ public class BlockWriter
             Index = index,
             Entity = new FinalizationReward
             {
-                Address = value.Address.AsString,
+                Address = new AccountAddress(value.Address.AsString),
                 Amount = value.Amount.MicroCcdValue
             }
         };
@@ -190,7 +190,7 @@ public class BlockWriter
             Index = index,
             Entity = new BakingReward()
             {
-                Address = value.Address.AsString,
+                Address = new AccountAddress(value.Address.AsString),
                 Amount = value.Amount.MicroCcdValue
             }
         };

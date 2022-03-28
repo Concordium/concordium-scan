@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.Api.GraphQL.EfCore.Converters.EfCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
@@ -14,7 +15,7 @@ public class BlockRelatedFinalizationRewardConfiguration : IEntityTypeConfigurat
         builder.Property(x => x.Index).HasColumnName("index");
         builder.OwnsOne(x => x.Entity, builder =>
         {
-            builder.Property(x => x.Address).HasColumnName("address");
+            builder.Property(x => x.Address).HasColumnName("address").HasConversion<AccountAddressConverter>();
             builder.Property(x => x.Amount).HasColumnName("amount");
         });
     }

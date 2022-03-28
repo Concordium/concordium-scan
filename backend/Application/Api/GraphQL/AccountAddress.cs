@@ -7,11 +7,8 @@ public class AccountAddress : Address
     public AccountAddress(string address)
     {
         AsString = address ?? throw new ArgumentNullException(nameof(address));
-        Address = address;
     }
 
-    [GraphQLDeprecated("Use 'asString' instead. This field will be removed in the near future.")]
-    public string Address { get; }
     public string AsString { get; }
 
     public override bool Equals(object? obj)

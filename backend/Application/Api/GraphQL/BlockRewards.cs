@@ -9,10 +9,10 @@ public class BlockRewards
     public ulong NewGasAccount { get; init; }
     public ulong BakerReward { get; init; }
     public ulong FoundationCharge { get; init; }
-    [GraphQLDeprecated("Use 'bakerAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string BakerAccountAddress { get; init; }
-    public string BakerAccountAddressString => BakerAccountAddress;
-    [GraphQLDeprecated("Use 'foundationAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string FoundationAccountAddress { get; init; }
-    public string FoundationAccountAddressString => FoundationAccountAddress;
+    public AccountAddress BakerAccountAddress { get; init; }
+    [GraphQLDeprecated("Use 'bakerAccountAddress.asString' instead. This field will be removed in the near future.")]
+    public string BakerAccountAddressString => BakerAccountAddress.AsString;
+    public AccountAddress FoundationAccountAddress { get; init; }
+    [GraphQLDeprecated("Use 'foundationAccountAddressString' instead. This field will be removed in the near future.")]
+    public string FoundationAccountAddressString => FoundationAccountAddress.AsString;
 }

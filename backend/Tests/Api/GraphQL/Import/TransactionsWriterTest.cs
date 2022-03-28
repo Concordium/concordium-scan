@@ -113,7 +113,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         transaction.BlockId.Should().Be(133);
         transaction.TransactionIndex.Should().Be(0);
         transaction.TransactionHash.Should().Be("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b");
-        transaction.SenderAccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        transaction.SenderAccountAddress!.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         transaction.CcdCost.Should().Be(45872);
         transaction.EnergyCost.Should().Be(399);
     }
@@ -250,7 +250,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AccountCreated>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
     
     [Fact]
@@ -267,7 +267,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialDeployed>();
         result.RegId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -286,7 +286,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         result.StakedAmount.Should().Be(12551);
         result.RestakeEarnings.Should().BeTrue();
         result.BakerId.Should().Be(17);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
         result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
         result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
@@ -306,7 +306,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerKeysUpdated>();
         result.BakerId.Should().Be(19);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
         result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
         result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
@@ -326,7 +326,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerRemoved>();
         result.BakerId.Should().Be(21);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -343,7 +343,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerSetRestakeEarnings>();
         result.BakerId.Should().Be(23);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.RestakeEarnings.Should().BeTrue();
     }
 
@@ -361,7 +361,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeDecreased>();
         result.BakerId.Should().Be(23);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
     }
 
@@ -379,7 +379,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeIncreased>();
         result.BakerId.Should().Be(23);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
     }
 
@@ -397,7 +397,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AmountAddedByDecryption>();
         result.Amount.Should().Be(2362462);
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -413,7 +413,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.EncryptedAmountsRemoved>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.InputAmount.Should().Be("acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074");
         result.UpToIndex.Should().Be(789);
@@ -432,7 +432,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.EncryptedSelfAmountAdded>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.Amount.Should().Be(23446);
     }
@@ -450,7 +450,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.NewEncryptedAmount>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewIndex.Should().Be(155);
         result.EncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
     }
@@ -484,7 +484,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialsUpdated>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewCredIds.Should().Equal("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
         result.RemovedCredIds.Should().BeEmpty();
         result.NewThreshold.Should().Be(123);
@@ -580,8 +580,8 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.TransferredWithSchedule>();
-        result.FromAccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.ToAccountAddress.Should().Be("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH");
+        result.FromAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.ToAccountAddress.AsString.Should().Be("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH");
         result.AmountsSchedule.Should().Equal(
             new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(10), 1000),
             new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(20), 3333),
@@ -666,7 +666,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidAccountReference>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -788,7 +788,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentRewardAccount>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -820,7 +820,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotABaker>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -930,7 +930,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.EncryptedAmountSelfTransfer>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -980,7 +980,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ScheduledSelfTransfer>();
-        result.AccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]

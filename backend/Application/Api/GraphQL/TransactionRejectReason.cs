@@ -28,10 +28,10 @@ public record ModuleHashAlreadyExists(
 /// Account does not exist.
 /// </summary>
 public record InvalidAccountReference(
-    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    string AccountAddress) : TransactionRejectReason
+    AccountAddress AccountAddress) : TransactionRejectReason
 {
-    public string AccountAddressString => AccountAddress;
+    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
+    public string AccountAddressString => AccountAddress.AsString;
 }
 
 /// <summary>
@@ -100,10 +100,10 @@ public record RejectedReceive(
 /// Reward account desired by the baker does not exist.
 /// </summary>
 public record NonExistentRewardAccount(
-    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    string AccountAddress) : TransactionRejectReason
+    AccountAddress AccountAddress) : TransactionRejectReason
 {
-    public string AccountAddressString => AccountAddress;
+    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
+    public string AccountAddressString => AccountAddress.AsString;
 }
 
 /// <summary>
@@ -121,10 +121,10 @@ public record AlreadyABaker(
 /// Tried to remove a baker for an account that has no baker.
 /// </summary>
 public record NotABaker(
-    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    string AccountAddress) : TransactionRejectReason
+    AccountAddress AccountAddress) : TransactionRejectReason
 {
-    public string AccountAddressString => AccountAddress;
+    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
+    public string AccountAddressString => AccountAddress.AsString;
 }
 
 /// <summary>
@@ -182,10 +182,10 @@ public record InvalidTransferToPublicProof : TransactionRejectReason;
 /// Account tried to transfer an encrypted amount to itself, that's not allowed.
 /// </summary>
 public record EncryptedAmountSelfTransfer(
-    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    string AccountAddress) : TransactionRejectReason
+    AccountAddress AccountAddress) : TransactionRejectReason
 {
-    public string AccountAddressString => AccountAddress;
+    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
+    public string AccountAddressString => AccountAddress.AsString;
 }
 
 /// <summary>
@@ -212,10 +212,10 @@ public record FirstScheduledReleaseExpired : TransactionRejectReason;
 /// Account tried to transfer with schedule to itself, that's not allowed.
 /// </summary>
 public record ScheduledSelfTransfer(
-    [property:GraphQLDeprecated("Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    string AccountAddress) : TransactionRejectReason
+    AccountAddress AccountAddress) : TransactionRejectReason
 {
-    public string AccountAddressString => AccountAddress;
+    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
+    public string AccountAddressString => AccountAddress.AsString;
 }
 
 /// <summary>

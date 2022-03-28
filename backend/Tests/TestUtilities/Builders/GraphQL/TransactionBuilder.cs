@@ -16,7 +16,7 @@ public class TransactionBuilder
             BlockId = 1,
             TransactionIndex = 0,
             TransactionHash = _transactionHash,
-            SenderAccountAddress = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd",
+            SenderAccountAddress = new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
             CcdCost = 241,
             EnergyCost = 422,
             TransactionType = new AccountTransaction { AccountTransactionType = AccountTransactionType.SimpleTransfer },

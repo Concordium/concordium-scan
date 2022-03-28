@@ -38,8 +38,8 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             new Account
             {
                 Id = accountIndex,
-                BaseAddress = new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
-                CanonicalAddress = "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy",
+                BaseAddress = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
+                CanonicalAddressString = "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy",
                 Amount = 57290,
                 TransactionCount = 0,
                 CreatedAt = time
@@ -51,7 +51,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         var account = await dbContext.Accounts.SingleAsync();
         account.Id.Should().Be(accountIndex);
         account.BaseAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        account.CanonicalAddress.Should().Be("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        account.CanonicalAddress.AsString.Should().Be("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         account.Amount.Should().Be(57290);
         account.TransactionCount.Should().Be(0);
         account.CreatedAt.Should().Be(time);

@@ -15,12 +15,13 @@ public class Account
 
     [GraphQLIgnore] // Base address is only used internally for handling alias account addresses
     public AccountAddress BaseAddress { get; set; }
+
+    [GraphQLName("address")] 
+    public AccountAddress CanonicalAddress => new(CanonicalAddressString);
     
-    [GraphQLName("address")]
-    [GraphQLDeprecated("Use 'addressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string CanonicalAddress { get; set; }
-    
-    public string AddressString => CanonicalAddress;
+    [GraphQLDeprecated("Use 'address.asString' instead. This field will be removed in the near future.")]
+    [GraphQLName("addressString")]
+    public string CanonicalAddressString { get; set; }
     
     public ulong Amount { get; set; }
     

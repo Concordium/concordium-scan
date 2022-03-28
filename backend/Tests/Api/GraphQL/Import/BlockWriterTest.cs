@@ -141,11 +141,11 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result[0].BlockId.Should().Be(block.Id);
         result[0].Index.Should().Be(0);
         result[0].Entity.Amount.Should().Be(55511115);
-        result[0].Entity.Address.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
+        result[0].Entity.Address.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
         result[1].BlockId.Should().Be(block.Id);
         result[1].Index.Should().Be(1);
         result[1].Entity.Amount.Should().Be(91425373);
-        result[1].Entity.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result[1].Entity.Address.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
     
     [Fact]
@@ -189,8 +189,8 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         block.SpecialEvents.BlockRewards.TransactionFees.Should().Be(8888);
         block.SpecialEvents.BlockRewards.NewGasAccount.Should().Be(455);
         block.SpecialEvents.BlockRewards.OldGasAccount.Should().Be(22);
-        block.SpecialEvents.BlockRewards.BakerAccountAddress.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        block.SpecialEvents.BlockRewards.FoundationAccountAddress.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
+        block.SpecialEvents.BlockRewards.BakerAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        block.SpecialEvents.BlockRewards.FoundationAccountAddress.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
     }
 
     [Fact]
@@ -236,11 +236,11 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result[0].BlockId.Should().Be(block.Id);
         result[0].Index.Should().Be(0);
         result[0].Entity.Amount.Should().Be(55511115);
-        result[0].Entity.Address.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
+        result[0].Entity.Address.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
         result[1].BlockId.Should().Be(block.Id);
         result[1].Index.Should().Be(1);
         result[1].Entity.Amount.Should().Be(91425373);
-        result[1].Entity.Address.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result[1].Entity.Address.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
     
     [Fact]

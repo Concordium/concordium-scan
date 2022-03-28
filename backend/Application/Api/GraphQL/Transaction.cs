@@ -22,10 +22,10 @@ public class Transaction : IBlockOrTransactionUnion
     
     public string TransactionHash { get; set; }
     
-    [GraphQLDeprecated("Use 'senderAccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")]
-    public string? SenderAccountAddress { get; set; }
+    public AccountAddress? SenderAccountAddress { get; set; }
 
-    public string? SenderAccountAddressString => SenderAccountAddress;
+    [GraphQLDeprecated("Use 'senderAccountAddress.asString' instead. This field will be removed in the near future.")]
+    public string? SenderAccountAddressString => SenderAccountAddress.AsString;
     
     public ulong CcdCost { get; set; }
     

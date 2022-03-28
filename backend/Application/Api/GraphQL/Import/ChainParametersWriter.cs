@@ -59,7 +59,7 @@ public class ChainParametersWriter
         if (foundationAccount == null)
             throw new InvalidOperationException("Could not find the account in the database which was identified as foundation account in chain parameters.");
         
-        return new AccountAddress(foundationAccount.CanonicalAddress);
+        return foundationAccount.CanonicalAddress;
     }
 
     private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParameters input, AccountAddress foundationAccountAddress, int id = default)

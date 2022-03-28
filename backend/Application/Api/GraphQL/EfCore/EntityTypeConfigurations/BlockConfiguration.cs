@@ -40,8 +40,8 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
                 builder.Property(x => x.NewGasAccount).HasColumnName("block_reward_new_gas_account");
                 builder.Property(x => x.BakerReward).HasColumnName("block_reward_baker_reward");
                 builder.Property(x => x.FoundationCharge).HasColumnName("block_reward_foundation_charge");
-                builder.Property(x => x.BakerAccountAddress).HasColumnName("block_reward_baker_address");
-                builder.Property(x => x.FoundationAccountAddress).HasColumnName("block_reward_foundation_account");
+                builder.Property(x => x.BakerAccountAddress).HasColumnName("block_reward_baker_address").HasConversion<AccountAddressConverter>();
+                builder.Property(x => x.FoundationAccountAddress).HasColumnName("block_reward_foundation_account").HasConversion<AccountAddressConverter>();
             });
             specialEventsBuilder.OwnsOne(x => x.BakingRewards, builder =>
             {

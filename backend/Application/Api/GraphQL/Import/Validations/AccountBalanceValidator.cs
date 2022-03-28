@@ -37,7 +37,7 @@ public class AccountBalanceValidator
         
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var dbBalances = await dbContext.Accounts
-            .Select(x => new Item(x.CanonicalAddress, (long)x.Amount))
+            .Select(x => new Item(x.CanonicalAddress.AsString, (long)x.Amount))
             .ToArrayAsync();
         
         var equal = nodeBalances.OrderBy(x => x.Address)

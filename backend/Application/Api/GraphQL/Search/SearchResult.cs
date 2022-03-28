@@ -65,7 +65,7 @@ public class SearchResult
         
         // Cannot convert partial address to base address, so do a simple like-search on canonical address 
         return dbContext.Accounts.AsNoTracking()
-            .Where(account => EF.Functions.Like(account.CanonicalAddress, _queryString + "%"))
+            .Where(account => EF.Functions.Like(account.CanonicalAddressString, _queryString + "%"))
             .OrderByDescending(account => account.Id);
     }
 }

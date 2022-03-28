@@ -15,7 +15,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(b => b.BlockId).HasColumnName("block_id");
         builder.Property(b => b.TransactionIndex).HasColumnName("index");
         builder.Property(b => b.TransactionHash).HasColumnName("transaction_hash");
-        builder.Property(b => b.SenderAccountAddress).HasColumnName("sender");
+        builder.Property(b => b.SenderAccountAddress).HasColumnName("sender").HasConversion<AccountAddressConverter>();
         builder.Property(b => b.CcdCost).HasColumnName("micro_ccd_cost");
         builder.Property(b => b.EnergyCost).HasColumnName("energy_cost");
         builder.Property(b => b.TransactionType).HasColumnName("transaction_type").HasConversion<TransactionTypeToStringConverter>();
