@@ -1,7 +1,7 @@
 <template>
-	<div class="relative">
+	<div class="hidden lg:block relative">
 		<select
-			class="hidden lg:block border-2 border-solid text-sm rounded-full align-middle uppercase ml-4 px-4 py-2 pr-8 appearance-none uppercase select"
+			class="border-2 border-solid text-sm rounded-full align-middle uppercase ml-4 px-4 py-2 pr-8 appearance-none uppercase select"
 			:class="`select--${selectedValue}`"
 			@change="handleOnChange"
 		>
