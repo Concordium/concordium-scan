@@ -47,7 +47,7 @@
 						}}</span>
 					</div>
 					<AccountDetailsReleaseScheduleTransactions
-						v-if="account.releaseSchedule.totalAmount > 0"
+						v-if="account.releaseSchedule.schedule?.nodes?.length"
 						:release-schedule-items="account.releaseSchedule.schedule.nodes"
 						:page-info="account.releaseSchedule.schedule.pageInfo"
 						:go-to-page="goToPage"

@@ -67,6 +67,7 @@
 					</TableTd>
 					<TableTd>
 						<Tooltip
+							v-if="account.transactions?.nodes?.length"
 							:text="
 								formatTimestamp(
 									account.transactions.nodes[0].transaction.block.blockSlotTime
