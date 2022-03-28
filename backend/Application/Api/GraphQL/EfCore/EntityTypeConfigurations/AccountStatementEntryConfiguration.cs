@@ -14,7 +14,7 @@ public class AccountStatementEntryConfiguration : IEntityTypeConfiguration<Accou
         builder.Property(x => x.AccountId).HasColumnName("account_id");
         builder.Property(x => x.Index).HasColumnName("index").ValueGeneratedOnAdd();
         builder.Property(x => x.Timestamp).HasColumnName("time").HasConversion<DateTimeOffsetToTimestampConverter>();
-        builder.Property(x => x.EntryType).HasColumnName("entry_type"); // TODO: Should probably use specific converter to avoid future problems
+        builder.Property(x => x.EntryType).HasColumnName("entry_type"); 
         builder.Property(x => x.Amount).HasColumnName("amount");
         builder.Property(x => x.BlockId).HasColumnName("block_id");
         builder.Property(x => x.TransactionId).HasColumnName("transaction_id");
