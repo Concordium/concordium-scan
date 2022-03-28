@@ -31,7 +31,7 @@
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
 						<AccountLink
-							:address="scheduleItem.transaction.senderAccountAddress"
+							:address="scheduleItem.transaction.senderAccountAddressString"
 						/>
 					</TableTd>
 				</TableRow>

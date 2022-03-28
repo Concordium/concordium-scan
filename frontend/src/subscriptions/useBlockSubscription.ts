@@ -25,7 +25,7 @@ const BlockSubscription = gql<Subscription>`
 					id
 					ccdCost
 					transactionHash
-					senderAccountAddress
+					senderAccountAddressString
 					block {
 						blockHeight
 						blockSlotTime

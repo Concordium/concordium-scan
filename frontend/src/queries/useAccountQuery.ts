@@ -126,7 +126,7 @@ const AccountQueryByAddress = gql<Account>`
 					nodes {
 						transaction {
 							transactionHash
-							senderAccountAddress
+							senderAccountAddressString
 							ccdCost
 							block {
 								blockSlotTime
