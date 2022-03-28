@@ -59,6 +59,7 @@ type AccountStatementEntry {
   timestamp: DateTime!
   entryType: AccountStatementEntryType!
   amount: Long!
+  accountBalance: UnsignedLong!
 }
 
 "A connection to a list of items."

@@ -20,7 +20,6 @@ public class AccountStatementEntry
     
     public long Amount { get; set; }
 
-    [GraphQLIgnore] // TODO: Add to graphql schema
     public ulong AccountBalance { get; set; }
 
     /// <summary>
