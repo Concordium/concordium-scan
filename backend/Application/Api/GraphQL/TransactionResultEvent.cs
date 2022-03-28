@@ -246,6 +246,6 @@ public record TransferredWithSchedule(
 /// <summary>
 /// A chain update was enqueued for the given time.
 /// </summary>
-/// <param name="EffectiveTime"></param>
 public record ChainUpdateEnqueued(
-    DateTimeOffset EffectiveTime) : TransactionResultEvent; // TODO: Add payload for the update - probably yet another large union!
+    DateTimeOffset EffectiveTime,
+    ChainUpdatePayload Payload) : TransactionResultEvent; 

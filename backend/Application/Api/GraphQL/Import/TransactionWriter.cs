@@ -90,9 +90,30 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.TransferredWithSchedule x => new TransferredWithSchedule(x.From.AsString, x.To.AsString, x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.MicroCcdValue)).ToArray()),
                 ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
                 ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
-                ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => new ChainUpdateEnqueued(x.EffectiveTime.AsDateTimeOffset),
+                ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => new ChainUpdateEnqueued(x.EffectiveTime.AsDateTimeOffset, MapUpdatePayload(x.Payload)),
                 _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
             }
+        };
+    }
+
+    private ChainUpdatePayload MapUpdatePayload(UpdatePayload value)
+    {
+        return value switch
+        {
+            ProtocolUpdatePayload x => new ProtocolChainUpdatePayload(x.Content.Message, x.Content.SpecificationURL, x.Content.SpecificationHash, x.Content.SpecificationAuxiliaryData.AsHexString),
+            ElectionDifficultyUpdatePayload x => new ElectionDifficultyChainUpdatePayload(x.ElectionDifficulty),
+            EuroPerEnergyUpdatePayload x => new EuroPerEnergyChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
+            MicroGtuPerEuroUpdatePayload x => new MicroCcdPerEuroChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
+            FoundationAccountUpdatePayload x => new FoundationAccountChainUpdatePayload(new AccountAddress(x.Account.AsString)),
+            MintDistributionUpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
+            TransactionFeeDistributionUpdatePayload x => new TransactionFeeDistributionChainUpdatePayload(x.Content.Baker, x.Content.GasAccount),
+            GasRewardsUpdatePayload x => new GasRewardsChainUpdatePayload(x.Content.Baker, x.Content.FinalizationProof, x.Content.AccountCreation, x.Content.ChainUpdate),
+            BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Amount.MicroCcdValue),
+            RootUpdatePayload x => new RootKeysChainUpdatePayload(),
+            Level1UpdatePayload x => new Level1KeysChainUpdatePayload(),
+            AddAnonymityRevokerUpdatePayload x => new AddAnonymityRevokerChainUpdatePayload((int)x.Content.ArIdentity, x.Content.ArDescription.Name, x.Content.ArDescription.Url, x.Content.ArDescription.Description),
+            AddIdentityProviderUpdatePayload x => new AddIdentityProviderChainUpdatePayload((int)x.Content.IpIdentity, x.Content.IpDescription.Name, x.Content.IpDescription.Url, x.Content.IpDescription.Description),
+            _ => throw new NotImplementedException()
         };
     }
 

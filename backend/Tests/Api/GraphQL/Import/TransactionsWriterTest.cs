@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Import;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -7,6 +8,71 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
+using AccountAddress = ConcordiumSdk.Types.AccountAddress;
+using AccountCreated = ConcordiumSdk.NodeApi.Types.AccountCreated;
+using AlreadyABaker = ConcordiumSdk.NodeApi.Types.AlreadyABaker;
+using AmountAddedByDecryption = ConcordiumSdk.NodeApi.Types.AmountAddedByDecryption;
+using AmountTooLarge = ConcordiumSdk.NodeApi.Types.AmountTooLarge;
+using BakerAdded = ConcordiumSdk.NodeApi.Types.BakerAdded;
+using BakerInCooldown = ConcordiumSdk.NodeApi.Types.BakerInCooldown;
+using BakerKeysUpdated = ConcordiumSdk.NodeApi.Types.BakerKeysUpdated;
+using BakerRemoved = ConcordiumSdk.NodeApi.Types.BakerRemoved;
+using BakerSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings;
+using BakerStakeDecreased = ConcordiumSdk.NodeApi.Types.BakerStakeDecreased;
+using BakerStakeIncreased = ConcordiumSdk.NodeApi.Types.BakerStakeIncreased;
+using ContractAddress = ConcordiumSdk.Types.ContractAddress;
+using ContractInitialized = ConcordiumSdk.NodeApi.Types.ContractInitialized;
+using CredentialDeployed = ConcordiumSdk.NodeApi.Types.CredentialDeployed;
+using CredentialHolderDidNotSign = ConcordiumSdk.NodeApi.Types.CredentialHolderDidNotSign;
+using CredentialKeysUpdated = ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated;
+using CredentialsUpdated = ConcordiumSdk.NodeApi.Types.CredentialsUpdated;
+using DataRegistered = ConcordiumSdk.NodeApi.Types.DataRegistered;
+using DuplicateAggregationKey = ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey;
+using DuplicateCredIds = ConcordiumSdk.NodeApi.Types.DuplicateCredIds;
+using EncryptedAmountSelfTransfer = ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer;
+using EncryptedAmountsRemoved = ConcordiumSdk.NodeApi.Types.EncryptedAmountsRemoved;
+using EncryptedSelfAmountAdded = ConcordiumSdk.NodeApi.Types.EncryptedSelfAmountAdded;
+using ExchangeRate = ConcordiumSdk.NodeApi.Types.ExchangeRate;
+using FirstScheduledReleaseExpired = ConcordiumSdk.NodeApi.Types.FirstScheduledReleaseExpired;
+using InsufficientBalanceForBakerStake = ConcordiumSdk.NodeApi.Types.InsufficientBalanceForBakerStake;
+using InvalidAccountReference = ConcordiumSdk.NodeApi.Types.InvalidAccountReference;
+using InvalidAccountThreshold = ConcordiumSdk.NodeApi.Types.InvalidAccountThreshold;
+using InvalidContractAddress = ConcordiumSdk.NodeApi.Types.InvalidContractAddress;
+using InvalidCredentialKeySignThreshold = ConcordiumSdk.NodeApi.Types.InvalidCredentialKeySignThreshold;
+using InvalidCredentials = ConcordiumSdk.NodeApi.Types.InvalidCredentials;
+using InvalidEncryptedAmountTransferProof = ConcordiumSdk.NodeApi.Types.InvalidEncryptedAmountTransferProof;
+using InvalidIndexOnEncryptedTransfer = ConcordiumSdk.NodeApi.Types.InvalidIndexOnEncryptedTransfer;
+using InvalidInitMethod = ConcordiumSdk.NodeApi.Types.InvalidInitMethod;
+using InvalidModuleReference = ConcordiumSdk.NodeApi.Types.InvalidModuleReference;
+using InvalidProof = ConcordiumSdk.NodeApi.Types.InvalidProof;
+using InvalidReceiveMethod = ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod;
+using InvalidTransferToPublicProof = ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof;
+using KeyIndexAlreadyInUse = ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse;
+using ModuleHashAlreadyExists = ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists;
+using ModuleNotWf = ConcordiumSdk.NodeApi.Types.ModuleNotWf;
+using NewEncryptedAmount = ConcordiumSdk.NodeApi.Types.NewEncryptedAmount;
+using NonExistentCredentialId = ConcordiumSdk.NodeApi.Types.NonExistentCredentialId;
+using NonExistentCredIds = ConcordiumSdk.NodeApi.Types.NonExistentCredIds;
+using NonExistentRewardAccount = ConcordiumSdk.NodeApi.Types.NonExistentRewardAccount;
+using NonIncreasingSchedule = ConcordiumSdk.NodeApi.Types.NonIncreasingSchedule;
+using NotABaker = ConcordiumSdk.NodeApi.Types.NotABaker;
+using NotAllowedMultipleCredentials = ConcordiumSdk.NodeApi.Types.NotAllowedMultipleCredentials;
+using NotAllowedToHandleEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted;
+using NotAllowedToReceiveEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted;
+using OutOfEnergy = ConcordiumSdk.NodeApi.Types.OutOfEnergy;
+using RejectedInit = ConcordiumSdk.NodeApi.Types.RejectedInit;
+using RejectedReceive = ConcordiumSdk.NodeApi.Types.RejectedReceive;
+using RemoveFirstCredential = ConcordiumSdk.NodeApi.Types.RemoveFirstCredential;
+using RuntimeFailure = ConcordiumSdk.NodeApi.Types.RuntimeFailure;
+using ScheduledSelfTransfer = ConcordiumSdk.NodeApi.Types.ScheduledSelfTransfer;
+using SerializationFailure = ConcordiumSdk.NodeApi.Types.SerializationFailure;
+using StakeUnderMinimumThresholdForBaking = ConcordiumSdk.NodeApi.Types.StakeUnderMinimumThresholdForBaking;
+using TimestampedAmount = ConcordiumSdk.NodeApi.Types.TimestampedAmount;
+using TransactionRejectReason = ConcordiumSdk.NodeApi.Types.TransactionRejectReason;
+using TransferMemo = ConcordiumSdk.NodeApi.Types.TransferMemo;
+using Transferred = ConcordiumSdk.NodeApi.Types.Transferred;
+using TransferredWithSchedule = ConcordiumSdk.NodeApi.Types.TransferredWithSchedule;
+using ZeroScheduledAmount = ConcordiumSdk.NodeApi.Types.ZeroScheduledAmount;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -555,7 +621,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public async Task TransactionEvents_ChainUpdateEnqueued() // TODO: Still need to add payload!
+    public async Task TransactionEvents_ChainUpdateEnqueued_MicroGtuPerEuroPayload() 
     {
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
@@ -568,6 +634,9 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ChainUpdateEnqueued>();
         result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<MicroCcdPerEuroChainUpdatePayload>(result.Payload);
+        item.ExchangeRate.Numerator.Should().Be(1);
+        item.ExchangeRate.Denominator.Should().Be(2);
     }
 
     [Fact]

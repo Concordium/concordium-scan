@@ -143,6 +143,20 @@ type AccountsMetricsBuckets {
   y_AccountsCreated: [Int!]!
 }
 
+type AddAnonymityRevokerChainUpdatePayload {
+  arIdentity: Int!
+  name: String!
+  url: String!
+  description: String!
+}
+
+type AddIdentityProviderChainUpdatePayload {
+  ipIdentity: Int!
+  name: String!
+  url: String!
+  description: String!
+}
+
 type AlreadyABaker {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   bakerId: UnsignedLong!
@@ -227,6 +241,10 @@ type BakerStakeIncreased {
   accountAddress: String! @deprecated(reason: "Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
   newStakedAmount: UnsignedLong!
   accountAddressString: String!
+}
+
+type BakerStakeThresholdChainUpdatePayload {
+  amount: UnsignedLong!
 }
 
 type BakingReward {
@@ -382,6 +400,7 @@ type ChainParameters {
 
 type ChainUpdateEnqueued {
   effectiveTime: DateTime!
+  payload: ChainUpdatePayload!
 }
 
 type ContractAddress {
@@ -456,6 +475,10 @@ type DuplicateCredIds {
   credIds: [String!]!
 }
 
+type ElectionDifficultyChainUpdatePayload {
+  electionDifficulty: Decimal!
+}
+
 type EncryptedAmountSelfTransfer {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: String! @deprecated(reason: "Use 'AccountAddressString' instead. Type of this field will be changed to AccountAddress in the near future.")
@@ -475,6 +498,10 @@ type EncryptedSelfAmountAdded {
   newEncryptedAmount: String!
   amount: UnsignedLong!
   accountAddressString: String!
+}
+
+type EuroPerEnergyChainUpdatePayload {
+  exchangeRate: ExchangeRate!
 }
 
 "A connection to a list of items."
@@ -565,7 +592,18 @@ type FirstScheduledReleaseExpired {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
+type FoundationAccountChainUpdatePayload {
+  accountAddress: AccountAddress!
+}
+
 type GasRewards {
+  baker: Decimal!
+  finalizationProof: Decimal!
+  accountCreation: Decimal!
+  chainUpdate: Decimal!
+}
+
+type GasRewardsChainUpdatePayload {
   baker: Decimal!
   finalizationProof: Decimal!
   accountCreation: Decimal!
@@ -636,6 +674,14 @@ type KeyIndexAlreadyInUse {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
+type Level1KeysChainUpdatePayload {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema since graphql does not allow types without any fields")
+}
+
+type MicroCcdPerEuroChainUpdatePayload {
+  exchangeRate: ExchangeRate!
+}
+
 type Mint {
   bakingReward: UnsignedLong!
   finalizationReward: UnsignedLong!
@@ -645,6 +691,12 @@ type Mint {
 }
 
 type MintDistribution {
+  mintPerSlot: Decimal!
+  bakingReward: Decimal!
+  finalizationReward: Decimal!
+}
+
+type MintDistributionChainUpdatePayload {
   mintPerSlot: Decimal!
   bakingReward: Decimal!
   finalizationReward: Decimal!
@@ -719,6 +771,13 @@ type PageInfo {
   endCursor: String
 }
 
+type ProtocolChainUpdatePayload {
+  message: String!
+  specificationUrl: String!
+  specificationHash: String!
+  specificationAuxiliaryDataAsHex: String!
+}
+
 type Query {
   block(id: ID!): Block
   blockByBlockHash(blockHash: String!): Block
@@ -760,6 +819,10 @@ type RewardParameters {
   mintDistribution: MintDistribution!
   transactionFeeDistribution: TransactionFeeDistribution!
   gasRewards: GasRewards!
+}
+
+type RootKeysChainUpdatePayload {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema since graphql does not allow types without any fields")
 }
 
 type RuntimeFailure {
@@ -842,6 +905,11 @@ type TransactionFeeDistribution {
   gasAccount: Decimal!
 }
 
+type TransactionFeeDistributionChainUpdatePayload {
+  baker: Decimal!
+  gasAccount: Decimal!
+}
+
 type TransactionMetrics {
   "Total number of transactions (all time)"
   lastCumulativeTransactionCount: Long!
@@ -910,6 +978,8 @@ type ZeroScheduledAmount {
 union Address = AccountAddress | ContractAddress
 
 union BlockOrTransaction = Block | Transaction
+
+union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload
 
 union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
 

@@ -17,7 +17,8 @@ public class TransactionResultEventToJsonConverter : ObjectToJsonConverter<Trans
                 new TransactionResultEventConverter(),
                 new AddressConverter(),
                 new Json.AccountAddressConverter(),
-                new ContractAddressConverter()
+                new ContractAddressConverter(),
+                new ChainUpdatePayloadConverter()
             }
         };
     }

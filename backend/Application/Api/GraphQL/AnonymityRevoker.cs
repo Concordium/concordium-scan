@@ -1,16 +1,16 @@
 ﻿namespace Application.Api.GraphQL;
 
-public class IdentityProvider
+public class AnonymityRevoker
 {
-    public IdentityProvider(int ipIdentity, string name, string url, string description)
+    public AnonymityRevoker(int arIdentity, string name, string url, string description)
     {
-        IpIdentity = ipIdentity;
+        ArIdentity = arIdentity;
         Name = name;
         Url = url;
         Description = description;
     }
 
-    public int IpIdentity { get; }
+    public int ArIdentity { get; }
     public string Name { get; set; }
     public string Url { get; set; }
     public string Description { get; set; }
