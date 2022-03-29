@@ -30,12 +30,12 @@
 						:data="props.block.specialEvents.mint"
 					/>
 					<FinalizationRewards
-						v-if="
-							props.block?.specialEvents.finalizationRewards?.rewards?.nodes
+						v-if="props.block.specialEvents.finalizationRewards?.rewards?.nodes"
+						:data="props.block.specialEvents.finalizationRewards.rewards.nodes"
+						:page-info="
+							props.block.specialEvents.finalizationRewards.rewards.pageInfo
 						"
-						:data="
-							props.block.specialEvents.finalizationRewards?.rewards?.nodes
-						"
+						:go-to-page="props.goToPageFinalizationRewards"
 					/>
 					<BlockRewards
 						v-if="props.block?.specialEvents.blockRewards"
@@ -54,7 +54,7 @@
 						:transactions="props.block?.transactions.nodes || []"
 						:total-count="props.block?.transactionCount"
 						:page-info="props.block.transactions.pageInfo"
-						:go-to-page="props.goToPage"
+						:go-to-page="props.goToPageTx"
 					/>
 					<div v-if="!props.block?.transactionCount" class="p-4">
 						No transactions
@@ -84,7 +84,10 @@ const { NOW } = useDateNow()
 
 type Props = {
 	block: Block
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageTx: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageFinalizationRewards: (
+		page: PageInfo
+	) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()

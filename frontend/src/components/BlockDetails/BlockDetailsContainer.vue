@@ -1,14 +1,11 @@
 ﻿<template>
 	<div v-if="blockQueryResult.data">
 		<BlockDetailsContent
-			v-if="blockQueryResult.data.block"
-			:block="blockQueryResult.data.block"
-			:go-to-page="goToPage"
-		/>
-		<BlockDetailsContent
-			v-else
-			:block="blockQueryResult.data.blockByBlockHash"
-			:go-to-page="goToPage"
+			:block="
+				blockQueryResult.data.block || blockQueryResult.data.blockByBlockHash
+			"
+			:go-to-page-tx="goToPageTx"
+			:go-to-page-finalization-rewards="goToPageFinalizationRewards"
 		/>
 	</div>
 	<BWCubeLogoIcon
@@ -20,23 +17,37 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
 import { useBlockQuery, useBlockQueryByHash } from '~/queries/useBlockQuery'
-import { usePagination } from '~/composables/usePagination'
+import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 
+// transaction pagination variables
 const {
 	first: firstTx,
 	last: lastTx,
 	after: afterTx,
 	before: beforeTx,
-	goToPage,
+	goToPage: goToPageTx,
 } = usePagination()
+
+// finalization rewards pagination variables
+const {
+	first: firstFinalizationRewards,
+	last: lastFinalizationRewards,
+	after: afterFinalizationRewards,
+	before: beforeFinalizationRewards,
+	goToPage: goToPageFinalizationRewards,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
 const paginationVars = {
 	firstTx,
 	lastTx,
 	afterTx,
 	beforeTx,
+	firstFinalizationRewards,
+	lastFinalizationRewards,
+	afterFinalizationRewards,
+	beforeFinalizationRewards,
 }
 
 type Props = {

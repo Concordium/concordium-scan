@@ -1,7 +1,7 @@
 <template>
 	<nav
-		class="flex justify-center mt-8 p-4 sticky bottom-0"
-		:class="$style.pagination"
+		class="flex justify-center mt-8 p-4 bottom-0 pagination"
+		:class="position ? position : 'relative'"
 	>
 		<Button
 			class="mr-4"
@@ -48,6 +48,8 @@ import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {
+	// would love to use CSSProperties['position'], but seems not to be exported from Vue
+	position?: 'relative' | 'sticky'
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
@@ -62,7 +64,7 @@ const goToPrevious = () => paginate('previous')
 const goToNext = () => paginate('next')
 </script>
 
-<style module>
+<style scoped>
 /*
 	1. Using after: classes on the element seems not to work as desired
 	2. Using @apply will prevent tests from running

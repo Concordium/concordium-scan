@@ -9,8 +9,50 @@ type BlockResponse = {
 type BlockByBlockHashResponse = {
 	blockByBlockHash: Block
 }
+
+type BlockQueryVariables = {
+	afterTx: QueryVariables['after']
+	beforeTx: QueryVariables['before']
+	firstTx: QueryVariables['first']
+	lastTx: QueryVariables['last']
+	afterFinalizationRewards: QueryVariables['after']
+	beforeFinalizationRewards: QueryVariables['before']
+	firstFinalizationRewards: QueryVariables['first']
+	lastFinalizationRewards: QueryVariables['last']
+}
+
+const transactionsFragment = `
+nodes {
+	id
+	transactionHash
+	senderAccountAddressString
+	ccdCost
+	result {
+		__typename
+	}
+	transactionType {
+		__typename
+		... on AccountTransaction {
+			accountTransactionType
+		}
+		... on CredentialDeploymentTransaction {
+			credentialDeploymentTransactionType
+		}
+		... on UpdateTransaction {
+			updateTransactionType
+		}
+	}
+}
+pageInfo {
+	startCursor
+	endCursor
+	hasPreviousPage
+	hasNextPage
+}
+`
+
 const BlockQuery = gql<BlockResponse>`
-	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
+	query ($id: ID!, $afterTx: String, $beforeTx: String, $firstTx: Int, $lastTx: Int, $afterFinalizationRewards: String, $beforeFinalizationRewards: String, $firstFinalizationRewards: Int, $lastFinalizationRewards: Int) {
 		block(id: $id) {
 			id
 			blockHash
@@ -18,34 +60,8 @@ const BlockQuery = gql<BlockResponse>`
 			blockSlotTime
 			finalized
 			transactionCount
-			transactions(after: $after, before: $before, first: $first, last: $last) {
-				nodes {
-					id
-					transactionHash
-					senderAccountAddressString
-					ccdCost
-					result {
-						__typename
-					}
-					transactionType {
-						__typename
-						... on AccountTransaction {
-							accountTransactionType
-						}
-						... on CredentialDeploymentTransaction {
-							credentialDeploymentTransactionType
-						}
-						... on UpdateTransaction {
-							updateTransactionType
-						}
-					}
-				}
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
+			transactions(after: $afterTx, before: $beforeTx, first: $firstTx, last: $lastTx) {
+				${transactionsFragment}
 			}
 			specialEvents {
 				mint {
@@ -56,10 +72,16 @@ const BlockQuery = gql<BlockResponse>`
 				}
 				finalizationRewards {
 					remainder
-					rewards {
+					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
 						nodes {
 							amount
 							addressString
+						}
+						pageInfo {
+							startCursor
+							endCursor
+							hasPreviousPage
+							hasNextPage
 						}
 					}
 				}
@@ -80,10 +102,14 @@ const BlockQuery = gql<BlockResponse>`
 const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 	query (
 		$hash: String!
-		$after: String
-		$before: String
-		$first: Int
-		$last: Int
+		$afterTx: String
+		$beforeTx: String
+		$firstTx: Int
+		$lastTx: Int
+		$afterFinalizationRewards: String
+		$beforeFinalizationRewards: String
+		$firstFinalizationRewards: Int
+		$lastFinalizationRewards: Int
 	) {
 		blockByBlockHash(blockHash: $hash) {
 			id
@@ -92,22 +118,8 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 			blockSlotTime
 			finalized
 			transactionCount
-			transactions(after: $after, before: $before, first: $first, last: $last) {
-				nodes {
-					id
-					transactionHash
-					senderAccountAddressString
-					ccdCost
-					result {
-						__typename
-					}
-				}
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
+			transactions(after: $afterTx, before: $beforeTx, first: $firstTx, last: $lastTx) {
+				${transactionsFragment}
 			}
 			specialEvents {
 				mint {
@@ -118,10 +130,16 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 				}
 				finalizationRewards {
 					remainder
-					rewards {
+					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
 						nodes {
 							amount
 							addressString
+						}
+						pageInfo {
+							startCursor
+							endCursor
+							hasPreviousPage
+							hasNextPage
 						}
 					}
 				}
@@ -140,7 +158,7 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 `
 export const useBlockQueryByHash = (
 	hash: Ref<string>,
-	eventsVariables?: QueryVariables
+	eventsVariables?: BlockQueryVariables
 ) => {
 	const { data } = useQuery({
 		query: BlockQueryByHash,
@@ -155,7 +173,7 @@ export const useBlockQueryByHash = (
 
 export const useBlockQuery = (
 	id: Ref<string>,
-	eventsVariables?: QueryVariables
+	eventsVariables?: BlockQueryVariables
 ) => {
 	const { data } = useQuery({
 		query: BlockQuery,

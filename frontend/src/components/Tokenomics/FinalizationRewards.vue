@@ -24,6 +24,12 @@
 					</TableRow>
 				</TableBody>
 			</Table>
+			<Pagination
+				v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
+				class="relative"
+				:page-info="pageInfo"
+				:go-to-page="goToPage"
+			/>
 		</template>
 	</TokenomicsDisplay>
 </template>
@@ -31,10 +37,13 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd, calculateWeight } from '~/utils/format'
-import type { FinalizationReward } from '~/types/generated'
+import type { PaginationTarget } from '~/composables/usePagination'
+import type { FinalizationReward, PageInfo } from '~/types/generated'
 
 type Props = {
 	data?: FinalizationReward[]
+	pageInfo: PageInfo
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()
