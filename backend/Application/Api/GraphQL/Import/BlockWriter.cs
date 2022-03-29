@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ public class BlockWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
+    private readonly BlockChangeCalculator _changeCalculator;
 
     public BlockWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
+        _changeCalculator = new BlockChangeCalculator(new InitialTokenReleaseScheduleRepository());
         _metrics = metrics;
     }
 
@@ -27,7 +30,7 @@ public class BlockWriter
         var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);
         importState.LastBlockSlotTime = blockInfo.BlockSlotTime;
 
-        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId);
+        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId, importState);
         context.Blocks.Add(block);
         
         await context.SaveChangesAsync(); // assign ID to block!
@@ -62,7 +65,7 @@ public class BlockWriter
         return block; 
     }
     
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime, int chainParametersId)
+    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime, int chainParametersId, ImportState importState)
     {
         var block = new Block
         {
@@ -80,7 +83,7 @@ public class BlockWriter
                 BakingRewards = MapBakingRewards(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
             },
             FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData),
-            BalanceStatistics = MapBalanceStatistics(rewardStatus),
+            BalanceStatistics = MapBalanceStatistics(rewardStatus, blockInfo.BlockSlotTime, importState),
             BlockStatistics = new BlockStatistics
             {
                 BlockTime = blockTime, 
@@ -97,10 +100,11 @@ public class BlockWriter
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
-    private static BalanceStatistics MapBalanceStatistics(RewardStatus rewardStatus)
+    private BalanceStatistics MapBalanceStatistics(RewardStatus rewardStatus, DateTimeOffset blockSlotTime, ImportState importState)
     {
         return new BalanceStatistics(
-            rewardStatus.TotalAmount.MicroCcdValue, 
+            rewardStatus.TotalAmount.MicroCcdValue,
+            _changeCalculator.CalculateTotalAmountReleased(rewardStatus.TotalAmount, blockSlotTime, importState.GenesisBlockHash),
             rewardStatus.TotalEncryptedAmount.MicroCcdValue, 
             0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
             rewardStatus.BakingRewardAccount.MicroCcdValue, 

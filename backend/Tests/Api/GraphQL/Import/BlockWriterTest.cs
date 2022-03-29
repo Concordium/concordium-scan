@@ -20,7 +20,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
-    private readonly ImportState _importState = new();
+    private readonly ImportState _importState = new ImportStateBuilder().Build();
     private int _chainParametersId = 20;
 
     public BlockWriterTest(DatabaseFixture dbFixture)

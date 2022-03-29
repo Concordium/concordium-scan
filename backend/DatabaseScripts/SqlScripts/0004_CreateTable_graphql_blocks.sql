@@ -24,6 +24,7 @@ create table graphql_blocks
     finalization_data_index                    bigint    null,
     finalization_data_delay                    bigint    null,
     bal_stats_total_amount                     bigint    not null,
+    bal_stats_total_amount_released            bigint    null,
     bal_stats_total_encrypted_amount           bigint    not null,
     bal_stats_total_amount_locked_in_schedules bigint    not null,
     bal_stats_baking_reward_account            bigint    not null,

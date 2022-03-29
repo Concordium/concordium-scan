@@ -4,9 +4,10 @@ namespace Application.Api.GraphQL;
 
 public class BalanceStatistics
 {
-    public BalanceStatistics(ulong totalAmount, ulong totalEncryptedAmount, ulong totalAmountLockedInReleaseSchedules, ulong bakingRewardAccount, ulong finalizationRewardAccount, ulong gasAccount)
+    public BalanceStatistics(ulong totalAmount, ulong? totalAmountReleased, ulong totalEncryptedAmount, ulong totalAmountLockedInReleaseSchedules, ulong bakingRewardAccount, ulong finalizationRewardAccount, ulong gasAccount)
     {
         TotalAmount = totalAmount;
+        TotalAmountReleased = totalAmountReleased;
         TotalEncryptedAmount = totalEncryptedAmount;
         TotalAmountLockedInReleaseSchedules = totalAmountLockedInReleaseSchedules;
         BakingRewardAccount = bakingRewardAccount;
@@ -16,6 +17,9 @@ public class BalanceStatistics
 
     [GraphQLDescription("The total CCD in existence")]
     public ulong TotalAmount { get; init; }
+    
+    [GraphQLDescription("The total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule.")]
+    public ulong? TotalAmountReleased { get; init; }
 
     [GraphQLDescription("The total CCD in encrypted balances")]
     public ulong TotalEncryptedAmount { get; init; }

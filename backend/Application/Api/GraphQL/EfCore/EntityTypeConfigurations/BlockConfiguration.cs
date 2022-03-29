@@ -59,6 +59,7 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.OwnsOne(block => block.BalanceStatistics, builder =>
         {
             builder.Property(x => x.TotalAmount).HasColumnName("bal_stats_total_amount");
+            builder.Property(x => x.TotalAmountReleased).HasColumnName("bal_stats_total_amount_released");
             builder.Property(x => x.TotalEncryptedAmount).HasColumnName("bal_stats_total_encrypted_amount");
             builder.Property(x => x.TotalAmountLockedInReleaseSchedules).HasColumnName("bal_stats_total_amount_locked_in_schedules");
             builder.Property(x => x.BakingRewardAccount).HasColumnName("bal_stats_baking_reward_account");
