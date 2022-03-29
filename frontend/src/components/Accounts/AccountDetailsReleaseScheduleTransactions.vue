@@ -3,10 +3,10 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Amount (Ͼ)</TableTh>
 					<TableTh>Releases in</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Transaction</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.XXL">Sender</TableTh>
+
+					<TableTh>Amount (Ͼ)</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -14,25 +14,21 @@
 					v-for="scheduleItem in releaseScheduleItems"
 					:key="scheduleItem.transaction.transactionHash"
 				>
-					<TableTd align="right" class="numerical">
-						{{ convertMicroCcdToCcd(scheduleItem.amount) }}
-					</TableTd>
-
 					<TableTd>
-						<Tooltip :text="formatTimestamp(scheduleItem.timestamp)">
-							{{ convertTimestampToRelative(scheduleItem.timestamp, NOW) }}
+						<Tooltip
+							:text="convertTimestampToRelative(scheduleItem.timestamp, NOW)"
+						>
+							{{ formatTimestamp(scheduleItem.timestamp) }}
 						</Tooltip>
 					</TableTd>
-					<TableTd class="numerical">
+					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
 						<TransactionLink
 							:id="scheduleItem.transaction.id"
 							:hash="scheduleItem.transaction.transactionHash"
 						/>
 					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.XXL" class="numerical">
-						<AccountLink
-							:address="scheduleItem.transaction.senderAccountAddressString"
-						/>
+					<TableTd align="right" class="numerical">
+						{{ convertMicroCcdToCcd(scheduleItem.amount) }}
 					</TableTd>
 				</TableRow>
 			</TableBody>
