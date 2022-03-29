@@ -39,7 +39,7 @@ const selectedValue = ref(
 const state = ref('idle')
 
 const iconClasses =
-	'h-4 w-4 absolute top-3 right-3 transition-colors select-icon'
+	'h-4 w-4 absolute top-3 right-3 transition-colors pointer-events-none select-icon'
 
 const handleOnChange = (event: Event) => {
 	// compiler does not know if `EventTarget` has a `value` (for example if it is a div)
