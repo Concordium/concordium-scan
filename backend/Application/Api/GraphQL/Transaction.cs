@@ -25,7 +25,7 @@ public class Transaction : IBlockOrTransactionUnion
     public AccountAddress? SenderAccountAddress { get; set; }
 
     [GraphQLDeprecated("Use 'senderAccountAddress.asString' instead. This field will be removed in the near future.")]
-    public string? SenderAccountAddressString => SenderAccountAddress.AsString;
+    public string? SenderAccountAddressString => SenderAccountAddress?.AsString;
     
     public ulong CcdCost { get; set; }
     
