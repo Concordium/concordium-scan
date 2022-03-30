@@ -3,10 +3,10 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh>Releases in</TableTh>
+					<TableTh>Releases</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Transaction</TableTh>
 
-					<TableTh>Amount (Ͼ)</TableTh>
+					<TableTh align="right">Amount (Ͼ)</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
