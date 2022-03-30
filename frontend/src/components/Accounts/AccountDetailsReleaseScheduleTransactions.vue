@@ -12,7 +12,11 @@
 			<TableBody>
 				<TableRow
 					v-for="scheduleItem in releaseScheduleItems"
-					:key="scheduleItem.transaction.transactionHash"
+					:key="
+						scheduleItem.timestamp +
+						'-' +
+						scheduleItem.transaction.transactionHash
+					"
 				>
 					<TableTd>
 						<Tooltip

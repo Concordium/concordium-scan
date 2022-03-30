@@ -3,12 +3,14 @@
 		<AccountDetailsContent
 			v-if="accountQueryResult.data.account"
 			:account="accountQueryResult.data.account"
-			:go-to-page="goToPage"
+			:go-to-page-tx="goToPageTx"
+			:go-to-page-release-schedule="goToPageReleaseSchedule"
 		/>
 		<AccountDetailsContent
 			v-else
 			:account="accountQueryResult.data.accountByAddress"
-			:go-to-page="goToPage"
+			:go-to-page-tx="goToPageTx"
+			:go-to-page-release-schedule="goToPageReleaseSchedule"
 		/>
 	</div>
 	<BWCubeLogoIcon
@@ -25,8 +27,7 @@ import {
 	useAccountQueryByAddress,
 } from '~/queries/useAccountQuery'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
-const { first, last, after, before, goToPage } = usePagination()
-
+import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 type Props = {
 	id?: string
 	address?: string
@@ -34,23 +35,42 @@ type Props = {
 const props = defineProps<Props>()
 const refId = toRef(props, 'id')
 const refAddress = toRef(props, 'address')
+const {
+	first: firstTx,
+	last: lastTx,
+	after: afterTx,
+	before: beforeTx,
+	goToPage: goToPageTx,
+} = usePagination()
+
+const {
+	first: firstReleaseSchedule,
+	last: lastReleaseSchedule,
+	after: afterReleaseSchedule,
+	before: beforeReleaseSchedule,
+	goToPage: goToPageReleaseSchedule,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+
+const paginationVars = {
+	firstTx,
+	lastTx,
+	afterTx,
+	beforeTx,
+	firstReleaseSchedule,
+	lastReleaseSchedule,
+	afterReleaseSchedule,
+	beforeReleaseSchedule,
+}
 
 const accountQueryResult = ref()
 if (props.id)
-	accountQueryResult.value = useAccountQuery(refId as Ref<string>, {
-		first,
-		last,
-		after,
-		before,
-	})
+	accountQueryResult.value = useAccountQuery(
+		refId as Ref<string>,
+		paginationVars
+	)
 else if (props.address)
 	accountQueryResult.value = useAccountQueryByAddress(
 		refAddress as Ref<string>,
-		{
-			first,
-			last,
-			after,
-			before,
-		}
+		paginationVars
 	)
 </script>

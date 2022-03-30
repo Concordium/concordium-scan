@@ -2,10 +2,36 @@
 import { Ref } from 'vue'
 import type { Account } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
+type AccountQueryVariables = {
+	afterTx: QueryVariables['after']
+	beforeTx: QueryVariables['before']
+	firstTx: QueryVariables['first']
+	lastTx: QueryVariables['last']
+	afterReleaseSchedule: QueryVariables['after']
+	beforeReleaseSchedule: QueryVariables['before']
+	firstReleaseSchedule: QueryVariables['first']
+	lastReleaseSchedule: QueryVariables['last']
+}
+
 const AccountQuery = gql<Account>`
-	query ($id: ID!, $after: String, $before: String, $first: Int, $last: Int) {
+	query (
+		$id: ID!
+		$afterTx: String
+		$beforeTx: String
+		$firstTx: Int
+		$lastTx: Int
+		$afterReleaseSchedule: String
+		$beforeReleaseSchedule: String
+		$firstReleaseSchedule: Int
+		$lastReleaseSchedule: Int
+	) {
 		account(id: $id) {
-			transactions(after: $after, before: $before, first: $first, last: $last) {
+			transactions(
+				after: $afterTx
+				before: $beforeTx
+				first: $firstTx
+				last: $lastTx
+			) {
 				pageInfo {
 					startCursor
 					endCursor
@@ -43,8 +69,14 @@ const AccountQuery = gql<Account>`
 			id
 			addressString
 			amount
+			transactionCount
 			releaseSchedule {
-				schedule {
+				schedule(
+					after: $afterReleaseSchedule
+					before: $beforeReleaseSchedule
+					first: $firstReleaseSchedule
+					last: $lastReleaseSchedule
+				) {
 					pageInfo {
 						hasNextPage
 						hasPreviousPage
@@ -69,13 +101,22 @@ const AccountQuery = gql<Account>`
 const AccountQueryByAddress = gql<Account>`
 	query (
 		$address: String!
-		$after: String
-		$before: String
-		$first: Int
-		$last: Int
+		$afterTx: String
+		$beforeTx: String
+		$firstTx: Int
+		$lastTx: Int
+		$afterReleaseSchedule: String
+		$beforeReleaseSchedule: String
+		$firstReleaseSchedule: Int
+		$lastReleaseSchedule: Int
 	) {
 		accountByAddress(accountAddress: $address) {
-			transactions(after: $after, before: $before, first: $first, last: $last) {
+			transactions(
+				after: $afterTx
+				before: $beforeTx
+				first: $firstTx
+				last: $lastTx
+			) {
 				pageInfo {
 					hasNextPage
 					hasPreviousPage
@@ -114,9 +155,15 @@ const AccountQueryByAddress = gql<Account>`
 			id
 			addressString
 			amount
+			transactionCount
 			releaseSchedule {
 				totalAmount
-				schedule {
+				schedule(
+					after: $afterReleaseSchedule
+					before: $beforeReleaseSchedule
+					first: $firstReleaseSchedule
+					last: $lastReleaseSchedule
+				) {
 					pageInfo {
 						hasNextPage
 						hasPreviousPage
@@ -152,7 +199,7 @@ const AccountQueryByAddress = gql<Account>`
 
 export const useAccountQuery = (
 	id: Ref<string>,
-	transactionVariables?: QueryVariables
+	transactionVariables?: AccountQueryVariables
 ) => {
 	const { data } = useQuery({
 		query: AccountQuery,
@@ -167,7 +214,7 @@ export const useAccountQuery = (
 }
 export const useAccountQueryByAddress = (
 	address: Ref<string>,
-	transactionVariables?: QueryVariables
+	transactionVariables?: AccountQueryVariables
 ) => {
 	const { data } = useQuery({
 		query: AccountQueryByAddress,

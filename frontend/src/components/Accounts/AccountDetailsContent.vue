@@ -22,7 +22,7 @@
 				</DetailsCard>
 			</div>
 			<Accordion>
-				Transactions
+				Transactions ({{ account.transactionCount }})
 				<template #content>
 					<AccountDetailsTransactions
 						v-if="
@@ -32,7 +32,7 @@
 						:transactions="account.transactions.nodes"
 						:total-count="account.transactions!.nodes.length"
 						:page-info="account!.transactions!.pageInfo"
-						:go-to-page="goToPage"
+						:go-to-page="goToPageTx"
 					/>
 					<div v-else class="p-4">No transactions</div>
 				</template>
@@ -50,7 +50,7 @@
 						v-if="account.releaseSchedule.schedule?.nodes?.length"
 						:release-schedule-items="account.releaseSchedule.schedule.nodes"
 						:page-info="account.releaseSchedule.schedule.pageInfo"
-						:go-to-page="goToPage"
+						:go-to-page="goToPageReleaseSchedule"
 					/>
 					<div v-else class="p-4">No transactions</div>
 				</template>
@@ -78,7 +78,10 @@ const { NOW } = useDateNow()
 
 type Props = {
 	account: Account
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageTx: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageReleaseSchedule: (
+		page: PageInfo
+	) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()
