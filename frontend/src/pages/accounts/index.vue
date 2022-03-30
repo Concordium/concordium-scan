@@ -52,7 +52,9 @@
 				<TableRow>
 					<TableTh width="10%">Address</TableTh>
 					<TableTh width="20%" class="text-right">Amount (Ͼ)</TableTh>
+					<TableTh width="20%">Transaction count</TableTh>
 					<TableTh width="20%">Latest transaction age</TableTh>
+					<TableTh width="20%">Account age</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -63,6 +65,11 @@
 					<TableTd class="text-right">
 						<span class="numerical">
 							{{ convertMicroCcdToCcd(account.amount) }}
+						</span>
+					</TableTd>
+					<TableTd>
+						<span class="numerical">
+							{{ account.transactionCount }}
 						</span>
 					</TableTd>
 					<TableTd>
@@ -80,6 +87,11 @@
 									NOW
 								)
 							}}
+						</Tooltip>
+					</TableTd>
+					<TableTd>
+						<Tooltip :text="formatTimestamp(account.createdAt)">
+							{{ convertTimestampToRelative(account.createdAt, NOW) }}
 						</Tooltip>
 					</TableTd>
 				</TableRow>
