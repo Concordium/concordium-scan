@@ -9,18 +9,7 @@ public class TransactionResultEventToJsonConverter : ObjectToJsonConverter<Trans
     
     static TransactionResultEventToJsonConverter()
     {
-        SerializerOptions = new JsonSerializerOptions
-        {
-            IgnoreReadOnlyProperties = true,
-            Converters =
-            {
-                new TransactionResultEventConverter(),
-                new AddressConverter(),
-                new Json.AccountAddressConverter(),
-                new ContractAddressConverter(),
-                new ChainUpdatePayloadConverter()
-            }
-        };
+        SerializerOptions = EfCoreJsonSerializerOptionsFactory.Create();
     }
 
     public TransactionResultEventToJsonConverter() : base(

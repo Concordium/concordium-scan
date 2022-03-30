@@ -42,13 +42,17 @@ public record GasRewardsChainUpdatePayload(
 public record BakerStakeThresholdChainUpdatePayload(
     ulong Amount) : ChainUpdatePayload;
 
-public record RootKeysChainUpdatePayload(
-    [property:GraphQLDeprecated("Don't use! This field is only in the schema since graphql does not allow types without any fields")]
-    bool _ = false) : ChainUpdatePayload;
+public record RootKeysChainUpdatePayload : ChainUpdatePayload
+{
+    [GraphQLDeprecated("Don't use! This field is only in the schema since graphql does not allow types without any fields")]
+    public bool _ => false;
+}
 
-public record Level1KeysChainUpdatePayload(
-    [property:GraphQLDeprecated("Don't use! This field is only in the schema since graphql does not allow types without any fields")]
-    bool _ = false) : ChainUpdatePayload;
+public record Level1KeysChainUpdatePayload : ChainUpdatePayload
+{
+    [GraphQLDeprecated("Don't use! This field is only in the schema since graphql does not allow types without any fields")]
+    public bool _ => false;
+}
 
 public record AddAnonymityRevokerChainUpdatePayload(
     int ArIdentity, 
