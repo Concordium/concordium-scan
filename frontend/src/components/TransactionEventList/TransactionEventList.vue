@@ -110,6 +110,7 @@
 				<TransferredWithSchedule
 					v-else-if="event.__typename === 'TransferredWithSchedule'"
 					:event="event"
+					:transaction="props.transaction"
 				/>
 
 				<ChainUpdateEnqueued
@@ -153,11 +154,12 @@ import Transferred from './Events/Transferred.vue'
 import TransferredWithSchedule from './Events/TransferredWithSchedule.vue'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { Success, PageInfo } from '~/types/generated'
+import type { Success, PageInfo, Transaction } from '~/types/generated'
 
 type Props = {
 	events: Success['events']
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	transaction: Transaction
 }
 
 const props = defineProps<Props>()

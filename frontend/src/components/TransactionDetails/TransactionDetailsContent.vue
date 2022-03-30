@@ -65,6 +65,7 @@
 				</span>
 				<template #content>
 					<TransactionEventList
+						:transaction="props.transaction"
 						:events="props.transaction.result.events"
 						:total-count="props.transaction?.result.events?.totalCount"
 						:page-info="props.transaction.result.events?.pageInfo"

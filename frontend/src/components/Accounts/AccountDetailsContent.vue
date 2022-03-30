@@ -22,7 +22,8 @@
 				</DetailsCard>
 			</div>
 			<Accordion>
-				Transactions ({{ account.transactionCount }})
+				Transactions
+				<span class="text-theme-faded">({{ account.transactionCount }})</span>
 				<template #content>
 					<AccountDetailsTransactions
 						v-if="
