@@ -118,6 +118,17 @@ __typename
 }
 ...on ChainUpdateEnqueued {
 	__typename
+	effectiveTime
+	payload {
+		__typename
+		...on MicroCcdPerEuroChainUpdatePayload {
+			exchangeRate {
+				denominator
+				numerator
+			}
+		}
+	}
+	
 }
 ... on Transferred {
 	amount
