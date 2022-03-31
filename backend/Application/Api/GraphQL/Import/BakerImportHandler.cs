@@ -17,11 +17,11 @@ public class BakerImportHandler
         _metrics = metrics;
     }
 
-    public async Task AddGenesisBakers(AccountInfo[] createdAccounts)
+    public async Task AddGenesisBakers(AccountInfo[] genesisAccounts)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddGenesisBakers));
 
-        var genesisBakers = createdAccounts
+        var genesisBakers = genesisAccounts
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
             .Select(x => CreateNewBaker(x.BakerId));
@@ -31,13 +31,32 @@ public class BakerImportHandler
         await context.SaveChangesAsync();
     }
 
-    public async Task HandleBakerUpdates(TransactionSummary[] transactions)
+    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved, BlockInfo blockInfo)
     {
         var bakersAdded = GetBakersAdded(transactions).ToArray();
         if (bakersAdded.Length > 0)
         {
             await using var context = await _dbContextFactory.CreateDbContextAsync();
             context.Bakers.AddRange(bakersAdded);
+            await context.SaveChangesAsync();
+        }
+
+        if (bakersRemoved.Length > 0)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+            foreach (var accountInfo in bakersRemoved)
+            {
+                if (accountInfo.AccountBaker?.PendingChange is AccountBakerRemovePending removePending)
+                {
+                    var bakerId = accountInfo.AccountBaker.BakerId;
+                    var baker = await context.Bakers.SingleAsync(x => x.Id == (long)bakerId);
+                    
+                    var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
+                    var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
+                    baker.PendingBakerChange = new PendingBakerRemoval(effectiveTime);
+                }
+                else throw new InvalidOperationException("Account info did not have an account baker or the pending change was null!");
+            }
             await context.SaveChangesAsync();
         }
     }

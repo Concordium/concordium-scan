@@ -43,13 +43,16 @@ public record BlockDataEnvelope(BlockDataPayload Payload);
 public record BlockDataPayload(
     BlockInfo BlockInfo, 
     BlockSummary BlockSummary, 
-    AccountInfo[] CreatedAccounts,
+    AccountInfosRetrieved AccountInfos,
     RewardStatus RewardStatus);
 
 public record GenesisBlockDataPayload(
     BlockInfo BlockInfo,
     BlockSummary BlockSummary,
-    AccountInfo[] CreatedAccounts,
+    AccountInfosRetrieved AccountInfos,
     RewardStatus RewardStatus, 
-    IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, CreatedAccounts, RewardStatus);
+    IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, AccountInfos, RewardStatus);
 
+public record AccountInfosRetrieved(
+    AccountInfo[] CreatedAccounts,
+    AccountInfo[] BakersRemoved);

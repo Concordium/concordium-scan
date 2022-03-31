@@ -134,7 +134,7 @@ public class ImportWriteController : BackgroundService
     private async Task HandleGenesisOnlyWrites(GenesisBlockDataPayload payload)
     {
         await _identityProviderWriter.AddGenesisIdentityProviders(payload.GenesisIdentityProviders);
-        await _bakerHandler.AddGenesisBakers(payload.CreatedAccounts);
+        await _bakerHandler.AddGenesisBakers(payload.AccountInfos.CreatedAccounts);
     }
 
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
@@ -142,8 +142,8 @@ public class ImportWriteController : BackgroundService
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
-        await _accountHandler.AddNewAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries);
+        await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
+        await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries, payload.AccountInfos.BakersRemoved, payload.BlockInfo);
         
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
@@ -156,7 +156,7 @@ public class ImportWriteController : BackgroundService
 
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
-        await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.CreatedAccounts, importState);
+        await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
 
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);

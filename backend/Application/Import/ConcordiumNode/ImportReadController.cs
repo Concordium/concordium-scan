@@ -102,25 +102,25 @@ public class ImportReadController : BackgroundService
         var blockSummary = await blockSummaryTask;
         var rewardStatus = await rewardStatusTask;
 
-        var createdAccounts = await GetWithGrpcRetryAsync(() => GetCreatedAccountsAsync(blockInfo, blockSummary, stoppingToken), "GetCreatedAccounts", stoppingToken);
+        var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), "GetRelevantAccountInfos", stoppingToken);
 
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
             var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), "GetIdentityProviders", stoppingToken);
 
-            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus,
+            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus,
                 genesisIdentityProviders);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockSummary, createdAccounts, rewardStatus);
+            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus);
         }
 
         return new BlockDataEnvelope(payload);
     }
 
-    private async Task<AccountInfo[]> GetCreatedAccountsAsync(BlockInfo blockInfo, BlockSummary blockSummary, CancellationToken stoppingToken)
+    private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummary blockSummary, CancellationToken stoppingToken)
     {
         if (blockInfo.BlockHeight == 0)
         {
@@ -128,25 +128,46 @@ public class ImportReadController : BackgroundService
             var accountInfoTasks = accountList
                 .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
-            
-            return await Task.WhenAll(accountInfoTasks);
+
+            var accountsCreated = await Task.WhenAll(accountInfoTasks);
+            return new AccountInfosRetrieved(accountsCreated, Array.Empty<AccountInfo>());
         }
         else
         {
-            var accountsCreated = blockSummary.TransactionSummaries
+            var accountsToRead = blockSummary.TransactionSummaries
                 .Select(x => x.Result).OfType<TransactionSuccessResult>()
-                .SelectMany(x => x.Events.OfType<AccountCreated>())
+                .SelectMany(x => GetAccountAddressesToRetrieve(x.Events))
                 .ToArray();
 
-            if (accountsCreated.Length == 0) return Array.Empty<AccountInfo>();
+            if (accountsToRead.Length == 0)
+                return new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
             
-            var accountInfoTasks = accountsCreated
-                .Select(x => _client.GetAccountInfoAsync(x.Contents, blockInfo.BlockHash, stoppingToken))
+            var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreated))
+                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
-            return await Task.WhenAll(accountInfoTasks);
+            var bakersRemovedTasks = accountsToRead.Where(x => x.Reason == typeof(BakerRemoved))
+                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
+                .ToArray();
+            
+            var accountsCreated = await Task.WhenAll(accountsCreatedTasks);
+            var bakersRemoved = await Task.WhenAll(bakersRemovedTasks);
+            return new AccountInfosRetrieved(accountsCreated, bakersRemoved);
         }
     }
 
+    private static IEnumerable<AccountAddressAndReason> GetAccountAddressesToRetrieve(TransactionResultEvent[] txEvents)
+    {
+        foreach (var txEvent in txEvents)
+        {
+            if (txEvent is AccountCreated accountCreated)
+                yield return new AccountAddressAndReason(accountCreated.Contents, typeof(AccountCreated));
+            if (txEvent is BakerRemoved bakerRemoved)
+                yield return new AccountAddressAndReason(bakerRemoved.Account, typeof(BakerRemoved));
+        }
+    }
+
+    private record AccountAddressAndReason(AccountAddress Address, Type Reason);
+    
     private async Task EnsurePreconditions(InitialImportState initialState, CancellationToken stoppingToken)
     {
         _logger.Information("Checking preconditions for importing data from Concordium node...");
