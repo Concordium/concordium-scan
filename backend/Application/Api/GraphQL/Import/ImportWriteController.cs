@@ -7,7 +7,6 @@ using Application.Common.Diagnostics;
 using Application.Database;
 using Application.Import;
 using Application.Import.ConcordiumNode;
-using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +26,7 @@ public class ImportWriteController : BackgroundService
     private readonly ChainParametersWriter _chainParametersWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountImportHandler _accountHandler;
+    private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
@@ -45,6 +45,7 @@ public class ImportWriteController : BackgroundService
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory, metrics);
         _transactionWriter = new TransactionWriter(dbContextFactory, metrics);
         _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
+        _bakerHandler = new BakerImportHandler(dbContextFactory, metrics);
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory, metrics);
@@ -111,7 +112,7 @@ public class ImportWriteController : BackgroundService
             };
 
             if (payload is GenesisBlockDataPayload genesisData)
-                await HandleGenesisOnlyWrites(genesisData.GenesisIdentityProviders);
+                await HandleGenesisOnlyWrites(genesisData);
 
             block = await HandleCommonWrites(payload, importState);
 
@@ -130,9 +131,10 @@ public class ImportWriteController : BackgroundService
         return block;
     }
 
-    private async Task HandleGenesisOnlyWrites(IdentityProviderInfo[] identityProviders)
+    private async Task HandleGenesisOnlyWrites(GenesisBlockDataPayload payload)
     {
-        await _identityProviderWriter.AddGenesisIdentityProviders(identityProviders);
+        await _identityProviderWriter.AddGenesisIdentityProviders(payload.GenesisIdentityProviders);
+        await _bakerHandler.AddGenesisBakers(payload.CreatedAccounts);
     }
 
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
@@ -141,7 +143,8 @@ public class ImportWriteController : BackgroundService
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-
+        await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries);
+        
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);

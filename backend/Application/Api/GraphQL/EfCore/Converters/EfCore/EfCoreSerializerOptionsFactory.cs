@@ -12,11 +12,13 @@ public static class EfCoreJsonSerializerOptionsFactory
             IgnoreReadOnlyProperties = true,
             Converters =
             {
+                new TransactionRejectReasonConverter(),
                 new TransactionResultEventConverter(),
                 new AddressConverter(),
                 new Json.AccountAddressConverter(),
                 new ContractAddressConverter(),
-                new ChainUpdatePayloadConverter()
+                new ChainUpdatePayloadConverter(),
+                new PendingBakerChangeConverter()
             }
         };
     }

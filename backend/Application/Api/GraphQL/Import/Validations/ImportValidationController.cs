@@ -8,12 +8,12 @@ namespace Application.Api.GraphQL.Import.Validations;
 public class ImportValidationController
 {
     private readonly ImportValidationSettings _settings;
-    private readonly AccountBalanceValidator _accountBalanceValidator;
+    private readonly AccountValidator _accountValidator;
 
     public ImportValidationController(GrpcNodeClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory, ImportValidationSettings settings)
     {
         _settings = settings;
-        _accountBalanceValidator = new AccountBalanceValidator(grpcNodeClient, dbContextFactory);
+        _accountValidator = new AccountValidator(grpcNodeClient, dbContextFactory);
     }
 
     public async Task PerformValidations(Block block)
@@ -21,6 +21,6 @@ public class ImportValidationController
         if (!_settings.Enabled) return;
         
         if (block.BlockHeight % 10000 == 0)
-            await _accountBalanceValidator.ValidateAccountBalances((ulong)block.BlockHeight);
+            await _accountValidator.ValidateAccounts((ulong)block.BlockHeight);
     }
 }
