@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -10,11 +11,13 @@ public class BakerImportHandler
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
+    private readonly ILogger _logger;
 
     public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
         _metrics = metrics;
+        _logger = Log.ForContext(GetType());
     }
 
     public async Task AddGenesisBakers(AccountInfo[] genesisAccounts)
@@ -31,7 +34,8 @@ public class BakerImportHandler
         await context.SaveChangesAsync();
     }
 
-    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved, BlockInfo blockInfo)
+    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved,
+        BlockInfo blockInfo, ImportState importState)
     {
         var bakersAdded = GetBakersAdded(transactions).ToArray();
         if (bakersAdded.Length > 0)
@@ -54,10 +58,48 @@ public class BakerImportHandler
                     var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
                     var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
                     baker.PendingBakerChange = new PendingBakerRemoval(effectiveTime);
+
+                    if (!importState.NextPendingBakerChangeTime.HasValue ||
+                        importState.NextPendingBakerChangeTime.Value > effectiveTime)
+                        importState.NextPendingBakerChangeTime = effectiveTime;
                 }
                 else throw new InvalidOperationException("Account info did not have an account baker or the pending change was null!");
             }
             await context.SaveChangesAsync();
+        }
+
+        if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
+        {
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+            var slotTimeFormatted = blockInfo.BlockSlotTime.ToString("O");
+            var bakers = await context.Bakers
+                .FromSqlRaw($"select * from graphql_bakers where pending_change->'data'->>'EffectiveTime' <= '{slotTimeFormatted}'")
+                .ToArrayAsync();
+
+            _logger.Information("{count} bakers have pending changes.", bakers.Length);
+            
+            foreach (var baker in bakers)
+            {
+                if (baker.PendingBakerChange is PendingBakerRemoval)
+                {
+                    _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
+
+                    baker.Status = BakerStatus.Removed;
+                    baker.PendingBakerChange = null;
+                }
+            }
+            
+            await context.SaveChangesAsync();
+
+            var conn = context.Database.GetDbConnection();
+            await conn.OpenAsync();
+            var result = await conn.ExecuteScalarAsync<string>("select min(pending_change->'data'->>'EffectiveTime') from graphql_bakers where pending_change is not null");
+            await conn.CloseAsync();
+
+            importState.NextPendingBakerChangeTime = result != null ? DateTimeOffset.Parse(result) : null;
+            
+            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
         }
     }
 

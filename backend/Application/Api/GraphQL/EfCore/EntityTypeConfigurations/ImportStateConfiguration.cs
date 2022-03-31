@@ -19,6 +19,7 @@ public class ImportStateConfiguration : IEntityTypeConfiguration<ImportState>
         builder.Property(x => x.CumulativeTransactionCount).HasColumnName("cumulative_transaction_count");
         builder.Property(x => x.LastBlockSlotTime).HasColumnName("last_block_slot_time").HasConversion<DateTimeOffsetToTimestampConverter>();
         builder.Property(x => x.MaxBlockHeightWithUpdatedFinalizationTime).HasColumnName("max_block_height_with_updated_finalization_time");
+        builder.Property(x => x.NextPendingBakerChangeTime).HasColumnName("next_pending_baker_change_time").HasConversion<DateTimeOffsetToTimestampConverter>();
         builder.Ignore(x => x.LatestWrittenChainParameters);
     }
 }

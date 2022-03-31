@@ -6,7 +6,6 @@ using Application.Api.GraphQL.Import.Validations;
 using Application.Common.Diagnostics;
 using Application.Database;
 using Application.Import;
-using Application.Import.ConcordiumNode;
 using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -143,7 +142,7 @@ public class ImportWriteController : BackgroundService
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries, payload.AccountInfos.BakersRemoved, payload.BlockInfo);
+        await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries, payload.AccountInfos.BakersRemoved, payload.BlockInfo, importState);
         
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
