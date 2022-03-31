@@ -1,8 +1,8 @@
 <template>
 	<span>
-		Transferred a total of
-		<span class="numerical">{{ convertMicroCcdToCcd(event.totalAmount) }}</span
-		>Ͼ from account <AccountLink :address="event.fromAccountAddressString" /> to
+		Transferred
+		<span class="numerical">{{ convertMicroCcdToCcd(event.totalAmount) }}</span>
+		Ͼ from account <AccountLink :address="event.fromAccountAddressString" /> to
 		account <AccountLink :address="event.toAccountAddressString" /> with a
 		release schedule
 		<Button @click="showSchedule = !showSchedule">
