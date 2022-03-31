@@ -29,13 +29,35 @@ describe('format', () => {
 
 		it('should default the comparision date to current date', () => {
 			const today = new Date()
-			today.setFullYear(today.getFullYear() - 2)
+			today.setFullYear(today.getFullYear() + 2)
 
 			const timestamp = today.toISOString()
 
 			const result = convertTimestampToRelative(timestamp)
 
 			expect(result).toStrictEqual('about 2 years')
+		})
+
+		it('should show a suffix for a future date', () => {
+			const today = new Date()
+			today.setFullYear(today.getFullYear() + 2)
+
+			const timestamp = today.toISOString()
+
+			const result = convertTimestampToRelative(timestamp, undefined, true)
+
+			expect(result).toStrictEqual('in about 2 years')
+		})
+
+		it('should show a suffix for a past date', () => {
+			const today = new Date()
+			today.setFullYear(today.getFullYear() - 2)
+
+			const timestamp = today.toISOString()
+
+			const result = convertTimestampToRelative(timestamp, undefined, true)
+
+			expect(result).toStrictEqual('about 2 years ago')
 		})
 	})
 

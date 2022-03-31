@@ -66,12 +66,23 @@ export const formatTimestamp = (timestamp: string) => {
 	return new Intl.DateTimeFormat('default', options).format(new Date(timestamp))
 }
 
+/**
+ * Outputs a formatted relative date comparision (e.g. 1 day ago)
+ * @param {string} timestamp - Date as ISO string
+ * @param {Date} compareDate - Date to compare with (defaults to days date)
+ * @param {boolean} addSuffix - Whether to add relational text, e.g. "... ago" or "in ..." (defaults to false)
+ * @returns {string} - Formatted relative date comparision
+ * @example
+ * // returns "about 22 years" (if current year is 2022)
+ * convertTimestampToRelative('2000-01-01T00:00:00.000Z');
+ */
 export const convertTimestampToRelative = (
 	timestamp: string,
-	compareDate: Date = new Date()
+	compareDate: Date = new Date(),
+	addSuffix = false
 ) =>
 	formatDistance(parseISO(timestamp), compareDate, {
-		addSuffix: false,
+		addSuffix,
 	})
 
 /**
