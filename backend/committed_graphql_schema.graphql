@@ -401,6 +401,7 @@ type ChainParameters {
 
 type ChainUpdateEnqueued {
   effectiveTime: DateTime!
+  effectiveImmediately: Boolean!
   payload: ChainUpdatePayload!
 }
 

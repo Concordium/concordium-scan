@@ -17,7 +17,7 @@ public class TransactionWriter
         _metrics = metrics;
     }
 
-    public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId)
+    public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId, DateTimeOffset blockSlotTime)
     {
         if (blockSummary.TransactionSummaries.Length == 0) return Array.Empty<TransactionPair>();
         
@@ -36,7 +36,7 @@ public class TransactionWriter
             if (transaction.Source.Result is TransactionSuccessResult successResult)
             {
                 var events = successResult.Events
-                    .Select((x, ix) => MapTransactionEvent(transaction.Target, ix, x))
+                    .Select((x, ix) => MapTransactionEvent(transaction.Target, ix, x, blockSlotTime))
                     .ToArray();
 
                 context.TransactionResultEvents.AddRange(events);
@@ -61,7 +61,8 @@ public class TransactionWriter
         };
     }
 
-    private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index, ConcordiumSdk.NodeApi.Types.TransactionResultEvent value)
+    private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index,
+        ConcordiumSdk.NodeApi.Types.TransactionResultEvent value, DateTimeOffset blockSlotTime)
     {
         return new TransactionRelated<TransactionResultEvent>
         {
@@ -90,10 +91,17 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.TransferredWithSchedule x => new TransferredWithSchedule(MapAccountAddress(x.From), MapAccountAddress(x.To), x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.MicroCcdValue)).ToArray()),
                 ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
                 ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
-                ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => new ChainUpdateEnqueued(x.EffectiveTime.AsDateTimeOffset, MapUpdatePayload(x.Payload)),
+                ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => MapChainUpdateEnqueued(x, blockSlotTime),
                 _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
             }
         };
+    }
+
+    private ChainUpdateEnqueued MapChainUpdateEnqueued(UpdateEnqueued value, DateTimeOffset blockSlotTime)
+    {
+        var isEffectiveImmediately = value.EffectiveTime.AsLong > 0;
+        var effectiveTime = isEffectiveImmediately ?  value.EffectiveTime.AsDateTimeOffset : blockSlotTime;
+        return new ChainUpdateEnqueued(effectiveTime, isEffectiveImmediately, MapUpdatePayload(value.Payload));
     }
 
     private static AccountAddress MapAccountAddress(ConcordiumSdk.Types.AccountAddress value)

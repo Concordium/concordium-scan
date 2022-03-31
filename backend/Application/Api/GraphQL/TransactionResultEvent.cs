@@ -248,4 +248,5 @@ public record TransferredWithSchedule(
 /// </summary>
 public record ChainUpdateEnqueued(
     DateTimeOffset EffectiveTime,
+    bool EffectiveImmediately,
     ChainUpdatePayload Payload) : TransactionResultEvent; 

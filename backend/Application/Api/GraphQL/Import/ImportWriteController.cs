@@ -145,7 +145,7 @@ public class ImportWriteController : BackgroundService
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, importState);
-        var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id);
+        var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
 

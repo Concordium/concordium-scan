@@ -82,6 +82,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     private readonly TransactionWriter _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
+    private DateTimeOffset _anyBlockSlotTime = new DateTimeOffset(2020, 13, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public TransactionsWriterTest(DatabaseFixture dbFixture)
     {
@@ -1066,7 +1067,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     private async Task WriteData(long blockId = 42)
     {
         var blockSummary = _blockSummaryBuilder.Build();
-        await _target.AddTransactions(blockSummary, blockId);
+        await _target.AddTransactions(blockSummary, blockId, _anyBlockSlotTime);
     }
     
     private async Task<T> ReadSingleTransactionEventType<T>()
