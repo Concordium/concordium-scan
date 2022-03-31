@@ -7,7 +7,7 @@
 		<transition name="tooltip">
 			<span
 				v-show="isVisible"
-				class="text-sm fixed left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip"
+				class="text-sm fixed left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip pointer-events-none"
 				:class="textClass"
 			>
 				{{ text }}
