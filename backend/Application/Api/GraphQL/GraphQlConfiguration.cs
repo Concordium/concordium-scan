@@ -46,6 +46,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<ChainUpdatePayload>(builder);
         AddAllTypesDerivedFrom<TransactionRejectReason>(builder);
         AddAllTypesDerivedFrom<IBlockOrTransactionUnion>(builder);
+        AddAllTypesDerivedFrom<BakerState>(builder);
         AddAllTypesDerivedFrom<PendingBakerChange>(builder);
     }
 

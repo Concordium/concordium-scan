@@ -147,6 +147,10 @@ type AccountsMetricsBuckets {
   y_AccountsCreated: [Int!]!
 }
 
+type ActiveBakerState {
+  pendingChange: PendingBakerChange
+}
+
 type AddAnonymityRevokerChainUpdatePayload {
   arIdentity: Int!
   name: String!
@@ -197,11 +201,10 @@ type AmountsScheduleEdge {
 }
 
 type Baker {
+  state: BakerState!
   account: Account!
   id: ID!
   bakerId: Long!
-  status: BakerStatus!
-  pendingChange: PendingBakerChange
 }
 
 type BakerAdded {
@@ -855,6 +858,10 @@ type RemoveFirstCredential {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
+type RemovedBakerState {
+  _: Boolean!
+}
+
 type RewardParameters {
   mintDistribution: MintDistribution!
   transactionFeeDistribution: TransactionFeeDistribution!
@@ -1018,6 +1025,8 @@ type ZeroScheduledAmount {
 
 union Address = AccountAddress | ContractAddress
 
+union BakerState = ActiveBakerState | RemovedBakerState
+
 union BlockOrTransaction = Block | Transaction
 
 union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload
@@ -1071,11 +1080,6 @@ enum AccountTransactionType {
   SIMPLE_TRANSFER_WITH_MEMO
   ENCRYPTED_TRANSFER_WITH_MEMO
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
-}
-
-enum BakerStatus {
-  ACTIVE
-  REMOVED
 }
 
 enum CredentialDeploymentTransactionType {

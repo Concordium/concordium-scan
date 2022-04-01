@@ -2,7 +2,7 @@
 
 namespace Application.Api.GraphQL.Bakers;
 
-[InterfaceType()]
+[InterfaceType]
 public abstract record PendingBakerChange(DateTimeOffset EffectiveTime);
 
 public record PendingBakerRemoval(DateTimeOffset EffectiveTime) : PendingBakerChange(EffectiveTime);

@@ -11,9 +11,33 @@ public class Baker
 {
     [ID]
     public long Id { get; set; }
+    
     public long BakerId => Id;
+    
+    [GraphQLIgnore] // See comment on GetState()
     public BakerStatus Status { get; set; }
+    
+    [GraphQLIgnore] // See comment on GetState()
     public PendingBakerChange? PendingChange { get; set; }
+
+    /// <summary>
+    /// EF-core 6 does not support inheritance hierarchies for owned entities.
+    ///
+    /// Since that would have been the ideal internal model for active/removed bakers, this is the 
+    /// work-around to expose this model in the GraphQL schema. When EF-core supports it we can changed the internal
+    /// model.
+    /// 
+    /// Issue is tracked here https://github.com/dotnet/efcore/issues/9630
+    /// </summary>
+    public BakerState GetState()
+    {
+        return Status switch
+        {
+            BakerStatus.Active => new ActiveBakerState(PendingChange),
+            BakerStatus.Removed => new RemovedBakerState(),
+            _ => throw new NotImplementedException()
+        };
+    }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     public Task<Account> GetAccount([ScopedService] GraphQlDbContext dbContext)
