@@ -159,13 +159,9 @@
 		>
 			<br />
 			Update protocol: '{{ event.payload.message }}'.
-			<a
-				:href="event.payload.specificationUrl"
-				rel="noreferrer"
-				_target="_blank"
+			<ExternalLink :href="event.payload.specificationUrl"
+				>See specification</ExternalLink
 			>
-				See specification
-			</a>
 		</span>
 
 		<span
@@ -206,6 +202,7 @@ import {
 } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import ExternalLink from '~/components/molecules/ExternalLink.vue'
 import type { ChainUpdateEnqueued } from '~/types/generated'
 
 const { NOW } = useDateNow()
