@@ -121,14 +121,55 @@ __typename
 	effectiveTime
 	payload {
 		__typename
+		...on AddAnonymityRevokerChainUpdatePayload {
+			name
+		}
+		...on AddIdentityProviderChainUpdatePayload {
+			name
+		}
+		...on BakerStakeThresholdChainUpdatePayload {
+			amount
+		}
+		...on ElectionDifficultyChainUpdatePayload {
+			electionDifficulty
+		}
+		...on EuroPerEnergyChainUpdatePayload {
+			exchangeRate {
+				numerator
+				denominator
+			}
+		}
+		...on FoundationAccountChainUpdatePayload {
+			accountAddress {
+				asString
+			}
+		}
+		...on GasRewardsChainUpdatePayload {
+			accountCreation
+			baker
+			chainUpdate
+			finalizationProof
+		}
 		...on MicroCcdPerEuroChainUpdatePayload {
 			exchangeRate {
 				denominator
 				numerator
 			}
 		}
+		...on MintDistributionChainUpdatePayload {
+			bakingReward
+			finalizationReward
+			mintPerSlot
+		}
+		...on ProtocolChainUpdatePayload {
+			message
+			specificationUrl
+		}
+		...on TransactionFeeDistributionChainUpdatePayload {
+			baker
+			gasAccount
+		}
 	}
-	
 }
 ... on Transferred {
 	amount
