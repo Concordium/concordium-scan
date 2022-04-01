@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.Search;
@@ -29,6 +30,7 @@ public static class GraphQlConfiguration
         
         builder.AddQueryType<Query>()
             .AddType<AccountsQuery>()
+            .AddType<BakersQuery>()
             .AddType<SearchQuery>()
             .AddType<MetricsQuery>();
         
@@ -44,6 +46,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<ChainUpdatePayload>(builder);
         AddAllTypesDerivedFrom<TransactionRejectReason>(builder);
         AddAllTypesDerivedFrom<IBlockOrTransactionUnion>(builder);
+        AddAllTypesDerivedFrom<PendingBakerChange>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

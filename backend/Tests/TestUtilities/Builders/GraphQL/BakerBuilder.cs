@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Bakers;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
@@ -13,7 +14,7 @@ public class BakerBuilder
         return new Baker
         {
             Id = _id,
-            PendingBakerChange = _pendingBakerChange,
+            PendingChange = _pendingBakerChange,
             Status = _bakerStatus
         };
     }

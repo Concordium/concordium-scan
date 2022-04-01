@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.EfCore.Converters.EfCore;
+﻿using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,6 +14,7 @@ public class BakerConfiguration : IEntityTypeConfiguration<Baker>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.Status).HasColumnName("status");
-        builder.Property(x => x.PendingBakerChange).HasColumnName("pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
+        builder.Property(x => x.PendingChange).HasColumnName("pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
+        builder.Ignore(x => x.BakerId);
     }
 }

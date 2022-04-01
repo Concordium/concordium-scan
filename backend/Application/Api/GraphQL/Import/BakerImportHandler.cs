@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
@@ -46,7 +47,7 @@ public class BakerImportHandler
             var source = bakersRemoved.Select(x => x.AccountBaker!).ToArray();
             var updatedBakers = await _writer.UpdateBakersFromAccountBaker(source, (dst, src) => SetPendingChange(dst, src, blockInfo));
 
-            var minEffectiveTime = updatedBakers.Min(x => x.PendingBakerChange!.EffectiveTime);
+            var minEffectiveTime = updatedBakers.Min(x => x.PendingChange!.EffectiveTime);
             if (!importState.NextPendingBakerChangeTime.HasValue || importState.NextPendingBakerChangeTime.Value > minEffectiveTime)
                 importState.NextPendingBakerChangeTime = minEffectiveTime;
         }
@@ -73,18 +74,18 @@ public class BakerImportHandler
             var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
             var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
             
-            destination.PendingBakerChange = new PendingBakerRemoval(effectiveTime);
+            destination.PendingChange = new PendingBakerRemoval(effectiveTime);
         }
     }
 
     private void ApplyPendingChange(Baker baker)
     {
-        if (baker.PendingBakerChange is PendingBakerRemoval)
+        if (baker.PendingChange is PendingBakerRemoval)
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
 
             baker.Status = BakerStatus.Removed;
-            baker.PendingBakerChange = null;
+            baker.PendingChange = null;
         }
     }
 
@@ -105,7 +106,7 @@ public class BakerImportHandler
         return new Baker
         {
             Id = (long)bakerId,
-            PendingBakerChange = null,
+            PendingChange = null,
             Status = BakerStatus.Active
         };
     }

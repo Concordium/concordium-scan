@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Bakers;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
@@ -28,7 +29,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         {
             Id = id,
             Status = bakerStatus,
-            PendingBakerChange = null, 
+            PendingChange = null, 
         };
 
         await AddBaker(entity);
@@ -38,7 +39,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         result.Length.Should().Be(1);
         result[0].Id.Should().Be(id);
         result[0].Status.Should().Be(bakerStatus);
-        result[0].PendingBakerChange.Should().BeNull();
+        result[0].PendingChange.Should().BeNull();
     }
     
     [Fact]
@@ -50,7 +51,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         {
             Id = 10,
             Status = BakerStatus.Active,
-            PendingBakerChange = new PendingBakerRemoval(dateTimeOffset) 
+            PendingChange = new PendingBakerRemoval(dateTimeOffset) 
         };
 
         await AddBaker(entity);
@@ -58,7 +59,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = dbContext.Bakers.ToArray();
         result.Length.Should().Be(1);
-        result[0].PendingBakerChange.Should().BeOfType<PendingBakerRemoval>()
+        result[0].PendingChange.Should().BeOfType<PendingBakerRemoval>()
             .Which.EffectiveTime.Should().Be(dateTimeOffset);
     }
 

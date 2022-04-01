@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL.EfCore.Converters.Json;
+﻿using Application.Api.GraphQL.Bakers;
+
+namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
 public class PendingBakerChangeConverter : PolymorphicJsonConverter<PendingBakerChange>
 {

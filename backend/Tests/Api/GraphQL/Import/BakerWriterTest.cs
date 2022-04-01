@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
@@ -42,7 +43,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         
         var returned = await _target.UpdateBakersFromAccountBaker(source, (dst, src) =>
         {
-            dst.PendingBakerChange = src.PendingChange switch
+            dst.PendingChange = src.PendingChange switch
             {
                 AccountBakerRemovePending => new PendingBakerRemoval(_anyEffectiveTime),
                 _ => throw new InvalidOperationException()
@@ -52,13 +53,13 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var expectedPendingChange = new PendingBakerRemoval(_anyEffectiveTime);
 
         returned.Length.Should().Be(1);
-        returned[0].PendingBakerChange.Should().Be(expectedPendingChange);
+        returned[0].PendingChange.Should().Be(expectedPendingChange);
         
         await using var context = _dbContextFactory.CreateDbContext();
         var fromDb = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
         fromDb.Length.Should().Be(2);
-        fromDb[0].PendingBakerChange.Should().Be(expectedPendingChange);
-        fromDb[1].PendingBakerChange.Should().BeNull();
+        fromDb[0].PendingChange.Should().Be(expectedPendingChange);
+        fromDb[1].PendingChange.Should().BeNull();
     }
 
     [Theory]
