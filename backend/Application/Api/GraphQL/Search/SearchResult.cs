@@ -1,4 +1,6 @@
 ﻿using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
@@ -67,5 +69,22 @@ public class SearchResult
         return dbContext.Accounts.AsNoTracking()
             .Where(account => EF.Functions.Like(account.CanonicalAddressString, _queryString + "%"))
             .OrderByDescending(account => account.Id);
+    }
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging]
+    public async Task<IEnumerable<Baker>> GetBakers([ScopedService] GraphQlDbContext dbContext)
+    {
+        if (_queryNumeric.HasValue)
+        {
+            var result = await dbContext.Bakers
+                .AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == _queryNumeric.Value);
+
+            if (result != null) 
+                return new[] { result };
+        }
+
+        return Array.Empty<Baker>();
     }
 }
