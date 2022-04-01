@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.EfCore;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types.Relay;
@@ -15,11 +16,11 @@ public class Baker
     public PendingBakerChange? PendingChange { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
-    public Account GetAccount([ScopedService] GraphQlDbContext dbContext)
+    public Task<Account> GetAccount([ScopedService] GraphQlDbContext dbContext)
     {
         // Account and baker share the same ID!
         return dbContext.Accounts
             .AsNoTracking()
-            .Single(x => x.Id == Id);
+            .SingleAsync(x => x.Id == Id);
     }
 }

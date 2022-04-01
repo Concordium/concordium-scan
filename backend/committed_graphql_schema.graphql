@@ -11,6 +11,7 @@ type Account {
   releaseSchedule: AccountReleaseSchedule!
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
   accountStatement("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountStatementEntryConnection
+  baker: Baker
   id: ID!
   address: AccountAddress!
   addressString: String! @deprecated(reason: "Use 'address.asString' instead. This field will be removed in the near future.")

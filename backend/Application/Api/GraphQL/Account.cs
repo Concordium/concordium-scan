@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
@@ -58,5 +59,14 @@ public class Account
         return dbContext.AccountStatementEntries.AsNoTracking()
             .Where(x => x.AccountId == Id)
             .OrderByDescending(x => x.Index);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public Task<Baker?> GetBaker([ScopedService] GraphQlDbContext dbContext)
+    {
+        // Account and baker share the same ID!
+        return dbContext.Bakers
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == Id);
     }
 }
