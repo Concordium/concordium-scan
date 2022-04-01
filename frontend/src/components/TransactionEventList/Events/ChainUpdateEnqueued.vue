@@ -50,12 +50,10 @@
 			class="text-theme-faded"
 		>
 			<br />
-			Update ENERGY/EUR exchange rate to
+			Update EUR/ENERGY exchange rate to
 			{{
-				convertMicroCcdToCcd(
-					event.payload.exchangeRate.numerator /
-						event.payload.exchangeRate.denominator
-				)
+				event.payload.exchangeRate.numerator /
+				event.payload.exchangeRate.denominator
 			}}
 		</span>
 

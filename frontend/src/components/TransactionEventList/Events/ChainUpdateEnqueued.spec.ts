@@ -120,15 +120,15 @@ describe('ChainUpdateEnqueued', () => {
 		).toBeInTheDocument()
 	})
 
-	it('EuroPerEnergyChainUpdatePayload: will show the updated ENERGY/EUR exchange rate', () => {
+	it('EuroPerEnergyChainUpdatePayload: will show the updated EUR/ENERGY exchange rate', () => {
 		const props = {
 			event: {
 				...defaultProps.event,
 				payload: {
 					__typename: 'EuroPerEnergyChainUpdatePayload',
 					exchangeRate: {
-						numerator: 13371337,
-						denominator: 1,
+						numerator: 1,
+						denominator: 500000,
 					},
 				},
 			} as ChainUpdateEnqueuedType,
@@ -136,7 +136,7 @@ describe('ChainUpdateEnqueued', () => {
 		render({ props })
 
 		expect(
-			screen.getByText('Update ENERGY/EUR exchange rate to 13.371337')
+			screen.getByText('Update EUR/ENERGY exchange rate to 0.000002')
 		).toBeInTheDocument()
 	})
 
