@@ -4,11 +4,19 @@
 		<span class="numerical">{{ convertMicroCcdToCcd(event.totalAmount) }}</span>
 		Ͼ from account <AccountLink :address="event.fromAccountAddressString" /> to
 		account <AccountLink :address="event.toAccountAddressString" /> with a
-		release schedule
-		<Button @click="showSchedule = !showSchedule">
-			<span v-if="!showSchedule">expand</span
-			><span v-if="showSchedule">hide</span>
-		</Button>
+		release schedule.
+
+		<button
+			class="justify-between items-center rounded-lg inline-block p-1 px-2 mx-2 text-xs bg-theme-background-primary-elevated hover:bg-theme-background-primary-elevated-hover"
+			@click="showSchedule = !showSchedule"
+		>
+			{{ showMoreText }}
+			<ChevronForwardIcon
+				class="w-3 h-3 inline align-middle"
+				:class="[{ 'icon-open': showSchedule }]"
+				aria-hidden
+			/>
+		</button>
 
 		<TransactionDetailsReleaseSchedule
 			v-if="
@@ -24,8 +32,8 @@
 				data?.transactionByTransactionHash.result.events.nodes[0]
 					.amountsSchedule.nodes
 			"
-		>
-		</TransactionDetailsReleaseSchedule>
+			class="mt-4"
+		/>
 	</span>
 </template>
 <script setup lang="ts">
@@ -33,6 +41,7 @@ import type { Transaction, TransferredWithSchedule } from '~/types/generated'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import { useTransactionReleaseSchedule } from '~/queries/useTransactionReleaseSchedule'
 import TransactionDetailsReleaseSchedule from '~/components/TransactionDetails/TransactionDetailsReleaseSchedule.vue'
+import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
 import { PAGE_SIZE_SMALL } from '~/composables/usePagination'
 type Props = {
 	event: TransferredWithSchedule
@@ -55,4 +64,14 @@ const { data } = useTransactionReleaseSchedule(transactionHashRef, {
 	after,
 	before,
 })
+
+const showMoreText = computed(() =>
+	showSchedule.value ? 'Show less' : 'Show more'
+)
 </script>
+
+<style scoped>
+.icon-open {
+	transform: rotate(90deg);
+}
+</style>
