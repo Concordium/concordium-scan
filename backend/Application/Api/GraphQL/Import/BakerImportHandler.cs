@@ -2,20 +2,19 @@
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
-using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
 
 public class BakerImportHandler
 {
-    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly BakerWriter _writer;
     private readonly IMetrics _metrics;
     private readonly ILogger _logger;
 
     public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
-        _dbContextFactory = dbContextFactory;
+        _writer = new BakerWriter(dbContextFactory, metrics);
         _metrics = metrics;
         _logger = Log.ForContext(GetType());
     }
@@ -28,78 +27,64 @@ public class BakerImportHandler
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
             .Select(x => CreateNewBaker(x.BakerId));
-        
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
-        context.Bakers.AddRange(genesisBakers);
-        await context.SaveChangesAsync();
+
+        await _writer.AddBakers(genesisBakers);
     }
 
-    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved,
-        BlockInfo blockInfo, ImportState importState)
+    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved, BlockInfo blockInfo, ImportState importState)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
+
         var bakersAdded = GetBakersAdded(transactions).ToArray();
         if (bakersAdded.Length > 0)
         {
-            await using var context = await _dbContextFactory.CreateDbContextAsync();
-            context.Bakers.AddRange(bakersAdded);
-            await context.SaveChangesAsync();
+            await _writer.AddBakers(bakersAdded);
         }
 
         if (bakersRemoved.Length > 0)
         {
-            await using var context = await _dbContextFactory.CreateDbContextAsync();
-            foreach (var accountInfo in bakersRemoved)
-            {
-                if (accountInfo.AccountBaker?.PendingChange is AccountBakerRemovePending removePending)
-                {
-                    var bakerId = accountInfo.AccountBaker.BakerId;
-                    var baker = await context.Bakers.SingleAsync(x => x.Id == (long)bakerId);
-                    
-                    var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
-                    var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
-                    baker.PendingBakerChange = new PendingBakerRemoval(effectiveTime);
+            var source = bakersRemoved.Select(x => x.AccountBaker!).ToArray();
+            var updatedBakers = await _writer.UpdateBakersFromAccountBaker(source, (dst, src) => SetPendingChange(dst, src, blockInfo));
 
-                    if (!importState.NextPendingBakerChangeTime.HasValue ||
-                        importState.NextPendingBakerChangeTime.Value > effectiveTime)
-                        importState.NextPendingBakerChangeTime = effectiveTime;
-                }
-                else throw new InvalidOperationException("Account info did not have an account baker or the pending change was null!");
-            }
-            await context.SaveChangesAsync();
+            var minEffectiveTime = updatedBakers.Min(x => x.PendingBakerChange!.EffectiveTime);
+            if (!importState.NextPendingBakerChangeTime.HasValue || importState.NextPendingBakerChangeTime.Value > minEffectiveTime)
+                importState.NextPendingBakerChangeTime = minEffectiveTime;
         }
 
         if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
         {
-            await using var context = await _dbContextFactory.CreateDbContextAsync();
+            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, ApplyPendingChange);
 
-            var slotTimeFormatted = blockInfo.BlockSlotTime.ToString("O");
-            var bakers = await context.Bakers
-                .FromSqlRaw($"select * from graphql_bakers where pending_change->'data'->>'EffectiveTime' <= '{slotTimeFormatted}'")
-                .ToArrayAsync();
-
-            _logger.Information("{count} bakers have pending changes.", bakers.Length);
-            
-            foreach (var baker in bakers)
-            {
-                if (baker.PendingBakerChange is PendingBakerRemoval)
-                {
-                    _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
-
-                    baker.Status = BakerStatus.Removed;
-                    baker.PendingBakerChange = null;
-                }
-            }
-            
-            await context.SaveChangesAsync();
-
-            var conn = context.Database.GetDbConnection();
-            await conn.OpenAsync();
-            var result = await conn.ExecuteScalarAsync<string>("select min(pending_change->'data'->>'EffectiveTime') from graphql_bakers where pending_change is not null");
-            await conn.CloseAsync();
-
-            importState.NextPendingBakerChangeTime = result != null ? DateTimeOffset.Parse(result) : null;
-            
+            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+        }
+    }
+
+    private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
+    {
+        if (source.PendingChange is AccountBakerRemovePending removePending)
+        {
+            // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
+            //       We should be able to change this once we switch to concordium node v4 or greater!
+            //
+            // BUILT-IN ASSUMPTIONS (that can change but probably wont):
+            //       Block time is 250ms
+            //       Epoch duration is 1 hour
+            var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
+            var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
+            
+            destination.PendingBakerChange = new PendingBakerRemoval(effectiveTime);
+        }
+    }
+
+    private void ApplyPendingChange(Baker baker)
+    {
+        if (baker.PendingBakerChange is PendingBakerRemoval)
+        {
+            _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
+
+            baker.Status = BakerStatus.Removed;
+            baker.PendingBakerChange = null;
         }
     }
 
