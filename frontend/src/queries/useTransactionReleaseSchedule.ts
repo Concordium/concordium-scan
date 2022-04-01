@@ -2,10 +2,10 @@
 import { Ref } from 'vue'
 import type { Transaction } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
-type TransactionResponse = {
-	transaction: Transaction
+type TransactionByTransactionHashResponse = {
+	transactionByTransactionHash: Transaction
 }
-const TransactionReleaseScheduleQuery = gql<TransactionResponse>`
+const TransactionReleaseScheduleQuery = gql<TransactionByTransactionHashResponse>`
 	query (
 		$hash: String!
 		$after: String
