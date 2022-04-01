@@ -5,12 +5,14 @@
 			:account="accountQueryResult.data.account"
 			:go-to-page-tx="goToPageTx"
 			:go-to-page-release-schedule="goToPageReleaseSchedule"
+			:go-to-page-account-statement="goToPageAccountStatement"
 		/>
 		<AccountDetailsContent
 			v-else
 			:account="accountQueryResult.data.accountByAddress"
 			:go-to-page-tx="goToPageTx"
 			:go-to-page-release-schedule="goToPageReleaseSchedule"
+			:go-to-page-account-statement="goToPageAccountStatement"
 		/>
 	</div>
 	<BWCubeLogoIcon
@@ -51,6 +53,14 @@ const {
 	goToPage: goToPageReleaseSchedule,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
+const {
+	first: firstAccountStatement,
+	last: lastAccountStatement,
+	after: afterAccountStatement,
+	before: beforeAccountStatement,
+	goToPage: goToPageAccountStatement,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+
 const paginationVars = {
 	firstTx,
 	lastTx,
@@ -60,6 +70,10 @@ const paginationVars = {
 	lastReleaseSchedule,
 	afterReleaseSchedule,
 	beforeReleaseSchedule,
+	firstAccountStatement,
+	lastAccountStatement,
+	afterAccountStatement,
+	beforeAccountStatement,
 }
 
 const accountQueryResult = ref()

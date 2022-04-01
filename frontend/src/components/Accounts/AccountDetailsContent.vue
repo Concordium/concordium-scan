@@ -56,6 +56,16 @@
 					<div v-else class="p-4">No transactions</div>
 				</template>
 			</Accordion>
+			<Accordion v-if="account.accountStatement.nodes.length > 0">
+				Account statement
+				<template #content>
+					<AccountDetailsAccountStatement
+						:account-statement-items="account.accountStatement.nodes"
+						:page-info="account.accountStatement.pageInfo"
+						:go-to-page="goToPageAccountStatement"
+					></AccountDetailsAccountStatement>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -74,6 +84,7 @@ import AccountDetailsTransactions from '~/components/Accounts/AccountDetailsTran
 import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
 import AccountDetailsReleaseScheduleTransactions from '~/components/Accounts/AccountDetailsReleaseScheduleTransactions.vue'
+import AccountDetailsAccountStatement from '~/components/Accounts/AccountDetailsAccountStatement.vue'
 
 const { NOW } = useDateNow()
 
@@ -81,6 +92,9 @@ type Props = {
 	account: Account
 	goToPageTx: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageReleaseSchedule: (
+		page: PageInfo
+	) => (target: PaginationTarget) => void
+	goToPageAccountStatement: (
 		page: PageInfo
 	) => (target: PaginationTarget) => void
 }

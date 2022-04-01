@@ -11,7 +11,125 @@ type AccountQueryVariables = {
 	beforeReleaseSchedule: QueryVariables['before']
 	firstReleaseSchedule: QueryVariables['first']
 	lastReleaseSchedule: QueryVariables['last']
+	afterAccountStatement: QueryVariables['after']
+	beforeAccountStatement: QueryVariables['before']
+	firstAccountStatement: QueryVariables['first']
+	lastAccountStatement: QueryVariables['last']
 }
+const AccountQueryFragment = `
+accountStatement(
+				after: $afterAccountStatement
+				before: $beforeAccountStatement
+				first: $firstAccountStatement
+				last: $lastAccountStatement
+			) {
+  pageInfo {
+    hasNextPage
+    hasPreviousPage
+    startCursor
+    endCursor
+		__typename
+  }
+  nodes {
+    reference {
+      __typename
+      ... on Block {
+        blockHash
+       }
+			... on Transaction {
+			 transactionHash
+			}
+    }
+    timestamp
+    entryType
+    amount
+    accountBalance
+    __typename
+  }
+}
+transactions(
+	after: $afterTx
+	before: $beforeTx
+	first: $firstTx
+	last: $lastTx
+) {
+	pageInfo {
+		hasNextPage
+		hasPreviousPage
+		startCursor
+		endCursor
+		__typename
+	}
+	nodes {
+		__typename
+		transaction {
+			id
+			transactionHash
+			senderAccountAddressString
+			ccdCost
+			block {
+				blockSlotTime
+			}
+			result {
+				__typename
+			}
+			transactionType {
+				__typename
+				... on AccountTransaction {
+					accountTransactionType
+				}
+				... on CredentialDeploymentTransaction {
+					credentialDeploymentTransactionType
+				}
+				... on UpdateTransaction {
+					updateTransactionType
+				}
+			}
+		}
+	}
+}
+id
+addressString
+amount
+transactionCount
+releaseSchedule {
+	totalAmount
+	schedule(
+		after: $afterReleaseSchedule
+		before: $beforeReleaseSchedule
+		first: $firstReleaseSchedule
+		last: $lastReleaseSchedule
+	) {
+		pageInfo {
+			hasNextPage
+			hasPreviousPage
+			startCursor
+			endCursor
+		}
+		nodes {
+			transaction {
+				transactionHash
+				senderAccountAddressString
+				ccdCost
+				block {
+					blockSlotTime
+				}
+				id
+				transactionType {
+					__typename
+				}
+				result {
+					__typename
+				}
+			}
+			timestamp
+			amount
+		}
+	}
+}
+createdAt
+__typename
+`
 
 const AccountQuery = gql<Account>`
 	query (
@@ -24,76 +142,13 @@ const AccountQuery = gql<Account>`
 		$beforeReleaseSchedule: String
 		$firstReleaseSchedule: Int
 		$lastReleaseSchedule: Int
+		$afterAccountStatement: String
+		$beforeAccountStatement: String
+		$firstAccountStatement: Int
+		$lastAccountStatement: Int
 	) {
 		account(id: $id) {
-			transactions(
-				after: $afterTx
-				before: $beforeTx
-				first: $firstTx
-				last: $lastTx
-			) {
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
-				nodes {
-					__typename
-					transaction {
-						id
-						transactionHash
-						senderAccountAddressString
-						ccdCost
-						result {
-							__typename
-						}
-						block {
-							blockSlotTime
-						}
-						transactionType {
-							__typename
-							... on AccountTransaction {
-								accountTransactionType
-							}
-							... on CredentialDeploymentTransaction {
-								credentialDeploymentTransactionType
-							}
-							... on UpdateTransaction {
-								updateTransactionType
-							}
-						}
-					}
-				}
-			}
-			id
-			addressString
-			amount
-			transactionCount
-			releaseSchedule {
-				schedule(
-					after: $afterReleaseSchedule
-					before: $beforeReleaseSchedule
-					first: $firstReleaseSchedule
-					last: $lastReleaseSchedule
-				) {
-					pageInfo {
-						hasNextPage
-						hasPreviousPage
-						startCursor
-						endCursor
-					}
-					nodes {
-						transaction {
-							transactionHash
-						}
-						timestamp
-						amount
-					}
-				}
-			}
-			createdAt
-			__typename
+			${AccountQueryFragment}
 		}
 	}
 `
@@ -109,90 +164,13 @@ const AccountQueryByAddress = gql<Account>`
 		$beforeReleaseSchedule: String
 		$firstReleaseSchedule: Int
 		$lastReleaseSchedule: Int
+		$afterAccountStatement: String
+		$beforeAccountStatement: String
+		$firstAccountStatement: Int
+		$lastAccountStatement: Int
 	) {
 		accountByAddress(accountAddress: $address) {
-			transactions(
-				after: $afterTx
-				before: $beforeTx
-				first: $firstTx
-				last: $lastTx
-			) {
-				pageInfo {
-					hasNextPage
-					hasPreviousPage
-					startCursor
-					endCursor
-					__typename
-				}
-				nodes {
-					__typename
-					transaction {
-						id
-						transactionHash
-						senderAccountAddressString
-						ccdCost
-						block {
-							blockSlotTime
-						}
-						result {
-							__typename
-						}
-						transactionType {
-							__typename
-							... on AccountTransaction {
-								accountTransactionType
-							}
-							... on CredentialDeploymentTransaction {
-								credentialDeploymentTransactionType
-							}
-							... on UpdateTransaction {
-								updateTransactionType
-							}
-						}
-					}
-				}
-			}
-			id
-			addressString
-			amount
-			transactionCount
-			releaseSchedule {
-				totalAmount
-				schedule(
-					after: $afterReleaseSchedule
-					before: $beforeReleaseSchedule
-					first: $firstReleaseSchedule
-					last: $lastReleaseSchedule
-				) {
-					pageInfo {
-						hasNextPage
-						hasPreviousPage
-						startCursor
-						endCursor
-					}
-					nodes {
-						transaction {
-							transactionHash
-							senderAccountAddressString
-							ccdCost
-							block {
-								blockSlotTime
-							}
-							id
-							transactionType {
-								__typename
-							}
-							result {
-								__typename
-							}
-						}
-						timestamp
-						amount
-					}
-				}
-			}
-			createdAt
-			__typename
+			${AccountQueryFragment}
 		}
 	}
 `

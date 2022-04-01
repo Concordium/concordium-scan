@@ -60,6 +60,8 @@ module.exports = {
 				interactiveHover: withHslOpacity('--color-interactive-hover'),
 				info: withHslOpacity('--color-info'),
 				error: withHslOpacity('--color-error'),
+				negative: withHslOpacity('--color-negative'),
+				positive: withHslOpacity('--color-positive')
 			},
 		},
 		borderColor: {
