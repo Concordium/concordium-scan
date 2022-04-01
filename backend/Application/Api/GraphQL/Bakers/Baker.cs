@@ -1,4 +1,8 @@
-﻿using HotChocolate.Types.Relay;
+﻿using Application.Api.GraphQL.EfCore;
+using HotChocolate;
+using HotChocolate.Data;
+using HotChocolate.Types.Relay;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Bakers;
 
@@ -9,4 +13,13 @@ public class Baker
     public long BakerId => Id;
     public BakerStatus Status { get; set; }
     public PendingBakerChange? PendingChange { get; set; }
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public Account GetAccount([ScopedService] GraphQlDbContext dbContext)
+    {
+        // Account and baker share the same ID!
+        return dbContext.Accounts
+            .AsNoTracking()
+            .Single(x => x.Id == Id);
+    }
 }

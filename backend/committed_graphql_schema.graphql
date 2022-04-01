@@ -196,6 +196,7 @@ type AmountsScheduleEdge {
 }
 
 type Baker {
+  account: Account!
   id: ID!
   bakerId: Long!
   status: BakerStatus!
