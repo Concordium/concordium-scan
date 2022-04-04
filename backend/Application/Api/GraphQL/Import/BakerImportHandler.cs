@@ -27,7 +27,7 @@ public class BakerImportHandler
         var genesisBakers = genesisAccounts
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
-            .Select(x => CreateNewBaker(x.BakerId));
+            .Select(x => CreateNewBaker(x.BakerId, x.RestakeEarnings));
 
         await _writer.AddBakers(genesisBakers);
     }
@@ -36,15 +36,32 @@ public class BakerImportHandler
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
-        var bakersAdded = GetBakersAdded(transactions).ToArray();
-        if (bakersAdded.Length > 0)
+        var txEventsOrdered = transactions
+            .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
+            .SelectMany(x => x.Events);
+        
+        foreach (var txEvent in txEventsOrdered)
         {
-            await _writer.AddOrUpdateBakers(bakersAdded, x => CreateNewBaker(x.BakerId), (state, existing) =>
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
             {
-                existing.State = new ActiveBakerState(false, null);
-            });
-        }
+                await _writer.AddOrUpdateBaker(bakerAdded,
+                    src => src.BakerId,
+                    src => CreateNewBaker(src.BakerId, src.RestakeEarnings),
+                    (src, dst) => { dst.State = new ActiveBakerState(src.RestakeEarnings, null); });
+            }
 
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings restakeEarnings)
+            {
+                await _writer.UpdateBaker(restakeEarnings,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
+                        activeState.RestakeEarnings = src.RestakeEarnings;
+                    });
+            }
+        }
+        
         if (bakersRemoved.Length > 0)
         {
             var source = bakersRemoved.Select(x => x.AccountBaker!).ToArray();
@@ -93,24 +110,12 @@ public class BakerImportHandler
         }
     }
 
-    private IEnumerable<BakerAddOrUpdateData<ConcordiumSdk.NodeApi.Types.BakerAdded>> GetBakersAdded(TransactionSummary[] transactions)
-    {
-        foreach (var successResult in transactions.Select(tx => tx.Result).OfType<TransactionSuccessResult>())
-        {
-            foreach (var txEvent in successResult.Events)
-            {
-                if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
-                    yield return new BakerAddOrUpdateData<ConcordiumSdk.NodeApi.Types.BakerAdded>(bakerAdded.BakerId, bakerAdded);
-            }
-        }
-    }
-
-    private static Baker CreateNewBaker(ulong bakerId)
+    private static Baker CreateNewBaker(ulong bakerId, bool restakeEarnings)
     {
         return new Baker
         {
             Id = (long)bakerId,
-            State = new ActiveBakerState(false, null)
+            State = new ActiveBakerState(restakeEarnings, null)
         };
     }
 }

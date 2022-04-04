@@ -29,19 +29,22 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddOrUpdate_DoesNotExist()
     {
-        var input = new[] { new BakerAddOrUpdateData<long>(42, 42) };
+        var input = new BakerAddOrUpdateData<long>(42, 42);
 
         var insertCount = 0;
         var updateCount = 0;
-        await _target.AddOrUpdateBakers(input, state =>
-        {
-            insertCount++;
-            return new Baker
+        await _target.AddOrUpdateBaker(input,
+            item => item.BakerId,
+            item =>
             {
-                Id = state,
-                State = new ActiveBakerStateBuilder().Build()
-            };
-        }, (s, baker) => updateCount++);
+                insertCount++;
+                return new Baker
+                {
+                    Id = (long)item.BakerId,
+                    State = new ActiveBakerStateBuilder().Build()
+                };
+            }, 
+            (item, existing) => updateCount++);
 
         insertCount.Should().Be(1);
         updateCount.Should().Be(0);
@@ -58,23 +61,26 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await AddBakers(
             new BakerBuilder().WithId(7).WithState(new ActiveBakerStateBuilder().Build()).Build());
 
-        var input = new[] { new BakerAddOrUpdateData<long>(7, 7) };
+        var input = new BakerAddOrUpdateData<long>(7, 7);
 
         var insertCount = 0;
         var updateCount = 0;
-        await _target.AddOrUpdateBakers(input, state =>
-        {
-            insertCount++;
-            return new Baker
+        await _target.AddOrUpdateBaker(input,
+            item => item.BakerId,
+            item =>
             {
-                Id = state,
-                State = new ActiveBakerStateBuilder().Build()
-            };
-        }, (s, baker) =>
-        {
-            updateCount++;
-            baker.State = new RemovedBakerState(_anyDateTimeOffset);
-        });
+                insertCount++;
+                return new Baker
+                {
+                    Id = (long)item.BakerId,
+                    State = new ActiveBakerStateBuilder().Build()
+                };
+            },
+            (s, baker) =>
+            {
+                updateCount++;
+                baker.State = new RemovedBakerState(_anyDateTimeOffset);
+            });
 
         insertCount.Should().Be(0);
         updateCount.Should().Be(1);

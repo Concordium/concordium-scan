@@ -19,25 +19,6 @@ public class BakerWriter
         _metrics = metrics;
     }
 
-    public async Task AddOrUpdateBakers<TState>(IEnumerable<BakerAddOrUpdateData<TState>> items, Func<TState, Baker> insertAction, Action<TState, Baker> updateAction)
-    {
-        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddOrUpdateBakers));
-
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
-        foreach (var item in items)
-        {
-            var baker = await context.Bakers.SingleOrDefaultAsync(x => x.Id == (long)item.BakerId);
-            if (baker == null)
-            {
-                baker = insertAction(item.State);
-                context.Add(baker);
-            }
-            else
-                updateAction(item.State, baker);
-        }
-        await context.SaveChangesAsync();
-    }
-
     public async Task AddBakers(IEnumerable<Baker> bakers)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddBakers));
@@ -46,7 +27,30 @@ public class BakerWriter
         context.Bakers.AddRange(bakers);
         await context.SaveChangesAsync();
     }
-    
+
+    public async Task AddOrUpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Func<TSource, Baker> createNew, Action<TSource, Baker> updateExisting)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddOrUpdateBaker));
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        var bakerId = (long)bakerIdSelector(item);
+        var baker = await context.Bakers.SingleOrDefaultAsync(x => x.Id == bakerId);
+        if (baker == null)
+        {
+            baker = createNew(item);
+            context.Add(baker);
+        }
+        else
+            updateExisting(item, baker);
+        await context.SaveChangesAsync();
+    }
+
+    public Task UpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Action<TSource, Baker> updateExisting)
+    {
+        return AddOrUpdateBaker(item, bakerIdSelector, _ => throw new InvalidOperationException("Baker did not exist in database"), updateExisting);
+    }
+
     public async Task<Baker[]> UpdateBakersFromAccountBaker(AccountBaker[] accountBakers, Action<Baker, AccountBaker> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateBakersFromAccountBaker));
@@ -63,7 +67,7 @@ public class BakerWriter
         await context.SaveChangesAsync();
         return result.ToArray();
     }
-    
+
     public async Task UpdateBakersWithPendingChange(DateTimeOffset effectiveTimeEqualOrBefore, Action<Baker> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateBakersWithPendingChange));
@@ -80,7 +84,7 @@ public class BakerWriter
             
         await context.SaveChangesAsync();
     }
-    
+
     public async Task<DateTimeOffset?> GetMinPendingChangeTime()
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(GetMinPendingChangeTime));

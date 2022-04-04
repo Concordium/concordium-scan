@@ -15,7 +15,7 @@ public class BakerConfiguration : IEntityTypeConfiguration<Baker>
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.OwnsOne(x => x.ActiveState, activeBuilder =>
         {
-            activeBuilder.Property(x => x.RestakeRewards).HasColumnName("active_restake_rewards");
+            activeBuilder.Property(x => x.RestakeEarnings).HasColumnName("active_restake_earnings");
             activeBuilder.Property(x => x.PendingChange).HasColumnName("active_pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
         });
         builder.OwnsOne(x => x.RemovedState, removedBuilder =>

@@ -42,7 +42,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         result[0].Id.Should().Be(id);
         var state = result[0].State.Should().BeOfType<ActiveBakerState>().Subject;
         state.PendingChange.Should().BeOfType<PendingBakerRemoval>().Which.EffectiveTime.Should().Be(_anyDateTimeOffset);
-        state.RestakeRewards.Should().Be(restakeRewards);
+        state.RestakeEarnings.Should().Be(restakeRewards);
     }
 
     [Fact]

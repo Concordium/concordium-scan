@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
+using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
@@ -25,7 +26,7 @@ public class AccountValidator
             
         var accountAddresses = await _nodeClient.GetAccountListAsync(blockHash);
         var nodeBalances = new List<Item>();
-        var nodeBakerIds = new List<long>();
+        var nodeAccountBakers = new List<AccountBaker>();
 
         foreach (var chunk in Chunk(accountAddresses, 10))
         {
@@ -35,10 +36,10 @@ public class AccountValidator
             nodeBalances.AddRange(accountInfos
                 .Select(x => new Item(x.AccountAddress.AsString, (long)x.AccountAmount.MicroCcdValue)));
             
-            nodeBakerIds.AddRange(accountInfos
+            nodeAccountBakers.AddRange(accountInfos
                 .Where(x => x.AccountBaker != null)
                 .Select(x => x.AccountBaker!)
-                .Select(x => (long)x.BakerId));
+                .Select(x => x));
         }
         
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -60,23 +61,28 @@ public class AccountValidator
              format = String.Join(Environment.NewLine, diff2.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
             _logger.Warning($"dbBalances.Except(nodeBalances): {Environment.NewLine}{format}");
         }
+
+        var nodeBakers = nodeAccountBakers
+            .Select(x => new { Id = x.BakerId, RestakeEarnings = x.RestakeEarnings })
+            .ToArray();
         
-        var dbBakerIds = await dbContext.Bakers
-            .Select(x => x.Id)
+        var dbBakers = await dbContext.Bakers
+            .Where(x => x.ActiveState != null)
+            .Select(x => new {Id = (ulong)x.Id, RestakeEarnings = x.ActiveState!.RestakeEarnings})
             .ToArrayAsync();
         
-        var bakerIdsEqual = nodeBakerIds.OrderBy(x => x)
-            .SequenceEqual(dbBakerIds.OrderBy(x => x));
-        if (!bakerIdsEqual)
+        var activeBakersEqual = nodeBakers.OrderBy(x => x.Id)
+            .SequenceEqual(dbBakers.OrderBy(x => x.Id));
+        if (!activeBakersEqual)
         {
-            var diff1 = nodeBakerIds.Except(dbBakerIds).ToArray();
+            var diff1 = nodeBakers.Except(dbBakers).ToArray();
             if (diff1.Length > 0)
             {
                 var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   [BakerId={diff}]"));
                 _logger.Warning($"node had bakers not in database: {Environment.NewLine}{format}");
             }
 
-            var diff2 = dbBakerIds.Except(nodeBakerIds).ToArray();
+            var diff2 = dbBakers.Except(nodeBakers).ToArray();
             if (diff2.Length > 0)
             {
                 var format = String.Join(Environment.NewLine, diff2.Select(diff => $"   [BakerId={diff}]"));
