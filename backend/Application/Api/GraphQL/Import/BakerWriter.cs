@@ -97,6 +97,24 @@ public class BakerWriter
 
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
+
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings(IEnumerable<BakerStakeUpdate> stakeUpdates)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateStakeIfBakerActiveRestakingEarnings));
+
+        var sql = @"
+            update graphql_bakers 
+            set active_staked_amount = active_staked_amount + @AddedStake 
+            where id = @BakerId 
+              and active_restake_earnings = true";
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(sql, stakeUpdates);
+        await conn.CloseAsync();
+    }
 }
 
-public record BakerAddOrUpdateData<T>(ulong BakerId, T State);
+public record BakerStakeUpdate(long BakerId, long AddedStake);

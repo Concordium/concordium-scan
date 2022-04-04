@@ -29,6 +29,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         var entity = new BakerBuilder()
             .WithId(id)
             .WithState(new ActiveBakerStateBuilder()
+                .WithStakedAmount(3499)
                 .WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset))
                 .WithRestakeRewards(restakeRewards)
                 .Build())
@@ -41,6 +42,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         result.Length.Should().Be(1);
         result[0].Id.Should().Be(id);
         var state = result[0].State.Should().BeOfType<ActiveBakerState>().Subject;
+        state.StakedAmount.Should().Be(3499);
         state.PendingChange.Should().BeOfType<PendingBakerRemoval>().Which.EffectiveTime.Should().Be(_anyDateTimeOffset);
         state.RestakeEarnings.Should().Be(restakeRewards);
     }

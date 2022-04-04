@@ -44,7 +44,7 @@ public class ImportWriteController : BackgroundService
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory, metrics);
         _transactionWriter = new TransactionWriter(dbContextFactory, metrics);
         _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
-        _bakerHandler = new BakerImportHandler(dbContextFactory, metrics);
+        _bakerHandler = new BakerImportHandler(dbContextFactory, metrics, accountLookup);
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory, metrics);
@@ -142,6 +142,7 @@ public class ImportWriteController : BackgroundService
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
+        await _bakerHandler.UpdateStakeFromEarnings(payload.BlockSummary);
         await _bakerHandler.HandleBakerUpdates(payload.BlockSummary.TransactionSummaries, payload.AccountInfos.BakersRemoved, payload.BlockInfo, importState);
         
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);

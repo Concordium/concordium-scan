@@ -63,16 +63,27 @@ public class AccountValidator
         }
 
         var nodeBakers = nodeAccountBakers
-            .Select(x => new { Id = x.BakerId, RestakeEarnings = x.RestakeEarnings })
+            .Select(x => new
+            {
+                Id = x.BakerId,
+                StakedAmount = x.StakedAmount.MicroCcdValue,
+                RestakeEarnings = x.RestakeEarnings
+            })
+            .OrderBy(x => x.Id)
             .ToArray();
         
         var dbBakers = await dbContext.Bakers
             .Where(x => x.ActiveState != null)
-            .Select(x => new {Id = (ulong)x.Id, RestakeEarnings = x.ActiveState!.RestakeEarnings})
+            .Select(x => new
+            {
+                Id = (ulong)x.Id,
+                StakedAmount = x.ActiveState!.StakedAmount,
+                RestakeEarnings = x.ActiveState!.RestakeEarnings
+            })
+            .OrderBy(x => x.Id)
             .ToArrayAsync();
         
-        var activeBakersEqual = nodeBakers.OrderBy(x => x.Id)
-            .SequenceEqual(dbBakers.OrderBy(x => x.Id));
+        var activeBakersEqual = nodeBakers.SequenceEqual(dbBakers);
         if (!activeBakersEqual)
         {
             var diff1 = nodeBakers.Except(dbBakers).ToArray();

@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Bakers;
+﻿using System.Runtime.Serialization;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
@@ -29,18 +30,18 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task AddOrUpdate_DoesNotExist()
     {
-        var input = new BakerAddOrUpdateData<long>(42, 42);
+        ulong input = 42;
 
         var insertCount = 0;
         var updateCount = 0;
         await _target.AddOrUpdateBaker(input,
-            item => item.BakerId,
+            item => item,
             item =>
             {
                 insertCount++;
                 return new Baker
                 {
-                    Id = (long)item.BakerId,
+                    Id = (long)item,
                     State = new ActiveBakerStateBuilder().Build()
                 };
             }, 
@@ -61,18 +62,18 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await AddBakers(
             new BakerBuilder().WithId(7).WithState(new ActiveBakerStateBuilder().Build()).Build());
 
-        var input = new BakerAddOrUpdateData<long>(7, 7);
+        ulong input = 7;
 
         var insertCount = 0;
         var updateCount = 0;
         await _target.AddOrUpdateBaker(input,
-            item => item.BakerId,
+            item => item,
             item =>
             {
                 insertCount++;
                 return new Baker
                 {
-                    Id = (long)item.BakerId,
+                    Id = (long)item,
                     State = new ActiveBakerStateBuilder().Build()
                 };
             },
@@ -186,6 +187,45 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         
         var result = await _target.GetMinPendingChangeTime();
         result.Should().Be(_anyDateTimeOffset.AddMinutes(30));
+    }
+
+    [Fact]
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings_BakerDoesNotExist()
+    {
+        var bakerStakeUpdate = new BakerStakeUpdate(42, 100);
+        await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Bakers.ToArrayAsync();
+        result.Length.Should().Be(0);
+    }
+    
+    [Fact]
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings_BakerIsRemoved()
+    {
+        await AddBakers(new BakerBuilder().WithId(42).WithState(new RemovedBakerStateBuilder().Build()).Build());
+
+        var bakerStakeUpdate = new BakerStakeUpdate(42, 100);
+        await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Bakers.SingleAsync();
+        result.State.Should().BeOfType<RemovedBakerState>();
+    }
+    
+    [Theory]
+    [InlineData(false, 1000)]
+    [InlineData(true, 1100)]
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings_BakerIsActive(bool restakeEarnings, ulong expectedResult)
+    {
+        await AddBakers(new BakerBuilder().WithId(42).WithState(new ActiveBakerStateBuilder().WithRestakeRewards(restakeEarnings).WithStakedAmount(1000).Build()).Build());
+
+        var bakerStakeUpdate = new BakerStakeUpdate(42, 100);
+        await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Bakers.SingleAsync();
+        result.State.Should().BeOfType<ActiveBakerState>().Which.StakedAmount.Should().Be(expectedResult);
     }
     
     private async Task AddBakers(params long[] bakerIds)

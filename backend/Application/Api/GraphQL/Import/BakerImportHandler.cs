@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -12,11 +13,13 @@ public class BakerImportHandler
     private readonly BakerWriter _writer;
     private readonly IMetrics _metrics;
     private readonly ILogger _logger;
+    private readonly IAccountLookup _accountLookup;
 
-    public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
+    public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics, IAccountLookup accountLookup)
     {
         _writer = new BakerWriter(dbContextFactory, metrics);
         _metrics = metrics;
+        _accountLookup = accountLookup;
         _logger = Log.ForContext(GetType());
     }
 
@@ -27,7 +30,7 @@ public class BakerImportHandler
         var genesisBakers = genesisAccounts
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
-            .Select(x => CreateNewBaker(x.BakerId, x.RestakeEarnings));
+            .Select(x => CreateNewBaker(x.BakerId, x.StakedAmount, x.RestakeEarnings));
 
         await _writer.AddBakers(genesisBakers);
     }
@@ -46,8 +49,8 @@ public class BakerImportHandler
             {
                 await _writer.AddOrUpdateBaker(bakerAdded,
                     src => src.BakerId,
-                    src => CreateNewBaker(src.BakerId, src.RestakeEarnings),
-                    (src, dst) => { dst.State = new ActiveBakerState(src.RestakeEarnings, null); });
+                    src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings),
+                    (src, dst) => { dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null); });
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings restakeEarnings)
@@ -58,6 +61,17 @@ public class BakerImportHandler
                     {
                         var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
                         activeState.RestakeEarnings = src.RestakeEarnings;
+                    });
+            }
+
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
+            {
+                await _writer.UpdateBaker(stakeIncreased,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
+                        activeState.StakedAmount = src.NewStake.MicroCcdValue;
                     });
             }
         }
@@ -79,6 +93,33 @@ public class BakerImportHandler
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
         }
+    }
+
+    public async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
+    {
+        var earnings = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
+        
+        var aggregatedEarnings = earnings
+            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, Amount = x.AmountAdjustment })
+            .GroupBy(x => x.BaseAddress)
+            .Select(addressGroup => new
+            {
+                BaseAddress = addressGroup.Key,
+                Amount = addressGroup.Aggregate(0L, (acc, item) => acc + item.Amount)
+            })
+            .ToArray();
+
+        var baseAddresses = aggregatedEarnings.Select(x => x.BaseAddress);
+        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
+        
+        var stakeUpdates = aggregatedEarnings
+            .Select(x =>
+            {
+                var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
+                return new BakerStakeUpdate(accountId, x.Amount);
+            });
+
+        await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
     }
 
     private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
@@ -110,12 +151,12 @@ public class BakerImportHandler
         }
     }
 
-    private static Baker CreateNewBaker(ulong bakerId, bool restakeEarnings)
+    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings)
     {
         return new Baker
         {
             Id = (long)bakerId,
-            State = new ActiveBakerState(restakeEarnings, null)
+            State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, null)
         };
     }
 }

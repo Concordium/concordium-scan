@@ -10,14 +10,19 @@ public abstract class BakerState
 
 public class ActiveBakerState : BakerState
 {
-    public ActiveBakerState(bool restakeEarnings, PendingBakerChange? pendingChange)
+    public ActiveBakerState(ulong stakedAmount, bool restakeEarnings, PendingBakerChange? pendingChange)
     {
+        StakedAmount = stakedAmount;
         RestakeEarnings = restakeEarnings;
         PendingChange = pendingChange;
     }
 
     [GraphQLIgnore]
+    public ulong StakedAmount { get; set; } 
+    
+    [GraphQLIgnore]
     public bool RestakeEarnings { get; set; }
+    
     public PendingBakerChange? PendingChange { get; set; }
 }
 
