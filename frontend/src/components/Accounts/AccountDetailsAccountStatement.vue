@@ -67,7 +67,7 @@
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
-						<span v-if="breakpoint >= Breakpoint.LG">{{
+						<span v-if="breakpoint >= Breakpoint.LG" class="pl-1">{{
 							translateAccountStatementEntryType(accountStatementItem.entryType)
 						}}</span>
 					</TableTd>
