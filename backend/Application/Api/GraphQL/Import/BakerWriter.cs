@@ -5,6 +5,7 @@ using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -112,7 +113,20 @@ public class BakerWriter
         var conn = context.Database.GetDbConnection();
 
         await conn.OpenAsync();
-        await conn.ExecuteAsync(sql, stakeUpdates);
+
+        var batch = conn.CreateBatch();
+        foreach (var stakeUpdate in stakeUpdates)
+        {
+            var cmd = batch.CreateBatchCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new NpgsqlParameter<long>("BakerId", stakeUpdate.BakerId));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.AddedStake));
+            batch.BatchCommands.Add(cmd);
+        }
+
+        await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+        await batch.ExecuteNonQueryAsync();
+        
         await conn.CloseAsync();
     }
 }
