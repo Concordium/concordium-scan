@@ -39,7 +39,10 @@ public class BakerImportHandler
         var bakersAdded = GetBakersAdded(transactions).ToArray();
         if (bakersAdded.Length > 0)
         {
-            await _writer.AddBakers(bakersAdded);
+            await _writer.AddOrUpdateBakers(bakersAdded, x => CreateNewBaker(x.BakerId), (state, existing) =>
+            {
+                existing.SetState(new ActiveBakerState(null));
+            });
         }
 
         if (bakersRemoved.Length > 0)
@@ -84,19 +87,18 @@ public class BakerImportHandler
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
 
-            baker.Status = BakerStatus.Removed;
-            baker.PendingChange = null;
+            baker.SetState(new RemovedBakerState());
         }
     }
 
-    private IEnumerable<Baker> GetBakersAdded(TransactionSummary[] transactions)
+    private IEnumerable<BakerAddOrUpdateData<ConcordiumSdk.NodeApi.Types.BakerAdded>> GetBakersAdded(TransactionSummary[] transactions)
     {
         foreach (var successResult in transactions.Select(tx => tx.Result).OfType<TransactionSuccessResult>())
         {
             foreach (var txEvent in successResult.Events)
             {
                 if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
-                    yield return CreateNewBaker(bakerAdded.BakerId);
+                    yield return new BakerAddOrUpdateData<ConcordiumSdk.NodeApi.Types.BakerAdded>(bakerAdded.BakerId, bakerAdded);
             }
         }
     }

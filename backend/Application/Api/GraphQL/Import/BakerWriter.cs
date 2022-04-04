@@ -19,6 +19,25 @@ public class BakerWriter
         _metrics = metrics;
     }
 
+    public async Task AddOrUpdateBakers<TState>(IEnumerable<BakerAddOrUpdateData<TState>> items, Func<TState, Baker> insertAction, Action<TState, Baker> updateAction)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddOrUpdateBakers));
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        foreach (var item in items)
+        {
+            var baker = await context.Bakers.SingleOrDefaultAsync(x => x.Id == (long)item.BakerId);
+            if (baker == null)
+            {
+                baker = insertAction(item.State);
+                context.Add(baker);
+            }
+            else
+                updateAction(item.State, baker);
+        }
+        await context.SaveChangesAsync();
+    }
+
     public async Task AddBakers(IEnumerable<Baker> bakers)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddBakers));
@@ -75,3 +94,5 @@ public class BakerWriter
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
 }
+
+public record BakerAddOrUpdateData<T>(ulong BakerId, T State);

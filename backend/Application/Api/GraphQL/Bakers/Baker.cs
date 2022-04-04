@@ -47,4 +47,18 @@ public class Baker
             .AsNoTracking()
             .SingleAsync(x => x.Id == Id);
     }
+
+    public void SetState(BakerState state)
+    {
+        if (state is ActiveBakerState activeState)
+        {
+            Status = BakerStatus.Active;
+            PendingChange = activeState.PendingChange;
+        }
+        else if (state is RemovedBakerState removedState)
+        {
+            Status = BakerStatus.Removed;
+            PendingChange = null;
+        }
+    }
 }

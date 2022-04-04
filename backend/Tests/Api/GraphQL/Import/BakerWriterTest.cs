@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Bakers;
+﻿using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
@@ -27,6 +26,63 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE graphql_bakers");
     }
 
+    [Fact]
+    public async Task AddOrUpdate_DoesNotExist()
+    {
+        var input = new[] { new BakerAddOrUpdateData<long>(42, 42) };
+
+        var insertCount = 0;
+        var updateCount = 0;
+        await _target.AddOrUpdateBakers(input, state =>
+        {
+            insertCount++;
+            var result = new Baker { Id = state };
+            result.SetState(new ActiveBakerState(null));
+            return result;
+        }, (s, baker) => updateCount++);
+
+        insertCount.Should().Be(1);
+        updateCount.Should().Be(0);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var inserted = context.Bakers.Single();
+        inserted.Id.Should().Be(42);
+        inserted.Status.Should().Be(BakerStatus.Active);
+    }
+
+    [Fact]
+    public async Task AddOrUpdate_Exists()
+    {
+        await AddBakers(
+            new BakerBuilder().WithId(7).WithStatus(BakerStatus.Active).WithPendingBakerChange(null).Build());
+
+        var input = new[] { new BakerAddOrUpdateData<long>(7, 7) };
+
+        var insertCount = 0;
+        var updateCount = 0;
+        await _target.AddOrUpdateBakers(input, state =>
+        {
+            insertCount++;
+            var result = new Baker { Id = state };
+            result.SetState(new ActiveBakerState(null));
+            return result;
+        }, (s, baker) =>
+        {
+            updateCount++;
+            baker.SetState(new RemovedBakerState());
+        });
+
+        insertCount.Should().Be(0);
+        updateCount.Should().Be(1);
+
+        await using var context = _dbContextFactory.CreateDbContext();
+        var inserted = context.Bakers.Single();
+        inserted.Id.Should().Be(7);
+        inserted.Status.Should().Be(BakerStatus.Removed);
+        
+    }
+    
+    
     [Fact]
     public async Task UpdateBakersFromAccountBaker()
     {
