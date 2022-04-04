@@ -7,10 +7,10 @@
 		release schedule.
 
 		<button
-			class="justify-between items-center rounded-lg inline-block p-1 px-2 mx-2 text-xs bg-theme-background-primary-elevated hover:bg-theme-background-primary-elevated-hover"
+			class="align-middle justify-between items-center rounded-lg inline-block p-1 px-2 mx-2 text-xs bg-theme-background-primary-elevated hover:bg-theme-background-primary-elevated-hover"
 			@click="showSchedule = !showSchedule"
 		>
-			{{ showMoreText }}
+			<span>{{ showMoreText }}</span>
 			<ChevronForwardIcon
 				class="w-3 h-3 inline align-middle"
 				:class="[{ 'icon-open': showSchedule }]"
