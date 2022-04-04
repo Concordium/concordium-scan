@@ -56,14 +56,19 @@
 					<div v-else class="p-4">No transactions</div>
 				</template>
 			</Accordion>
-			<Accordion v-if="account.accountStatement.nodes.length > 0">
+			<Accordion>
 				Account statement
 				<template #content>
 					<AccountDetailsAccountStatement
+						v-if="
+							account.accountStatement?.nodes?.length &&
+							account.accountStatement?.nodes?.length > 0
+						"
 						:account-statement-items="account.accountStatement.nodes"
 						:page-info="account.accountStatement.pageInfo"
 						:go-to-page="goToPageAccountStatement"
 					></AccountDetailsAccountStatement>
+					<div v-else class="p-4">No entries</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
