@@ -201,10 +201,10 @@ type AmountsScheduleEdge {
 }
 
 type Baker {
-  state: BakerState!
   account: Account!
   id: ID!
   bakerId: Long!
+  state: BakerState!
 }
 
 type BakerAdded {
@@ -859,7 +859,7 @@ type RemoveFirstCredential {
 }
 
 type RemovedBakerState {
-  _: Boolean!
+  removedAt: DateTime!
 }
 
 type RewardParameters {

@@ -41,7 +41,7 @@ public class BakerImportHandler
         {
             await _writer.AddOrUpdateBakers(bakersAdded, x => CreateNewBaker(x.BakerId), (state, existing) =>
             {
-                existing.SetState(new ActiveBakerState(null));
+                existing.State = new ActiveBakerState(false, null);
             });
         }
 
@@ -50,7 +50,7 @@ public class BakerImportHandler
             var source = bakersRemoved.Select(x => x.AccountBaker!).ToArray();
             var updatedBakers = await _writer.UpdateBakersFromAccountBaker(source, (dst, src) => SetPendingChange(dst, src, blockInfo));
 
-            var minEffectiveTime = updatedBakers.Min(x => x.PendingChange!.EffectiveTime);
+            var minEffectiveTime = updatedBakers.Min(x => ((ActiveBakerState)x.State).PendingChange!.EffectiveTime);
             if (!importState.NextPendingBakerChangeTime.HasValue || importState.NextPendingBakerChangeTime.Value > minEffectiveTime)
                 importState.NextPendingBakerChangeTime = minEffectiveTime;
         }
@@ -76,18 +76,20 @@ public class BakerImportHandler
             //       Epoch duration is 1 hour
             var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
             var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
-            
-            destination.PendingChange = new PendingBakerRemoval(effectiveTime);
+
+            var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
+            activeState.PendingChange = new PendingBakerRemoval(effectiveTime);
         }
     }
 
     private void ApplyPendingChange(Baker baker)
     {
-        if (baker.PendingChange is PendingBakerRemoval)
+        var activeState = baker.State as ActiveBakerState ?? throw new InvalidOperationException("Applying pending change to a baker that was not active!");
+        if (activeState.PendingChange is PendingBakerRemoval pendingRemoval)
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
 
-            baker.SetState(new RemovedBakerState());
+            baker.State = new RemovedBakerState(pendingRemoval.EffectiveTime);
         }
     }
 
@@ -108,8 +110,7 @@ public class BakerImportHandler
         return new Baker
         {
             Id = (long)bakerId,
-            PendingChange = null,
-            Status = BakerStatus.Active
+            State = new ActiveBakerState(false, null)
         };
     }
 }

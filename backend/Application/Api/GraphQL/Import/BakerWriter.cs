@@ -70,7 +70,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-        var sql = $"select * from graphql_bakers where pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
+        var sql = $"select * from graphql_bakers where active_pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
         var bakers = await context.Bakers
             .FromSqlRaw(sql)
             .ToArrayAsync();
@@ -88,7 +88,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
         await conn.OpenAsync();
-        var result = await conn.ExecuteScalarAsync<string>("select min(pending_change->'data'->>'EffectiveTime') from graphql_bakers where pending_change is not null");
+        var result = await conn.ExecuteScalarAsync<string>("select min(active_pending_change->'data'->>'EffectiveTime') from graphql_bakers where active_pending_change is not null");
         await conn.CloseAsync();
 
         return result != null ? DateTimeOffset.Parse(result) : null;

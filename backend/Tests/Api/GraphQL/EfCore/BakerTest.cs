@@ -1,8 +1,8 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Bakers;
+﻿using Application.Api.GraphQL.Bakers;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
@@ -11,6 +11,7 @@ namespace Tests.Api.GraphQL.EfCore;
 public class BakerTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
+    private DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public BakerTest(DatabaseFixture dbFixture)
     {
@@ -21,16 +22,17 @@ public class BakerTest : IClassFixture<DatabaseFixture>
     }
 
     [Theory]
-    [InlineData(0, BakerStatus.Active)]
-    [InlineData(42, BakerStatus.Removed)]
-    public async Task WriteAndReadBaker_PendingChangeNull(int id, BakerStatus bakerStatus)
+    [InlineData(0, true)]
+    [InlineData(42, false)]
+    public async Task WriteAndReadBaker_ActiveState_PendingChangeIsPendingRemoval(long id, bool restakeRewards)
     {
-        var entity = new Baker
-        {
-            Id = id,
-            Status = bakerStatus,
-            PendingChange = null, 
-        };
+        var entity = new BakerBuilder()
+            .WithId(id)
+            .WithState(new ActiveBakerStateBuilder()
+                .WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset))
+                .WithRestakeRewards(restakeRewards)
+                .Build())
+            .Build();
 
         await AddBaker(entity);
         
@@ -38,29 +40,44 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         var result = dbContext.Bakers.ToArray();
         result.Length.Should().Be(1);
         result[0].Id.Should().Be(id);
-        result[0].Status.Should().Be(bakerStatus);
-        result[0].PendingChange.Should().BeNull();
+        var state = result[0].State.Should().BeOfType<ActiveBakerState>().Subject;
+        state.PendingChange.Should().BeOfType<PendingBakerRemoval>().Which.EffectiveTime.Should().Be(_anyDateTimeOffset);
+        state.RestakeRewards.Should().Be(restakeRewards);
     }
-    
+
     [Fact]
-    public async Task WriteAndReadBaker_PendingChangePendingRemoval()
+    public async Task WriteAndReadBaker_ActiveState_PendingChangeNull()
     {
-        var dateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
-        
-        var entity = new Baker
-        {
-            Id = 10,
-            Status = BakerStatus.Active,
-            PendingChange = new PendingBakerRemoval(dateTimeOffset) 
-        };
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new ActiveBakerStateBuilder().WithPendingChange(null).Build())
+            .Build();
 
         await AddBaker(entity);
         
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = dbContext.Bakers.ToArray();
         result.Length.Should().Be(1);
-        result[0].PendingChange.Should().BeOfType<PendingBakerRemoval>()
-            .Which.EffectiveTime.Should().Be(dateTimeOffset);
+        result[0].Id.Should().Be(0);
+        result[0].State.Should().BeOfType<ActiveBakerState>().Which.PendingChange.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WriteAndReadBaker_RemovedState()
+    {
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new RemovedBakerState(_anyDateTimeOffset))
+            .Build();
+
+        await AddBaker(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.Bakers.ToArray();
+        result.Length.Should().Be(1);
+        result[0].Id.Should().Be(0);
+        result[0].State.Should().BeOfType<RemovedBakerState>()
+            .Which.RemovedAt.Should().Be(_anyDateTimeOffset);
     }
 
     private async Task AddBaker(Baker entity)

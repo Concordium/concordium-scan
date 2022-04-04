@@ -15,7 +15,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BakerWriter _target;
-    private readonly DateTimeOffset _anyEffectiveTime = new(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
+    private readonly DateTimeOffset _anyDateTimeOffset = new(2021, 09, 16, 10, 21, 33, 452, TimeSpan.Zero);
 
     public BakerWriterTest(DatabaseFixture dbFixture)
     {
@@ -36,9 +36,11 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await _target.AddOrUpdateBakers(input, state =>
         {
             insertCount++;
-            var result = new Baker { Id = state };
-            result.SetState(new ActiveBakerState(null));
-            return result;
+            return new Baker
+            {
+                Id = state,
+                State = new ActiveBakerStateBuilder().Build()
+            };
         }, (s, baker) => updateCount++);
 
         insertCount.Should().Be(1);
@@ -47,14 +49,14 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await using var context = _dbContextFactory.CreateDbContext();
         var inserted = context.Bakers.Single();
         inserted.Id.Should().Be(42);
-        inserted.Status.Should().Be(BakerStatus.Active);
+        inserted.State.Should().BeOfType<ActiveBakerState>();
     }
 
     [Fact]
     public async Task AddOrUpdate_Exists()
     {
         await AddBakers(
-            new BakerBuilder().WithId(7).WithStatus(BakerStatus.Active).WithPendingBakerChange(null).Build());
+            new BakerBuilder().WithId(7).WithState(new ActiveBakerStateBuilder().Build()).Build());
 
         var input = new[] { new BakerAddOrUpdateData<long>(7, 7) };
 
@@ -63,13 +65,15 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await _target.AddOrUpdateBakers(input, state =>
         {
             insertCount++;
-            var result = new Baker { Id = state };
-            result.SetState(new ActiveBakerState(null));
-            return result;
+            return new Baker
+            {
+                Id = state,
+                State = new ActiveBakerStateBuilder().Build()
+            };
         }, (s, baker) =>
         {
             updateCount++;
-            baker.SetState(new RemovedBakerState());
+            baker.State = new RemovedBakerState(_anyDateTimeOffset);
         });
 
         insertCount.Should().Be(0);
@@ -78,17 +82,15 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await using var context = _dbContextFactory.CreateDbContext();
         var inserted = context.Bakers.Single();
         inserted.Id.Should().Be(7);
-        inserted.Status.Should().Be(BakerStatus.Removed);
-        
+        inserted.State.Should().BeOfType<RemovedBakerState>();
     }
-    
     
     [Fact]
     public async Task UpdateBakersFromAccountBaker()
     {
         await AddBakers(11, 42);
 
-        var source = new[]
+        var input = new[]
         {
             new AccountBaker
             {
@@ -97,25 +99,31 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
             }
         };
         
-        var returned = await _target.UpdateBakersFromAccountBaker(source, (dst, src) =>
+        var returned = await _target.UpdateBakersFromAccountBaker(input, (dst, src) =>
         {
-            dst.PendingChange = src.PendingChange switch
-            {
-                AccountBakerRemovePending => new PendingBakerRemoval(_anyEffectiveTime),
-                _ => throw new InvalidOperationException()
-            };
+            if (dst.State is ActiveBakerState active)
+                active.PendingChange = new PendingBakerRemoval(_anyDateTimeOffset);
+            else
+                throw new InvalidOperationException();
         });
 
-        var expectedPendingChange = new PendingBakerRemoval(_anyEffectiveTime);
+        var expectedPendingChange = new PendingBakerRemoval(_anyDateTimeOffset);
 
         returned.Length.Should().Be(1);
-        returned[0].PendingChange.Should().Be(expectedPendingChange);
+        returned[0].State.Should()
+            .BeOfType<ActiveBakerState>().Which
+            .PendingChange.Should().Be(expectedPendingChange);
         
         await using var context = _dbContextFactory.CreateDbContext();
         var fromDb = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
         fromDb.Length.Should().Be(2);
-        fromDb[0].PendingChange.Should().Be(expectedPendingChange);
-        fromDb[1].PendingChange.Should().BeNull();
+        fromDb[0].State.Should()
+            .BeOfType<ActiveBakerState>().Which
+            .PendingChange.Should().Be(expectedPendingChange);
+        
+        fromDb[1].State.Should()
+            .BeOfType<ActiveBakerState>().Which
+            .PendingChange.Should().BeNull();
     }
 
     [Theory]
@@ -127,18 +135,18 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     public async Task UpdateBakersWithPendingChange(int minutesToAdd, long[] expectedRemovedBakerIds, long[] expectedActiveBakerIds)
     {
         await AddBakers(
-            new BakerBuilder().WithId(7).WithStatus(BakerStatus.Active).WithPendingBakerChange(new PendingBakerRemoval(_anyEffectiveTime.AddMinutes(60))).Build(),
-            new BakerBuilder().WithId(13).WithStatus(BakerStatus.Active).WithPendingBakerChange(new PendingBakerRemoval(_anyEffectiveTime.AddMinutes(90))).Build(),
-            new BakerBuilder().WithId(21).WithStatus(BakerStatus.Active).WithPendingBakerChange(new PendingBakerRemoval(_anyEffectiveTime.AddMinutes(30))).Build(),
-            new BakerBuilder().WithId(54).WithStatus(BakerStatus.Active).WithPendingBakerChange(null).Build());
+            new BakerBuilder().WithId(7).WithState(new ActiveBakerStateBuilder().WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset.AddMinutes(60))).Build()).Build(),
+            new BakerBuilder().WithId(13).WithState(new ActiveBakerStateBuilder().WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset.AddMinutes(90))).Build()).Build(),
+            new BakerBuilder().WithId(21).WithState(new ActiveBakerStateBuilder().WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset.AddMinutes(30))).Build()).Build(),
+            new BakerBuilder().WithId(54).WithState(new ActiveBakerStateBuilder().WithPendingChange(null).Build()).Build());
 
-        await _target.UpdateBakersWithPendingChange(_anyEffectiveTime.AddMinutes(minutesToAdd), baker => baker.Status = BakerStatus.Removed);
+        await _target.UpdateBakersWithPendingChange(_anyDateTimeOffset.AddMinutes(minutesToAdd), baker => baker.State = new RemovedBakerState(_anyDateTimeOffset));
         
         await using var context = _dbContextFactory.CreateDbContext();
         var fromDb = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
 
-        fromDb.Where(x => x.Status == BakerStatus.Removed).Select(x => x.Id).Should().Equal(expectedRemovedBakerIds);
-        fromDb.Where(x => x.Status == BakerStatus.Active).Select(x => x.Id).Should().Equal(expectedActiveBakerIds);
+        fromDb.Where(x => x.State is RemovedBakerState).Select(x => x.Id).Should().Equal(expectedRemovedBakerIds);
+        fromDb.Where(x => x.State is ActiveBakerState).Select(x => x.Id).Should().Equal(expectedActiveBakerIds);
     }
 
     [Fact]
@@ -151,10 +159,12 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task GetMinPendingChangeTime_NoPendingChanges()
     {
+        var activeStateBuilder = new ActiveBakerStateBuilder().WithPendingChange(null);
+        
         await AddBakers(
-            new BakerBuilder().WithId(7).WithPendingBakerChange(null).Build(),
-            new BakerBuilder().WithId(13).WithPendingBakerChange(null).Build(),
-            new BakerBuilder().WithId(42).WithPendingBakerChange(null).Build());
+            new BakerBuilder().WithId(7).WithState(activeStateBuilder.Build()).Build(),
+            new BakerBuilder().WithId(13).WithState(activeStateBuilder.Build()).Build(),
+            new BakerBuilder().WithId(42).WithState(activeStateBuilder.Build()).Build());
         
         var result = await _target.GetMinPendingChangeTime();
         result.Should().BeNull();
@@ -164,12 +174,12 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetMinPendingChangeTime_PendingChangesExist()
     {
         await AddBakers(
-            new BakerBuilder().WithId(7).WithPendingBakerChange(null).Build(),
-            new BakerBuilder().WithId(13).WithPendingBakerChange(new PendingBakerRemoval(_anyEffectiveTime.AddMinutes(60))).Build(),
-            new BakerBuilder().WithId(42).WithPendingBakerChange(new PendingBakerRemoval(_anyEffectiveTime.AddMinutes(30))).Build());
+            new BakerBuilder().WithId(7).WithState(new ActiveBakerStateBuilder().WithPendingChange(null).Build()).Build(),
+            new BakerBuilder().WithId(13).WithState(new ActiveBakerStateBuilder().WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset.AddMinutes(60))).Build()).Build(),
+            new BakerBuilder().WithId(42).WithState(new ActiveBakerStateBuilder().WithPendingChange(new PendingBakerRemoval(_anyDateTimeOffset.AddMinutes(30))).Build()).Build());
         
         var result = await _target.GetMinPendingChangeTime();
-        result.Should().Be(_anyEffectiveTime.AddMinutes(30));
+        result.Should().Be(_anyDateTimeOffset.AddMinutes(30));
     }
     
     private async Task AddBakers(params long[] bakerIds)

@@ -1,21 +1,18 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Bakers;
+﻿using Application.Api.GraphQL.Bakers;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
 public class BakerBuilder
 {
     private long _id = 10;
-    private PendingBakerChange? _pendingBakerChange = null;
-    private BakerStatus _bakerStatus = BakerStatus.Active;
+    private BakerState _bakerState = new ActiveBakerStateBuilder().Build();
 
     public Baker Build()
     {
         return new Baker
         {
             Id = _id,
-            PendingChange = _pendingBakerChange,
-            Status = _bakerStatus
+            State = _bakerState
         };
     }
 
@@ -25,15 +22,9 @@ public class BakerBuilder
         return this;
     }
 
-    public BakerBuilder WithPendingBakerChange(PendingBakerChange? value)
+    public BakerBuilder WithState(BakerState value)
     {
-        _pendingBakerChange = value;
-        return this;
-    }
-
-    public BakerBuilder WithStatus(BakerStatus value)
-    {
-        _bakerStatus = value;
+        _bakerState = value;
         return this;
     }
 }

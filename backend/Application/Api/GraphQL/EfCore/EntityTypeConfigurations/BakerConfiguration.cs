@@ -13,8 +13,17 @@ public class BakerConfiguration : IEntityTypeConfiguration<Baker>
 
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
-        builder.Property(x => x.Status).HasColumnName("status");
-        builder.Property(x => x.PendingChange).HasColumnName("pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
+        builder.OwnsOne(x => x.ActiveState, activeBuilder =>
+        {
+            activeBuilder.Property(x => x.RestakeRewards).HasColumnName("active_restake_rewards");
+            activeBuilder.Property(x => x.PendingChange).HasColumnName("active_pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
+        });
+        builder.OwnsOne(x => x.RemovedState, removedBuilder =>
+        {
+            removedBuilder.Property(x => x.RemovedAt).HasColumnName("removed_timestamp").HasConversion<DateTimeOffsetToTimestampConverter>();
+        });
+        
         builder.Ignore(x => x.BakerId);
+        builder.Ignore(x => x.State);
     }
 }
