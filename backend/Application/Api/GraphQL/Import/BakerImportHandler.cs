@@ -35,13 +35,16 @@ public class BakerImportHandler
         await _writer.AddBakers(genesisBakers);
     }
 
-    public async Task HandleBakerUpdates(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
         await UpdateStakeFromEarnings(blockSummary);
         await UpdateBakersFromTransactions(blockSummary, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
         await UpdateBakersWithPendingChangesDue(blockInfo, importState);
+
+        var totalAmountStaked = await _writer.GetTotalAmountStaked();
+        return new BakerUpdateResults(totalAmountStaked);
     }
 
     private async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
@@ -205,3 +208,6 @@ public class BakerImportHandler
         };
     }
 }
+
+public record BakerUpdateResults(
+    ulong TotalAmountStaked);

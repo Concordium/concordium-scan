@@ -60,8 +60,9 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         {
             builder.Property(x => x.TotalAmount).HasColumnName("bal_stats_total_amount");
             builder.Property(x => x.TotalAmountReleased).HasColumnName("bal_stats_total_amount_released");
-            builder.Property(x => x.TotalEncryptedAmount).HasColumnName("bal_stats_total_encrypted_amount");
+            builder.Property(x => x.TotalAmountEncrypted).HasColumnName("bal_stats_total_amount_encrypted");
             builder.Property(x => x.TotalAmountLockedInReleaseSchedules).HasColumnName("bal_stats_total_amount_locked_in_schedules");
+            builder.Property(x => x.TotalAmountStaked).HasColumnName("bal_stats_total_amount_staked");
             builder.Property(x => x.BakingRewardAccount).HasColumnName("bal_stats_baking_reward_account");
             builder.Property(x => x.FinalizationRewardAccount).HasColumnName("bal_stats_finalization_reward_account");
             builder.Property(x => x.GasAccount).HasColumnName("bal_stats_gas_account");

@@ -315,9 +315,11 @@ type BalanceStatistics {
   "The total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
   totalAmountReleased: UnsignedLong
   "The total CCD in encrypted balances"
-  totalEncryptedAmount: UnsignedLong!
+  totalAmountEncrypted: UnsignedLong!
   "The total CCD locked in release schedules (from transfers with schedule)"
   totalAmountLockedInReleaseSchedules: UnsignedLong!
+  "The total CCD staked"
+  totalAmountStaked: UnsignedLong!
   "The amount in the baking reward account"
   bakingRewardAccount: UnsignedLong!
   "The amount in the finalization reward account"

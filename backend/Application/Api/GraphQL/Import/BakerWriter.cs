@@ -130,6 +130,20 @@ public class BakerWriter
         
         await conn.CloseAsync();
     }
+
+    public async Task<ulong> GetTotalAmountStaked()
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(GetTotalAmountStaked));
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        var result = await conn.QuerySingleAsync<long?>("select sum(active_staked_amount) from graphql_bakers");
+        await conn.CloseAsync();
+
+        return result.HasValue ? (ulong)result.Value : 0;
+    }
 }
 
 public record BakerStakeUpdate(long BakerId, long AddedStake);

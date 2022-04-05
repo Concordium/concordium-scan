@@ -22,6 +22,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private int _chainParametersId = 20;
+    private BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
@@ -45,8 +46,11 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
             .WithBlockBaker(150)
             .WithFinalized(true)
             .WithTransactionCount(221);
+        
         _chainParametersId = 42;
 
+        _bakerUpdateResultsBuilder.WithTotalAmountStaked(561864);
+        
         await WriteData();
 
         var dbContext = _dbContextFactory.CreateDbContext();
@@ -60,6 +64,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result.Finalized.Should().BeTrue();
         result.TransactionCount.Should().Be(221);
         result.ChainParametersId.Should().Be(42);
+        result.BalanceStatistics.TotalAmountStaked.Should().Be(561864);
     }
     
     [Fact]
@@ -328,7 +333,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var block = dbContext.Blocks.Single();
         block.BalanceStatistics.Should().NotBeNull();
         block.BalanceStatistics.TotalAmount.Should().Be(421500);
-        block.BalanceStatistics.TotalEncryptedAmount.Should().Be(161);
+        block.BalanceStatistics.TotalAmountEncrypted.Should().Be(161);
         block.BalanceStatistics.BakingRewardAccount.Should().Be(77551);
         block.BalanceStatistics.FinalizationRewardAccount.Should().Be(922438);
         block.BalanceStatistics.GasAccount.Should().Be(35882);
@@ -488,6 +493,23 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
         var rewardStatus = _rewardStatusBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, _importState);
+        var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
+        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, _importState);
+    }
+}
+
+public class BakerUpdateResultsBuilder
+{
+    private ulong _totalAmountStaked = 0;
+
+    public BakerUpdateResultsBuilder WithTotalAmountStaked(ulong value)
+    {
+        _totalAmountStaked = value;
+        return this;
+    }
+
+    public BakerUpdateResults Build()
+    {
+        return new BakerUpdateResults(_totalAmountStaked);
     }
 }

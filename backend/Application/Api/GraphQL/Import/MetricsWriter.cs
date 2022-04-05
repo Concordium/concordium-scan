@@ -31,7 +31,7 @@ public class MetricsWriter
             block.BlockHeight,
             BlockTimeSecs = block.BlockStatistics.BlockTime,
             TotalMicroCcd = (long)block.BalanceStatistics.TotalAmount,
-            TotalEncryptedMicroCcd = (long)block.BalanceStatistics.TotalEncryptedAmount
+            TotalEncryptedMicroCcd = (long)block.BalanceStatistics.TotalAmountEncrypted
         };
 
         var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 

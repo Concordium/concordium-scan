@@ -4,12 +4,13 @@ namespace Application.Api.GraphQL;
 
 public class BalanceStatistics
 {
-    public BalanceStatistics(ulong totalAmount, ulong? totalAmountReleased, ulong totalEncryptedAmount, ulong totalAmountLockedInReleaseSchedules, ulong bakingRewardAccount, ulong finalizationRewardAccount, ulong gasAccount)
+    public BalanceStatistics(ulong totalAmount, ulong? totalAmountReleased, ulong totalAmountEncrypted, ulong totalAmountLockedInReleaseSchedules, ulong totalAmountStaked, ulong bakingRewardAccount, ulong finalizationRewardAccount, ulong gasAccount)
     {
         TotalAmount = totalAmount;
         TotalAmountReleased = totalAmountReleased;
-        TotalEncryptedAmount = totalEncryptedAmount;
+        TotalAmountEncrypted = totalAmountEncrypted;
         TotalAmountLockedInReleaseSchedules = totalAmountLockedInReleaseSchedules;
+        TotalAmountStaked = totalAmountStaked;
         BakingRewardAccount = bakingRewardAccount;
         FinalizationRewardAccount = finalizationRewardAccount;
         GasAccount = gasAccount;
@@ -22,10 +23,12 @@ public class BalanceStatistics
     public ulong? TotalAmountReleased { get; init; }
 
     [GraphQLDescription("The total CCD in encrypted balances")]
-    public ulong TotalEncryptedAmount { get; init; }
+    public ulong TotalAmountEncrypted { get; init; }
 
     [GraphQLDescription("The total CCD locked in release schedules (from transfers with schedule)")]
     public ulong TotalAmountLockedInReleaseSchedules { get; set; }
+    [GraphQLDescription("The total CCD staked")]
+    public ulong TotalAmountStaked { get; set; }
 
     [GraphQLDescription("The amount in the baking reward account")]
     public ulong BakingRewardAccount { get; init; }

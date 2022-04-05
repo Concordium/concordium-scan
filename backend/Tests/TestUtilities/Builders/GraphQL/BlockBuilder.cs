@@ -23,7 +23,7 @@ public class BlockBuilder
             TransactionCount = 0,
             SpecialEvents = new SpecialEvents(),
             FinalizationSummary = _finalizationSummary,
-            BalanceStatistics = new BalanceStatistics(0, 0, 0, 0, 0, 0, 0),
+            BalanceStatistics = new BalanceStatistics(0, 0, 0, 0, 0, 0, 0, 0),
             BlockStatistics = new BlockStatistics { BlockTime = 10.2d }
         };
     }

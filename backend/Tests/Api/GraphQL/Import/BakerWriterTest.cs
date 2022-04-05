@@ -227,6 +227,26 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var result = await context.Bakers.SingleAsync();
         result.State.Should().BeOfType<ActiveBakerState>().Which.StakedAmount.Should().Be(expectedResult);
     }
+
+    [Fact]
+    public async Task GetTotalAmountStaked_NoBakers()
+    {
+        var result = await _target.GetTotalAmountStaked();
+        result.Should().Be(0);
+    }
+ 
+    [Fact]
+    public async Task GetTotalAmountStaked_Bakers()
+    {
+        await AddBakers(
+            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithStakedAmount(1500).Build()).Build(),
+            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(200).Build()).Build(),
+            new BakerBuilder().WithId(3).WithState(new RemovedBakerStateBuilder().Build()).Build(),
+            new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithStakedAmount(700).Build()).Build());
+
+        var result = await _target.GetTotalAmountStaked();
+        result.Should().Be(2400);
+    }
     
     private async Task AddBakers(params long[] bakerIds)
     {

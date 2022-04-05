@@ -21,7 +21,8 @@ public class BlockWriter
         _metrics = metrics;
     }
 
-    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, int chainParametersId, ImportState importState)
+    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
+        int chainParametersId, BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddBlock));
         
@@ -30,7 +31,7 @@ public class BlockWriter
         var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);
         importState.LastBlockSlotTime = blockInfo.BlockSlotTime;
 
-        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId, importState);
+        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId, bakerUpdateResults, importState);
         context.Blocks.Add(block);
         
         await context.SaveChangesAsync(); // assign ID to block!
@@ -65,7 +66,8 @@ public class BlockWriter
         return block; 
     }
     
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime, int chainParametersId, ImportState importState)
+    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime,
+        int chainParametersId, BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
         var block = new Block
         {
@@ -83,7 +85,7 @@ public class BlockWriter
                 BakingRewards = MapBakingRewards(blockSummary.SpecialEvents.OfType<BakingRewardsSpecialEvent>().SingleOrDefault()),
             },
             FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData),
-            BalanceStatistics = MapBalanceStatistics(rewardStatus, blockInfo.BlockSlotTime, importState),
+            BalanceStatistics = MapBalanceStatistics(rewardStatus, blockInfo.BlockSlotTime, bakerUpdateResults, importState),
             BlockStatistics = new BlockStatistics
             {
                 BlockTime = blockTime, 
@@ -100,13 +102,15 @@ public class BlockWriter
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
-    private BalanceStatistics MapBalanceStatistics(RewardStatus rewardStatus, DateTimeOffset blockSlotTime, ImportState importState)
+    private BalanceStatistics MapBalanceStatistics(RewardStatus rewardStatus, DateTimeOffset blockSlotTime,
+        BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
         return new BalanceStatistics(
             rewardStatus.TotalAmount.MicroCcdValue,
             _changeCalculator.CalculateTotalAmountReleased(rewardStatus.TotalAmount, blockSlotTime, importState.GenesisBlockHash),
             rewardStatus.TotalEncryptedAmount.MicroCcdValue, 
             0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
+            bakerUpdateResults.TotalAmountStaked,
             rewardStatus.BakingRewardAccount.MicroCcdValue, 
             rewardStatus.FinalizationRewardAccount.MicroCcdValue, 
             rewardStatus.GasAccount.MicroCcdValue);
