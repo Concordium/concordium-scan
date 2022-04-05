@@ -145,13 +145,13 @@ public class ImportReadController : BackgroundService
             var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreated))
                 .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
-            var bakersRemovedTasks = accountsToRead.Where(x => x.Reason == typeof(BakerRemoved))
+            var bakersWithNewPendingChangesTask = accountsToRead.Where(x => x.Reason == typeof(AccountBakerPendingChange))
                 .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
                 .ToArray();
             
             var accountsCreated = await Task.WhenAll(accountsCreatedTasks);
-            var bakersRemoved = await Task.WhenAll(bakersRemovedTasks);
-            return new AccountInfosRetrieved(accountsCreated, bakersRemoved);
+            var bakersWithNewPendingChanges = await Task.WhenAll(bakersWithNewPendingChangesTask);
+            return new AccountInfosRetrieved(accountsCreated, bakersWithNewPendingChanges);
         }
     }
 
@@ -162,7 +162,9 @@ public class ImportReadController : BackgroundService
             if (txEvent is AccountCreated accountCreated)
                 yield return new AccountAddressAndReason(accountCreated.Contents, typeof(AccountCreated));
             if (txEvent is BakerRemoved bakerRemoved)
-                yield return new AccountAddressAndReason(bakerRemoved.Account, typeof(BakerRemoved));
+                yield return new AccountAddressAndReason(bakerRemoved.Account, typeof(AccountBakerPendingChange));
+            if (txEvent is BakerStakeDecreased stakeDecreased)
+                yield return new AccountAddressAndReason(stakeDecreased.Account, typeof(AccountBakerPendingChange));
         }
     }
 

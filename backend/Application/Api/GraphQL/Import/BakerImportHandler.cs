@@ -35,7 +35,7 @@ public class BakerImportHandler
         await _writer.AddBakers(genesisBakers);
     }
 
-    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] bakersRemoved, BlockInfo blockInfo, ImportState importState)
+    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
@@ -53,16 +53,11 @@ public class BakerImportHandler
                     (src, dst) => { dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null); });
             }
 
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings restakeEarnings)
-            {
-                await _writer.UpdateBaker(restakeEarnings,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
-                        activeState.RestakeEarnings = src.RestakeEarnings;
-                    });
-            }
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
+                await ApplyPendingChangeToBaker(bakerRemoved.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
+                await ApplyPendingChangeToBaker(stakeDecreased.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
             {
@@ -74,18 +69,19 @@ public class BakerImportHandler
                         activeState.StakedAmount = src.NewStake.MicroCcdValue;
                     });
             }
+
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings restakeEarnings)
+            {
+                await _writer.UpdateBaker(restakeEarnings,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
+                        activeState.RestakeEarnings = src.RestakeEarnings;
+                    });
+            }
         }
         
-        if (bakersRemoved.Length > 0)
-        {
-            var source = bakersRemoved.Select(x => x.AccountBaker!).ToArray();
-            var updatedBakers = await _writer.UpdateBakersFromAccountBaker(source, (dst, src) => SetPendingChange(dst, src, blockInfo));
-
-            var minEffectiveTime = updatedBakers.Min(x => ((ActiveBakerState)x.State).PendingChange!.EffectiveTime);
-            if (!importState.NextPendingBakerChangeTime.HasValue || importState.NextPendingBakerChangeTime.Value > minEffectiveTime)
-                importState.NextPendingBakerChangeTime = minEffectiveTime;
-        }
-
         if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
         {
             await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, ApplyPendingChange);
@@ -95,8 +91,26 @@ public class BakerImportHandler
         }
     }
 
+    private async Task ApplyPendingChangeToBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress,
+        AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
+    {
+        var accountBaker = accountInfos
+            .SingleOrDefault(x => x.AccountAddress == bakerAccountAddress)?
+            .AccountBaker ?? throw new InvalidOperationException("AccountInfo not included for baker -OR- was not a baker!");
+
+        var updatedBaker = await _writer.UpdateBaker(accountBaker, src => src.BakerId,
+            (src, dst) => SetPendingChange(dst, src, blockInfo));
+
+        var effectiveTime = ((ActiveBakerState)updatedBaker.State).PendingChange!.EffectiveTime;
+        if (!importState.NextPendingBakerChangeTime.HasValue ||
+            importState.NextPendingBakerChangeTime.Value > effectiveTime)
+            importState.NextPendingBakerChangeTime = effectiveTime;
+    }
+
     public async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(UpdateStakeFromEarnings));
+
         var earnings = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
         
         var aggregatedEarnings = earnings
@@ -126,18 +140,31 @@ public class BakerImportHandler
     {
         if (source.PendingChange is AccountBakerRemovePending removePending)
         {
-            // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
-            //       We should be able to change this once we switch to concordium node v4 or greater!
-            //
-            // BUILT-IN ASSUMPTIONS (that can change but probably wont):
-            //       Block time is 250ms
-            //       Epoch duration is 1 hour
-            var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
-            var effectiveTime = eraGenesisTime.AddHours(removePending.Epoch);
+            var effectiveTime = CalculateEffectiveTime(removePending.Epoch, blockInfo);
 
             var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
             activeState.PendingChange = new PendingBakerRemoval(effectiveTime);
         }
+        else if (source.PendingChange is AccountBakerReduceStakePending reduceStakePending)
+        {
+            var effectiveTime = CalculateEffectiveTime(reduceStakePending.Epoch, blockInfo);
+
+            var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
+            activeState.PendingChange = new PendingBakerReduceStake(effectiveTime, reduceStakePending.NewStake.MicroCcdValue);
+        }
+    }
+
+    private static DateTimeOffset CalculateEffectiveTime(ulong epoch, BlockInfo blockInfo)
+    {
+        // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
+        //       We should be able to change this once we switch to concordium node v4 or greater!
+        //
+        // BUILT-IN ASSUMPTIONS (that can change but probably wont):
+        //       Block time is 250ms
+        //       Epoch duration is 1 hour
+        var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
+        var effectiveTime = eraGenesisTime.AddHours(epoch);
+        return effectiveTime;
     }
 
     private void ApplyPendingChange(Baker baker)
@@ -146,9 +173,14 @@ public class BakerImportHandler
         if (activeState.PendingChange is PendingBakerRemoval pendingRemoval)
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
-
             baker.State = new RemovedBakerState(pendingRemoval.EffectiveTime);
         }
+        else if (activeState.PendingChange is PendingBakerReduceStake reduceStake)
+        {
+            _logger.Information("Baker with id {bakerId} will have its stake reduced to {newStake}.", baker.Id, reduceStake.NewStakedAmount);
+            activeState.StakedAmount = reduceStake.NewStakedAmount;
+        }
+        else throw new NotImplementedException("Applying this pending change is not implemented!");
     }
 
     private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings)

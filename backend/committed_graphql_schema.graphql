@@ -807,6 +807,11 @@ type PageInfo {
   endCursor: String
 }
 
+type PendingBakerReduceStake implements PendingBakerChange {
+  newStakedAmount: UnsignedLong!
+  effectiveTime: DateTime!
+}
+
 type PendingBakerRemoval implements PendingBakerChange {
   effectiveTime: DateTime!
 }

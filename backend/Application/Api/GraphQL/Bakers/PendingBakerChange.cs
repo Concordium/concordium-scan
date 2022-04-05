@@ -6,3 +6,4 @@ namespace Application.Api.GraphQL.Bakers;
 public abstract record PendingBakerChange(DateTimeOffset EffectiveTime);
 
 public record PendingBakerRemoval(DateTimeOffset EffectiveTime) : PendingBakerChange(EffectiveTime);
+public record PendingBakerReduceStake(DateTimeOffset EffectiveTime, ulong NewStakedAmount) : PendingBakerChange(EffectiveTime);

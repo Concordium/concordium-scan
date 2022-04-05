@@ -55,4 +55,4 @@ public record GenesisBlockDataPayload(
 
 public record AccountInfosRetrieved(
     AccountInfo[] CreatedAccounts,
-    AccountInfo[] BakersRemoved);
+    AccountInfo[] BakersWithNewPendingChanges);
