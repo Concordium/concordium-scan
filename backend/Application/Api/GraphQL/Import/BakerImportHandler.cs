@@ -194,6 +194,7 @@ public class BakerImportHandler
         else if (activeState.PendingChange is PendingBakerReduceStake reduceStake)
         {
             _logger.Information("Baker with id {bakerId} will have its stake reduced to {newStake}.", baker.Id, reduceStake.NewStakedAmount);
+            activeState.PendingChange = null;
             activeState.StakedAmount = reduceStake.NewStakedAmount;
         }
         else throw new NotImplementedException("Applying this pending change is not implemented!");
