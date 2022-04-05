@@ -140,21 +140,21 @@ public class BakerImportHandler
     {
         if (source.PendingChange is AccountBakerRemovePending removePending)
         {
-            var effectiveTime = CalculateEffectiveTime(removePending.Epoch, blockInfo);
+            var effectiveTime = CalculateEffectiveTime(removePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
 
             var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
             activeState.PendingChange = new PendingBakerRemoval(effectiveTime);
         }
         else if (source.PendingChange is AccountBakerReduceStakePending reduceStakePending)
         {
-            var effectiveTime = CalculateEffectiveTime(reduceStakePending.Epoch, blockInfo);
+            var effectiveTime = CalculateEffectiveTime(reduceStakePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
 
             var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
             activeState.PendingChange = new PendingBakerReduceStake(effectiveTime, reduceStakePending.NewStake.MicroCcdValue);
         }
     }
 
-    private static DateTimeOffset CalculateEffectiveTime(ulong epoch, BlockInfo blockInfo)
+    public static DateTimeOffset CalculateEffectiveTime(ulong epoch, DateTimeOffset blockSlotTime, int blockSlot)
     {
         // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
         //       We should be able to change this once we switch to concordium node v4 or greater!
@@ -162,8 +162,11 @@ public class BakerImportHandler
         // BUILT-IN ASSUMPTIONS (that can change but probably wont):
         //       Block time is 250ms
         //       Epoch duration is 1 hour
-        var eraGenesisTime = blockInfo.BlockSlotTime.AddMilliseconds(-1 * blockInfo.BlockSlot * 250);
+        
+        var millisecondsSinceEraGenesis = (long)blockSlot * 250; // cast to long to avoid overflow!
+        var eraGenesisTime = blockSlotTime.AddMilliseconds(-1 * millisecondsSinceEraGenesis);
         var effectiveTime = eraGenesisTime.AddHours(epoch);
+        
         return effectiveTime;
     }
 
