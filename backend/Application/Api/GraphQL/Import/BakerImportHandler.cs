@@ -35,14 +35,48 @@ public class BakerImportHandler
         await _writer.AddBakers(genesisBakers);
     }
 
-    public async Task HandleBakerUpdates(TransactionSummary[] transactions, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    public async Task HandleBakerUpdates(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
-        var txEventsOrdered = transactions
+        await UpdateStakeFromEarnings(blockSummary);
+        await UpdateBakersFromTransactions(blockSummary, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+        await UpdateBakersWithPendingChangesDue(blockInfo, importState);
+    }
+
+    private async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
+    {
+        var earnings = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
+        
+        var aggregatedEarnings = earnings
+            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, Amount = x.AmountAdjustment })
+            .GroupBy(x => x.BaseAddress)
+            .Select(addressGroup => new
+            {
+                BaseAddress = addressGroup.Key,
+                Amount = addressGroup.Aggregate(0L, (acc, item) => acc + item.Amount)
+            })
+            .ToArray();
+
+        var baseAddresses = aggregatedEarnings.Select(x => x.BaseAddress);
+        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
+        
+        var stakeUpdates = aggregatedEarnings
+            .Select(x =>
+            {
+                var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
+                return new BakerStakeUpdate(accountId, x.Amount);
+            });
+
+        await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
+    }
+
+    private async Task UpdateBakersFromTransactions(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    {
+        var txEventsOrdered = blockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
             .SelectMany(x => x.Events);
-        
+
         foreach (var txEvent in txEventsOrdered)
         {
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
@@ -50,7 +84,10 @@ public class BakerImportHandler
                 await _writer.AddOrUpdateBaker(bakerAdded,
                     src => src.BakerId,
                     src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings),
-                    (src, dst) => { dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null); });
+                    (src, dst) =>
+                    {
+                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null);
+                    });
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
@@ -81,18 +118,9 @@ public class BakerImportHandler
                     });
             }
         }
-        
-        if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
-        {
-            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, ApplyPendingChange);
-
-            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
-            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
-        }
     }
 
-    private async Task ApplyPendingChangeToBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress,
-        AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
+    private async Task ApplyPendingChangeToBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress, AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
     {
         var accountBaker = accountInfos
             .SingleOrDefault(x => x.AccountAddress == bakerAccountAddress)?
@@ -105,35 +133,6 @@ public class BakerImportHandler
         if (!importState.NextPendingBakerChangeTime.HasValue ||
             importState.NextPendingBakerChangeTime.Value > effectiveTime)
             importState.NextPendingBakerChangeTime = effectiveTime;
-    }
-
-    public async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
-    {
-        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(UpdateStakeFromEarnings));
-
-        var earnings = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
-        
-        var aggregatedEarnings = earnings
-            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, Amount = x.AmountAdjustment })
-            .GroupBy(x => x.BaseAddress)
-            .Select(addressGroup => new
-            {
-                BaseAddress = addressGroup.Key,
-                Amount = addressGroup.Aggregate(0L, (acc, item) => acc + item.Amount)
-            })
-            .ToArray();
-
-        var baseAddresses = aggregatedEarnings.Select(x => x.BaseAddress);
-        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
-        
-        var stakeUpdates = aggregatedEarnings
-            .Select(x =>
-            {
-                var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
-                return new BakerStakeUpdate(accountId, x.Amount);
-            });
-
-        await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
     }
 
     private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
@@ -168,6 +167,17 @@ public class BakerImportHandler
         var effectiveTime = eraGenesisTime.AddHours(epoch);
         
         return effectiveTime;
+    }
+
+    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo, ImportState importState)
+    {
+        if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
+        {
+            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, ApplyPendingChange);
+
+            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
+            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+        }
     }
 
     private void ApplyPendingChange(Baker baker)
