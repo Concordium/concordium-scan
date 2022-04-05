@@ -33,6 +33,20 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd>
+						<EncryptedIcon
+							v-if="
+								accountStatementItem.entryType ===
+								AccountStatementEntryType.AmountEncrypted
+							"
+							class="h-4 text-theme-white inline align-text-top"
+						/>
+						<DecryptedIcon
+							v-if="
+								accountStatementItem.entryType ===
+								AccountStatementEntryType.AmountDecrypted
+							"
+							class="h-4 text-theme-white inline align-text-top"
+						/>
 						<TransferIconIn
 							v-if="
 								accountStatementItem.entryType ===
@@ -67,7 +81,7 @@
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
-						<span v-if="breakpoint >= Breakpoint.LG" class="pl-1">{{
+						<span v-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
 							translateAccountStatementEntryType(accountStatementItem.entryType)
 						}}</span>
 					</TableTd>
@@ -122,6 +136,8 @@ import RewardIcon from '~/components/icons/RewardIcon.vue'
 import FeeIcon from '~/components/icons/FeeIcon.vue'
 import TransferIconIn from '~/components/icons/TransferIconIn.vue'
 import TransferIconOut from '~/components/icons/TransferIconOut.vue'
+import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
+import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

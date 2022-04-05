@@ -53,7 +53,6 @@
 					<TableTh width="10%">Address</TableTh>
 					<TableTh width="20%" class="text-right">Amount (Ͼ)</TableTh>
 					<TableTh width="20%">Transaction count</TableTh>
-					<TableTh width="20%">Latest transaction age</TableTh>
 					<TableTh width="20%">Account age</TableTh>
 				</TableRow>
 			</TableHead>
@@ -72,23 +71,7 @@
 							{{ account.transactionCount }}
 						</span>
 					</TableTd>
-					<TableTd>
-						<Tooltip
-							v-if="account.transactions?.nodes?.length"
-							:text="
-								formatTimestamp(
-									account.transactions.nodes[0].transaction.block.blockSlotTime
-								)
-							"
-						>
-							{{
-								convertTimestampToRelative(
-									account.transactions.nodes[0].transaction.block.blockSlotTime,
-									NOW
-								)
-							}}
-						</Tooltip>
-					</TableTd>
+
 					<TableTd>
 						<Tooltip :text="formatTimestamp(account.createdAt)">
 							{{ convertTimestampToRelative(account.createdAt, NOW) }}
