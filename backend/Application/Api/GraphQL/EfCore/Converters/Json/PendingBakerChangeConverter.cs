@@ -7,6 +7,7 @@ public class PendingBakerChangeConverter : PolymorphicJsonConverter<PendingBaker
     private static readonly Dictionary<Type, int> SerializeMap = new()
     {
         { typeof(PendingBakerRemoval), 1 },
+        { typeof(PendingBakerReduceStake), 2 },
     };
 
     public PendingBakerChangeConverter() : base(SerializeMap)
