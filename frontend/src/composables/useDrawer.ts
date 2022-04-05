@@ -76,6 +76,14 @@ export const useDrawer = () => {
 					(address !== undefined || null) &&
 					currentTopItem.value.address === address))
 		) {
+			router.push({
+				query: {
+					dcount: resetList ? drawerState.value.items.length : 1,
+					dentity: entityTypeName,
+					dhash: hash,
+					daddress: address,
+				},
+			})
 			return
 		}
 		let scrollY = 0
