@@ -142,6 +142,10 @@ resource "azurerm_application_gateway" "this" {
     timeout = 30
     unhealthy_threshold = 3
     pick_host_name_from_backend_http_settings = true
+    match {
+      body = ""
+      status_code = ["200-399"]
+    }
   }
 
   ssl_certificate {
@@ -175,7 +179,7 @@ data "azurerm_key_vault_secret" "ssl-cert-password" {
 resource "azurerm_network_interface_application_gateway_backend_address_pool_association" "vm" {
   network_interface_id    = azurerm_network_interface.vm.id
   ip_configuration_name   = "ipc-vm"
-  backend_address_pool_id = azurerm_application_gateway.this.backend_address_pool[0].id
+  backend_address_pool_id = tolist(azurerm_application_gateway.this.backend_address_pool)[0].id
 }
 
 resource "azurerm_automation_account" "this" {
@@ -222,11 +226,12 @@ resource "azurerm_automation_runbook" "renew-sslcert" {
 }
 
 resource "azurerm_storage_account" "this" {
-  name                     = "storageccscan${local.environment}"
-  resource_group_name      = azurerm_resource_group.this.name
-  location                 = azurerm_resource_group.this.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+  name                            = "storageccscan${local.environment}"
+  resource_group_name             = azurerm_resource_group.this.name
+  location                        = azurerm_resource_group.this.location
+  account_tier                    = "Standard"
+  account_replication_type        = "LRS"
+  allow_nested_items_to_be_public = false
 
   tags = {
     environment = local.environment
@@ -263,7 +268,7 @@ resource "azurerm_automation_job_schedule" "this" {
     environmentname = local.environment
     resourcegroupname = azurerm_resource_group.this.name
     applicationgatewayname = azurerm_application_gateway.this.name
-    applicationgatewaysslname = azurerm_application_gateway.this.ssl_certificate[0].name
+    applicationgatewaysslname = tolist(azurerm_application_gateway.this.ssl_certificate)[0].name
     storageaccountname = azurerm_storage_account.this.name
     storageaccountkey = azurerm_storage_account.this.primary_access_key
     storagecontainer = azurerm_storage_container.sslrenewal.name
