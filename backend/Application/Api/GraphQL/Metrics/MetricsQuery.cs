@@ -23,7 +23,7 @@ public class MetricsQuery
 
         var queryParams = CreateQueryParams(period);
 
-        var lastValuesSql = @"select block_height, total_microccd, total_encrypted_microccd
+        var lastValuesSql = @"select block_height, total_microccd, total_microccd_encrypted
                     from metrics_blocks
                     where time <= @ToTime
                     order by time desc
@@ -32,7 +32,7 @@ public class MetricsQuery
 
         var lastBlockHeight = (long)lastValuesData.block_height;
         var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
-        var lastTotalEncryptedMicroCcd = (long)lastValuesData.total_encrypted_microccd;
+        var lastTotalEncryptedMicroCcd = (long)lastValuesData.total_microccd_encrypted;
 
         var sql = 
             @"select count(*) as total_block_count,
@@ -67,14 +67,14 @@ public class MetricsQuery
                                   WHERE m2.time < @FromTime
                                   ORDER BY time DESC
                                   LIMIT 1), 0))           as last_total_microccd,
-                   min(total_encrypted_microccd)          as min_total_encrypted_microccd,
-                   max(total_encrypted_microccd)          as max_total_encrypted_microccd,
-                   locf(last(total_encrypted_microccd, time),
-                        coalesce((SELECT total_encrypted_microccd
+                   min(total_microccd_encrypted)          as min_total_microccd_encrypted,
+                   max(total_microccd_encrypted)          as max_total_microccd_encrypted,
+                   locf(last(total_microccd_encrypted, time),
+                        coalesce((SELECT total_microccd_encrypted
                                   FROM metrics_blocks m2
                                   WHERE m2.time < @FromTime
                                   ORDER BY time DESC
-                                  LIMIT 1), 0))           as last_total_encrypted_microccd
+                                  LIMIT 1), 0))           as last_total_microccd_encrypted
             from metrics_blocks
             where time between @FromTime and @ToTime
             group by interval_start
@@ -94,9 +94,9 @@ public class MetricsQuery
             bucketData.Select(row => row.avg_finalization_time_secs != null ? Math.Round((double)row.avg_finalization_time_secs, 1) : (double?)null).ToArray(),
             bucketData.Select(row => (double?)row.max_finalization_time_secs).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd).ToArray(),
-            bucketData.Select(row => (long?)row.min_total_encrypted_microccd).ToArray(),
-            bucketData.Select(row => (long?)row.max_total_encrypted_microccd).ToArray(),
-            bucketData.Select(row => (long)row.last_total_encrypted_microccd).ToArray());
+            bucketData.Select(row => (long?)row.min_total_microccd_encrypted).ToArray(),
+            bucketData.Select(row => (long?)row.max_total_microccd_encrypted).ToArray(),
+            bucketData.Select(row => (long)row.last_total_microccd_encrypted).ToArray());
         var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
         return result;
     }

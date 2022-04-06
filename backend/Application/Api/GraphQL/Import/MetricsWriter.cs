@@ -31,11 +31,12 @@ public class MetricsWriter
             block.BlockHeight,
             BlockTimeSecs = block.BlockStatistics.BlockTime,
             TotalMicroCcd = (long)block.BalanceStatistics.TotalAmount,
-            TotalEncryptedMicroCcd = (long)block.BalanceStatistics.TotalAmountEncrypted
+            TotalMicroCcdEncrypted = (long)block.BalanceStatistics.TotalAmountEncrypted,
+            TotalMicroCcdStaked = (long)block.BalanceStatistics.TotalAmountStaked
         };
 
-        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_encrypted_microccd) 
-                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalEncryptedMicroCcd)";
+        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_microccd_encrypted, total_microccd_staked) 
+                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalMicroCcdEncrypted, @TotalMicroCcdStaked)";
         await conn.ExecuteAsync(sql, blockParam);
     }
 

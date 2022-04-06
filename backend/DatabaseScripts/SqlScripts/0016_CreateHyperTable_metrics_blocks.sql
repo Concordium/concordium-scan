@@ -5,7 +5,8 @@
     block_time_secs          float     not null,
     finalization_time_secs   float     null,
     total_microccd           bigint    not null,
-    total_encrypted_microccd bigint    not null
+    total_microccd_encrypted bigint    not null,
+    total_microccd_staked    bigint    not null
 );
 
 SELECT create_hypertable('metrics_blocks', 'time');
