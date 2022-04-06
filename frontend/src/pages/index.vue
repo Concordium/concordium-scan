@@ -275,11 +275,11 @@ const { pause: pauseSubscription, resume: resumeSubscription } =
 	useBlockSubscription(subscriptionHandler)
 onMounted(() => {
 	resumeSubscription()
-	loopInterval = setInterval(drawFunc, drawInterval)
+	drawFunc()
 })
 onUnmounted(() => {
 	pauseSubscription()
-	clearInterval(loopInterval)
+	if (loopInterval) clearInterval(loopInterval)
 	blocks.value = []
 	transactions.value = []
 	blocksQueue.value = []
@@ -353,6 +353,7 @@ const drawFunc = () => {
 			}
 		}
 	}
+	loopInterval = setTimeout(drawFunc, drawInterval)
 }
 </script>
 
