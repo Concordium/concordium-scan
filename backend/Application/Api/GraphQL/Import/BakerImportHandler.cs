@@ -39,8 +39,24 @@ public class BakerImportHandler
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
+        var allTransactionEvents = blockSummary.TransactionSummaries
+            .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
+            .SelectMany(x => x.Events)
+            .ToArray();
+
+        var txEvents = allTransactionEvents.Where(x => x
+            is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
+
+        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
         await UpdateStakeFromEarnings(blockSummary);
-        await UpdateBakersFromTransactions(blockSummary, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+
+        txEvents = allTransactionEvents.Where(x => x
+            is ConcordiumSdk.NodeApi.Types.BakerAdded
+            or ConcordiumSdk.NodeApi.Types.BakerRemoved
+            or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
+            or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
+        
+        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
         await UpdateBakersWithPendingChangesDue(blockInfo, importState);
 
         var totalAmountStaked = await _writer.GetTotalAmountStaked();
@@ -74,13 +90,10 @@ public class BakerImportHandler
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
     }
 
-    private async Task UpdateBakersFromTransactions(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    private async Task UpdateBakersFromTransactionEvents(IEnumerable<ConcordiumSdk.NodeApi.Types.TransactionResultEvent> transactionEvents, 
+        AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
     {
-        var txEventsOrdered = blockSummary.TransactionSummaries
-            .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
-            .SelectMany(x => x.Events);
-
-        foreach (var txEvent in txEventsOrdered)
+        foreach (var txEvent in transactionEvents)
         {
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
             {
