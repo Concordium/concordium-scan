@@ -44,6 +44,31 @@ public class BakerImportHandler
             .SelectMany(x => x.Events)
             .ToArray();
 
+        await WorkAroundConcordiumNodeBug225(allTransactionEvents, blockInfo, importState);
+
+        await UpdateBakersWithPendingChangesDue(blockInfo, importState);
+
+        var txEvents = allTransactionEvents.Where(x => x
+            is ConcordiumSdk.NodeApi.Types.BakerAdded
+            or ConcordiumSdk.NodeApi.Types.BakerRemoved
+            or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
+            or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
+
+        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+        await UpdateStakeFromEarnings(blockSummary);
+
+        txEvents = allTransactionEvents.Where(x => x
+            is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
+        
+        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+
+        var totalAmountStaked = await _writer.GetTotalAmountStaked();
+        return new BakerUpdateResults(totalAmountStaked);
+    }
+
+    private async Task WorkAroundConcordiumNodeBug225(ConcordiumSdk.NodeApi.Types.TransactionResultEvent[] allTransactionEvents, BlockInfo blockInfo,
+        ImportState importState)
+    {
         if (allTransactionEvents.OfType<UpdateEnqueued>().Any(x => x.Payload is ProtocolUpdatePayload))
         {
             // Work-around for bug in concordium node: https://github.com/Concordium/concordium-node/issues/225
@@ -53,38 +78,23 @@ public class BakerImportHandler
             await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker =>
             {
                 var activeState = (ActiveBakerState)baker.State;
-                var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
+                var pendingChange = activeState.PendingChange ??
+                                    throw new InvalidOperationException("Pending change was null!");
                 if (pendingChange.Epoch.HasValue)
                 {
                     activeState.PendingChange = pendingChange with
                     {
-                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
+                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime,
+                            blockInfo.BlockSlot)
                     };
-                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime}", baker.BakerId, activeState.PendingChange.EffectiveTime);
+                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime}",
+                        baker.BakerId, activeState.PendingChange.EffectiveTime);
                 }
             });
-            
+
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
         }
-
-        var txEvents = allTransactionEvents.Where(x => x
-            is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
-
-        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
-        await UpdateStakeFromEarnings(blockSummary);
-
-        txEvents = allTransactionEvents.Where(x => x
-            is ConcordiumSdk.NodeApi.Types.BakerAdded
-            or ConcordiumSdk.NodeApi.Types.BakerRemoved
-            or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
-            or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
-        
-        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
-        await UpdateBakersWithPendingChangesDue(blockInfo, importState);
-
-        var totalAmountStaked = await _writer.GetTotalAmountStaked();
-        return new BakerUpdateResults(totalAmountStaked);
     }
 
     private async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
