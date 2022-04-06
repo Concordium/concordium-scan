@@ -11,7 +11,7 @@ namespace Tests.Api.GraphQL.EfCore;
 public class BakerTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
-    private DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public BakerTest(DatabaseFixture dbFixture)
     {

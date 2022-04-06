@@ -44,6 +44,30 @@ public class BakerImportHandler
             .SelectMany(x => x.Events)
             .ToArray();
 
+        if (allTransactionEvents.OfType<UpdateEnqueued>().Any(x => x.Payload is ProtocolUpdatePayload))
+        {
+            // Work-around for bug in concordium node: https://github.com/Concordium/concordium-node/issues/225
+            // A pending change will be (significantly) prolonged if a change to a baker is pending when a
+            // protocol update occurs (causing a new era to start and thus resetting epoch to zero)
+
+            await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker =>
+            {
+                var activeState = (ActiveBakerState)baker.State;
+                var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
+                if (pendingChange.Epoch.HasValue)
+                {
+                    activeState.PendingChange = pendingChange with
+                    {
+                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
+                    };
+                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime}", baker.BakerId, activeState.PendingChange.EffectiveTime);
+                }
+            });
+            
+            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
+            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+        }
+
         var txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
 
@@ -158,14 +182,14 @@ public class BakerImportHandler
             var effectiveTime = CalculateEffectiveTime(removePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
 
             var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
-            activeState.PendingChange = new PendingBakerRemoval(effectiveTime);
+            activeState.PendingChange = new PendingBakerRemoval(effectiveTime, removePending.Epoch);
         }
         else if (source.PendingChange is AccountBakerReduceStakePending reduceStakePending)
         {
             var effectiveTime = CalculateEffectiveTime(reduceStakePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
 
             var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
-            activeState.PendingChange = new PendingBakerReduceStake(effectiveTime, reduceStakePending.NewStake.MicroCcdValue);
+            activeState.PendingChange = new PendingBakerReduceStake(effectiveTime, reduceStakePending.NewStake.MicroCcdValue, reduceStakePending.Epoch);
         }
     }
 
