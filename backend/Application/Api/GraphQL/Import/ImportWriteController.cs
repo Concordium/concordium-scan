@@ -133,7 +133,6 @@ public class ImportWriteController : BackgroundService
     private async Task HandleGenesisOnlyWrites(GenesisBlockDataPayload payload)
     {
         await _identityProviderWriter.AddGenesisIdentityProviders(payload.GenesisIdentityProviders);
-        await _bakerHandler.AddGenesisBakers(payload.AccountInfos.CreatedAccounts);
     }
 
     private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
@@ -142,7 +141,7 @@ public class ImportWriteController : BackgroundService
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload.BlockSummary, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState);
+        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, importState);
         
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         

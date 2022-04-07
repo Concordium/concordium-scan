@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
+using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,19 @@ public class BakerImportHandler
         _logger = Log.ForContext(GetType());
     }
 
+    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, ImportState importState)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
+
+        if (payload is GenesisBlockDataPayload)
+            await AddGenesisBakers(payload.AccountInfos.CreatedAccounts);
+        else
+            await ApplyBakerChanges(payload, importState);
+
+        var totalAmountStaked = await _writer.GetTotalAmountStaked();
+        return new BakerUpdateResults(totalAmountStaked);
+    }
+
     public async Task AddGenesisBakers(AccountInfo[] genesisAccounts)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddGenesisBakers));
@@ -35,18 +49,15 @@ public class BakerImportHandler
         await _writer.AddBakers(genesisBakers);
     }
 
-    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockSummary blockSummary, AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    private async Task ApplyBakerChanges(BlockDataPayload payload, ImportState importState)
     {
-        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
+        await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
+        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState);
 
-        var allTransactionEvents = blockSummary.TransactionSummaries
+        var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
             .SelectMany(x => x.Events)
             .ToArray();
-
-        await WorkAroundConcordiumNodeBug225(blockInfo, importState);
-
-        await UpdateBakersWithPendingChangesDue(blockInfo, importState);
 
         var txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerAdded
@@ -54,16 +65,13 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
 
-        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
-        await UpdateStakeFromEarnings(blockSummary);
+        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState);
+        await UpdateStakeFromEarnings(payload.BlockSummary);
 
         txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
-        
-        await UpdateBakersFromTransactionEvents(txEvents, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
 
-        var totalAmountStaked = await _writer.GetTotalAmountStaked();
-        return new BakerUpdateResults(totalAmountStaked);
+        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState);
     }
 
     private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
