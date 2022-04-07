@@ -14,13 +14,11 @@ public class BakerImportHandler
     private readonly BakerWriter _writer;
     private readonly IMetrics _metrics;
     private readonly ILogger _logger;
-    private readonly IAccountLookup _accountLookup;
 
-    public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics, IAccountLookup accountLookup)
+    public BakerImportHandler(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _writer = new BakerWriter(dbContextFactory, metrics);
         _metrics = metrics;
-        _accountLookup = accountLookup;
         _logger = Log.ForContext(GetType());
     }
 
