@@ -29,11 +29,13 @@ public class ImportWriteController : BackgroundService
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
+    private readonly IAccountLookup _accountLookup;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
         IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
     {
+        _accountLookup = accountLookup;
         _sender = sender;
         _channel = channel;
         _accountBalanceValidator = accountBalanceValidator;
@@ -141,10 +143,11 @@ public class ImportWriteController : BackgroundService
         
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, importState);
         
+        var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
+        
+        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, importState);
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
-        
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
@@ -155,6 +158,7 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
+        _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
 
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);

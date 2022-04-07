@@ -24,7 +24,7 @@ public class BakerImportHandler
         _logger = Log.ForContext(GetType());
     }
 
-    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, ImportState importState)
+    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, RewardsSummary rewardsSummary, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
@@ -33,7 +33,7 @@ public class BakerImportHandler
         if (payload is GenesisBlockDataPayload)
             await AddGenesisBakers(payload.AccountInfos.CreatedAccounts, resultBuilder);
         else
-            await ApplyBakerChanges(payload, importState, resultBuilder);
+            await ApplyBakerChanges(payload, rewardsSummary, importState, resultBuilder);
 
         resultBuilder.SetTotalAmountStaked(await _writer.GetTotalAmountStaked());
         return resultBuilder.Build();
@@ -51,7 +51,8 @@ public class BakerImportHandler
         resultBuilder.IncrementBakersAdded(genesisBakers.Length);
     }
 
-    private async Task ApplyBakerChanges(BlockDataPayload payload, ImportState importState, BakerUpdateResultsBuilder resultBuilder)
+    private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
+        ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
         await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState, resultBuilder);
@@ -68,7 +69,7 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
-        await UpdateStakeFromEarnings(payload.BlockSummary);
+        await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
 
         txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
@@ -104,33 +105,6 @@ public class BakerImportHandler
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
         }
-    }
-
-    private async Task UpdateStakeFromEarnings(BlockSummary blockSummary)
-    {
-        var earnings = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
-        
-        var aggregatedEarnings = earnings
-            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, Amount = x.AmountAdjustment })
-            .GroupBy(x => x.BaseAddress)
-            .Select(addressGroup => new
-            {
-                BaseAddress = addressGroup.Key,
-                Amount = addressGroup.Aggregate(0L, (acc, item) => acc + item.Amount)
-            })
-            .ToArray();
-
-        var baseAddresses = aggregatedEarnings.Select(x => x.BaseAddress);
-        var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
-        
-        var stakeUpdates = aggregatedEarnings
-            .Select(x =>
-            {
-                var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
-                return new BakerStakeUpdate(accountId, x.Amount);
-            });
-
-        await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
     }
 
     private async Task UpdateBakersFromTransactionEvents(

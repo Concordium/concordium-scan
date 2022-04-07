@@ -15,7 +15,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly MetricsWriter _target;
     private readonly DatabaseSettings _databaseSettings;
-    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private readonly DateTimeOffset _anyDateTimeOffset = new(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public MetricsWriterTest(DatabaseFixture dbFixture)
     {
@@ -25,6 +25,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_blocks");
         connection.Execute("TRUNCATE TABLE metrics_bakers");
+        connection.Execute("TRUNCATE TABLE metrics_rewards");
     }
 
     [Fact]
@@ -104,6 +105,28 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         Assert.Equal(expectedTotalCount, importState.TotalBakerCount);
     }
 
+    [Fact]
+    public void AddRewardMetrics()
+    {
+        var input = new RewardsSummary(new[]
+        {
+            new AccountReward(10, 1000),
+            new AccountReward(421, 24100)
+        });
+        _target.AddRewardMetrics(_anyDateTimeOffset, input);
+
+        var result = Query(@"
+            select time, account_id, amount
+            from metrics_rewards
+            order by account_id").ToArray();
+        
+        Assert.Equal(2, result.Length);
+        Assert.Equal(10, result[0].account_id);
+        Assert.Equal(1000, result[0].amount);
+        Assert.Equal(421, result[1].account_id);
+        Assert.Equal(24100, result[1].amount);
+    }
+    
     private IEnumerable<dynamic> Query(string sql)
     {
         using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);

@@ -124,8 +124,36 @@ public class MetricsWriter
             await using var conn = new NpgsqlConnection(_settings.ConnectionString);
             conn.Open();
             await conn.ExecuteAsync(sql, accountsParams);
-
+            await conn.CloseAsync();
             importState.TotalBakerCount = updateBakerCount;
         }
+    }
+
+    public void AddRewardMetrics(DateTimeOffset blockSlotTime, RewardsSummary rewards)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddRewardMetrics));
+        
+        var sql = @"
+                insert into metrics_rewards (time, account_id, amount) 
+                values (@Time, @AccountId, @Amount)";
+
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+        
+        var batch = conn.CreateBatch();
+        foreach (var accountReward in rewards.AggregatedAccountRewards)
+        {
+            var cmd = batch.CreateBatchCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", blockSlotTime.UtcDateTime));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", accountReward.AccountId));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("Amount", accountReward.RewardAmount));
+            batch.BatchCommands.Add(cmd);
+        }
+
+        batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
+        batch.ExecuteNonQuery();
+
+        conn.Close();
     }
 }
