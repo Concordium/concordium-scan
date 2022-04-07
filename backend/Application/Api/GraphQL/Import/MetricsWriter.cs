@@ -100,4 +100,32 @@ public class MetricsWriter
         conn.Open();
         await conn.ExecuteAsync(sql, updates);
     }
+
+    public async Task AddBakerMetrics(DateTimeOffset blockSlotTime, BakerUpdateResults results, ImportState importState)
+    {
+        if (results.BakersAdded > 0 || results.BakersRemoved > 0)
+        {
+            using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddBakerMetrics));
+
+            var sql = @"
+                insert into metrics_bakers (time, total_baker_count, bakers_added, bakers_removed) 
+                values (@Time, @TotalBakerCount, @BakersAdded, @BakersRemoved)";
+
+            var updateBakerCount = importState.TotalBakerCount + results.BakersAdded - results.BakersRemoved;
+            
+            var accountsParams = new
+            {
+                Time = blockSlotTime,
+                TotalBakerCount = updateBakerCount,
+                BakersAdded = results.BakersAdded,
+                BakersRemoved = results.BakersRemoved
+            };
+
+            await using var conn = new NpgsqlConnection(_settings.ConnectionString);
+            conn.Open();
+            await conn.ExecuteAsync(sql, accountsParams);
+
+            importState.TotalBakerCount = updateBakerCount;
+        }
+    }
 }

@@ -1,6 +1,8 @@
-﻿using Application.Api.GraphQL.Import;
+﻿using System.Collections.Generic;
+using Application.Api.GraphQL.Import;
 using Application.Database;
 using Dapper;
+using FluentAssertions;
 using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
@@ -13,6 +15,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly MetricsWriter _target;
     private readonly DatabaseSettings _databaseSettings;
+    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public MetricsWriterTest(DatabaseFixture dbFixture)
     {
@@ -21,6 +24,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_blocks");
+        connection.Execute("TRUNCATE TABLE metrics_bakers");
     }
 
     [Fact]
@@ -38,10 +42,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
                 .Build())
             .Build());
         
-        await using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);
-        conn.Open();
-
-        var result = await conn.QuerySingleAsync(@"
+        var result = QuerySingle(@"
             select time, block_height, block_time_secs, finalization_time_secs, total_microccd, total_microccd_encrypted, total_microccd_staked
             from metrics_blocks");
 
@@ -51,5 +52,75 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         Assert.Equal(10000, result.total_microccd);
         Assert.Equal(1000, result.total_microccd_encrypted);
         Assert.Equal(2500, result.total_microccd_staked);
+    }
+
+    [Fact]
+    public async Task AddBakerMetrics_NoChanges()
+    {
+        var input = new BakerUpdateResultsBuilder()
+            .WithBakersAdded(0)
+            .WithBakersRemoved(0)
+            .Build();
+
+        var importState = new ImportStateBuilder()
+            .WithTotalBakerCount(10)
+            .Build();
+        
+        await _target.AddBakerMetrics(_anyDateTimeOffset, input, importState);
+        
+        var result = Query(@"
+            select time, total_baker_count, bakers_added, bakers_removed
+            from metrics_bakers");
+
+        result.Should().BeEmpty();
+    }
+    
+    [Theory]
+    [InlineData(10, 5, 15)]
+    [InlineData(2, 0, 12)]
+    [InlineData(0, 4, 6)]
+    public async Task AddBakerMetrics_Changes(int bakersAdded, int bakersRemoved, int expectedTotalCount)
+    {
+        var input = new BakerUpdateResultsBuilder()
+            .WithBakersAdded(bakersAdded)
+            .WithBakersRemoved(bakersRemoved)
+            .Build();
+
+        var importState = new ImportStateBuilder()
+            .WithTotalBakerCount(10)
+            .Build();
+        
+        await _target.AddBakerMetrics(_anyDateTimeOffset, input, importState);
+        
+        var result = Query(@"
+            select time, total_baker_count, bakers_added, bakers_removed
+            from metrics_bakers");
+
+        var item = Assert.Single(result);
+        Assert.Equal(expectedTotalCount, item.total_baker_count);
+        Assert.Equal(bakersAdded, item.bakers_added);
+        Assert.Equal(bakersRemoved, item.bakers_removed);
+        
+        Assert.Equal(expectedTotalCount, importState.TotalBakerCount);
+    }
+
+    private IEnumerable<dynamic> Query(string sql)
+    {
+        using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);
+        conn.Open();
+
+        var result = conn.Query(sql);
+        conn.Close();
+        return result;
+    }
+
+    private dynamic QuerySingle(string sql)
+    {
+        using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);
+        conn.Open();
+
+        var result = conn.QuerySingle(sql);
+        conn.Close();
+        return result;
     }
 }
