@@ -44,7 +44,7 @@ public class BakerImportHandler
             .SelectMany(x => x.Events)
             .ToArray();
 
-        await WorkAroundConcordiumNodeBug225(allTransactionEvents, blockInfo, importState);
+        await WorkAroundConcordiumNodeBug225(blockInfo, importState);
 
         await UpdateBakersWithPendingChangesDue(blockInfo, importState);
 
@@ -66,29 +66,28 @@ public class BakerImportHandler
         return new BakerUpdateResults(totalAmountStaked);
     }
 
-    private async Task WorkAroundConcordiumNodeBug225(ConcordiumSdk.NodeApi.Types.TransactionResultEvent[] allTransactionEvents, BlockInfo blockInfo,
-        ImportState importState)
+    private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
     {
-        if (allTransactionEvents.OfType<UpdateEnqueued>().Any(x => x.Payload is ProtocolUpdatePayload))
+        if (blockInfo.GenesisIndex > importState.LastGenesisIndex)
         {
             // Work-around for bug in concordium node: https://github.com/Concordium/concordium-node/issues/225
             // A pending change will be (significantly) prolonged if a change to a baker is pending when a
             // protocol update occurs (causing a new era to start and thus resetting epoch to zero)
 
+            importState.LastGenesisIndex = blockInfo.GenesisIndex;
+            _logger.Information("New genesis index detected. Will check for pending baker changes to be prolonged. [BlockSlot:{blockSlot}] [BlockSlotTime:{blockSlotTime:O}]", blockInfo.BlockSlot, blockInfo.BlockSlotTime);
+            
             await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker =>
             {
                 var activeState = (ActiveBakerState)baker.State;
-                var pendingChange = activeState.PendingChange ??
-                                    throw new InvalidOperationException("Pending change was null!");
+                var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
                 if (pendingChange.Epoch.HasValue)
                 {
                     activeState.PendingChange = pendingChange with
                     {
-                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime,
-                            blockInfo.BlockSlot)
+                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
                     };
-                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime}",
-                        baker.BakerId, activeState.PendingChange.EffectiveTime);
+                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime} based on epoch value {epochValue}", baker.BakerId, activeState.PendingChange.EffectiveTime, pendingChange.Epoch.Value);
                 }
             });
 

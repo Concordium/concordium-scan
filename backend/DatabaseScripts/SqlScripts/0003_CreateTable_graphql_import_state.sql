@@ -7,5 +7,6 @@
     cumulative_transaction_count                    bigint    not null,
     last_block_slot_time                            timestamp not null,
     max_block_height_with_updated_finalization_time bigint    not null,
-    next_pending_baker_change_time                  timestamp null
+    next_pending_baker_change_time                  timestamp null,
+    last_genesis_index                              int       not null
 )

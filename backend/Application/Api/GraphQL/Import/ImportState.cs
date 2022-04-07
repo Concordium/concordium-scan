@@ -13,6 +13,7 @@ public class ImportState
     public long MaxBlockHeightWithUpdatedFinalizationTime { get; set; }
     public DateTimeOffset? NextPendingBakerChangeTime { get; set; }
     public ChainParameters? LatestWrittenChainParameters { get; set; }
+    public int LastGenesisIndex { get; set; }
 
     public static ImportState CreateGenesisState(GenesisBlockDataPayload payload)
     {
@@ -25,7 +26,8 @@ public class ImportState
             LastBlockSlotTime = payload.BlockInfo.BlockSlotTime,
             MaxBlockHeightWithUpdatedFinalizationTime = -1,
             NextPendingBakerChangeTime = null,
-            LatestWrittenChainParameters = null
+            LatestWrittenChainParameters = null,
+            LastGenesisIndex = 0
         };
     }
 
@@ -40,5 +42,6 @@ public class ImportState
         MaxBlockHeightWithUpdatedFinalizationTime = source.MaxBlockHeightWithUpdatedFinalizationTime;
         NextPendingBakerChangeTime = source.NextPendingBakerChangeTime;
         LatestWrittenChainParameters = source.LatestWrittenChainParameters;
+        LastGenesisIndex = source.LastGenesisIndex;
     }
 }
