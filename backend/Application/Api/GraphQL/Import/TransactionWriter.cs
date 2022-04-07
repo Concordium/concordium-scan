@@ -99,8 +99,8 @@ public class TransactionWriter
 
     private ChainUpdateEnqueued MapChainUpdateEnqueued(UpdateEnqueued value, DateTimeOffset blockSlotTime)
     {
-        var isEffectiveImmediately = value.EffectiveTime.AsLong > 0;
-        var effectiveTime = isEffectiveImmediately ?  value.EffectiveTime.AsDateTimeOffset : blockSlotTime;
+        var isEffectiveImmediately = value.EffectiveTime.AsLong == 0;
+        var effectiveTime = isEffectiveImmediately ? blockSlotTime : value.EffectiveTime.AsDateTimeOffset;
         return new ChainUpdateEnqueued(effectiveTime, isEffectiveImmediately, MapUpdatePayload(value.Payload));
     }
 
