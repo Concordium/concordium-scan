@@ -28,31 +28,33 @@ public class BakerImportHandler
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
+        var resultBuilder = new BakerUpdateResultsBuilder();
+        
         if (payload is GenesisBlockDataPayload)
-            await AddGenesisBakers(payload.AccountInfos.CreatedAccounts);
+            await AddGenesisBakers(payload.AccountInfos.CreatedAccounts, resultBuilder);
         else
-            await ApplyBakerChanges(payload, importState);
+            await ApplyBakerChanges(payload, importState, resultBuilder);
 
-        var totalAmountStaked = await _writer.GetTotalAmountStaked();
-        return new BakerUpdateResults(totalAmountStaked);
+        resultBuilder.SetTotalAmountStaked(await _writer.GetTotalAmountStaked());
+        return resultBuilder.Build();
     }
 
-    public async Task AddGenesisBakers(AccountInfo[] genesisAccounts)
+    private async Task AddGenesisBakers(AccountInfo[] genesisAccounts, BakerUpdateResultsBuilder resultBuilder)
     {
-        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddGenesisBakers));
-
         var genesisBakers = genesisAccounts
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
-            .Select(x => CreateNewBaker(x.BakerId, x.StakedAmount, x.RestakeEarnings));
+            .Select(x => CreateNewBaker(x.BakerId, x.StakedAmount, x.RestakeEarnings))
+            .ToArray();
 
         await _writer.AddBakers(genesisBakers);
+        resultBuilder.IncrementBakersAdded(genesisBakers.Length);
     }
 
-    private async Task ApplyBakerChanges(BlockDataPayload payload, ImportState importState)
+    private async Task ApplyBakerChanges(BlockDataPayload payload, ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
-        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState);
+        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState, resultBuilder);
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
@@ -65,13 +67,13 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
 
-        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState);
+        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await UpdateStakeFromEarnings(payload.BlockSummary);
 
         txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
 
-        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState);
+        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
     }
 
     private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
@@ -131,8 +133,10 @@ public class BakerImportHandler
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(stakeUpdates);
     }
 
-    private async Task UpdateBakersFromTransactionEvents(IEnumerable<ConcordiumSdk.NodeApi.Types.TransactionResultEvent> transactionEvents, 
-        AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState)
+    private async Task UpdateBakersFromTransactionEvents(
+        IEnumerable<ConcordiumSdk.NodeApi.Types.TransactionResultEvent> transactionEvents,
+        AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState,
+        BakerUpdateResultsBuilder resultBuilder)
     {
         foreach (var txEvent in transactionEvents)
         {
@@ -145,13 +149,15 @@ public class BakerImportHandler
                     {
                         dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null);
                     });
+
+                resultBuilder.IncrementBakersAdded();
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
-                await ApplyPendingChangeToBaker(bakerRemoved.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+                await SetPendingChangeOnBaker(bakerRemoved.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
-                await ApplyPendingChangeToBaker(stakeDecreased.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+                await SetPendingChangeOnBaker(stakeDecreased.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
             {
@@ -177,7 +183,7 @@ public class BakerImportHandler
         }
     }
 
-    private async Task ApplyPendingChangeToBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress, AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
+    private async Task SetPendingChangeOnBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress, AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
     {
         var accountBaker = accountInfos
             .SingleOrDefault(x => x.AccountAddress == bakerAccountAddress)?
@@ -226,24 +232,25 @@ public class BakerImportHandler
         return effectiveTime;
     }
 
-    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo, ImportState importState)
+    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo, ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
         if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
         {
-            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, ApplyPendingChange);
+            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, baker => ApplyPendingChange(baker, resultBuilder));
 
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
         }
     }
 
-    private void ApplyPendingChange(Baker baker)
+    private void ApplyPendingChange(Baker baker, BakerUpdateResultsBuilder resultBuilder)
     {
         var activeState = baker.State as ActiveBakerState ?? throw new InvalidOperationException("Applying pending change to a baker that was not active!");
         if (activeState.PendingChange is PendingBakerRemoval pendingRemoval)
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
             baker.State = new RemovedBakerState(pendingRemoval.EffectiveTime);
+            resultBuilder.IncrementBakersRemoved();
         }
         else if (activeState.PendingChange is PendingBakerReduceStake reduceStake)
         {
@@ -262,7 +269,36 @@ public class BakerImportHandler
             State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, null)
         };
     }
+
+    private class BakerUpdateResultsBuilder
+    {
+        private ulong _totalAmountStaked = 0;
+        private int _bakersAdded = 0;
+        private int _bakersRemoved = 0;
+
+        public void SetTotalAmountStaked(ulong totalAmountStaked)
+        {
+            _totalAmountStaked = totalAmountStaked;
+        }
+
+        public BakerUpdateResults Build()
+        {
+            return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved);
+        }
+
+        public void IncrementBakersAdded(int incrementValue = 1)
+        {
+            _bakersAdded += incrementValue;
+        }
+
+        public void IncrementBakersRemoved()
+        {
+            _bakersRemoved += 1;
+        }
+    }
 }
 
 public record BakerUpdateResults(
-    ulong TotalAmountStaked);
+    ulong TotalAmountStaked,
+    int BakersAdded,
+    int BakersRemoved);

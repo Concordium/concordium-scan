@@ -21,8 +21,8 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
+    private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
     private int _chainParametersId = 20;
-    private BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
 
     public BlockWriterTest(DatabaseFixture dbFixture)
     {
@@ -495,21 +495,5 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var rewardStatus = _rewardStatusBuilder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, _importState);
-    }
-}
-
-public class BakerUpdateResultsBuilder
-{
-    private ulong _totalAmountStaked = 0;
-
-    public BakerUpdateResultsBuilder WithTotalAmountStaked(ulong value)
-    {
-        _totalAmountStaked = value;
-        return this;
-    }
-
-    public BakerUpdateResults Build()
-    {
-        return new BakerUpdateResults(_totalAmountStaked);
     }
 }
