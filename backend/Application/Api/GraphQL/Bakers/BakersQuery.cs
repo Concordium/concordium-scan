@@ -37,8 +37,8 @@ public class BakersQuery
         {
             BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),
             BakerSort.BakerIdDesc => result.OrderByDescending(x => x.Id),
-            BakerSort.StakedAmountAsc => result.OrderBy(x => x.ActiveState != null ? (long?)x.ActiveState.StakedAmount : null),
-            BakerSort.StakedAmountDesc => result.OrderByDescending(x => x.ActiveState != null ? (long?)x.ActiveState.StakedAmount : null),
+            BakerSort.StakedAmountAsc => result.OrderBy(x => x.ActiveState != null ? (long)x.ActiveState.StakedAmount : -1),
+            BakerSort.StakedAmountDesc => result.OrderByDescending(x => x.ActiveState != null ? (long)x.ActiveState.StakedAmount : -1),
             _ => throw new NotImplementedException()
         };
     }
