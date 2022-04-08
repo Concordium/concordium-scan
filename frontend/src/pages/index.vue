@@ -27,11 +27,9 @@
 						class="w-96 lg:w-full"
 						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
 						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-						chart-type="area"
+						:begin-at-zero="true"
 						:y-values="[
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMax,
 							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeMin,
 						]"
 					>
 						<template #topRight></template>

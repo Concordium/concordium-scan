@@ -12,6 +12,7 @@ type Props = {
 	xValues?: string[]
 	yValues?: (number | null)[]
 	bucketWidth?: string
+	beginAtZero?: boolean
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -108,7 +109,7 @@ const defaultOptions = ref({
 		},
 
 		y: {
-			beginAtZero: false,
+			beginAtZero: props.beginAtZero,
 			axis: 'y',
 			display: false,
 			grid: { display: false, drawBorder: false },

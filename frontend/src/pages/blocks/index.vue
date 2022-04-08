@@ -5,7 +5,7 @@
 			<div class="flex flex-row justify-center lg:place-content-end">
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<FtbCarousel non-carousel-classes="grid-cols-2">
+			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full">
 					<KeyValueChartCard
 						class="w-96 lg:w-full"
@@ -27,18 +27,34 @@
 						class="w-96 lg:w-full"
 						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
 						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-						chart-type="area"
-						:y-values="[
-							metricsData?.blockMetrics?.buckets.y_BlockTimeMax,
-							metricsData?.blockMetrics?.buckets.y_BlockTimeAvg,
-							metricsData?.blockMetrics?.buckets.y_BlockTimeMin,
-						]"
+						:begin-at-zero="true"
+						:y-values="[metricsData?.blockMetrics?.buckets.y_BlockTimeAvg]"
 					>
 						<template #topRight></template>
 						<template #title>Block time</template>
 						<template #icon><StopwatchIcon /></template>
 						<template #value>{{
 							formatNumber(metricsData?.blockMetrics?.avgBlockTime || 0)
+						}}</template>
+						<template #unit>s</template>
+						<template #chip>average</template>
+					</KeyValueChartCard>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<KeyValueChartCard
+						class="w-96 lg:w-full"
+						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
+						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
+						:begin-at-zero="true"
+						:y-values="[
+							metricsData?.blockMetrics?.buckets.y_FinalizationTimeAvg,
+						]"
+					>
+						<template #topRight></template>
+						<template #title>Finalization time</template>
+						<template #icon><StopwatchIcon /></template>
+						<template #value>{{
+							formatNumber(metricsData?.blockMetrics?.avgFinalizationTime || 0)
 						}}</template>
 						<template #unit>s</template>
 						<template #chip>average</template>

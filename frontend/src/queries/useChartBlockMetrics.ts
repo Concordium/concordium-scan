@@ -14,6 +14,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 			avgBlockTime
 			lastTotalMicroCcd
 			lastTotalEncryptedMicroCcd
+			avgFinalizationTime
 			buckets {
 				bucketWidth
 				x_Time
@@ -25,6 +26,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 				y_MinTotalEncryptedMicroCcd
 				y_MaxTotalEncryptedMicroCcd
 				y_LastTotalEncryptedMicroCcd
+				y_FinalizationTimeAvg
 			}
 		}
 	}
