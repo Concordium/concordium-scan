@@ -24,7 +24,7 @@ public class BlockMetricsQuery
 
         var queryParams = QueryParams.Create(period);
 
-        var lastValuesSql = @"select block_height, total_microccd, total_microccd_encrypted
+        var lastValuesSql = @"select block_height, total_microccd, total_microccd_encrypted, total_microccd_staked
                     from metrics_blocks
                     where time <= @ToTime
                     order by time desc
@@ -33,7 +33,8 @@ public class BlockMetricsQuery
 
         var lastBlockHeight = (long)lastValuesData.block_height;
         var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
-        var lastTotalEncryptedMicroCcd = (long)lastValuesData.total_microccd_encrypted;
+        var lastTotalMicroCcdEncrypted = (long)lastValuesData.total_microccd_encrypted;
+        var lastTotalMicroCcdStaked = (long)lastValuesData.total_microccd_staked;
 
         var sql = 
             @"select count(*) as total_block_count,
@@ -98,7 +99,7 @@ public class BlockMetricsQuery
             bucketData.Select(row => (long?)row.min_total_microccd_encrypted).ToArray(),
             bucketData.Select(row => (long?)row.max_total_microccd_encrypted).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd_encrypted).ToArray());
-        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalEncryptedMicroCcd, buckets);
+        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalMicroCcdEncrypted, lastTotalMicroCcdStaked, buckets);
         return result;
     }
 

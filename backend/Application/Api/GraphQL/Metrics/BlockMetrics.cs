@@ -15,6 +15,8 @@ public record BlockMetrics(
     long LastTotalMicroCcd,
     [property:GraphQLDescription("The total amount of CCD in encrypted balances.")]
     long LastTotalMicroCcdEncrypted,
+    [property:GraphQLDescription("The total amount of CCD staked.")]
+    long LastTotalMicroCcdStaked,
     BlockMetricsBuckets Buckets);
     
 public record BlockMetricsBuckets(

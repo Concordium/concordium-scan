@@ -380,6 +380,8 @@ type BlockMetrics {
   lastTotalMicroCcd: Long!
   "The total amount of CCD in encrypted balances."
   lastTotalMicroCcdEncrypted: Long!
+  "The total amount of CCD staked."
+  lastTotalMicroCcdStaked: Long!
   buckets: BlockMetricsBuckets!
 }
 
