@@ -27,11 +27,19 @@ public class BakersQuery
     }
          
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging]  // TODO: Paging in a stable manner regarding baker id ascending  
-    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext)
+    [UsePaging]
+    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.StakedAmountDesc)
     {
-        return dbContext.Bakers
-            .AsNoTracking()
-            .OrderBy(x => x.Id);
+        var result = dbContext.Bakers
+            .AsNoTracking();
+        
+        return sort switch
+        {
+            BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),
+            BakerSort.BakerIdDesc => result.OrderByDescending(x => x.Id),
+            BakerSort.StakedAmountAsc => result.OrderBy(x => x.ActiveState != null ? (long?)x.ActiveState.StakedAmount : null),
+            BakerSort.StakedAmountDesc => result.OrderByDescending(x => x.ActiveState != null ? (long?)x.ActiveState.StakedAmount : null),
+            _ => throw new NotImplementedException()
+        };
     }
 }

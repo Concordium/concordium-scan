@@ -868,7 +868,7 @@ type Query {
   accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
-  bakers("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
+  bakers(sort: BakerSort! = STAKED_AMOUNT_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
   search(query: String!): SearchResult!
   accountsMetrics(period: MetricsPeriod!): AccountsMetrics
   blockMetrics(period: MetricsPeriod!): BlockMetrics
@@ -1135,6 +1135,13 @@ enum AccountTransactionType {
   SIMPLE_TRANSFER_WITH_MEMO
   ENCRYPTED_TRANSFER_WITH_MEMO
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
+}
+
+enum BakerSort {
+  BAKER_ID_ASC
+  BAKER_ID_DESC
+  STAKED_AMOUNT_ASC
+  STAKED_AMOUNT_DESC
 }
 
 enum CredentialDeploymentTransactionType {
