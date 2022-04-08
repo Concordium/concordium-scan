@@ -34,6 +34,15 @@ public class BakerMetricsQuery
         var lastValuesData = await conn.QuerySingleAsync(lastValuesSql, queryParams);
         var lastTotalBakerCount = (int)lastValuesData.total_baker_count;
 
+        var sql = @"select coalesce(sum(bakers_added), 0) as sum_bakers_added,
+                           coalesce(sum(bakers_removed), 0) as sum_bakers_removed
+                    from metrics_bakers
+                    where time between @FromTime and @ToTime;";
+        var data = await conn.QuerySingleAsync(sql, queryParams);
+        
+        var sumBakersAdded = (int)data.sum_bakers_added;
+        var sumBakersRemoved = (int)data.sum_bakers_removed;
+
         var bucketParams = queryParams with
         {
             // make sure that the first bucket is a "full bucket" by moving the from-time one bucket
@@ -64,7 +73,7 @@ public class BakerMetricsQuery
             bucketData.Select(row => (int)row.last_total_baker_count).ToArray(),
             bucketData.Select(row => (int)row.bakers_added).ToArray(),
             bucketData.Select(row => (int)row.bakers_removed).ToArray());
-        var result = new BakerMetrics(lastTotalBakerCount, buckets);
+        var result = new BakerMetrics(lastTotalBakerCount, sumBakersAdded, sumBakersRemoved, buckets);
         return result;
     }
 

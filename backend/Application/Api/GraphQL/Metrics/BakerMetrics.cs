@@ -5,6 +5,10 @@ namespace Application.Api.GraphQL.Metrics;
 public record BakerMetrics(
     [property:GraphQLDescription("Current number of bakers")]
     int LastBakerCount,
+    [property:GraphQLDescription("Bakers added in requested period")]
+    int BakersAdded,
+    [property:GraphQLDescription("Bakers removed in requested period")]
+    int BakersRemoved,
     BakerMetricsBuckets Buckets);
 
 public record BakerMetricsBuckets(

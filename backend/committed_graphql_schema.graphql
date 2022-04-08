@@ -234,6 +234,10 @@ type BakerKeysUpdated {
 type BakerMetrics {
   "Current number of bakers"
   lastBakerCount: Int!
+  "Bakers added in requested period"
+  bakersAdded: Int!
+  "Bakers removed in requested period"
+  bakersRemoved: Int!
   buckets: BakerMetricsBuckets!
 }
 

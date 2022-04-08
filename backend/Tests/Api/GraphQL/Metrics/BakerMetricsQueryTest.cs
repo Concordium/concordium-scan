@@ -40,6 +40,8 @@ public class BakerMetricsQueryTest : IClassFixture<DatabaseFixture>
 
         var result = await _target.GetBakerMetrics(MetricsPeriod.Last30Days);
         result.LastBakerCount.Should().Be(20);
+        result.BakersAdded.Should().Be(16);
+        result.BakersRemoved.Should().Be(4);
         result.Buckets.Should().NotBeNull();
         result.Buckets.Y_LastBakerCount.First().Should().Be(0);
         result.Buckets.Y_LastBakerCount.Last().Should().Be(20);
@@ -58,6 +60,8 @@ public class BakerMetricsQueryTest : IClassFixture<DatabaseFixture>
 
         var result = await _target.GetBakerMetrics(MetricsPeriod.Last30Days);
         result.LastBakerCount.Should().Be(20);
+        result.BakersAdded.Should().Be(0);
+        result.BakersRemoved.Should().Be(0);
         result.Buckets.Should().NotBeNull();
         result.Buckets.Y_LastBakerCount.Should().AllSatisfy(x => x.Should().Be(20));
         result.Buckets.Y_BakersAdded.Should().AllSatisfy(x => x.Should().Be(0));
