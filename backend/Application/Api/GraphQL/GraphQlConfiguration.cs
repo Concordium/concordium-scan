@@ -35,7 +35,8 @@ public static class GraphQlConfiguration
             .AddType<AccountsMetricsQuery>()
             .AddType<BlockMetricsQuery>()
             .AddType<TransactionMetricsQuery>()
-            .AddType<BakerMetricsQuery>();
+            .AddType<BakerMetricsQuery>()
+            .AddType<RewardMetricsQuery>();
         
         builder.AddSubscriptionType<Subscription>();
         

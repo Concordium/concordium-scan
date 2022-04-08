@@ -874,6 +874,7 @@ type Query {
   blockMetrics(period: MetricsPeriod!): BlockMetrics
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
+  rewardMetrics(period: MetricsPeriod!): RewardMetrics!
 }
 
 type Rejected {
@@ -899,6 +900,21 @@ type RemoveFirstCredential {
 
 type RemovedBakerState {
   removedAt: DateTime!
+}
+
+type RewardMetrics {
+  "Sum of all rewards in requested period as micro CCD"
+  sumRewardAmount: Long!
+  buckets: RewardMetricsBuckets!
+}
+
+type RewardMetricsBuckets {
+  "The width (time interval) of each bucket."
+  bucketWidth: TimeSpan!
+  "Start of the bucket time period. Intended x-axis value."
+  x_Time: [DateTime!]!
+  "Sum of rewards as micro CCD within bucket time period. Intended y-axis value."
+  y_SumRewards: [Long!]!
 }
 
 type RewardParameters {
