@@ -148,6 +148,8 @@ type AccountsMetricsBuckets {
 }
 
 type ActiveBakerState {
+  stakedAmount: UnsignedLong!
+  restakeEarnings: Boolean!
   pendingChange: PendingBakerChange
 }
 

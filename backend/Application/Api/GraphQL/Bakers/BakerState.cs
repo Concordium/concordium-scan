@@ -17,10 +17,8 @@ public class ActiveBakerState : BakerState
         PendingChange = pendingChange;
     }
 
-    [GraphQLIgnore]
     public ulong StakedAmount { get; set; } 
     
-    [GraphQLIgnore]
     public bool RestakeEarnings { get; set; }
     
     public PendingBakerChange? PendingChange { get; set; }
