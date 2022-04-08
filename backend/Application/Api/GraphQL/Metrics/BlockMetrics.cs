@@ -57,4 +57,13 @@ public record BlockMetricsBuckets(
     long?[] Y_MaxTotalMicroCcdEncrypted,
     
     [property:GraphQLDescription("The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value.")]
-    long[] Y_LastTotalMicroCcdEncrypted);
+    long[] Y_LastTotalMicroCcdEncrypted,
+    
+    [property:GraphQLDescription("The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    long[] Y_MinTotalMicroCcdStaked,
+    
+    [property:GraphQLDescription("The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
+    long[] Y_MaxTotalMicroCcdStaked,
+    
+    [property:GraphQLDescription("The total amount of CCD staked at the end of the bucket period. Intended y-axis value.")]
+    long[] Y_LastTotalMicroCcdStaked);

@@ -76,7 +76,25 @@ public class BlockMetricsQuery
                                   FROM metrics_blocks m2
                                   WHERE m2.time < @FromTime
                                   ORDER BY time DESC
-                                  LIMIT 1), 0))           as last_total_microccd_encrypted
+                                  LIMIT 1), 0))           as last_total_microccd_encrypted,
+                   locf(min(total_microccd_staked),
+                        coalesce((SELECT total_microccd_staked
+                                  FROM metrics_blocks m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as min_total_microccd_staked,
+                   locf(max(total_microccd_staked),
+                        coalesce((SELECT total_microccd_staked
+                                  FROM metrics_blocks m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as max_total_microccd_staked,
+                   locf(last(total_microccd_staked, time),
+                        coalesce((SELECT total_microccd_staked
+                                  FROM metrics_blocks m2
+                                  WHERE m2.time < @FromTime
+                                  ORDER BY time DESC
+                                  LIMIT 1), 0))           as last_total_microccd_staked
             from metrics_blocks
             where time between @FromTime and @ToTime
             group by interval_start
@@ -98,7 +116,10 @@ public class BlockMetricsQuery
             bucketData.Select(row => (long)row.last_total_microccd).ToArray(),
             bucketData.Select(row => (long?)row.min_total_microccd_encrypted).ToArray(),
             bucketData.Select(row => (long?)row.max_total_microccd_encrypted).ToArray(),
-            bucketData.Select(row => (long)row.last_total_microccd_encrypted).ToArray());
+            bucketData.Select(row => (long)row.last_total_microccd_encrypted).ToArray(),
+            bucketData.Select(row => (long)row.min_total_microccd_staked).ToArray(),
+            bucketData.Select(row => (long)row.max_total_microccd_staked).ToArray(),
+            bucketData.Select(row => (long)row.last_total_microccd_staked).ToArray());
         var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalMicroCcdEncrypted, lastTotalMicroCcdStaked, buckets);
         return result;
     }

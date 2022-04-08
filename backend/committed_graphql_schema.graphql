@@ -412,6 +412,12 @@ type BlockMetricsBuckets {
   y_MaxTotalMicroCcdEncrypted: [Long]!
   "The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value."
   y_LastTotalMicroCcdEncrypted: [Long!]!
+  "The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_MinTotalMicroCcdStaked: [Long!]!
+  "The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period."
+  y_MaxTotalMicroCcdStaked: [Long!]!
+  "The total amount of CCD staked at the end of the bucket period. Intended y-axis value."
+  y_LastTotalMicroCcdStaked: [Long!]!
 }
 
 type BlockRewards {
