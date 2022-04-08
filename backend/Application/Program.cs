@@ -1,10 +1,10 @@
 using System.Net.Http;
-using System.Threading.Tasks;
 using Application;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
+using Application.Common;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
@@ -61,6 +61,7 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 });
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
+builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 builder.Services.AddSingleton<IFeatureFlags, SqlFeatureFlags>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddSingleton(databaseSettings);
