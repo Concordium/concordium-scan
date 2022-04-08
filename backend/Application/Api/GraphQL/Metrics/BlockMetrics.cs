@@ -14,7 +14,7 @@ public record BlockMetrics(
     [property:GraphQLDescription("The total amount of CCD in existence.")]
     long LastTotalMicroCcd,
     [property:GraphQLDescription("The total amount of CCD in encrypted balances.")]
-    long LastTotalEncryptedMicroCcd,
+    long LastTotalMicroCcdEncrypted,
     BlockMetricsBuckets Buckets);
     
 public record BlockMetricsBuckets(
@@ -49,10 +49,10 @@ public record BlockMetricsBuckets(
     long[] Y_LastTotalMicroCcd,
     
     [property:GraphQLDescription("The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
-    long?[] Y_MinTotalEncryptedMicroCcd,
+    long?[] Y_MinTotalMicroCcdEncrypted,
     
     [property:GraphQLDescription("The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.")]
-    long?[] Y_MaxTotalEncryptedMicroCcd,
+    long?[] Y_MaxTotalMicroCcdEncrypted,
     
     [property:GraphQLDescription("The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value.")]
-    long[] Y_LastTotalEncryptedMicroCcd);
+    long[] Y_LastTotalMicroCcdEncrypted);
