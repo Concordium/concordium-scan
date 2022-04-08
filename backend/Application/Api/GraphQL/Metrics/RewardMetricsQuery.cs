@@ -31,7 +31,7 @@ public class RewardMetricsQuery
                     where time between @FromTime and @ToTime;";
         var data = await conn.QuerySingleAsync(sql, queryParams);
         
-        var sumAmount = (int)data.sum_amount;
+        var sumAmount = (long)data.sum_amount;
 
         var bucketParams = queryParams with
         {
