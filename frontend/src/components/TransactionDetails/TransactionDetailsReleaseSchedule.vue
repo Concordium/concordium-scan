@@ -43,12 +43,12 @@ import {
 } from '~/utils/format'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
-import type { PageInfo, AccountReleaseScheduleItem } from '~/types/generated'
+import type { PageInfo, TimestampedAmount } from '~/types/generated'
 
 const { NOW } = useDateNow()
 
 type Props = {
-	releaseScheduleItems: AccountReleaseScheduleItem[]
+	releaseScheduleItems: TimestampedAmount[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }

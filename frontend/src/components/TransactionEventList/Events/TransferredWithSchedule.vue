@@ -21,7 +21,10 @@
 		<TransactionDetailsReleaseSchedule
 			v-if="
 				showSchedule &&
-				data?.transactionByTransactionHash?.result?.events?.nodes[0]
+				data?.transactionByTransactionHash?.result?.__typename === 'Success' &&
+				data.transactionByTransactionHash.result.events?.nodes?.[0]
+					.__typename === 'TransferredWithSchedule' &&
+				data.transactionByTransactionHash.result.events.nodes[0].amountsSchedule
 			"
 			:go-to-page="goToPageReleaseSchedule"
 			:page-info="
@@ -30,7 +33,7 @@
 			"
 			:release-schedule-items="
 				data?.transactionByTransactionHash.result.events.nodes[0]
-					.amountsSchedule.nodes
+					.amountsSchedule.nodes || []
 			"
 			class="mt-4"
 		/>

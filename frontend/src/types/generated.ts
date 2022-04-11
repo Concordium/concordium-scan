@@ -31,6 +31,7 @@ export type Account = {
   /** @deprecated Use 'address.asString' instead. This field will be removed in the near future. */
   addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
+  baker?: Maybe<Baker>;
   createdAt: Scalars['DateTime'];
   id: Scalars['ID'];
   releaseSchedule: AccountReleaseSchedule;
@@ -250,6 +251,13 @@ export type AccountsMetricsBuckets = {
   y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
 };
 
+export type ActiveBakerState = {
+  __typename?: 'ActiveBakerState';
+  pendingChange?: Maybe<PendingBakerChange>;
+  restakeEarnings: Scalars['Boolean'];
+  stakedAmount: Scalars['UnsignedLong'];
+};
+
 export type AddAnonymityRevokerChainUpdatePayload = {
   __typename?: 'AddAnonymityRevokerChainUpdatePayload';
   arIdentity: Scalars['Int'];
@@ -311,6 +319,14 @@ export type AmountsScheduleEdge = {
   node: TimestampedAmount;
 };
 
+export type Baker = {
+  __typename?: 'Baker';
+  account: Account;
+  bakerId: Scalars['Long'];
+  id: Scalars['ID'];
+  state: BakerState;
+};
+
 export type BakerAdded = {
   __typename?: 'BakerAdded';
   accountAddress: AccountAddress;
@@ -341,6 +357,31 @@ export type BakerKeysUpdated = {
   signKey: Scalars['String'];
 };
 
+export type BakerMetrics = {
+  __typename?: 'BakerMetrics';
+  /** Bakers added in requested period */
+  bakersAdded: Scalars['Int'];
+  /** Bakers removed in requested period */
+  bakersRemoved: Scalars['Int'];
+  buckets: BakerMetricsBuckets;
+  /** Current number of bakers */
+  lastBakerCount: Scalars['Int'];
+};
+
+export type BakerMetricsBuckets = {
+  __typename?: 'BakerMetricsBuckets';
+  /** The width (time interval) of each bucket. */
+  bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
+  x_Time: Array<Scalars['DateTime']>;
+  /** Number of bakers added within bucket time period. Intended y-axis value. */
+  y_BakersAdded: Array<Scalars['Int']>;
+  /** Number of bakers removed within bucket time period. Intended y-axis value. */
+  y_BakersRemoved: Array<Scalars['Int']>;
+  /** Number of bakers at the end of the bucket period. Intended y-axis value. */
+  y_LastBakerCount: Array<Scalars['Int']>;
+};
+
 export type BakerRemoved = {
   __typename?: 'BakerRemoved';
   accountAddress: AccountAddress;
@@ -357,6 +398,13 @@ export type BakerSetRestakeEarnings = {
   bakerId: Scalars['UnsignedLong'];
   restakeEarnings: Scalars['Boolean'];
 };
+
+export enum BakerSort {
+  BakerIdAsc = 'BAKER_ID_ASC',
+  BakerIdDesc = 'BAKER_ID_DESC',
+  StakedAmountAsc = 'STAKED_AMOUNT_ASC',
+  StakedAmountDesc = 'STAKED_AMOUNT_DESC'
+}
 
 export type BakerStakeDecreased = {
   __typename?: 'BakerStakeDecreased';
@@ -379,6 +427,28 @@ export type BakerStakeIncreased = {
 export type BakerStakeThresholdChainUpdatePayload = {
   __typename?: 'BakerStakeThresholdChainUpdatePayload';
   amount: Scalars['UnsignedLong'];
+};
+
+export type BakerState = ActiveBakerState | RemovedBakerState;
+
+/** A connection to a list of items. */
+export type BakersConnection = {
+  __typename?: 'BakersConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<BakersEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Baker>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type BakersEdge = {
+  __typename?: 'BakersEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Baker;
 };
 
 export type BakingReward = {
@@ -433,10 +503,14 @@ export type BalanceStatistics = {
   gasAccount: Scalars['UnsignedLong'];
   /** The total CCD in existence */
   totalAmount: Scalars['UnsignedLong'];
+  /** The total CCD in encrypted balances */
+  totalAmountEncrypted: Scalars['UnsignedLong'];
   /** The total CCD locked in release schedules (from transfers with schedule) */
   totalAmountLockedInReleaseSchedules: Scalars['UnsignedLong'];
-  /** The total CCD in encrypted balances */
-  totalEncryptedAmount: Scalars['UnsignedLong'];
+  /** The total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  totalAmountReleased?: Maybe<Scalars['UnsignedLong']>;
+  /** The total CCD staked */
+  totalAmountStaked: Scalars['UnsignedLong'];
 };
 
 export type Block = {
@@ -475,10 +549,12 @@ export type BlockMetrics = {
   buckets: BlockMetricsBuckets;
   /** The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero). */
   lastBlockHeight: Scalars['Long'];
-  /** The total amount of CCD in encrypted balances. */
-  lastTotalEncryptedMicroCcd: Scalars['Long'];
   /** The total amount of CCD in existence. */
   lastTotalMicroCcd: Scalars['Long'];
+  /** The total amount of CCD in encrypted balances. */
+  lastTotalMicroCcdEncrypted: Scalars['Long'];
+  /** The total amount of CCD staked. */
+  lastTotalMicroCcdStaked: Scalars['Long'];
 };
 
 export type BlockMetricsBuckets = {
@@ -501,14 +577,20 @@ export type BlockMetricsBuckets = {
   y_FinalizationTimeMax: Array<Maybe<Scalars['Float']>>;
   /** The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period. */
   y_FinalizationTimeMin: Array<Maybe<Scalars['Float']>>;
-  /** The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value. */
-  y_LastTotalEncryptedMicroCcd: Array<Scalars['Long']>;
   /** The total amount of CCD in existence at the end of the bucket period. Intended y-axis value. */
   y_LastTotalMicroCcd: Array<Scalars['Long']>;
+  /** The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value. */
+  y_LastTotalMicroCcdEncrypted: Array<Scalars['Long']>;
+  /** The total amount of CCD staked at the end of the bucket period. Intended y-axis value. */
+  y_LastTotalMicroCcdStaked: Array<Scalars['Long']>;
   /** The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MaxTotalEncryptedMicroCcd: Array<Maybe<Scalars['Long']>>;
+  y_MaxTotalMicroCcdEncrypted: Array<Maybe<Scalars['Long']>>;
+  /** The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_MaxTotalMicroCcdStaked: Array<Scalars['Long']>;
   /** The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
-  y_MinTotalEncryptedMicroCcd: Array<Maybe<Scalars['Long']>>;
+  y_MinTotalMicroCcdEncrypted: Array<Maybe<Scalars['Long']>>;
+  /** The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period. */
+  y_MinTotalMicroCcdStaked: Array<Scalars['Long']>;
 };
 
 export type BlockOrTransaction = Block | Transaction;
@@ -568,6 +650,7 @@ export type ChainParameters = {
 
 export type ChainUpdateEnqueued = {
   __typename?: 'ChainUpdateEnqueued';
+  effectiveImmediately: Scalars['Boolean'];
   effectiveTime: Scalars['DateTime'];
   payload: ChainUpdatePayload;
 };
@@ -1096,6 +1179,21 @@ export type PageInfo = {
   startCursor?: Maybe<Scalars['String']>;
 };
 
+export type PendingBakerChange = {
+  effectiveTime: Scalars['DateTime'];
+};
+
+export type PendingBakerReduceStake = PendingBakerChange & {
+  __typename?: 'PendingBakerReduceStake';
+  effectiveTime: Scalars['DateTime'];
+  newStakedAmount: Scalars['UnsignedLong'];
+};
+
+export type PendingBakerRemoval = PendingBakerChange & {
+  __typename?: 'PendingBakerRemoval';
+  effectiveTime: Scalars['DateTime'];
+};
+
 export type ProtocolChainUpdatePayload = {
   __typename?: 'ProtocolChainUpdatePayload';
   message: Scalars['String'];
@@ -1110,10 +1208,15 @@ export type Query = {
   accountByAddress?: Maybe<Account>;
   accounts?: Maybe<AccountsConnection>;
   accountsMetrics?: Maybe<AccountsMetrics>;
+  baker?: Maybe<Baker>;
+  bakerByBakerId?: Maybe<Baker>;
+  bakerMetrics: BakerMetrics;
+  bakers?: Maybe<BakersConnection>;
   block?: Maybe<Block>;
   blockByBlockHash?: Maybe<Block>;
   blockMetrics?: Maybe<BlockMetrics>;
   blocks?: Maybe<BlocksConnection>;
+  rewardMetrics: RewardMetrics;
   search: SearchResult;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
@@ -1146,6 +1249,30 @@ export type QueryAccountsMetricsArgs = {
 };
 
 
+export type QueryBakerArgs = {
+  id: Scalars['ID'];
+};
+
+
+export type QueryBakerByBakerIdArgs = {
+  bakerId: Scalars['Long'];
+};
+
+
+export type QueryBakerMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
+export type QueryBakersArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+  sort?: BakerSort;
+};
+
+
 export type QueryBlockArgs = {
   id: Scalars['ID'];
 };
@@ -1166,6 +1293,11 @@ export type QueryBlocksArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryRewardMetricsArgs = {
+  period: MetricsPeriod;
 };
 
 
@@ -1224,6 +1356,28 @@ export type RemoveFirstCredential = {
   _: Scalars['Boolean'];
 };
 
+export type RemovedBakerState = {
+  __typename?: 'RemovedBakerState';
+  removedAt: Scalars['DateTime'];
+};
+
+export type RewardMetrics = {
+  __typename?: 'RewardMetrics';
+  buckets: RewardMetricsBuckets;
+  /** Sum of all rewards in requested period as micro CCD */
+  sumRewardAmount: Scalars['Long'];
+};
+
+export type RewardMetricsBuckets = {
+  __typename?: 'RewardMetricsBuckets';
+  /** The width (time interval) of each bucket. */
+  bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
+  x_Time: Array<Scalars['DateTime']>;
+  /** Sum of rewards as micro CCD within bucket time period. Intended y-axis value. */
+  y_SumRewards: Array<Scalars['Long']>;
+};
+
 export type RewardParameters = {
   __typename?: 'RewardParameters';
   gasRewards: GasRewards;
@@ -1255,12 +1409,21 @@ export type ScheduledSelfTransfer = {
 export type SearchResult = {
   __typename?: 'SearchResult';
   accounts?: Maybe<AccountsConnection>;
+  bakers?: Maybe<BakersConnection>;
   blocks?: Maybe<BlocksConnection>;
   transactions?: Maybe<TransactionsConnection>;
 };
 
 
 export type SearchResultAccountsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultBakersArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

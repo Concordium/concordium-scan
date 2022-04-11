@@ -87,11 +87,11 @@
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XL"
 						><TransactionLink
-							v-if="accountStatementItem.reference.transactionHash"
+							v-if="accountStatementItem.reference.__typename === 'Transaction'"
 							:hash="accountStatementItem.reference.transactionHash"
 						></TransactionLink>
 						<BlockLink
-							v-if="accountStatementItem.reference.blockHash"
+							v-if="accountStatementItem.reference.__typename === 'Block'"
 							:hash="accountStatementItem.reference.blockHash"
 						></BlockLink>
 					</TableTd>
