@@ -20,7 +20,9 @@
 						'-' +
 						accountStatementItem.entryType +
 						'-' +
-						accountStatementItem.amount
+						accountStatementItem.amount +
+						accountStatementItem.reference.transactionHash +
+						accountStatementItem.reference.blockHash
 					"
 				>
 					<TableTd>
