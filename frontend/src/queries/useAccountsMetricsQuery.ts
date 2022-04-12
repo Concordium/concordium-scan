@@ -2,7 +2,7 @@
 import { Ref } from 'vue'
 import type { AccountsMetrics, MetricsPeriod } from '~/types/generated'
 
-type AccountsMetricsQueryResponse = {
+export type AccountsMetricsQueryResponse = {
 	accountsMetrics: AccountsMetrics
 }
 

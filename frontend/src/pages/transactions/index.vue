@@ -7,47 +7,10 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
-						:bucket-width="
-							metricsData?.transactionMetrics?.buckets?.bucketWidth
-						"
-						:y-values="[
-							metricsData?.transactionMetrics?.buckets
-								?.y_LastCumulativeTransactionCount,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Cumulative Transactions</template>
-						<template #icon><TransactionIcon /></template>
-						<template #value>{{
-							formatNumber(
-								metricsData?.transactionMetrics?.lastCumulativeTransactionCount
-							)
-						}}</template>
-						<template #chip>latest</template>
-					</KeyValueChartCard>
-				</CarouselSlide>
+					<CumulativeTransactionsChart :transaction-metrics-data="metricsData"
+				/></CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.transactionMetrics?.buckets?.x_Time"
-						:bucket-width="
-							metricsData?.transactionMetrics?.buckets?.bucketWidth
-						"
-						:y-values="[
-							metricsData?.transactionMetrics?.buckets?.y_TransactionCount,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Transactions</template>
-						<template #icon><TransactionIcon /></template>
-						<template #value>{{
-							formatNumber(metricsData?.transactionMetrics?.transactionCount)
-						}}</template>
-						<template #chip>sum</template>
-					</KeyValueChartCard>
+					<TransactionCountChart :transaction-metrics-data="metricsData" />
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -127,9 +90,7 @@
 
 <script lang="ts" setup>
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import {
-	formatNumber,
 	formatTimestamp,
 	convertMicroCcdToCcd,
 	convertTimestampToRelative,
@@ -147,6 +108,8 @@ import {
 	type Subscription,
 } from '~/types/generated'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
+import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
+import CumulativeTransactionsChart from '~/components/molecules/ChartCards/CumulativeTransactionsChart.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

@@ -2,7 +2,7 @@
 import { Ref } from 'vue'
 import { BlockMetrics, MetricsPeriod } from '~/types/generated'
 
-type BlockMetricsQueryResponse = {
+export type BlockMetricsQueryResponse = {
 	blockMetrics: BlockMetrics
 }
 

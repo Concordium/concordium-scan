@@ -7,58 +7,13 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="[metricsData?.blockMetrics?.buckets.y_BlocksAdded]"
-						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-					>
-						<template #topRight></template>
-						<template #icon><BlockIcon></BlockIcon></template>
-						<template #title>Blocks added</template>
-						<template #value>{{
-							formatNumber(metricsData?.blockMetrics?.blocksAdded)
-						}}</template>
-						<template #chip>sum</template>
-					</KeyValueChartCard>
+					<BlocksAddedChart :block-metrics-data="metricsData" />
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-						:begin-at-zero="true"
-						:y-values="[metricsData?.blockMetrics?.buckets.y_BlockTimeAvg]"
-					>
-						<template #topRight></template>
-						<template #title>Block time</template>
-						<template #icon><StopwatchIcon /></template>
-						<template #value>{{
-							formatNumber(metricsData?.blockMetrics?.avgBlockTime || 0)
-						}}</template>
-						<template #unit>s</template>
-						<template #chip>average</template>
-					</KeyValueChartCard>
+					<BlockTimeChart :block-metrics-data="metricsData" />
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.blockMetrics?.buckets?.x_Time"
-						:bucket-width="metricsData?.blockMetrics?.buckets?.bucketWidth"
-						:begin-at-zero="true"
-						:y-values="[
-							metricsData?.blockMetrics?.buckets.y_FinalizationTimeAvg,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Finalization time</template>
-						<template #icon><StopwatchIcon /></template>
-						<template #value>{{
-							formatNumber(metricsData?.blockMetrics?.avgFinalizationTime || 0)
-						}}</template>
-						<template #unit>s</template>
-						<template #chip>average</template>
-					</KeyValueChartCard>
+					<FinalizationTimeChart :block-metrics-data="metricsData" />
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -123,13 +78,8 @@
 </template>
 
 <script lang="ts" setup>
-import BlockIcon from '~/components/icons/BlockIcon.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import {
-	formatTimestamp,
-	convertTimestampToRelative,
-	formatNumber,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { usePagedData } from '~/composables/usePagedData'
 import { useDateNow } from '~/composables/useDateNow'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
@@ -137,12 +87,13 @@ import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod, type Block, type Subscription } from '~/types/generated'
-import StopwatchIcon from '~/components/icons/StopwatchIcon.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
-import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import Baker from '~/components/molecules/Baker.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
+import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
+import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
+import FinalizationTimeChart from '~/components/molecules/ChartCards/FinalizationTimeChart.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

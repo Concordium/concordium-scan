@@ -32,6 +32,16 @@
 						:bucket-width="props.bucketWidth"
 					></ChartLineArea>
 				</div>
+				<div v-if="props.chartType == 'bar'" class="h-full w-full">
+					<ChartBar
+						v-if="props.xValues && props.yValues.length"
+						class="h-28"
+						:x-values="props.xValues"
+						:y-values="props.yValues[0]"
+						:begin-at-zero="props.beginAtZero"
+						:bucket-width="props.bucketWidth"
+					></ChartBar>
+				</div>
 				<div v-else class="h-full w-full">
 					<ChartLine
 						v-if="props.xValues && props.yValues"
@@ -50,6 +60,7 @@
 import ChartLine from '~/components/Charts/ChartLine.vue'
 import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 import Chip from '~/components/atoms/Chip.vue'
+import ChartBar from '~/components/Charts/ChartBar.vue'
 
 type Props = {
 	yValues: ((number | null)[] | undefined)[]

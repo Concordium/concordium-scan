@@ -6,44 +6,13 @@
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
-				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
-						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
-						:y-values="[
-							metricsData?.accountsMetrics?.buckets
-								?.y_LastCumulativeAccountsCreated,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Cumulative Accounts Created</template>
-						<template #icon><UserIcon /></template>
-						<template #value>{{
-							formatNumber(
-								metricsData?.accountsMetrics?.lastCumulativeAccountsCreated
-							)
-						}}</template>
-						<template #chip>latest</template>
-					</KeyValueChartCard>
+				<CarouselSlide class="w-full"
+					><CumulativeAccountsCreatedChart
+						:account-metrics-data="metricsData"
+					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="metricsData?.accountsMetrics?.buckets?.x_Time"
-						:y-values="[
-							metricsData?.accountsMetrics?.buckets?.y_AccountsCreated,
-						]"
-						:bucket-width="metricsData?.accountsMetrics?.buckets?.bucketWidth"
-					>
-						<template #topRight></template>
-						<template #title>Accounts Created</template>
-						<template #icon><UserIcon /></template>
-						<template #chip>sum</template>
-						<template #value>{{
-							formatNumber(metricsData?.accountsMetrics?.accountsCreated)
-						}}</template>
-					</KeyValueChartCard>
+					<AccountsCreatedChart :account-metrics-data="metricsData" />
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -89,7 +58,6 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
@@ -97,10 +65,11 @@ import type { Account } from '~/types/generated'
 import {
 	formatTimestamp,
 	convertTimestampToRelative,
-	formatNumber,
 	convertMicroCcdToCcd,
 } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
+import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
+import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'
 
 const { NOW } = useDateNow()
 const { pagedData, first, last, after, before, addPagedData, loadMore } =

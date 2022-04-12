@@ -6,86 +6,19 @@
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-4">
-				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-						:y-values="[blockMetricsData?.blockMetrics?.buckets?.y_BlocksAdded]"
-						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-					>
-						<template #topRight></template>
-						<template #icon><BlockIcon></BlockIcon></template>
-						<template #title>Blocks added</template>
-						<template #value>{{
-							formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
-						}}</template>
-						<template #chip>sum</template>
-					</KeyValueChartCard>
+				<CarouselSlide class="w-full"
+					><BlocksAddedChart :block-metrics-data="blockMetricsData" />
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="blockMetricsData?.blockMetrics?.buckets?.x_Time"
-						:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
-						:begin-at-zero="true"
-						:y-values="[
-							blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Block time</template>
-						<template #icon><StopwatchIcon /></template>
-						<template #value>{{
-							blockMetricsData?.blockMetrics?.avgBlockTime
-						}}</template>
-						<template #unit>s</template>
-						<template #chip>average</template>
-					</KeyValueChartCard>
+					<BlockTimeChart :block-metrics-data="blockMetricsData" />
+				</CarouselSlide>
+				<CarouselSlide class="w-full"
+					><TransactionCountChart
+						:transaction-metrics-data="transactionMetricsData"
+					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="
-							transactionMetricsData?.transactionMetrics?.buckets?.x_Time
-						"
-						:bucket-width="
-							transactionMetricsData?.transactionMetrics?.buckets?.bucketWidth
-						"
-						:y-values="[
-							transactionMetricsData?.transactionMetrics?.buckets
-								?.y_TransactionCount,
-						]"
-					>
-						<template #topRight></template>
-						<template #title>Transactions</template>
-						<template #icon><TransactionIcon /></template>
-						<template #value>{{
-							formatNumber(
-								transactionMetricsData?.transactionMetrics?.transactionCount
-							)
-						}}</template>
-						<template #chip>sum</template>
-					</KeyValueChartCard>
-				</CarouselSlide>
-				<CarouselSlide class="w-full">
-					<KeyValueChartCard
-						class="w-96 lg:w-full"
-						:x-values="accountMetricsData?.accountsMetrics?.buckets?.x_Time"
-						:y-values="[
-							accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated,
-						]"
-						:bucket-width="
-							accountMetricsData?.accountsMetrics?.buckets?.bucketWidth
-						"
-					>
-						<template #topRight></template>
-						<template #title>Accounts Created</template>
-						<template #icon><UserIcon /></template>
-						<template #chip>sum</template>
-						<template #value>{{
-							formatNumber(accountMetricsData?.accountsMetrics?.accountsCreated)
-						}}</template>
-					</KeyValueChartCard>
+					<AccountsCreatedChart :account-metrics-data="accountMetricsData" />
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -213,13 +146,11 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
-import BlockIcon from '~/components/icons/BlockIcon.vue'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import { convertMicroCcdToCcd, formatNumber } from '~/utils/format'
+import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
@@ -235,6 +166,10 @@ import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
+import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
+import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
+import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
+import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 
 const pageSize = 10
 const queueSize = 10

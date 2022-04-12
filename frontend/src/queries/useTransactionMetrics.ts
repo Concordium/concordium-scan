@@ -1,7 +1,7 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
 import { MetricsPeriod, TransactionMetrics } from '~/types/generated'
-type TransactionMetricsQueryResponse = {
+export type TransactionMetricsQueryResponse = {
 	transactionMetrics: TransactionMetrics
 }
 
