@@ -8,7 +8,7 @@
 		<LinkButton
 			class="px-2"
 			@blur="emitBlur"
-			@click="drawer.push('account', undefined, undefined, props.address!)"
+			@click="() => handleOnClick(props.address)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.address) }}
@@ -41,5 +41,9 @@ const drawer = useDrawer()
 const emit = defineEmits(['blur'])
 const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
+}
+
+const handleOnClick = (address?: string | null) => {
+	address && drawer.push({ entityTypeName: 'account', address })
 }
 </script>

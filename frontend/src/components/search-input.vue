@@ -235,24 +235,22 @@ const gotoSearchResult = () => {
 			queryData.value.search.accounts.nodes[0])
 	) {
 		if (queryData.value.search.transactions.nodes[0])
-			drawer.push(
-				'transaction',
-				queryData.value.search.transactions.nodes[0].transactionHash,
-				queryData.value.search.transactions.nodes[0].id
-			)
+			drawer.push({
+				entityTypeName: 'transaction',
+				hash: queryData.value.search.transactions.nodes[0].transactionHash,
+				id: queryData.value.search.transactions.nodes[0].id,
+			})
 		else if (queryData.value.search.blocks.nodes[0])
-			drawer.push(
-				'block',
-				queryData.value.search.blocks.nodes[0].blockHash,
-				queryData.value.search.blocks.nodes[0].id
-			)
+			drawer.push({
+				entityTypeName: 'block',
+				hash: queryData.value.search.blocks.nodes[0].blockHash,
+				id: queryData.value.search.blocks.nodes[0].id,
+			})
 		else if (queryData.value.search.accounts.nodes[0])
-			drawer.push(
-				'account',
-				undefined,
-				undefined,
-				queryData.value.search.accounts.nodes[0].address
-			)
+			drawer.push({
+				entityTypeName: 'account',
+				address: queryData.value.search.accounts.nodes[0].address,
+			})
 		searchValue.value = ''
 	}
 }

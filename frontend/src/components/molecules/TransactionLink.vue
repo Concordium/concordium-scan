@@ -4,7 +4,7 @@
 		<LinkButton
 			class="numerical px-2"
 			@blur="emitBlur"
-			@click="drawer.push('transaction', props.hash, props.id)"
+			@click="() => handleOnClick(props.hash, props.id)"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ shortenHash(props.hash) }}
@@ -36,5 +36,10 @@ const drawer = useDrawer()
 const emit = defineEmits(['blur'])
 const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
+}
+
+const handleOnClick = (hash?: string, id?: string) => {
+	;(hash || id) &&
+		drawer.push({ entityTypeName: 'transaction', hash: hash || '', id })
 }
 </script>

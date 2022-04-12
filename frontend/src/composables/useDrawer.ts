@@ -1,17 +1,61 @@
 ﻿// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore : This alias exists, but tsc doesn't see it
+import { Ref } from 'vue'
 import { RouteLocationNormalizedLoaded } from 'vue-router'
 import { useState } from '#app'
-type DrawerItem = {
-	entityTypeName: string
-	hash?: string
-	id?: string
-	address?: string
+
+type BlockDrawerItem = {
+	entityTypeName: 'block'
+} & ({ id: string; hash?: string } | { hash: string; id?: string })
+
+type TxDrawerItem = {
+	entityTypeName: 'transaction'
+} & ({ id: string; hash?: string } | { hash: string; id?: string })
+
+type AccountDrawerItem = {
+	entityTypeName: 'account'
+} & ({ id: string; address?: string } | { address: string; id?: string })
+
+export type DrawerItem = (
+	| BlockDrawerItem
+	| TxDrawerItem
+	| AccountDrawerItem
+) & {
 	scrollY?: number
 }
+
 type DrawerList = {
 	items: DrawerItem[]
 }
+
+export const isItemOnTop = (
+	item: DrawerItem,
+	currentTopItem: Ref<DrawerItem | undefined>
+): boolean => {
+	if (
+		!currentTopItem.value ||
+		item.entityTypeName !== currentTopItem.value.entityTypeName
+	)
+		return false
+
+	if (item.id && item.id === currentTopItem.value.id) return true
+
+	if (
+		(item.entityTypeName === 'block' ||
+			item.entityTypeName === 'transaction') &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(item.hash && item.hash === currentTopItem.value.hash)
+
+	if (
+		item.entityTypeName === 'account' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(item.address && item.address === currentTopItem.value.address)
+
+	return false
+}
+
 export const useDrawer = () => {
 	const drawerState = useState<DrawerList>('drawerItems', () => {
 		return {
@@ -22,16 +66,31 @@ export const useDrawer = () => {
 	const router = useRouter()
 
 	const handleInitialLoad = (route: RouteLocationNormalizedLoaded) => {
-		if (route.query.dentity && (route.query.dhash || route.query.daddress)) {
+		if (route.query.dentity === 'account' && route.query.daddress) {
 			push(
-				route.query.dentity as string,
-				route.query.dhash as string,
-				undefined,
-				route.query.daddress as string,
+				{
+					entityTypeName: 'account',
+					address: route.query.daddress as string,
+				},
+				false
+			)
+		} else if (route.query.dentity === 'block' && route.query.dhash) {
+			push(
+				{
+					entityTypeName: 'block',
+					hash: route.query.dhash as string,
+				},
+				false
+			)
+		} else if (route.query.dentity === 'transaction' && route.query.dhash) {
+			push(
+				{
+					entityTypeName: 'transaction',
+					hash: route.query.dhash as string,
+				},
 				false
 			)
 		} else router.push({ query: {} })
-		//	}
 	}
 
 	const updateByRouteData = (route: RouteLocationNormalizedLoaded) => {
@@ -56,46 +115,29 @@ export const useDrawer = () => {
 		return drawerState?.value?.items[currentDrawerCount.value - 1]
 	})
 
-	const push = (
-		entityTypeName: string,
-		hash?: string,
-		id?: string,
-		address?: string,
-		resetList = true
-	) => {
-		if (
-			currentTopItem.value &&
-			currentTopItem.value.entityTypeName === entityTypeName &&
-			((currentTopItem.value.hash !== null &&
-				(hash !== undefined || null) &&
-				currentTopItem.value.hash === hash) ||
-				(currentTopItem.value.id !== null &&
-					(id !== undefined || null) &&
-					currentTopItem.value.id === id) ||
-				(currentTopItem.value.address !== null &&
-					(address !== undefined || null) &&
-					currentTopItem.value.address === address))
-		) {
+	const push = (drawerItem: DrawerItem, resetList = true) => {
+		if (isItemOnTop(drawerItem, currentTopItem)) {
 			router.push({
 				query: {
 					dcount: resetList ? drawerState.value.items.length : 1,
-					dentity: entityTypeName,
-					dhash: hash,
-					daddress: address,
+					dentity: drawerItem.entityTypeName,
+					daddress:
+						drawerItem.entityTypeName === 'account'
+							? drawerItem.address
+							: undefined,
+					dhash:
+						drawerItem.entityTypeName === 'block' ||
+						drawerItem.entityTypeName === 'transaction'
+							? drawerItem.hash
+							: undefined,
 				},
 			})
 			return
 		}
-		let scrollY = 0
-		if (process.client) {
-			scrollY = window.scrollY
-		}
+
 		const item = {
-			entityTypeName,
-			hash,
-			id,
-			address,
-			scrollY,
+			...drawerItem,
+			scrollY: process.client ? window.scrollY : 0,
 		}
 
 		if (currentDrawerCount.value === 0 && resetList) {
@@ -110,9 +152,16 @@ export const useDrawer = () => {
 		router.push({
 			query: {
 				dcount: resetList ? drawerState.value.items.length : 1,
-				dentity: entityTypeName,
-				dhash: hash,
-				daddress: address,
+				dentity: drawerItem.entityTypeName,
+				daddress:
+					drawerItem.entityTypeName === 'account'
+						? drawerItem.address
+						: undefined,
+				dhash:
+					drawerItem.entityTypeName === 'block' ||
+					drawerItem.entityTypeName === 'transaction'
+						? drawerItem.hash
+						: undefined,
 			},
 		})
 	}

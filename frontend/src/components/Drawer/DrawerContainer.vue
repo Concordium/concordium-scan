@@ -23,19 +23,19 @@
 				<Drawer :is-open="currentDrawerCount > -1">
 					<template #content>
 						<BlockDetailsContainer
-							v-if="drawerItem && drawerItem.entityTypeName == 'block'"
-							:id="drawerItem?.id"
-							:hash="drawerItem?.hash"
+							v-if="drawerItem && drawerItem.entityTypeName === 'block'"
+							:id="drawerItem.id"
+							:hash="drawerItem.hash"
 						/>
 						<TransactionDetailsContainer
-							v-if="drawerItem && drawerItem.entityTypeName == 'transaction'"
-							:id="drawerItem?.id"
-							:hash="drawerItem?.hash"
+							v-if="drawerItem && drawerItem.entityTypeName === 'transaction'"
+							:id="drawerItem.id"
+							:hash="drawerItem.hash"
 						/>
 						<AccountDetailsContainer
-							v-if="drawerItem && drawerItem.entityTypeName == 'account'"
-							:id="drawerItem?.id"
-							:address="drawerItem?.address"
+							v-if="drawerItem && drawerItem.entityTypeName === 'account'"
+							:id="drawerItem.id"
+							:address="drawerItem.address"
 						/>
 					</template>
 
