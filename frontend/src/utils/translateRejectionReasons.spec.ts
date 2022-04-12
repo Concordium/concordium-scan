@@ -12,12 +12,12 @@ describe('translateRejectionReasons', () => {
 		}
 
 		// @ts-expect-error : test for fallback
-		expect(translateRejectionReasons(undefinedRejection)).toStrictEqual(
+		expect(translateRejectionReasons(undefinedRejection)).toBe(
 			'Unknown rejection reason'
 		)
 
 		// @ts-expect-error : test for fallback
-		expect(translateRejectionReasons(incorrectRejection)).toStrictEqual(
+		expect(translateRejectionReasons(incorrectRejection)).toBe(
 			'Unknown rejection reason'
 		)
 	})
@@ -27,8 +27,6 @@ describe('translateRejectionReasons', () => {
 			__typename: 'RuntimeFailure',
 		} as TransactionRejectReason
 
-		expect(translateRejectionReasons(transactionType)).toStrictEqual(
-			'Runtime failure'
-		)
+		expect(translateRejectionReasons(transactionType)).toBe('Runtime failure')
 	})
 })

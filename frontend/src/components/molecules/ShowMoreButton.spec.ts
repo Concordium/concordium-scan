@@ -25,7 +25,7 @@ describe('ShowMoreButton', () => {
 		render({ props })
 
 		expect(screen.getByRole('button')).toBeInTheDocument()
-		expect(screen.getByText('Show 1 more item'))
+		expect(screen.getByText('Show 1 more item')).toBeInTheDocument()
 	})
 
 	it('will show a "show more" button with plural text if there are multiple new items', () => {
@@ -33,7 +33,7 @@ describe('ShowMoreButton', () => {
 		render({ props })
 
 		expect(screen.getByRole('button')).toBeInTheDocument()
-		expect(screen.getByText('Show 2 more items'))
+		expect(screen.getByText('Show 2 more items')).toBeInTheDocument()
 	})
 
 	it('will show a "refresh" button if the new item count exceeds the maximum page size', () => {
@@ -43,14 +43,16 @@ describe('ShowMoreButton', () => {
 		expect(screen.getByRole('button')).toBeInTheDocument()
 		expect(
 			screen.getByText(`Refresh to see more than ${MAX_PAGE_SIZE} new items`)
-		)
+		).toBeInTheDocument()
 	})
 
 	it('will show only one button if the new item count is the same as the maximum page size', () => {
 		const props = { newItemCount: MAX_PAGE_SIZE }
 		render({ props })
 
-		expect(screen.getAllByRole('button').length).toBe(1)
-		expect(screen.getByText(`Show ${MAX_PAGE_SIZE} more items`))
+		expect(screen.getByRole('button')).toBeInTheDocument()
+		expect(
+			screen.getByText(`Show ${MAX_PAGE_SIZE} more items`)
+		).toBeInTheDocument()
 	})
 })

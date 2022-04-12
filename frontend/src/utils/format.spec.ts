@@ -13,7 +13,7 @@ describe('format', () => {
 			const timestamp = '1969-07-20T20:17:40.000Z'
 
 			// assuming en-US in UTC
-			expect(formatTimestamp(timestamp)).toStrictEqual('Jul 20, 1969, 8:17 PM')
+			expect(formatTimestamp(timestamp)).toBe('Jul 20, 1969, 8:17 PM')
 		})
 	})
 
@@ -24,7 +24,7 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp, compareDate)
 
-			expect(result).toStrictEqual('10 days')
+			expect(result).toBe('10 days')
 		})
 
 		it('should default the comparision date to current date', () => {
@@ -35,7 +35,7 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp)
 
-			expect(result).toStrictEqual('about 2 years')
+			expect(result).toBe('about 2 years')
 		})
 
 		it('should show a suffix for a future date', () => {
@@ -46,7 +46,7 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp, undefined, true)
 
-			expect(result).toStrictEqual('in about 2 years')
+			expect(result).toBe('in about 2 years')
 		})
 
 		it('should show a suffix for a past date', () => {
@@ -57,51 +57,51 @@ describe('format', () => {
 
 			const result = convertTimestampToRelative(timestamp, undefined, true)
 
-			expect(result).toStrictEqual('about 2 years ago')
+			expect(result).toBe('about 2 years ago')
 		})
 	})
 
 	describe('convertMicroCcdToCcd', () => {
 		it('should convert microCCD into CCD', () => {
-			expect(convertMicroCcdToCcd(1337)).toStrictEqual('0.001337')
+			expect(convertMicroCcdToCcd(1337)).toBe('0.001337')
 		})
 
 		it('should return a fixed number of decimals', () => {
-			expect(convertMicroCcdToCcd(1_337_000)).toStrictEqual('1.337000')
+			expect(convertMicroCcdToCcd(1_337_000)).toBe('1.337000')
 		})
 
 		it('should default to 0 if no number is provided', () => {
-			expect(convertMicroCcdToCcd(undefined)).toStrictEqual('0.000000')
+			expect(convertMicroCcdToCcd(undefined)).toBe('0.000000')
 		})
 	})
 
 	describe('formatNumber', () => {
 		it('should format a number to use thousand seperators', () => {
-			expect(formatNumber(1_337_666.42)).toStrictEqual('1,337,666.42')
+			expect(formatNumber(1_337_666.42)).toBe('1,337,666.42')
 		})
 	})
 
 	describe('calculateWeight', () => {
 		it('should calculate the weight of an amount', () => {
-			expect(calculateWeight(25, 500)).toStrictEqual('5.00')
+			expect(calculateWeight(25, 500)).toBe('5.00')
 		})
 
 		it('should round the result to two decimals', () => {
-			expect(calculateWeight(25, 600)).toStrictEqual('4.17')
+			expect(calculateWeight(25, 600)).toBe('4.17')
 		})
 	})
 
 	describe('shortenHash', () => {
 		it('should shorten a long hash', () => {
-			expect(shortenHash('b4da55abc123def456')).toStrictEqual('b4da55')
+			expect(shortenHash('b4da55abc123def456')).toBe('b4da55')
 		})
 
 		it('should have a fallback if there is no hash', () => {
-			expect(shortenHash()).toStrictEqual('')
-			expect(shortenHash(undefined)).toStrictEqual('')
+			expect(shortenHash()).toBe('')
+			expect(shortenHash(undefined)).toBe('')
 
 			// @ts-expect-error : test for fallback
-			expect(shortenHash(null)).toStrictEqual('')
+			expect(shortenHash(null)).toBe('')
 		})
 	})
 })

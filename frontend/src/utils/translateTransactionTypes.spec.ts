@@ -16,7 +16,7 @@ describe('translateTransactionTypes', () => {
 		}
 
 		// @ts-expect-error : test for fallback
-		expect(translateTransactionType(transactionType)).toStrictEqual(
+		expect(translateTransactionType(transactionType)).toBe(
 			'Unknown transaction type'
 		)
 	})
@@ -28,9 +28,7 @@ describe('translateTransactionTypes', () => {
 				accountTransactionType: 'SIMPLE_TRANSFER' as AccountTransactionType,
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
-				'Simple transfer'
-			)
+			expect(translateTransactionType(transactionType)).toBe('Simple transfer')
 		})
 
 		it('should have a fallback for an unknown account transaction', () => {
@@ -40,7 +38,7 @@ describe('translateTransactionTypes', () => {
 				accountTransactionType: 'KITTEN_TRANSFER',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown account transaction'
 			)
 		})
@@ -50,7 +48,7 @@ describe('translateTransactionTypes', () => {
 				__typename: 'AccountTransaction',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown account transaction'
 			)
 		})
@@ -63,7 +61,7 @@ describe('translateTransactionTypes', () => {
 				updateTransactionType: 'UPDATE_GAS_REWARDS' as UpdateTransactionType,
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Update gas rewards'
 			)
 		})
@@ -75,17 +73,17 @@ describe('translateTransactionTypes', () => {
 				updateTransactionType: 'UPDATE_KITTEN',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown update transaction'
 			)
 		})
 
-		it('should have a fallback for an unknown update transaction', () => {
+		it('should have a fallback for a missing update transaction type', () => {
 			const transactionType: UpdateTransaction = {
 				__typename: 'UpdateTransaction',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown update transaction'
 			)
 		})
@@ -99,7 +97,7 @@ describe('translateTransactionTypes', () => {
 					'INITIAL' as CredentialDeploymentTransactionType,
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Initial credential deployment'
 			)
 		})
@@ -111,17 +109,17 @@ describe('translateTransactionTypes', () => {
 				credentialDeploymentTransactionType: 'KITTEN_DEPLOYMENT',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown credential deployment'
 			)
 		})
 
-		it('should have a fallback for an unknown credential deployment transaction', () => {
+		it('should have a fallback for an missing credential deployment transaction type', () => {
 			const transactionType: CredentialDeploymentTransaction = {
 				__typename: 'CredentialDeploymentTransaction',
 			}
 
-			expect(translateTransactionType(transactionType)).toStrictEqual(
+			expect(translateTransactionType(transactionType)).toBe(
 				'Unknown credential deployment'
 			)
 		})

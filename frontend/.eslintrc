@@ -1,7 +1,13 @@
 {
 	"root": true,
 	"parser": "vue-eslint-parser",
-	"plugins": ["@typescript-eslint"],
+	"plugins": [
+		"jest",
+		"jest-dom",
+		"jest-formatting",
+		"testing-library",
+		"@typescript-eslint"
+	],
 	"parserOptions": {
 		"parser": "@typescript-eslint/parser",
 		"sourceType": "module"
@@ -9,12 +15,19 @@
 	"extends": [
 		"eslint:recommended",
 		"@nuxtjs/eslint-config-typescript",
+		"plugin:jest/recommended",
+		"plugin:jest/style",
+		"plugin:jest-dom/recommended",
+		"plugin:jest-formatting/recommended",
+		"plugin:testing-library/vue",
 		"plugin:@typescript-eslint/recommended",
 		"plugin:vue/vue3-recommended",
 		"prettier"
 	],
 	"ignorePatterns": ["src/types/generated.ts"],
 	"rules": {
-		"vue/multi-word-component-names": "off"
+		"vue/multi-word-component-names": "off",
+		"testing-library/await-async-utils": "off",
+		"testing-library/await-fire-event": "off"
 	}
 }
