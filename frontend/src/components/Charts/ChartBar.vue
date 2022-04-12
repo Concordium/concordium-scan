@@ -28,10 +28,11 @@ const chartData = {
 			fill: 'start',
 			tension: 0.1,
 			spanGaps: false,
+			borderRadius: 4,
 			pointRadius: 0, // Disables the small points
 			// pointHitRadius: 10, // Disables the tooltip
 			hoverBackgroundColor: '#FFFFFF',
-			backgroundColor: '#39DBAA99',
+			backgroundColor: '#39DBAA',
 		},
 	],
 }
