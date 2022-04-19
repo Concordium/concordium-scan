@@ -878,6 +878,7 @@ type Query {
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
+  rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics!
 }
 
 type Rejected {

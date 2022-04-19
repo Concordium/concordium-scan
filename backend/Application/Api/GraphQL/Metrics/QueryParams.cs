@@ -26,4 +26,4 @@ public record QueryParams(DateTimeOffset FromTime, DateTimeOffset ToTime, TimeSp
             _ => throw new NotImplementedException()
         };
     }
-};
+}

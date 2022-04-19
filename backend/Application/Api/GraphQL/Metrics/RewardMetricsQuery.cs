@@ -21,16 +21,27 @@ public class RewardMetricsQuery
 
     public async Task<RewardMetrics> GetRewardMetrics(MetricsPeriod period)
     {
+        return await GetResponse(period);
+    }
+
+    public async Task<RewardMetrics> GetRewardMetricsForBaker(long bakerId, MetricsPeriod period)
+    {
+        return await GetResponse(period, bakerId);
+    }
+
+    private async Task<RewardMetrics> GetResponse(MetricsPeriod period, long? bakerId = null)
+    {
         await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         await conn.OpenAsync();
 
-        var queryParams = QueryParams.Create(period, _timeProvider);
+        var queryParams = RewardQueryParams.Create(period, bakerId, _timeProvider);
 
         var sql = @"select coalesce(sum(amount), 0) as sum_amount
                     from metrics_rewards
-                    where time between @FromTime and @ToTime;";
+                    where time between @FromTime and @ToTime
+                    and (@BakerId is null or account_id = @BakerId);";
         var data = await conn.QuerySingleAsync(sql, queryParams);
-        
+
         var sumAmount = (long)data.sum_amount;
 
         var bucketParams = queryParams with
@@ -39,17 +50,18 @@ public class RewardMetricsQuery
             // width back (and then afterwards remove any buckets that are entirely outside requested interval)
             FromTime = queryParams.FromTime - queryParams.BucketWidth
         };
-        var bucketsSql = 
+        var bucketsSql =
             @"select time_bucket_gapfill(@BucketWidth, time) as interval_start,
                      coalesce(sum(amount), 0)                as sum_amount
             from metrics_rewards
             where time between @FromTime and @ToTime
+            and (@BakerId is null or account_id = @BakerId)
             group by interval_start
             order by interval_start;";
         var bucketData = (List<dynamic>)await conn.QueryAsync(bucketsSql, bucketParams);
-        
+
         bucketData.RemoveAll(row => ToDateTimeOffset(row.interval_start) <= queryParams.FromTime - queryParams.BucketWidth);
-        
+
         var buckets = new RewardMetricsBuckets(
             queryParams.BucketWidth,
             bucketData.Select(row => ToDateTimeOffset((DateTime)row.interval_start)).ToArray(),
