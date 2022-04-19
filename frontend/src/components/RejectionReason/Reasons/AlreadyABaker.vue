@@ -1,9 +1,9 @@
 <template>
-	<span> Baker <Baker :id="reason.bakerId" /> is already a baker </span>
+	<span> Baker <BakerLink :id="reason.bakerId" /> is already a baker </span>
 </template>
 
 <script setup lang="ts">
-import Baker from '~/components/molecules/Baker.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import type { AlreadyABaker } from '~/types/generated'
 
 type Props = {

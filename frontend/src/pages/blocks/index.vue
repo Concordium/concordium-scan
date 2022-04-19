@@ -56,7 +56,10 @@
 						</Tooltip>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
-						<Baker :id="block.bakerId" />
+						<BakerLink
+							v-if="block.bakerId || block.bakerId === 0"
+							:id="block.bakerId"
+						/>
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.SM"
@@ -89,7 +92,7 @@ import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { MetricsPeriod, type Block, type Subscription } from '~/types/generated'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
-import Baker from '~/components/molecules/Baker.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'

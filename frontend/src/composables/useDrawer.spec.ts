@@ -1,5 +1,17 @@
 import { ref } from 'vue'
-import { isItemOnTop, type DrawerItem } from './useDrawer'
+import { useRouter } from 'vue-router'
+import {
+	isItemOnTop,
+	pushToRouter,
+	type DrawerItem,
+	type DrawerList,
+} from './useDrawer'
+
+jest.mock('vue-router', () => ({
+	useRouter: () => ({
+		push: jest.fn(),
+	}),
+}))
 
 describe('useDrawer', () => {
 	describe('isItemOnTop', () => {
@@ -175,6 +187,180 @@ describe('useDrawer', () => {
 						currentTopItem
 					)
 				).toBe(false)
+			})
+		})
+
+		describe('when entity is a baker', () => {
+			it('should match a baker drawer by bakerId', () => {
+				const currentTopItem = ref<DrawerItem>({
+					entityTypeName: 'baker',
+					bakerId: 666,
+				})
+
+				expect(
+					isItemOnTop({ entityTypeName: 'baker', bakerId: 42 }, currentTopItem)
+				).toBe(false)
+				expect(
+					isItemOnTop({ entityTypeName: 'baker', bakerId: 666 }, currentTopItem)
+				).toBe(true)
+			})
+		})
+	})
+
+	describe('pushToRouter', () => {
+		it('will push the total count of drawers by default', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const items = [
+				{
+					entityTypeName: 'block',
+					hash: 'h3ll0',
+				},
+				{
+					entityTypeName: 'transaction',
+					hash: 'w0r1d',
+				},
+			] as DrawerItem[]
+
+			const state = ref<DrawerList>({ items })
+
+			pushToRouter(items[0])(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: undefined,
+					dcount: 2,
+					dentity: 'block',
+					dhash: 'h3ll0',
+					did: undefined,
+				},
+			})
+		})
+
+		it('can count only the last item as an option', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const items = [
+				{
+					entityTypeName: 'block',
+					hash: 'h3ll0',
+				},
+				{
+					entityTypeName: 'transaction',
+					hash: 'w0r1d',
+				},
+			] as DrawerItem[]
+
+			const state = ref<DrawerList>({ items })
+
+			pushToRouter(items[0], false)(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: undefined,
+					dcount: 1,
+					dentity: 'block',
+					dhash: 'h3ll0',
+					did: undefined,
+				},
+			})
+		})
+
+		it('should push a block to the route', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const item = {
+				entityTypeName: 'block',
+				hash: 'b4da55',
+			} as DrawerItem
+
+			const state = ref<DrawerList>({ items: [item] })
+
+			pushToRouter(item)(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: undefined,
+					dcount: 1,
+					dentity: 'block',
+					dhash: 'b4da55',
+					did: undefined,
+				},
+			})
+		})
+
+		it('should push a transaction to the route', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const item = {
+				entityTypeName: 'transaction',
+				hash: 'b4da55',
+			} as DrawerItem
+
+			const state = ref<DrawerList>({ items: [item] })
+
+			pushToRouter(item)(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: undefined,
+					dcount: 1,
+					dentity: 'transaction',
+					dhash: 'b4da55',
+					did: undefined,
+				},
+			})
+		})
+
+		it('should push an account to the route', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const item = {
+				entityTypeName: 'account',
+				address: '1337-add-355',
+			} as DrawerItem
+
+			const state = ref<DrawerList>({ items: [item] })
+
+			pushToRouter(item)(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: '1337-add-355',
+					dcount: 1,
+					dentity: 'account',
+					dhash: undefined,
+					did: undefined,
+				},
+			})
+		})
+
+		it('should push a baker to the route', () => {
+			const router = useRouter()
+			const pushSpy = jest.spyOn(router, 'push')
+
+			const item = {
+				entityTypeName: 'baker',
+				bakerId: 123,
+			} as DrawerItem
+
+			const state = ref<DrawerList>({ items: [item] })
+
+			pushToRouter(item)(router, state)
+
+			expect(pushSpy).toHaveBeenCalledWith({
+				query: {
+					daddress: undefined,
+					dcount: 1,
+					dentity: 'baker',
+					dhash: undefined,
+					did: 123,
+				},
 			})
 		})
 	})

@@ -1,9 +1,9 @@
 <template>
-	<span> Baker <Baker :id="event.bakerId" /> keys were updated</span>
+	<span> Baker <BakerLink :id="event.bakerId" /> keys were updated</span>
 </template>
 
 <script setup lang="ts">
-import Baker from '~/components/molecules/Baker.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import type { BakerKeysUpdated } from '~/types/generated'
 
 type Props = {

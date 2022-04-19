@@ -1,7 +1,11 @@
 ﻿// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore : This alias exists, but tsc doesn't see it
 import { Ref } from 'vue'
-import { RouteLocationNormalizedLoaded } from 'vue-router'
+import {
+	useRouter,
+	RouteLocationNormalizedLoaded,
+	type Router,
+} from 'vue-router'
 import { useState } from '#app'
 
 type BlockDrawerItem = {
@@ -16,18 +20,27 @@ type AccountDrawerItem = {
 	entityTypeName: 'account'
 } & ({ id: string; address?: string } | { address: string; id?: string })
 
+type BakerDrawerItem = {
+	entityTypeName: 'baker'
+	bakerId: number
+}
+
 export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
 	| AccountDrawerItem
+	| BakerDrawerItem
 ) & {
 	scrollY?: number
 }
 
-type DrawerList = {
+export type DrawerList = {
 	items: DrawerItem[]
 }
 
+/**
+ * Function to determine whether an item is on top of the stack of drawers
+ */
 export const isItemOnTop = (
 	item: DrawerItem,
 	currentTopItem: Ref<DrawerItem | undefined>
@@ -38,23 +51,65 @@ export const isItemOnTop = (
 	)
 		return false
 
-	if (item.id && item.id === currentTopItem.value.id) return true
-
 	if (
 		(item.entityTypeName === 'block' ||
 			item.entityTypeName === 'transaction') &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	)
-		return !!(item.hash && item.hash === currentTopItem.value.hash)
+		return !!(
+			(item.hash && item.hash === currentTopItem.value.hash) ||
+			(item.id && item.id === currentTopItem.value.id)
+		)
 
 	if (
 		item.entityTypeName === 'account' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	)
-		return !!(item.address && item.address === currentTopItem.value.address)
+		return !!(
+			(item.address && item.address === currentTopItem.value.address) ||
+			(item.id && item.id === currentTopItem.value.id)
+		)
+
+	if (
+		item.entityTypeName === 'baker' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	) {
+		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
+	}
 
 	return false
 }
+
+/**
+ * Curried function to add a new item to the drawer stack in router history.
+ * @param { DrawerItem } drawerItem  - item to be pushed to the router
+ * @param { boolean } resetList - whether or not list should be reset
+ * @param { Router } router - (in returned fn) instance of vue-router
+ * @param { Ref<DrawerList> } state - (in returned fn) state containing list of items in drawer
+ */
+export const pushToRouter =
+	(drawerItem: DrawerItem, resetList = true) =>
+	(router: Router, state: Ref<DrawerList>) => {
+		router.push({
+			query: {
+				dcount: resetList ? state.value.items.length : 1,
+				dentity: drawerItem.entityTypeName,
+				daddress:
+					drawerItem.entityTypeName === 'account'
+						? drawerItem.address
+						: undefined,
+				dhash:
+					drawerItem.entityTypeName === 'block' ||
+					drawerItem.entityTypeName === 'transaction'
+						? drawerItem.hash
+						: undefined,
+				did:
+					drawerItem.entityTypeName === 'baker'
+						? drawerItem.bakerId
+						: undefined,
+			},
+		})
+	}
 
 export const useDrawer = () => {
 	const drawerState = useState<DrawerList>('drawerItems', () => {
@@ -90,6 +145,14 @@ export const useDrawer = () => {
 				},
 				false
 			)
+		} else if (route.query.dentity === 'baker' && route.query.did) {
+			push(
+				{
+					entityTypeName: 'baker',
+					bakerId: parseInt(route.query.did.toString()),
+				},
+				false
+			)
 		} else router.push({ query: {} })
 	}
 
@@ -117,21 +180,7 @@ export const useDrawer = () => {
 
 	const push = (drawerItem: DrawerItem, resetList = true) => {
 		if (isItemOnTop(drawerItem, currentTopItem)) {
-			router.push({
-				query: {
-					dcount: resetList ? drawerState.value.items.length : 1,
-					dentity: drawerItem.entityTypeName,
-					daddress:
-						drawerItem.entityTypeName === 'account'
-							? drawerItem.address
-							: undefined,
-					dhash:
-						drawerItem.entityTypeName === 'block' ||
-						drawerItem.entityTypeName === 'transaction'
-							? drawerItem.hash
-							: undefined,
-				},
-			})
+			pushToRouter(drawerItem, resetList)(router, drawerState)
 			return
 		}
 
@@ -149,21 +198,8 @@ export const useDrawer = () => {
 		)
 		drawerState.value.items.push(item)
 		currentDrawerCount.value = resetList ? drawerState.value.items.length : 1
-		router.push({
-			query: {
-				dcount: resetList ? drawerState.value.items.length : 1,
-				dentity: drawerItem.entityTypeName,
-				daddress:
-					drawerItem.entityTypeName === 'account'
-						? drawerItem.address
-						: undefined,
-				dhash:
-					drawerItem.entityTypeName === 'block' ||
-					drawerItem.entityTypeName === 'transaction'
-						? drawerItem.hash
-						: undefined,
-			},
-		})
+
+		pushToRouter(drawerItem, resetList)(router, drawerState)
 	}
 	const getItems = () => {
 		return drawerState.value.items

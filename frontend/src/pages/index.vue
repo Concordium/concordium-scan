@@ -63,7 +63,10 @@
 								<BlockLink :id="block.id" :hash="block.blockHash" />
 							</TableTd>
 							<TableTd v-if="breakpoint >= Breakpoint.MD" class="numerical">
-								<Baker :id="block.bakerId" />
+								<BakerLink
+									v-if="block.bakerId || block.bakerId === 0"
+									:id="block.bakerId"
+								/>
 							</TableTd>
 							<TableTd
 								v-if="breakpoint >= Breakpoint.SM"
@@ -164,6 +167,7 @@ import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
