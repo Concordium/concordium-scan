@@ -60,6 +60,7 @@ type AccountReleaseScheduleItemEdge {
 
 type AccountStatementEntry {
   reference: BlockOrTransaction!
+  id: ID!
   timestamp: DateTime!
   entryType: AccountStatementEntryType!
   amount: Long!

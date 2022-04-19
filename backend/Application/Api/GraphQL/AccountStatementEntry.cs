@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
+using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL;
@@ -12,7 +13,7 @@ public class AccountStatementEntry
     public long AccountId { get; set; }
 
     [GraphQLIgnore]
-    public int Index { get; set; }
+    public long Index { get; set; }
     
     public DateTimeOffset Timestamp { get; set; }
     
@@ -45,5 +46,11 @@ public class AccountStatementEntry
         
         return await dbContext.Blocks.AsNoTracking()
             .SingleAsync(x => x.Id == BlockId);
+    }
+
+    [ID]
+    public long GetId()
+    {
+        return Index;
     }
 }
