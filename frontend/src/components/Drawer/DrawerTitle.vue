@@ -1,5 +1,8 @@
 <template>
-	<header class="z-20" :class="$style.drawerTitle">
+	<header
+		class="z-20 flex-grow-0 sticky top-0 p-8 pr-16 mb-20"
+		:class="$style.drawerTitle"
+	>
 		<DrawerNavigation />
 
 		<slot />
@@ -11,13 +14,16 @@ import DrawerNavigation from '~/components/Drawer/DrawerNavigation.vue'
 
 <style module>
 .drawerTitle {
-	@apply flex-grow-0 sticky top-0 p-8 pr-16 mb-20;
 	background: hsl(247, 40%, 18%);
 }
 
 .drawerTitle::after {
-	@apply absolute top-0 w-full h-full pointer-events-none;
 	content: '';
 	box-shadow: 0 0 50px 10px hsl(247, 40%, 18%);
+	position: absolute;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
 }
 </style>

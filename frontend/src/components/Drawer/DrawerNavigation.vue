@@ -28,8 +28,11 @@
 </template>
 <script setup lang="ts">
 import { XIcon } from '@heroicons/vue/solid/index.js'
+import { useRouter } from 'vue-router'
 import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
 import ChevronBackIcon from '~/components/icons/ChevronBackIcon.vue'
+import { useDrawer } from '~/composables/useDrawer'
+
 const { softReset, currentDrawerCount, canGoForward } = useDrawer()
 const router = useRouter()
 const back = () => {

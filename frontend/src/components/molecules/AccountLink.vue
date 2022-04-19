@@ -31,6 +31,8 @@ import { shortenHash } from '~/utils/format'
 import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+
 type Props = {
 	address?: string | null
 	iconSize?: string
