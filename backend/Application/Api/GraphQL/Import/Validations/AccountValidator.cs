@@ -29,6 +29,9 @@ public class AccountValidator
         var blockHashes = await _nodeClient.GetBlocksAtHeightAsync(blockHeight);
         var blockHash = blockHashes.Single();
         var accountInfo = await _nodeClient.GetAccountInfoAsync(address, blockHash);
+        if (accountInfo == null)
+            return;
+        
         var nodeData = new
             {
                 Id = accountInfo.AccountBaker.BakerId,
