@@ -7,6 +7,7 @@ namespace Application.Api.Rest;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Route("rest/[controller]")]
 public class HealthController : ControllerBase
 {
     [HttpGet]
