@@ -19,6 +19,37 @@ public class AccountValidator
         _logger = Log.ForContext<AccountValidator>();
     }
 
+
+    public async Task ValidateBaker2(ulong blockHeight)
+    {
+        var address = new ConcordiumSdk.Types.AccountAddress("3CbvrNVpcHpL7tyT2mhXxQwNWHiPNYEJRgp3CMgEcMyXivms6B");
+        
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var blockHashes = await _nodeClient.GetBlocksAtHeightAsync(blockHeight);
+        var blockHash = blockHashes.Single();
+        var accountInfo = await _nodeClient.GetAccountInfoAsync(address, blockHash);
+        var nodeData = new
+            {
+                Id = accountInfo.AccountBaker.BakerId,
+                StakedAmount = accountInfo.AccountBaker.StakedAmount.MicroCcdValue,
+                RestakeEarnings = accountInfo.AccountBaker.RestakeEarnings
+            };
+
+        var dbData = await dbContext.Bakers
+            .Where(x => x.Id == 2)
+            .Select(x => new
+            {
+                Id = (ulong)x.Id,
+                StakedAmount = x.ActiveState!.StakedAmount,
+                RestakeEarnings = x.ActiveState!.RestakeEarnings
+            })
+            .SingleAsync();
+        
+        if (!nodeData.Equals(dbData))
+            _logger.Warning("Baker 2 did not match at block height {blockHeight}. [Node={nodeData}] [Database={dbData}]", blockHeight, nodeData, dbData);
+    }
+
     public async Task ValidateAccounts(ulong blockHeight)
     {
         var blockHashes = await _nodeClient.GetBlocksAtHeightAsync(blockHeight);
