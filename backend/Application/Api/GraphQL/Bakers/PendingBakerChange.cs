@@ -3,7 +3,7 @@ using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Bakers;
 
-[InterfaceType]
+[UnionType]
 public abstract record PendingBakerChange(
     DateTimeOffset EffectiveTime, 
     [property:GraphQLIgnore] // this field should be deprecated from CC-node version 4, when pending changes come as a utc timestamp
