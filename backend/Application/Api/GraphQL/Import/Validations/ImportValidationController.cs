@@ -22,6 +22,5 @@ public class ImportValidationController
         
         if (block.BlockHeight % 10000 == 0)
             await _accountValidator.ValidateAccounts((ulong)block.BlockHeight);
-        await _accountValidator.ValidateBaker2((ulong)block.BlockHeight);
     }
 }
