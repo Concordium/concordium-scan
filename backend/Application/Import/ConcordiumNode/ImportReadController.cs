@@ -177,15 +177,24 @@ public class ImportReadController : BackgroundService
         var importedGenesisBlockHash = initialState.GenesisBlockHash;
         if (importedGenesisBlockHash != null)
         {
-            var databaseNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(importedGenesisBlockHash);
-            _logger.Information(
-                "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
-                importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
+            var databaseNetworkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(importedGenesisBlockHash);
+            if (databaseNetworkId != null)
+                _logger.Information(
+                    "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
+                    importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
+            else
+                _logger.Information(
+                    "Database contains genesis block hash '{genesisBlockHash}' which is not one of the known Concordium networks.",
+                    importedGenesisBlockHash.AsString);
 
             var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
-            var nodeNetworkId = ConcordiumNetworkId.GetFromGenesisBlockHash(consensusStatus.GenesisBlock);
-            _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
-                consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
+            var nodeNetworkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(consensusStatus.GenesisBlock);
+            if (nodeNetworkId != null)
+                _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
+                    consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
+            else
+                _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' which is not one of the known Concordium networks.", 
+                    consensusStatus.GenesisBlock.AsString);
 
             if (consensusStatus.GenesisBlock != importedGenesisBlockHash)
                 throw new InvalidOperationException("Genesis block hash of Concordium Node and Database are not identical.");

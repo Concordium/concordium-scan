@@ -16,12 +16,18 @@ public class ConcordiumNetworkId
 
     public static ConcordiumNetworkId GetFromGenesisBlockHash(BlockHash genesisBlockHash)
     {
+        var result = TryGetFromGenesisBlockHash(genesisBlockHash);
+        return result ?? throw new InvalidOperationException("Given block hash is not a known genesis block hash.");
+    }
+    
+    public static ConcordiumNetworkId? TryGetFromGenesisBlockHash(BlockHash genesisBlockHash)
+    {
         if (genesisBlockHash == null) throw new ArgumentNullException(nameof(genesisBlockHash));
         if (genesisBlockHash == Mainnet.GenesisBlockHash)
             return Mainnet;
         if (genesisBlockHash == Testnet.GenesisBlockHash)
             return Testnet;
-        throw new InvalidOperationException("Given block hash is not a known genesis block hash.");
+        return null;
     }
     
     public override string ToString()
