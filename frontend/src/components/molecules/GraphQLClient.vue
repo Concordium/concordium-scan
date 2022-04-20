@@ -12,10 +12,18 @@ import {
 	provideClient,
 } from '@urql/vue'
 import { SubscriptionClient } from 'subscriptions-transport-ws'
+import { composeBackendUrls } from '~/utils/composeBackendUrls'
 
 const { apiUrl, wsUrl, includeDevTools } = useRuntimeConfig()
 
-const subscriptionClient = new SubscriptionClient(wsUrl, { reconnect: true })
+const [composedApiUrl, composedWsUrl] = composeBackendUrls(
+	apiUrl,
+	wsUrl
+)(location.host)
+
+const subscriptionClient = new SubscriptionClient(composedWsUrl, {
+	reconnect: true,
+})
 
 let exchanges = [
 	...defaultExchanges,
@@ -29,13 +37,8 @@ if (includeDevTools) {
 	exchanges = [dtools.devtoolsExchange, ...exchanges]
 }
 
-const composeApiUrl = () =>
-	location.host.includes('testnet')
-		? apiUrl.replace('mainnet', 'testnet')
-		: apiUrl
-
 const client = createClient({
-	url: composeApiUrl(),
+	url: composedApiUrl,
 	exchanges,
 })
 
