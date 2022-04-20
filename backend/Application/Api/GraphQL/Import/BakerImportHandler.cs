@@ -63,16 +63,12 @@ public class BakerImportHandler
         var txEvents = allTransactionEvents.Where(x => x
             is ConcordiumSdk.NodeApi.Types.BakerAdded
             or ConcordiumSdk.NodeApi.Types.BakerRemoved
+            or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased
             or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
-
-        txEvents = allTransactionEvents.Where(x => x
-            is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased);
-
-        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
     }
 
     private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
