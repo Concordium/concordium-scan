@@ -21,4 +21,9 @@ public enum UpdateTransactionType
     UpdateRootKeys = 12,
     UpdateLevel1Keys = 13,
     UpdateLevel2Keys = 14,
+    /* TODO: P4
+       UpdatePoolParameters,
+       UpdateCooldownParameters,
+       UpdateTimeParameters
+     */
 }

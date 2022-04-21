@@ -28,6 +28,11 @@ public class GrpcNodeClientTest : IDisposable
         {
             Address = "http://dev-ccdscan-vm.northeurope.cloudapp.azure.com:10000",
             AuthenticationToken = "test-ccnode-auth-token"
+            
+            // PROTO-NET:
+            // Address = "http://13.79.164.247:10003",
+            // AuthenticationToken = "rpcadmin"
+
         };
         _target = new GrpcNodeClient(grpcNodeClientSettings, _httpClient);
     }
