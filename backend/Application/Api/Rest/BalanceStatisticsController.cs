@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Globalization;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,37 +16,69 @@ public class BalanceStatisticsController : ControllerBase
         _dbContextFactory = dbContextFactory;
     }
 
+    // [HttpGet]
+    // [Route("rest/balance-statistics/latest")]
+    // public async Task<dynamic> GetLatest()
+    // {
+    //     await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+    //     
+    //     var block = await dbContext.Blocks
+    //         .AsNoTracking()
+    //         .OrderByDescending(x => x.Id)
+    //         .FirstAsync();
+    //
+    //     return new BalanceStatisticsResponse
+    //     (
+    //         block.BlockHeight,
+    //         block.BlockHash,
+    //         block.BlockSlotTime,
+    //         block.BalanceStatistics.TotalAmount,
+    //         block.BalanceStatistics.TotalAmountReleased,
+    //         block.BalanceStatistics.TotalAmountStaked,
+    //         block.BalanceStatistics.TotalAmountEncrypted,
+    //         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules
+    //     );
+    // }
+    //
     [HttpGet]
     [Route("rest/balance-statistics/latest")]
-    public async Task<dynamic> GetLatest()
+    public async Task<ActionResult> GetLatest(string field)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        if (field == null) throw new ArgumentNullException(nameof(field));
         
-        var block = await dbContext.Blocks
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+
+        var query = dbContext.Blocks
             .AsNoTracking()
-            .OrderByDescending(x => x.Id)
-            .FirstAsync();
+            .OrderByDescending(x => x.Id);
 
-        return new BalanceStatisticsResponse
-        (
-            block.BlockHeight,
-            block.BlockHash,
-            block.BlockSlotTime,
-            block.BalanceStatistics.TotalAmount,
-            block.BalanceStatistics.TotalAmountReleased,
-            block.BalanceStatistics.TotalAmountStaked,
-            block.BalanceStatistics.TotalAmountEncrypted,
-            block.BalanceStatistics.TotalAmountLockedInReleaseSchedules
-        );
+        var scalarQuery = field.ToLowerInvariant() switch
+        {
+            "totalamount" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmount),
+            "totalamountreleased" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
+            "totalamountstaked" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountStaked),
+            "totalamountencrypted" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountEncrypted),
+            "totalamountlockedinreleaseschedules" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountLockedInReleaseSchedules),
+            _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Supported values for field are: ")
+        };
+        var value = await scalarQuery.FirstAsync();    
+
+        var result = new ContentResult
+        {
+            ContentType = "text/plain",
+            Content = value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "",
+            StatusCode = 200
+        };
+        return result;
     }
-
-    private record BalanceStatisticsResponse(
-            long BlockHeight, 
-            string BlockHash, 
-            DateTimeOffset BlockSlotTime,
-            ulong TotalAmount, 
-            ulong? TotalAmountReleased,
-            ulong TotalAmountStaked, 
-            ulong TotalAmountEncrypted,
-            ulong TotalAmountLockedInReleaseSchedules);
+//
+//     private record BalanceStatisticsResponse(
+//             long BlockHeight, 
+//             string BlockHash, 
+//             DateTimeOffset BlockSlotTime,
+//             ulong TotalAmount, 
+//             ulong? TotalAmountReleased,
+//             ulong TotalAmountStaked, 
+//             ulong TotalAmountEncrypted,
+//             ulong TotalAmountLockedInReleaseSchedules);
 }
