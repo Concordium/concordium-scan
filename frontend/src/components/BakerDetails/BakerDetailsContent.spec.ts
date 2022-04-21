@@ -1,5 +1,5 @@
 import BakerDetailsContent from './BakerDetailsContent.vue'
-import { setupComponent, screen } from '~/utils/testing'
+import { setupComponent, screen, within } from '~/utils/testing'
 
 jest.mock('~/composables/useDrawer', () => ({
 	useDrawer: () => ({
@@ -118,6 +118,77 @@ describe('BakerDetailsContent', () => {
 			render({ props })
 
 			expect(screen.queryByText('Staked amount')).not.toBeInTheDocument()
+		})
+	})
+
+	describe('when the baker has a pending change', () => {
+		it('will show an alert', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						...defaultProps.baker.state,
+						pendingChange: {
+							__typename: 'PendingBakerRemoval',
+							effectiveTime: '1969-07-20T20:17:40.000Z',
+						},
+					},
+				},
+			}
+
+			render({ props })
+
+			const alert = screen.getByRole('alert')
+
+			expect(alert).toBeVisible()
+			expect(within(alert).getByRole('heading')).toHaveTextContent(
+				'Pending change'
+			)
+		})
+
+		it('can show if the baker is about to be removed', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						...defaultProps.baker.state,
+						pendingChange: {
+							__typename: 'PendingBakerRemoval',
+							effectiveTime: '1969-07-20T20:17:40.000Z',
+						},
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(
+				screen.getByText('Baker will be removed Jul 20, 1969, 8:17 PM')
+			).toBeInTheDocument()
+		})
+
+		it('will show the new staked amount if stake is to be reduced', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						...defaultProps.baker.state,
+						pendingChange: {
+							__typename: 'PendingBakerReduceStake',
+							effectiveTime: '1969-07-20T20:17:40.000Z',
+							newStakedAmount: 421337421337,
+						},
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(
+				screen.getByText(
+					'Stake will be reduced to 421,337.421337 Ͼ on Jul 20, 1969, 8:17 PM'
+				)
+			).toBeInTheDocument()
 		})
 	})
 })

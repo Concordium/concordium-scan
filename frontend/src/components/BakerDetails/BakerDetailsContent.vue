@@ -2,6 +2,43 @@
 	<div>
 		<BakerDetailsHeader :baker="baker" />
 		<DrawerContent>
+			<Alert
+				v-if="
+					baker.state.__typename === 'ActiveBakerState' &&
+					baker.state.pendingChange
+				"
+			>
+				Pending change
+				<template
+					v-if="
+						baker.state.pendingChange.__typename === 'PendingBakerReduceStake'
+					"
+					#secondary
+				>
+					<!-- vue-tsc doesn't seem to be satisfied with the template condition ... -->
+					<span
+						v-if="
+							baker.state.pendingChange.__typename === 'PendingBakerReduceStake'
+						"
+					>
+						Stake will be reduced to
+						{{
+							convertMicroCcdToCcd(baker.state.pendingChange.newStakedAmount)
+						}}
+						Ͼ on {{ formatTimestamp(baker.state.pendingChange.effectiveTime) }}
+					</span>
+				</template>
+				<template
+					v-else-if="
+						baker.state.pendingChange.__typename === 'PendingBakerRemoval'
+					"
+					#secondary
+				>
+					Baker will be removed
+					{{ formatTimestamp(baker.state.pendingChange.effectiveTime) }}
+				</template>
+			</Alert>
+
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard>
 					<template #title>Account</template>
@@ -39,6 +76,7 @@ import { computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import Alert from '~/components/molecules/Alert.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import {
