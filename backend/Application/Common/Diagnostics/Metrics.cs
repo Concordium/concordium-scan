@@ -40,10 +40,7 @@ public class Metrics : IMetrics, IDisposable
 
         public void Dispose()
         {
-            lock (_counter)
-            {
-                _counter.Add(_stopWatch.ElapsedMilliseconds);
-            }
+            _counter.Add(_stopWatch.ElapsedMilliseconds);
         }
     }
 

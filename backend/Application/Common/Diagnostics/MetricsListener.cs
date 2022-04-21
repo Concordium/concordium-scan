@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
 using System.Text;
 
 namespace Application.Common.Diagnostics;
@@ -7,7 +8,7 @@ public class MetricsListener : IDisposable
 {
     private readonly MeterListener _meterListener;
     private readonly ILogger _logger;
-    private readonly Dictionary<string, List<long>> _measurements = new();
+    private readonly ConcurrentDictionary<string, List<long>> _measurements = new();
 
     public MetricsListener()
     {
