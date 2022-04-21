@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace Application.Common.Diagnostics;
@@ -6,7 +7,7 @@ namespace Application.Common.Diagnostics;
 public class Metrics : IMetrics, IDisposable
 {
     private readonly Meter _meter;
-    private readonly Dictionary<string, Counter<long>> _durationCounters = new();
+    private readonly ConcurrentDictionary<string, Counter<long>> _durationCounters = new();
     
     public Metrics()
     {
@@ -39,7 +40,10 @@ public class Metrics : IMetrics, IDisposable
 
         public void Dispose()
         {
-            _counter.Add(_stopWatch.ElapsedMilliseconds);
+            lock (_counter)
+            {
+                _counter.Add(_stopWatch.ElapsedMilliseconds);
+            }
         }
     }
 
