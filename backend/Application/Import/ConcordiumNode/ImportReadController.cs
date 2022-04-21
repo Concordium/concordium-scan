@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
@@ -17,12 +18,14 @@ public class ImportReadController : BackgroundService
     private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
+    private readonly IMetrics _metrics;
 
-    public ImportReadController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel)
+    public ImportReadController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
     {
         _client = client;
         _featureFlags = featureFlags;
         _channel = channel;
+        _metrics = metrics;
         _logger = Log.ForContext(GetType());
     }
 
@@ -55,7 +58,7 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), nameof(_client.GetConsensusStatusAsync), stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
@@ -89,25 +92,25 @@ public class ImportReadController : BackgroundService
 
     private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, CancellationToken stoppingToken)
     {
-        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), "GetBlocksAtHeight", stoppingToken);
+        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
         if (blocksAtHeight.Length != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
         var blockHash = blocksAtHeight.Single();
 
-        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash, stoppingToken), "GetBlockInfo", stoppingToken);
-        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash, stoppingToken), "GetBlockSummary", stoppingToken);
-        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash, stoppingToken), "GetRewardStatus", stoppingToken);
+        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
+        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash, stoppingToken), nameof(_client.GetBlockSummaryAsync), stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash, stoppingToken), nameof(_client.GetRewardStatusAsync), stoppingToken);
 
         var blockInfo = await blockInfoTask;
         var blockSummary = await blockSummaryTask;
         var rewardStatus = await rewardStatusTask;
 
-        var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), "GetRelevantAccountInfos", stoppingToken);
+        var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
 
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), "GetIdentityProviders", stoppingToken);
+            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
 
             payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus,
                 genesisIdentityProviders);
@@ -206,6 +209,8 @@ public class ImportReadController : BackgroundService
 
     private async Task<T> GetWithGrpcRetryAsync<T>(Func<Task<T>> func, string operationName, CancellationToken stoppingToken)
     {
+        using var counter = _metrics.MeasureDuration(nameof(ImportReadController), operationName);
+
         var policyResult = await Policy
             .Handle<RpcException>(ex => ex.StatusCode != StatusCode.Cancelled) 
             .WaitAndRetryForeverAsync(_ => TimeSpan.FromSeconds(5), (exception, span) => OnGetRetry(exception, operationName))
