@@ -8,7 +8,7 @@ public class MetricsListener : IDisposable
 {
     private readonly MeterListener _meterListener;
     private readonly ILogger _logger;
-    private readonly ConcurrentDictionary<string, List<long>> _measurements = new();
+    private ConcurrentDictionary<string, List<long>> _measurements = new();
 
     public MetricsListener()
     {
@@ -28,17 +28,16 @@ public class MetricsListener : IDisposable
     
     private void OnMeasurementRecorded(Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state)
     {
-        if (!_measurements.TryGetValue(instrument.Name, out var bucket))
-        {
-            bucket = new List<long>();
-            _measurements[instrument.Name] = bucket;
-        }
+        var bucket = _measurements.GetOrAdd(instrument.Name, _ => new List<long>());
         bucket.Add(measurement);
     }
 
     public void DumpCapturedMetrics()
     {
-        var rows = _measurements
+        var measurements = _measurements;
+        _measurements = new();
+        
+        var rows = measurements
             .OrderBy(x => x.Key)
             .Select(x => new
             {
@@ -71,7 +70,6 @@ public class MetricsListener : IDisposable
             result.AppendFormat(rowFormat, row.Name, row.Count, row.Average, row.Total, row.Max);
         
         _logger.Information($"Captured metrics: {result}");
-        _measurements.Clear();
     }
     
     public void Dispose()
