@@ -81,10 +81,6 @@ public class SpecialEventJsonConverterTest
     public void Deserialize_UnknownSpecialEvent()
     {
         var json = "{\"tag\": \"FooBar\", \"remainder\": \"42\" }";
-        var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
-        
-        Assert.NotNull(result);
-        var typed = Assert.IsType<UnknownSpecialEvent>(result);
-        Assert.Equal("FooBar", typed.Tag);
+        Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions));
     }
 }

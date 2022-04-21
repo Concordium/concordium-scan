@@ -19,7 +19,7 @@ public class SpecialEventJsonConverter : JsonConverter<SpecialEvent>
             "FinalizationRewards" => JsonSerializer.Deserialize<FinalizationRewardsSpecialEvent>(ref reader, options)!,
             "BlockReward" => JsonSerializer.Deserialize<BlockRewardSpecialEvent>(ref reader, options)!,
             "BakingRewards" => JsonSerializer.Deserialize<BakingRewardsSpecialEvent>(ref reader, options)!,
-            _ => JsonSerializer.Deserialize<UnknownSpecialEvent>(ref reader, options)!
+            _ => throw new NotImplementedException($"Can not deserialize {tagValue}")
         };
 
         return result;
