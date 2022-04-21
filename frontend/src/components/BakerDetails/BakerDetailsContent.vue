@@ -18,6 +18,17 @@
 					</template>
 					<template #secondary> {{ restakeText }} </template>
 				</DetailsCard>
+				<DetailsCard v-else-if="baker.state.__typename === 'RemovedBakerState'">
+					<template #title>Removed at</template>
+					<template #default>
+						<span class="numerical">
+							{{ formatTimestamp(baker.state.removedAt) }}
+						</span>
+					</template>
+					<template #secondary>
+						{{ convertTimestampToRelative(baker.state.removedAt, NOW, true) }}
+					</template>
+				</DetailsCard>
 			</div>
 		</DrawerContent>
 	</div>
@@ -29,8 +40,15 @@ import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
-import { convertMicroCcdToCcd } from '~/utils/format'
+import { useDateNow } from '~/composables/useDateNow'
+import {
+	convertMicroCcdToCcd,
+	formatTimestamp,
+	convertTimestampToRelative,
+} from '~/utils/format'
 import type { Baker } from '~/types/generated'
+
+const { NOW } = useDateNow()
 
 type Props = {
 	baker: Baker

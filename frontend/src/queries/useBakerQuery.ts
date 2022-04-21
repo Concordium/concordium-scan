@@ -22,7 +22,15 @@ const BakerQuery = gql<BakerResponse>`
 					stakedAmount
 					restakeEarnings
 					pendingChange {
-						effectiveTime
+						... on PendingBakerReduceStake {
+							__typename
+							effectiveTime
+							newStakedAmount
+						}
+						... on PendingBakerReduceStake {
+							__typename
+							effectiveTime
+						}
 					}
 				}
 				... on RemovedBakerState {

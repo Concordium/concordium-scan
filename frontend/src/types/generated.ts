@@ -122,6 +122,7 @@ export type AccountStatementEntry = {
   accountBalance: Scalars['UnsignedLong'];
   amount: Scalars['Long'];
   entryType: AccountStatementEntryType;
+  id: Scalars['ID'];
   reference: BlockOrTransaction;
   timestamp: Scalars['DateTime'];
 };
@@ -1179,17 +1180,15 @@ export type PageInfo = {
   startCursor?: Maybe<Scalars['String']>;
 };
 
-export type PendingBakerChange = {
-  effectiveTime: Scalars['DateTime'];
-};
+export type PendingBakerChange = PendingBakerReduceStake | PendingBakerRemoval;
 
-export type PendingBakerReduceStake = PendingBakerChange & {
+export type PendingBakerReduceStake = {
   __typename?: 'PendingBakerReduceStake';
   effectiveTime: Scalars['DateTime'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
 
-export type PendingBakerRemoval = PendingBakerChange & {
+export type PendingBakerRemoval = {
   __typename?: 'PendingBakerRemoval';
   effectiveTime: Scalars['DateTime'];
 };
@@ -1217,6 +1216,7 @@ export type Query = {
   blockMetrics?: Maybe<BlockMetrics>;
   blocks?: Maybe<BlocksConnection>;
   rewardMetrics: RewardMetrics;
+  rewardMetricsForBaker: RewardMetrics;
   search: SearchResult;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
@@ -1297,6 +1297,12 @@ export type QueryBlocksArgs = {
 
 
 export type QueryRewardMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
+export type QueryRewardMetricsForBakerArgs = {
+  bakerId: Scalars['Long'];
   period: MetricsPeriod;
 };
 

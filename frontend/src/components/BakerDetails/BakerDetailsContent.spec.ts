@@ -49,6 +49,12 @@ describe('BakerDetailsContent', () => {
 		expect(screen.getByText('c001-acc0un7')).toBeInTheDocument()
 	})
 
+	it('will not show the removed details', () => {
+		render({})
+
+		expect(screen.queryByText('Removed at')).not.toBeInTheDocument()
+	})
+
 	describe('when the baker is ACTIVE', () => {
 		it('will show the staked amount', () => {
 			render({})
@@ -77,6 +83,41 @@ describe('BakerDetailsContent', () => {
 			expect(
 				screen.getByText('Earnings are not being restaked')
 			).toBeInTheDocument()
+		})
+	})
+
+	describe('when the baker is REMOVED', () => {
+		it('will show the time it was removed', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						__typename: 'RemovedBakerState',
+						removedAt: '1969-07-20T20:17:40.000Z',
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(screen.getByText('Removed at')).toBeInTheDocument()
+			expect(screen.getByText('Jul 20, 1969, 8:17 PM')).toBeInTheDocument()
+		})
+
+		it('will not show staked amount', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						__typename: 'RemovedBakerState',
+						removedAt: '1969-07-20T20:17:40.000Z',
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(screen.queryByText('Staked amount')).not.toBeInTheDocument()
 		})
 	})
 })

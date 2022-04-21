@@ -8,6 +8,8 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, watch } from 'vue'
+
 type Props = {
 	type: 'success' | 'failure'
 }
