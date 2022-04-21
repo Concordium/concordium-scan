@@ -27,7 +27,7 @@ const BakerQuery = gql<BakerResponse>`
 							effectiveTime
 							newStakedAmount
 						}
-						... on PendingBakerReduceStake {
+						... on PendingBakerRemoval {
 							__typename
 							effectiveTime
 						}

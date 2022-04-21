@@ -40,12 +40,6 @@
 			</Alert>
 
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
-				<DetailsCard>
-					<template #title>Account</template>
-					<template #default>
-						<AccountLink :address="baker.account.address.asString" />
-					</template>
-				</DetailsCard>
 				<DetailsCard v-if="baker.state.__typename === 'ActiveBakerState'">
 					<template #title>Staked amount</template>
 					<template #default>
@@ -64,6 +58,12 @@
 					</template>
 					<template #secondary>
 						{{ convertTimestampToRelative(baker.state.removedAt, NOW, true) }}
+					</template>
+				</DetailsCard>
+				<DetailsCard>
+					<template #title>Account</template>
+					<template #default>
+						<AccountLink :address="baker.account.address.asString" />
 					</template>
 				</DetailsCard>
 			</div>
