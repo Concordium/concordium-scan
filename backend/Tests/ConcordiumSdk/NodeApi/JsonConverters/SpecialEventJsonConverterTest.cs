@@ -78,6 +78,65 @@ public class SpecialEventJsonConverterTest
     }
 
     [Fact]
+    public void Deserialize_PaydayFoundationReward()
+    {
+        var json = "{\"tag\": \"PaydayFoundationReward\", \"developmentCharge\": \"98451\", \"foundationAccount\": \"3vEnfKPGRmgTMkoDMWLAmWH9dRRueXMA8oBGbZVGLsP8JnYgxF\"}";
+
+        var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
+        Assert.NotNull(result);
+        var typed = Assert.IsType<PaydayFoundationRewardSpecialEvent>(result);
+        Assert.Equal(CcdAmount.FromMicroCcd(98451), typed.DevelopmentCharge);
+        Assert.Equal(new AccountAddress("3vEnfKPGRmgTMkoDMWLAmWH9dRRueXMA8oBGbZVGLsP8JnYgxF"), typed.FoundationAccount);
+    }
+   
+    [Theory]
+    [InlineData("null", null)]
+    [InlineData("3", 3UL)]
+    public void Deserialize_PaydayPoolReward(string poolOwnerString, ulong? expectedPoolOwner)
+    {
+        var json = "{\"tag\": \"PaydayPoolReward\", \"bakerReward\": \"51640\", \"finalizationReward\": \"1001\", \"poolOwner\": " + poolOwnerString + ", \"transactionFees\": \"84551\"}";
+
+        var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
+        Assert.NotNull(result);
+        var typed = Assert.IsType<PaydayPoolRewardSpecialEvent>(result);
+        Assert.Equal(expectedPoolOwner, typed.PoolOwner);
+        Assert.Equal(CcdAmount.FromMicroCcd(51640), typed.BakerReward);
+        Assert.Equal(CcdAmount.FromMicroCcd(1001), typed.FinalizationReward);
+        Assert.Equal(CcdAmount.FromMicroCcd(84551), typed.TransactionFees);
+    }
+    
+    [Fact]
+    public void Deserialize_PaydayAccountReward()
+    {
+        var json = "{\"tag\": \"PaydayAccountReward\", \"bakerReward\": \"484690345\", \"account\": \"3rbzCcKiRoiJJg7sP27oJpGYruGjQsfV1TqirHHRspX8HpRyJ4\", \"finalizationReward\": \"111\", \"transactionFees\": \"333\"}";
+
+        var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
+        Assert.NotNull(result);
+        var typed = Assert.IsType<PaydayAccountRewardSpecialEvent>(result);
+        Assert.Equal(CcdAmount.FromMicroCcd(484690345), typed.BakerReward);
+        Assert.Equal(new AccountAddress("3rbzCcKiRoiJJg7sP27oJpGYruGjQsfV1TqirHHRspX8HpRyJ4"), typed.Account);
+        Assert.Equal(CcdAmount.FromMicroCcd(111), typed.FinalizationReward);
+        Assert.Equal(CcdAmount.FromMicroCcd(333), typed.TransactionFees);
+    }
+    
+    [Fact]
+    public void Deserialize_BlockAccrueReward()
+    {
+        var json = "{\"lPoolReward\": \"111\", \"bakerId\": 2, \"tag\": \"BlockAccrueReward\", \"bakerReward\": \"222\", \"newGASAccount\": \"333\", \"oldGASAccount\": \"444\", \"foundationCharge\": \"555\", \"transactionFees\": \"666\"}";
+
+        var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
+        Assert.NotNull(result);
+        var typed = Assert.IsType<BlockAccrueRewardSpecialEvent>(result);
+        Assert.Equal(CcdAmount.FromMicroCcd(111), typed.LPoolReward);
+        Assert.Equal(2UL, typed.BakerId);
+        Assert.Equal(CcdAmount.FromMicroCcd(222), typed.BakerReward);
+        Assert.Equal(CcdAmount.FromMicroCcd(333), typed.NewGasAccount);
+        Assert.Equal(CcdAmount.FromMicroCcd(444), typed.OldGasAccount);
+        Assert.Equal(CcdAmount.FromMicroCcd(555), typed.FoundationCharge);
+        Assert.Equal(CcdAmount.FromMicroCcd(666), typed.TransactionFees);
+    }
+    
+    [Fact]
     public void Deserialize_UnknownSpecialEvent()
     {
         var json = "{\"tag\": \"FooBar\", \"remainder\": \"42\" }";
