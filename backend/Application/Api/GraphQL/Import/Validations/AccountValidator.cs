@@ -43,25 +43,38 @@ public class AccountValidator
         }
         
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        await ValidateAccountBalances(nodeBalances, blockHeight, dbContext);
+        await ValidateBakers(nodeAccountBakers, blockHeight, dbContext);
+    }
+
+    private async Task ValidateAccountBalances(List<Item> nodeBalances, ulong blockHeight, GraphQlDbContext dbContext)
+    {
         var dbBalances = await dbContext.Accounts
             .Select(x => new Item(x.CanonicalAddress.AsString, (long)x.Amount))
             .ToArrayAsync();
-        
+
         var equal = nodeBalances.OrderBy(x => x.Address)
             .SequenceEqual(dbBalances.OrderBy(x => x.Address));
-        _logger.Information("Validated {accountCount} accounts at block height {blockHeight}. Node and database balances equal: {result}", nodeBalances.Count, blockHeight, equal);
-        
+        _logger.Information(
+            "Validated {accountCount} accounts at block height {blockHeight}. Node and database balances equal: {result}",
+            nodeBalances.Count, blockHeight, equal);
+
         if (!equal)
         {
             var diff1 = nodeBalances.Except(dbBalances);
-            var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
+            var format = String.Join(Environment.NewLine,
+                diff1.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
             _logger.Warning($"NodeBalances.Except(dbBalances): {Environment.NewLine}{format}");
 
             var diff2 = dbBalances.Except(nodeBalances);
-             format = String.Join(Environment.NewLine, diff2.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
+            format = String.Join(Environment.NewLine,
+                diff2.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
             _logger.Warning($"dbBalances.Except(nodeBalances): {Environment.NewLine}{format}");
         }
+    }
 
+    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, ulong blockHeight, GraphQlDbContext dbContext)
+    {
         var nodeBakers = nodeAccountBakers
             .Select(x => new
             {
@@ -71,7 +84,7 @@ public class AccountValidator
             })
             .OrderBy(x => x.Id)
             .ToArray();
-        
+
         var dbBakers = await dbContext.Bakers
             .Where(x => x.ActiveState != null)
             .Select(x => new
@@ -82,8 +95,11 @@ public class AccountValidator
             })
             .OrderBy(x => x.Id)
             .ToArrayAsync();
-        
+
         var activeBakersEqual = nodeBakers.SequenceEqual(dbBakers);
+        _logger.Information(
+            "Validated {bakerCount} bakers at block height {blockHeight}. Node and database bakers equal: {result}",
+            nodeBakers.Length, blockHeight, activeBakersEqual);
         if (!activeBakersEqual)
         {
             var diff1 = nodeBakers.Except(dbBakers).ToArray();
@@ -101,7 +117,7 @@ public class AccountValidator
             }
         }
     }
-    
+
     private record Item(string Address, long Amount);
     
     private IEnumerable<IEnumerable<T>> Chunk<T>(T[] list, int batchSize)
