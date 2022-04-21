@@ -68,7 +68,8 @@ public class GrpcNodeClient : INodeClient, IDisposable
         {
             BlockHash_ = blockHash.AsString
         };
-        var call = _client.GetAccountListAsync(request, CreateCallOptions(cancellationToken));
+        var callOptions = CreateCallOptions(cancellationToken, TimeSpan.FromSeconds(60));
+        var call = _client.GetAccountListAsync(request, callOptions);
         var response = await call;
         return JsonSerializer.Deserialize<ConcordiumSdk.Types.AccountAddress[]>(response.Value, _jsonSerializerOptions)!;
     }
@@ -198,7 +199,13 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
     private CallOptions CreateCallOptions(CancellationToken cancellationToken)
     {
-        return new CallOptions(_metadata, DateTime.UtcNow.AddSeconds(30), cancellationToken);
+        return CreateCallOptions(cancellationToken, TimeSpan.FromSeconds(30));
+    }
+    
+    private CallOptions CreateCallOptions(CancellationToken cancellationToken, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        return new CallOptions(_metadata, deadline, cancellationToken);
     }
 
     public void Dispose()
