@@ -8,7 +8,7 @@ public class MetricsListener : IDisposable
 {
     private readonly MeterListener _meterListener;
     private readonly ILogger _logger;
-    private ConcurrentDictionary<string, List<long>> _measurements = new();
+    private ConcurrentDictionary<string, ConcurrentBag<long>> _measurements = new();
 
     public MetricsListener()
     {
@@ -28,7 +28,7 @@ public class MetricsListener : IDisposable
     
     private void OnMeasurementRecorded(Instrument instrument, long measurement, ReadOnlySpan<KeyValuePair<string, object?>> tags, object? state)
     {
-        var bucket = _measurements.GetOrAdd(instrument.Name, _ => new List<long>());
+        var bucket = _measurements.GetOrAdd(instrument.Name, _ => new ConcurrentBag<long>());
         bucket.Add(measurement);
     }
 
