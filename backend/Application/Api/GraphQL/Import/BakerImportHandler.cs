@@ -202,7 +202,7 @@ public class BakerImportHandler
 
     private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo, ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
-        if (blockInfo.BlockSlotTime > importState.NextPendingBakerChangeTime)
+        if (blockInfo.BlockSlotTime >= importState.NextPendingBakerChangeTime)
         {
             await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, baker => ApplyPendingChange(baker, resultBuilder));
 
