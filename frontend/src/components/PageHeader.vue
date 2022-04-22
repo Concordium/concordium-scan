@@ -11,7 +11,7 @@
 			<NetworkSelect />
 		</div>
 
-		<search-input />
+		<Search />
 
 		<Navigation />
 	</header>
@@ -22,4 +22,5 @@ import Navigation from '~/components/Navigation/Navigation.vue'
 import NetworkSelect from '~/components/molecules/NetworkSelect.vue'
 import LogoWithText from '~/components/icons/LogoWithText.vue'
 import LogoNoText from '~/components/icons/LogoNoText.vue'
+import Search from '~/components/Search/Search.vue'
 </script>

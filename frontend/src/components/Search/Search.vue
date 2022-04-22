@@ -8,7 +8,7 @@
 				v-model="searchValue"
 				:class="$style.input"
 				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block pl-9"
-				placeholder="Search for account, block or transaction &hellip;"
+				placeholder="Search for account, baker, block or transaction &hellip;"
 				type="search"
 				@blur="lostFocusOnSearch"
 				@keyup.enter="gotoSearchResult"
@@ -21,39 +21,25 @@
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
-				<div v-if="loading" class="text-center">
+				<div v-if="status === 'loading'" class="text-center">
 					<BWCubeLogoIcon
-						v-if="loading && searchValue"
+						v-if="searchValue"
 						class="w-10 h-10 animate-ping"
 						:class="$style.loading"
 					/>
 				</div>
-				<div
-					v-else-if="
-						!queryData ||
-						(queryData &&
-							!(
-								queryData.search.blocks.nodes.length > 0 ||
-								queryData.search.transactions.nodes.length > 0 ||
-								queryData.search.accounts.nodes.length > 0
-							))
-					"
-				>
-					No results.
-				</div>
-				<div
-					v-if="
-						!loading &&
-						queryData &&
-						(queryData.search.blocks.nodes.length > 0 ||
-							queryData.search.transactions.nodes.length > 0 ||
-							queryData.search.accounts.nodes.length > 0)
-					"
-				>
-					<div v-if="queryData.search.blocks.nodes.length > 0">
-						<div class="text-xl">Blocks</div>
+
+				<div v-else-if="status === 'empty'">No results</div>
+
+				<!--`data` is always present in this state, but vue-tsc doesn't know this -->
+				<div v-else-if="status === 'done' && data?.search">
+					<SearchResultCategory
+						v-if="resultCount.blocks"
+						title="Blocks"
+						:has-more-results="!!data.search.blocks.pageInfo.hasNextPage"
+					>
 						<div
-							v-for="(block, index) in queryData.search.blocks.nodes"
+							v-for="(block, index) in data.search.blocks.nodes"
 							:key="block.blockHash"
 							class="grid grid-cols-4 gap-8"
 						>
@@ -79,19 +65,15 @@
 								</Tooltip>
 							</div>
 						</div>
-						<div
-							v-if="queryData.search.blocks.pageInfo.hasNextPage"
-							class="text-theme-faded"
-						>
-							&hellip; more than 3 results!
-						</div>
-					</div>
+					</SearchResultCategory>
 
-					<div v-if="queryData.search.transactions.nodes.length > 0">
-						<div class="text-xl">Transactions</div>
+					<SearchResultCategory
+						v-if="resultCount.transactions"
+						title="Transactions"
+						:has-more-results="!!data.search.transactions.pageInfo.hasNextPage"
+					>
 						<div
-							v-for="(transaction, index) in queryData.search.transactions
-								.nodes"
+							v-for="(transaction, index) in data.search.transactions.nodes"
 							:key="transaction.transactionHash"
 							class="grid grid-cols-4 gap-8"
 						>
@@ -126,18 +108,15 @@
 								</Tooltip>
 							</div>
 						</div>
-						<div
-							v-if="queryData.search.transactions.pageInfo.hasNextPage"
-							class="text-theme-faded"
-						>
-							&hellip; more than 3 results!
-						</div>
-					</div>
+					</SearchResultCategory>
 
-					<div v-if="queryData.search.accounts.nodes.length > 0">
-						<div class="text-xl">Accounts</div>
+					<SearchResultCategory
+						v-if="resultCount.accounts"
+						title="Accounts"
+						:has-more-results="data.search.accounts.pageInfo.hasNextPage"
+					>
 						<div
-							v-for="(account, index) in queryData.search.accounts.nodes"
+							v-for="(account, index) in data.search.accounts.nodes"
 							:key="account.addressString"
 							class="grid grid-cols-4 gap-8"
 						>
@@ -157,13 +136,7 @@
 								</Tooltip>
 							</div>
 						</div>
-						<div
-							v-if="queryData.search.accounts.pageInfo.hasNextPage"
-							class="text-theme-faded"
-						>
-							&hellip; more than 3 results!
-						</div>
-					</div>
+					</SearchResultCategory>
 				</div>
 			</div>
 		</div>
@@ -171,10 +144,11 @@
 </template>
 
 <script lang="ts" setup>
-import { SearchIcon } from '@heroicons/vue/outline/index.js'
+import SearchResultCategory from './SearchResultCategory.vue'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import SearchIcon from '~/components/icons/SearchIcon.vue'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
@@ -188,26 +162,24 @@ const tooltipPositionBottom = 'bottom' as Position
 const tooltipPositionTop = 'top' as Position
 const searchValue = ref('')
 const delayedSearchValue = ref('')
-const queryData = ref()
-const { data: rawQueryData, executeQuery } = useSearchQuery(delayedSearchValue)
+
+const { data, executeQuery } = useSearchQuery(delayedSearchValue)
 let searchQueryTimeout: NodeJS.Timeout | null = null
-const loading = ref(true)
+
 const lastSearchTerm = ref('')
 
-watch(rawQueryData, () => {
-	loading.value = false
-	NOW.value = new Date()
-	if (lastSearchTerm.value === searchValue.value) {
-		queryData.value = rawQueryData.value
-	} else {
-		queryData.value = null
-	}
+const status = ref<'idle' | 'loading' | 'empty' | 'done'>('idle')
+
+watch(data, () => {
+	status.value = resultCount.value.total === 0 ? 'empty' : 'done'
 })
+
 watch(searchValue, (newValue, _oldValue) => {
 	if (searchQueryTimeout) clearTimeout(searchQueryTimeout)
-	loading.value = true
+	status.value = 'loading'
 
 	if (!newValue) {
+		status.value = 'idle'
 		delayedSearchValue.value = newValue
 	} else
 		searchQueryTimeout = setTimeout(() => {
@@ -216,56 +188,53 @@ watch(searchValue, (newValue, _oldValue) => {
 			executeQuery()
 		}, 500)
 })
+
 const gotoSearchResult = () => {
-	if (
-		(searchValue.value !== delayedSearchValue.value &&
-			!delayedSearchValue.value) ||
-		loading.value ||
-		queryData.value.search.transactions.nodes.length > 1 ||
-		queryData.value.search.blocks.nodes.length > 1 ||
-		queryData.value.search.accounts.nodes.length > 1
-	)
+	if (status.value !== 'done' || !data.value || resultCount.value.total > 1)
 		return
-	if (
-		queryData &&
-		queryData.value &&
-		queryData.value.search &&
-		(queryData.value.search.transactions.nodes[0] ||
-			queryData.value.search.blocks.nodes[0] ||
-			queryData.value.search.accounts.nodes[0])
-	) {
-		if (queryData.value.search.transactions.nodes[0])
-			drawer.push({
-				entityTypeName: 'transaction',
-				hash: queryData.value.search.transactions.nodes[0].transactionHash,
-				id: queryData.value.search.transactions.nodes[0].id,
-			})
-		else if (queryData.value.search.blocks.nodes[0])
-			drawer.push({
-				entityTypeName: 'block',
-				hash: queryData.value.search.blocks.nodes[0].blockHash,
-				id: queryData.value.search.blocks.nodes[0].id,
-			})
-		else if (queryData.value.search.accounts.nodes[0])
-			drawer.push({
-				entityTypeName: 'account',
-				address: queryData.value.search.accounts.nodes[0].address,
-			})
-		searchValue.value = ''
-	}
+
+	if (data.value.search.transactions.nodes[0])
+		drawer.push({
+			entityTypeName: 'transaction',
+			hash: data.value.search.transactions.nodes[0].transactionHash,
+			id: data.value.search.transactions.nodes[0].id,
+		})
+	else if (data.value.search.blocks.nodes[0])
+		drawer.push({
+			entityTypeName: 'block',
+			hash: data.value.search.blocks.nodes[0].blockHash,
+			id: data.value.search.blocks.nodes[0].id,
+		})
+	else if (data.value.search.accounts.nodes[0])
+		drawer.push({
+			entityTypeName: 'account',
+			address: data.value.search.accounts.nodes[0].address.asString,
+		})
+
+	searchValue.value = ''
+	status.value = 'idle'
 }
+
 const rootSearchContainer = ref()
 const lostFocusOnSearch = (x: FocusEvent) => {
-	if (
-		x &&
-		x.relatedTarget &&
-		rootSearchContainer.value.contains(x.relatedTarget)
-	)
+	if (x.relatedTarget && rootSearchContainer.value.contains(x.relatedTarget))
 		return
 	setTimeout(() => {
 		searchValue.value = ''
+		status.value = 'idle'
 	}, 100)
 }
+
+const resultCount = computed(() => ({
+	blocks: data.value?.search.blocks.nodes.length,
+	transactions: data.value?.search.transactions.nodes.length,
+	accounts: data.value?.search.accounts.nodes.length,
+	total:
+		data.value?.search.blocks.nodes.length ??
+		0 +
+			(data.value?.search.transactions.nodes.length ?? 0) +
+			(data.value?.search.accounts.nodes.length ?? 0),
+}))
 </script>
 
 <style module>
@@ -280,8 +249,8 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 	background-image: url('data:image/svg+xml;utf8,<svg style="color:white" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0 0h24v24H0z"></path><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>');
 }
 .input::placeholder {
-	@apply italic;
 	color: var(--color-input-placeholder);
+	font-style: italic;
 }
 
 .loading {
