@@ -3,22 +3,24 @@
 		<BlockDetailsHeader v-if="props.block" :block="props.block" />
 		<DrawerContent v-if="props.block">
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
-				<DetailsCard v-if="props.block?.blockSlotTime">
+				<DetailsCard v-if="props.block.blockSlotTime">
 					<template #title>Age</template>
 					<template #default>
 						{{
-							convertTimestampToRelative(props.block?.blockSlotTime || '', NOW)
+							convertTimestampToRelative(props.block.blockSlotTime || '', NOW)
 						}}
 					</template>
 					<template #secondary>{{
-						formatTimestamp(props.block?.blockSlotTime)
+						formatTimestamp(props.block.blockSlotTime)
 					}}</template>
 				</DetailsCard>
-				<DetailsCard>
+				<DetailsCard v-if="props.block.bakerId">
 					<template #title>Baker id</template>
 					<template #default>
-						<UserIcon class="h-5 inline align-baseline mr-3" />
-						{{ props.block?.bakerId }}
+						<BakerLink
+							:id="props.block.bakerId"
+							icon-class="h-5 inline align-baseline mr-3"
+						/>
 					</template>
 				</DetailsCard>
 			</div>
@@ -26,7 +28,7 @@
 				Tokenomics
 				<template #content>
 					<MintDistribution
-						v-if="props.block?.specialEvents.mint"
+						v-if="props.block.specialEvents.mint"
 						:data="props.block.specialEvents.mint"
 					/>
 					<FinalizationRewards
@@ -38,7 +40,7 @@
 						:go-to-page="props.goToPageFinalizationRewards"
 					/>
 					<BlockRewards
-						v-if="props.block?.specialEvents.blockRewards"
+						v-if="props.block.specialEvents.blockRewards"
 						:data="props.block.specialEvents.blockRewards"
 					/>
 				</template>
@@ -46,17 +48,17 @@
 			<Accordion>
 				Transactions
 				<span class="text-theme-faded ml-1">
-					({{ props.block?.transactionCount }})
+					({{ props.block.transactionCount }})
 				</span>
 				<template #content>
 					<BlockDetailsTransactions
-						v-if="props.block?.transactionCount > 0 && props.block.transactions"
-						:transactions="props.block?.transactions.nodes || []"
-						:total-count="props.block?.transactionCount"
+						v-if="props.block.transactionCount > 0 && props.block.transactions"
+						:transactions="props.block.transactions.nodes || []"
+						:total-count="props.block.transactionCount"
 						:page-info="props.block.transactions.pageInfo"
 						:go-to-page="props.goToPageTx"
 					/>
-					<div v-if="!props.block?.transactionCount" class="p-4">
+					<div v-if="!props.block.transactionCount" class="p-4">
 						No transactions
 					</div>
 				</template>
@@ -66,8 +68,8 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import BlockDetailsHeader from './BlockDetailsHeader.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'

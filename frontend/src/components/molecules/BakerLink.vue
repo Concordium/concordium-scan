@@ -1,6 +1,6 @@
 <template>
 	<div class="inline-block">
-		<UserIcon class="h-4 inline align-text-top" :class="iconClass" />
+		<BakerIcon class="h-4 inline align-text-top" :class="iconClass" />
 		<LinkButton class="px-2" @click="() => handleOnClick(id)">
 			{{ id }}
 		</LinkButton>
@@ -8,9 +8,9 @@
 </template>
 
 <script setup lang="ts">
-import { UserIcon } from '@heroicons/vue/solid/index.js'
 import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
+import BakerIcon from '~/components/icons/BakerIcon.vue'
 
 type Props = {
 	id: number
