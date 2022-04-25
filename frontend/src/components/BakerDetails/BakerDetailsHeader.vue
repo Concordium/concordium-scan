@@ -12,14 +12,7 @@
 			</div>
 			<div class="flex items-center">
 				<Badge
-					v-if="baker.state.__typename === 'ActiveBakerState'"
-					type="success"
-				>
-					Active
-				</Badge>
-
-				<Badge
-					v-else-if="baker.state.__typename === 'RemovedBakerState'"
+					v-if="baker.state.__typename === 'RemovedBakerState'"
 					type="failure"
 				>
 					Removed

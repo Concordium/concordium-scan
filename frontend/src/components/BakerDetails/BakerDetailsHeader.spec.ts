@@ -43,10 +43,9 @@ describe('BakerDetailsHeader', () => {
 		expect(screen.getByText('1337')).toBeInTheDocument()
 	})
 
-	it("can show the baker's 'Active' state", () => {
+	it("will not show the 'Removed' badge if baker is active", () => {
 		render({})
 
-		expect(screen.getByText('Active')).toBeInTheDocument()
 		expect(screen.queryByText('Removed')).not.toBeInTheDocument()
 	})
 
@@ -64,6 +63,5 @@ describe('BakerDetailsHeader', () => {
 		render({ props })
 
 		expect(screen.getByText('Removed')).toBeInTheDocument()
-		expect(screen.queryByText('Active')).not.toBeInTheDocument()
 	})
 })
