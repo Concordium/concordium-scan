@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Transactions;
 using ConcordiumSdk.Types;
 
 namespace Tests.TestUtilities.Builders.GraphQL;

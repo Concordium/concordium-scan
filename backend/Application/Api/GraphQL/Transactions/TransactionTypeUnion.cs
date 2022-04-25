@@ -2,7 +2,7 @@
 using HotChocolate;
 using HotChocolate.Types;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Transactions;
 
 [UnionType("TransactionType")]
 public abstract class TransactionTypeUnion

@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL.Pagination;
+﻿using Application.Api.GraphQL.Transactions;
+
+namespace Application.Api.GraphQL.Pagination;
 
 public class TransactionByDescendingIdCursorPagingAlgorithm : CursorPagingAlgorithmBase<Transaction>
 {

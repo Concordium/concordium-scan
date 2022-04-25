@@ -1,7 +1,7 @@
 using HotChocolate;
 using HotChocolate.Types;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Transactions;
 
 [UnionType("Event")]
 public abstract record TransactionResultEvent;

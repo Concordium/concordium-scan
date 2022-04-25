@@ -4,6 +4,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.Search;
+using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;
@@ -31,6 +32,7 @@ public static class GraphQlConfiguration
         
         builder.AddQueryType<Query>()
             .AddType<BlocksQuery>()
+            .AddType<TransactionsQuery>()
             .AddType<AccountsQuery>()
             .AddType<BakersQuery>()
             .AddType<SearchQuery>()

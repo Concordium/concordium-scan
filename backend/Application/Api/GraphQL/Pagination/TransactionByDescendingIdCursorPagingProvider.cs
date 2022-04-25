@@ -1,4 +1,5 @@
-﻿using HotChocolate.Internal;
+﻿using Application.Api.GraphQL.Transactions;
+using HotChocolate.Internal;
 using HotChocolate.Types.Pagination;
 
 namespace Application.Api.GraphQL.Pagination;

@@ -1,5 +1,6 @@
 ﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Transactions;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -151,7 +152,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<Application.Api.GraphQL.AccountTransaction>()
+        transaction.TransactionType.Should().BeOfType<AccountTransaction>()
             .Which.AccountTransactionType.Should().Be(transactionType);
     }
     
@@ -169,7 +170,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<Application.Api.GraphQL.CredentialDeploymentTransaction>()
+        transaction.TransactionType.Should().BeOfType<CredentialDeploymentTransaction>()
             .Which.CredentialDeploymentTransactionType.Should().Be(transactionType);
     }
     
@@ -189,7 +190,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<Application.Api.GraphQL.UpdateTransaction>()
+        transaction.TransactionType.Should().BeOfType<UpdateTransaction>()
             .Which.UpdateTransactionType.Should().Be(transactionType);
     }
 
@@ -214,10 +215,10 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         result.Length.Should().Be(2);
         result[0].TransactionId.Should().Be(transaction.Id);
         result[0].Index.Should().Be(0);
-        result[0].Entity.Should().BeOfType<Application.Api.GraphQL.CredentialDeployed>();
+        result[0].Entity.Should().BeOfType<Application.Api.GraphQL.Transactions.CredentialDeployed>();
         result[1].TransactionId.Should().Be(transaction.Id);
         result[1].Index.Should().Be(1);
-        result[1].Entity.Should().BeOfType<Application.Api.GraphQL.AccountCreated>();
+        result[1].Entity.Should().BeOfType<Application.Api.GraphQL.Transactions.AccountCreated>();
     }
     
     [Fact]
@@ -232,7 +233,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transferred>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.Transferred>();
         result.Amount.Should().Be(458382);
         result.To.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.From.Should().Be(new Application.Api.GraphQL.ContractAddress(234, 32));
@@ -250,7 +251,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AccountCreated>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.AccountCreated>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
     
@@ -266,7 +267,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialDeployed>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialDeployed>();
         result.RegId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
@@ -283,7 +284,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerAdded>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerAdded>();
         result.StakedAmount.Should().Be(12551);
         result.RestakeEarnings.Should().BeTrue();
         result.BakerId.Should().Be(17);
@@ -305,7 +306,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerKeysUpdated>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerKeysUpdated>();
         result.BakerId.Should().Be(19);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
@@ -325,7 +326,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerRemoved>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerRemoved>();
         result.BakerId.Should().Be(21);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
@@ -342,7 +343,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerSetRestakeEarnings>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetRestakeEarnings>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.RestakeEarnings.Should().BeTrue();
@@ -360,7 +361,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeDecreased>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerStakeDecreased>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
@@ -378,7 +379,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.BakerStakeIncreased>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerStakeIncreased>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
@@ -396,7 +397,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.AmountAddedByDecryption>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.AmountAddedByDecryption>();
         result.Amount.Should().Be(2362462);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
@@ -413,7 +414,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.EncryptedAmountsRemoved>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.EncryptedAmountsRemoved>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.InputAmount.Should().Be("acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074");
@@ -432,7 +433,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.EncryptedSelfAmountAdded>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.EncryptedSelfAmountAdded>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.Amount.Should().Be(23446);
@@ -450,7 +451,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.NewEncryptedAmount>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.NewEncryptedAmount>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewIndex.Should().Be(155);
         result.EncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
@@ -468,7 +469,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialKeysUpdated>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialKeysUpdated>();
         result.CredId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
     }
 
@@ -484,7 +485,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.CredentialsUpdated>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialsUpdated>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewCredIds.Should().Equal("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
         result.RemovedCredIds.Should().BeEmpty();
@@ -503,7 +504,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractInitialized>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.ContractInitialized>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
         result.Amount.Should().Be(5345462);
@@ -523,7 +524,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractModuleDeployed>();
+        var result = await ReadSingleTransactionEventType<ContractModuleDeployed>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
     }
 
@@ -549,7 +550,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ContractUpdated>();
+        var result = await ReadSingleTransactionEventType<ContractUpdated>();
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
         result.Instigator.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.Amount.Should().Be(15674371);
@@ -580,7 +581,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.TransferredWithSchedule>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.TransferredWithSchedule>();
         result.FromAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.ToAccountAddress.AsString.Should().Be("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH");
         result.AmountsSchedule.Should().Equal(
@@ -601,7 +602,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.DataRegistered>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DataRegistered>();
         result.DataAsHex.Should().Be("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863");
     }
 
@@ -617,7 +618,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.TransferMemo>();
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.TransferMemo>();
         result.RawHex.Should().Be("704164616d2042696c6c696f6e61697265");
     }
 
@@ -633,7 +634,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.ChainUpdateEnqueued>();
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
         result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
         var item = Assert.IsType<MicroCcdPerEuroChainUpdatePayload>(result.Payload);
         item.ExchangeRate.Numerator.Should().Be(1);
@@ -646,7 +647,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new ModuleNotWf();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ModuleNotWf>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleNotWf>();
         result.Should().NotBeNull();
     }
 
@@ -656,7 +657,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new ModuleHashAlreadyExists(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ModuleHashAlreadyExists>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
     }
 
@@ -666,7 +667,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidAccountReference(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidAccountReference>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountReference>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -676,7 +677,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidInitMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.init");
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidInitMethod>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidInitMethod>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
         result.InitName.Should().Be("trader.init");
     }
@@ -687,7 +688,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidReceiveMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.receive");
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidReceiveMethod>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidReceiveMethod>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
         result.ReceiveName.Should().Be("trader.receive");
     }
@@ -698,7 +699,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidModuleReference(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidModuleReference>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidModuleReference>();
         result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
     }
 
@@ -708,7 +709,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidContractAddress(new ContractAddress(187, 22));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidContractAddress>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidContractAddress>();
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
     }
 
@@ -718,7 +719,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new RuntimeFailure();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RuntimeFailure>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RuntimeFailure>();
         result.Should().NotBeNull();
     }
 
@@ -728,7 +729,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new AmountTooLarge(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34656));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.AmountTooLarge>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AmountTooLarge>();
         result.Address.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.Amount.Should().Be(34656);
     }
@@ -739,7 +740,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new SerializationFailure();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.SerializationFailure>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.SerializationFailure>();
         result.Should().NotBeNull();
     }
 
@@ -749,7 +750,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new OutOfEnergy();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.OutOfEnergy>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.OutOfEnergy>();
         result.Should().NotBeNull();
     }
 
@@ -759,7 +760,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new RejectedInit(-48518);
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RejectedInit>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RejectedInit>();
         result.RejectReason.Should().Be(-48518);
     }
 
@@ -774,7 +775,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RejectedReceive>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RejectedReceive>();
         result.RejectReason.Should().Be(-48518);
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
         result.ReceiveName.Should().Be("trader.dostuff");
@@ -788,7 +789,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentRewardAccount>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentRewardAccount>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -798,7 +799,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidProof();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidProof>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidProof>();
         result.Should().NotBeNull();
     }
 
@@ -809,7 +810,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.AlreadyABaker>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AlreadyABaker>();
         result.BakerId.Should().Be(45);
     }
 
@@ -820,7 +821,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotABaker>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotABaker>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -830,7 +831,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InsufficientBalanceForBakerStake();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InsufficientBalanceForBakerStake>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForBakerStake>();
         result.Should().NotBeNull();
     }
 
@@ -840,7 +841,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new StakeUnderMinimumThresholdForBaking();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.StakeUnderMinimumThresholdForBaking>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeUnderMinimumThresholdForBaking>();
         result.Should().NotBeNull();
     }
 
@@ -850,7 +851,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new BakerInCooldown();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.BakerInCooldown>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakerInCooldown>();
         result.Should().NotBeNull();
     }
 
@@ -860,7 +861,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new DuplicateAggregationKey("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.DuplicateAggregationKey>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateAggregationKey>();
         result.AggregationKey.Should().Be("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
     }
 
@@ -870,7 +871,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NonExistentCredentialId();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentCredentialId>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredentialId>();
         result.Should().NotBeNull();
     }
 
@@ -880,7 +881,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new KeyIndexAlreadyInUse();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.KeyIndexAlreadyInUse>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse>();
         result.Should().NotBeNull();
     }
 
@@ -890,7 +891,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidAccountThreshold();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidAccountThreshold>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountThreshold>();
         result.Should().NotBeNull();
     }
 
@@ -900,7 +901,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidCredentialKeySignThreshold();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidCredentialKeySignThreshold>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentialKeySignThreshold>();
         result.Should().NotBeNull();
     }
 
@@ -910,7 +911,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidEncryptedAmountTransferProof();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidEncryptedAmountTransferProof>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidEncryptedAmountTransferProof>();
         result.Should().NotBeNull();
     }
 
@@ -920,7 +921,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidTransferToPublicProof();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidTransferToPublicProof>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof>();
         result.Should().NotBeNull();
     }
 
@@ -930,7 +931,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new EncryptedAmountSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.EncryptedAmountSelfTransfer>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -940,7 +941,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidIndexOnEncryptedTransfer();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidIndexOnEncryptedTransfer>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidIndexOnEncryptedTransfer>();
         result.Should().NotBeNull();
     }
 
@@ -950,7 +951,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new ZeroScheduledAmount();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ZeroScheduledAmount>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ZeroScheduledAmount>();
         result.Should().NotBeNull();
     }
 
@@ -960,7 +961,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NonIncreasingSchedule();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonIncreasingSchedule>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonIncreasingSchedule>();
         result.Should().NotBeNull();
     }
 
@@ -970,7 +971,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new FirstScheduledReleaseExpired();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.FirstScheduledReleaseExpired>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FirstScheduledReleaseExpired>();
         result.Should().NotBeNull();
     }
 
@@ -980,7 +981,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new ScheduledSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.ScheduledSelfTransfer>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ScheduledSelfTransfer>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -990,7 +991,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new InvalidCredentials();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.InvalidCredentials>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentials>();
         result.Should().NotBeNull();
     }
 
@@ -1000,7 +1001,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new DuplicateCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.DuplicateCredIds>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateCredIds>();
         result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
     }
 
@@ -1010,7 +1011,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NonExistentCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NonExistentCredIds>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredIds>();
         result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
     }
 
@@ -1020,7 +1021,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new RemoveFirstCredential();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.RemoveFirstCredential>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RemoveFirstCredential>();
         result.Should().NotBeNull();
     }
 
@@ -1030,7 +1031,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new CredentialHolderDidNotSign();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.CredentialHolderDidNotSign>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.CredentialHolderDidNotSign>();
         result.Should().NotBeNull();
     }
 
@@ -1040,7 +1041,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NotAllowedMultipleCredentials();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedMultipleCredentials>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedMultipleCredentials>();
         result.Should().NotBeNull();
     }
 
@@ -1050,7 +1051,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NotAllowedToReceiveEncrypted();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedToReceiveEncrypted>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToReceiveEncrypted>();
         result.Should().NotBeNull();
     }
 
@@ -1060,7 +1061,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new NotAllowedToHandleEncrypted();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.NotAllowedToHandleEncrypted>();
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted>();
         result.Should().NotBeNull();
     }
     
@@ -1089,11 +1090,11 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
     }
     
-    private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : Application.Api.GraphQL.TransactionRejectReason
+    private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : Application.Api.GraphQL.Transactions.TransactionRejectReason
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = await dbContext.Transactions.SingleAsync();
-        var rejected = Assert.IsType<Application.Api.GraphQL.Rejected>(transaction.Result);
+        var rejected = Assert.IsType<Rejected>(transaction.Result);
         return Assert.IsType<T>(rejected.Reason);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
 using ConcordiumSdk.NodeApi.Types;

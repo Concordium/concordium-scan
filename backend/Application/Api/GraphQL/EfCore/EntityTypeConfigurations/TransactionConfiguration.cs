@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.EfCore.Converters.EfCore;
+using Application.Api.GraphQL.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

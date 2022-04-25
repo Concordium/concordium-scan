@@ -1,4 +1,5 @@
-﻿using ConcordiumSdk.NodeApi.Types;
+﻿using Application.Api.GraphQL.Transactions;
+using ConcordiumSdk.NodeApi.Types;
 
 namespace Application.Api.GraphQL.Import;
 

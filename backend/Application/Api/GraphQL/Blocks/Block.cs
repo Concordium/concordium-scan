@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;

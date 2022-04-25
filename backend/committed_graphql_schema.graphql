@@ -856,12 +856,12 @@ type ProtocolChainUpdatePayload {
 }
 
 type Query {
-  transaction(id: ID!): Transaction
-  transactionByTransactionHash(transactionHash: String!): Transaction
-  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   block(id: ID!): Block
   blockByBlockHash(blockHash: String!): Block
   blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
+  transaction(id: ID!): Transaction
+  transactionByTransactionHash(transactionHash: String!): Transaction
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
   accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
