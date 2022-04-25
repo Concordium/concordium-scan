@@ -1,5 +1,5 @@
 <template>
-	<nav class="hidden md:flex -mr-4">
+	<nav class="hidden xxl:flex -mr-4">
 		<NuxtLink
 			v-for="route in navRoutes"
 			:key="route.path"

@@ -1,5 +1,5 @@
 <template>
-	<div class="flex justify-end md:w-1/3">
+	<div class="flex justify-end lg:w-1/3">
 		<MobileNavigation :nav-routes="routes" />
 
 		<DesktopNavigation :nav-routes="routes" />
@@ -27,6 +27,10 @@ const routes: Route[] = [
 	{
 		title: 'Accounts',
 		path: '/accounts',
+	},
+	{
+		title: 'Bakers',
+		path: '/bakers',
 	},
 ]
 </script>
