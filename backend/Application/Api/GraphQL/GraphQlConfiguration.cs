@@ -1,5 +1,6 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.Search;
@@ -29,6 +30,7 @@ public static class GraphQlConfiguration
         builder.AddGlobalObjectIdentification(false);
         
         builder.AddQueryType<Query>()
+            .AddType<BlocksQuery>()
             .AddType<AccountsQuery>()
             .AddType<BakersQuery>()
             .AddType<SearchQuery>()

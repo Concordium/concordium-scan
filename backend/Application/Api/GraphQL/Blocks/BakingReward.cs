@@ -1,8 +1,8 @@
 ﻿using HotChocolate;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Blocks;
 
-public class FinalizationReward
+public class BakingReward
 {
     public ulong Amount { get; init; }
     public AccountAddress Address { get; init; }

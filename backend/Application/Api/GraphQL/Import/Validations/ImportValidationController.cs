@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
 using Microsoft.EntityFrameworkCore;

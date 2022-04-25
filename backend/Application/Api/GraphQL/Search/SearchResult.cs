@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;

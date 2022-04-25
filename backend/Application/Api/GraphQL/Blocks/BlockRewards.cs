@@ -1,6 +1,6 @@
 ﻿using HotChocolate;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Blocks;
 
 public class BlockRewards
 {

@@ -1,6 +1,6 @@
 ﻿using HotChocolate;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Blocks;
 
 public class BalanceStatistics
 {
@@ -27,6 +27,7 @@ public class BalanceStatistics
 
     [GraphQLDescription("The total CCD locked in release schedules (from transfers with schedule)")]
     public ulong TotalAmountLockedInReleaseSchedules { get; set; }
+    
     [GraphQLDescription("The total CCD staked")]
     public ulong TotalAmountStaked { get; set; }
 

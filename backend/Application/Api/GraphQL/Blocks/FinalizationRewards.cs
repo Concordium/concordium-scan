@@ -4,7 +4,7 @@ using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Blocks;
 
 public class FinalizationRewards
 {

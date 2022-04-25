@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL.Pagination;
+﻿using Application.Api.GraphQL.Blocks;
+
+namespace Application.Api.GraphQL.Pagination;
 
 public class BlockByDescendingIdCursorPagingAlgorithm : CursorPagingAlgorithmBase<Block>
 {

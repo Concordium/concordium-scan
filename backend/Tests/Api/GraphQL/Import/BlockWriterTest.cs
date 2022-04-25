@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.Types;
 using Dapper;

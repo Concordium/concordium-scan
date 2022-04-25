@@ -1,10 +1,12 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
 
 namespace Application.Api.GraphQL.Import;
 
