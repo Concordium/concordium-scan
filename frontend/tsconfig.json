@@ -12,6 +12,7 @@
 		"strict": true,
 		"noEmit": true,
 		"baseUrl": ".",
+		"jsx": "preserve",
 		"importsNotUsedAsValues": "preserve",
 		"types": ["@types/node", "@types/jest"]
 	},
