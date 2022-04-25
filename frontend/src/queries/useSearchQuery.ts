@@ -1,11 +1,21 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
-import type { Account, PageInfo, Block, Transaction } from '~/types/generated'
+import type {
+	Account,
+	PageInfo,
+	Block,
+	Transaction,
+	Baker,
+} from '~/types/generated'
 type SearchResponse = {
 	search: {
 		blocks: { nodes: Block[]; pageInfo: PageInfo }
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
+		bakers: {
+			nodes: Pick<Baker, 'id' | 'bakerId' | 'account'>[]
+			pageInfo: PageInfo
+		}
 	}
 }
 
@@ -41,11 +51,26 @@ const SearchQuery = gql<SearchResponse>`
 			accounts(first: 3) {
 				nodes {
 					id
-					addressString
 					createdAt
+					address {
+						asString
+					}
 				}
 				pageInfo {
 					hasNextPage
+				}
+			}
+			bakers(first: 3) {
+				pageInfo {
+					hasNextPage
+				}
+				nodes {
+					bakerId
+					account {
+						address {
+							asString
+						}
+					}
 				}
 			}
 		}
@@ -53,7 +78,7 @@ const SearchQuery = gql<SearchResponse>`
 `
 
 export const useSearchQuery = (query: Ref<string>, paused = true) => {
-	const { data, executeQuery } = useQuery({
+	const { data, executeQuery, fetching } = useQuery({
 		query: SearchQuery,
 		requestPolicy: 'network-only',
 		variables: {
@@ -61,5 +86,5 @@ export const useSearchQuery = (query: Ref<string>, paused = true) => {
 		},
 		pause: paused,
 	})
-	return { data, executeQuery }
+	return { data, executeQuery, fetching }
 }

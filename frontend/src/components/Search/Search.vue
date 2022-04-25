@@ -117,11 +117,11 @@
 					>
 						<div
 							v-for="(account, index) in data.search.accounts.nodes"
-							:key="account.addressString"
+							:key="account.address.asString"
 							class="grid grid-cols-4 gap-8"
 						>
 							<AccountLink
-								:address="account.addressString"
+								:address="account.address.asString"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
@@ -134,6 +134,27 @@
 								>
 									{{ convertTimestampToRelative(account.createdAt || '', NOW) }}
 								</Tooltip>
+							</div>
+						</div>
+					</SearchResultCategory>
+
+					<SearchResultCategory
+						v-if="resultCount.bakers"
+						title="Bakers"
+						:has-more-results="data.search.bakers.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="baker in data.search.bakers.nodes"
+							:key="baker.bakerId"
+							class="grid grid-cols-4 gap-8"
+						>
+							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
+							<div>
+								<AccountLink
+									:address="baker.account.address.asString"
+									:hide-tooltip="true"
+									@blur="lostFocusOnSearch"
+								/>
 							</div>
 						</div>
 					</SearchResultCategory>
@@ -151,6 +172,7 @@ import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import SearchIcon from '~/components/icons/SearchIcon.vue'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
@@ -210,6 +232,11 @@ const gotoSearchResult = () => {
 			entityTypeName: 'account',
 			address: data.value.search.accounts.nodes[0].address.asString,
 		})
+	else if (data.value.search.bakers.nodes[0])
+		drawer.push({
+			entityTypeName: 'baker',
+			bakerId: data.value.search.bakers.nodes[0].bakerId,
+		})
 
 	searchValue.value = ''
 	status.value = 'idle'
@@ -229,11 +256,12 @@ const resultCount = computed(() => ({
 	blocks: data.value?.search.blocks.nodes.length,
 	transactions: data.value?.search.transactions.nodes.length,
 	accounts: data.value?.search.accounts.nodes.length,
+	bakers: data.value?.search.bakers.nodes.length,
 	total:
-		data.value?.search.blocks.nodes.length ??
-		0 +
-			(data.value?.search.transactions.nodes.length ?? 0) +
-			(data.value?.search.accounts.nodes.length ?? 0),
+		(data.value?.search.blocks.nodes.length ?? 0) +
+		(data.value?.search.transactions.nodes.length ?? 0) +
+		(data.value?.search.accounts.nodes.length ?? 0) +
+		(data.value?.search.bakers.nodes.length ?? 0),
 }))
 </script>
 
