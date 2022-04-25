@@ -6,6 +6,7 @@ using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
 
 namespace Application.Api.GraphQL.Import;

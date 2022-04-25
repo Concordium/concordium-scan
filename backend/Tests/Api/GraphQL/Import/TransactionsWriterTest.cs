@@ -235,7 +235,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.Transferred>();
         result.Amount.Should().Be(458382);
-        result.To.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.To.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.From.Should().Be(new Application.Api.GraphQL.ContractAddress(234, 32));
     }
     
@@ -552,7 +552,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         var result = await ReadSingleTransactionEventType<ContractUpdated>();
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
-        result.Instigator.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.Instigator.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.Amount.Should().Be(15674371);
         result.MessageAsHex.Should().Be("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
         result.ReceiveName.Should().Be("inventory.transfer");
@@ -730,7 +730,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AmountTooLarge>();
-        result.Address.Should().Be(new Application.Api.GraphQL.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        result.Address.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         result.Amount.Should().Be(34656);
     }
 

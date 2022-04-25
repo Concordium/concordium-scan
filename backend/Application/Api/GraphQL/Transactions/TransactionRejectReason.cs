@@ -1,4 +1,5 @@
-﻿using HotChocolate;
+﻿using Application.Api.GraphQL.Accounts;
+using HotChocolate;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Transactions;

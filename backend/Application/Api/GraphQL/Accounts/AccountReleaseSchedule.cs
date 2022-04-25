@@ -1,6 +1,6 @@
 ﻿using HotChocolate.Types;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Accounts;
 
 public class AccountReleaseSchedule
 {

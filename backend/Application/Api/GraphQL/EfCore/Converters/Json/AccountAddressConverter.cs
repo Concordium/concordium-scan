@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Application.Api.GraphQL.Accounts;
 
 namespace Application.Api.GraphQL.EfCore.Converters.Json;
 

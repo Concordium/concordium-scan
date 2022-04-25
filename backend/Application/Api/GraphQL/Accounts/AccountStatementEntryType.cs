@@ -1,4 +1,4 @@
-﻿namespace Application.Api.GraphQL;
+﻿namespace Application.Api.GraphQL.Accounts;
 
 /// <summary>
 /// NOTE:   Specific assigned values are important for reading and writing to database.

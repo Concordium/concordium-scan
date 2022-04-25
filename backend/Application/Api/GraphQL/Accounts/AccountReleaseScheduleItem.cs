@@ -5,7 +5,7 @@ using HotChocolate;
 using HotChocolate.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Accounts;
 
 public class AccountReleaseScheduleItem
 {

@@ -1078,7 +1078,7 @@ type ZeroScheduledAmount {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
-union Address = AccountAddress | ContractAddress
+union Address = ContractAddress | AccountAddress
 
 union BakerState = ActiveBakerState | RemovedBakerState
 

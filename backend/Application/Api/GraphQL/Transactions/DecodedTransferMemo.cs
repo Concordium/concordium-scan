@@ -1,6 +1,6 @@
 using ConcordiumSdk.Types;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Transactions;
 
 public class DecodedTransferMemo
 {

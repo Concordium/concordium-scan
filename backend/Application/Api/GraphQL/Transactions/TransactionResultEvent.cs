@@ -1,3 +1,4 @@
+using Application.Api.GraphQL.Accounts;
 using HotChocolate;
 using HotChocolate.Types;
 

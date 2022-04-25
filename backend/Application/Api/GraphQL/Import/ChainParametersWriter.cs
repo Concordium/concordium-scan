@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;

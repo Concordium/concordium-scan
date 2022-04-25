@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;

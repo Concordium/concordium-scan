@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL.Pagination;
+﻿using Application.Api.GraphQL.Accounts;
+
+namespace Application.Api.GraphQL.Pagination;
 
 public class AccountstatementEntryByDescendingIndexCursorPagingAlgorithm : CursorPagingAlgorithmBase<AccountStatementEntry>
 {

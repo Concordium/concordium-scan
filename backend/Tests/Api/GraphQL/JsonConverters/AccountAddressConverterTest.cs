@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore.Converters.Json;
 using FluentAssertions;
 

@@ -1,6 +1,4 @@
-using HotChocolate;
-
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Accounts;
 
 public class AccountAddress : Address
 {

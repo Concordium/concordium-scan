@@ -7,7 +7,7 @@ using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Api.GraphQL;
+namespace Application.Api.GraphQL.Accounts;
 
 public class Account
 {

@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Bakers;
+﻿using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
