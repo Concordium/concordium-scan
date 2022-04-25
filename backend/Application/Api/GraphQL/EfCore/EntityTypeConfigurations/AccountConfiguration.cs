@@ -18,6 +18,5 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(x => x.Amount).HasColumnName("ccd_amount");
         builder.Property(x => x.TransactionCount).HasColumnName("transaction_count");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();
-
     }
 }

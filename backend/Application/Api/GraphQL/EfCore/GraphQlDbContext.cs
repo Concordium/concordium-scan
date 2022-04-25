@@ -15,6 +15,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<BlockRelated<FinalizationReward>> FinalizationRewards { get; private set; }
     public DbSet<BlockRelated<BakingReward>> BakingRewards { get; private set; }
     public DbSet<BlockRelated<FinalizationSummaryParty>> FinalizationSummaryFinalizers { get; private set; }
+    public DbSet<SpecialEvent> SpecialEvents { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }
     public DbSet<Account> Accounts { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }

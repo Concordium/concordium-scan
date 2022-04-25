@@ -3,11 +3,15 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using BlockAccrueRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.BlockAccrueRewardSpecialEvent;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
+using PaydayAccountRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayAccountRewardSpecialEvent;
+using PaydayFoundationRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayFoundationRewardSpecialEvent;
+using PaydayPoolRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayPoolRewardSpecialEvent;
+using SpecialEvent = ConcordiumSdk.NodeApi.Types.SpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -65,10 +69,61 @@ public class BlockWriter
                 .ToArray();
             context.FinalizationSummaryFinalizers.AddRange(toSave);
         }
+
+        var specialEvents = MapSpecialEvents(block.Id, blockSummary.SpecialEvents);
+        context.SpecialEvents.AddRange(specialEvents);
+        
         await context.SaveChangesAsync();
         return block; 
     }
-    
+
+    private IEnumerable<Blocks.SpecialEvent> MapSpecialEvents(long blockId, SpecialEvent[] inputs)
+    {
+        foreach (var input in inputs)
+        {
+            Blocks.SpecialEvent? result = input switch
+            {
+                PaydayAccountRewardSpecialEvent x => new Blocks.PaydayAccountRewardSpecialEvent
+                {
+                    BlockId = blockId,
+                    Account = new AccountAddress(x.Account.AsString),
+                    TransactionFees = x.TransactionFees.MicroCcdValue,
+                    BakerReward = x.BakerReward.MicroCcdValue,
+                    FinalizationReward = x.FinalizationReward.MicroCcdValue
+                },
+                BlockAccrueRewardSpecialEvent x => new Blocks.BlockAccrueRewardSpecialEvent
+                {
+                    BlockId = blockId,
+                    TransactionFees = x.TransactionFees.MicroCcdValue,
+                    OldGasAccount = x.OldGasAccount.MicroCcdValue,
+                    NewGasAccount = x.NewGasAccount.MicroCcdValue,
+                    BakerReward = x.BakerReward.MicroCcdValue,
+                    LPoolReward = x.LPoolReward.MicroCcdValue,
+                    FoundationCharge = x.FoundationCharge.MicroCcdValue,
+                    BakerId = x.BakerId
+                },
+                PaydayFoundationRewardSpecialEvent x => new Blocks.PaydayFoundationRewardSpecialEvent
+                {
+                    BlockId = blockId,
+                    FoundationAccount = new AccountAddress(x.FoundationAccount.AsString),
+                    DevelopmentCharge = x.DevelopmentCharge.MicroCcdValue,
+                },
+                PaydayPoolRewardSpecialEvent x => new Blocks.PaydayPoolRewardSpecialEvent
+                {
+                    BlockId = blockId,
+                    PoolOwner = x.PoolOwner,
+                    TransactionFees = x.TransactionFees.MicroCcdValue,
+                    BakerReward = x.BakerReward.MicroCcdValue,
+                    FinalizationReward = x.FinalizationReward.MicroCcdValue
+                },
+                _ => null // TODO: When all are mapped: throw new NotImplementedException()
+            };
+            
+            if (result != null)
+                yield return result;
+        }
+    }
+
     private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime,
         int chainParametersId, BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
