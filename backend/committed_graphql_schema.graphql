@@ -856,12 +856,12 @@ type ProtocolChainUpdatePayload {
 }
 
 type Query {
-  block(id: ID!): Block
-  blockByBlockHash(blockHash: String!): Block
-  blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
   transaction(id: ID!): Transaction
   transactionByTransactionHash(transactionHash: String!): Transaction
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
+  block(id: ID!): Block
+  blockByBlockHash(blockHash: String!): Block
+  blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
   accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
@@ -1082,7 +1082,7 @@ union Address = AccountAddress | ContractAddress
 
 union BakerState = ActiveBakerState | RemovedBakerState
 
-union BlockOrTransaction = Block | Transaction
+union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload
 
@@ -1137,6 +1137,8 @@ enum AccountTransactionType {
   SIMPLE_TRANSFER_WITH_MEMO
   ENCRYPTED_TRANSFER_WITH_MEMO
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
+  CONFIGURE_BAKER
+  CONFIGURE_DELEGATION
 }
 
 enum BakerSort {
@@ -1179,6 +1181,9 @@ enum UpdateTransactionType {
   UPDATE_ROOT_KEYS
   UPDATE_LEVEL1_KEYS
   UPDATE_LEVEL2_KEYS
+  UPDATE_POOL_PARAMETERS
+  UPDATE_COOLDOWN_PARAMETERS
+  UPDATE_TIME_PARAMETERS
 }
 
 "The `@defer` directive may be provided for fragment spreads and inline fragments to inform the executor to delay the execution of the current fragment to indicate deprioritization of the current fragment. A query with `@defer` directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred is delivered in a subsequent response. `@include` and `@skip` take precedence over `@defer`."
