@@ -69,7 +69,6 @@ const BlockQuery = gql<BlockResponse>`
 				mint {
 					bakingReward
 					finalizationReward
-					foundationAccount
 					platformDevelopmentCharge
 				}
 				finalizationRewards {
@@ -133,7 +132,6 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 				mint {
 					bakingReward
 					finalizationReward
-					foundationAccount
 					platformDevelopmentCharge
 				}
 				finalizationRewards {

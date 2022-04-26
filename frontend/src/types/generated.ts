@@ -28,8 +28,6 @@ export type Account = {
   __typename?: 'Account';
   accountStatement?: Maybe<AccountStatementEntryConnection>;
   address: AccountAddress;
-  /** @deprecated Use 'address.asString' instead. This field will be removed in the near future. */
-  addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
   baker?: Maybe<Baker>;
   createdAt: Scalars['DateTime'];
@@ -63,8 +61,6 @@ export type AccountAddress = {
 export type AccountCreated = {
   __typename?: 'AccountCreated';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type AccountReleaseSchedule = {
@@ -289,8 +285,6 @@ export type AlreadyABaker = {
 export type AmountAddedByDecryption = {
   __typename?: 'AmountAddedByDecryption';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -333,8 +327,6 @@ export type Baker = {
 export type BakerAdded = {
   __typename?: 'BakerAdded';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   aggregationKey: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   electionKey: Scalars['String'];
@@ -352,8 +344,6 @@ export type BakerInCooldown = {
 export type BakerKeysUpdated = {
   __typename?: 'BakerKeysUpdated';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   aggregationKey: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   electionKey: Scalars['String'];
@@ -388,16 +378,12 @@ export type BakerMetricsBuckets = {
 export type BakerRemoved = {
   __typename?: 'BakerRemoved';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
 };
 
 export type BakerSetRestakeEarnings = {
   __typename?: 'BakerSetRestakeEarnings';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   restakeEarnings: Scalars['Boolean'];
 };
@@ -412,8 +398,6 @@ export enum BakerSort {
 export type BakerStakeDecreased = {
   __typename?: 'BakerStakeDecreased';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
@@ -421,8 +405,6 @@ export type BakerStakeDecreased = {
 export type BakerStakeIncreased = {
   __typename?: 'BakerStakeIncreased';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   bakerId: Scalars['UnsignedLong'];
   newStakedAmount: Scalars['UnsignedLong'];
 };
@@ -457,8 +439,6 @@ export type BakersEdge = {
 export type BakingReward = {
   __typename?: 'BakingReward';
   address: AccountAddress;
-  /** @deprecated Use 'address.asString' instead. This field will be removed in the near future. */
-  addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -528,8 +508,6 @@ export type Block = {
   finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
-  /** @deprecated Use 'SpecialEventsOld' instead. This field will be replaced with another type in the near future. */
-  specialEvents: SpecialEvents;
   specialEventsOld: SpecialEvents;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<TransactionsConnection>;
@@ -603,12 +581,8 @@ export type BlockOrTransaction = Block | Transaction;
 export type BlockRewards = {
   __typename?: 'BlockRewards';
   bakerAccountAddress: AccountAddress;
-  /** @deprecated Use 'bakerAccountAddress.asString' instead. This field will be removed in the near future. */
-  bakerAccountAddressString: Scalars['String'];
   bakerReward: Scalars['UnsignedLong'];
   foundationAccountAddress: AccountAddress;
-  /** @deprecated Use 'foundationAccountAddressString' instead. This field will be removed in the near future. */
-  foundationAccountAddressString: Scalars['String'];
   foundationCharge: Scalars['UnsignedLong'];
   newGasAccount: Scalars['UnsignedLong'];
   oldGasAccount: Scalars['UnsignedLong'];
@@ -712,8 +686,6 @@ export type ContractUpdatedEventsAsHexArgs = {
 export type CredentialDeployed = {
   __typename?: 'CredentialDeployed';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   regId: Scalars['String'];
 };
 
@@ -741,8 +713,6 @@ export type CredentialKeysUpdated = {
 export type CredentialsUpdated = {
   __typename?: 'CredentialsUpdated';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   newCredIds: Array<Scalars['String']>;
   newThreshold: Scalars['Byte'];
   removedCredIds: Array<Scalars['String']>;
@@ -783,15 +753,11 @@ export type EncryptedAmountSelfTransfer = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type EncryptedAmountsRemoved = {
   __typename?: 'EncryptedAmountsRemoved';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   inputAmount: Scalars['String'];
   newEncryptedAmount: Scalars['String'];
   upToIndex: Scalars['UnsignedLong'];
@@ -800,8 +766,6 @@ export type EncryptedAmountsRemoved = {
 export type EncryptedSelfAmountAdded = {
   __typename?: 'EncryptedSelfAmountAdded';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
   newEncryptedAmount: Scalars['String'];
 };
@@ -843,8 +807,6 @@ export type ExchangeRate = {
 export type FinalizationReward = {
   __typename?: 'FinalizationReward';
   address: AccountAddress;
-  /** @deprecated Use 'address.asString' instead. This field will be removed in the near future. */
-  addressString: Scalars['String'];
   amount: Scalars['UnsignedLong'];
 };
 
@@ -963,8 +925,6 @@ export type InvalidAccountReference = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type InvalidAccountThreshold = {
@@ -1068,8 +1028,6 @@ export type Mint = {
   __typename?: 'Mint';
   bakingReward: Scalars['UnsignedLong'];
   finalizationReward: Scalars['UnsignedLong'];
-  /** @deprecated Use 'foundationAccountAddress' instead.This field will be removed in the near future. */
-  foundationAccount: Scalars['String'];
   foundationAccountAddress: AccountAddress;
   platformDevelopmentCharge: Scalars['UnsignedLong'];
 };
@@ -1104,8 +1062,6 @@ export type ModuleNotWf = {
 export type NewEncryptedAmount = {
   __typename?: 'NewEncryptedAmount';
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
   encryptedAmount: Scalars['String'];
   newIndex: Scalars['UnsignedLong'];
 };
@@ -1128,8 +1084,6 @@ export type NonExistentRewardAccount = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type NonIncreasingSchedule = {
@@ -1143,8 +1097,6 @@ export type NotABaker = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type NotAllowedMultipleCredentials = {
@@ -1412,8 +1364,6 @@ export type ScheduledSelfTransfer = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   accountAddress: AccountAddress;
-  /** @deprecated Use 'accountAddress.asString' instead. This field will be removed in the near future. */
-  accountAddressString: Scalars['String'];
 };
 
 export type SearchResult = {
@@ -1533,8 +1483,6 @@ export type Transaction = {
   id: Scalars['ID'];
   result: TransactionResult;
   senderAccountAddress?: Maybe<AccountAddress>;
-  /** @deprecated Use 'senderAccountAddress.asString' instead. This field will be removed in the near future. */
-  senderAccountAddressString?: Maybe<Scalars['String']>;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['Int'];
   transactionType: TransactionType;
@@ -1616,11 +1564,7 @@ export type TransferredWithSchedule = {
   __typename?: 'TransferredWithSchedule';
   amountsSchedule?: Maybe<AmountsScheduleConnection>;
   fromAccountAddress: AccountAddress;
-  /** @deprecated Use 'fromAccountAddress.asString' instead. This field will be removed in the near future. */
-  fromAccountAddressString: Scalars['String'];
   toAccountAddress: AccountAddress;
-  /** @deprecated Use 'toAccountAddress.asString' instead. This field will be removed in the near future. */
-  toAccountAddressString: Scalars['String'];
   totalAmount: Scalars['UnsignedLong'];
 };
 
