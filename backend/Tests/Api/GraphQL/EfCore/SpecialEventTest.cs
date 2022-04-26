@@ -21,6 +21,132 @@ public class SpecialEventTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task MintSpecialEvent()
+    {
+        var entity = new MintSpecialEvent
+        {
+            BlockId = 42,
+            BakingReward = 1000,
+            FinalizationReward = 2000,
+            PlatformDevelopmentCharge = 3000,
+            FoundationAccountAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+        };
+
+        await AddSpecialEvent(entity);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.SpecialEvents.Single();
+        result.Should().NotBeNull();
+        result.BlockId.Should().Be(42);
+        result.Index.Should().BeGreaterThan(0);
+
+        var typed = result.Should().BeOfType<MintSpecialEvent>().Subject;
+        typed.BakingReward.Should().Be(1000);
+        typed.FinalizationReward.Should().Be(2000);
+        typed.PlatformDevelopmentCharge.Should().Be(3000);
+        typed.FoundationAccountAddress.Should().Be(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+    }
+
+    [Fact]
+    public async Task FinalizationRewardsSpecialEvent()
+    {
+        var entity = new FinalizationRewardsSpecialEvent
+        {
+            BlockId = 42,
+            Remainder = 1000,
+            AccountAddresses = new[]
+            {
+                new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+                new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy")
+            },
+            Amounts = new[]
+            {
+                2000UL,
+                3000UL
+            }
+        };
+
+        await AddSpecialEvent(entity);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.SpecialEvents.Single();
+        result.Should().NotBeNull();
+        result.BlockId.Should().Be(42);
+        result.Index.Should().BeGreaterThan(0);
+
+        var typed = result.Should().BeOfType<FinalizationRewardsSpecialEvent>().Subject;
+        typed.Remainder.Should().Be(1000);
+        typed.AccountAddresses.Should().Equal(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"), new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
+        typed.Amounts.Should().Equal(2000UL, 3000UL);
+    }
+    
+    [Fact]
+    public async Task BlockRewardsSpecialEvent()
+    {
+        var entity = new BlockRewardsSpecialEvent
+        {
+            BlockId = 42,
+            TransactionFees = 1000,
+            OldGasAccount = 2000,
+            NewGasAccount = 3000,
+            BakerReward = 4000,
+            FoundationCharge =  5000,
+            BakerAccountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"),
+            FoundationAccountAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+        };
+
+        await AddSpecialEvent(entity);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.SpecialEvents.Single();
+        result.Should().NotBeNull();
+        result.BlockId.Should().Be(42);
+        result.Index.Should().BeGreaterThan(0);
+
+        var typed = result.Should().BeOfType<BlockRewardsSpecialEvent>().Subject;
+        typed.TransactionFees.Should().Be(1000);
+        typed.OldGasAccount.Should().Be(2000);
+        typed.NewGasAccount.Should().Be(3000);
+        typed.BakerReward.Should().Be(4000);
+        typed.FoundationCharge.Should().Be(5000);
+        typed.BakerAccountAddress.Should().Be(new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
+        typed.FoundationAccountAddress.Should().Be(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+    }
+    
+    [Fact]
+    public async Task BakingRewardsSpecialEvent()
+    {
+        var entity = new BakingRewardsSpecialEvent
+        {
+            BlockId = 42,
+            Remainder = 1000,
+            AccountAddresses = new[]
+            {
+                new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+                new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy")
+            },
+            Amounts = new[]
+            {
+                2000UL,
+                3000UL
+            }
+        };
+
+        await AddSpecialEvent(entity);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.SpecialEvents.Single();
+        result.Should().NotBeNull();
+        result.BlockId.Should().Be(42);
+        result.Index.Should().BeGreaterThan(0);
+
+        var typed = result.Should().BeOfType<BakingRewardsSpecialEvent>().Subject;
+        typed.Remainder.Should().Be(1000);
+        typed.AccountAddresses.Should().Equal(new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"), new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
+        typed.Amounts.Should().Equal(2000UL, 3000UL);
+    }
+    
+    [Fact]
     public async Task PaydayAccountRewardSpecialEvent()
     {
         var entity = new PaydayAccountRewardSpecialEvent

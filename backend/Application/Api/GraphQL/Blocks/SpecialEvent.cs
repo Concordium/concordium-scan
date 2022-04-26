@@ -12,6 +12,39 @@ public abstract class SpecialEvent
     public long Index { get; init; }
 }
 
+public class MintSpecialEvent : SpecialEvent
+{
+    public ulong BakingReward { get; init; }
+    public ulong FinalizationReward { get; init; }
+    public ulong PlatformDevelopmentCharge { get; init; }
+    public AccountAddress FoundationAccountAddress  { get; init; }
+}
+
+public class FinalizationRewardsSpecialEvent : SpecialEvent
+{
+    public ulong Remainder { get; init; }
+    public AccountAddress[] AccountAddresses { get; init; }
+    public ulong[] Amounts { get; init; }
+}
+
+public class BlockRewardsSpecialEvent : SpecialEvent
+{
+    public ulong TransactionFees { get; init; }
+    public ulong OldGasAccount { get; init; }
+    public ulong NewGasAccount { get; init; }
+    public ulong BakerReward { get; init; }
+    public ulong FoundationCharge { get; init; }
+    public AccountAddress BakerAccountAddress { get; init; }
+    public AccountAddress FoundationAccountAddress { get; init; }
+}
+
+public class BakingRewardsSpecialEvent : SpecialEvent
+{
+    public ulong Remainder { get; init; }
+    public AccountAddress[] AccountAddresses { get; init; }
+    public ulong[] Amounts { get; init; }
+}
+
 public class PaydayAccountRewardSpecialEvent : SpecialEvent
 {
     [GraphQLDescription("The account that got rewarded.")]

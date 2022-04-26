@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Blocks;
+﻿using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -7,6 +8,10 @@ namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 
 public class SpecialEventConfiguration : 
     IEntityTypeConfiguration<SpecialEvent>,
+    IEntityTypeConfiguration<MintSpecialEvent>,
+    IEntityTypeConfiguration<FinalizationRewardsSpecialEvent>,
+    IEntityTypeConfiguration<BlockRewardsSpecialEvent>,
+    IEntityTypeConfiguration<BakingRewardsSpecialEvent>,
     IEntityTypeConfiguration<PaydayAccountRewardSpecialEvent>,
     IEntityTypeConfiguration<BlockAccrueRewardSpecialEvent>,
     IEntityTypeConfiguration<PaydayFoundationRewardSpecialEvent>,
@@ -22,11 +27,48 @@ public class SpecialEventConfiguration :
 
         builder
             .HasDiscriminator<int>("type_id")
-            .HasValue<PaydayAccountRewardSpecialEvent>(1)
-            .HasValue<BlockAccrueRewardSpecialEvent>(2)
-            .HasValue<PaydayFoundationRewardSpecialEvent>(3)
-            .HasValue<PaydayPoolRewardSpecialEvent>(4)
+            .HasValue<MintSpecialEvent>(1)
+            .HasValue<FinalizationRewardsSpecialEvent>(2)
+            .HasValue<BlockRewardsSpecialEvent>(3)
+            .HasValue<BakingRewardsSpecialEvent>(4)
+            .HasValue<PaydayAccountRewardSpecialEvent>(5)
+            .HasValue<BlockAccrueRewardSpecialEvent>(6)
+            .HasValue<PaydayFoundationRewardSpecialEvent>(7)
+            .HasValue<PaydayPoolRewardSpecialEvent>(8)
             .IsComplete();
+    }
+
+    public void Configure(EntityTypeBuilder<MintSpecialEvent> builder)
+    {
+        builder.Property(x => x.BakingReward).HasColumnName("baker_reward");
+        builder.Property(x => x.FinalizationReward).HasColumnName("finalization_reward");
+        builder.Property(x => x.PlatformDevelopmentCharge).HasColumnName("foundation_charge");
+        builder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
+    }
+
+    public void Configure(EntityTypeBuilder<FinalizationRewardsSpecialEvent> builder)
+    {
+        builder.Property(x => x.Remainder).HasColumnName("remainder");
+        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses").HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter());
+        builder.Property(x => x.Amounts).HasColumnName("amounts");
+    }
+
+    public void Configure(EntityTypeBuilder<BlockRewardsSpecialEvent> builder)
+    {
+        builder.Property(x => x.TransactionFees).HasColumnName("transaction_fees");
+        builder.Property(x => x.OldGasAccount).HasColumnName("old_gas_account");
+        builder.Property(x => x.NewGasAccount).HasColumnName("new_gas_account");
+        builder.Property(x => x.BakerReward).HasColumnName("baker_reward");
+        builder.Property(x => x.FoundationCharge).HasColumnName("foundation_charge");
+        builder.Property(x => x.BakerAccountAddress).HasColumnName("account_address").HasConversion<AccountAddressConverter>();
+        builder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
+    }
+
+    public void Configure(EntityTypeBuilder<BakingRewardsSpecialEvent> builder)
+    {
+        builder.Property(x => x.Remainder).HasColumnName("remainder");
+        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses").HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter());
+        builder.Property(x => x.Amounts).HasColumnName("amounts");
     }
 
     public void Configure(EntityTypeBuilder<PaydayAccountRewardSpecialEvent> builder)
@@ -50,7 +92,7 @@ public class SpecialEventConfiguration :
 
     public void Configure(EntityTypeBuilder<PaydayFoundationRewardSpecialEvent> builder)
     {
-        builder.Property(x => x.FoundationAccount).HasColumnName("account_address").HasConversion<AccountAddressConverter>();
+        builder.Property(x => x.FoundationAccount).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
         builder.Property(x => x.DevelopmentCharge).HasColumnName("foundation_charge");
     }
 

@@ -6,8 +6,11 @@ using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using BakingRewardsSpecialEvent = ConcordiumSdk.NodeApi.Types.BakingRewardsSpecialEvent;
 using BlockAccrueRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.BlockAccrueRewardSpecialEvent;
+using FinalizationRewardsSpecialEvent = ConcordiumSdk.NodeApi.Types.FinalizationRewardsSpecialEvent;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
+using MintSpecialEvent = ConcordiumSdk.NodeApi.Types.MintSpecialEvent;
 using PaydayAccountRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayAccountRewardSpecialEvent;
 using PaydayFoundationRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayFoundationRewardSpecialEvent;
 using PaydayPoolRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayPoolRewardSpecialEvent;
@@ -81,8 +84,41 @@ public class BlockWriter
     {
         foreach (var input in inputs)
         {
-            Blocks.SpecialEvent? result = input switch
+            Blocks.SpecialEvent result = input switch
             {
+                MintSpecialEvent x => new Blocks.MintSpecialEvent
+                {
+                    BlockId = blockId,
+                    BakingReward = x.MintBakingReward.MicroCcdValue,
+                    FinalizationReward = x.MintFinalizationReward.MicroCcdValue,
+                    PlatformDevelopmentCharge = x.MintPlatformDevelopmentCharge.MicroCcdValue,
+                    FoundationAccountAddress  = new AccountAddress(x.FoundationAccount.AsString)
+                },
+                FinalizationRewardsSpecialEvent x => new Blocks.FinalizationRewardsSpecialEvent
+                {
+                    BlockId = blockId,
+                    Remainder = x.Remainder.MicroCcdValue, 
+                    AccountAddresses = x.FinalizationRewards.Select(reward => new AccountAddress(reward.Address.AsString)).ToArray(), 
+                    Amounts = x.FinalizationRewards.Select(reward => reward.Amount.MicroCcdValue).ToArray() 
+                },
+                BlockRewardSpecialEvent x => new Blocks.BlockRewardsSpecialEvent
+                {
+                    BlockId = blockId,
+                    TransactionFees = x.TransactionFees.MicroCcdValue,
+                    OldGasAccount = x.OldGasAccount.MicroCcdValue,
+                    NewGasAccount = x.NewGasAccount.MicroCcdValue,
+                    BakerReward = x.BakerReward.MicroCcdValue,
+                    FoundationCharge = x.FoundationCharge.MicroCcdValue,
+                    BakerAccountAddress = new AccountAddress(x.Baker.AsString),
+                    FoundationAccountAddress = new AccountAddress(x.FoundationAccount.AsString)
+                },
+                BakingRewardsSpecialEvent x => new Blocks.BakingRewardsSpecialEvent
+                {
+                    BlockId = blockId,
+                    Remainder = x.Remainder.MicroCcdValue, 
+                    AccountAddresses = x.BakerRewards.Select(reward => new AccountAddress(reward.Address.AsString)).ToArray(), 
+                    Amounts = x.BakerRewards.Select(reward => reward.Amount.MicroCcdValue).ToArray() 
+                },
                 PaydayAccountRewardSpecialEvent x => new Blocks.PaydayAccountRewardSpecialEvent
                 {
                     BlockId = blockId,
@@ -116,11 +152,9 @@ public class BlockWriter
                     BakerReward = x.BakerReward.MicroCcdValue,
                     FinalizationReward = x.FinalizationReward.MicroCcdValue
                 },
-                _ => null // TODO: When all are mapped: throw new NotImplementedException()
+                _ => throw new NotImplementedException()
             };
-            
-            if (result != null)
-                yield return result;
+            yield return result;
         }
     }
 

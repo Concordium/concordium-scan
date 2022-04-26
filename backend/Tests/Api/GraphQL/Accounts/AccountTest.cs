@@ -1,15 +1,24 @@
-﻿using FluentAssertions;
+﻿using Application.Database;
+using FluentAssertions;
+using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 
 namespace Tests.Api.GraphQL.Accounts;
 
-public class AccountTest : IAsyncLifetime
+[Collection("Postgres Collection")]
+public class AccountTest : IClassFixture<DatabaseFixture>, IAsyncLifetime
 {
     private readonly GraphQlTestHelper _testHelper = new();
+    private readonly DatabaseSettings _dbSettings;
+
+    public AccountTest(DatabaseFixture dbFixture)
+    {
+        _dbSettings = dbFixture.DatabaseSettings;
+    }
 
     public async Task InitializeAsync()
     {
-        await _testHelper.InitializeAsync();
+        await _testHelper.InitializeAsync(_dbSettings);
     }
 
     public async Task DisposeAsync()
@@ -24,7 +33,6 @@ public class AccountTest : IAsyncLifetime
     [Fact]
     public async Task GetAccountStatement_EnsurePagingCursorAreStableWhenNewEntriesAreAdded()
     {
-        
         // Create initial data...
         _testHelper.DbContext.Accounts.Add(new AccountBuilder()
             .WithId(42)

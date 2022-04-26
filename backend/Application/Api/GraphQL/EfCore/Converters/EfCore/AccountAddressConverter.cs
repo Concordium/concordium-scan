@@ -19,5 +19,4 @@ public class AccountAddressConverter : ValueConverter<AccountAddress, string>
     {
         return value.AsString;
     }
-    
 }
