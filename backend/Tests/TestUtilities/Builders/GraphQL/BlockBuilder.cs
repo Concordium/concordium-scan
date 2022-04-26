@@ -26,7 +26,7 @@ public class BlockBuilder
             BakerId = 7,
             Finalized = true,
             TransactionCount = 0,
-            SpecialEventsOld2 = new SpecialEvents(),
+            SpecialEventsOld = new SpecialEvents(),
             FinalizationSummary = _finalizationSummary,
             BalanceStatistics = _balanceStatistics,
             BlockStatistics = _blockStatistics

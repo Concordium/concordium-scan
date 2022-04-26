@@ -14,6 +14,11 @@ public static class AccountAddressHelper
         return new AccountAddress(address).GetBaseAddress().AsString;
     }
 
+    public static string GetAliasAddress(string address, byte aliasByte1, byte aliasByte2 = 0, byte aliasByte3 = 0)
+    {
+        return new AccountAddress(address).CreateAliasAddress(aliasByte1, aliasByte2, aliasByte3).AsString;
+    }
+
     public static string GetUniqueAddress()
     {
         var bytes = TemplateAddress.AsBytes;

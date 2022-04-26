@@ -10,7 +10,6 @@ type Account {
   baker: Baker
   id: ID!
   address: AccountAddress!
-  addressString: String! @deprecated(reason: "Use 'address.asString' instead. This field will be removed in the near future.")
   amount: UnsignedLong!
   transactionCount: Int!
   createdAt: DateTime!
@@ -22,7 +21,6 @@ type AccountAddress {
 
 type AccountCreated {
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type AccountReleaseSchedule {
@@ -172,7 +170,6 @@ type AlreadyABaker {
 type AmountAddedByDecryption {
   amount: UnsignedLong!
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type AmountTooLarge {
@@ -214,7 +211,6 @@ type BakerAdded {
   signKey: String!
   electionKey: String!
   aggregationKey: String!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerInCooldown {
@@ -227,7 +223,6 @@ type BakerKeysUpdated {
   signKey: String!
   electionKey: String!
   aggregationKey: String!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerMetrics {
@@ -256,28 +251,24 @@ type BakerMetricsBuckets {
 type BakerRemoved {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerSetRestakeEarnings {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
   restakeEarnings: Boolean!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerStakeDecreased {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
   newStakedAmount: UnsignedLong!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerStakeIncreased {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
   newStakedAmount: UnsignedLong!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type BakerStakeThresholdChainUpdatePayload {
@@ -305,7 +296,6 @@ type BakersEdge {
 type BakingReward {
   amount: UnsignedLong!
   address: AccountAddress!
-  addressString: String! @deprecated(reason: "Use 'address.asString' instead. This field will be removed in the near future.")
 }
 
 "A connection to a list of items."
@@ -360,7 +350,6 @@ type Block {
   bakerId: Int
   finalized: Boolean!
   transactionCount: Int!
-  specialEvents: SpecialEvents! @deprecated(reason: "Use 'SpecialEventsOld' instead. This field will be replaced with another type in the near future.")
   specialEventsOld: SpecialEvents!
   finalizationSummary: FinalizationSummary
   balanceStatistics: BalanceStatistics!
@@ -427,9 +416,7 @@ type BlockRewards {
   bakerReward: UnsignedLong!
   foundationCharge: UnsignedLong!
   bakerAccountAddress: AccountAddress!
-  bakerAccountAddressString: String! @deprecated(reason: "Use 'bakerAccountAddress.asString' instead. This field will be removed in the near future.")
   foundationAccountAddress: AccountAddress!
-  foundationAccountAddressString: String! @deprecated(reason: "Use 'foundationAccountAddressString' instead. This field will be removed in the near future.")
 }
 
 type BlockStatistics {
@@ -502,7 +489,6 @@ type ContractUpdated {
 type CredentialDeployed {
   regId: String!
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type CredentialDeploymentTransaction {
@@ -522,7 +508,6 @@ type CredentialsUpdated {
   newCredIds: [String!]!
   removedCredIds: [String!]!
   newThreshold: Byte!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type DataRegistered {
@@ -551,7 +536,6 @@ type ElectionDifficultyChainUpdatePayload {
 type EncryptedAmountSelfTransfer {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type EncryptedAmountsRemoved {
@@ -559,14 +543,12 @@ type EncryptedAmountsRemoved {
   newEncryptedAmount: String!
   inputAmount: String!
   upToIndex: UnsignedLong!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type EncryptedSelfAmountAdded {
   accountAddress: AccountAddress!
   newEncryptedAmount: String!
   amount: UnsignedLong!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type EuroPerEnergyChainUpdatePayload {
@@ -600,7 +582,6 @@ type ExchangeRate {
 type FinalizationReward {
   amount: UnsignedLong!
   address: AccountAddress!
-  addressString: String! @deprecated(reason: "Use 'address.asString' instead. This field will be removed in the near future.")
 }
 
 "A connection to a list of items."
@@ -686,7 +667,6 @@ type InsufficientBalanceForBakerStake {
 type InvalidAccountReference {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type InvalidAccountThreshold {
@@ -755,7 +735,6 @@ type Mint {
   bakingReward: UnsignedLong!
   finalizationReward: UnsignedLong!
   platformDevelopmentCharge: UnsignedLong!
-  foundationAccount: String! @deprecated(reason: "Use 'foundationAccountAddress' instead.This field will be removed in the near future.")
   foundationAccountAddress: AccountAddress!
 }
 
@@ -784,7 +763,6 @@ type NewEncryptedAmount {
   accountAddress: AccountAddress!
   newIndex: UnsignedLong!
   encryptedAmount: String!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type NonExistentCredIds {
@@ -799,7 +777,6 @@ type NonExistentCredentialId {
 type NonExistentRewardAccount {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type NonIncreasingSchedule {
@@ -809,7 +786,6 @@ type NonIncreasingSchedule {
 type NotABaker {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type NotAllowedMultipleCredentials {
@@ -935,7 +911,6 @@ type RuntimeFailure {
 type ScheduledSelfTransfer {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
-  accountAddressString: String! @deprecated(reason: "Use 'accountAddress.asString' instead. This field will be removed in the near future.")
 }
 
 type SearchResult {
@@ -997,7 +972,6 @@ type Transaction {
   transactionIndex: Int!
   transactionHash: String!
   senderAccountAddress: AccountAddress
-  senderAccountAddressString: String @deprecated(reason: "Use 'senderAccountAddress.asString' instead. This field will be removed in the near future.")
   ccdCost: UnsignedLong!
   energyCost: UnsignedLong!
   transactionType: TransactionType!
@@ -1066,8 +1040,6 @@ type TransferredWithSchedule {
   fromAccountAddress: AccountAddress!
   toAccountAddress: AccountAddress!
   amountsSchedule("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AmountsScheduleConnection
-  fromAccountAddressString: String! @deprecated(reason: "Use 'fromAccountAddress.asString' instead. This field will be removed in the near future.")
-  toAccountAddressString: String! @deprecated(reason: "Use 'toAccountAddress.asString' instead. This field will be removed in the near future.")
   totalAmount: UnsignedLong!
 }
 

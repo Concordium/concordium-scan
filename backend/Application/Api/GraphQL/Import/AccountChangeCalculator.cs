@@ -18,7 +18,7 @@ public class AccountChangeCalculator
         return createdAccounts.Select(x => new Account
         {
             Id = (long)x.AccountIndex,
-            CanonicalAddressString = x.AccountAddress.AsString,
+            CanonicalAddress = new AccountAddress(x.AccountAddress.AsString),
             BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().AsString),
             Amount = x.AccountAmount.MicroCcdValue,
             CreatedAt = blockSlotTime

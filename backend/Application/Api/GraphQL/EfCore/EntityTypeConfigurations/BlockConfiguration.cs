@@ -19,7 +19,7 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.Property(b => b.BakerId).HasColumnName("baker_id");
         builder.Property(b => b.Finalized).HasColumnName("finalized");
         builder.Property(b => b.TransactionCount).HasColumnName("transaction_count");
-        builder.OwnsOne(block => block.SpecialEventsOld2, specialEventsBuilder =>
+        builder.OwnsOne(block => block.SpecialEventsOld, specialEventsBuilder =>
         {
             specialEventsBuilder.WithOwner(x => x.Owner);
             specialEventsBuilder.OwnsOne(x => x.Mint, builder =>
@@ -27,7 +27,7 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
                 builder.Property(m => m.BakingReward).HasColumnName("mint_baking_reward");
                 builder.Property(m => m.FinalizationReward).HasColumnName("mint_finalization_reward");
                 builder.Property(m => m.PlatformDevelopmentCharge).HasColumnName("mint_platform_development_charge");
-                builder.Property(m => m.FoundationAccount).HasColumnName("mint_foundation_account");
+                builder.Property(m => m.FoundationAccountAddress).HasColumnName("mint_foundation_account").HasConversion<AccountAddressConverter>();
             });
             specialEventsBuilder.OwnsOne(x => x.FinalizationRewards, builder =>
             {

@@ -14,7 +14,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.BaseAddress).HasColumnName("base_address").HasConversion<AccountAddressConverter>();
-        builder.Property(x => x.CanonicalAddressString).HasColumnName("canonical_address");
+        builder.Property(x => x.CanonicalAddress).HasColumnName("canonical_address").HasConversion<AccountAddressConverter>();
         builder.Property(x => x.Amount).HasColumnName("ccd_amount");
         builder.Property(x => x.TransactionCount).HasColumnName("transaction_count");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasConversion<DateTimeOffsetToTimestampConverter>();

@@ -32,4 +32,6 @@ public class AccountAddress : Address
     {
         return !Equals(left, right);
     }
+    
+    public static explicit operator string(AccountAddress obj) => obj.AsString;
 }

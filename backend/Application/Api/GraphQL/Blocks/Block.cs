@@ -19,10 +19,7 @@ public class Block : IBlockOrTransactionUnion
     public int? BakerId { get; init; }
     public bool Finalized { get; init; }
     public int TransactionCount { get; init; }
-    [GraphQLDeprecated("Use 'SpecialEventsOld' instead. This field will be replaced with another type in the near future.")]
-    [GraphQLName("specialEvents")]
-    public SpecialEvents SpecialEventsOld2 { get; init; }
-    public SpecialEvents SpecialEventsOld => SpecialEventsOld2;
+    public SpecialEvents SpecialEventsOld { get; init; }
     public FinalizationSummary? FinalizationSummary { get; init; }
     public BalanceStatistics BalanceStatistics { get; init; }
     public BlockStatistics BlockStatistics { get; init; }

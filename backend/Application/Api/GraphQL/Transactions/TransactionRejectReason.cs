@@ -29,11 +29,7 @@ public record ModuleHashAlreadyExists(
 /// Account does not exist.
 /// </summary>
 public record InvalidAccountReference(
-    AccountAddress AccountAddress) : TransactionRejectReason
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// Reference to a non-existing contract init method.
@@ -101,11 +97,7 @@ public record RejectedReceive(
 /// Reward account desired by the baker does not exist.
 /// </summary>
 public record NonExistentRewardAccount(
-    AccountAddress AccountAddress) : TransactionRejectReason
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// Proof that the baker owns relevant private keys is not valid.
@@ -122,11 +114,7 @@ public record AlreadyABaker(
 /// Tried to remove a baker for an account that has no baker.
 /// </summary>
 public record NotABaker(
-    AccountAddress AccountAddress) : TransactionRejectReason
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// The amount on the account was insufficient to cover the proposed stake.
@@ -183,11 +171,7 @@ public record InvalidTransferToPublicProof : TransactionRejectReason;
 /// Account tried to transfer an encrypted amount to itself, that's not allowed.
 /// </summary>
 public record EncryptedAmountSelfTransfer(
-    AccountAddress AccountAddress) : TransactionRejectReason
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// The provided index is below the start index or above `startIndex + length incomingAmounts`
@@ -213,11 +197,7 @@ public record FirstScheduledReleaseExpired : TransactionRejectReason;
 /// Account tried to transfer with schedule to itself, that's not allowed.
 /// </summary>
 public record ScheduledSelfTransfer(
-    AccountAddress AccountAddress) : TransactionRejectReason
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionRejectReason;
 
 /// <summary>
 /// At least one of the credentials was either malformed or its proof was incorrect.

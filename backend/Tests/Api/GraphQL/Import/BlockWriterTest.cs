@@ -95,12 +95,12 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.Should().NotBeNull();
-        block.SpecialEventsOld2.Mint.Should().NotBeNull();
-        block.SpecialEventsOld2.Mint!.BakingReward.Should().Be(371021);
-        block.SpecialEventsOld2.Mint.FinalizationReward.Should().Be(4577291);
-        block.SpecialEventsOld2.Mint.PlatformDevelopmentCharge.Should().Be(2890562);
-        block.SpecialEventsOld2.Mint.FoundationAccount.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        block.SpecialEventsOld.Should().NotBeNull();
+        block.SpecialEventsOld.Mint.Should().NotBeNull();
+        block.SpecialEventsOld.Mint!.BakingReward.Should().Be(371021);
+        block.SpecialEventsOld.Mint.FinalizationReward.Should().Be(4577291);
+        block.SpecialEventsOld.Mint.PlatformDevelopmentCharge.Should().Be(2890562);
+        block.SpecialEventsOld.Mint.FoundationAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.Mint.Should().BeNull();
+        block.SpecialEventsOld.Mint.Should().BeNull();
     }
 
     [Fact]
@@ -137,10 +137,10 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.Owner.Should().BeSameAs(block);
-        block.SpecialEventsOld2.FinalizationRewards.Should().NotBeNull();
-        block.SpecialEventsOld2.FinalizationRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld2);
-        block.SpecialEventsOld2.FinalizationRewards.Remainder.Should().Be(371021);
+        block.SpecialEventsOld.Owner.Should().BeSameAs(block);
+        block.SpecialEventsOld.FinalizationRewards.Should().NotBeNull();
+        block.SpecialEventsOld.FinalizationRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld);
+        block.SpecialEventsOld.FinalizationRewards.Remainder.Should().Be(371021);
         
         var result = dbContext.FinalizationRewards.ToArray();
         result.Length.Should().Be(2);
@@ -164,7 +164,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.FinalizationRewards.Should().BeNull();
+        block.SpecialEventsOld.FinalizationRewards.Should().BeNull();
         
         var result = dbContext.FinalizationRewards.ToArray();
         result.Length.Should().Be(0);
@@ -188,15 +188,15 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.Should().NotBeNull();
-        block.SpecialEventsOld2.BlockRewards.Should().NotBeNull();
-        block.SpecialEventsOld2.BlockRewards!.BakerReward.Should().Be(5111884);
-        block.SpecialEventsOld2.BlockRewards.FoundationCharge.Should().Be(4884);
-        block.SpecialEventsOld2.BlockRewards.TransactionFees.Should().Be(8888);
-        block.SpecialEventsOld2.BlockRewards.NewGasAccount.Should().Be(455);
-        block.SpecialEventsOld2.BlockRewards.OldGasAccount.Should().Be(22);
-        block.SpecialEventsOld2.BlockRewards.BakerAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        block.SpecialEventsOld2.BlockRewards.FoundationAccountAddress.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
+        block.SpecialEventsOld.Should().NotBeNull();
+        block.SpecialEventsOld.BlockRewards.Should().NotBeNull();
+        block.SpecialEventsOld.BlockRewards!.BakerReward.Should().Be(5111884);
+        block.SpecialEventsOld.BlockRewards.FoundationCharge.Should().Be(4884);
+        block.SpecialEventsOld.BlockRewards.TransactionFees.Should().Be(8888);
+        block.SpecialEventsOld.BlockRewards.NewGasAccount.Should().Be(455);
+        block.SpecialEventsOld.BlockRewards.OldGasAccount.Should().Be(22);
+        block.SpecialEventsOld.BlockRewards.BakerAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        block.SpecialEventsOld.BlockRewards.FoundationAccountAddress.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.BlockRewards.Should().BeNull();
+        block.SpecialEventsOld.BlockRewards.Should().BeNull();
     }
 
     [Fact]
@@ -233,9 +233,9 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.BakingRewards.Should().NotBeNull();
-        block.SpecialEventsOld2.BakingRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld2);
-        block.SpecialEventsOld2.BakingRewards.Remainder.Should().Be(371021);
+        block.SpecialEventsOld.BakingRewards.Should().NotBeNull();
+        block.SpecialEventsOld.BakingRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld);
+        block.SpecialEventsOld.BakingRewards.Remainder.Should().Be(371021);
         
         var result = dbContext.BakingRewards.ToArray();
         result.Length.Should().Be(2);
@@ -259,7 +259,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld2.BakingRewards.Should().BeNull();
+        block.SpecialEventsOld.BakingRewards.Should().BeNull();
         
         var result = dbContext.BakingRewards.ToArray();
         result.Length.Should().Be(0);

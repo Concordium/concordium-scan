@@ -13,11 +13,7 @@ public record Transferred(
     Address To) : TransactionResultEvent;
 
 public record AccountCreated(
-    AccountAddress AccountAddress) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionResultEvent;
 
 /// <summary>
 /// The public balance of the account was increased via a transfer from
@@ -25,11 +21,7 @@ public record AccountCreated(
 /// </summary>
 public record AmountAddedByDecryption(
     ulong Amount,
-    AccountAddress AccountAddress) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionResultEvent;
 
 public record BakerAdded(
     ulong StakedAmount,
@@ -38,57 +30,33 @@ public record BakerAdded(
     AccountAddress AccountAddress,
     string SignKey,
     string ElectionKey,
-    string AggregationKey) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    string AggregationKey) : TransactionResultEvent;
 
 public record BakerKeysUpdated(
     ulong BakerId,
     AccountAddress AccountAddress,
     string SignKey,
     string ElectionKey,
-    string AggregationKey) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    string AggregationKey) : TransactionResultEvent;
 
 public record BakerRemoved(
     ulong BakerId,
-    AccountAddress AccountAddress) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionResultEvent;
 
 public record BakerSetRestakeEarnings(
     ulong BakerId,
     AccountAddress AccountAddress,
-    bool RestakeEarnings) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    bool RestakeEarnings) : TransactionResultEvent;
 
 public record BakerStakeDecreased(
     ulong BakerId,
     AccountAddress AccountAddress,
-    ulong NewStakedAmount) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    ulong NewStakedAmount) : TransactionResultEvent;
 
 public record BakerStakeIncreased(
     ulong BakerId,
     AccountAddress AccountAddress,
-    ulong NewStakedAmount) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    ulong NewStakedAmount) : TransactionResultEvent;
 
 /// <summary>
 /// A new smart contract instance was created.
@@ -133,11 +101,7 @@ public record ContractUpdated(
 
 public record CredentialDeployed(
     string RegId,
-    AccountAddress AccountAddress) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    AccountAddress AccountAddress) : TransactionResultEvent;
 
 /// <summary>
 /// Keys of the given credential were updated.
@@ -157,11 +121,7 @@ public record CredentialsUpdated(
     AccountAddress AccountAddress,
     string[] NewCredIds,
     string[] RemovedCredIds,
-    byte NewThreshold) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    byte NewThreshold) : TransactionResultEvent;
 
 /// <summary>
 /// Data was registered on the chain.
@@ -181,11 +141,7 @@ public record EncryptedAmountsRemoved(
     AccountAddress AccountAddress,
     string NewEncryptedAmount,
     string InputAmount,
-    ulong UpToIndex) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    ulong UpToIndex) : TransactionResultEvent;
 
 /// <summary>
 /// The encrypted balance of the account was updated due to transfer from
@@ -197,11 +153,7 @@ public record EncryptedAmountsRemoved(
 public record EncryptedSelfAmountAdded(
     AccountAddress AccountAddress,
     string NewEncryptedAmount,
-    ulong Amount) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    ulong Amount) : TransactionResultEvent;
 
 /// <summary>
 /// A new encrypted amount was added to the account.
@@ -212,11 +164,7 @@ public record EncryptedSelfAmountAdded(
 public record NewEncryptedAmount(
     AccountAddress AccountAddress,
     ulong NewIndex,
-    string EncryptedAmount) : TransactionResultEvent
-{
-    [GraphQLDeprecated("Use 'accountAddress.asString' instead. This field will be removed in the near future.")]
-    public string AccountAddressString => AccountAddress.AsString;
-}
+    string EncryptedAmount) : TransactionResultEvent;
 
 public record TransferMemo(string RawHex) : TransactionResultEvent
 {
@@ -237,10 +185,6 @@ public record TransferredWithSchedule(
     AccountAddress ToAccountAddress,
     [property: UsePaging] TimestampedAmount[] AmountsSchedule) : TransactionResultEvent
 {
-    [GraphQLDeprecated("Use 'fromAccountAddress.asString' instead. This field will be removed in the near future.")]
-    public string FromAccountAddressString => FromAccountAddress.AsString;
-    [GraphQLDeprecated("Use 'toAccountAddress.asString' instead. This field will be removed in the near future.")]
-    public string ToAccountAddressString => ToAccountAddress.AsString;
     public ulong TotalAmount => AmountsSchedule.Aggregate(0UL, (val, item) => val + item.Amount);
 }
 

@@ -169,7 +169,7 @@ public class BlockWriter
             BakerId = blockInfo.BlockBaker,
             Finalized = blockInfo.Finalized,
             TransactionCount = blockInfo.TransactionCount,
-            SpecialEventsOld2 = new SpecialEvents
+            SpecialEventsOld = new SpecialEvents
             {
                 Mint = MapMint(blockSummary.SpecialEvents.OfType<MintSpecialEvent>().SingleOrDefault()),
                 FinalizationRewards = MapFinalizationRewards(blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault()),
@@ -217,7 +217,7 @@ public class BlockWriter
             BakingReward = mint.MintBakingReward.MicroCcdValue,
             FinalizationReward = mint.MintFinalizationReward.MicroCcdValue,
             PlatformDevelopmentCharge = mint.MintPlatformDevelopmentCharge.MicroCcdValue,
-            FoundationAccount = mint.FoundationAccount.AsString
+            FoundationAccountAddress = new AccountAddress(mint.FoundationAccount.AsString)
         };
     }
 

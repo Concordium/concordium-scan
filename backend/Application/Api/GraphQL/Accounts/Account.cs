@@ -18,12 +18,8 @@ public class Account
     public AccountAddress BaseAddress { get; set; }
 
     [GraphQLName("address")] 
-    public AccountAddress CanonicalAddress => new(CanonicalAddressString);
-    
-    [GraphQLDeprecated("Use 'address.asString' instead. This field will be removed in the near future.")]
-    [GraphQLName("addressString")]
-    public string CanonicalAddressString { get; set; }
-    
+    public AccountAddress CanonicalAddress { get; set; }
+
     public ulong Amount { get; set; }
     
     public int TransactionCount { get; set; }

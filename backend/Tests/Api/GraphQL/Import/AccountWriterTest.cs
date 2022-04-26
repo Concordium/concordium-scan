@@ -40,7 +40,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
             {
                 Id = accountIndex,
                 BaseAddress = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
-                CanonicalAddressString = "44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy",
+                CanonicalAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"),
                 Amount = 57290,
                 TransactionCount = 0,
                 CreatedAt = time

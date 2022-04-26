@@ -24,7 +24,7 @@ public class AccountBuilder
         {
             Id = _id,
             BaseAddress = _baseAddress,
-            CanonicalAddressString = _canonicalAddress.AsString,
+            CanonicalAddress = _canonicalAddress,
             CreatedAt = new DateTimeOffset(2021, 10, 10, 12, 0, 0, TimeSpan.Zero),
             Amount = _amount,
             TransactionCount = _transactionCount
