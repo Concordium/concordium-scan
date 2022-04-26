@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
@@ -49,7 +50,10 @@ public class SpecialEventConfiguration :
     public void Configure(EntityTypeBuilder<FinalizationRewardsSpecialEvent> builder)
     {
         builder.Property(x => x.Remainder).HasColumnName("remainder");
-        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses").HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter());
+        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses")
+            .HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter())
+            .Metadata.SetValueComparer(new ValueComparer<AccountAddress[]>(false));
+        
         builder.Property(x => x.Amounts).HasColumnName("amounts");
     }
 
@@ -67,7 +71,9 @@ public class SpecialEventConfiguration :
     public void Configure(EntityTypeBuilder<BakingRewardsSpecialEvent> builder)
     {
         builder.Property(x => x.Remainder).HasColumnName("remainder");
-        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses").HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter());
+        builder.Property(x => x.AccountAddresses).HasColumnName("account_addresses")
+            .HasPostgresArrayConversion<AccountAddress, string>(new AccountAddressConverter())
+            .Metadata.SetValueComparer(new ValueComparer<AccountAddress[]>(false));
         builder.Property(x => x.Amounts).HasColumnName("amounts");
     }
 
