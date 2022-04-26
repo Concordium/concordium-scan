@@ -90,7 +90,7 @@ describe('translateTransactionTypes', () => {
 	})
 
 	describe('credential deployment transactions', () => {
-		it('should translate a credential deployment  transaction', () => {
+		it('should translate a credential deployment transaction', () => {
 			const transactionType: CredentialDeploymentTransaction = {
 				__typename: 'CredentialDeploymentTransaction',
 				credentialDeploymentTransactionType:

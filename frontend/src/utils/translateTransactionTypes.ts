@@ -1,4 +1,9 @@
-import type { TransactionType } from '~/types/generated'
+import type {
+	TransactionType,
+	AccountTransactionType,
+	CredentialDeploymentTransactionType,
+	UpdateTransactionType,
+} from '~/types/generated'
 
 const translations = {
 	accountTransactionTypes: {
@@ -7,6 +12,8 @@ const translations = {
 		UPDATE_SMART_CONTRACT_INSTANCE: 'Update Smart Contract',
 		SIMPLE_TRANSFER: 'Simple transfer',
 		ADD_BAKER: 'Add baker',
+		CONFIGURE_BAKER: 'Configure baker',
+		CONFIGURE_DELEGATION: 'Configure delegation',
 		REMOVE_BAKER: 'Remove baker',
 		UPDATE_BAKER_STAKE: 'Update baker stake',
 		UPDATE_BAKER_RESTAKE_EARNINGS: 'Update baker restake earnings',
@@ -22,12 +29,12 @@ const translations = {
 		ENCRYPTED_TRANSFER_WITH_MEMO: 'Encrypted transfer with memo',
 		TRANSFER_WITH_SCHEDULE_WITH_MEMO: 'Transfer with schedule and memo',
 		UNKNOWN: 'Unknown account transaction',
-	},
+	} as Record<AccountTransactionType | 'UNKNOWN', string>,
 	credentialDeploymentTypes: {
 		NORMAL: 'Normal credential deployment',
 		INITIAL: 'Initial credential deployment',
 		UNKNOWN: 'Unknown credential deployment',
-	},
+	} as Record<CredentialDeploymentTransactionType | 'UNKNOWN', string>,
 	updateTransactionTypes: {
 		UPDATE_PROTOCOL: 'Update protocol',
 		UPDATE_ELECTION_DIFFICULTY: 'Update election difficulty',
@@ -35,16 +42,19 @@ const translations = {
 		UPDATE_MICRO_GTU_PER_EURO: 'Update micro CCD per Euro',
 		UPDATE_FOUNDATION_ACCOUNT: 'Update foundation account',
 		UPDATE_MINT_DISTRIBUTION: 'Update mint distribution',
+		UPDATE_POOL_PARAMETERS: 'Update pool parameters',
 		UPDATE_TRANSACTION_FEE_DISTRIBUTION: 'Update transaction fee distribution',
 		UPDATE_GAS_REWARDS: 'Update gas rewards',
 		UPDATE_BAKER_STAKE_THRESHOLD: 'Update baker stake threshold',
+		UPDATE_COOLDOWN_PARAMETERS: 'Update cooldown parameters',
 		UPDATE_ADD_ANONYMITY_REVOKER: 'Add anonymity revoker',
 		UPDATE_ADD_IDENTITY_PROVIDER: 'Add identity provider',
 		UPDATE_ROOT_KEYS: 'Update root keys',
+		UPDATE_TIME_PARAMETERS: 'Update time parameters',
 		UPDATE_LEVEL1_KEYS: 'Update level1 keys',
 		UPDATE_LEVEL2_KEYS: 'Update level2 keys',
 		UNKNOWN: 'Unknown update transaction',
-	},
+	} as Record<UpdateTransactionType | 'UNKNOWN', string>,
 }
 
 export const translateTransactionType = (txType: TransactionType) => {
