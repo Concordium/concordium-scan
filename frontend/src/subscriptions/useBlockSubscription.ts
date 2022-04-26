@@ -15,7 +15,7 @@ const BlockSubscription = gql<Subscription>`
 			bakerId
 			id
 			finalized
-			specialEvents {
+			specialEventsOld {
 				blockRewards {
 					bakerReward
 				}

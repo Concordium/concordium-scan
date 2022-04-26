@@ -191,6 +191,8 @@ export type AccountTransactionRelationEdge = {
 
 export enum AccountTransactionType {
   AddBaker = 'ADD_BAKER',
+  ConfigureBaker = 'CONFIGURE_BAKER',
+  ConfigureDelegation = 'CONFIGURE_DELEGATION',
   DeployModule = 'DEPLOY_MODULE',
   EncryptedTransfer = 'ENCRYPTED_TRANSFER',
   EncryptedTransferWithMemo = 'ENCRYPTED_TRANSFER_WITH_MEMO',
@@ -526,7 +528,9 @@ export type Block = {
   finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
+  /** @deprecated Use 'SpecialEventsOld' instead. This field will be replaced with another type in the near future. */
   specialEvents: SpecialEvents;
+  specialEventsOld: SpecialEvents;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<TransactionsConnection>;
 };
@@ -1637,6 +1641,7 @@ export enum UpdateTransactionType {
   UpdateAddAnonymityRevoker = 'UPDATE_ADD_ANONYMITY_REVOKER',
   UpdateAddIdentityProvider = 'UPDATE_ADD_IDENTITY_PROVIDER',
   UpdateBakerStakeThreshold = 'UPDATE_BAKER_STAKE_THRESHOLD',
+  UpdateCooldownParameters = 'UPDATE_COOLDOWN_PARAMETERS',
   UpdateElectionDifficulty = 'UPDATE_ELECTION_DIFFICULTY',
   UpdateEuroPerEnergy = 'UPDATE_EURO_PER_ENERGY',
   UpdateFoundationAccount = 'UPDATE_FOUNDATION_ACCOUNT',
@@ -1645,8 +1650,10 @@ export enum UpdateTransactionType {
   UpdateLevel2Keys = 'UPDATE_LEVEL2_KEYS',
   UpdateMicroGtuPerEuro = 'UPDATE_MICRO_GTU_PER_EURO',
   UpdateMintDistribution = 'UPDATE_MINT_DISTRIBUTION',
+  UpdatePoolParameters = 'UPDATE_POOL_PARAMETERS',
   UpdateProtocol = 'UPDATE_PROTOCOL',
   UpdateRootKeys = 'UPDATE_ROOT_KEYS',
+  UpdateTimeParameters = 'UPDATE_TIME_PARAMETERS',
   UpdateTransactionFeeDistribution = 'UPDATE_TRANSACTION_FEE_DISTRIBUTION'
 }
 

@@ -28,20 +28,24 @@
 				Tokenomics
 				<template #content>
 					<MintDistribution
-						v-if="props.block.specialEvents.mint"
-						:data="props.block.specialEvents.mint"
+						v-if="props.block.specialEventsOld.mint"
+						:data="props.block.specialEventsOld.mint"
 					/>
 					<FinalizationRewards
-						v-if="props.block.specialEvents.finalizationRewards?.rewards?.nodes"
-						:data="props.block.specialEvents.finalizationRewards.rewards.nodes"
+						v-if="
+							props.block.specialEventsOld.finalizationRewards?.rewards?.nodes
+						"
+						:data="
+							props.block.specialEventsOld.finalizationRewards.rewards.nodes
+						"
 						:page-info="
-							props.block.specialEvents.finalizationRewards.rewards.pageInfo
+							props.block.specialEventsOld.finalizationRewards.rewards.pageInfo
 						"
 						:go-to-page="props.goToPageFinalizationRewards"
 					/>
 					<BlockRewards
-						v-if="props.block.specialEvents.blockRewards"
-						:data="props.block.specialEvents.blockRewards"
+						v-if="props.block.specialEventsOld.blockRewards"
+						:data="props.block.specialEventsOld.blockRewards"
 					/>
 				</template>
 			</Accordion>

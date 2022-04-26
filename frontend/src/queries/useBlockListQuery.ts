@@ -20,7 +20,7 @@ const BlocksQuery = gql<BlockListResponse>`
 				blockSlotTime
 				finalized
 				transactionCount
-				specialEvents {
+				specialEventsOld {
 					blockRewards {
 						bakerReward
 					}

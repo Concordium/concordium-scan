@@ -75,7 +75,7 @@
 							>
 								{{
 									convertMicroCcdToCcd(
-										block.specialEvents.blockRewards?.bakerReward
+										block.specialEventsOld.blockRewards?.bakerReward
 									)
 								}}
 							</TableTd>
