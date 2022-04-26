@@ -42,12 +42,12 @@
 						{{ convertMicroCcdToCcd(props.transaction?.ccdCost) }}
 					</template>
 				</DetailsCard>
-				<DetailsCard v-if="props.transaction?.senderAccountAddressString">
+				<DetailsCard v-if="props.transaction?.senderAccountAddress?.asString">
 					<template #title>Sender</template>
 					<template #default>
 						<AccountLink
 							icon-size="big"
-							:address="props.transaction?.senderAccountAddressString"
+							:address="props.transaction.senderAccountAddress.asString"
 						/>
 					</template>
 				</DetailsCard>

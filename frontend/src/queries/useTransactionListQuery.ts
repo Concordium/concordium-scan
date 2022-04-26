@@ -23,7 +23,9 @@ const TransactionsQuery = gql<TransactionListResponse>`
 				id
 				ccdCost
 				transactionHash
-				senderAccountAddressString
+				senderAccountAddress {
+					asString
+				}
 				block {
 					blockHeight
 					blockSlotTime

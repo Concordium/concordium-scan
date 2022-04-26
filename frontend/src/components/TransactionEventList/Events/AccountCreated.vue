@@ -1,7 +1,7 @@
 <template>
 	<span>
 		Account created with address
-		<AccountLink :address="event.accountAddressString" />
+		<AccountLink :address="event.accountAddress.asString" />
 	</span>
 </template>
 

@@ -1,7 +1,7 @@
 <template>
 	<span>
-		Account <AccountLink :address="event.accountAddressString" /> registered as
-		a baker (<BakerLink :id="event.bakerId" />) with initial stake
+		Account <AccountLink :address="event.accountAddress.asString" /> registered
+		as a baker (<BakerLink :id="event.bakerId" />) with initial stake
 		{{ convertMicroCcdToCcd(event.stakedAmount) }}Ͼ
 		{{ event.restakeEarnings ? ' and rewards restaked' : '' }}
 	</span>

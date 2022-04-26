@@ -130,7 +130,7 @@
 							</TableTd>
 							<TableTd v-if="breakpoint >= Breakpoint.MD" class="numerical">
 								<AccountLink
-									:address="transaction.senderAccountAddressString"
+									:address="transaction.senderAccountAddress?.asString"
 								/>
 							</TableTd>
 							<TableTd

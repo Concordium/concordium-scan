@@ -1,7 +1,7 @@
 <template>
 	<span>
 		Deployed account with address
-		<AccountLink :address="event.accountAddressString" /> from
+		<AccountLink :address="event.accountAddress.asString" /> from
 		<Hash :hash="event.regId" />
 	</span>
 </template>

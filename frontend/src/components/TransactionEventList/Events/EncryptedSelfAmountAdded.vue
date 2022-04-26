@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Account <AccountLink :address="event.accountAddressString" /> transferred
+		Account <AccountLink :address="event.accountAddress.asString" /> transferred
 		{{ convertMicroCcdToCcd(event.amount) }}Ͼ from public to encrypted balance
 	</span>
 </template>

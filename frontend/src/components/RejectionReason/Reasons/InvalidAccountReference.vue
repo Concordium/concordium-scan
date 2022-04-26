@@ -1,6 +1,6 @@
 <template>
 	<span>
-		The account <Hash :hash="reason.accountAddressString" /> does not exist
+		The account <Hash :hash="reason.accountAddress.asString" /> does not exist
 	</span>
 </template>
 

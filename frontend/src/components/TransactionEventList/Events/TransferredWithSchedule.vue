@@ -2,9 +2,10 @@
 	<span>
 		Transferred
 		<span class="numerical">{{ convertMicroCcdToCcd(event.totalAmount) }}</span>
-		Ͼ from account <AccountLink :address="event.fromAccountAddressString" /> to
-		account <AccountLink :address="event.toAccountAddressString" /> with a
-		release schedule.
+		Ͼ from account
+		<AccountLink :address="event.fromAccountAddress.asString" /> to account
+		<AccountLink :address="event.toAccountAddress.asString" /> with a release
+		schedule.
 
 		<button
 			class="align-middle justify-between items-center rounded-lg inline-block p-1 px-2 mx-2 text-xs bg-theme-background-primary-elevated hover:bg-theme-background-primary-elevated-hover"

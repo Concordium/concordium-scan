@@ -11,9 +11,9 @@
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					<TableRow v-for="finalizer in data" :key="finalizer.addressString">
+					<TableRow v-for="finalizer in data" :key="finalizer.address.asString">
 						<TableTd>
-							<AccountLink :address="finalizer.addressString" />
+							<AccountLink :address="finalizer.address.asString" />
 						</TableTd>
 						<TableTd class="numerical text-right">
 							{{ calculateWeight(finalizer.amount, totalAmount) }}%

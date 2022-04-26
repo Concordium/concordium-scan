@@ -13,15 +13,21 @@ type TransactionByTransactionHashResponse = {
 const eventsFragment = `
 __typename
 ... on AccountCreated {
-	accountAddressString
+	accountAddress {
+		asString
+	}
 }
 ... on AmountAddedByDecryption {
 	amount
-	accountAddressString
+	accountAddress {
+		asString
+	}
 }
 ... on BakerAdded {
 	bakerId
-	accountAddressString
+	accountAddress {
+		asString
+	}
 	stakedAmount
 	restakeEarnings
 }
@@ -76,7 +82,9 @@ __typename
 	credId
 }
 ... on CredentialsUpdated {
-	accountAddressString
+	accountAddress {
+		asString
+	}
 	newCredIds
 	removedCredIds
 }
@@ -84,14 +92,20 @@ __typename
 	__typename
 }
 ...on EncryptedAmountsRemoved {
-	accountAddressString
+	accountAddress {
+		asString
+	}
 }
 ... on EncryptedSelfAmountAdded {
-	accountAddressString
+	accountAddress {
+		asString
+	}
 	amount
 }
 ...on NewEncryptedAmount {
-	accountAddressString
+	accountAddress {
+		asString
+	}
 }
 ... on TransferMemo {
 	decoded {
@@ -100,8 +114,12 @@ __typename
 	}
 }
 ... on TransferredWithSchedule {
-	fromAccountAddressString
-	toAccountAddressString
+	fromAccountAddress {
+		asString
+	}
+	toAccountAddress {
+		asString
+	}
 	totalAmount
 	amountsSchedule {
 		pageInfo {
@@ -198,7 +216,9 @@ __typename
 }
 ... on CredentialDeployed {
 	regId
-	accountAddressString
+	accountAddress {
+		asString
+	}
 }
 `
 
@@ -225,10 +245,14 @@ reason {
 		credIds
 	}
 	... on EncryptedAmountSelfTransfer {
-		accountAddressString
+		accountAddress {
+			asString
+		}
 	}
 	... on InvalidAccountReference {
-		accountAddressString
+		accountAddress {
+			asString
+		}
 	}
 	... on InvalidContractAddress {
 		contractAddress {
@@ -254,10 +278,14 @@ reason {
 		credIds
 	}
 	... on NonExistentRewardAccount {
-		accountAddressString
+		accountAddress {
+			asString
+		}
 	}
 	... on NotABaker {
-		accountAddressString
+		accountAddress {
+			asString
+		}
 	}
 	... on RejectedInit {
 		rejectReason
@@ -271,7 +299,9 @@ reason {
 		receiveName
 	}
 	... on ScheduledSelfTransfer {
-		accountAddressString
+		accountAddress {
+			asString
+		}
 	}
 }
 `
@@ -282,7 +312,9 @@ const TransactionQuery = gql<TransactionResponse>`
 			id
 			ccdCost
 			transactionHash
-			senderAccountAddressString
+			senderAccountAddress {
+				asString
+			}
 			block {
 				id
 				blockHash
@@ -332,7 +364,9 @@ const TransactionQueryByHash = gql<TransactionByTransactionHashResponse>`
 			id
 			ccdCost
 			transactionHash
-			senderAccountAddressString
+			senderAccountAddress {
+				asString
+			}
 			block {
 				id
 				blockHash

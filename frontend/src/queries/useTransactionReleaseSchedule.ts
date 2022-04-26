@@ -19,8 +19,12 @@ const TransactionReleaseScheduleQuery = gql<TransactionByTransactionHashResponse
 					events {
 						nodes {
 							... on TransferredWithSchedule {
-								fromAccountAddressString
-								toAccountAddressString
+								fromAccountAddress {
+									asString
+								}
+								toAccountAddress {
+									asString
+								}
 								totalAmount
 								amountsSchedule(
 									after: $after

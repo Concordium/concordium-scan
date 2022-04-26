@@ -29,7 +29,9 @@
 						</div>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG" class="numerical">
-						<AccountLink :address="transaction.senderAccountAddressString" />
+						<AccountLink
+							:address="transaction.senderAccountAddress?.asString"
+						/>
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.LG"

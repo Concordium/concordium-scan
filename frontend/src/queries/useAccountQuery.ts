@@ -65,7 +65,9 @@ transactions(
 		transaction {
 			id
 			transactionHash
-			senderAccountAddressString
+			senderAccountAddress {
+				asString
+			}
 			ccdCost
 			block {
 				blockSlotTime
@@ -89,7 +91,9 @@ transactions(
 	}
 }
 id
-addressString
+address {
+	asString
+}
 amount
 transactionCount
 releaseSchedule {
@@ -109,7 +113,9 @@ releaseSchedule {
 		nodes {
 			transaction {
 				transactionHash
-				senderAccountAddressString
+				senderAccountAddress {
+					asString
+				}
 				ccdCost
 				block {
 					blockSlotTime

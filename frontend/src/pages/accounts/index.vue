@@ -26,9 +26,9 @@
 				</TableRow>
 			</TableHead>
 			<TableBody>
-				<TableRow v-for="account in pagedData" :key="account.addressString">
+				<TableRow v-for="account in pagedData" :key="account.address.asString">
 					<TableTd>
-						<AccountLink :address="account.addressString" />
+						<AccountLink :address="account.address.asString" />
 					</TableTd>
 					<TableTd class="text-right">
 						<span class="numerical">

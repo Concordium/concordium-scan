@@ -22,7 +22,9 @@ const AccountsQuery = gql<AccountsListResponse>`
 			nodes {
 				id
 				transactionCount
-				addressString
+				address {
+					asString
+				}
 				createdAt
 				amount
 				transactions {

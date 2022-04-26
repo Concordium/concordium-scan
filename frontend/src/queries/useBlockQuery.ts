@@ -25,7 +25,9 @@ const transactionsFragment = `
 nodes {
 	id
 	transactionHash
-	senderAccountAddressString
+	senderAccountAddress {
+		asString
+	}
 	ccdCost
 	result {
 		__typename
@@ -75,7 +77,9 @@ const BlockQuery = gql<BlockResponse>`
 					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
 						nodes {
 							amount
-							addressString
+							address {
+								asString
+							}
 						}
 						pageInfo {
 							startCursor
@@ -91,8 +95,12 @@ const BlockQuery = gql<BlockResponse>`
 					oldGasAccount
 					newGasAccount
 					foundationCharge
-					bakerAccountAddressString
-					foundationAccountAddressString
+					bakerAccountAddress {
+						asString
+					}
+					foundationAccountAddress {
+						asString
+					}
 				}
 			}
 		}
@@ -133,7 +141,9 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
 						nodes {
 							amount
-							addressString
+							address {
+								asString
+							}
 						}
 						pageInfo {
 							startCursor
@@ -149,8 +159,12 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 					oldGasAccount
 					newGasAccount
 					foundationCharge
-					bakerAccountAddressString
-					foundationAccountAddressString
+					bakerAccountAddress {
+						asString
+					}
+					foundationAccountAddress {
+						asString
+					}
 				}
 			}
 		}

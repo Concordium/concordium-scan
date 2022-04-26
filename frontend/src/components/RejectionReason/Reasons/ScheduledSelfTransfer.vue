@@ -1,7 +1,7 @@
 <template>
 	<span>
 		Scheduled transfer not allowed to the same account (<Hash
-			:hash="reason.accountAddressString"
+			:hash="reason.accountAddress.asString"
 		/>)
 	</span>
 </template>
