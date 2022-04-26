@@ -19,7 +19,7 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.Property(b => b.BakerId).HasColumnName("baker_id");
         builder.Property(b => b.Finalized).HasColumnName("finalized");
         builder.Property(b => b.TransactionCount).HasColumnName("transaction_count");
-        builder.OwnsOne(block => block.SpecialEvents, specialEventsBuilder =>
+        builder.OwnsOne(block => block.SpecialEventsOld2, specialEventsBuilder =>
         {
             specialEventsBuilder.WithOwner(x => x.Owner);
             specialEventsBuilder.OwnsOne(x => x.Mint, builder =>

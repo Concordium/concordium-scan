@@ -135,7 +135,7 @@ public class BlockWriter
             BakerId = blockInfo.BlockBaker,
             Finalized = blockInfo.Finalized,
             TransactionCount = blockInfo.TransactionCount,
-            SpecialEvents = new SpecialEvents
+            SpecialEventsOld2 = new SpecialEvents
             {
                 Mint = MapMint(blockSummary.SpecialEvents.OfType<MintSpecialEvent>().SingleOrDefault()),
                 FinalizationRewards = MapFinalizationRewards(blockSummary.SpecialEvents.OfType<FinalizationRewardsSpecialEvent>().SingleOrDefault()),

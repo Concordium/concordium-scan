@@ -360,7 +360,8 @@ type Block {
   bakerId: Int
   finalized: Boolean!
   transactionCount: Int!
-  specialEvents: SpecialEvents!
+  specialEvents: SpecialEvents! @deprecated(reason: "Use 'SpecialEventsOld' instead. This field will be replaced with another type in the near future.")
+  specialEventsOld: SpecialEvents!
   finalizationSummary: FinalizationSummary
   balanceStatistics: BalanceStatistics!
   blockStatistics: BlockStatistics!
