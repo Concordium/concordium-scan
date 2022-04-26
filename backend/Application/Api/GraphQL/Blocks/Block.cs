@@ -26,6 +26,13 @@ public class Block : IBlockOrTransactionUnion
 
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
+    public IEnumerable<SpecialEvent> GetSpecialEvents([ScopedService] GraphQlDbContext dbContext)
+    {
+        throw new NotImplementedException();
+    }
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging]
     public IEnumerable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.Transactions

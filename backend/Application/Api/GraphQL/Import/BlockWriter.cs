@@ -268,7 +268,7 @@ public class BlockWriter
         };
     }
     
-    private static BlockRelated<FinalizationReward> MapFinalizationReward(Block block, int index, AccountAddressAmount value)
+    private static BlockRelated<FinalizationReward> MapFinalizationReward(Block block, int index, ConcordiumSdk.NodeApi.Types.AccountAddressAmount value)
     {
         return new BlockRelated<FinalizationReward>
         {
@@ -282,7 +282,7 @@ public class BlockWriter
         };
     }
 
-    private static BlockRelated<BakingReward> MapBakingReward(Block block, int index, AccountAddressAmount value)
+    private static BlockRelated<BakingReward> MapBakingReward(Block block, int index, ConcordiumSdk.NodeApi.Types.AccountAddressAmount value)
     {
         return new BlockRelated<BakingReward>
         {

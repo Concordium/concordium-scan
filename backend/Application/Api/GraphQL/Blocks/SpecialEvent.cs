@@ -1,14 +1,18 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using HotChocolate;
+using HotChocolate.Types;
+using HotChocolate.Types.Relay;
 
 namespace Application.Api.GraphQL.Blocks;
 
+[UnionType]
 public abstract class SpecialEvent
 {
     [GraphQLIgnore]
     public long BlockId { get; init; }
 
-    [GraphQLIgnore]
+    [ID]
+    [GraphQLName("id")]
     public long Index { get; init; }
 }
 
@@ -23,8 +27,30 @@ public class MintSpecialEvent : SpecialEvent
 public class FinalizationRewardsSpecialEvent : SpecialEvent
 {
     public ulong Remainder { get; init; }
+
+    /// <summary>
+    /// The AccountAddresses and Amounts are stored in two arrays instead of a single array of address/amount pairs
+    /// due to the way they are stored in the database and the ability of EF-core to handle that.
+    ///
+    /// GraphQL schema-wise the correct structure is created in <see cref="GetFinalizationRewards"/>
+    /// </summary>
+    [GraphQLIgnore] 
     public AccountAddress[] AccountAddresses { get; init; }
+        
+    /// <summary>
+    /// See comment on <see cref="AccountAddresses"/>
+    /// </summary>
+    [GraphQLIgnore]
     public ulong[] Amounts { get; init; }
+    
+    [UsePaging(InferConnectionNameFromField = false)]
+    public IEnumerable<AccountAddressAmount> GetFinalizationRewards()
+    {
+        if (AccountAddresses.Length != Amounts.Length) throw new InvalidOperationException("The array lengths do not match");
+        
+        for (int i = 0; i < AccountAddresses.Length; i++)
+            yield return new AccountAddressAmount(AccountAddresses[i], Amounts[i]);
+    }
 }
 
 public class BlockRewardsSpecialEvent : SpecialEvent
@@ -41,8 +67,30 @@ public class BlockRewardsSpecialEvent : SpecialEvent
 public class BakingRewardsSpecialEvent : SpecialEvent
 {
     public ulong Remainder { get; init; }
+    
+    /// <summary>
+    /// The AccountAddresses and Amounts are stored in two arrays instead of a single array of address/amount pairs
+    /// due to the way they are stored in the database and the ability of EF-core to handle that.
+    ///
+    /// GraphQL schema-wise the correct structure is created in <see cref="GetBakingRewards"/>
+    /// </summary>
+    [GraphQLIgnore] 
     public AccountAddress[] AccountAddresses { get; init; }
+    
+    /// <summary>
+    /// See comment on <see cref="AccountAddresses"/>
+    /// </summary>
+    [GraphQLIgnore]
     public ulong[] Amounts { get; init; }
+
+    [UsePaging(InferConnectionNameFromField = false)]
+    public IEnumerable<AccountAddressAmount> GetBakingRewards()
+    {
+        if (AccountAddresses.Length != Amounts.Length) throw new InvalidOperationException("The array lengths do not match");
+        
+        for (int i = 0; i < AccountAddresses.Length; i++)
+            yield return new AccountAddressAmount(AccountAddresses[i], Amounts[i]);
+    }
 }
 
 public class PaydayAccountRewardSpecialEvent : SpecialEvent

@@ -47,6 +47,7 @@ public static class GraphQlConfiguration
         builder.BindClrType<ulong, UnsignedLongType>();
 
         // Bind all concrete types of GraphQL unions and interfaces
+        AddAllTypesDerivedFrom<SpecialEvent>(builder);
         AddAllTypesDerivedFrom<TransactionResult>(builder);
         AddAllTypesDerivedFrom<TransactionTypeUnion>(builder);
         AddAllTypesDerivedFrom<Address>(builder);

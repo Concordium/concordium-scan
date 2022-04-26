@@ -19,6 +19,29 @@ type AccountAddress {
   asString: String!
 }
 
+type AccountAddressAmount {
+  accountAddress: AccountAddress!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type AccountAddressAmountConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [AccountAddressAmountEdge!]
+  "A flattened list of the nodes."
+  nodes: [AccountAddressAmount!]
+}
+
+"An edge in a connection."
+type AccountAddressAmountEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: AccountAddressAmount!
+}
+
 type AccountCreated {
   accountAddress: AccountAddress!
 }
@@ -321,6 +344,12 @@ type BakingRewards {
   remainder: UnsignedLong!
 }
 
+type BakingRewardsSpecialEvent {
+  bakingRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountAddressAmountConnection
+  remainder: UnsignedLong!
+  id: ID!
+}
+
 type BalanceStatistics {
   "The total CCD in existence"
   totalAmount: UnsignedLong!
@@ -341,6 +370,7 @@ type BalanceStatistics {
 }
 
 type Block {
+  specialEvents("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SpecialEventsConnection
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   chainParameters: ChainParameters!
   id: ID!
@@ -354,6 +384,24 @@ type Block {
   finalizationSummary: FinalizationSummary
   balanceStatistics: BalanceStatistics!
   blockStatistics: BlockStatistics!
+}
+
+type BlockAccrueRewardSpecialEvent {
+  "The total fees paid for transactions in the block."
+  transactionFees: UnsignedLong!
+  "The old balance of the GAS account."
+  oldGasAccount: UnsignedLong!
+  "The new balance of the GAS account."
+  newGasAccount: UnsignedLong!
+  "The amount awarded to the baker."
+  bakerReward: UnsignedLong!
+  "The amount awarded to the L-Pool."
+  lPoolReward: UnsignedLong!
+  "The amount awarded to the foundation."
+  foundationCharge: UnsignedLong!
+  "The baker of the block, who will receive the award."
+  bakerId: UnsignedLong!
+  id: ID!
 }
 
 type BlockMetrics {
@@ -417,6 +465,17 @@ type BlockRewards {
   foundationCharge: UnsignedLong!
   bakerAccountAddress: AccountAddress!
   foundationAccountAddress: AccountAddress!
+}
+
+type BlockRewardsSpecialEvent {
+  transactionFees: UnsignedLong!
+  oldGasAccount: UnsignedLong!
+  newGasAccount: UnsignedLong!
+  bakerReward: UnsignedLong!
+  foundationCharge: UnsignedLong!
+  bakerAccountAddress: AccountAddress!
+  foundationAccountAddress: AccountAddress!
+  id: ID!
 }
 
 type BlockStatistics {
@@ -607,6 +666,12 @@ type FinalizationRewards {
   remainder: UnsignedLong!
 }
 
+type FinalizationRewardsSpecialEvent {
+  finalizationRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountAddressAmountConnection
+  remainder: UnsignedLong!
+  id: ID!
+}
+
 type FinalizationSummary {
   finalizers("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): FinalizersConnection
   finalizedBlockHash: String!
@@ -750,6 +815,14 @@ type MintDistributionChainUpdatePayload {
   finalizationReward: Decimal!
 }
 
+type MintSpecialEvent {
+  bakingReward: UnsignedLong!
+  finalizationReward: UnsignedLong!
+  platformDevelopmentCharge: UnsignedLong!
+  foundationAccountAddress: AccountAddress!
+  id: ID!
+}
+
 type ModuleHashAlreadyExists {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   moduleRef: String!
@@ -814,6 +887,36 @@ type PageInfo {
   startCursor: String
   "When paginating forwards, the cursor to continue."
   endCursor: String
+}
+
+type PaydayAccountRewardSpecialEvent {
+  "The account that got rewarded."
+  account: AccountAddress!
+  "The transaction fee reward at payday to the account."
+  transactionFees: UnsignedLong!
+  "The baking reward at payday to the account."
+  bakerReward: UnsignedLong!
+  "The finalization reward at payday to the account."
+  finalizationReward: UnsignedLong!
+  id: ID!
+}
+
+type PaydayFoundationRewardSpecialEvent {
+  foundationAccount: AccountAddress!
+  developmentCharge: UnsignedLong!
+  id: ID!
+}
+
+type PaydayPoolRewardSpecialEvent {
+  "The pool owner (L-Pool when null)."
+  poolOwner: UnsignedLong
+  "Accrued transaction fees for pool."
+  transactionFees: UnsignedLong!
+  "Accrued baking rewards for pool."
+  bakerReward: UnsignedLong!
+  "Accrued finalization rewards for pool."
+  finalizationReward: UnsignedLong!
+  id: ID!
 }
 
 type PendingBakerReduceStake {
@@ -929,6 +1032,24 @@ type SpecialEvents {
   finalizationRewards: FinalizationRewards
   blockRewards: BlockRewards
   bakingRewards: BakingRewards
+}
+
+"A connection to a list of items."
+type SpecialEventsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [SpecialEventsEdge!]
+  "A flattened list of the nodes."
+  nodes: [SpecialEvent!]
+}
+
+"An edge in a connection."
+type SpecialEventsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: SpecialEvent!
 }
 
 type StakeUnderMinimumThresholdForBaking {
@@ -1062,6 +1183,8 @@ union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainU
 union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
 
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
+
+union SpecialEvent = MintSpecialEvent | FinalizationRewardsSpecialEvent | BlockRewardsSpecialEvent | BakingRewardsSpecialEvent | PaydayAccountRewardSpecialEvent | BlockAccrueRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent
 
 union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted
 
