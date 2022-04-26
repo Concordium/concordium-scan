@@ -26,9 +26,12 @@ public class Block : IBlockOrTransactionUnion
 
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IEnumerable<SpecialEvent> GetSpecialEvents([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<SpecialEvent> GetSpecialEvents([ScopedService] GraphQlDbContext dbContext)
     {
-        throw new NotImplementedException();
+        return dbContext.SpecialEvents
+            .AsNoTracking()
+            .Where(x => x.BlockId == Id)
+            .OrderBy(x => x.Index);
     }
 
     [UseDbContext(typeof(GraphQlDbContext))]
