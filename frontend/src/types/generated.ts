@@ -58,6 +58,32 @@ export type AccountAddress = {
   asString: Scalars['String'];
 };
 
+export type AccountAddressAmount = {
+  __typename?: 'AccountAddressAmount';
+  accountAddress: AccountAddress;
+  amount: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type AccountAddressAmountConnection = {
+  __typename?: 'AccountAddressAmountConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountAddressAmountEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<AccountAddressAmount>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountAddressAmountEdge = {
+  __typename?: 'AccountAddressAmountEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: AccountAddressAmount;
+};
+
 export type AccountCreated = {
   __typename?: 'AccountCreated';
   accountAddress: AccountAddress;
@@ -146,11 +172,14 @@ export type AccountStatementEntryEdge = {
 export enum AccountStatementEntryType {
   AmountDecrypted = 'AMOUNT_DECRYPTED',
   AmountEncrypted = 'AMOUNT_ENCRYPTED',
+  BakerReward = 'BAKER_REWARD',
   BakingReward = 'BAKING_REWARD',
   BlockReward = 'BLOCK_REWARD',
   FinalizationReward = 'FINALIZATION_REWARD',
+  FoundationReward = 'FOUNDATION_REWARD',
   MintReward = 'MINT_REWARD',
   TransactionFee = 'TRANSACTION_FEE',
+  TransactionFeeReward = 'TRANSACTION_FEE_REWARD',
   TransferIn = 'TRANSFER_IN',
   TransferOut = 'TRANSFER_OUT'
 }
@@ -476,6 +505,21 @@ export type BakingRewardsRewardsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type BakingRewardsSpecialEvent = {
+  __typename?: 'BakingRewardsSpecialEvent';
+  bakingRewards?: Maybe<AccountAddressAmountConnection>;
+  id: Scalars['ID'];
+  remainder: Scalars['UnsignedLong'];
+};
+
+
+export type BakingRewardsSpecialEventBakingRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
 export type BalanceStatistics = {
   __typename?: 'BalanceStatistics';
   /** The amount in the baking reward account */
@@ -508,9 +552,18 @@ export type Block = {
   finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
+  specialEvents?: Maybe<SpecialEventsConnection>;
   specialEventsOld: SpecialEvents;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<TransactionsConnection>;
+};
+
+
+export type BlockSpecialEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -519,6 +572,25 @@ export type BlockTransactionsArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+export type BlockAccrueRewardSpecialEvent = {
+  __typename?: 'BlockAccrueRewardSpecialEvent';
+  /** The baker of the block, who will receive the award. */
+  bakerId: Scalars['UnsignedLong'];
+  /** The amount awarded to the baker. */
+  bakerReward: Scalars['UnsignedLong'];
+  /** The amount awarded to the foundation. */
+  foundationCharge: Scalars['UnsignedLong'];
+  id: Scalars['ID'];
+  /** The amount awarded to the L-Pool. */
+  lPoolReward: Scalars['UnsignedLong'];
+  /** The new balance of the GAS account. */
+  newGasAccount: Scalars['UnsignedLong'];
+  /** The old balance of the GAS account. */
+  oldGasAccount: Scalars['UnsignedLong'];
+  /** The total fees paid for transactions in the block. */
+  transactionFees: Scalars['UnsignedLong'];
 };
 
 export type BlockMetrics = {
@@ -584,6 +656,18 @@ export type BlockRewards = {
   bakerReward: Scalars['UnsignedLong'];
   foundationAccountAddress: AccountAddress;
   foundationCharge: Scalars['UnsignedLong'];
+  newGasAccount: Scalars['UnsignedLong'];
+  oldGasAccount: Scalars['UnsignedLong'];
+  transactionFees: Scalars['UnsignedLong'];
+};
+
+export type BlockRewardsSpecialEvent = {
+  __typename?: 'BlockRewardsSpecialEvent';
+  bakerAccountAddress: AccountAddress;
+  bakerReward: Scalars['UnsignedLong'];
+  foundationAccountAddress: AccountAddress;
+  foundationCharge: Scalars['UnsignedLong'];
+  id: Scalars['ID'];
   newGasAccount: Scalars['UnsignedLong'];
   oldGasAccount: Scalars['UnsignedLong'];
   transactionFees: Scalars['UnsignedLong'];
@@ -844,6 +928,21 @@ export type FinalizationRewardsRewardsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type FinalizationRewardsSpecialEvent = {
+  __typename?: 'FinalizationRewardsSpecialEvent';
+  finalizationRewards?: Maybe<AccountAddressAmountConnection>;
+  id: Scalars['ID'];
+  remainder: Scalars['UnsignedLong'];
+};
+
+
+export type FinalizationRewardsSpecialEventFinalizationRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
 export type FinalizationSummary = {
   __typename?: 'FinalizationSummary';
   finalizationDelay: Scalars['Long'];
@@ -1046,6 +1145,15 @@ export type MintDistributionChainUpdatePayload = {
   mintPerSlot: Scalars['Decimal'];
 };
 
+export type MintSpecialEvent = {
+  __typename?: 'MintSpecialEvent';
+  bakingReward: Scalars['UnsignedLong'];
+  finalizationReward: Scalars['UnsignedLong'];
+  foundationAccountAddress: AccountAddress;
+  id: Scalars['ID'];
+  platformDevelopmentCharge: Scalars['UnsignedLong'];
+};
+
 export type ModuleHashAlreadyExists = {
   __typename?: 'ModuleHashAlreadyExists';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -1134,6 +1242,39 @@ export type PageInfo = {
   hasPreviousPage: Scalars['Boolean'];
   /** When paginating backwards, the cursor to continue. */
   startCursor?: Maybe<Scalars['String']>;
+};
+
+export type PaydayAccountRewardSpecialEvent = {
+  __typename?: 'PaydayAccountRewardSpecialEvent';
+  /** The account that got rewarded. */
+  account: AccountAddress;
+  /** The baking reward at payday to the account. */
+  bakerReward: Scalars['UnsignedLong'];
+  /** The finalization reward at payday to the account. */
+  finalizationReward: Scalars['UnsignedLong'];
+  id: Scalars['ID'];
+  /** The transaction fee reward at payday to the account. */
+  transactionFees: Scalars['UnsignedLong'];
+};
+
+export type PaydayFoundationRewardSpecialEvent = {
+  __typename?: 'PaydayFoundationRewardSpecialEvent';
+  developmentCharge: Scalars['UnsignedLong'];
+  foundationAccount: AccountAddress;
+  id: Scalars['ID'];
+};
+
+export type PaydayPoolRewardSpecialEvent = {
+  __typename?: 'PaydayPoolRewardSpecialEvent';
+  /** Accrued baking rewards for pool. */
+  bakerReward: Scalars['UnsignedLong'];
+  /** Accrued finalization rewards for pool. */
+  finalizationReward: Scalars['UnsignedLong'];
+  id: Scalars['ID'];
+  /** The pool owner (L-Pool when null). */
+  poolOwner?: Maybe<Scalars['UnsignedLong']>;
+  /** Accrued transaction fees for pool. */
+  transactionFees: Scalars['UnsignedLong'];
 };
 
 export type PendingBakerChange = PendingBakerReduceStake | PendingBakerRemoval;
@@ -1412,12 +1553,34 @@ export type SerializationFailure = {
   _: Scalars['Boolean'];
 };
 
+export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent;
+
 export type SpecialEvents = {
   __typename?: 'SpecialEvents';
   bakingRewards?: Maybe<BakingRewards>;
   blockRewards?: Maybe<BlockRewards>;
   finalizationRewards?: Maybe<FinalizationRewards>;
   mint?: Maybe<Mint>;
+};
+
+/** A connection to a list of items. */
+export type SpecialEventsConnection = {
+  __typename?: 'SpecialEventsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<SpecialEventsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<SpecialEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type SpecialEventsEdge = {
+  __typename?: 'SpecialEventsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: SpecialEvent;
 };
 
 export type StakeUnderMinimumThresholdForBaking = {
