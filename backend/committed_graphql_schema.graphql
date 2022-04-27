@@ -1211,6 +1211,9 @@ enum AccountStatementEntryType {
   BLOCK_REWARD
   FINALIZATION_REWARD
   MINT_REWARD
+  FOUNDATION_REWARD
+  BAKER_REWARD
+  TRANSACTION_FEE_REWARD
 }
 
 enum AccountTransactionType {
