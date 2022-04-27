@@ -12,7 +12,8 @@ public class AccountStatementEntry
     [GraphQLIgnore]
     public long AccountId { get; set; }
 
-    [GraphQLIgnore]
+    [ID]
+    [GraphQLName("id")]
     public long Index { get; set; }
     
     public DateTimeOffset Timestamp { get; set; }
@@ -46,11 +47,5 @@ public class AccountStatementEntry
         
         return await dbContext.Blocks.AsNoTracking()
             .SingleAsync(x => x.Id == BlockId);
-    }
-
-    [ID]
-    public long GetId()
-    {
-        return Index;
     }
 }
