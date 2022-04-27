@@ -29,10 +29,7 @@ public class BakerRewardConfigurationTest : IClassFixture<DatabaseFixture>
     [InlineData(AccountStatementEntryType.AmountDecrypted, false)]
     [InlineData(AccountStatementEntryType.AmountEncrypted, false)]
     [InlineData(AccountStatementEntryType.TransactionFee, false)]
-    [InlineData(AccountStatementEntryType.BakingReward, true)]
-    [InlineData(AccountStatementEntryType.BlockReward, true)]
     [InlineData(AccountStatementEntryType.FinalizationReward, true)]
-    [InlineData(AccountStatementEntryType.MintReward, true)]
     [InlineData(AccountStatementEntryType.FoundationReward, true)] 
     [InlineData(AccountStatementEntryType.BakerReward, true)] 
     [InlineData(AccountStatementEntryType.TransactionFeeReward, true)]
@@ -50,10 +47,7 @@ public class BakerRewardConfigurationTest : IClassFixture<DatabaseFixture>
     }
 
     [Theory]
-    [InlineData(AccountStatementEntryType.BakingReward, BakerRewardType.BakingReward)]
-    [InlineData(AccountStatementEntryType.BlockReward, BakerRewardType.BlockReward)]
     [InlineData(AccountStatementEntryType.FinalizationReward, BakerRewardType.FinalizationReward)]
-    [InlineData(AccountStatementEntryType.MintReward, BakerRewardType.MintReward)]
     [InlineData(AccountStatementEntryType.FoundationReward, BakerRewardType.FoundationReward)]
     [InlineData(AccountStatementEntryType.BakerReward, BakerRewardType.BakerReward)]
     [InlineData(AccountStatementEntryType.TransactionFeeReward, BakerRewardType.TransactionFeeReward)]

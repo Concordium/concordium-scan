@@ -28,8 +28,8 @@ public class PaydayAccountRewardSpecialEvent : SpecialEvent
     {
         return new AccountBalanceUpdate[]
         {
-            new(Account, (long)TransactionFees.MicroCcdValue, BalanceUpdateType.BakingReward), // TODO: The type is off!
-            new(Account, (long)BakerReward.MicroCcdValue, BalanceUpdateType.BakingReward),
+            new(Account, (long)TransactionFees.MicroCcdValue, BalanceUpdateType.TransactionFeeReward), 
+            new(Account, (long)BakerReward.MicroCcdValue, BalanceUpdateType.BakerReward),
             new(Account, (long)FinalizationReward.MicroCcdValue, BalanceUpdateType.FinalizationReward)
         };
     }

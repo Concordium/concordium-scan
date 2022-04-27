@@ -11,7 +11,7 @@ public class PaydayFoundationRewardSpecialEvent : SpecialEvent
     {
         return new AccountBalanceUpdate[]
         {
-            new(FoundationAccount, (long)DevelopmentCharge.MicroCcdValue, BalanceUpdateType.BlockReward), // TODO: The type is off!
+            new(FoundationAccount, (long)DevelopmentCharge.MicroCcdValue, BalanceUpdateType.FoundationReward) 
         };
     }
 }

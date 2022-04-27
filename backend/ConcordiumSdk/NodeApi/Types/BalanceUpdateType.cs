@@ -2,10 +2,10 @@
 
 public enum BalanceUpdateType
 {
-    BakingReward,
-    BlockReward,
+    FoundationReward,
+    BakerReward,
+    TransactionFeeReward,
     FinalizationReward,
-    MintReward,
     TransactionFee,
     AmountDecrypted,
     AmountEncrypted,

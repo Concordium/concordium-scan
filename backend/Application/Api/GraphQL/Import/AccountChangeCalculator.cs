@@ -210,10 +210,10 @@ public class AccountChangeCalculator
         {
             BalanceUpdateType.AmountDecrypted => AccountStatementEntryType.AmountDecrypted,
             BalanceUpdateType.AmountEncrypted => AccountStatementEntryType.AmountEncrypted,
-            BalanceUpdateType.BakingReward => AccountStatementEntryType.BakingReward,
-            BalanceUpdateType.BlockReward => AccountStatementEntryType.BlockReward,
+            BalanceUpdateType.BakerReward => AccountStatementEntryType.BakerReward,
+            BalanceUpdateType.TransactionFeeReward => AccountStatementEntryType.TransactionFeeReward,
             BalanceUpdateType.FinalizationReward => AccountStatementEntryType.FinalizationReward,
-            BalanceUpdateType.MintReward => AccountStatementEntryType.MintReward,
+            BalanceUpdateType.FoundationReward => AccountStatementEntryType.FoundationReward,
             BalanceUpdateType.TransactionFee => AccountStatementEntryType.TransactionFee,
             BalanceUpdateType.TransferIn => AccountStatementEntryType.TransferIn,
             BalanceUpdateType.TransferOut => AccountStatementEntryType.TransferOut,
