@@ -67,12 +67,19 @@
 					</div>
 				</template>
 			</Accordion>
+			<Accordion>
+				Block statistics
+				<template #content>
+					<BlockDetailsStatistics :block-statistics="block.blockStatistics" />
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
 import BlockDetailsHeader from './BlockDetailsHeader.vue'
+import BlockDetailsStatistics from './BlockDetailsStatistics.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'

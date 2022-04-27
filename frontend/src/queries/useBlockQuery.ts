@@ -65,6 +65,10 @@ const BlockQuery = gql<BlockResponse>`
 			transactions(after: $afterTx, before: $beforeTx, first: $firstTx, last: $lastTx) {
 				${transactionsFragment}
 			}
+			blockStatistics {
+				blockTime
+				finalizationTime
+			}
 			specialEventsOld {
 				mint {
 					bakingReward
@@ -127,6 +131,10 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 			transactionCount
 			transactions(after: $afterTx, before: $beforeTx, first: $firstTx, last: $lastTx) {
 				${transactionsFragment}
+			}
+			blockStatistics {
+				blockTime
+				finalizationTime
 			}
 			specialEventsOld {
 				mint {

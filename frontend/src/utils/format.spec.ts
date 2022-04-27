@@ -5,6 +5,7 @@ import {
 	formatNumber,
 	formatTimestamp,
 	shortenHash,
+	formatSeconds,
 } from './format'
 
 describe('format', () => {
@@ -102,6 +103,14 @@ describe('format', () => {
 
 			// @ts-expect-error : test for fallback
 			expect(shortenHash(null)).toBe('')
+		})
+	})
+
+	describe('formatSeconds', () => {
+		it('should always format to exactly one decimal', () => {
+			expect(formatSeconds(10)).toBe('10.0')
+			expect(formatSeconds(10.01)).toBe('10.0')
+			expect(formatSeconds(10.91)).toBe('10.9')
 		})
 	})
 })

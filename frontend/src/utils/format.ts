@@ -137,3 +137,17 @@ export const calculateWeight = (amount: number, total: number) => {
  * shortenHash(b4da55)
  */
 export const shortenHash = (hash?: string) => (hash ? hash.substring(0, 6) : '')
+
+/**
+ * Formats seconds to exactly one decimal
+ * @param {number} seconds - Seconds value to format
+ * @returns {string} - Formatted string
+ * @example
+ * // returns "42.0"
+ * formatSeconds(42)
+ */
+export const formatSeconds = (seconds: number) =>
+	new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1,
+	}).format(seconds)
