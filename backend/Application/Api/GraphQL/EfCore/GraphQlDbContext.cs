@@ -24,6 +24,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<IdentityProvider> IdentityProviders { get; private set; }
     public DbSet<AccountStatementEntry> AccountStatementEntries { get; private set; }
     public DbSet<Baker> Bakers { get; private set; }
+    public DbSet<BakerReward> BakerRewards { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
+using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,5 +56,15 @@ public class Baker
         return dbContext.Accounts
             .AsNoTracking()
             .SingleAsync(x => x.Id == Id);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(InferConnectionNameFromField = false)] 
+    public IQueryable<BakerReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.BakerRewards
+            .AsNoTracking()
+            .Where(x => x.BakerId == Id)
+            .OrderByDescending(x => x.Index);
     }
 }

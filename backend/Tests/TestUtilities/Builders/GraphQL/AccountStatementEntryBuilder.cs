@@ -43,4 +43,22 @@ public class AccountStatementEntryBuilder
         _amount = value;
         return this;
     }
+
+    public AccountStatementEntryBuilder WithEntryType(AccountStatementEntryType value)
+    {
+        _entryType = value;
+        return this;
+    }
+
+    public AccountStatementEntryBuilder WithTimestamp(DateTimeOffset value)
+    {
+        _timestamp = value;
+        return this;
+    }
+
+    public AccountStatementEntryBuilder WithBlockId(long value)
+    {
+        _blockId = value;
+        return this;
+    }
 }

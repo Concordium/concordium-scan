@@ -221,6 +221,7 @@ type AmountsScheduleEdge {
 
 type Baker {
   account: Account!
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection
   id: ID!
   bakerId: Long!
   state: BakerState!
@@ -274,6 +275,32 @@ type BakerMetricsBuckets {
 type BakerRemoved {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
+}
+
+type BakerReward {
+  block: Block!
+  id: ID!
+  timestamp: DateTime!
+  rewardType: BakerRewardType!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type BakerRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [BakerRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [BakerReward!]
+}
+
+"An edge in a connection."
+type BakerRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: BakerReward!
 }
 
 type BakerSetRestakeEarnings {
@@ -1238,6 +1265,16 @@ enum AccountTransactionType {
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
   CONFIGURE_BAKER
   CONFIGURE_DELEGATION
+}
+
+enum BakerRewardType {
+  BAKING_REWARD
+  BLOCK_REWARD
+  FINALIZATION_REWARD
+  MINT_REWARD
+  FOUNDATION_REWARD
+  BAKER_REWARD
+  TRANSACTION_FEE_REWARD
 }
 
 enum BakerSort {
