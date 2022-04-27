@@ -16,6 +16,15 @@
 				:on-close="() => (isNavigationOpen = false)"
 			>
 				<template #content>
+					<div class="absolute right-6 top-5 z-20 p-2 flex gap-4">
+						<button
+							class="rounded hover:bg-theme-button-primary-hover transition-colors"
+							aria-label="Close"
+							@click="() => (isNavigationOpen = false)"
+						>
+							<XIcon class="h-6" />
+						</button>
+					</div>
 					<nav class="flex flex-col items-end p-6 pt-24">
 						<div
 							v-for="route in navRoutes"
@@ -36,6 +45,7 @@
 
 <script lang="ts" setup>
 import { MenuIcon } from '@heroicons/vue/outline/index.js'
+import { XIcon } from '@heroicons/vue/solid/index.js'
 import Drawer from '~/components/Drawer/Drawer.vue'
 import type { Route } from '~/types/route'
 
