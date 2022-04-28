@@ -87,16 +87,21 @@ export const convertTimestampToRelative = (
 
 /**
  * Converts microCCD to CCD with fixed decimals
- * @param {number} number - Value in microCCD
+ * @param {number} amount - Value in microCCD
+ * @param {boolean} hideDecimals - Whether decimals should be hidden
  * @returns {string} - Value in CCD
  * @example
  * // returns 0.001337
  * convertMicroCcdToCcd(1337);
  */
-export const convertMicroCcdToCcd = (amount = 0): string =>
-	new Intl.NumberFormat(undefined, { minimumFractionDigits: 6 }).format(
-		amount / 1_000_000
-	)
+export const convertMicroCcdToCcd = (
+	amount = 0,
+	hideDecimals = false
+): string =>
+	new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: hideDecimals ? 0 : 6,
+		maximumFractionDigits: hideDecimals ? 0 : 6,
+	}).format(amount / 1_000_000)
 
 /**
  * Formats a number to browser locale (with thousand separators and decimal)

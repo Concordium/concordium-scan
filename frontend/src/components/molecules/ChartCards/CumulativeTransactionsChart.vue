@@ -1,7 +1,7 @@
 ﻿<template>
 	<KPICard>
 		<template #title>Cumulative transactions</template>
-		<template #icon><TransactionIcon /></template>
+		<template #icon><TransactionIcon class="w-6 h-6" /></template>
 		<template #value>{{
 			formatNumber(
 				transactionMetricsData?.transactionMetrics

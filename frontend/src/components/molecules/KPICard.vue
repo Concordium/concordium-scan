@@ -9,7 +9,7 @@
 		<div
 			class="text-xl md:text-3xl text-theme-interactive flex flex-row gap-2 items-center"
 		>
-			<div class="w-6 h-6 mr-2 text-theme-interactive">
+			<div class="mr-2 text-theme-interactive">
 				<slot name="icon"></slot>
 			</div>
 			<div class="numerical"><slot name="value"></slot></div>

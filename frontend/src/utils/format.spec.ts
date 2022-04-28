@@ -74,6 +74,11 @@ describe('format', () => {
 		it('should default to 0 if no number is provided', () => {
 			expect(convertMicroCcdToCcd(undefined)).toBe('0.000000')
 		})
+
+		it('can convert a microCCD into CCD rounded to nearest full CCD', () => {
+			expect(convertMicroCcdToCcd(1_337_000, true)).toBe('1')
+			expect(convertMicroCcdToCcd(1_666_000, true)).toBe('2')
+		})
 	})
 
 	describe('formatNumber', () => {
