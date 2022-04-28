@@ -5,7 +5,14 @@
 			<div class="flex flex-row justify-center lg:place-content-end">
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<FtbCarousel non-carousel-classes="grid-cols-4">
+			<FtbCarousel non-carousel-classes="grid-cols-3">
+				<CarouselSlide class="w-full lg:col-span-2">
+					<TotalSupply
+						:last-total-micro-ccd="
+							blockMetricsData?.blockMetrics.lastTotalMicroCcd
+						"
+					/>
+				</CarouselSlide>
 				<CarouselSlide class="w-full"
 					><BlocksAddedChart :block-metrics-data="blockMetricsData" />
 				</CarouselSlide>
@@ -170,6 +177,7 @@ import AccountLink from '~/components/molecules/AccountLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
+import TotalSupply from '~/components/molecules/ChartCards/TotalSupply.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
