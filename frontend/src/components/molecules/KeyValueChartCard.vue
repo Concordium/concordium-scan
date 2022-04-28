@@ -1,8 +1,8 @@
 ﻿<template>
 	<div
-		class="flex flex-row cardShadow rounded-2xl shadow-2xl my-4 relative overflow-hidden bg-theme-background-primary-elevated"
+		class="flex flex-col items-center w-full h-full justify-between cardShadow rounded-2xl shadow-2xl my-4 relative overflow-hidden bg-theme-background-primary-elevated h-full"
 	>
-		<div class="flex flex-col items-center w-full">
+		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight"></slot>
 			</div>
@@ -21,46 +21,43 @@
 				<div><slot name="unit"></slot></div>
 				<Chip class="self-center"><slot name="chip"></slot></Chip>
 			</div>
-			<ClientOnly>
-				<div v-if="props.isLoading" class="w-full h-36 text-center">
-					<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-4" />
-				</div>
-				<div v-else class="h-full w-full">
-					<div v-if="props.chartType == 'area'" class="h-full w-full">
-						<ChartLineArea
-							v-if="props.xValues && props.yValues.length"
-							class="h-28"
-							:x-values="props.xValues"
-							:y-values-high="props.yValues[0] ?? undefined"
-							:y-values-mid="props.yValues[1]"
-							:y-values-low="props.yValues[2]"
-							:begin-at-zero="props.beginAtZero"
-							:bucket-width="props.bucketWidth"
-						></ChartLineArea>
-					</div>
-					<div v-if="props.chartType == 'bar'" class="h-full w-full">
-						<ChartBar
-							v-if="props.xValues && props.yValues.length"
-							class="h-28"
-							:x-values="props.xValues"
-							:y-values="props.yValues[0]"
-							:begin-at-zero="props.beginAtZero"
-							:bucket-width="props.bucketWidth"
-						></ChartBar>
-					</div>
-					<div v-else class="h-full w-full">
-						<ChartLine
-							v-if="props.xValues && props.yValues"
-							class="h-28"
-							:x-values="props.xValues"
-							:begin-at-zero="props.beginAtZero"
-							:y-values="props.yValues[0]"
-							:bucket-width="props.bucketWidth"
-						></ChartLine>
-					</div>
-				</div>
-			</ClientOnly>
-		</div>
+		</header>
+
+		<ClientOnly>
+			<div v-if="props.isLoading" class="w-full h-36 text-center">
+				<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-4" />
+			</div>
+			<ChartLineArea
+				v-else-if="
+					props.chartType === 'area' && props.xValues && props.yValues.length
+				"
+				class="h-28 w-full"
+				:x-values="props.xValues"
+				:y-values-high="props.yValues[0] ?? undefined"
+				:y-values-mid="props.yValues[1]"
+				:y-values-low="props.yValues[2]"
+				:begin-at-zero="props.beginAtZero"
+				:bucket-width="props.bucketWidth"
+			/>
+			<ChartBar
+				v-else-if="
+					props.chartType === 'bar' && props.xValues && props.yValues.length
+				"
+				class="h-28 w-full"
+				:x-values="props.xValues"
+				:y-values="props.yValues[0]"
+				:begin-at-zero="props.beginAtZero"
+				:bucket-width="props.bucketWidth"
+			/>
+			<ChartLine
+				v-else-if="props.xValues && props.yValues"
+				class="h-28 w-full"
+				:x-values="props.xValues"
+				:begin-at-zero="props.beginAtZero"
+				:y-values="props.yValues[0]"
+				:bucket-width="props.bucketWidth"
+			/>
+		</ClientOnly>
 	</div>
 </template>
 <script lang="ts" setup>
