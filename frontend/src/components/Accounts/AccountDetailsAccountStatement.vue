@@ -43,28 +43,28 @@
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<DecryptedIcon
-							v-if="
+							v-else-if="
 								accountStatementItem.entryType ===
 								AccountStatementEntryType.AmountDecrypted
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<TransferIconIn
-							v-if="
+							v-else-if="
 								accountStatementItem.entryType ===
 								AccountStatementEntryType.TransferIn
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<TransferIconOut
-							v-if="
+							v-else-if="
 								accountStatementItem.entryType ===
 								AccountStatementEntryType.TransferOut
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<RewardIcon
-							v-if="
+							v-else-if="
 								accountStatementItem.entryType ===
 									AccountStatementEntryType.BakingReward ||
 								accountStatementItem.entryType ===
@@ -72,12 +72,18 @@
 								accountStatementItem.entryType ===
 									AccountStatementEntryType.MintReward ||
 								accountStatementItem.entryType ===
-									AccountStatementEntryType.FinalizationReward
+									AccountStatementEntryType.FinalizationReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.TransactionFeeReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.BakerReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.FoundationReward
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<FeeIcon
-							v-if="
+							v-else-if="
 								accountStatementItem.entryType ===
 								AccountStatementEntryType.TransactionFee
 							"
