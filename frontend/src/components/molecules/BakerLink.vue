@@ -1,7 +1,7 @@
 <template>
 	<div class="inline-block">
 		<BakerIcon class="h-4 inline align-text-top" :class="iconClass" />
-		<LinkButton class="px-2" @click="() => handleOnClick(id)">
+		<LinkButton class="numerical px-2" @click="() => handleOnClick(id)">
 			{{ id }}
 		</LinkButton>
 	</div>
