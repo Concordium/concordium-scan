@@ -152,6 +152,7 @@ public class ImportWriteController : BackgroundService
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
+        await _bakerHandler.AddBakerTransactionRelations(transactions);
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);

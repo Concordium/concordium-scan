@@ -12,6 +12,11 @@ public class TransactionSuccessResult : TransactionResult
         return Events.SelectMany(x => x.GetAccountAddresses());
     }
 
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        return Events.SelectMany(x => x.GetBakerIds());
+    }
+
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
     {
         return Events.SelectMany(evt => evt.GetAccountBalanceUpdates(owningTransaction));
@@ -28,6 +33,11 @@ public abstract record TransactionResultEvent
     public virtual IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates(TransactionSummary owningTransaction)
     {
         return Enumerable.Empty<AccountBalanceUpdate>();
+    }
+
+    public virtual IEnumerable<ulong> GetBakerIds()
+    {
+        return Enumerable.Empty<ulong>();
     }
 }
 
@@ -126,6 +136,11 @@ public record BakerAdded(
     {
         yield return Account;
     }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
 }
 
 public record BakerRemoved(
@@ -135,6 +150,11 @@ public record BakerRemoved(
     public override IEnumerable<AccountAddress> GetAccountAddresses()
     {
         yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
     }
 }
 
@@ -147,6 +167,11 @@ public record BakerStakeIncreased(
     {
         yield return Account;
     }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
 }
 
 public record BakerStakeDecreased(
@@ -158,6 +183,11 @@ public record BakerStakeDecreased(
     {
         yield return Account;
     }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
 }
 
 public record BakerSetRestakeEarnings(
@@ -168,6 +198,11 @@ public record BakerSetRestakeEarnings(
     public override IEnumerable<AccountAddress> GetAccountAddresses()
     {
         yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
     }
 }
 
@@ -181,6 +216,11 @@ public record BakerKeysUpdated(
     public override IEnumerable<AccountAddress> GetAccountAddresses()
     {
         yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
     }
 }
 

@@ -37,6 +37,28 @@ public class BakerImportHandler
         return resultBuilder.Build();
     }
 
+    public async Task AddBakerTransactionRelations(TransactionPair[] transactions)
+    {
+        var items = transactions
+            .Select(tx =>
+            {
+                var bakerIds = tx.Source.Result.GetBakerIds().ToArray();
+                if (bakerIds.Length == 0)
+                    return null;
+                if (bakerIds.Length == 1)
+                    return new BakerTransactionRelation
+                    {
+                        BakerId = (long)bakerIds.Single(),
+                        TransactionId = tx.Target.Id
+                    };
+                throw new InvalidOperationException("Did not expect multiple baker id's from one transaction");
+            })
+            .Where(x => x != null)
+            .Select(x => x!);
+
+        await _writer.AddBakerTransactionRelations(items);
+    }
+
     private async Task AddGenesisBakers(AccountInfo[] genesisAccounts, BakerUpdateResultsBuilder resultBuilder)
     {
         var genesisBakers = genesisAccounts

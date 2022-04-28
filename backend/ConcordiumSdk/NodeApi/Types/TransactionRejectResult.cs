@@ -10,6 +10,11 @@ public class TransactionRejectResult : TransactionResult
     {
         return Reason.GetAccountAddresses();
     }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        return Array.Empty<ulong>();
+    }
 }
 
 public abstract record TransactionRejectReason

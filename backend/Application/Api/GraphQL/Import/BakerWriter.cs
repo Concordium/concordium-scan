@@ -144,6 +144,13 @@ public class BakerWriter
 
         return result.HasValue ? (ulong)result.Value : 0;
     }
+
+    public async Task AddBakerTransactionRelations(IEnumerable<BakerTransactionRelation> items)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        context.BakerTransactionRelations.AddRange(items);
+        await context.SaveChangesAsync();
+    }
 }
 
 public record AccountReward(long AccountId, long RewardAmount);
