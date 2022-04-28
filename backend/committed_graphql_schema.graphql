@@ -440,12 +440,20 @@ type BlockMetrics {
   avgBlockTime: Float
   "The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period."
   avgFinalizationTime: Float
-  "The total amount of CCD in existence."
+  "The current total amount of CCD in existence."
   lastTotalMicroCcd: Long!
-  "The total amount of CCD in encrypted balances."
+  "The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  lastTotalMicroCcdReleased: Long
+  "The current total amount of CCD in encrypted balances."
   lastTotalMicroCcdEncrypted: Long!
-  "The total amount of CCD staked."
+  "The current total amount of CCD staked."
   lastTotalMicroCcdStaked: Long!
+  "The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  lastTotalPercentageReleased: Float
+  "The current percentage of CCD encrypted (of total CCD in existence)"
+  lastTotalPercentageEncrypted: Float!
+  "The current percentage of CCD staked (of total CCD in existence)"
+  lastTotalPercentageStaked: Float!
   buckets: BlockMetricsBuckets!
 }
 
@@ -977,7 +985,7 @@ type Query {
   bakers(sort: BakerSort! = STAKED_AMOUNT_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
   search(query: String!): SearchResult!
   accountsMetrics(period: MetricsPeriod!): AccountsMetrics
-  blockMetrics(period: MetricsPeriod!): BlockMetrics
+  blockMetrics(period: MetricsPeriod!): BlockMetrics!
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!

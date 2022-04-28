@@ -11,20 +11,22 @@ namespace Application.Api.GraphQL.Metrics;
 public class BlockMetricsQuery
 {
     private readonly DatabaseSettings _dbSettings;
+    private readonly ITimeProvider _timeProvider;
 
-    public BlockMetricsQuery(DatabaseSettings dbSettings)
+    public BlockMetricsQuery(DatabaseSettings dbSettings, ITimeProvider timeProvider)
     {
         _dbSettings = dbSettings;
+        _timeProvider = timeProvider;
     }
 
-    public async Task<BlockMetrics?> GetBlockMetrics(MetricsPeriod period)
+    public async Task<BlockMetrics> GetBlockMetrics(MetricsPeriod period)
     {
         await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         await conn.OpenAsync();
 
-        var queryParams = QueryParams.Create(period);
+        var queryParams = QueryParams.Create(period, _timeProvider);
 
-        var lastValuesSql = @"select block_height, total_microccd, total_microccd_encrypted, total_microccd_staked
+        var lastValuesSql = @"select block_height, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked, total_percentage_released, total_percentage_encrypted, total_percentage_staked
                     from metrics_blocks
                     where time <= @ToTime
                     order by time desc
@@ -33,8 +35,12 @@ public class BlockMetricsQuery
 
         var lastBlockHeight = (long)lastValuesData.block_height;
         var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
+        var lastTotalMicroCcdReleased = (long?)lastValuesData.total_microccd_released;
         var lastTotalMicroCcdEncrypted = (long)lastValuesData.total_microccd_encrypted;
         var lastTotalMicroCcdStaked = (long)lastValuesData.total_microccd_staked;
+        var lastTotalPercentageReleased = (double?)lastValuesData.total_percentage_released;
+        var lastTotalPercentageEncrypted = (double)lastValuesData.total_percentage_encrypted;
+        var lastTotalPercentageStaked = (double)lastValuesData.total_percentage_staked;
 
         var sql = 
             @"select count(*) as total_block_count,
@@ -120,7 +126,10 @@ public class BlockMetricsQuery
             bucketData.Select(row => (long)row.min_total_microccd_staked).ToArray(),
             bucketData.Select(row => (long)row.max_total_microccd_staked).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd_staked).ToArray());
-        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, lastTotalMicroCcd, lastTotalMicroCcdEncrypted, lastTotalMicroCcdStaked, buckets);
+        
+        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, 
+            lastTotalMicroCcd, lastTotalMicroCcdReleased, lastTotalMicroCcdEncrypted, lastTotalMicroCcdStaked, 
+            lastTotalPercentageReleased, lastTotalPercentageEncrypted, lastTotalPercentageStaked, buckets);
         return result;
     }
 

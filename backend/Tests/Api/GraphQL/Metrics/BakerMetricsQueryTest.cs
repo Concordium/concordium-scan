@@ -8,7 +8,6 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Metrics;
 
-
 [Collection("Postgres Collection")]
 public class BakerMetricsQueryTest : IClassFixture<DatabaseFixture>
 {

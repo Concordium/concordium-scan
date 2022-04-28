@@ -11,12 +11,20 @@ public record BlockMetrics(
     double? AvgBlockTime,
     [property:GraphQLDescription("The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period.")]
     double? AvgFinalizationTime,
-    [property:GraphQLDescription("The total amount of CCD in existence.")]
+    [property:GraphQLDescription("The current total amount of CCD in existence.")]
     long LastTotalMicroCcd,
-    [property:GraphQLDescription("The total amount of CCD in encrypted balances.")]
+    [property:GraphQLDescription("The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule.")]
+    long? LastTotalMicroCcdReleased,
+    [property:GraphQLDescription("The current total amount of CCD in encrypted balances.")]
     long LastTotalMicroCcdEncrypted,
-    [property:GraphQLDescription("The total amount of CCD staked.")]
+    [property:GraphQLDescription("The current total amount of CCD staked.")]
     long LastTotalMicroCcdStaked,
+    [property:GraphQLDescription("The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule.")]
+    double? LastTotalPercentageReleased,
+    [property:GraphQLDescription("The current percentage of CCD encrypted (of total CCD in existence)")]
+    double LastTotalPercentageEncrypted,
+    [property:GraphQLDescription("The current percentage of CCD staked (of total CCD in existence)")]
+    double LastTotalPercentageStaked,
     BlockMetricsBuckets Buckets);
     
 public record BlockMetricsBuckets(
