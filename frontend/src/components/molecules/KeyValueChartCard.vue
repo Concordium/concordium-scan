@@ -21,11 +21,11 @@
 				<div><slot name="unit"></slot></div>
 				<Chip class="self-center"><slot name="chip"></slot></Chip>
 			</div>
-					</header>
+		</header>
 
-			<ClientOnly>
-				<div v-if="props.isLoading" class="w-full h-36 text-center">
-				<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-12" />
+		<ClientOnly>
+			<div v-if="props.isLoading" class="w-full h-36 text-center">
+				<BWCubeLogoIcon class="w-10 h-10 animate-ping mt-8" />
 			</div>
 			<ChartLineArea
 				v-else-if="
@@ -57,7 +57,7 @@
 				:y-values="props.yValues[0]"
 				:bucket-width="props.bucketWidth"
 			/>
-			</ClientOnly>
+		</ClientOnly>
 	</div>
 </template>
 <script lang="ts" setup>
