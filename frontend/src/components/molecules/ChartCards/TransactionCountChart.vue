@@ -10,6 +10,7 @@
 		:y-values="[
 			transactionMetricsData?.transactionMetrics?.buckets?.y_TransactionCount,
 		]"
+		:is-loading="isLoading"
 	>
 		<template #topRight></template>
 		<template #title>Transactions</template>
@@ -28,6 +29,7 @@ import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 
 type Props = {
 	transactionMetricsData: Ref<TransactionMetricsQueryResponse | undefined>
+	isLoading?: boolean
 }
 defineProps<Props>()
 </script>

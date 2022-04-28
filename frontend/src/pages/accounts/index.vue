@@ -9,10 +9,14 @@
 				<CarouselSlide class="w-full"
 					><CumulativeAccountsCreatedChart
 						:account-metrics-data="metricsData"
+						:is-loading="metricsFetching"
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<AccountsCreatedChart :account-metrics-data="metricsData" />
+					<AccountsCreatedChart
+						:account-metrics-data="metricsData"
+						:is-loading="metricsFetching"
+					/>
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -89,5 +93,6 @@ watch(
 )
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
-const { data: metricsData } = useAccountsMetricsQuery(selectedMetricsPeriod)
+const { data: metricsData, fetching: metricsFetching } =
+	useAccountsMetricsQuery(selectedMetricsPeriod)
 </script>

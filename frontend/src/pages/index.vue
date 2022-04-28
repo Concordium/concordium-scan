@@ -14,18 +14,28 @@
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full"
-					><BlocksAddedChart :block-metrics-data="blockMetricsData" />
+					><BlocksAddedChart
+						:block-metrics-data="blockMetricsData"
+						:is-loading="blockMetricsFetching"
+					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<BlockTimeChart :block-metrics-data="blockMetricsData" />
+					<BlockTimeChart
+						:block-metrics-data="blockMetricsData"
+						:is-loading="blockMetricsFetching"
+					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full"
 					><TransactionCountChart
 						:transaction-metrics-data="transactionMetricsData"
+						:is-loading="transactionMetricsFetching"
 					/>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
-					<AccountsCreatedChart :account-metrics-data="accountMetricsData" />
+					<AccountsCreatedChart
+						:account-metrics-data="accountMetricsData"
+						:is-loading="accountMetricsFetching"
+					/>
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -238,13 +248,12 @@ const { data: blockData } = useBlockListQuery({ first: pageSize })
 const { data: txData } = useTransactionsListQuery({ first: pageSize })
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
-const { data: accountMetricsData } = useAccountsMetricsQuery(
-	selectedMetricsPeriod
-)
-const { data: transactionMetricsData } = useTransactionMetricsQuery(
-	selectedMetricsPeriod
-)
-const { data: blockMetricsData } = useBlockMetricsQuery(selectedMetricsPeriod)
+const { data: accountMetricsData, fetching: accountMetricsFetching } =
+	useAccountsMetricsQuery(selectedMetricsPeriod)
+const { data: transactionMetricsData, fetching: transactionMetricsFetching } =
+	useTransactionMetricsQuery(selectedMetricsPeriod)
+const { data: blockMetricsData, fetching: blockMetricsFetching } =
+	useBlockMetricsQuery(selectedMetricsPeriod)
 const loadInitialValuesIfEmpty = () => {
 	if (
 		blocks.value.length === 0 &&

@@ -8,6 +8,7 @@
 			accountMetricsData?.accountsMetrics?.buckets?.y_AccountsCreated,
 		]"
 		:bucket-width="accountMetricsData?.accountsMetrics?.buckets?.bucketWidth"
+		:is-loading="isLoading"
 	>
 		<template #topRight></template>
 		<template #title>Accounts Created</template>
@@ -27,6 +28,7 @@ import type { AccountsMetricsQueryResponse } from '~/queries/useAccountsMetricsQ
 
 type Props = {
 	accountMetricsData: Ref<AccountsMetricsQueryResponse | undefined>
+	isLoading?: boolean
 }
 defineProps<Props>()
 </script>

@@ -7,10 +7,15 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full">
-					<CumulativeTransactionsChart :transaction-metrics-data="metricsData"
+					<CumulativeTransactionsChart
+						:transaction-metrics-data="metricsData"
+						:is-loading="metricsFetching"
 				/></CarouselSlide>
 				<CarouselSlide class="w-full">
-					<TransactionCountChart :transaction-metrics-data="metricsData" />
+					<TransactionCountChart
+						:transaction-metrics-data="metricsData"
+						:is-loading="metricsFetching"
+					/>
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
@@ -158,5 +163,6 @@ watch(
 		addPagedData(value?.transactions.nodes || [], value?.transactions.pageInfo)
 	}
 )
-const { data: metricsData } = useTransactionMetricsQuery(selectedMetricsPeriod)
+const { data: metricsData, fetching: metricsFetching } =
+	useTransactionMetricsQuery(selectedMetricsPeriod)
 </script>

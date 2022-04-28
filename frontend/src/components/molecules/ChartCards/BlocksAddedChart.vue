@@ -6,6 +6,7 @@
 		:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
 		chart-type="bar"
 		:begin-at-zero="true"
+		:is-loading="isLoading"
 	>
 		<template #topRight></template>
 		<template #icon><BlockIcon></BlockIcon></template>
@@ -24,6 +25,7 @@ import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 
 type Props = {
 	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	isLoading?: boolean
 }
 defineProps<Props>()
 </script>

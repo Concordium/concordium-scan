@@ -5,6 +5,7 @@
 		:bucket-width="blockMetricsData?.blockMetrics?.buckets?.bucketWidth"
 		:begin-at-zero="true"
 		:y-values="[blockMetricsData?.blockMetrics?.buckets.y_FinalizationTimeAvg]"
+		:is-loading="isLoading"
 	>
 		<template #topRight></template>
 		<template #title>Finalization time</template>
@@ -23,6 +24,7 @@ import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 
 type Props = {
 	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	isLoading?: boolean
 }
 defineProps<Props>()
 </script>
