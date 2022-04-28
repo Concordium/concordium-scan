@@ -14,6 +14,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 			avgBlockTime
 			lastTotalMicroCcd
 			avgFinalizationTime
+			lastTotalMicroCcdStaked
 			buckets {
 				bucketWidth
 				x_Time
@@ -23,17 +24,20 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 				y_BlockTimeMax
 				y_LastTotalMicroCcd
 				y_FinalizationTimeAvg
+				y_MinTotalMicroCcdStaked
+				y_MaxTotalMicroCcdStaked
+				y_LastTotalMicroCcdStaked
 			}
 		}
 	}
 `
 
 export const useBlockMetricsQuery = (period: Ref<MetricsPeriod>) => {
-	const { data, executeQuery } = useQuery({
+	const { data, executeQuery, fetching } = useQuery({
 		query: BlockMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
 	})
 
-	return { data, executeQuery }
+	return { data, executeQuery, fetching }
 }

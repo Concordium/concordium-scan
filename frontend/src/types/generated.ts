@@ -173,11 +173,8 @@ export enum AccountStatementEntryType {
   AmountDecrypted = 'AMOUNT_DECRYPTED',
   AmountEncrypted = 'AMOUNT_ENCRYPTED',
   BakerReward = 'BAKER_REWARD',
-  BakingReward = 'BAKING_REWARD',
-  BlockReward = 'BLOCK_REWARD',
   FinalizationReward = 'FINALIZATION_REWARD',
   FoundationReward = 'FOUNDATION_REWARD',
-  MintReward = 'MINT_REWARD',
   TransactionFee = 'TRANSACTION_FEE',
   TransactionFeeReward = 'TRANSACTION_FEE_REWARD',
   TransferIn = 'TRANSFER_IN',
@@ -350,7 +347,16 @@ export type Baker = {
   account: Account;
   bakerId: Scalars['Long'];
   id: Scalars['ID'];
+  rewards?: Maybe<BakerRewardConnection>;
   state: BakerState;
+};
+
+
+export type BakerRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type BakerAdded = {
@@ -409,6 +415,42 @@ export type BakerRemoved = {
   accountAddress: AccountAddress;
   bakerId: Scalars['UnsignedLong'];
 };
+
+export type BakerReward = {
+  __typename?: 'BakerReward';
+  amount: Scalars['UnsignedLong'];
+  block: Block;
+  id: Scalars['ID'];
+  rewardType: BakerRewardType;
+  timestamp: Scalars['DateTime'];
+};
+
+/** A connection to a list of items. */
+export type BakerRewardConnection = {
+  __typename?: 'BakerRewardConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<BakerRewardEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<BakerReward>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type BakerRewardEdge = {
+  __typename?: 'BakerRewardEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: BakerReward;
+};
+
+export enum BakerRewardType {
+  BakerReward = 'BAKER_REWARD',
+  FinalizationReward = 'FINALIZATION_REWARD',
+  FoundationReward = 'FOUNDATION_REWARD',
+  TransactionFeeReward = 'TRANSACTION_FEE_REWARD'
+}
 
 export type BakerSetRestakeEarnings = {
   __typename?: 'BakerSetRestakeEarnings';

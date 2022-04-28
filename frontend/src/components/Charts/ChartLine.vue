@@ -71,7 +71,7 @@ const defaultOptions = ref({
 					return ''
 				},
 				label(context: TooltipItem<'line'>) {
-					return context.parsed.y + ''
+					return context.parsed.y
 				},
 			},
 		},
