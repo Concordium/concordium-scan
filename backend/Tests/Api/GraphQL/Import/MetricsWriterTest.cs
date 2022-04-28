@@ -38,23 +38,92 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
                 .Build())
             .WithBalanceStatistics(new BalanceStatisticsBuilder()
                 .WithTotalAmount(10000)
+                .WithTotalAmountReleased(9000)
                 .WithTotalAmountEncrypted(1000)
                 .WithTotalAmountStaked(2500)
                 .Build())
             .Build());
         
         var result = QuerySingle(@"
-            select time, block_height, block_time_secs, finalization_time_secs, total_microccd, total_microccd_encrypted, total_microccd_staked
+            select time, block_height, block_time_secs, finalization_time_secs, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked
             from metrics_blocks");
 
         Assert.Equal(42, result.block_height);
         Assert.Equal(10.1d, result.block_time_secs);
         Assert.Null(result.finalization_time_secs);
         Assert.Equal(10000, result.total_microccd);
+        Assert.Equal(9000, result.total_microccd_released);
         Assert.Equal(1000, result.total_microccd_encrypted);
         Assert.Equal(2500, result.total_microccd_staked);
     }
 
+    [Theory]
+    [InlineData(10000UL, 10000UL, 1.0d)]
+    [InlineData(10000UL, 5000UL, 0.5d)]
+    [InlineData(333UL, 311UL, 0.9339339339d)]
+    [InlineData(ulong.MaxValue, 0UL, 0d)]
+    [InlineData(ulong.MaxValue, ulong.MaxValue/100, 0.01d)]
+    [InlineData(10000UL, null, null)]
+    public async Task AddBlockMetrics_PercentageTotalAmountReleased(ulong totalAmount, ulong? totalAmountReleased, double? expectedResult)
+    {
+        await _target.AddBlockMetrics(new BlockBuilder()
+            .WithBalanceStatistics(new BalanceStatisticsBuilder()
+                .WithTotalAmount(totalAmount)
+                .WithTotalAmountReleased(totalAmountReleased)
+                .Build())
+            .Build());
+        
+        var result = QuerySingle(@"
+            select total_percentage_released
+            from metrics_blocks");
+
+        Assert.Equal(expectedResult, result.total_percentage_released);
+    }
+    
+    [Theory]
+    [InlineData(10000UL, 10000UL, 1.0d)]
+    [InlineData(10000UL, 5000UL, 0.5d)]
+    [InlineData(333UL, 311UL, 0.9339339339d)]
+    [InlineData(ulong.MaxValue, 0UL, 0d)]
+    [InlineData(ulong.MaxValue, ulong.MaxValue/100, 0.01d)]
+    public async Task AddBlockMetrics_PercentageTotalAmountStaked(ulong totalAmount, ulong totalAmountStaked, double? expectedResult)
+    {
+        await _target.AddBlockMetrics(new BlockBuilder()
+            .WithBalanceStatistics(new BalanceStatisticsBuilder()
+                .WithTotalAmount(totalAmount)
+                .WithTotalAmountStaked(totalAmountStaked)
+                .Build())
+            .Build());
+        
+        var result = QuerySingle(@"
+            select total_percentage_staked
+            from metrics_blocks");
+
+        Assert.Equal(expectedResult, result.total_percentage_staked);
+    }
+    
+    [Theory]
+    [InlineData(10000UL, 10000UL, 1.0d)]
+    [InlineData(10000UL, 5000UL, 0.5d)]
+    [InlineData(333UL, 311UL, 0.9339339339d)]
+    [InlineData(ulong.MaxValue, 0UL, 0d)]
+    [InlineData(ulong.MaxValue, ulong.MaxValue/100, 0.01d)]
+    public async Task AddBlockMetrics_PercentageTotalAmountEncrypted(ulong totalAmount, ulong totalAmountEncrypted, double? expectedResult)
+    {
+        await _target.AddBlockMetrics(new BlockBuilder()
+            .WithBalanceStatistics(new BalanceStatisticsBuilder()
+                .WithTotalAmount(totalAmount)
+                .WithTotalAmountEncrypted(totalAmountEncrypted)
+                .Build())
+            .Build());
+        
+        var result = QuerySingle(@"
+            select total_percentage_encrypted
+            from metrics_blocks");
+
+        Assert.Equal(expectedResult, result.total_percentage_encrypted);
+    }
+    
     [Fact]
     public async Task AddBakerMetrics_NoChanges()
     {

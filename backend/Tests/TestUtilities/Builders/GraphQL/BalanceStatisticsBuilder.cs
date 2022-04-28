@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Blocks;
+﻿using Application.Api.GraphQL.Blocks;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
@@ -8,10 +7,11 @@ public class BalanceStatisticsBuilder
     private ulong _totalAmount = 0;
     private ulong _totalAmountEncrypted = 0;
     private ulong _totalAmountStaked = 0;
+    private ulong? _totalAmountReleased = 0;
 
     public BalanceStatistics Build()
     {
-        return new BalanceStatistics(_totalAmount, 0, _totalAmountEncrypted, 0, _totalAmountStaked, 0, 0, 0);
+        return new BalanceStatistics(_totalAmount, _totalAmountReleased, _totalAmountEncrypted, 0, _totalAmountStaked, 0, 0, 0);
     }
 
     public BalanceStatisticsBuilder WithTotalAmount(ulong value)
@@ -29,6 +29,12 @@ public class BalanceStatisticsBuilder
     public BalanceStatisticsBuilder WithTotalAmountStaked(ulong value)
     {
         _totalAmountStaked = value;
+        return this;
+    }
+
+    public BalanceStatisticsBuilder WithTotalAmountReleased(ulong? value)
+    {
+        _totalAmountReleased = value;
         return this;
     }
 }

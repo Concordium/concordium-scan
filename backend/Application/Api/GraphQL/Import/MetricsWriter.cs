@@ -27,19 +27,34 @@ public class MetricsWriter
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
+        var stats = block.BalanceStatistics;
+
+        var totalPercentageReleased = stats.TotalAmountReleased.HasValue ? CalculatePercentage(stats.TotalAmountReleased.Value, stats.TotalAmount) : (double?)null;
+        var totalPercentageEncrypted = CalculatePercentage(stats.TotalAmountEncrypted, stats.TotalAmount);
+        var totalPercentageStaked = CalculatePercentage(stats.TotalAmountStaked, stats.TotalAmount);
+
         var blockParam = new
         {
             Time = block.BlockSlotTime,
             block.BlockHeight,
             BlockTimeSecs = block.BlockStatistics.BlockTime,
-            TotalMicroCcd = (long)block.BalanceStatistics.TotalAmount,
-            TotalMicroCcdEncrypted = (long)block.BalanceStatistics.TotalAmountEncrypted,
-            TotalMicroCcdStaked = (long)block.BalanceStatistics.TotalAmountStaked
+            TotalMicroCcd = (long)stats.TotalAmount,
+            TotalMicroCcdReleased = (long?)stats.TotalAmountReleased,
+            TotalMicroCcdEncrypted = (long)stats.TotalAmountEncrypted,
+            TotalMicroCcdStaked = (long)stats.TotalAmountStaked,
+            TotalPercentageReleased = totalPercentageReleased, 
+            TotalPercentageEncrypted = totalPercentageEncrypted,
+            TotalPercentageStaked = totalPercentageStaked
         };
 
-        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_microccd_encrypted, total_microccd_staked) 
-                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalMicroCcdEncrypted, @TotalMicroCcdStaked)";
+        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked, total_percentage_released, total_percentage_encrypted, total_percentage_staked) 
+                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalMicroCcdReleased, @TotalMicroCcdEncrypted, @TotalMicroCcdStaked, @TotalPercentageReleased, @TotalPercentageEncrypted, @TotalPercentageStaked)";
         await conn.ExecuteAsync(sql, blockParam);
+    }
+
+    private static double CalculatePercentage(ulong numerator, ulong denominator)
+    {
+        return Math.Round(numerator * 1.0 / denominator, 10);
     }
 
     public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, ImportState importState)
