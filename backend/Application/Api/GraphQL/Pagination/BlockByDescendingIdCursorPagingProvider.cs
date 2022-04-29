@@ -11,7 +11,7 @@ public class BlockByDescendingIdCursorPagingProvider : CursorPagingProvider
     protected override CursorPagingHandler CreateHandler(IExtendedType source, PagingOptions options)
     {
         var cursorSerializer = new OpaqueCursorSerializer();
-        var algorithm = new BlockByDescendingIdCursorPagingAlgorithm(cursorSerializer);
+        var algorithm = new DescendingValueCursorPagingAlgorithm<Block>(cursorSerializer, x => x.Id);
         return new GenericCursorPagingHandler<Block>(options, algorithm);
     }
 }

@@ -11,7 +11,7 @@ public class AccountStatementEntryByDescendingIndexCursorPagingProvider : Cursor
     protected override CursorPagingHandler CreateHandler(IExtendedType source, PagingOptions options)
     {
         var cursorSerializer = new OpaqueCursorSerializer();
-        var algorithm = new AccountstatementEntryByDescendingIndexCursorPagingAlgorithm(cursorSerializer);
+        var algorithm = new DescendingValueCursorPagingAlgorithm<AccountStatementEntry>(cursorSerializer, x => x.Index);
         return new GenericCursorPagingHandler<AccountStatementEntry>(options, algorithm);
     }
 }

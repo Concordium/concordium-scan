@@ -11,7 +11,7 @@ public class AccountTransactionRelationByDescendingIndexCursorPagingProvider : C
     protected override CursorPagingHandler CreateHandler(IExtendedType source, PagingOptions options)
     {
         var cursorSerializer = new OpaqueCursorSerializer();
-        var algorithm = new AccountTransactionRelationByDescendingIndexCursorPagingAlgorithm(cursorSerializer);
+        var algorithm = new DescendingValueCursorPagingAlgorithm<AccountTransactionRelation>(cursorSerializer, x => x.Index);
         return new GenericCursorPagingHandler<AccountTransactionRelation>(options, algorithm);
     }
 }
