@@ -59,7 +59,7 @@ public class Baker
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false)] // TODO: Stable paging 
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_reward_by_descending_index")]  
     public IQueryable<BakerReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.BakerRewards
@@ -69,7 +69,7 @@ public class Baker
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false)] // TODO: Stable paging
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_transaction_relation_by_descending_index")] 
     [GraphQLDescription("Get the transactions that have affected the baker.")]
     public IQueryable<BakerTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)
     {
