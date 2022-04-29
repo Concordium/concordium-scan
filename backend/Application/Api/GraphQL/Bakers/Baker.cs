@@ -59,10 +59,21 @@ public class Baker
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false)] 
+    [UsePaging(InferConnectionNameFromField = false)] // TODO: Stable paging 
     public IQueryable<BakerReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.BakerRewards
+            .AsNoTracking()
+            .Where(x => x.BakerId == Id)
+            .OrderByDescending(x => x.Index);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(InferConnectionNameFromField = false)] // TODO: Stable paging
+    [GraphQLDescription("Get the transactions that have affected the baker.")]
+    public IQueryable<BakerTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.BakerTransactionRelations
             .AsNoTracking()
             .Where(x => x.BakerId == Id)
             .OrderByDescending(x => x.Index);

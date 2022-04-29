@@ -222,6 +222,8 @@ type AmountsScheduleEdge {
 type Baker {
   account: Account!
   rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection
+  "Get the transactions that have affected the baker."
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerTransactionRelationConnection
   id: ID!
   bakerId: Long!
   state: BakerState!
@@ -323,6 +325,29 @@ type BakerStakeIncreased {
 
 type BakerStakeThresholdChainUpdatePayload {
   amount: UnsignedLong!
+}
+
+type BakerTransactionRelation {
+  transaction: Transaction!
+  id: ID!
+}
+
+"A connection to a list of items."
+type BakerTransactionRelationConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [BakerTransactionRelationEdge!]
+  "A flattened list of the nodes."
+  nodes: [BakerTransactionRelation!]
+}
+
+"An edge in a connection."
+type BakerTransactionRelationEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: BakerTransactionRelation!
 }
 
 "A connection to a list of items."
