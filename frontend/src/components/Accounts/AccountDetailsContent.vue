@@ -71,11 +71,18 @@
 					<div v-else class="p-4">No entries</div>
 				</template>
 			</Accordion>
+			<Accordion v-if="account.baker">
+				Baker
+				<template #content>
+					<AccountDetailsBaker :baker="account.baker" />
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import AccountDetailsBaker from './AccountDetailsBaker.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import {
