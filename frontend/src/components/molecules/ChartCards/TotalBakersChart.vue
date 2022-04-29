@@ -5,13 +5,9 @@
 		chart-type="line"
 		:x-values="bakerMetricsData?.bakerMetrics?.buckets?.x_Time"
 		:bucket-width="bakerMetricsData?.bakerMetrics?.buckets?.bucketWidth"
-		:y-values="[
-			bakerMetricsData?.bakerMetrics?.buckets?.y_LastBakerCount,
-
-			bakerMetricsData?.bakerMetrics?.buckets?.y_BakersAdded,
-			bakerMetricsData?.bakerMetrics?.buckets?.y_BakersRemoved,
-		]"
+		:y-values="[bakerMetricsData?.bakerMetrics?.buckets?.y_LastBakerCount]"
 		:is-loading="isLoading"
+		:label-formatter="formatLabel"
 	>
 		<template #topRight></template>
 		<template #title>Bakers</template>
@@ -24,6 +20,7 @@
 </template>
 <script lang="ts" setup>
 import type { Ref } from 'vue'
+import type { TooltipItem } from 'chart.js'
 import { formatNumber } from '~/utils/format'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import type { BakerMetricsQueryResponse } from '~/queries/useBakerMetricsQuery'
@@ -33,5 +30,17 @@ type Props = {
 	bakerMetricsData: Ref<BakerMetricsQueryResponse | undefined>
 	isLoading?: boolean
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const formatLabel = (c: TooltipItem<'bar'>) => {
+	const added =
+		props.bakerMetricsData?.bakerMetrics?.buckets?.y_BakersAdded[c.parsed.x]
+	const removed =
+		props.bakerMetricsData?.bakerMetrics?.buckets?.y_BakersRemoved[c.parsed.x]
+	let label = c.parsed.y + ''
+	if (added > 0 && removed > 0) label += ` (${added} added, ${removed} removed)`
+	else if (added > 0) label += ` (${added} added)`
+	else if (removed > 0) label += ` (${removed} removed)`
+	return label
+}
 </script>

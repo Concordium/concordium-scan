@@ -116,8 +116,7 @@ const defaultOptions = ref({
 					if (label) {
 						label += ': '
 					}
-					if (props.labelFormatter)
-						return label + props.labelFormatter(context.parsed.y)
+					if (props.labelFormatter) return label + props.labelFormatter(context)
 					else return label + context.parsed.y
 				},
 			},

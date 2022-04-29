@@ -7,7 +7,7 @@
 		:bucket-width="rewardMetricsData?.rewardMetrics?.buckets?.bucketWidth"
 		:y-values="[rewardMetricsData?.rewardMetrics?.buckets?.y_SumRewards]"
 		:is-loading="isLoading"
-		:label-formatter="convertMicroCcdToCcd"
+		:label-formatter="formatLabel"
 	>
 		<template #topRight></template>
 		<template #title>Rewards</template>
@@ -20,13 +20,16 @@
 </template>
 <script lang="ts" setup>
 import type { Ref } from 'vue'
+import type { TooltipItem } from 'chart.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import type { RewardMetricsQueryResponse } from '~/queries/useRewardMetricsQuery'
-
 type Props = {
 	rewardMetricsData: Ref<RewardMetricsQueryResponse | undefined>
 	isLoading?: boolean
+}
+const formatLabel = (c: TooltipItem<'bar'>) => {
+	return convertMicroCcdToCcd(c.parsed.y)
 }
 defineProps<Props>()
 </script>

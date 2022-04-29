@@ -75,8 +75,7 @@ const defaultOptions = ref({
 					return ''
 				},
 				label(context: TooltipItem<'bar'>) {
-					if (props.labelFormatter)
-						return props.labelFormatter(context.parsed.y)
+					if (props.labelFormatter) return props.labelFormatter(context)
 					else return context.parsed.y + ''
 				},
 			},
