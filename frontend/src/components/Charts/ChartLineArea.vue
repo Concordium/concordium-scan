@@ -8,13 +8,16 @@ import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
 import { onMounted } from 'vue'
 import type { TooltipItem } from 'chart.js'
+import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
+
 type Props = {
 	xValues: string[] | undefined
 	yValuesHigh?: (number | null)[]
 	yValuesMid?: (number | null)[]
 	yValuesLow?: (number | null)[]
 	bucketWidth?: string
+	labelFormatter?: LabelFormatterFunc
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -113,7 +116,9 @@ const defaultOptions = ref({
 					if (label) {
 						label += ': '
 					}
-					return label + context.parsed.y
+					if (props.labelFormatter)
+						return label + props.labelFormatter(context.parsed.y)
+					else return label + context.parsed.y
 				},
 			},
 		},

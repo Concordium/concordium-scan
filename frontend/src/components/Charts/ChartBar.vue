@@ -7,12 +7,15 @@
 import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
 import * as Chartjs from 'chart.js/dist/chart.esm'
 import type { TooltipItem } from 'chart.js'
+import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
+
 type Props = {
 	xValues?: string[]
 	yValues?: (number | null)[]
 	bucketWidth?: string
 	beginAtZero?: boolean
+	labelFormatter?: LabelFormatterFunc
 }
 const canvasRef = ref()
 Chart.register(...registerables)
@@ -72,7 +75,9 @@ const defaultOptions = ref({
 					return ''
 				},
 				label(context: TooltipItem<'bar'>) {
-					return context.parsed.y + ''
+					if (props.labelFormatter)
+						return props.labelFormatter(context.parsed.y)
+					else return context.parsed.y + ''
 				},
 			},
 		},

@@ -7,6 +7,7 @@
 		:bucket-width="rewardMetricsData?.rewardMetrics?.buckets?.bucketWidth"
 		:y-values="[rewardMetricsData?.rewardMetrics?.buckets?.y_SumRewards]"
 		:is-loading="isLoading"
+		:label-formatter="convertMicroCcdToCcd"
 	>
 		<template #topRight></template>
 		<template #title>Rewards</template>

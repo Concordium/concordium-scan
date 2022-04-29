@@ -37,6 +37,7 @@
 				:y-values-mid="props.yValues[1]"
 				:y-values-low="props.yValues[2]"
 				:begin-at-zero="props.beginAtZero"
+				:label-formatter="props.labelFormatter"
 				:bucket-width="props.bucketWidth"
 			/>
 			<ChartBar
@@ -48,6 +49,7 @@
 				:y-values="props.yValues[0]"
 				:begin-at-zero="props.beginAtZero"
 				:bucket-width="props.bucketWidth"
+				:label-formatter="props.labelFormatter"
 			/>
 			<ChartLine
 				v-else-if="props.xValues && props.yValues"
@@ -56,6 +58,7 @@
 				:begin-at-zero="props.beginAtZero"
 				:y-values="props.yValues[0]"
 				:bucket-width="props.bucketWidth"
+				:label-formatter="props.labelFormatter"
 			/>
 		</ClientOnly>
 	</div>
@@ -66,6 +69,7 @@ import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 import Chip from '~/components/atoms/Chip.vue'
 import ChartBar from '~/components/Charts/ChartBar.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import type { LabelFormatterFunc } from '~/components/Charts/ChartUtils'
 
 type Props = {
 	yValues: ((number | null)[] | undefined)[]
@@ -74,6 +78,7 @@ type Props = {
 	bucketWidth?: string
 	beginAtZero?: boolean
 	isLoading?: boolean
+	labelFormatter?: LabelFormatterFunc
 }
 const props = defineProps<Props>()
 </script>

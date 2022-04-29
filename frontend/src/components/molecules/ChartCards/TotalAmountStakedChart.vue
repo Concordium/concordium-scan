@@ -9,6 +9,7 @@
 		chart-type="line"
 		:begin-at-zero="true"
 		:is-loading="isLoading"
+		:label-formatter="convertMicroCcdToCcd"
 	>
 		<template #topRight></template>
 		<template #icon>Ͼ</template>
