@@ -59,6 +59,7 @@ module.exports = {
 				body: withHslOpacity('--color-text-regular'),
 				faded: 'var(--color-text-faded)',
 				interactive: withHslOpacity('--color-interactive'),
+				interactiveDark: withHslOpacity('--color-interactive-dark'),
 				interactiveHover: withHslOpacity('--color-interactive-hover'),
 				info: withHslOpacity('--color-info'),
 				error: withHslOpacity('--color-error'),

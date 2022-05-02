@@ -1,6 +1,6 @@
 ﻿<template>
 	<div
-		class="bg-theme-background-interactive px-3 rounded-full text-xs text-theme-white"
+		class="bg-theme-background-interactive px-3 rounded-full text-xs text-theme-interactiveDark"
 	>
 		<slot />
 	</div>

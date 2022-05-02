@@ -3,7 +3,7 @@
 		:href="href"
 		rel="noreferrer"
 		target="_blank"
-		class="text-theme-interactive hover:text-theme-interactive-hover"
+		class="text-theme-interactive hover:text-theme-interactiveHover"
 	>
 		<Tooltip text="Open in new tab" class="text-theme-white">
 			<ExternalLinkIcon stroke="none" fill="white" class="h-5 w-5 align-top" />

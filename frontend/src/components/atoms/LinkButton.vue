@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="text-theme-interactive hover:text-theme-interactive-hover"
+		class="text-theme-interactive hover:text-theme-interactiveHover"
 		@click="onClick"
 	>
 		<slot />
