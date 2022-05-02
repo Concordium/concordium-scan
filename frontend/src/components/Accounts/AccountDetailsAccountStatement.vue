@@ -15,15 +15,7 @@
 			<TableBody>
 				<TableRow
 					v-for="accountStatementItem in accountStatementItems"
-					:key="
-						accountStatementItem.timestamp +
-						'-' +
-						accountStatementItem.entryType +
-						'-' +
-						accountStatementItem.amount +
-						accountStatementItem.reference.transactionHash +
-						accountStatementItem.reference.blockHash
-					"
+					:key="accountStatementItem.id"
 				>
 					<TableTd>
 						<Tooltip
