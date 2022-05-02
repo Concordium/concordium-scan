@@ -6,11 +6,13 @@
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
-				<CarouselSlide class="w-full"
-					><CumulativeAccountsCreatedChart
-						:account-metrics-data="metricsData"
-						:is-loading="metricsFetching"
-					/>
+				<CarouselSlide class="w-full">
+					<MetricCard class="pt-4">
+						<CumulativeAccountsCreatedChart
+							:account-metrics-data="metricsData"
+							:is-loading="metricsFetching"
+						/>
+					</MetricCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
 					<AccountsCreatedChart
@@ -72,6 +74,7 @@ import {
 	convertMicroCcdToCcd,
 } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
+import MetricCard from '~/components/atoms/MetricCard.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'
 

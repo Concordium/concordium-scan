@@ -1,9 +1,9 @@
 <template>
 	<KPICardContent>
-		<template #title>Total CCD in existence</template>
+		<template #title>Total circulating supply of CCD</template>
 		<template #icon>Ͼ</template>
 		<template #value>
-			{{ convertMicroCcdToCcd(lastTotalMicroCcd, true) }}
+			{{ convertMicroCcdToCcd(lastTotalMicroCcdReleased, true) }}
 		</template>
 		<template #chip>latest</template>
 	</KPICardContent>
@@ -14,7 +14,7 @@ import KPICardContent from '~/components/molecules/KPICardContent.vue'
 import type { BlockMetrics } from '~/types/generated'
 
 type Props = {
-	lastTotalMicroCcd?: BlockMetrics['lastTotalMicroCcd']
+	lastTotalMicroCcdReleased?: BlockMetrics['lastTotalMicroCcdReleased']
 }
 
 defineProps<Props>()

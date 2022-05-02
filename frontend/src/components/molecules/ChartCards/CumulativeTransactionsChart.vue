@@ -1,5 +1,5 @@
 ﻿<template>
-	<KPICard>
+	<KPICardContent>
 		<template #title>Cumulative transactions</template>
 		<template #icon><TransactionIcon class="w-6 h-6" /></template>
 		<template #value>{{
@@ -9,12 +9,12 @@
 			)
 		}}</template>
 		<template #chip>latest</template>
-	</KPICard>
+	</KPICardContent>
 </template>
 <script lang="ts" setup>
 import { formatNumber } from '~/utils/format'
 import type { TransactionMetricsQueryResponse } from '~/queries/useTransactionMetrics'
-import KPICard from '~/components/molecules/KPICard.vue'
+import KPICardContent from '~/components/molecules/KPICardContent.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 
 type Props = {

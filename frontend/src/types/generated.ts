@@ -349,10 +349,20 @@ export type Baker = {
   id: Scalars['ID'];
   rewards?: Maybe<BakerRewardConnection>;
   state: BakerState;
+  /** Get the transactions that have affected the baker. */
+  transactions?: Maybe<BakerTransactionRelationConnection>;
 };
 
 
 export type BakerRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type BakerTransactionsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -486,6 +496,32 @@ export type BakerStakeThresholdChainUpdatePayload = {
 };
 
 export type BakerState = ActiveBakerState | RemovedBakerState;
+
+export type BakerTransactionRelation = {
+  __typename?: 'BakerTransactionRelation';
+  id: Scalars['ID'];
+  transaction: Transaction;
+};
+
+/** A connection to a list of items. */
+export type BakerTransactionRelationConnection = {
+  __typename?: 'BakerTransactionRelationConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<BakerTransactionRelationEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<BakerTransactionRelation>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type BakerTransactionRelationEdge = {
+  __typename?: 'BakerTransactionRelationEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: BakerTransactionRelation;
+};
 
 /** A connection to a list of items. */
 export type BakersConnection = {
@@ -646,12 +682,20 @@ export type BlockMetrics = {
   buckets: BlockMetricsBuckets;
   /** The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero). */
   lastBlockHeight: Scalars['Long'];
-  /** The total amount of CCD in existence. */
+  /** The current total amount of CCD in existence. */
   lastTotalMicroCcd: Scalars['Long'];
-  /** The total amount of CCD in encrypted balances. */
+  /** The current total amount of CCD in encrypted balances. */
   lastTotalMicroCcdEncrypted: Scalars['Long'];
-  /** The total amount of CCD staked. */
+  /** The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  lastTotalMicroCcdReleased?: Maybe<Scalars['Long']>;
+  /** The current total amount of CCD staked. */
   lastTotalMicroCcdStaked: Scalars['Long'];
+  /** The current percentage of CCD encrypted (of total CCD in existence) */
+  lastTotalPercentageEncrypted: Scalars['Float'];
+  /** The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  lastTotalPercentageReleased?: Maybe<Scalars['Float']>;
+  /** The current percentage of CCD staked (of total CCD in existence) */
+  lastTotalPercentageStaked: Scalars['Float'];
 };
 
 export type BlockMetricsBuckets = {
@@ -1352,7 +1396,7 @@ export type Query = {
   bakers?: Maybe<BakersConnection>;
   block?: Maybe<Block>;
   blockByBlockHash?: Maybe<Block>;
-  blockMetrics?: Maybe<BlockMetrics>;
+  blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
   rewardMetrics: RewardMetrics;
   rewardMetricsForBaker: RewardMetrics;

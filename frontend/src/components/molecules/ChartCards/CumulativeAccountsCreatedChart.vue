@@ -1,20 +1,20 @@
 ﻿<template>
-	<KPICard class="w-96 lg:w-full">
+	<KPICardContent>
 		<template #topRight></template>
 		<template #title>Cumulative Accounts Created</template>
-		<template #icon><UserIcon /></template>
+		<template #icon><UserIcon class="w-6 h-6" /></template>
 		<template #value>{{
 			formatNumber(
 				accountMetricsData?.accountsMetrics.lastCumulativeAccountsCreated
 			)
 		}}</template>
 		<template #chip>latest</template>
-	</KPICard>
+	</KPICardContent>
 </template>
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid/index.js'
 import { formatNumber } from '~/utils/format'
-import KPICard from '~/components/molecules/KPICard.vue'
+import KPICardContent from '~/components/molecules/KPICardContent.vue'
 import type { AccountsMetricsQueryResponse } from '~/queries/useAccountsMetricsQuery'
 
 type Props = {

@@ -1,7 +1,5 @@
 ﻿<template>
-	<div
-		class="flex flex-col items-center w-full h-full justify-between cardShadow rounded-2xl shadow-2xl my-4 relative overflow-hidden bg-theme-background-primary-elevated h-full"
-	>
+	<MetricCard class="justify-between">
 		<header class="flex flex-col items-center">
 			<div class="absolute top-4 right-4 text-xs">
 				<slot name="topRight"></slot>
@@ -61,12 +59,13 @@
 				:label-formatter="props.labelFormatter"
 			/>
 		</ClientOnly>
-	</div>
+	</MetricCard>
 </template>
 <script lang="ts" setup>
 import ChartLine from '~/components/Charts/ChartLine.vue'
 import ChartLineArea from '~/components/Charts/ChartLineArea.vue'
 import Chip from '~/components/atoms/Chip.vue'
+import MetricCard from '~/components/atoms/MetricCard.vue'
 import ChartBar from '~/components/Charts/ChartBar.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import type { LabelFormatterFunc } from '~/components/Charts/ChartUtils'

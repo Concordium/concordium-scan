@@ -13,6 +13,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 			blocksAdded
 			avgBlockTime
 			lastTotalMicroCcd
+			lastTotalMicroCcdReleased
 			avgFinalizationTime
 			lastTotalMicroCcdStaked
 			buckets {

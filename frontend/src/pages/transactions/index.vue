@@ -7,10 +7,13 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
 				<CarouselSlide class="w-full">
-					<CumulativeTransactionsChart
-						:transaction-metrics-data="metricsData"
-						:is-loading="metricsFetching"
-				/></CarouselSlide>
+					<MetricCard class="pt-4">
+						<CumulativeTransactionsChart
+							:transaction-metrics-data="metricsData"
+							:is-loading="metricsFetching"
+						/>
+					</MetricCard>
+				</CarouselSlide>
 				<CarouselSlide class="w-full">
 					<TransactionCountChart
 						:transaction-metrics-data="metricsData"
@@ -114,6 +117,7 @@ import {
 	type Transaction,
 	type Subscription,
 } from '~/types/generated'
+import MetricCard from '~/components/atoms/MetricCard.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
 import CumulativeTransactionsChart from '~/components/molecules/ChartCards/CumulativeTransactionsChart.vue'

@@ -1,8 +1,6 @@
 <template>
-	<div
-		class="flex flex-col items-center h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
-	>
-		<div class="text-sm text-theme-faded pt-4 w-72 text-center">
+	<div class="flex flex-col items-center mb-4">
+		<div class="text-sm text-theme-faded w-72 text-center">
 			<slot name="title"></slot>
 		</div>
 

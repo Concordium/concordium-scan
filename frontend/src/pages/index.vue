@@ -9,11 +9,18 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full lg:col-span-2">
-					<TotalCCD
-						:last-total-micro-ccd="
-							blockMetricsData?.blockMetrics.lastTotalMicroCcd
-						"
-					/>
+					<MetricCard class="pt-4">
+						<TotalCCD
+							:last-total-micro-ccd="
+								blockMetricsData?.blockMetrics.lastTotalMicroCcd
+							"
+						/>
+						<TotalCirculatingCCD
+							:last-total-micro-ccd-released="
+								blockMetricsData?.blockMetrics.lastTotalMicroCcdReleased
+							"
+						/>
+					</MetricCard>
 				</CarouselSlide>
 				<CarouselSlide class="w-full"
 					><BlocksAddedChart
@@ -184,12 +191,14 @@ import {
 } from '~/types/generated'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
+import MetricCard from '~/components/atoms/MetricCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 import TotalCCD from '~/components/molecules/ChartCards/TotalCCD.vue'
+import TotalCirculatingCCD from '~/components/molecules/ChartCards/TotalCirculatingCCD.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
