@@ -7,7 +7,7 @@
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full lg:col-span-2">
-					<TotalMinted
+					<TotalCCD
 						:last-total-micro-ccd="
 							blockMetricsData?.blockMetrics.lastTotalMicroCcd
 						"
@@ -187,7 +187,7 @@ import AccountLink from '~/components/molecules/AccountLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
-import TotalMinted from '~/components/molecules/ChartCards/TotalMinted.vue'
+import TotalCCD from '~/components/molecules/ChartCards/TotalCCD.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'

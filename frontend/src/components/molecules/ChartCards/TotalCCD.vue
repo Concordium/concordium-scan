@@ -1,6 +1,6 @@
 <template>
 	<KPICard>
-		<template #title>Total minted CCD</template>
+		<template #title>Total CCD in existence</template>
 		<template #icon>Ͼ</template>
 		<template #value>
 			{{ convertMicroCcdToCcd(lastTotalMicroCcd, true) }}
