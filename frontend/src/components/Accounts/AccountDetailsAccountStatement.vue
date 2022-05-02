@@ -66,12 +66,6 @@
 						<RewardIcon
 							v-else-if="
 								accountStatementItem.entryType ===
-									AccountStatementEntryType.BakingReward ||
-								accountStatementItem.entryType ===
-									AccountStatementEntryType.BlockReward ||
-								accountStatementItem.entryType ===
-									AccountStatementEntryType.MintReward ||
-								accountStatementItem.entryType ===
 									AccountStatementEntryType.FinalizationReward ||
 								accountStatementItem.entryType ===
 									AccountStatementEntryType.TransactionFeeReward ||

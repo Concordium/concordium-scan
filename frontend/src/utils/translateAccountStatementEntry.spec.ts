@@ -15,7 +15,7 @@ describe('translateAccountStatementEntryType', () => {
 	it('should translate known entry types', () => {
 		expect(
 			translateAccountStatementEntryType(
-				'MINT_REWARD' as AccountStatementEntryType
+				'BAKER_REWARD' as AccountStatementEntryType
 			)
 		).toBe('Reward')
 		expect(
