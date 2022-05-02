@@ -2,12 +2,12 @@
 	<div
 		class="flex flex-col items-center h-full w-full my-4 relative cardShadow rounded-2xl shadow-2xl overflow-hidden bg-theme-background-primary-elevated"
 	>
-		<div class="text-theme-faded pt-4 w-72 text-center">
+		<div class="text-sm text-theme-faded pt-4 w-72 text-center">
 			<slot name="title"></slot>
 		</div>
 
 		<div
-			class="text-xl md:text-3xl text-theme-interactive flex flex-row gap-2 items-center"
+			class="text-xl md:text-3xl text-theme-interactive flex flex-row gap-2 items-center h-2/3"
 		>
 			<div class="mr-2 text-theme-interactive">
 				<slot name="icon"></slot>
