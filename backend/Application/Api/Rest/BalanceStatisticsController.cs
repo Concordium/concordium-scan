@@ -16,30 +16,6 @@ public class BalanceStatisticsController : ControllerBase
         _dbContextFactory = dbContextFactory;
     }
 
-    // [HttpGet]
-    // [Route("rest/balance-statistics/latest")]
-    // public async Task<dynamic> GetLatest()
-    // {
-    //     await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-    //     
-    //     var block = await dbContext.Blocks
-    //         .AsNoTracking()
-    //         .OrderByDescending(x => x.Id)
-    //         .FirstAsync();
-    //
-    //     return new BalanceStatisticsResponse
-    //     (
-    //         block.BlockHeight,
-    //         block.BlockHash,
-    //         block.BlockSlotTime,
-    //         block.BalanceStatistics.TotalAmount,
-    //         block.BalanceStatistics.TotalAmountReleased,
-    //         block.BalanceStatistics.TotalAmountStaked,
-    //         block.BalanceStatistics.TotalAmountEncrypted,
-    //         block.BalanceStatistics.TotalAmountLockedInReleaseSchedules
-    //     );
-    // }
-    //
     [HttpGet]
     [Route("rest/balance-statistics/latest")]
     public async Task<ActionResult> GetLatest(string field)
@@ -56,6 +32,7 @@ public class BalanceStatisticsController : ControllerBase
         {
             "totalamount" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmount),
             "totalamountreleased" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
+            "totalamountnotreleased" => query.Select(x => x.BalanceStatistics.TotalAmount - x.BalanceStatistics.TotalAmountReleased),
             "totalamountstaked" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountStaked),
             "totalamountencrypted" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountEncrypted),
             "totalamountlockedinreleaseschedules" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountLockedInReleaseSchedules),
@@ -71,14 +48,4 @@ public class BalanceStatisticsController : ControllerBase
         };
         return result;
     }
-//
-//     private record BalanceStatisticsResponse(
-//             long BlockHeight, 
-//             string BlockHash, 
-//             DateTimeOffset BlockSlotTime,
-//             ulong TotalAmount, 
-//             ulong? TotalAmountReleased,
-//             ulong TotalAmountStaked, 
-//             ulong TotalAmountEncrypted,
-//             ulong TotalAmountLockedInReleaseSchedules);
 }
