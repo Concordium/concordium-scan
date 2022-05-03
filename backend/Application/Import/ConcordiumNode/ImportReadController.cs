@@ -123,7 +123,7 @@ public class ImportReadController : BackgroundService
         return new BlockDataEnvelope(payload);
     }
 
-    private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummary blockSummary, CancellationToken stoppingToken)
+    private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
     {
         if (blockInfo.BlockHeight == 0)
         {

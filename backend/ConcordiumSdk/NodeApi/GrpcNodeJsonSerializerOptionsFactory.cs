@@ -40,7 +40,8 @@ public static class GrpcNodeJsonSerializerOptionsFactory
                 new InvalidInitMethodConverter(),
                 new InvalidReceiveMethodConverter(),
                 new AmountTooLargeConverter(),
-                new AccountBakerPendingChangeConverter()
+                new AccountBakerPendingChangeConverter(),
+                new BlockSummaryConverter()
             }
         };
     }

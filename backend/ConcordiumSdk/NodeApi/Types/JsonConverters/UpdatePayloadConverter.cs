@@ -106,7 +106,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             }
             case "mintDistribution":
             {
-                var content = JsonSerializer.Deserialize<MintDistribution>(ref reader, options)!;
+                var content = JsonSerializer.Deserialize<MintDistributionV0>(ref reader, options)!;
                 result = new MintDistributionUpdatePayload(content);
                 break;
             }

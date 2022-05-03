@@ -1,6 +1,6 @@
 ﻿namespace ConcordiumSdk.NodeApi.Types;
 
-public record RewardParameters(
-    MintDistribution MintDistribution,
+public record RewardParametersV1(
+    MintDistributionV1 MintDistribution,
     TransactionFeeDistribution TransactionFeeDistribution,
     GasRewards GASRewards);

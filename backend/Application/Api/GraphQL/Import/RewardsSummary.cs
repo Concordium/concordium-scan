@@ -11,7 +11,7 @@ public class RewardsSummary
         AggregatedAccountRewards = aggregatedAccountRewards;
     }
 
-    public static RewardsSummary Create(BlockSummary blockSummary, IAccountLookup accountLookup)
+    public static RewardsSummary Create(BlockSummaryBase blockSummary, IAccountLookup accountLookup)
     {
         var rewards = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
         

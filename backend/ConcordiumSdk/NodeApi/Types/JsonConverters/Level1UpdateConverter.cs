@@ -42,7 +42,7 @@ public class Level1UpdateConverter : JsonConverter<Level1Update>
             }
             case "level2KeysUpdate":
             {
-                var content = JsonSerializer.Deserialize<Authorizations>(ref reader, options)!;
+                var content = JsonSerializer.Deserialize<AuthorizationsV0>(ref reader, options)!;
                 result = new Level2KeysLevel1Update(content);
                 break;
             }

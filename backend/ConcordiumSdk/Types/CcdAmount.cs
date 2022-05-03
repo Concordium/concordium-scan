@@ -29,7 +29,7 @@ public struct CcdAmount
     public static CcdAmount FromCcd(int ccd)
     {
         if (ccd < 0) throw new ArgumentOutOfRangeException(nameof(ccd), "Cannot represent negative numbers");
-        return new CcdAmount(Convert.ToUInt64(ccd * 1_000_000));
+        return new CcdAmount(Convert.ToUInt64(ccd) * 1_000_000);
     }
 
     public byte[] SerializeToBytes()

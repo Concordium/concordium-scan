@@ -31,7 +31,7 @@ public class BlockWriter
         _metrics = metrics;
     }
 
-    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus,
+    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummaryBase blockSummary, RewardStatus rewardStatus,
         int chainParametersId, BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddBlock));
@@ -158,7 +158,7 @@ public class BlockWriter
         }
     }
 
-    private Block MapBlock(BlockInfo blockInfo, BlockSummary blockSummary, RewardStatus rewardStatus, double blockTime,
+    private Block MapBlock(BlockInfo blockInfo, BlockSummaryBase blockSummary, RewardStatus rewardStatus, double blockTime,
         int chainParametersId, BakerUpdateResults bakerUpdateResults, ImportState importState)
     {
         var block = new Block

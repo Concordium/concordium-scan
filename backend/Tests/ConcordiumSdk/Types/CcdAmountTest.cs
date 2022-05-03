@@ -5,9 +5,10 @@ namespace Tests.ConcordiumSdk.Types;
 public class CcdAmountTest
 {
     [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 1_000_000)]
-    [InlineData(42, 42_000_000)]
+    [InlineData(0, 0UL)]
+    [InlineData(1, 1_000_000UL)]
+    [InlineData(42, 42_000_000UL)]
+    [InlineData(2_147_483_647, 2_147_483_647_000_000UL)]
     public void FromCcd_FromInt32_Representable(int input, ulong expectedMicroCcd)
     {
         var result = CcdAmount.FromCcd(input);

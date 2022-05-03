@@ -81,7 +81,7 @@ public class TransactionWriter
         _metrics = metrics;
     }
 
-    public async Task<TransactionPair[]> AddTransactions(BlockSummary blockSummary, long blockId, DateTimeOffset blockSlotTime)
+    public async Task<TransactionPair[]> AddTransactions(BlockSummaryBase blockSummary, long blockId, DateTimeOffset blockSlotTime)
     {
         if (blockSummary.TransactionSummaries.Length == 0) return Array.Empty<TransactionPair>();
         

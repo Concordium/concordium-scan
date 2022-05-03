@@ -1,32 +1,28 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using HotChocolate;
+using HotChocolate.Types;
 
 namespace Application.Api.GraphQL;
 
-public class ChainParameters
+[InterfaceType]
+public abstract class ChainParameters
 {
     [GraphQLIgnore]
     public int Id { get; init; }
-
+    
     public decimal ElectionDifficulty { get; init; }
     
     public ExchangeRate EuroPerEnergy { get; init; }
     
     public ExchangeRate MicroCcdPerEuro { get; init; }
-    
-    public ulong BakerCooldownEpochs { get; init; }
-    
-    public int CredentialsPerBlockLimit { get; init; }
-    
-    public RewardParameters RewardParameters { get; init; }
+
+    public int AccountCreationLimit { get; init; }
     
     [GraphQLIgnore]
     public long FoundationAccountId { get; init; }
     
     public AccountAddress FoundationAccountAddress { get; init; }
     
-    public ulong MinimumThresholdForBaking { get; init; }
-
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
@@ -37,18 +33,16 @@ public class ChainParameters
                ElectionDifficulty == other.ElectionDifficulty &&
                EuroPerEnergy.Equals(other.EuroPerEnergy) &&
                MicroCcdPerEuro.Equals(other.MicroCcdPerEuro) &&
-               BakerCooldownEpochs == other.BakerCooldownEpochs &&
-               CredentialsPerBlockLimit == other.CredentialsPerBlockLimit &&
-               RewardParameters.Equals(other.RewardParameters) &&
+               AccountCreationLimit == other.AccountCreationLimit &&
                FoundationAccountId == other.FoundationAccountId &&
-               MinimumThresholdForBaking == other.MinimumThresholdForBaking;
+               FoundationAccountAddress == other.FoundationAccountAddress;
     }
 
     public override int GetHashCode()
     {
         return Id;
     }
-
+    
     public static bool operator ==(ChainParameters? left, ChainParameters? right)
     {
         return Equals(left, right);

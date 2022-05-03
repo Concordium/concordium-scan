@@ -2,12 +2,12 @@
 
 namespace ConcordiumSdk.NodeApi.Types;
 
-public record ChainParameters(
+public record ChainParametersV0(
     decimal ElectionDifficulty,
     ExchangeRate EuroPerEnergy,
     ExchangeRate MicroGTUPerEuro,
     ulong BakerCooldownEpochs,
-    ushort CredentialsPerBlockLimit,
-    RewardParameters RewardParameters,
+    ushort AccountCreationLimit,
+    RewardParametersV0 RewardParameters,
     ulong FoundationAccountIndex,
     CcdAmount MinimumThresholdForBaking);

@@ -1,6 +1,5 @@
 ﻿namespace ConcordiumSdk.NodeApi.Types;
 
-public record MintDistribution(
-    decimal MintPerSlot,
+public record MintDistributionV1(
     decimal BakingReward,
     decimal FinalizationReward);

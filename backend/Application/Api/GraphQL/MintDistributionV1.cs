@@ -1,8 +1,7 @@
 ﻿namespace Application.Api.GraphQL;
 
-public class MintDistribution
+public class MintDistributionV1
 {
-    public decimal MintPerSlot { get; init; }
     public decimal BakingReward { get; init; }
     public decimal FinalizationReward { get; init; }
 
@@ -11,23 +10,22 @@ public class MintDistribution
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != GetType()) return false;
-        var other = (MintDistribution)obj;
-        return MintPerSlot == other.MintPerSlot &&
-               BakingReward == other.BakingReward &&
+        var other = (MintDistributionV1)obj;
+        return BakingReward == other.BakingReward &&
                FinalizationReward == other.FinalizationReward;
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(MintPerSlot, BakingReward, FinalizationReward);
+        return HashCode.Combine(BakingReward, FinalizationReward);
     }
 
-    public static bool operator ==(MintDistribution? left, MintDistribution? right)
+    public static bool operator ==(MintDistributionV1? left, MintDistributionV1? right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(MintDistribution? left, MintDistribution? right)
+    public static bool operator !=(MintDistributionV1? left, MintDistributionV1? right)
     {
         return !Equals(left, right);
     }

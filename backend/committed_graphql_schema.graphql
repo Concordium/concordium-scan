@@ -3,6 +3,14 @@
   subscription: Subscription
 }
 
+interface ChainParameters {
+  electionDifficulty: Decimal!
+  euroPerEnergy: ExchangeRate!
+  microCcdPerEuro: ExchangeRate!
+  accountCreationLimit: Int!
+  foundationAccountAddress: AccountAddress!
+}
+
 type Account {
   releaseSchedule: AccountReleaseSchedule!
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
@@ -561,21 +569,48 @@ type BlocksEdge {
   node: Block!
 }
 
-type ChainParameters {
+type ChainParametersV0 implements ChainParameters {
+  bakerCooldownEpochs: UnsignedLong!
+  rewardParameters: RewardParametersV0!
+  minimumThresholdForBaking: UnsignedLong!
   electionDifficulty: Decimal!
   euroPerEnergy: ExchangeRate!
   microCcdPerEuro: ExchangeRate!
-  bakerCooldownEpochs: UnsignedLong!
-  credentialsPerBlockLimit: Int!
-  rewardParameters: RewardParameters!
+  accountCreationLimit: Int!
   foundationAccountAddress: AccountAddress!
-  minimumThresholdForBaking: UnsignedLong!
+}
+
+type ChainParametersV1 implements ChainParameters {
+  poolOwnerCooldown: UnsignedLong!
+  delegatorCooldown: UnsignedLong!
+  rewardPeriodLength: UnsignedLong!
+  mintPerPayday: Decimal!
+  rewardParameters: RewardParametersV1!
+  finalizationCommissionLPool: Decimal!
+  bakingCommissionLPool: Decimal!
+  transactionCommissionLPool: Decimal!
+  finalizationCommissionRange: CommissionRange!
+  bakingCommissionRange: CommissionRange!
+  transactionCommissionRange: CommissionRange!
+  minimumEquityCapital: UnsignedLong!
+  capitalBound: Decimal!
+  leverageBound: LeverageFactor!
+  electionDifficulty: Decimal!
+  euroPerEnergy: ExchangeRate!
+  microCcdPerEuro: ExchangeRate!
+  accountCreationLimit: Int!
+  foundationAccountAddress: AccountAddress!
 }
 
 type ChainUpdateEnqueued {
   effectiveTime: DateTime!
   effectiveImmediately: Boolean!
   payload: ChainUpdatePayload!
+}
+
+type CommissionRange {
+  min: Decimal!
+  max: Decimal!
 }
 
 type ContractAddress {
@@ -852,6 +887,11 @@ type Level1KeysChainUpdatePayload {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema since graphql does not allow types without any fields")
 }
 
+type LeverageFactor {
+  numerator: UnsignedLong!
+  denominator: UnsignedLong!
+}
+
 type MicroCcdPerEuroChainUpdatePayload {
   exchangeRate: ExchangeRate!
 }
@@ -863,14 +903,19 @@ type Mint {
   foundationAccountAddress: AccountAddress!
 }
 
-type MintDistribution {
+type MintDistributionChainUpdatePayload {
   mintPerSlot: Decimal!
   bakingReward: Decimal!
   finalizationReward: Decimal!
 }
 
-type MintDistributionChainUpdatePayload {
+type MintDistributionV0 {
   mintPerSlot: Decimal!
+  bakingReward: Decimal!
+  finalizationReward: Decimal!
+}
+
+type MintDistributionV1 {
   bakingReward: Decimal!
   finalizationReward: Decimal!
 }
@@ -1057,8 +1102,14 @@ type RewardMetricsBuckets {
   y_SumRewards: [Long!]!
 }
 
-type RewardParameters {
-  mintDistribution: MintDistribution!
+type RewardParametersV0 {
+  mintDistribution: MintDistributionV0!
+  transactionFeeDistribution: TransactionFeeDistribution!
+  gasRewards: GasRewards!
+}
+
+type RewardParametersV1 {
+  mintDistribution: MintDistributionV1!
   transactionFeeDistribution: TransactionFeeDistribution!
   gasRewards: GasRewards!
 }

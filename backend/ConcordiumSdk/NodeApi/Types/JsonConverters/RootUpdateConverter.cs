@@ -49,7 +49,7 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
             }
             case "level2KeysUpdate":
             {
-                var content = JsonSerializer.Deserialize<Authorizations>(ref reader, options)!;
+                var content = JsonSerializer.Deserialize<AuthorizationsV0>(ref reader, options)!;
                 result = new Level2KeysRootUpdate(content);
                 break;
             }

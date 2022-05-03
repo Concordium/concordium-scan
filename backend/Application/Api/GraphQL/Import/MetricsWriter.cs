@@ -57,7 +57,7 @@ public class MetricsWriter
         return Math.Round(numerator * 1.0 / denominator, 10);
     }
 
-    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummary blockSummary, ImportState importState)
+    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummaryBase blockSummary, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddTransactionMetrics));
 

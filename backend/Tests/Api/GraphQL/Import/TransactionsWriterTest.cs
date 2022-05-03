@@ -82,7 +82,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly TransactionWriter _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
-    private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
+    private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly DateTimeOffset _anyBlockSlotTime = new DateTimeOffset(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public TransactionsWriterTest(DatabaseFixture dbFixture)

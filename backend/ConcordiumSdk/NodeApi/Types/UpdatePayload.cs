@@ -20,7 +20,7 @@ public record FoundationAccountUpdatePayload(
     AccountAddress Account) : UpdatePayload;
 
 public record MintDistributionUpdatePayload(
-    MintDistribution Content) : UpdatePayload;
+    MintDistributionV0 Content) : UpdatePayload;
 
 public record TransactionFeeDistributionUpdatePayload(
     TransactionFeeDistribution Content) : UpdatePayload;

@@ -42,13 +42,13 @@ public record BlockDataEnvelope(BlockDataPayload Payload);
 
 public record BlockDataPayload(
     BlockInfo BlockInfo, 
-    BlockSummary BlockSummary, 
+    BlockSummaryBase BlockSummary, 
     AccountInfosRetrieved AccountInfos,
     RewardStatus RewardStatus);
 
 public record GenesisBlockDataPayload(
     BlockInfo BlockInfo,
-    BlockSummary BlockSummary,
+    BlockSummaryBase BlockSummary,
     AccountInfosRetrieved AccountInfos,
     RewardStatus RewardStatus, 
     IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, AccountInfos, RewardStatus);

@@ -2,12 +2,11 @@
 
 namespace ConcordiumSdk.NodeApi.Types;
 
-public class BlockSummary
+public abstract class BlockSummaryBase
 {
     public TransactionSummary[] TransactionSummaries { get; init; }
     public SpecialEvent[] SpecialEvents { get; init; }
     public FinalizationData? FinalizationData { get; init; }
-    public Updates Updates { get; init; }
 
     public IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {

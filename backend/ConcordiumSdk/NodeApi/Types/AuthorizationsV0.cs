@@ -1,6 +1,6 @@
 ﻿namespace ConcordiumSdk.NodeApi.Types;
 
-public record Authorizations(
+public record AuthorizationsV0(
     UpdatePublicKey[] Keys,
     AccessStructure Emergency,
     AccessStructure Protocol,

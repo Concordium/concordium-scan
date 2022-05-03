@@ -105,10 +105,10 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
     private Tuple<BlockHash, string> _lastBlockSummary;
     
-    public async Task<BlockSummary> GetBlockSummaryAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
+    public async Task<BlockSummaryBase> GetBlockSummaryAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var stringResponse = await GetBlockSummaryStringAsync(blockHash, cancellationToken);
-        var result = JsonSerializer.Deserialize<BlockSummary>(stringResponse, _jsonSerializerOptions)!;
+        var result = JsonSerializer.Deserialize<BlockSummaryBase>(stringResponse, _jsonSerializerOptions)!;
         return result;
     }
 

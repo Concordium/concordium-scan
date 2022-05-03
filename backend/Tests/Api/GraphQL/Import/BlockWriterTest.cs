@@ -19,7 +19,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockWriter _target;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
-    private readonly BlockSummaryBuilder _blockSummaryBuilder = new();
+    private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
