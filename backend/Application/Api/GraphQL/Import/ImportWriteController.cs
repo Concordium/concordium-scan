@@ -69,6 +69,7 @@ public class ImportWriteController : BackgroundService
                 stoppingToken.ThrowIfCancellationRequested();
                 
                 var block = await WriteData(envelope.Payload);
+                await _materializedViewRefresher.RefreshAllIfNeeded();
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
                 
@@ -168,8 +169,6 @@ public class ImportWriteController : BackgroundService
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
 
-        await _materializedViewRefresher.RefreshAll();
-        
         return block;
     }
 
