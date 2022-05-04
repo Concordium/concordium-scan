@@ -67,6 +67,17 @@
 					</template>
 				</DetailsCard>
 			</div>
+			<div>
+				<div
+					class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
+				>
+					<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
+				</div>
+				<RewardMetricsForBakerChart
+					:reward-metrics-data="rewardMetricsForBakerData"
+					:is-loading="rewardMetricsForBakerFetching"
+				/>
+			</div>
 		</DrawerContent>
 	</div>
 </template>
@@ -85,6 +96,10 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import type { Baker } from '~/types/generated'
+import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
+import { MetricsPeriod } from '~/types/generated'
+import { useRewardMetricsForBakerQueryQuery } from '~/queries/useRewardMetricsForBakerQuery'
+import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
 
 const { NOW } = useDateNow()
 
@@ -93,6 +108,14 @@ type Props = {
 }
 
 const props = defineProps<Props>()
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const {
+	data: rewardMetricsForBakerData,
+	fetching: rewardMetricsForBakerFetching,
+} = useRewardMetricsForBakerQueryQuery(
+	props.baker.bakerId,
+	selectedMetricsPeriod
+)
 
 const restakeText = computed(() =>
 	props.baker.state.__typename === 'ActiveBakerState' &&
