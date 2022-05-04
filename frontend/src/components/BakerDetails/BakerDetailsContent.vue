@@ -67,17 +67,20 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<div>
-				<div
-					class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
-				>
-					<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
-				</div>
-				<RewardMetricsForBakerChart
-					:reward-metrics-data="rewardMetricsForBakerData"
-					:is-loading="rewardMetricsForBakerFetching"
-				/>
-			</div>
+			<Accordion>
+				Rewards
+				<template #content>
+					<div
+						class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
+					>
+						<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
+					</div>
+					<RewardMetricsForBakerChart
+						:reward-metrics-data="rewardMetricsForBakerData"
+						:is-loading="rewardMetricsForBakerFetching"
+					/>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
