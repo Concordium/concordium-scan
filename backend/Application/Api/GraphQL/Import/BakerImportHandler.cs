@@ -190,20 +190,15 @@ public class BakerImportHandler
 
     private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
     {
-        if (source.PendingChange is AccountBakerRemovePending removePending)
+        var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
+        activeState.PendingChange = source.PendingChange switch
         {
-            var effectiveTime = CalculateEffectiveTime(removePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
-
-            var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
-            activeState.PendingChange = new PendingBakerRemoval(effectiveTime, removePending.Epoch);
-        }
-        else if (source.PendingChange is AccountBakerReduceStakePending reduceStakePending)
-        {
-            var effectiveTime = CalculateEffectiveTime(reduceStakePending.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot);
-
-            var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Pending baker removal for a baker that was not active!");
-            activeState.PendingChange = new PendingBakerReduceStake(effectiveTime, reduceStakePending.NewStake.MicroCcdValue, reduceStakePending.Epoch);
-        }
+            AccountBakerRemovePendingV0 x => new PendingBakerRemoval(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.Epoch), 
+            AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
+            AccountBakerReduceStakePendingV0 x => new PendingBakerReduceStake(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.NewStake.MicroCcdValue, x.Epoch),
+            AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
+            _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
+        };
     }
 
     public static DateTimeOffset CalculateEffectiveTime(ulong epoch, DateTimeOffset blockSlotTime, int blockSlot)

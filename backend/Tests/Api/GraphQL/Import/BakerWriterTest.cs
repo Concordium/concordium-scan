@@ -102,7 +102,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
             new AccountBaker
             {
                 BakerId = 11,
-                PendingChange = new AccountBakerRemovePending(12)
+                PendingChange = new AccountBakerRemovePendingV0(12)
             }
         };
         

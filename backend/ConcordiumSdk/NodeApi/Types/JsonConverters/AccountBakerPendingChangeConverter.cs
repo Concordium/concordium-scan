@@ -6,27 +6,63 @@ namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
 public class AccountBakerPendingChangeConverter : JsonConverter<AccountBakerPendingChange>
 {
-    private readonly IDictionary<string, Type> _deserializeMap;
     private readonly IDictionary<Type, string> _serializeMap;
 
     public AccountBakerPendingChangeConverter()
     {
-        _deserializeMap = new Dictionary<string, Type>()
+        _serializeMap = new Dictionary<Type, string>()
         {
-            { "RemoveBaker", typeof(AccountBakerRemovePending) },
-            { "ReduceStake", typeof(AccountBakerReduceStakePending) },
+            { typeof(AccountBakerRemovePendingV0), "RemoveBaker" },
+            { typeof(AccountBakerRemovePendingV1), "RemoveStake" },
+            { typeof(AccountBakerReduceStakePendingV0), "ReduceStake" },
+            { typeof(AccountBakerReduceStakePendingV1), "ReduceStake" },
         };
-                
-        _serializeMap = _deserializeMap
-            .ToDictionary(x => x.Value, x => x.Key);
     }
 
     public override AccountBakerPendingChange? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var changeType = ReadChangeTypeValue(reader);
-        if (!_deserializeMap.TryGetValue(changeType, out var targetType))
-            throw new NotImplementedException($"Deserialization of '{changeType}' is not implemented.");
+        var targetType = GetTargetType(reader);
         return (AccountBakerPendingChange)JsonSerializer.Deserialize(ref reader, targetType, options)!;
+    }
+
+    private Type GetTargetType(Utf8JsonReader reader)
+    {
+        var changeType = ReadChangeTypeValue(reader);
+        return changeType switch
+        {
+            "RemoveBaker" => typeof(AccountBakerRemovePendingV0),
+            "RemoveStake" => typeof(AccountBakerRemovePendingV1),
+            "ReduceStake" => GetReduceStakeType(reader),
+            _ => throw new NotImplementedException($"Deserialization of '{changeType}' is not implemented.")
+        };
+    }
+
+    private Type GetReduceStakeType(Utf8JsonReader reader)
+    {
+        if (HasPropertyNamed(reader, "effectiveTime"))
+            return typeof(AccountBakerReduceStakePendingV1);
+        if (HasPropertyNamed(reader, "epoch"))
+            return typeof(AccountBakerReduceStakePendingV0);
+        throw new NotImplementedException($"Target type cannot be determined for this reduce stake pending change.");
+    }
+
+    private bool HasPropertyNamed(Utf8JsonReader readerClone, string propertyName)
+    {
+        if (readerClone.TokenType != JsonTokenType.StartObject)
+            throw new JsonException("Expected a start object");
+
+        var startDepth = readerClone.CurrentDepth;
+        readerClone.Read();
+        
+        var found = false;
+        while (!(found = readerClone.TokenType == JsonTokenType.PropertyName
+                 && readerClone.CurrentDepth == startDepth + 1
+                 && readerClone.GetString() == propertyName)
+               && !(readerClone.TokenType == JsonTokenType.EndObject 
+                    && readerClone.CurrentDepth == startDepth))
+            readerClone.Read();
+
+        return found;
     }
 
     private string ReadChangeTypeValue(Utf8JsonReader reader)

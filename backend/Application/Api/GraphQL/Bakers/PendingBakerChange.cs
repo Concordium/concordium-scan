@@ -16,4 +16,4 @@ public record PendingBakerRemoval(
 public record PendingBakerReduceStake(
     DateTimeOffset EffectiveTime,
     ulong NewStakedAmount, 
-    ulong? Epoch) : PendingBakerChange(EffectiveTime, Epoch);
+    ulong? Epoch = null) : PendingBakerChange(EffectiveTime, Epoch);
