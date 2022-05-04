@@ -31,6 +31,7 @@ public class ImportWriteController : BackgroundService
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
     private readonly IAccountLookup _accountLookup;
+    private readonly MaterializedViewRefresher _materializedViewRefresher;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
@@ -51,6 +52,7 @@ public class ImportWriteController : BackgroundService
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory, metrics);
+        _materializedViewRefresher = new MaterializedViewRefresher(dbSettings, metrics);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -165,6 +167,8 @@ public class ImportWriteController : BackgroundService
 
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
+
+        await _materializedViewRefresher.RefreshAll();
         
         return block;
     }
