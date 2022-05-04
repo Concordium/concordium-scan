@@ -330,3 +330,141 @@ public record DataRegistered(
 
 public record TransferMemo(
     Memo Memo) : TransactionResultEvent;
+
+// TODO: Interrupted 
+// TODO: Resumed
+
+public record BakerSetOpenStatus(
+    ulong BakerId,
+    AccountAddress Account,
+    BakerPoolOpenStatus OpenStatus) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
+}
+
+public record BakerSetMetadataURL(
+    ulong BakerId,
+    AccountAddress Account,
+    string MetadataURL) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
+}
+
+public record BakerSetTransactionFeeCommission(
+    ulong BakerId,
+    AccountAddress Account,
+    decimal TransactionFeeCommission) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
+}
+
+public record BakerSetBakingRewardCommission(
+    ulong BakerId,
+    AccountAddress Account,
+    decimal BakingRewardCommission) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
+}
+
+public record BakerSetFinalizationRewardCommission(
+    ulong BakerId,
+    AccountAddress Account,
+    decimal FinalizationRewardCommission) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+
+    public override IEnumerable<ulong> GetBakerIds()
+    {
+        yield return BakerId;
+    }
+}
+    
+// TODO: DelegationStakeIncreased 
+
+public record DelegationStakeDecreased(
+    ulong DelegatorId,
+    AccountAddress Account,
+    CcdAmount NewStake) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}
+
+public record DelegationSetRestakeEarnings(
+    ulong DelegatorId,
+    AccountAddress Account,
+    bool RestakeEarnings) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}
+
+public record DelegationSetDelegationTarget(
+    ulong DelegatorId,
+    AccountAddress Account,
+    DelegationTarget DelegationTarget) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}
+
+public record DelegationAdded(
+    ulong DelegatorId,
+    AccountAddress Account) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}
+
+public record DelegationRemoved(
+    ulong DelegatorId,
+    AccountAddress Account) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}

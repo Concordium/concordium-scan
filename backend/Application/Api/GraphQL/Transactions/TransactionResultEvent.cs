@@ -1,5 +1,5 @@
 using Application.Api.GraphQL.Accounts;
-using HotChocolate;
+using Application.Api.GraphQL.Bakers;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Transactions;
@@ -195,3 +195,51 @@ public record ChainUpdateEnqueued(
     DateTimeOffset EffectiveTime,
     bool EffectiveImmediately,
     ChainUpdatePayload Payload) : TransactionResultEvent; 
+    
+public record BakerSetOpenStatus(
+    ulong BakerId,
+    AccountAddress AccountAddress,
+    BakerPoolOpenStatus OpenStatus) : TransactionResultEvent;
+    
+public record BakerSetMetadataURL(
+    ulong BakerId,
+    AccountAddress AccountAddress,
+    string MetadataUrl) : TransactionResultEvent;
+    
+public record BakerSetTransactionFeeCommission(
+    ulong BakerId,
+    AccountAddress AccountAddress,
+    decimal TransactionFeeCommission) : TransactionResultEvent;
+
+public record BakerSetBakingRewardCommission(
+    ulong BakerId,
+    AccountAddress AccountAddress,
+    decimal BakingRewardCommission) : TransactionResultEvent;
+
+public record BakerSetFinalizationRewardCommission(
+    ulong BakerId,
+    AccountAddress AccountAddress,
+    decimal FinalizationRewardCommission) : TransactionResultEvent;
+
+public record DelegationAdded(
+    ulong DelegatorId,
+    AccountAddress AccountAddress) : TransactionResultEvent;
+
+public record DelegationRemoved(
+    ulong DelegatorId,
+    AccountAddress AccountAddress) : TransactionResultEvent;
+
+public record DelegationStakeDecreased(
+    ulong DelegatorId,
+    AccountAddress AccountAddress,
+    ulong NewStakedAmount) : TransactionResultEvent;
+
+public record DelegationSetRestakeEarnings(
+    ulong DelegatorId,
+    AccountAddress AccountAddress,
+    bool RestakeEarnings) : TransactionResultEvent;
+
+public record DelegationSetDelegationTarget(
+    ulong DelegatorId,
+    AccountAddress AccountAddress,
+    DelegationTarget DelegationTarget) : TransactionResultEvent;

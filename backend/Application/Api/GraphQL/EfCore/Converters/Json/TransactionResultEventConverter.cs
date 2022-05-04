@@ -28,6 +28,16 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(DataRegistered), 20 },
         { typeof(TransferMemo), 21 },
         { typeof(ChainUpdateEnqueued), 22 },
+        { typeof(BakerSetOpenStatus), 23 },
+        { typeof(BakerSetMetadataURL), 24 },
+        { typeof(BakerSetTransactionFeeCommission), 25 },
+        { typeof(BakerSetBakingRewardCommission), 26 },
+        { typeof(BakerSetFinalizationRewardCommission), 27 },
+        { typeof(DelegationAdded), 28 },
+        { typeof(DelegationRemoved), 29 },
+        { typeof(DelegationSetRestakeEarnings), 30 },
+        { typeof(DelegationSetDelegationTarget), 31 },
+        { typeof(DelegationStakeDecreased), 32 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

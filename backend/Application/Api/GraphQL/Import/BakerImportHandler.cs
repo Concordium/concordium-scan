@@ -42,7 +42,7 @@ public class BakerImportHandler
         var items = transactions
             .Select(tx =>
             {
-                var bakerIds = tx.Source.Result.GetBakerIds().ToArray();
+                var bakerIds = tx.Source.Result.GetBakerIds().Distinct().ToArray();
                 if (bakerIds.Length == 0)
                     return null;
                 if (bakerIds.Length == 1)

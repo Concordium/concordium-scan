@@ -18,7 +18,8 @@ public static class EfCoreJsonSerializerOptionsFactory
                 new Json.AccountAddressConverter(),
                 new ContractAddressConverter(),
                 new ChainUpdatePayloadConverter(),
-                new PendingBakerChangeConverter()
+                new PendingBakerChangeConverter(),
+                new DelegationTargetConverter()
             }
         };
     }

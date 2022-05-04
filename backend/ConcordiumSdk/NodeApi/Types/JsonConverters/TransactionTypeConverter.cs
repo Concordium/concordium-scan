@@ -40,6 +40,8 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
             { AccountTransactionType.SimpleTransferWithMemo, "transferWithMemo" },
             { AccountTransactionType.EncryptedTransferWithMemo, "encryptedAmountTransferWithMemo" },
             { AccountTransactionType.TransferWithScheduleWithMemo, "transferWithScheduleAndMemo" },
+            { AccountTransactionType.ConfigureBaker, "configureBaker" },
+            { AccountTransactionType.ConfigureDelegation, "configureDelegation" },
         };
 
         _mapStringToAccountTransactionType = _mapAccountTransactionTypeToString

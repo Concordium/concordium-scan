@@ -60,6 +60,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<IBlockOrTransactionUnion>(builder);
         AddAllTypesDerivedFrom<BakerState>(builder);
         AddAllTypesDerivedFrom<PendingBakerChange>(builder);
+        AddAllTypesDerivedFrom<DelegationTarget>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

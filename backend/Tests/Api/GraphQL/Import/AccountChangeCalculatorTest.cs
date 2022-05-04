@@ -124,7 +124,7 @@ public class AccountChangeCalculatorTest
     }
     
     [Fact] 
-    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_RemoveResultsThatWouldLeadToNoChanges()
+    public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_KeepResultsThatWouldLeadToNoChanges()
     {
         var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
@@ -145,7 +145,9 @@ public class AccountChangeCalculatorTest
         
         result.Should().BeEquivalentTo(new []
         {
-            new AccountUpdate(11, 50, 0)
+            new AccountUpdate(10, 0, 0),
+            new AccountUpdate(11, 50, 0),
+            new AccountUpdate(12, 0, 0)
         });
     }
     

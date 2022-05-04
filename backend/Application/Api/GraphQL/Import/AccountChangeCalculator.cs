@@ -98,8 +98,7 @@ public class AccountChangeCalculator
             {
                 var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
                 return new AccountUpdate(accountId, x.AmountAdjustment, 0);
-            })
-            .Where(x => x.AmountAdjustment != 0);
+            });
 
         var transactionResults = transactionRelations
             .GroupBy(x => x.AccountId)

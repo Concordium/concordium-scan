@@ -18,7 +18,12 @@ using BakerAdded = ConcordiumSdk.NodeApi.Types.BakerAdded;
 using BakerInCooldown = ConcordiumSdk.NodeApi.Types.BakerInCooldown;
 using BakerKeysUpdated = ConcordiumSdk.NodeApi.Types.BakerKeysUpdated;
 using BakerRemoved = ConcordiumSdk.NodeApi.Types.BakerRemoved;
+using BakerSetBakingRewardCommission = ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission;
+using BakerSetFinalizationRewardCommission = ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission;
+using BakerSetMetadataURL = ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL;
+using BakerSetOpenStatus = ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus;
 using BakerSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings;
+using BakerSetTransactionFeeCommission = ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission;
 using BakerStakeDecreased = ConcordiumSdk.NodeApi.Types.BakerStakeDecreased;
 using BakerStakeIncreased = ConcordiumSdk.NodeApi.Types.BakerStakeIncreased;
 using ContractAddress = ConcordiumSdk.Types.ContractAddress;
@@ -28,6 +33,11 @@ using CredentialHolderDidNotSign = ConcordiumSdk.NodeApi.Types.CredentialHolderD
 using CredentialKeysUpdated = ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated;
 using CredentialsUpdated = ConcordiumSdk.NodeApi.Types.CredentialsUpdated;
 using DataRegistered = ConcordiumSdk.NodeApi.Types.DataRegistered;
+using DelegationAdded = ConcordiumSdk.NodeApi.Types.DelegationAdded;
+using DelegationRemoved = ConcordiumSdk.NodeApi.Types.DelegationRemoved;
+using DelegationSetDelegationTarget = ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget;
+using DelegationSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings;
+using DelegationStakeDecreased = ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased;
 using DuplicateAggregationKey = ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey;
 using DuplicateCredIds = ConcordiumSdk.NodeApi.Types.DuplicateCredIds;
 using EncryptedAmountSelfTransfer = ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer;
@@ -49,6 +59,7 @@ using InvalidProof = ConcordiumSdk.NodeApi.Types.InvalidProof;
 using InvalidReceiveMethod = ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod;
 using InvalidTransferToPublicProof = ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof;
 using KeyIndexAlreadyInUse = ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse;
+using LPoolDelegationTarget = ConcordiumSdk.NodeApi.Types.LPoolDelegationTarget;
 using ModuleHashAlreadyExists = ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists;
 using ModuleNotWf = ConcordiumSdk.NodeApi.Types.ModuleNotWf;
 using NewEncryptedAmount = ConcordiumSdk.NodeApi.Types.NewEncryptedAmount;
@@ -639,6 +650,187 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var item = Assert.IsType<MicroCcdPerEuroChainUpdatePayload>(result.Payload);
         item.ExchangeRate.Numerator.Should().Be(1);
         item.ExchangeRate.Denominator.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(BakerPoolOpenStatus.OpenForAll, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.OpenForAll)]
+    [InlineData(BakerPoolOpenStatus.ClosedForNew, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.ClosedForNew)]
+    [InlineData(BakerPoolOpenStatus.ClosedForAll, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.ClosedForAll)]
+    public async Task TransactionEvents_BakerSetOpenStatus(BakerPoolOpenStatus inputStatus, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus expectedStatus) 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetOpenStatus(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetOpenStatus>();
+        result.BakerId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.OpenStatus.Should().Be(expectedStatus);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerSetTransactionFeeCommission() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetTransactionFeeCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetTransactionFeeCommission>();
+        result.BakerId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.TransactionFeeCommission.Should().Be(0.9m);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerSetMetadataURL() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetMetadataURL(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetMetadataURL>();
+        result.BakerId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.MetadataUrl.Should().Be("https://ccd.bakers.com/metadata");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerSetBakingRewardCommission() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetBakingRewardCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetBakingRewardCommission>();
+        result.BakerId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.BakingRewardCommission.Should().Be(0.9m);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_BakerSetFinalizationRewardCommission() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new BakerSetFinalizationRewardCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetFinalizationRewardCommission>();
+        result.BakerId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.FinalizationRewardCommission.Should().Be(0.9m);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationAdded() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationAdded(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationAdded>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationRemoved() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationRemoved(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationRemoved>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationStakeDecreased() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationStakeDecreased(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationStakeDecreased>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.NewStakedAmount.Should().Be(758111);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationSetRestakeEarnings() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationSetRestakeEarnings(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationSetRestakeEarnings>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.RestakeEarnings.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationSetDelegationTarget() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationSetDelegationTarget(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new LPoolDelegationTarget()))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationSetDelegationTarget>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.DelegationTarget.Should().BeOfType<Application.Api.GraphQL.LPoolDelegationTarget>();
     }
 
     [Fact]

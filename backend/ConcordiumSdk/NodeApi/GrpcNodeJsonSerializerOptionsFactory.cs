@@ -16,7 +16,7 @@ public static class GrpcNodeJsonSerializerOptionsFactory
             Converters =
             {
                 new UnixTimeSecondsConverter(),
-                new JsonStringEnumConverter(),
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
                 new SpecialEventJsonConverter(),
                 new BlockHashConverter(),
                 new AddressConverter(),
@@ -41,7 +41,8 @@ public static class GrpcNodeJsonSerializerOptionsFactory
                 new InvalidReceiveMethodConverter(),
                 new AmountTooLargeConverter(),
                 new AccountBakerPendingChangeConverter(),
-                new BlockSummaryConverter()
+                new BlockSummaryConverter(),
+                new DelegationTargetConverter(),
             }
         };
     }

@@ -1,9 +1,7 @@
 ﻿using System.Text.Json;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.NodeApi.Types.JsonConverters;
 using ConcordiumSdk.Types;
-using ConcordiumSdk.Types.JsonConverters;
 using FluentAssertions;
 using Tests.TestUtilities;
 
@@ -354,6 +352,176 @@ public class TransactionResultEventConverterTest
         var typed = Assert.IsType<TransferMemo>(deserialized);
         Assert.Equal(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265"), typed.Memo);
 
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
+    public void RoundTrip_BakerSetOpenStatus()
+    {
+        var json = "{\"bakerId\": 27,\"tag\": \"BakerSetOpenStatus\",\"account\": \"44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH\",\"openStatus\": \"openForAll\"}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerSetOpenStatus>(deserialized);
+        typed.BakerId.Should().Be(27);
+        typed.Account.AsString.Should().Be("44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH");
+        typed.OpenStatus.Should().Be(BakerPoolOpenStatus.OpenForAll);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
+    public void RoundTrip_BakerSetMetadataURL()
+    {
+        var json = @"{
+                        ""bakerId"": 27,
+                        ""tag"": ""BakerSetMetadataURL"",
+                        ""account"": ""44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH"",
+                        ""metadataURL"": ""Very good url""
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerSetMetadataURL>(deserialized);
+        typed.BakerId.Should().Be(27);
+        typed.Account.AsString.Should().Be("44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH");
+        typed.MetadataURL.Should().Be("Very good url");
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
+    public void RoundTrip_BakerSetTransactionFeeCommission()
+    {
+        var json = "{\"bakerId\": 27,\"tag\": \"BakerSetTransactionFeeCommission\",\"account\": \"44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH\",\"transactionFeeCommission\":0.05}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerSetTransactionFeeCommission>(deserialized);
+        typed.BakerId.Should().Be(27);
+        typed.Account.AsString.Should().Be("44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH");
+        typed.TransactionFeeCommission.Should().Be(0.05m);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
+    public void RoundTrip_BakerSetBakingRewardCommission()
+    {
+        var json = "{\"bakerId\": 27,\"bakingRewardCommission\": 0.05,\"tag\": \"BakerSetBakingRewardCommission\",\"account\": \"44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH\"}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerSetBakingRewardCommission>(deserialized);
+        typed.BakerId.Should().Be(27);
+        typed.Account.AsString.Should().Be("44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH");
+        typed.BakingRewardCommission.Should().Be(0.05m);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_BakerSetFinalizationRewardCommission()
+    {
+        var json = "{\"bakerId\": 27,\"tag\": \"BakerSetFinalizationRewardCommission\",\"finalizationRewardCommission\": 1.0,\"account\": \"44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH\"}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerSetFinalizationRewardCommission>(deserialized);
+        typed.BakerId.Should().Be(27);
+        typed.Account.AsString.Should().Be("44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH");
+        typed.FinalizationRewardCommission.Should().Be(1.0m);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_DelegationAdded()
+    {
+        var json = "{\"tag\": \"DelegationAdded\",\"account\": \"4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS\",\"delegatorId\": 28}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationAdded>(deserialized);
+        typed.DelegatorId.Should().Be(28);
+        typed.Account.AsString.Should().Be("4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS");
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_DelegationSetRestakeEarnings()
+    {
+        var json = "{\"restakeEarnings\": true,\"tag\": \"DelegationSetRestakeEarnings\",\"account\": \"4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS\",\"delegatorId\": 28}";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationSetRestakeEarnings>(deserialized);
+        typed.DelegatorId.Should().Be(28);
+        typed.Account.AsString.Should().Be("4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS");
+        typed.RestakeEarnings.Should().BeTrue();
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_DelegationSetDelegationTarget()
+    {
+        var json = @"{
+                        ""tag"": ""DelegationSetDelegationTarget"",
+                        ""delegationTarget"": {
+                            ""bakerId"": 27,
+                            ""delegateType"": ""Baker""
+                        },
+                        ""account"": ""4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS"",
+                        ""delegatorId"": 28
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationSetDelegationTarget>(deserialized);
+        typed.DelegatorId.Should().Be(28);
+        typed.Account.AsString.Should().Be("4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS");
+        typed.DelegationTarget.Should().Be(new BakerDelegationTarget(27));
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_DelegationRemoved()
+    {
+        var json = @"{
+                        ""tag"": ""DelegationRemoved"",
+                        ""account"": ""4nbn4c461GRJfJncG96FpUxbbxxUV1R8yu8XgzZRkt876PDD6m"",
+                        ""delegatorId"": 29
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationRemoved>(deserialized);
+        typed.DelegatorId.Should().Be(29);
+        typed.Account.AsString.Should().Be("4nbn4c461GRJfJncG96FpUxbbxxUV1R8yu8XgzZRkt876PDD6m");
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_DelegationStakeDecreased()
+    {
+        var json = @"{
+                        ""tag"": ""DelegationStakeDecreased"",
+                        ""account"": ""4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS"",
+                        ""newStake"": ""90000000"",
+                        ""delegatorId"": 28
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationStakeDecreased>(deserialized);
+        typed.DelegatorId.Should().Be(28);
+        typed.Account.AsString.Should().Be("4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS");
+        typed.NewStake.Should().Be(CcdAmount.FromMicroCcd(90000000));
+        
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
     }

@@ -57,6 +57,8 @@ public class TransactionTypeConverterTest
     [InlineData("\"transferWithMemo\"", AccountTransactionType.SimpleTransferWithMemo)]    
     [InlineData("\"encryptedAmountTransferWithMemo\"", AccountTransactionType.EncryptedTransferWithMemo)]    
     [InlineData("\"transferWithScheduleAndMemo\"", AccountTransactionType.TransferWithScheduleWithMemo)]    
+    [InlineData("\"configureBaker\"", AccountTransactionType.ConfigureBaker)]    
+    [InlineData("\"configureDelegation\"", AccountTransactionType.ConfigureDelegation)]    
     [InlineData("null", null)]    
     public void Deserialize_AccountTransaction(string contentsString, AccountTransactionType? expected)
     {

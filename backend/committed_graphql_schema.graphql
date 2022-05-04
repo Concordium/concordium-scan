@@ -247,6 +247,10 @@ type BakerAdded {
   aggregationKey: String!
 }
 
+type BakerDelegationTarget {
+  bakerId: UnsignedLong!
+}
+
 type BakerInCooldown {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -313,10 +317,40 @@ type BakerRewardEdge {
   node: BakerReward!
 }
 
+type BakerSetBakingRewardCommission {
+  bakerId: UnsignedLong!
+  accountAddress: AccountAddress!
+  bakingRewardCommission: Decimal!
+}
+
+type BakerSetFinalizationRewardCommission {
+  bakerId: UnsignedLong!
+  accountAddress: AccountAddress!
+  finalizationRewardCommission: Decimal!
+}
+
+type BakerSetMetadataURL {
+  bakerId: UnsignedLong!
+  accountAddress: AccountAddress!
+  metadataUrl: String!
+}
+
+type BakerSetOpenStatus {
+  bakerId: UnsignedLong!
+  accountAddress: AccountAddress!
+  openStatus: BakerPoolOpenStatus!
+}
+
 type BakerSetRestakeEarnings {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
   restakeEarnings: Boolean!
+}
+
+type BakerSetTransactionFeeCommission {
+  bakerId: UnsignedLong!
+  accountAddress: AccountAddress!
+  transactionFeeCommission: Decimal!
 }
 
 type BakerStakeDecreased {
@@ -673,6 +707,34 @@ type DecodedTransferMemo {
   decodeType: TextDecodeType!
 }
 
+type DelegationAdded {
+  delegatorId: UnsignedLong!
+  accountAddress: AccountAddress!
+}
+
+type DelegationRemoved {
+  delegatorId: UnsignedLong!
+  accountAddress: AccountAddress!
+}
+
+type DelegationSetDelegationTarget {
+  delegatorId: UnsignedLong!
+  accountAddress: AccountAddress!
+  delegationTarget: DelegationTarget!
+}
+
+type DelegationSetRestakeEarnings {
+  delegatorId: UnsignedLong!
+  accountAddress: AccountAddress!
+  restakeEarnings: Boolean!
+}
+
+type DelegationStakeDecreased {
+  delegatorId: UnsignedLong!
+  accountAddress: AccountAddress!
+  newStakedAmount: UnsignedLong!
+}
+
 type DuplicateAggregationKey {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   aggregationKey: String!
@@ -881,6 +943,10 @@ type InvalidTransferToPublicProof {
 
 type KeyIndexAlreadyInUse {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type LPoolDelegationTarget {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
 
 type Level1KeysChainUpdatePayload {
@@ -1291,7 +1357,9 @@ union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload
 
-union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued
+union DelegationTarget = LPoolDelegationTarget | BakerDelegationTarget
+
+union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
 
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 
@@ -1346,6 +1414,12 @@ enum AccountTransactionType {
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
   CONFIGURE_BAKER
   CONFIGURE_DELEGATION
+}
+
+enum BakerPoolOpenStatus {
+  OPEN_FOR_ALL
+  CLOSED_FOR_NEW
+  CLOSED_FOR_ALL
 }
 
 enum BakerRewardType {
