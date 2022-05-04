@@ -39,6 +39,8 @@ public class BakerImportHandler
 
     public async Task AddBakerTransactionRelations(TransactionPair[] transactions)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddBakerTransactionRelations));
+
         var items = transactions
             .Select(tx =>
             {

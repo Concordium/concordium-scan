@@ -147,6 +147,8 @@ public class BakerWriter
 
     public async Task AddBakerTransactionRelations(IEnumerable<BakerTransactionRelation> items)
     {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(AddBakerTransactionRelations));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         context.BakerTransactionRelations.AddRange(items);
         await context.SaveChangesAsync();
