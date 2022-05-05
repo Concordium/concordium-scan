@@ -20,7 +20,8 @@ export const useComponentState = <DataType>({
 	const componentState = ref<ComponentState>('idle')
 
 	const deriveState = () => {
-		if (fetching.value) {
+		// skip loading state when paginating or refetching
+		if (fetching.value && !data.value) {
 			componentState.value = 'loading'
 		} else if (error.value) {
 			componentState.value = 'error'
