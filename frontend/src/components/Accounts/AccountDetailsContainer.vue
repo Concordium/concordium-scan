@@ -1,39 +1,31 @@
 ﻿<template>
-	<div v-if="accountQueryResult.data">
-		<AccountDetailsContent
-			v-if="accountQueryResult.data.account"
-			:account="accountQueryResult.data.account"
-			:go-to-page-tx="goToPageTx"
-			:go-to-page-release-schedule="goToPageReleaseSchedule"
-			:go-to-page-account-statement="goToPageAccountStatement"
-		/>
-		<AccountDetailsContent
-			v-else
-			:account="accountQueryResult.data.accountByAddress"
-			:go-to-page-tx="goToPageTx"
-			:go-to-page-release-schedule="goToPageReleaseSchedule"
-			:go-to-page-account-statement="goToPageAccountStatement"
-		/>
-	</div>
-	<BWCubeLogoIcon
-		v-else
-		class="w-10 h-10 animate-ping absolute top-1/3 right-1/2"
+	<Loader v-if="componentState === 'loading'" />
+	<NotFound v-else-if="componentState === 'empty'" />
+	<Error v-else-if="componentState === 'error'" :error="error" />
+
+	<AccountDetailsContent
+		v-else-if="componentState === 'success' && data"
+		:account="data"
+		:go-to-page-tx="goToPageTx"
+		:go-to-page-release-schedule="goToPageReleaseSchedule"
+		:go-to-page-account-statement="goToPageAccountStatement"
 	/>
 </template>
 
 <script lang="ts" setup>
 import type { Ref } from 'vue'
+import { useAccountQuery } from '~/queries/useAccountQuery'
+import Error from '~/components/molecules/Error.vue'
+import Loader from '~/components/molecules/Loader.vue'
+import NotFound from '~/components/molecules/NotFound.vue'
 import AccountDetailsContent from '~/components/Accounts/AccountDetailsContent.vue'
-import {
-	useAccountQuery,
-	useAccountQueryByAddress,
-} from '~/queries/useAccountQuery'
-import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
+
 type Props = {
 	id?: string
 	address?: string
 }
+
 const props = defineProps<Props>()
 const refId = toRef(props, 'id')
 const refAddress = toRef(props, 'address')
@@ -61,7 +53,7 @@ const {
 	goToPage: goToPageAccountStatement,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
-const paginationVars = {
+const transactionVariables = {
 	firstTx,
 	lastTx,
 	afterTx,
@@ -76,15 +68,9 @@ const paginationVars = {
 	beforeAccountStatement,
 }
 
-const accountQueryResult = ref()
-if (props.id)
-	accountQueryResult.value = useAccountQuery(
-		refId as Ref<string>,
-		paginationVars
-	)
-else if (props.address)
-	accountQueryResult.value = useAccountQueryByAddress(
-		refAddress as Ref<string>,
-		paginationVars
-	)
+const { data, error, componentState } = useAccountQuery({
+	id: refId as Ref<string>,
+	address: refAddress as Ref<string>,
+	transactionVariables,
+})
 </script>

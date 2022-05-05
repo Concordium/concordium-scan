@@ -1,7 +1,9 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
+import { useComponentState } from '~/composables/useComponentState'
 import type { Account } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
+
 type AccountQueryVariables = {
 	afterTx: QueryVariables['after']
 	beforeTx: QueryVariables['before']
@@ -16,6 +18,15 @@ type AccountQueryVariables = {
 	firstAccountStatement: QueryVariables['first']
 	lastAccountStatement: QueryVariables['last']
 }
+
+type AccountByIdResponse = {
+	account: Account
+}
+
+type AccountByAddressResponse = {
+	accountByAddress: Account
+}
+
 const AccountQueryFragment = `
 accountStatement(
 				after: $afterAccountStatement
@@ -150,7 +161,7 @@ createdAt
 __typename
 `
 
-const AccountQuery = gql<Account>`
+const AccountQuery = gql<AccountByIdResponse>`
 	query (
 		$id: ID!
 		$afterTx: String
@@ -172,7 +183,7 @@ const AccountQuery = gql<Account>`
 	}
 `
 
-const AccountQueryByAddress = gql<Account>`
+const AccountQueryByAddress = gql<AccountByAddressResponse>`
 	query (
 		$address: String!
 		$afterTx: String
@@ -194,33 +205,58 @@ const AccountQueryByAddress = gql<Account>`
 	}
 `
 
-export const useAccountQuery = (
-	id: Ref<string>,
-	transactionVariables?: AccountQueryVariables
-) => {
-	const { data } = useQuery({
-		query: AccountQuery,
-		requestPolicy: 'cache-first',
-		variables: {
-			id,
-			...transactionVariables,
-		},
-	})
+const getData = (
+	responseData: AccountByIdResponse | AccountByAddressResponse | undefined
+): Account | undefined => {
+	if (!responseData) return undefined
 
-	return { data }
+	return 'account' in responseData
+		? responseData.account
+		: responseData.accountByAddress
 }
-export const useAccountQueryByAddress = (
-	address: Ref<string>,
+
+type QueryParams = (
+	| {
+			id: Ref<string>
+			address?: Ref<string>
+	  }
+	| {
+			address: Ref<string>
+			id?: Ref<string>
+	  }
+) & {
 	transactionVariables?: AccountQueryVariables
-) => {
-	const { data } = useQuery({
-		query: AccountQueryByAddress,
+}
+
+export const useAccountQuery = ({
+	id,
+	address,
+	transactionVariables,
+}: QueryParams) => {
+	const query = id?.value ? AccountQuery : AccountQueryByAddress
+	const identifier = id?.value ? { id: id.value } : { address: address?.value }
+
+	const { data, fetching, error } = useQuery({
+		query,
 		requestPolicy: 'cache-first',
 		variables: {
-			address,
+			...identifier,
 			...transactionVariables,
 		},
 	})
 
-	return { data }
+	const dataRef = ref(getData(data.value))
+
+	const componentState = useComponentState<Account | undefined>({
+		fetching,
+		error,
+		data: dataRef,
+	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = getData(value))
+	)
+
+	return { data: dataRef, error, componentState }
 }

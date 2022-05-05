@@ -1,4 +1,5 @@
 import { useQuery, gql } from '@urql/vue'
+import { useComponentState } from '~/composables/useComponentState'
 import type { Baker } from '~/types/generated'
 
 type BakerResponse = {
@@ -42,7 +43,7 @@ const BakerQuery = gql<BakerResponse>`
 `
 
 export const useBakerQuery = (bakerId: number) => {
-	const { data } = useQuery({
+	const { data, fetching, error } = useQuery({
 		query: BakerQuery,
 		requestPolicy: 'cache-first',
 		variables: {
@@ -50,5 +51,11 @@ export const useBakerQuery = (bakerId: number) => {
 		},
 	})
 
-	return { data }
+	const componentState = useComponentState<BakerResponse | undefined>({
+		fetching,
+		error,
+		data,
+	})
+
+	return { data, error, componentState }
 }

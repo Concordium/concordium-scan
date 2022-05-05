@@ -1,17 +1,20 @@
 <template>
-	<div v-if="data?.bakerByBakerId.id">
-		<BakerDetailsContent :baker="data.bakerByBakerId" />
-	</div>
-	<BWCubeLogoIcon
-		v-else
-		class="w-10 h-10 animate-ping absolute top-1/3 right-1/2"
+	<Loader v-if="componentState === 'loading'" />
+	<NotFound v-else-if="componentState === 'empty'" />
+	<Error v-else-if="componentState === 'error'" :error="error" />
+
+	<BakerDetailsContent
+		v-else-if="componentState === 'success' && data?.bakerByBakerId.id"
+		:baker="data.bakerByBakerId"
 	/>
 </template>
 
 <script lang="ts" setup>
 import BakerDetailsContent from './BakerDetailsContent.vue'
 import { useBakerQuery } from '~/queries/useBakerQuery'
-import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
+import Error from '~/components/molecules/Error.vue'
+import Loader from '~/components/molecules/Loader.vue'
+import NotFound from '~/components/molecules/NotFound.vue'
 
 type Props = {
 	bakerId: number
@@ -19,5 +22,5 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const { data } = useBakerQuery(props.bakerId)
+const { data, error, componentState } = useBakerQuery(props.bakerId)
 </script>
