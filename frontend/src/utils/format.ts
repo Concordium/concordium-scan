@@ -95,13 +95,16 @@ export const convertTimestampToRelative = (
  * convertMicroCcdToCcd(1337);
  */
 export const convertMicroCcdToCcd = (
-	amount = 0,
+	amount: number,
 	hideDecimals = false
 ): string =>
-	new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: hideDecimals ? 0 : 6,
-		maximumFractionDigits: hideDecimals ? 0 : 6,
-	}).format(amount / 1_000_000)
+	// micro CCD shouldn't be fractional
+	Number.isInteger(amount)
+		? new Intl.NumberFormat(undefined, {
+				minimumFractionDigits: hideDecimals ? 0 : 6,
+				maximumFractionDigits: hideDecimals ? 0 : 6,
+		  }).format(amount / 1_000_000)
+		: '-'
 
 /**
  * Formats a number to browser locale (with thousand separators and decimal)
@@ -112,8 +115,8 @@ export const convertMicroCcdToCcd = (
  * // returns 1,337.42
  * convertMicroCcdToCcd(1337.42);
  */
-export const formatNumber = (num = 0): string =>
-	new Intl.NumberFormat().format(num)
+export const formatNumber = (num: number): string =>
+	Number.isFinite(num) ? new Intl.NumberFormat().format(num) : '-'
 
 /**
  * Calculates and formats weight of total in percentage

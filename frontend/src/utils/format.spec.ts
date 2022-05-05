@@ -71,8 +71,14 @@ describe('format', () => {
 			expect(convertMicroCcdToCcd(1_337_000)).toBe('1.337000')
 		})
 
-		it('should default to 0 if no number is provided', () => {
-			expect(convertMicroCcdToCcd(undefined)).toBe('0.000000')
+		it('should default to a dash if no integer is provided', () => {
+			// micro CCD shouldn't be fractional
+			expect(convertMicroCcdToCcd(1_337.42)).toBe('-')
+			expect(convertMicroCcdToCcd(NaN)).toBe('-')
+			// @ts-expect-error : test for fallback
+			expect(convertMicroCcdToCcd(null)).toBe('-')
+			// @ts-expect-error : test for fallback
+			expect(convertMicroCcdToCcd(undefined)).toBe('-')
 		})
 
 		it('can convert a microCCD into CCD rounded to nearest full CCD', () => {
@@ -84,6 +90,18 @@ describe('format', () => {
 	describe('formatNumber', () => {
 		it('should format a number to use thousand seperators', () => {
 			expect(formatNumber(1_337_666.42)).toBe('1,337,666.42')
+		})
+
+		it('should default to a dash if no number is provided', () => {
+			expect(formatNumber(NaN)).toBe('-')
+			// @ts-expect-error : test for fallback
+			expect(formatNumber(null)).toBe('-')
+			// @ts-expect-error : test for fallback
+			expect(formatNumber(undefined)).toBe('-')
+		})
+
+		it('should format the number 0', () => {
+			expect(formatNumber(0)).toBe('0')
 		})
 	})
 

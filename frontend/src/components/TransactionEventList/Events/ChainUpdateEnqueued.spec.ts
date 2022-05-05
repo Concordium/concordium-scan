@@ -92,7 +92,7 @@ describe('ChainUpdateEnqueued', () => {
 				...defaultProps.event,
 				payload: {
 					__typename: 'BakerStakeThresholdChainUpdatePayload',
-					amount: 1337421337.42,
+					amount: 1337421337,
 				},
 			} as ChainUpdateEnqueuedType,
 		}
