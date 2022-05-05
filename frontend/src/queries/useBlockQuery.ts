@@ -2,6 +2,7 @@ import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
 import type { Block } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
+import { useComponentState } from '~/composables/useComponentState'
 
 type BlockResponse = {
 	block: Block
@@ -176,33 +177,57 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 		}
 	}
 `
-export const useBlockQueryByHash = (
-	hash: Ref<string>,
+
+type QueryParams = (
+	| {
+			id: Ref<string>
+			hash?: Ref<string>
+	  }
+	| {
+			hash: Ref<string>
+			id?: Ref<string>
+	  }
+) & {
 	eventsVariables?: BlockQueryVariables
-) => {
-	const { data } = useQuery({
-		query: BlockQueryByHash,
-		requestPolicy: 'cache-first',
-		variables: {
-			hash,
-			...eventsVariables,
-		},
-	})
-	return { data }
 }
 
-export const useBlockQuery = (
-	id: Ref<string>,
-	eventsVariables?: BlockQueryVariables
-) => {
-	const { data } = useQuery({
-		query: BlockQuery,
+export const useBlockQuery = ({ id, hash, eventsVariables }: QueryParams) => {
+	const query = id?.value ? BlockQuery : BlockQueryByHash
+	const identifier = id?.value ? { id: id.value } : { hash: hash?.value }
+
+	const { data, fetching, error } = useQuery<
+		BlockResponse | BlockByBlockHashResponse | undefined
+	>({
+		query,
 		requestPolicy: 'cache-first',
 		variables: {
-			id,
+			...identifier,
 			...eventsVariables,
 		},
 	})
 
-	return { data }
+	const getData = (
+		responseData: BlockResponse | BlockByBlockHashResponse | undefined
+	): Block | undefined => {
+		if (!responseData) return undefined
+
+		return 'block' in responseData
+			? responseData.block
+			: responseData.blockByBlockHash
+	}
+
+	const dataRef = ref(getData(data.value))
+
+	const componentState = useComponentState<Block | undefined>({
+		fetching,
+		error,
+		data: dataRef,
+	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = getData(value))
+	)
+
+	return { data: dataRef, error, componentState }
 }
