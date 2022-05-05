@@ -1,24 +1,39 @@
 ﻿using Application.Api.GraphQL.Bakers;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.EfCore;
 
 [Collection("Postgres Collection")]
 public class BakerTest : IClassFixture<DatabaseFixture>
 {
+    private readonly ITestOutputHelper _outputHelper;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private DatabaseFixture _dbFixture;
 
-    public BakerTest(DatabaseFixture dbFixture)
+    public BakerTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
+        _dbFixture = dbFixture;
+        _outputHelper = outputHelper;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_bakers");
+        
+        RefreshBakerStatisticsView();
+    }
+
+    private void RefreshBakerStatisticsView()
+    {
+        using var connection = _dbFixture.GetOpenConnection();
+        connection.Execute("refresh materialized view graphql_baker_statistics");
     }
 
     [Theory]
@@ -61,7 +76,43 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         var result = dbContext.Bakers.ToArray();
         result.Length.Should().Be(1);
         result[0].Id.Should().Be(0);
-        result[0].State.Should().BeOfType<ActiveBakerState>().Which.PendingChange.Should().BeNull();
+        var activeBakerState = result[0].State.Should().BeOfType<ActiveBakerState>().Subject;
+        activeBakerState.PendingChange.Should().BeNull();
+        activeBakerState.Owner.Should().BeSameAs(result[0]);
+    }
+    
+    [Fact]
+    public async Task WriteAndReadBaker_StatisticsNullWhenViewNotRefreshedAfterAdd()
+    {
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new ActiveBakerStateBuilder().WithPendingChange(null).Build())
+            .Build();
+
+        await AddBaker(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContextWithLog(_outputHelper.WriteLine);
+        var conn = dbContext.Database.GetDbConnection();
+        var result = dbContext.Bakers.Single();
+        result.Statistics.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WriteAndReadBaker_StatisticsNotNullWhenViewRefreshedAfterAdd()
+    {
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new ActiveBakerStateBuilder().WithPendingChange(null).Build())
+            .Build();
+
+        await AddBaker(entity);
+
+        RefreshBakerStatisticsView();
+        
+        await using var dbContext = _dbContextFactory.CreateDbContextWithLog(_outputHelper.WriteLine);
+        var conn = dbContext.Database.GetDbConnection();
+        var result = dbContext.Bakers.Single();
+        result.Statistics.Should().NotBeNull();
     }
 
     [Fact]

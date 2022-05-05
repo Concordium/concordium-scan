@@ -174,6 +174,10 @@ type AccountsMetricsBuckets {
 }
 
 type ActiveBakerState {
+  "Stake of the baker as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
+  stakePercentage: Decimal
+  "Ranking of the baker by staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
+  rankingByStake: Ranking
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
   pendingChange: PendingBakerChange
@@ -1126,6 +1130,11 @@ type Query {
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
   rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics!
+}
+
+type Ranking {
+  rank: Int!
+  total: Int!
 }
 
 type Rejected {

@@ -9,6 +9,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Bakers;
 
+public record BakerStatisticsRow(
+    long BakerId,
+    decimal? StakePercentage,
+    int? RankByStake,
+    int ActiveBakerCount);
+
 public class Baker
 {
     [ID]
@@ -22,6 +28,13 @@ public class Baker
         set;
     }
 
+    /// <summary>
+    /// This property is there for loading the statistics row from the database. The data
+    /// is exposed elsewhere in the baker model to create a better and more meaningful model.
+    /// </summary>
+    [GraphQLIgnore] 
+    public BakerStatisticsRow? Statistics { get; private set; }
+    
     /// <summary>
     /// DONT USE THIS PROPERTY!
     /// 

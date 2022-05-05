@@ -39,8 +39,8 @@ namespace Application.Database
                 if (!result.Successful)
                 {
                     if (result.Error != null)
-                        throw new Exception($"Error executing database migration scripts (problematic script: {result.ErrorScript})", result.Error);
-                    throw new Exception($"Error executing database migration scripts (problematic script: {result.ErrorScript})");
+                        throw new Exception($"Error executing database migration scripts (problematic script: {result.ErrorScript.Name})", result.Error);
+                    throw new Exception($"Error executing database migration scripts (problematic script: {result.ErrorScript.Name})");
                 }
             }
             else
