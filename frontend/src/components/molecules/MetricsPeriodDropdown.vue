@@ -45,6 +45,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
+import { toRef } from 'vue'
 import { MetricsPeriod } from '~/types/generated'
 import FunnelIcon from '~/components/icons/FunnelIcon.vue'
 const emit = defineEmits(['update:modelValue'])

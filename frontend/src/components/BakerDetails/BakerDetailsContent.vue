@@ -86,9 +86,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
+import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Alert from '~/components/molecules/Alert.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'

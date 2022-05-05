@@ -1,3 +1,4 @@
+import { h } from 'vue'
 import BakerDetailsContent from './BakerDetailsContent.vue'
 import { setupComponent, screen, within } from '~/utils/testing'
 
@@ -18,6 +19,21 @@ jest.mock('~/composables/useDateNow', () => ({
 jest.mock('vue-router', () => ({
 	useRouter: () => ({
 		push: jest.fn(),
+	}),
+}))
+
+// mocked as some of its imports causes problems for Jest
+jest.mock(
+	'~/components/molecules/ChartCards/RewardMetricsForBakerChart',
+	() => ({
+		render: () => h('div'),
+	})
+)
+
+jest.mock('~/queries/useRewardMetricsForBakerQuery', () => ({
+	useRewardMetricsForBakerQueryQuery: () => ({
+		fetching: false,
+		data: undefined,
 	}),
 }))
 
