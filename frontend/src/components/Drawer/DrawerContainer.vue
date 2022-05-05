@@ -3,6 +3,7 @@
 		<transition name="drawer-mask">
 			<div
 				v-if="currentDrawerCount > 0"
+				class="h-screen w-screen fixed top-0 left-0 z-20"
 				:class="$style.drawerMask"
 				@click="() => softReset()"
 			></div>
@@ -11,6 +12,7 @@
 			<div
 				v-for="(drawerItem, index) in getDisplayItems()"
 				:key="index"
+				class="flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden"
 				:class="[
 					$style.drawer,
 					$style.fixedAndMaxHeight,
@@ -18,7 +20,6 @@
 					currentDrawerCount - 1 === index ? $style.drawerItemActive : '',
 					index < currentDrawerCount - 2 ? 'hidden md:flex' : 'flex',
 				]"
-				class="relative"
 			>
 				<Drawer :is-open="currentDrawerCount > -1">
 					<template #content>
@@ -77,19 +78,16 @@ watch(currentTopItem, () => {
 </script>
 <style module>
 .drawerMask {
-	@apply h-screen w-screen fixed top-0 left-0 z-20;
 	background: hsla(247, 40%, 4%, 0.5);
 	backdrop-filter: blur(2px);
 }
 .drawer {
-	@apply flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden;
+	max-width: 960px;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
 	transition: 0.3s ease-in-out;
-	-webkit-transition: 0.3s ease-in-out;
 }
-.drawerItemActive {
-}
+
 .fixedAndMaxHeight {
 	max-height: 100vh;
 	position: fixed;
