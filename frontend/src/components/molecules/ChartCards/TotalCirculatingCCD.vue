@@ -1,5 +1,5 @@
 <template>
-	<KPICardContent>
+	<KPICardContent v-if="Number.isInteger(lastTotalMicroCcdReleased)">
 		<template #title>Total circulating supply of CCD</template>
 		<template #icon>Ͼ</template>
 		<template #value>
