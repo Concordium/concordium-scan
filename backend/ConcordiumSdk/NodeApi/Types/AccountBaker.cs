@@ -8,4 +8,5 @@ public class AccountBaker
     public AccountBakerPendingChange PendingChange { get; init; }
     public bool RestakeEarnings { get; init; }
     public CcdAmount StakedAmount { get; init; }
+    public BakerPoolInfo BakerPoolInfo  { get; init; }
 }
