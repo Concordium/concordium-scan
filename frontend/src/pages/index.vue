@@ -266,32 +266,16 @@ onMounted(() => {
 		window.onblur = () => {
 			if (loopInterval) clearInterval(loopInterval)
 			pauseSubscription()
-
-			blocks.value = []
-			transactions.value = []
-			blocksQueue.value = []
-			transactionsQueue.value = []
 		}
 		window.onfocus = () => {
-			const { fetching: newBlocksFetching } = blockRefetch({
+			blockRefetch({
 				requestPolicy: 'network-only',
 			})
-			const { fetching: newTransactionsFetching } = transactionsRefetch({
+			transactionsRefetch({
 				requestPolicy: 'network-only',
 			})
-			const counter = ref(0)
-			watch(newBlocksFetching, () => {
-				counter.value++
-			})
-			watch(newTransactionsFetching, () => {
-				counter.value++
-			})
-			watch(counter, () => {
-				if (counter.value === 2) {
-					resumeSubscription()
-					drawFunc()
-				}
-			})
+			resumeSubscription()
+			drawFunc()
 		}
 	}
 })
@@ -303,6 +287,14 @@ const { data: transactionMetricsData, fetching: transactionMetricsFetching } =
 const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	useBlockMetricsQuery(selectedMetricsPeriod)
 
+watch(blockData, () => {
+	if (blockData && blockData.value)
+		blocks.value = blockData.value.blocks.nodes.slice(0, pageSize)
+})
+watch(txData, () => {
+	if (txData && txData.value)
+		transactions.value = txData.value.transactions.nodes.slice(0, pageSize)
+})
 const loadInitialValuesIfEmpty = () => {
 	if (
 		blocks.value.length === 0 &&
