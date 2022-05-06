@@ -30,7 +30,7 @@ public class GrpcNodeClientTest : IDisposable
             AuthenticationToken = "test-ccnode-auth-token"
             
             // PROTO-NET:
-            // Address = "http://13.79.164.247:10003",
+            // Address = "http://20.223.186.133:10003",
             // AuthenticationToken = "rpcadmin"
 
         };
