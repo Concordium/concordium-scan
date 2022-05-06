@@ -1,5 +1,9 @@
 <template>
-	<th :class="$style.th" align="left">
+	<th
+		class="px-6 py-3 font-normal whitespace-nowrap relative z-10"
+		:class="$style.th"
+		align="left"
+	>
 		<slot />
 	</th>
 </template>
@@ -15,15 +19,18 @@ export default defineComponent({
 
 <style module>
 .th {
-	@apply px-6 py-3 font-normal whitespace-nowrap relative z-10;
 	background-color: var(--color-thead-bg);
 }
 
+/*
+	1. Using first:/after: classes on the element seems not to work as desired
+	2. Using @apply will prevent tests from running
+*/
 .th:first-child {
-	@apply rounded-l-lg;
+	border-radius: 8px 0 0 8px;
 }
 
 .th:last-child {
-	@apply rounded-r-lg;
+	border-radius: 0 8px 8px 0;
 }
 </style>

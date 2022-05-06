@@ -30,6 +30,10 @@ jest.mock(
 	})
 )
 
+jest.mock('~/components/molecules/Loader', () => ({
+	render: () => h('div'),
+}))
+
 jest.mock('~/queries/useRewardMetricsForBakerQuery', () => ({
 	useRewardMetricsForBakerQueryQuery: () => ({
 		fetching: false,
