@@ -13,7 +13,7 @@
 				aria-hidden
 			/>
 		</button>
-		<article v-show="isOpen" :id="ID" class="py-6" :aria-hidden="!isOpen">
+		<article v-if="isOpen" :id="ID" class="py-6" :aria-hidden="!isOpen">
 			<slot name="content" />
 		</article>
 	</aside>

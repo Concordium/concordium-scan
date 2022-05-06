@@ -21,7 +21,7 @@ describe('Accordion', () => {
 		const slots = { content: CONTENT }
 		render({ slots })
 
-		expect(screen.getByText(CONTENT)).not.toBeVisible()
+		expect(screen.queryByText(CONTENT)).not.toBeInTheDocument()
 
 		fireEvent.click(screen.getByText(TITLE))
 

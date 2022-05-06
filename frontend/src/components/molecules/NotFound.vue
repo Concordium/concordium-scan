@@ -1,8 +1,10 @@
 <template>
-	<DrawerContent class="flex flex-col items-center pt-20">
+	<DrawerContent class="flex flex-col items-center pt-8">
 		<InfoIcon class="h-12 w-12 mb-6 text-theme-info" />
-		<h1 class="text-xl">Not found</h1>
-		<h3 class="text-theme-faded">Please check the address and try again.</h3>
+		<h1 class="text-xl"><slot>Not found</slot></h1>
+		<p class="text-theme-faded">
+			<slot name="secondary">Please check the address and try again</slot>
+		</p>
 	</DrawerContent>
 </template>
 

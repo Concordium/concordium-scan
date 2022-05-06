@@ -81,6 +81,13 @@
 					/>
 				</template>
 			</Accordion>
+
+			<Accordion>
+				Related transactions
+				<template #content>
+					<BakerDetailsTransactions :baker-id="baker.bakerId" />
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -88,6 +95,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
+import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'

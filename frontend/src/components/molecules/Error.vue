@@ -1,5 +1,5 @@
 <template>
-	<DrawerContent class="flex flex-col items-center pt-20">
+	<DrawerContent class="flex flex-col items-center pt-8">
 		<WarningIcon class="h-12 w-12 mb-6 text-theme-error" />
 		<h1 class="text-xl">Something went wrong</h1>
 		<h3 class="text-theme-faded">We are very sorry. Please try again later.</h3>

@@ -1,7 +1,7 @@
 ﻿<template>
 	<Loader v-if="componentState === 'loading'" />
-	<NotFound v-else-if="componentState === 'empty'" />
-	<Error v-else-if="componentState === 'error'" :error="error" />
+	<NotFound v-else-if="componentState === 'empty'" class="pt-20" />
+	<Error v-else-if="componentState === 'error'" :error="error" class="pt-20" />
 
 	<TransactionDetailsContent
 		v-else-if="componentState === 'success' && data"
