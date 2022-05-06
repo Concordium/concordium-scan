@@ -1,6 +1,4 @@
-﻿drop materialized view graphql_baker_statistics;
-
-create materialized view graphql_baker_statistics as
+﻿create materialized view graphql_baker_statistics as
 select id        as baker_id,
        (case active_staked_amount is not null
             when true then row_number() over (order by active_staked_amount desc nulls last)::int
