@@ -239,25 +239,62 @@ const subscriptionHandler = (_prevData: void, newData: Subscription) => {
 
 const { pause: pauseSubscription, resume: resumeSubscription } =
 	useBlockSubscription(subscriptionHandler)
-onMounted(() => {
-	resumeSubscription()
-	drawFunc()
-})
+
 onUnmounted(() => {
-	pauseSubscription()
 	if (loopInterval) clearInterval(loopInterval)
 	blocks.value = []
 	transactions.value = []
 	blocksQueue.value = []
 	transactionsQueue.value = []
+	window.onblur = null
+	window.onfocus = null
 })
 const blocks = ref<Block[]>([])
 const transactions = ref<Transaction[]>([])
 const blocksQueue = ref<Block[]>([])
 const transactionsQueue = ref<Transaction[]>([])
-const { data: blockData } = useBlockListQuery({ first: pageSize })
-const { data: txData } = useTransactionsListQuery({ first: pageSize })
+const { data: blockData, executeQuery: blockRefetch } = useBlockListQuery({
+	first: pageSize,
+})
+const { data: txData, executeQuery: transactionsRefetch } =
+	useTransactionsListQuery({ first: pageSize })
 
+onMounted(() => {
+	resumeSubscription()
+	drawFunc()
+	if (window) {
+		window.onblur = () => {
+			if (loopInterval) clearInterval(loopInterval)
+			pauseSubscription()
+
+			blocks.value = []
+			transactions.value = []
+			blocksQueue.value = []
+			transactionsQueue.value = []
+		}
+		window.onfocus = () => {
+			const { fetching: newBlocksFetching } = blockRefetch({
+				requestPolicy: 'network-only',
+			})
+			const { fetching: newTransactionsFetching } = transactionsRefetch({
+				requestPolicy: 'network-only',
+			})
+			const counter = ref(0)
+			watch(newBlocksFetching, () => {
+				counter.value++
+			})
+			watch(newTransactionsFetching, () => {
+				counter.value++
+			})
+			watch(counter, () => {
+				if (counter.value === 2) {
+					resumeSubscription()
+					drawFunc()
+				}
+			})
+		}
+	}
+})
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const { data: accountMetricsData, fetching: accountMetricsFetching } =
 	useAccountsMetricsQuery(selectedMetricsPeriod)
@@ -265,6 +302,7 @@ const { data: transactionMetricsData, fetching: transactionMetricsFetching } =
 	useTransactionMetricsQuery(selectedMetricsPeriod)
 const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	useBlockMetricsQuery(selectedMetricsPeriod)
+
 const loadInitialValuesIfEmpty = () => {
 	if (
 		blocks.value.length === 0 &&
