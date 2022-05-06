@@ -122,8 +122,8 @@ public class BlockAccrueRewardSpecialEvent : SpecialEvent
     [GraphQLDescription("The amount awarded to the baker.")]
     public ulong BakerReward { get; init; }
     
-    [GraphQLDescription("The amount awarded to the L-Pool.")]
-    public ulong LPoolReward { get; init; }
+    [GraphQLDescription("The amount awarded to the passive delegators.")]
+    public ulong PassiveReward { get; init; }
     
     [GraphQLDescription("The amount awarded to the foundation.")]
     public ulong FoundationCharge { get; init; }
@@ -140,7 +140,7 @@ public class PaydayFoundationRewardSpecialEvent : SpecialEvent
 
 public class PaydayPoolRewardSpecialEvent : SpecialEvent
 {
-    [GraphQLDescription("The pool owner (L-Pool when null).")]
+    [GraphQLDescription("The pool owner (passive delegators when null).")]
     public ulong? PoolOwner { get; init; }
     
     [GraphQLDescription("Accrued transaction fees for pool.")]

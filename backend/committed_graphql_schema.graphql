@@ -493,8 +493,8 @@ type BlockAccrueRewardSpecialEvent {
   newGasAccount: UnsignedLong!
   "The amount awarded to the baker."
   bakerReward: UnsignedLong!
-  "The amount awarded to the L-Pool."
-  lPoolReward: UnsignedLong!
+  "The amount awarded to the passive delegators."
+  passiveReward: UnsignedLong!
   "The amount awarded to the foundation."
   foundationCharge: UnsignedLong!
   "The baker of the block, who will receive the award."
@@ -624,9 +624,9 @@ type ChainParametersV1 implements ChainParameters {
   rewardPeriodLength: UnsignedLong!
   mintPerPayday: Decimal!
   rewardParameters: RewardParametersV1!
-  finalizationCommissionLPool: Decimal!
-  bakingCommissionLPool: Decimal!
-  transactionCommissionLPool: Decimal!
+  passiveFinalizationCommission: Decimal!
+  passiveBakingCommission: Decimal!
+  passiveTransactionCommission: Decimal!
   finalizationCommissionRange: CommissionRange!
   bakingCommissionRange: CommissionRange!
   transactionCommissionRange: CommissionRange!
@@ -949,10 +949,6 @@ type KeyIndexAlreadyInUse {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
-type LPoolDelegationTarget {
-  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
-}
-
 type Level1KeysChainUpdatePayload {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema since graphql does not allow types without any fields")
 }
@@ -1064,6 +1060,10 @@ type PageInfo {
   endCursor: String
 }
 
+type PassiveDelegationTarget {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
 type PaydayAccountRewardSpecialEvent {
   "The account that got rewarded."
   account: AccountAddress!
@@ -1083,7 +1083,7 @@ type PaydayFoundationRewardSpecialEvent {
 }
 
 type PaydayPoolRewardSpecialEvent {
-  "The pool owner (L-Pool when null)."
+  "The pool owner (passive delegators when null)."
   poolOwner: UnsignedLong
   "Accrued transaction fees for pool."
   transactionFees: UnsignedLong!
@@ -1366,7 +1366,7 @@ union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload
 
-union DelegationTarget = LPoolDelegationTarget | BakerDelegationTarget
+union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
 union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
 

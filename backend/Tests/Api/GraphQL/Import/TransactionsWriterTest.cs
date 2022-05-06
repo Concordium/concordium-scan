@@ -59,7 +59,6 @@ using InvalidProof = ConcordiumSdk.NodeApi.Types.InvalidProof;
 using InvalidReceiveMethod = ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod;
 using InvalidTransferToPublicProof = ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof;
 using KeyIndexAlreadyInUse = ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse;
-using LPoolDelegationTarget = ConcordiumSdk.NodeApi.Types.LPoolDelegationTarget;
 using ModuleHashAlreadyExists = ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists;
 using ModuleNotWf = ConcordiumSdk.NodeApi.Types.ModuleNotWf;
 using NewEncryptedAmount = ConcordiumSdk.NodeApi.Types.NewEncryptedAmount;
@@ -72,6 +71,7 @@ using NotAllowedMultipleCredentials = ConcordiumSdk.NodeApi.Types.NotAllowedMult
 using NotAllowedToHandleEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted;
 using NotAllowedToReceiveEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted;
 using OutOfEnergy = ConcordiumSdk.NodeApi.Types.OutOfEnergy;
+using PassiveDelegationTarget = ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget;
 using RejectedInit = ConcordiumSdk.NodeApi.Types.RejectedInit;
 using RejectedReceive = ConcordiumSdk.NodeApi.Types.RejectedReceive;
 using RemoveFirstCredential = ConcordiumSdk.NodeApi.Types.RemoveFirstCredential;
@@ -821,7 +821,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationSetDelegationTarget(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new LPoolDelegationTarget()))
+                    .WithEvents(new DelegationSetDelegationTarget(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
                     .Build())
                 .Build());
         
@@ -830,7 +830,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationSetDelegationTarget>();
         result.DelegatorId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.DelegationTarget.Should().BeOfType<Application.Api.GraphQL.LPoolDelegationTarget>();
+        result.DelegationTarget.Should().BeOfType<Application.Api.GraphQL.PassiveDelegationTarget>();
     }
 
     [Fact]

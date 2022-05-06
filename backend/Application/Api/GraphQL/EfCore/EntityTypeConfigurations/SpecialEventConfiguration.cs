@@ -91,7 +91,7 @@ public class SpecialEventConfiguration :
         builder.Property(x => x.OldGasAccount).HasColumnName("old_gas_account");
         builder.Property(x => x.NewGasAccount).HasColumnName("new_gas_account");
         builder.Property(x => x.BakerReward).HasColumnName("baker_reward");
-        builder.Property(x => x.LPoolReward).HasColumnName("l_pool_reward");
+        builder.Property(x => x.PassiveReward).HasColumnName("passive_reward");
         builder.Property(x => x.FoundationCharge).HasColumnName("foundation_charge");
         builder.Property(x => x.BakerId).HasColumnName("baker_id");
     }

@@ -47,19 +47,19 @@ public class BlockSummaryConverterTest
                     ""numerator"": 8570751029767503872
                  },
                  ""rewardPeriodLength"": 4,
-                 ""transactionCommissionLPool"": 0.1,
+                 ""passiveTransactionCommission"": 0.1,
                  ""leverageBound"": {
                     ""denominator"": 1,
                     ""numerator"": 3
                  },
                  ""foundationAccountIndex"": 5,
-                 ""finalizationCommissionLPool"": 1.0,
+                 ""passiveFinalizationCommission"": 1.0,
                  ""delegatorCooldown"": 7200,
                  ""bakingCommissionRange"": {
                     ""max"": 5.0e-2,
                     ""min"": 5.0e-2
                  },
-                 ""bakingCommissionLPool"": 0.1,
+                 ""passiveBakingCommission"": 0.1,
                  ""accountCreationLimit"": 10,
                  ""finalizationCommissionRange"": {
                     ""max"": 1.0,

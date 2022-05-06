@@ -134,7 +134,7 @@ public class BlockWriter
                     OldGasAccount = x.OldGasAccount.MicroCcdValue,
                     NewGasAccount = x.NewGasAccount.MicroCcdValue,
                     BakerReward = x.BakerReward.MicroCcdValue,
-                    LPoolReward = x.LPoolReward.MicroCcdValue,
+                    PassiveReward = x.PassiveReward.MicroCcdValue,
                     FoundationCharge = x.FoundationCharge.MicroCcdValue,
                     BakerId = x.BakerId
                 },

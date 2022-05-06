@@ -14,7 +14,7 @@ public class DelegationTargetConverter : JsonConverter<DelegationTarget>
     {
         _deserializeMap = new Dictionary<string, Type>()
         {
-            { "L-Pool", typeof(LPoolDelegationTarget) },
+            { "Passive", typeof(PassiveDelegationTarget) },
             { "Baker", typeof(BakerDelegationTarget) },
         };
         

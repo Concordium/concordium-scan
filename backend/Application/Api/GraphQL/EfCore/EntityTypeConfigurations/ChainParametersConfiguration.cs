@@ -103,9 +103,9 @@ public class ChainParametersConfiguration : IEntityTypeConfiguration<ChainParame
         });
         builder.Property(x => x.FoundationAccountId).HasColumnName("foundation_account_id");
         builder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
-        builder.Property(x => x.FinalizationCommissionLPool).HasColumnName("finalization_commission_l_pool");
-        builder.Property(x => x.BakingCommissionLPool).HasColumnName("baking_commission_l_pool");
-        builder.Property(x => x.TransactionCommissionLPool).HasColumnName("transaction_commission_l_pool");
+        builder.Property(x => x.PassiveFinalizationCommission).HasColumnName("passive_finalization_commission");
+        builder.Property(x => x.PassiveBakingCommission).HasColumnName("passive_baking_commission");
+        builder.Property(x => x.PassiveTransactionCommission).HasColumnName("passive_transaction_commission");
         builder.OwnsOne(cp => cp.FinalizationCommissionRange, rangeBuilder =>
         {
             rangeBuilder.Property(x => x.Min).HasColumnName("finalization_commission_range_min");

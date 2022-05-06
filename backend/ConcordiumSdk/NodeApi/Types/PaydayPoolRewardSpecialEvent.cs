@@ -5,7 +5,7 @@ namespace ConcordiumSdk.NodeApi.Types;
 public class PaydayPoolRewardSpecialEvent : SpecialEvent
 {
     /// <summary>
-    /// The pool owner (L-Pool when 'None').
+    /// The pool owner (passive delegators when 'None').
     /// </summary>
     public ulong? PoolOwner { get; init; }
     

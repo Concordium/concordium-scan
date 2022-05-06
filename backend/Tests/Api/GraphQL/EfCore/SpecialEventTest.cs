@@ -183,7 +183,7 @@ public class SpecialEventTest : IClassFixture<DatabaseFixture>
             OldGasAccount = 2000,
             NewGasAccount = 3000,
             BakerReward = 4000,
-            LPoolReward = 5000,
+            PassiveReward = 5000,
             FoundationCharge = 6000,
             BakerId = 19
         };
@@ -201,7 +201,7 @@ public class SpecialEventTest : IClassFixture<DatabaseFixture>
         typed.OldGasAccount.Should().Be(2000);
         typed.NewGasAccount.Should().Be(3000);
         typed.BakerReward.Should().Be(4000);
-        typed.LPoolReward.Should().Be(5000);
+        typed.PassiveReward.Should().Be(5000);
         typed.FoundationCharge.Should().Be(6000);
         typed.BakerId.Should().Be(19);
     }

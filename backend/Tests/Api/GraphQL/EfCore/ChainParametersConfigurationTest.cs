@@ -107,9 +107,9 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
                 .Build())
             .WithFoundationAccountIndex(7)
             .WithFoundationAccountAddress(new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"))
-            .WithFinalizationCommissionLPool(0.1m)
-            .WithBakingCommissionLPool(0.2m)
-            .WithTransactionCommissionLPool(0.3m)
+            .WithPassiveFinalizationCommission(0.1m)
+            .WithPassiveBakingCommission(0.2m)
+            .WithPassiveTransactionCommission(0.3m)
             .WithFinalizationCommissionRange(1.0m, 1.3m)
             .WithBakingCommissionRange(0.05m, 0.07m)
             .WithTransactionCommissionRange(0.01m, 0.02m)
@@ -143,9 +143,9 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
         typed.RewardParameters.GasRewards.ChainUpdate.Should().Be(0.95m);
         typed.FoundationAccountId.Should().Be(7);
         typed.FoundationAccountAddress.AsString.Should().Be("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        typed.FinalizationCommissionLPool.Should().Be(0.1m);
-        typed.BakingCommissionLPool.Should().Be(0.2m);
-        typed.TransactionCommissionLPool.Should().Be(0.3m);
+        typed.PassiveFinalizationCommission.Should().Be(0.1m);
+        typed.PassiveBakingCommission.Should().Be(0.2m);
+        typed.PassiveTransactionCommission.Should().Be(0.3m);
         typed.FinalizationCommissionRange.Min.Should().Be(1.0m);
         typed.FinalizationCommissionRange.Max.Should().Be(1.3m);
         typed.BakingCommissionRange.Min.Should().Be(0.05m);

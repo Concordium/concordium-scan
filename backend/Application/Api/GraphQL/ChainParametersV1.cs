@@ -7,9 +7,9 @@ public class ChainParametersV1 : ChainParameters
     public ulong RewardPeriodLength { get; init; }
     public decimal MintPerPayday { get; init; }
     public RewardParametersV1 RewardParameters { get; init; }
-    public decimal FinalizationCommissionLPool { get; init; }
-    public decimal BakingCommissionLPool { get; init; }
-    public decimal TransactionCommissionLPool { get; init; }
+    public decimal PassiveFinalizationCommission { get; init; }
+    public decimal PassiveBakingCommission { get; init; }
+    public decimal PassiveTransactionCommission { get; init; }
     public CommissionRange FinalizationCommissionRange { get; init; }
     public CommissionRange BakingCommissionRange { get; init; }
     public CommissionRange TransactionCommissionRange { get; init; }
@@ -29,9 +29,9 @@ public class ChainParametersV1 : ChainParameters
                RewardPeriodLength == other.RewardPeriodLength &&
                MintPerPayday == other.MintPerPayday &&
                RewardParameters.Equals(other.RewardParameters) &&
-               FinalizationCommissionLPool == other.FinalizationCommissionLPool &&
-               BakingCommissionLPool == other.BakingCommissionLPool &&
-               TransactionCommissionLPool == other.TransactionCommissionLPool &&
+               PassiveFinalizationCommission == other.PassiveFinalizationCommission &&
+               PassiveBakingCommission == other.PassiveBakingCommission &&
+               PassiveTransactionCommission == other.PassiveTransactionCommission &&
                FinalizationCommissionRange == other.FinalizationCommissionRange &&
                BakingCommissionRange == other.BakingCommissionRange &&
                TransactionCommissionRange == other.TransactionCommissionRange &&

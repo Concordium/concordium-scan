@@ -25,9 +25,9 @@ public class BlockAccrueRewardSpecialEvent : SpecialEvent
     public CcdAmount BakerReward { get; init; }
     
     /// <summary>
-    /// The amount awarded to the L-Pool.
+    /// The amount awarded to the passive delegators
     /// </summary>
-    public CcdAmount LPoolReward { get; init; }
+    public CcdAmount PassiveReward { get; init; }
     
     /// <summary>
     /// The amount awarded to the foundation.

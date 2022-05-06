@@ -44,7 +44,6 @@ using InvalidProof = Application.Api.GraphQL.Transactions.InvalidProof;
 using InvalidReceiveMethod = Application.Api.GraphQL.Transactions.InvalidReceiveMethod;
 using InvalidTransferToPublicProof = Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof;
 using KeyIndexAlreadyInUse = Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse;
-using LPoolDelegationTarget = ConcordiumSdk.NodeApi.Types.LPoolDelegationTarget;
 using ModuleHashAlreadyExists = Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists;
 using ModuleNotWf = Application.Api.GraphQL.Transactions.ModuleNotWf;
 using NewEncryptedAmount = Application.Api.GraphQL.Transactions.NewEncryptedAmount;
@@ -178,7 +177,7 @@ public class TransactionWriter
     {
         return src switch
         {
-            ConcordiumSdk.NodeApi.Types.LPoolDelegationTarget => new LPoolDelegationTarget(),
+            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
             ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget(x.BakerId),
             _ => throw new NotImplementedException()
         };

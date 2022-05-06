@@ -15,9 +15,9 @@ public class ChainParametersV1Builder
     private ushort _accountCreationLimit = 7;
     private RewardParametersV1 _rewardParameters = new RewardParametersV1Builder().Build();
     private ulong _foundationAccountIndex = 1;
-    private decimal _finalizationCommissionLPool = 0.1m;
-    private decimal _bakingCommissionLPool = 0.1m;
-    private decimal _transactionCommissionLPool = 0.1m;
+    private decimal _passiveFinalizationCommission = 0.1m;
+    private decimal _passiveBakingCommission = 0.1m;
+    private decimal _passiveTransactionCommission = 0.1m;
     private InclusiveRange<decimal> _finalizationCommissionRange = new(1.0m, 1.2m);
     private InclusiveRange<decimal> _bakingCommissionRange = new(1.5m, 1.7m);
     private InclusiveRange<decimal> _transactionCommissionRange = new(0.7m, 0.9m);
@@ -29,7 +29,7 @@ public class ChainParametersV1Builder
     {
         return new ChainParametersV1(_electionDifficulty, _euroPerEnergy, _microGtuPerEuro, _poolOwnerCooldown,
             _delegatorCooldown, _rewardPeriodLength, _mintPerPayday, _accountCreationLimit, _rewardParameters,
-            _foundationAccountIndex, _finalizationCommissionLPool, _bakingCommissionLPool, _transactionCommissionLPool,
+            _foundationAccountIndex, _passiveFinalizationCommission, _passiveBakingCommission, _passiveTransactionCommission,
             _finalizationCommissionRange, _bakingCommissionRange, _transactionCommissionRange,
             _minimumEquityCapital, _capitalBound, _leverageBound);
     }

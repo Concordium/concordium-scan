@@ -13,7 +13,7 @@
     finalization_reward        bigint   null,
     old_gas_account            bigint   null,
     new_gas_account            bigint   null,
-    l_pool_reward              bigint   null,
+    passive_reward             bigint   null,
     foundation_charge          bigint   null,
     baker_id                   bigint   null,
     pool_owner                 bigint   null,

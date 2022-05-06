@@ -6,7 +6,7 @@ public class DelegationTargetConverter : PolymorphicJsonConverter<DelegationTarg
 {
     private static readonly Dictionary<Type, int> SerializeMap = new()
     {
-        { typeof(LPoolDelegationTarget), 1 },
+        { typeof(PassiveDelegationTarget), 1 },
         { typeof(BakerDelegationTarget), 2 },
     };
         

@@ -16,9 +16,9 @@ public class ChainParametersV1Builder
     private RewardParametersV1 _rewardParameters = new RewardParametersV1Builder().Build();
     private long _foundationAccountIndex = 1;
     private AccountAddress _foundationAccountAddress = new("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-    private decimal _finalizationCommissionLPool = 0.01m;
-    private decimal _bakingCommissionLPool = 0.01m;
-    private decimal _transactionCommissionLPool = 0.01m;
+    private decimal _passiveFinalizationCommission = 0.01m;
+    private decimal _passiveBakingCommission = 0.01m;
+    private decimal _passiveTransactionCommission = 0.01m;
     private CommissionRange _finalizationCommissionRange = new() { Min = 1.0m, Max = 1.2m };
     private CommissionRange _bakingCommissionRange = new() { Min = 1.5m, Max = 1.7m };
     private CommissionRange _transactionCommissionRange = new() { Min = 0.7m, Max = 0.9m };
@@ -41,9 +41,9 @@ public class ChainParametersV1Builder
             RewardParameters = _rewardParameters,
             FoundationAccountId = _foundationAccountIndex,
             FoundationAccountAddress = _foundationAccountAddress,
-            FinalizationCommissionLPool = _finalizationCommissionLPool,
-            BakingCommissionLPool = _bakingCommissionLPool,
-            TransactionCommissionLPool = _transactionCommissionLPool,
+            PassiveFinalizationCommission = _passiveFinalizationCommission,
+            PassiveBakingCommission = _passiveBakingCommission,
+            PassiveTransactionCommission = _passiveTransactionCommission,
             FinalizationCommissionRange = _finalizationCommissionRange,
             BakingCommissionRange = _bakingCommissionRange,
             TransactionCommissionRange = _transactionCommissionRange,
@@ -119,21 +119,21 @@ public class ChainParametersV1Builder
         return this;
     }
     
-    public ChainParametersV1Builder WithFinalizationCommissionLPool(decimal value)
+    public ChainParametersV1Builder WithPassiveFinalizationCommission(decimal value)
     {
-        _finalizationCommissionLPool = value;
+        _passiveFinalizationCommission = value;
         return this;
     }
     
-    public ChainParametersV1Builder WithBakingCommissionLPool(decimal value)
+    public ChainParametersV1Builder WithPassiveBakingCommission(decimal value)
     {
-        _bakingCommissionLPool = value;
+        _passiveBakingCommission = value;
         return this;
     }
     
-    public ChainParametersV1Builder WithTransactionCommissionLPool(decimal value)
+    public ChainParametersV1Builder WithPassiveTransactionCommission(decimal value)
     {
-        _transactionCommissionLPool = value;
+        _passiveTransactionCommission = value;
         return this;
     }
     

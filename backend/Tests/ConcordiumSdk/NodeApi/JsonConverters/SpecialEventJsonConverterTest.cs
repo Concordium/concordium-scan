@@ -122,12 +122,12 @@ public class SpecialEventJsonConverterTest
     [Fact]
     public void Deserialize_BlockAccrueReward()
     {
-        var json = "{\"lPoolReward\": \"111\", \"bakerId\": 2, \"tag\": \"BlockAccrueReward\", \"bakerReward\": \"222\", \"newGASAccount\": \"333\", \"oldGASAccount\": \"444\", \"foundationCharge\": \"555\", \"transactionFees\": \"666\"}";
+        var json = "{\"passiveReward\": \"111\", \"bakerId\": 2, \"tag\": \"BlockAccrueReward\", \"bakerReward\": \"222\", \"newGASAccount\": \"333\", \"oldGASAccount\": \"444\", \"foundationCharge\": \"555\", \"transactionFees\": \"666\"}";
 
         var result = JsonSerializer.Deserialize<SpecialEvent>(json, _serializerOptions);
         Assert.NotNull(result);
         var typed = Assert.IsType<BlockAccrueRewardSpecialEvent>(result);
-        Assert.Equal(CcdAmount.FromMicroCcd(111), typed.LPoolReward);
+        Assert.Equal(CcdAmount.FromMicroCcd(111), typed.PassiveReward);
         Assert.Equal(2UL, typed.BakerId);
         Assert.Equal(CcdAmount.FromMicroCcd(222), typed.BakerReward);
         Assert.Equal(CcdAmount.FromMicroCcd(333), typed.NewGasAccount);

@@ -2,7 +2,7 @@
 
 public abstract record DelegationTarget;
 
-public record LPoolDelegationTarget : DelegationTarget;
+public record PassiveDelegationTarget : DelegationTarget;
 
 public record BakerDelegationTarget(
     ulong BakerId) : DelegationTarget;
