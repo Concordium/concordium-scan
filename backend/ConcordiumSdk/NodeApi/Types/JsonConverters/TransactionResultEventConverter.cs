@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -53,23 +54,10 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
 
     public override TransactionResultEvent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var tagValue = ReadTagValue(reader);
+        var tagValue = reader.ReadString("tag")!;
         if (!_tagValueToTypeMap.TryGetValue(tagValue, out var tagType))
             throw new NotImplementedException($"Deserialization of '{tagValue}' is not implemented.");
         return (TransactionResultEvent)JsonSerializer.Deserialize(ref reader, tagType, options)!;
-    }
-
-    private string ReadTagValue(Utf8JsonReader reader)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-            throw new JsonException("Expected a start object");
-
-        reader.Read();
-        while (!(reader.TokenType == JsonTokenType.PropertyName && reader.GetString() == "tag"))
-            reader.Read();
-        
-        reader.Read();
-        return reader.GetString()!;
     }
 
     public override void Write(Utf8JsonWriter writer, TransactionResultEvent value, JsonSerializerOptions options)

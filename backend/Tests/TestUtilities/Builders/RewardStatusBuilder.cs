@@ -11,9 +11,9 @@ public class RewardStatusBuilder
     private CcdAmount _finalizationRewardAccount = CcdAmount.Zero;
     private CcdAmount _gasAccount = CcdAmount.Zero;
 
-    public RewardStatus Build()
+    public RewardStatusV0 Build()
     {
-        return new RewardStatus(_totalAmount, _totalEncryptedAmount, _bakingRewardAccount, 
+        return new RewardStatusV0(_totalAmount, _totalEncryptedAmount, _bakingRewardAccount, 
             _finalizationRewardAccount, _gasAccount);
     }
 

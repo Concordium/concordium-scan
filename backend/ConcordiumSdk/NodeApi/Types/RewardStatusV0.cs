@@ -10,10 +10,9 @@ namespace ConcordiumSdk.NodeApi.Types;
 /// <param name="BakingRewardAccount">The amount in the baking reward account</param>
 /// <param name="FinalizationRewardAccount">The amount in the finalization reward account</param>
 /// <param name="GasAccount">The amount in the GAS account</param>
-public record RewardStatus(
+public record RewardStatusV0(
     CcdAmount TotalAmount,
     CcdAmount TotalEncryptedAmount,
     CcdAmount BakingRewardAccount,
     CcdAmount FinalizationRewardAccount,
-    CcdAmount GasAccount
-);
+    CcdAmount GasAccount) : RewardStatusBase(TotalAmount, TotalEncryptedAmount, BakingRewardAccount, FinalizationRewardAccount, GasAccount);

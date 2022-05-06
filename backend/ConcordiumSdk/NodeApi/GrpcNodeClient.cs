@@ -125,7 +125,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
-    public async Task<RewardStatus> GetRewardStatusAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
+    public async Task<RewardStatusBase> GetRewardStatusAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
         {
@@ -134,7 +134,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
         var call = _client.GetRewardStatusAsync(request, CreateCallOptions(cancellationToken));
         var response = await call;
-        var result = JsonSerializer.Deserialize<RewardStatus>(response.Value, _jsonSerializerOptions)!;
+        var result = JsonSerializer.Deserialize<RewardStatusBase>(response.Value, _jsonSerializerOptions)!;
         return result;
     }
 

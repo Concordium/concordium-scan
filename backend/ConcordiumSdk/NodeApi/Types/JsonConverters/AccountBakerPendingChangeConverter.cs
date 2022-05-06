@@ -1,6 +1,6 @@
-﻿using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -27,7 +27,7 @@ public class AccountBakerPendingChangeConverter : JsonConverter<AccountBakerPend
 
     private Type GetTargetType(Utf8JsonReader reader)
     {
-        var changeType = ReadChangeTypeValue(reader);
+        var changeType = reader.ReadString("change");
         return changeType switch
         {
             "RemoveBaker" => typeof(AccountBakerRemovePendingV0),
@@ -39,43 +39,11 @@ public class AccountBakerPendingChangeConverter : JsonConverter<AccountBakerPend
 
     private Type GetReduceStakeType(Utf8JsonReader reader)
     {
-        if (HasPropertyNamed(reader, "effectiveTime"))
+        if (reader.HasPropertyNamed("effectiveTime"))
             return typeof(AccountBakerReduceStakePendingV1);
-        if (HasPropertyNamed(reader, "epoch"))
+        if (reader.HasPropertyNamed("epoch"))
             return typeof(AccountBakerReduceStakePendingV0);
         throw new NotImplementedException($"Target type cannot be determined for this reduce stake pending change.");
-    }
-
-    private bool HasPropertyNamed(Utf8JsonReader readerClone, string propertyName)
-    {
-        if (readerClone.TokenType != JsonTokenType.StartObject)
-            throw new JsonException("Expected a start object");
-
-        var startDepth = readerClone.CurrentDepth;
-        readerClone.Read();
-        
-        var found = false;
-        while (!(found = readerClone.TokenType == JsonTokenType.PropertyName
-                 && readerClone.CurrentDepth == startDepth + 1
-                 && readerClone.GetString() == propertyName)
-               && !(readerClone.TokenType == JsonTokenType.EndObject 
-                    && readerClone.CurrentDepth == startDepth))
-            readerClone.Read();
-
-        return found;
-    }
-
-    private string ReadChangeTypeValue(Utf8JsonReader reader)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-            throw new JsonException("Expected a start object");
-
-        reader.Read();
-        while (!(reader.TokenType == JsonTokenType.PropertyName && reader.GetString() == "change"))
-            reader.Read();
-        
-        reader.Read();
-        return reader.GetString()!;
     }
 
     public override void Write(Utf8JsonWriter writer, AccountBakerPendingChange value, JsonSerializerOptions options)

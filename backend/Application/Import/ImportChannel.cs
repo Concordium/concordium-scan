@@ -44,13 +44,13 @@ public record BlockDataPayload(
     BlockInfo BlockInfo, 
     BlockSummaryBase BlockSummary, 
     AccountInfosRetrieved AccountInfos,
-    RewardStatus RewardStatus);
+    RewardStatusBase RewardStatus);
 
 public record GenesisBlockDataPayload(
     BlockInfo BlockInfo,
     BlockSummaryBase BlockSummary,
     AccountInfosRetrieved AccountInfos,
-    RewardStatus RewardStatus, 
+    RewardStatusBase RewardStatus, 
     IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, AccountInfos, RewardStatus);
 
 public record AccountInfosRetrieved(
