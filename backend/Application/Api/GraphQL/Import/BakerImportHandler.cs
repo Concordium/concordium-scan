@@ -123,7 +123,9 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased
             or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings
-            or ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus);
+            or ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus
+            or ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL
+            );
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
@@ -233,6 +235,17 @@ public class BakerImportHandler
                     {
                         var pool = GetPool(dst);
                         pool.OpenStatus = src.OpenStatus.MapToGraphQlEnum();
+                    });
+            }
+            
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL metadataUrl)
+            {
+                await _writer.UpdateBaker(metadataUrl,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var pool = GetPool(dst);
+                        pool.MetadataUrl = src.MetadataURL;
                     });
             }
         }
