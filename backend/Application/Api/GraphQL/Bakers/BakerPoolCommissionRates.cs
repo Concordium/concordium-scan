@@ -2,7 +2,7 @@
 
 public class BakerPoolCommissionRates
 {
-    public decimal TransactionCommission { get; init; }
-    public decimal FinalizationCommission { get; init; }
-    public decimal BakingCommission { get; init; }
+    public decimal TransactionCommission { get; set; }
+    public decimal FinalizationCommission { get; set; }
+    public decimal BakingCommission { get; set; }
 }

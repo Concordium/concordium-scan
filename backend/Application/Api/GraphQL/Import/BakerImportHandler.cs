@@ -125,7 +125,9 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings
             or ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus
             or ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL
-            );
+            or ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission
+            or ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission
+            or ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission);
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
@@ -246,6 +248,39 @@ public class BakerImportHandler
                     {
                         var pool = GetPool(dst);
                         pool.MetadataUrl = src.MetadataURL;
+                    });
+            }
+            
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission transactionFeeCommission)
+            {
+                await _writer.UpdateBaker(transactionFeeCommission,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var pool = GetPool(dst);
+                        pool.CommissionRates.TransactionCommission = src.TransactionFeeCommission;
+                    });
+            }
+            
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission finalizationRewardCommission)
+            {
+                await _writer.UpdateBaker(finalizationRewardCommission,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var pool = GetPool(dst);
+                        pool.CommissionRates.FinalizationCommission = src.FinalizationRewardCommission;
+                    });
+            }
+            
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission bakingRewardCommission)
+            {
+                await _writer.UpdateBaker(bakingRewardCommission,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var pool = GetPool(dst);
+                        pool.CommissionRates.BakingCommission = src.BakingRewardCommission;
                     });
             }
         }
