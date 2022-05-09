@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
@@ -80,7 +81,15 @@ public class AccountValidator
             {
                 Id = x.BakerId,
                 StakedAmount = x.StakedAmount.MicroCcdValue,
-                RestakeEarnings = x.RestakeEarnings
+                RestakeEarnings = x.RestakeEarnings,
+                Pool = x.BakerPoolInfo == null ? null : new
+                {
+                    OpenStatus = x.BakerPoolInfo.OpenStatus.MapToGraphQlEnum(),
+                    MetadataUrl = x.BakerPoolInfo.MetadataUrl,
+                    TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
+                    FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
+                    BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission
+                }
             })
             .OrderBy(x => x.Id)
             .ToArray();
@@ -91,7 +100,15 @@ public class AccountValidator
             {
                 Id = (ulong)x.Id,
                 StakedAmount = x.ActiveState!.StakedAmount,
-                RestakeEarnings = x.ActiveState!.RestakeEarnings
+                RestakeEarnings = x.ActiveState!.RestakeEarnings,
+                Pool = x.ActiveState!.Pool == null ? null : new
+                {
+                    OpenStatus = x.ActiveState!.Pool.OpenStatus,
+                    MetadataUrl = x.ActiveState!.Pool.MetadataUrl,
+                    TransactionCommission = x.ActiveState!.Pool.CommissionRates.TransactionCommission,
+                    FinalizationCommission = x.ActiveState!.Pool.CommissionRates.FinalizationCommission,
+                    BakingCommission = x.ActiveState!.Pool.CommissionRates.BakingCommission
+                }
             })
             .OrderBy(x => x.Id)
             .ToArrayAsync();
