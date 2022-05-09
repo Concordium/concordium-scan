@@ -374,7 +374,7 @@ public class BakerImportHandler
     {
         return new BakerPool
         {
-            OpenStatus = BakerPoolOpenStatus.OpenForAll,
+            OpenStatus = BakerPoolOpenStatus.ClosedForAll,
             MetadataUrl = "",
             CommissionRates = new BakerPoolCommissionRates
             {
