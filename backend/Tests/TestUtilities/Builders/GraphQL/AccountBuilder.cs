@@ -11,6 +11,7 @@ public class AccountBuilder
     private AccountAddress _baseAddress = new("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT00");
     private ulong _amount = 0;
     private int _transactionCount = 0;
+    private Delegation? _delegation = null;
 
     public AccountBuilder WithId(long value)
     {
@@ -27,7 +28,8 @@ public class AccountBuilder
             CanonicalAddress = _canonicalAddress,
             CreatedAt = new DateTimeOffset(2021, 10, 10, 12, 0, 0, TimeSpan.Zero),
             Amount = _amount,
-            TransactionCount = _transactionCount
+            TransactionCount = _transactionCount,
+            Delegation = _delegation
         };
     }
 
@@ -61,6 +63,12 @@ public class AccountBuilder
     {
         _canonicalAddress = new (AccountAddressHelper.GetUniqueAddress());
         _baseAddress = new (AccountAddressHelper.GetBaseAddress(_canonicalAddress.AsString));
+        return this;
+    }
+
+    public AccountBuilder WithDelegation(Delegation? value)
+    {
+        _delegation = value;
         return this;
     }
 }

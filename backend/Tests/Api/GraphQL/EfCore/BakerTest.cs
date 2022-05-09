@@ -2,7 +2,6 @@
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;

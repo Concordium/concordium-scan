@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
+using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -150,6 +151,19 @@ public class AccountWriter
                 yield return projection(reader);
             }
         } while (reader.NextResult());
+    }
+
+    public async Task UpdateAccount<TSource>(TSource item, Func<TSource, ulong> delegatorIdSelector, Action<TSource, Account> updateAction)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccount));
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var delegatorId = (long)delegatorIdSelector(item);
+
+        var account = await context.Accounts.SingleAsync(x => x.Id == delegatorId);
+        updateAction(item, account);
+        
+        await context.SaveChangesAsync();
     }
 }
 

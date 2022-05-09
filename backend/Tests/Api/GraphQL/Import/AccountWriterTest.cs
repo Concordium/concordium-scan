@@ -90,12 +90,10 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task UpdateAccounts()
     {
-        await using var context = _dbContextFactory.CreateDbContext();
-        context.Accounts.AddRange(
+        await AddAccounts(
             new AccountBuilder().WithId(10).WithAmount(0).WithTransactionCount(0).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(42).WithAmount(100000).WithTransactionCount(777).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(99).WithAmount(1500).WithTransactionCount(20).WithUniqueAddress().Build());
-        await context.SaveChangesAsync();
 
         var updates = new[]
         {
@@ -107,5 +105,37 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         result.Should().Equal(
             new AccountUpdateResult(10, 0, 2222),
             new AccountUpdateResult(42, 100000, 99000));
+    }
+
+    [Fact]
+    public async Task UpdateAccount()
+    {
+        await AddAccounts(
+            new AccountBuilder().WithId(10).WithAmount(0).WithTransactionCount(0).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(42).WithAmount(100000).WithTransactionCount(777).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(99).WithAmount(1500).WithTransactionCount(20).WithUniqueAddress().Build());
+
+        var item = new AccountUpdateStub(42, 1000);
+        
+        await _target.UpdateAccount(item, 
+            src => src.AccountId, 
+            (src, dst) => dst.Amount += src.ValueToAdd);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var accounts = dbContext.Accounts.OrderBy(x => x.Id).ToArray();
+        accounts.Length.Should().Be(3);
+        accounts[0].Amount.Should().Be(0UL);
+        accounts[1].Amount.Should().Be(101000UL);
+        accounts[2].Amount.Should().Be(1500UL);
+    }
+
+    private record AccountUpdateStub(ulong AccountId, ulong ValueToAdd); 
+    
+    private async Task AddAccounts(params Account[] entities)
+    {
+        await using var context = _dbContextFactory.CreateDbContext();
+        context.Accounts.AddRange(entities);
+        await context.SaveChangesAsync();
+
     }
 }

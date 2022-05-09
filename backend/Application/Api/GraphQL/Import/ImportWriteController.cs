@@ -32,6 +32,7 @@ public class ImportWriteController : BackgroundService
     private readonly ImportStateController _importStateController;
     private readonly IAccountLookup _accountLookup;
     private readonly MaterializedViewRefresher _materializedViewRefresher;
+    private readonly DelegationImportHandler _delegationHandler;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
@@ -47,8 +48,10 @@ public class ImportWriteController : BackgroundService
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory, metrics);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory, metrics);
         _transactionWriter = new TransactionWriter(dbContextFactory, metrics);
-        _accountHandler = new AccountImportHandler(dbContextFactory, accountLookup, metrics);
+        var accountWriter = new AccountWriter(dbContextFactory, metrics);
+        _accountHandler = new AccountImportHandler(accountLookup, metrics, accountWriter);
         _bakerHandler = new BakerImportHandler(dbContextFactory, metrics);
+        _delegationHandler = new DelegationImportHandler(accountWriter);
         _metricsWriter = new MetricsWriter(dbSettings, _metrics);
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory, metrics);
@@ -151,6 +154,7 @@ public class ImportWriteController : BackgroundService
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
         
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, importState);
+        await _delegationHandler.HandleDelegationUpdates(payload);
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);

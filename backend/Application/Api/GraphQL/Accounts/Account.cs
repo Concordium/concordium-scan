@@ -25,6 +25,9 @@ public class Account
     public int TransactionCount { get; set; }
     
     public DateTimeOffset CreatedAt { get; init; }
+    
+    [GraphQLIgnore] // Still not made available on graphql schema...
+    public Delegation? Delegation { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     public async Task<AccountReleaseSchedule> GetReleaseSchedule([ScopedService] GraphQlDbContext dbContext)

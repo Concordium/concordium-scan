@@ -1,11 +1,12 @@
 ﻿create table graphql_accounts
 (
-    id                bigint primary key,
-    base_address      text      not null,
-    canonical_address text      not null,
-    ccd_amount        bigint    not null,
-    transaction_count int       not null,
-    created_at        timestamp not null
+    id                          bigint primary key,
+    base_address                text      not null,
+    canonical_address           text      not null,
+    ccd_amount                  bigint    not null,
+    transaction_count           int       not null,
+    created_at                  timestamp not null,
+    delegation_restake_earnings bool      null
 );
 
 create unique index graphql_accounts_base_address_uindex
