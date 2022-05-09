@@ -9,5 +9,6 @@
     max_block_height_with_updated_finalization_time bigint    not null,
     next_pending_baker_change_time                  timestamp null,
     last_genesis_index                              int       not null,
-    total_baker_count                               int       not null
+    total_baker_count                               int       not null,
+    migration_to_baker_pools_completed              bool      not null
 )

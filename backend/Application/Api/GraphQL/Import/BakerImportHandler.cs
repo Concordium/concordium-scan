@@ -6,6 +6,7 @@ using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
+using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -29,7 +30,7 @@ public class BakerImportHandler
         var resultBuilder = new BakerUpdateResultsBuilder();
         
         if (payload is GenesisBlockDataPayload)
-            await AddGenesisBakers(payload, resultBuilder);
+            await AddGenesisBakers(payload, resultBuilder, importState);
         else
             await ApplyBakerChanges(payload, rewardsSummary, importState, resultBuilder);
 
@@ -61,7 +62,7 @@ public class BakerImportHandler
         await _writer.AddBakerTransactionRelations(items);
     }
 
-    private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder)
+    private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder, ImportState importState)
     {
         var mapBakerPool = payload.BlockSummary.ProtocolVersion >= 4;
         
@@ -72,6 +73,10 @@ public class BakerImportHandler
             .ToArray();
 
         await _writer.AddBakers(genesisBakers);
+        
+        if (mapBakerPool)
+            importState.MigrationToBakerPoolsCompleted = true;
+        
         resultBuilder.IncrementBakersAdded(genesisBakers.Length);
     }
 
@@ -102,7 +107,9 @@ public class BakerImportHandler
     private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
         ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
+        await MaybeMigrateToBakerPools(payload, importState);
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
+        
         await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState, resultBuilder);
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
@@ -119,6 +126,22 @@ public class BakerImportHandler
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
+    }
+
+    private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
+    {
+        // Migrate to baker pool first time a block with protocol version 4 (or greater) is encountered.
+        if (importState.MigrationToBakerPoolsCompleted || payload.BlockSummary.ProtocolVersion < 4)
+            return;
+        
+        _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
+
+        await _writer.UpdateBakers(
+            baker => baker.ActiveState!.Pool = CreateDefaultBakerPool(),
+            baker => baker.ActiveState != null);
+        
+        importState.MigrationToBakerPoolsCompleted = true;
+        _logger.Information("Migration completed!");
     }
 
     private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
@@ -282,6 +305,21 @@ public class BakerImportHandler
         {
             Id = (long)bakerId,
             State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, pool, null)
+        };
+    }
+
+    private BakerPool CreateDefaultBakerPool()
+    {
+        return new BakerPool
+        {
+            OpenStatus = BakerPoolOpenStatus.OpenForAll,
+            MetadataUrl = "",
+            CommissionRates = new BakerPoolCommissionRates
+            {
+                TransactionCommission = 0.0m,
+                FinalizationCommission = 0.0m,
+                BakingCommission = 0.0m
+            }
         };
     }
 

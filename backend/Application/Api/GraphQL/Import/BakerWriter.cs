@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
@@ -51,6 +52,17 @@ public class BakerWriter
     public Task<Baker> UpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Action<TSource, Baker> updateExisting)
     {
         return AddOrUpdateBaker(item, bakerIdSelector, _ => throw new InvalidOperationException("Baker did not exist in database"), updateExisting);
+    }
+
+    public async Task UpdateBakers(Action<Baker> updateAction, Expression<Func<Baker, bool>> whereClause)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        foreach (var baker in context.Bakers.Where(whereClause))
+            updateAction(baker);
+        
+        await context.SaveChangesAsync();
+
     }
 
     public async Task<Baker[]> UpdateBakersFromAccountBaker(AccountBaker[] accountBakers, Action<Baker, AccountBaker> updateAction)

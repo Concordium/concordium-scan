@@ -15,6 +15,7 @@ public class ImportState
     public ChainParameters? LatestWrittenChainParameters { get; set; }
     public int LastGenesisIndex { get; set; }
     public int TotalBakerCount { get; set; }
+    public bool MigrationToBakerPoolsCompleted { get; set; }
 
     public static ImportState CreateGenesisState(GenesisBlockDataPayload payload)
     {
@@ -29,7 +30,8 @@ public class ImportState
             NextPendingBakerChangeTime = null,
             LatestWrittenChainParameters = null,
             LastGenesisIndex = 0,
-            TotalBakerCount = 0
+            TotalBakerCount = 0,
+            MigrationToBakerPoolsCompleted = false
         };
     }
 
@@ -46,5 +48,6 @@ public class ImportState
         LatestWrittenChainParameters = source.LatestWrittenChainParameters;
         LastGenesisIndex = source.LastGenesisIndex;
         TotalBakerCount = source.TotalBakerCount;
+        MigrationToBakerPoolsCompleted = source.MigrationToBakerPoolsCompleted;
     }
 }

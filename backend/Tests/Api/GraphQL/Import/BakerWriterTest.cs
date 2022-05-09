@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -90,6 +91,26 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var inserted = context.Bakers.Single();
         inserted.Id.Should().Be(7);
         inserted.State.Should().BeOfType<RemovedBakerState>();
+    }
+
+    [Fact]
+    public async Task UpdateBakers()
+    {
+        await AddBakers(
+            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithStakedAmount(1500).Build()).Build(),
+            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(200).Build()).Build(),
+            new BakerBuilder().WithId(3).WithState(new RemovedBakerStateBuilder().Build()).Build(),
+            new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithStakedAmount(700).Build()).Build());
+
+        await _target.UpdateBakers(x => x.ActiveState!.StakedAmount += 400, x => x.ActiveState != null && x.ActiveState.StakedAmount < 1000);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var fromDb = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
+        fromDb.Length.Should().Be(4);
+        fromDb[0].ActiveState?.StakedAmount.Should().Be(1500);
+        fromDb[1].ActiveState?.StakedAmount.Should().Be(600);
+        fromDb[2].ActiveState.Should().BeNull();
+        fromDb[3].ActiveState?.StakedAmount.Should().Be(1100);
     }
     
     [Fact]

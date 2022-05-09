@@ -22,6 +22,7 @@ public class ImportStateConfiguration : IEntityTypeConfiguration<ImportState>
         builder.Property(x => x.NextPendingBakerChangeTime).HasColumnName("next_pending_baker_change_time").HasConversion<DateTimeOffsetToTimestampConverter>();
         builder.Property(x => x.LastGenesisIndex).HasColumnName("last_genesis_index");
         builder.Property(x => x.TotalBakerCount).HasColumnName("total_baker_count");
+        builder.Property(x => x.MigrationToBakerPoolsCompleted).HasColumnName("migration_to_baker_pools_completed");
         builder.Ignore(x => x.LatestWrittenChainParameters);
     }
 }
