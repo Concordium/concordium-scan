@@ -82,6 +82,49 @@ public class BakerTest : IClassFixture<DatabaseFixture>
     }
     
     [Fact]
+    public async Task WriteAndReadBaker_ActiveState_PoolNull()
+    {
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new ActiveBakerStateBuilder().WithPool(null).Build())
+            .Build();
+
+        await AddBaker(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.Bakers.Single();
+        var activeBakerState = result.State.Should().BeOfType<ActiveBakerState>().Subject;
+        activeBakerState.Pool.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task WriteAndReadBaker_ActiveState_PoolNotNull()
+    {
+        var entity = new BakerBuilder()
+            .WithId(0)
+            .WithState(new ActiveBakerStateBuilder()
+                .WithPool(new BakerPoolBuilder()
+                    .WithOpenStatus(BakerPoolOpenStatus.ClosedForAll)
+                    .WithMetadataUrl("https://example.com/ccd-baker-metadata")
+                    .WithCommissionRates(0.1m, 0.2m, 0.3m)
+                    .Build())
+                .Build())
+            .Build();
+
+        await AddBaker(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = dbContext.Bakers.Single();
+        var activeBakerState = result.State.Should().BeOfType<ActiveBakerState>().Subject;
+        activeBakerState.Pool.Should().NotBeNull();
+        activeBakerState.Pool!.OpenStatus.Should().Be(BakerPoolOpenStatus.ClosedForAll);
+        activeBakerState.Pool.MetadataUrl.Should().Be("https://example.com/ccd-baker-metadata");
+        activeBakerState.Pool.CommissionRates.TransactionCommission.Should().Be(0.1m);
+        activeBakerState.Pool.CommissionRates.FinalizationCommission.Should().Be(0.2m);
+        activeBakerState.Pool.CommissionRates.BakingCommission.Should().Be(0.3m);
+    }
+    
+    [Fact]
     public async Task WriteAndReadBaker_StatisticsNullWhenViewNotRefreshedAfterAdd()
     {
         var entity = new BakerBuilder()

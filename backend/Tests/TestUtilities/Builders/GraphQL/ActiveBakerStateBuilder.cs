@@ -7,16 +7,16 @@ public class ActiveBakerStateBuilder
     private PendingBakerChange? _pendingChange = null;
     private bool _restakeRewards = false;
     private ulong _stakedAmount = 0;
+    private BakerPool? _pool = null;
+
+    public ActiveBakerState Build()
+    {
+        return new ActiveBakerState(_stakedAmount, _restakeRewards, _pool, _pendingChange);
+    }
 
     public ActiveBakerStateBuilder WithStakedAmount(ulong value)
     {
         _stakedAmount = value;
-        return this;
-    }
-    
-    public ActiveBakerStateBuilder WithPendingChange(PendingBakerChange? value)
-    {
-        _pendingChange = value;
         return this;
     }
 
@@ -25,9 +25,16 @@ public class ActiveBakerStateBuilder
         _restakeRewards = value;
         return this;
     }
-    
-    public ActiveBakerState Build()
+
+    public ActiveBakerStateBuilder WithPool(BakerPool? value)
     {
-        return new ActiveBakerState(_stakedAmount, _restakeRewards, _pendingChange);
+        _pool = value;
+        return this;
+    }
+
+    public ActiveBakerStateBuilder WithPendingChange(PendingBakerChange? value)
+    {
+        _pendingChange = value;
+        return this;
     }
 }

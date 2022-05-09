@@ -217,6 +217,7 @@ public class BlockSummaryConverterTest
         
         var result = JsonSerializer.Deserialize<BlockSummaryBase>(json, _serializerOptions)!;
         var typed = result.Should().BeOfType<BlockSummaryV1>().Subject!;
+        typed.ProtocolVersion.Should().Be(4);
         typed.TransactionSummaries.Should().BeEmpty();
         typed.SpecialEvents.Should().BeEmpty();
         typed.FinalizationData.Should().BeNull();
@@ -387,6 +388,7 @@ public class BlockSummaryConverterTest
         
         var result = JsonSerializer.Deserialize<BlockSummaryBase>(json, _serializerOptions)!;
         var typed = result.Should().BeOfType<BlockSummaryV0>().Subject!;
+        typed.ProtocolVersion.Should().BeNull();
         typed.TransactionSummaries.Should().BeEmpty();
         typed.SpecialEvents.Should().BeEmpty();
         typed.FinalizationData.Should().BeNull();

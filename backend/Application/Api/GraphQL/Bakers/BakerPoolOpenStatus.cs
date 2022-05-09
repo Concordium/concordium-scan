@@ -15,3 +15,17 @@ public enum BakerPoolOpenStatus
     /// </summary>
     ClosedForAll = 2,
 }
+
+public static class BakerPoolOpenStatusExtensions
+{
+    public static BakerPoolOpenStatus MapToGraphQlEnum(this ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus src)
+    {
+        return src switch
+        {
+            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
+            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
+            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
+            _ => throw new NotImplementedException()
+        };
+    }
+}

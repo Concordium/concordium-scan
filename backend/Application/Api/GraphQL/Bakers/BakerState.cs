@@ -17,17 +17,26 @@ public class ActiveBakerState : BakerState
     [GraphQLIgnore]
     public Baker Owner { get; private set; } = null!;
 
-    public ActiveBakerState(ulong stakedAmount, bool restakeEarnings, PendingBakerChange? pendingChange)
+    /// <summary>
+    /// EF-core constructor!
+    /// </summary>
+    private ActiveBakerState() {}
+
+    public ActiveBakerState(ulong stakedAmount, bool restakeEarnings, BakerPool? pool, PendingBakerChange? pendingChange)
     {
         StakedAmount = stakedAmount;
         RestakeEarnings = restakeEarnings;
+        Pool = pool;
         PendingChange = pendingChange;
     }
 
     public ulong StakedAmount { get; set; } 
     
     public bool RestakeEarnings { get; set; }
-    
+
+    [GraphQLIgnore] // Still not ready for graphql endpoint...
+    public BakerPool? Pool { get; set; }
+
     public PendingBakerChange? PendingChange { get; set; }
 
     [GraphQLDescription("Stake of the baker as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]

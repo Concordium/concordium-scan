@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
@@ -12,7 +13,6 @@ using AmountTooLarge = Application.Api.GraphQL.Transactions.AmountTooLarge;
 using BakerAdded = Application.Api.GraphQL.Transactions.BakerAdded;
 using BakerInCooldown = Application.Api.GraphQL.Transactions.BakerInCooldown;
 using BakerKeysUpdated = Application.Api.GraphQL.Transactions.BakerKeysUpdated;
-using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using BakerRemoved = Application.Api.GraphQL.Transactions.BakerRemoved;
 using BakerSetRestakeEarnings = Application.Api.GraphQL.Transactions.BakerSetRestakeEarnings;
 using BakerStakeDecreased = Application.Api.GraphQL.Transactions.BakerStakeDecreased;
@@ -158,7 +158,7 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
                 ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
                 ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => MapChainUpdateEnqueued(x, blockSlotTime),
-                ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus x => new Transactions.BakerSetOpenStatus(x.BakerId, MapAccountAddress(x.Account), MapBakerPoolOpenStatus(x.OpenStatus)),
+                ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus x => new Transactions.BakerSetOpenStatus(x.BakerId, MapAccountAddress(x.Account), x.OpenStatus.MapToGraphQlEnum()),
                 ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL x => new Transactions.BakerSetMetadataURL(x.BakerId, MapAccountAddress(x.Account), x.MetadataURL),
                 ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission x => new Transactions.BakerSetTransactionFeeCommission(x.BakerId, MapAccountAddress(x.Account), x.TransactionFeeCommission),
                 ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission x => new Transactions.BakerSetBakingRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.BakingRewardCommission),
@@ -179,17 +179,6 @@ public class TransactionWriter
         {
             ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
             ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget(x.BakerId),
-            _ => throw new NotImplementedException()
-        };
-    }
-
-    private static BakerPoolOpenStatus MapBakerPoolOpenStatus(ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus value)
-    {
-        return value switch
-        {
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
             _ => throw new NotImplementedException()
         };
     }

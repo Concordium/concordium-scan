@@ -21,6 +21,19 @@ public class BakerConfiguration :
             activeBuilder.Property(x => x.StakedAmount).HasColumnName("active_staked_amount");
             activeBuilder.Property(x => x.RestakeEarnings).HasColumnName("active_restake_earnings");
             activeBuilder.Property(x => x.PendingChange).HasColumnName("active_pending_change").HasColumnType("json").HasConversion<PendingBakerChangeToJsonConverter>();
+            
+            activeBuilder.OwnsOne(x => x.Pool, poolBuilder =>
+            {
+                poolBuilder.Property(x => x.OpenStatus).HasColumnName("active_pool_open_status");
+                poolBuilder.Property(x => x.MetadataUrl).HasColumnName("active_pool_metadata_url");
+                poolBuilder.OwnsOne(x => x.CommissionRates, commissionRatesBuilder =>
+                {
+                    commissionRatesBuilder.Property(x => x.TransactionCommission).HasColumnName("active_pool_transaction_commission");
+                    commissionRatesBuilder.Property(x => x.FinalizationCommission).HasColumnName("active_pool_finalization_commission");
+                    commissionRatesBuilder.Property(x => x.BakingCommission).HasColumnName("active_pool_baking_commission");
+                });
+            });
+
         });
         builder.OwnsOne(x => x.RemovedState, removedBuilder =>
         {

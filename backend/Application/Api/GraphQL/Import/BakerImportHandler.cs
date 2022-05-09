@@ -29,7 +29,7 @@ public class BakerImportHandler
         var resultBuilder = new BakerUpdateResultsBuilder();
         
         if (payload is GenesisBlockDataPayload)
-            await AddGenesisBakers(payload.AccountInfos.CreatedAccounts, resultBuilder);
+            await AddGenesisBakers(payload, resultBuilder);
         else
             await ApplyBakerChanges(payload, rewardsSummary, importState, resultBuilder);
 
@@ -61,16 +61,42 @@ public class BakerImportHandler
         await _writer.AddBakerTransactionRelations(items);
     }
 
-    private async Task AddGenesisBakers(AccountInfo[] genesisAccounts, BakerUpdateResultsBuilder resultBuilder)
+    private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder)
     {
-        var genesisBakers = genesisAccounts
+        var mapBakerPool = payload.BlockSummary.ProtocolVersion >= 4;
+        
+        var genesisBakers = payload.AccountInfos.CreatedAccounts
             .Where(x => x.AccountBaker != null)
             .Select(x => x.AccountBaker!)
-            .Select(x => CreateNewBaker(x.BakerId, x.StakedAmount, x.RestakeEarnings))
+            .Select(x => CreateGenesisBaker(x, mapBakerPool))
             .ToArray();
 
         await _writer.AddBakers(genesisBakers);
         resultBuilder.IncrementBakersAdded(genesisBakers.Length);
+    }
+
+    private static Baker CreateGenesisBaker(AccountBaker src, bool mapBakerPool)
+    {
+        var pool = mapBakerPool ? MapBakerPool(src.BakerPoolInfo) : null;
+        
+        return CreateNewBaker(src.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
+    }
+
+    private static BakerPool MapBakerPool(BakerPoolInfo? src)
+    {
+        if (src == null) throw new ArgumentNullException(nameof(src), "Did not expect baker pool info to be null when trying to map it!");
+        
+        return new BakerPool
+        {
+            OpenStatus = src.OpenStatus.MapToGraphQlEnum(),
+            MetadataUrl = src.MetadataUrl,
+            CommissionRates = new BakerPoolCommissionRates
+            {
+                TransactionCommission = src.CommissionRates.TransactionCommission,
+                FinalizationCommission = src.CommissionRates.FinalizationCommission,
+                BakingCommission = src.CommissionRates.BakingCommission
+            }
+        };
     }
 
     private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
@@ -139,7 +165,7 @@ public class BakerImportHandler
                     src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings),
                     (src, dst) =>
                     {
-                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null);
+                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null, null);
                     });
 
                 resultBuilder.IncrementBakersAdded();
@@ -192,6 +218,8 @@ public class BakerImportHandler
 
     private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
     {
+        if (source.PendingChange == null) throw new ArgumentException("Pending change must not be null");
+        
         var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
         activeState.PendingChange = source.PendingChange switch
         {
@@ -248,12 +276,12 @@ public class BakerImportHandler
         else throw new NotImplementedException("Applying this pending change is not implemented!");
     }
 
-    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings)
+    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool = null)
     {
         return new Baker
         {
             Id = (long)bakerId,
-            State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, null)
+            State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, pool, null)
         };
     }
 
