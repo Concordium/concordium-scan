@@ -2,7 +2,7 @@
 
 public class BakerPool
 {
-    public BakerPoolOpenStatus OpenStatus { get; init; }
+    public BakerPoolOpenStatus OpenStatus { get; set; }
     public BakerPoolCommissionRates CommissionRates { get; init; }
     public string MetadataUrl { get; init; }
 }

@@ -122,7 +122,8 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerRemoved
             or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased
             or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
-            or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings);
+            or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings
+            or ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus);
 
         await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
@@ -221,6 +222,17 @@ public class BakerImportHandler
                     {
                         var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
                         activeState.RestakeEarnings = src.RestakeEarnings;
+                    });
+            }
+            
+            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus openStatus)
+            {
+                await _writer.UpdateBaker(openStatus,
+                    src => src.BakerId,
+                    (src, dst) =>
+                    {
+                        var pool = GetPool(dst);
+                        pool.OpenStatus = src.OpenStatus.MapToGraphQlEnum();
                     });
             }
         }
@@ -323,6 +335,12 @@ public class BakerImportHandler
                 BakingCommission = 0.0m
             }
         };
+    }
+
+    private static BakerPool GetPool(Baker dst)
+    {
+        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set open status for a baker that is not active!");
+        return activeState.Pool ?? throw new InvalidOperationException("Cannot set open status for a baker where pool is null!");
     }
 
     private class BakerUpdateResultsBuilder
