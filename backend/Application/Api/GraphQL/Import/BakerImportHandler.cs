@@ -183,12 +183,14 @@ public class BakerImportHandler
         {
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
             {
+                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool() : null;
+                
                 await _writer.AddOrUpdateBaker(bakerAdded,
                     src => src.BakerId,
-                    src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings),
+                    src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings, pool),
                     (src, dst) =>
                     {
-                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, null, null);
+                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, pool, null);
                     });
 
                 resultBuilder.IncrementBakersAdded();
@@ -299,7 +301,7 @@ public class BakerImportHandler
         else throw new NotImplementedException("Applying this pending change is not implemented!");
     }
 
-    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool = null)
+    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool)
     {
         return new Baker
         {
