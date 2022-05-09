@@ -76,6 +76,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ref } from 'vue'
 import { useDateNow } from '~/composables/useDateNow'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
@@ -93,7 +94,7 @@ import TableTh from '~/components/Table/TableTh.vue'
 import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
-import type { Baker } from '~/types/generated'
+import type { Baker, PageInfo } from '~/types/generated'
 
 const { first, last, after, before, goToPage } = usePagination({
 	pageSize: PAGE_SIZE_SMALL,
@@ -117,5 +118,12 @@ const { data, error, componentState } = useBakerTransactionsQuery(
 	}
 )
 
-const pageInfo = data?.value?.bakerByBakerId?.transactions?.pageInfo
+const pageInfo = ref<PageInfo | undefined>(
+	data?.value?.bakerByBakerId?.transactions?.pageInfo
+)
+
+watch(
+	() => data.value,
+	value => (pageInfo.value = value?.bakerByBakerId?.transactions?.pageInfo)
+)
 </script>
