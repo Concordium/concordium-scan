@@ -11,6 +11,7 @@ using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using PaydayPoolRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayPoolRewardSpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -148,14 +149,17 @@ public class ImportWriteController : BackgroundService
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
         
+        var isFirstBlockAfterPayday = payload.BlockSummary.SpecialEvents.Any(x => x is PaydayPoolRewardSpecialEvent);
+        
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
         
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
 
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
-        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, importState);
-        await _delegationHandler.HandleDelegationUpdates(payload, chainParameters);
+        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, isFirstBlockAfterPayday, importState);
+        await _delegationHandler.HandleDelegationUpdates(payload, chainParameters, isFirstBlockAfterPayday);
+        
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 

@@ -139,7 +139,7 @@ public class ImportReadController : BackgroundService
         {
             var accountsToRead = blockSummary.TransactionSummaries
                 .Select(x => x.Result).OfType<TransactionSuccessResult>()
-                .SelectMany(x => GetAccountAddressesToRetrieve(x.Events))
+                .SelectMany(x => GetAccountAddressesToRetrieve(x.Events, blockSummary.ProtocolVersion))
                 .ToArray();
 
             if (accountsToRead.Length == 0)
@@ -158,15 +158,15 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private static IEnumerable<AccountAddressAndReason> GetAccountAddressesToRetrieve(TransactionResultEvent[] txEvents)
+    private static IEnumerable<AccountAddressAndReason> GetAccountAddressesToRetrieve(TransactionResultEvent[] txEvents, int? protocolVersion)
     {
         foreach (var txEvent in txEvents)
         {
             if (txEvent is AccountCreated accountCreated)
                 yield return new AccountAddressAndReason(accountCreated.Contents, typeof(AccountCreated));
-            if (txEvent is BakerRemoved bakerRemoved)
+            if (txEvent is BakerRemoved bakerRemoved && !(protocolVersion >= 4))
                 yield return new AccountAddressAndReason(bakerRemoved.Account, typeof(AccountBakerPendingChange));
-            if (txEvent is BakerStakeDecreased stakeDecreased)
+            if (txEvent is BakerStakeDecreased stakeDecreased && !(protocolVersion >= 4))
                 yield return new AccountAddressAndReason(stakeDecreased.Account, typeof(AccountBakerPendingChange));
         }
     }

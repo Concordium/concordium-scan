@@ -16,18 +16,14 @@ public class DelegationImportHandler
         _logger = Log.ForContext<DelegationImportHandler>();
     }
 
-    public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters)
+    public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters, bool isFirstBlockAfterPayday)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
             var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
-            
-            var isFirstBlockAfterPayday = payload.BlockSummary.SpecialEvents.Any(x => x is PaydayPoolRewardSpecialEvent);
+
             if (isFirstBlockAfterPayday)
-            {
-                _logger.Information($"Block at height {payload.BlockInfo.BlockHeight} with slot time {payload.BlockInfo.BlockSlotTime:G} was first block after payday!");
                 await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
-            }
 
             var allTransactionEvents = payload.BlockSummary.TransactionSummaries
                 .Select(tx => tx.Result).OfType<TransactionSuccessResult>()

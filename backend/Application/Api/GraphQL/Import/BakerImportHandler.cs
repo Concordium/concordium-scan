@@ -23,16 +23,21 @@ public class BakerImportHandler
         _logger = Log.ForContext(GetType());
     }
 
-    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, RewardsSummary rewardsSummary, ImportState importState)
+    public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, RewardsSummary rewardsSummary,
+        ChainParameters chainParameters, bool isFirstBlockAfterPayday, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
+
+        IPendingBakerChangeStrategy pendingChangeStrategy = payload.BlockSummary.ProtocolVersion >= 4 
+            ? new PostProtocol4Strategy(payload.BlockInfo, (ChainParametersV1)chainParameters, isFirstBlockAfterPayday, _writer) 
+            : new PreProtocol4Strategy(payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, _writer);
 
         var resultBuilder = new BakerUpdateResultsBuilder();
         
         if (payload is GenesisBlockDataPayload)
             await AddGenesisBakers(payload, resultBuilder, importState);
         else
-            await ApplyBakerChanges(payload, rewardsSummary, importState, resultBuilder);
+            await ApplyBakerChanges(payload, rewardsSummary, pendingChangeStrategy, importState, resultBuilder);
 
         resultBuilder.SetTotalAmountStaked(await _writer.GetTotalAmountStaked());
         return resultBuilder.Build();
@@ -105,12 +110,13 @@ public class BakerImportHandler
     }
 
     private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
-        ImportState importState, BakerUpdateResultsBuilder resultBuilder)
+        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
+        BakerUpdateResultsBuilder resultBuilder)
     {
         await MaybeMigrateToBakerPools(payload, importState);
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
         
-        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, importState, resultBuilder);
+        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, pendingChangeStrategy, importState, resultBuilder);
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
@@ -129,7 +135,7 @@ public class BakerImportHandler
             or ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission
             or ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission);
 
-        await UpdateBakersFromTransactionEvents(txEvents, payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, importState, resultBuilder);
+        await UpdateBakersFromTransactionEvents(txEvents, pendingChangeStrategy, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
     }
 
@@ -168,7 +174,7 @@ public class BakerImportHandler
                 {
                     activeState.PendingChange = pendingChange with
                     {
-                        EffectiveTime = CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
+                        EffectiveTime = PreProtocol4Strategy.CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
                     };
                     _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime} based on epoch value {epochValue}", baker.BakerId, activeState.PendingChange.EffectiveTime, pendingChange.Epoch.Value);
                 }
@@ -179,9 +185,8 @@ public class BakerImportHandler
         }
     }
 
-    private async Task UpdateBakersFromTransactionEvents(
-        IEnumerable<ConcordiumSdk.NodeApi.Types.TransactionResultEvent> transactionEvents,
-        AccountInfo[] accountInfosForBakersWithNewPendingChanges, BlockInfo blockInfo, ImportState importState,
+    private async Task UpdateBakersFromTransactionEvents(IEnumerable<TransactionResultEvent> transactionEvents,
+        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
         BakerUpdateResultsBuilder resultBuilder)
     {
         foreach (var txEvent in transactionEvents)
@@ -202,10 +207,16 @@ public class BakerImportHandler
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
-                await SetPendingChangeOnBaker(bakerRemoved.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+            {
+                var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(bakerRemoved);
+                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+            }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
-                await SetPendingChangeOnBaker(stakeDecreased.Account, accountInfosForBakersWithNewPendingChanges, blockInfo, importState);
+            {
+                var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(stakeDecreased);
+                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+            }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
             {
@@ -286,55 +297,18 @@ public class BakerImportHandler
         }
     }
 
-    private async Task SetPendingChangeOnBaker(ConcordiumSdk.Types.AccountAddress bakerAccountAddress, AccountInfo[] accountInfos, BlockInfo blockInfo, ImportState importState)
+    private void UpdateNextPendingBakerChangeTimeIfLower(DateTimeOffset pendingChangeTime, ImportState importState)
     {
-        var accountBaker = accountInfos
-            .SingleOrDefault(x => x.AccountAddress == bakerAccountAddress)?
-            .AccountBaker ?? throw new InvalidOperationException("AccountInfo not included for baker -OR- was not a baker!");
-
-        var updatedBaker = await _writer.UpdateBaker(accountBaker, src => src.BakerId,
-            (src, dst) => SetPendingChange(dst, src, blockInfo));
-
-        var effectiveTime = ((ActiveBakerState)updatedBaker.State).PendingChange!.EffectiveTime;
         if (!importState.NextPendingBakerChangeTime.HasValue ||
-            importState.NextPendingBakerChangeTime.Value > effectiveTime)
-            importState.NextPendingBakerChangeTime = effectiveTime;
+            importState.NextPendingBakerChangeTime.Value > pendingChangeTime)
+            importState.NextPendingBakerChangeTime = pendingChangeTime;
     }
 
-    private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
+    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo,
+        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
+        BakerUpdateResultsBuilder resultBuilder)
     {
-        if (source.PendingChange == null) throw new ArgumentException("Pending change must not be null");
-        
-        var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
-        activeState.PendingChange = source.PendingChange switch
-        {
-            AccountBakerRemovePendingV0 x => new PendingBakerRemoval(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.Epoch), 
-            AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
-            AccountBakerReduceStakePendingV0 x => new PendingBakerReduceStake(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.NewStake.MicroCcdValue, x.Epoch),
-            AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
-            _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
-        };
-    }
-
-    public static DateTimeOffset CalculateEffectiveTime(ulong epoch, DateTimeOffset blockSlotTime, int blockSlot)
-    {
-        // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
-        //       We should be able to change this once we switch to concordium node v4 or greater!
-        //
-        // BUILT-IN ASSUMPTIONS (that can change but probably wont):
-        //       Block time is 250ms
-        //       Epoch duration is 1 hour
-        
-        var millisecondsSinceEraGenesis = (long)blockSlot * 250; // cast to long to avoid overflow!
-        var eraGenesisTime = blockSlotTime.AddMilliseconds(-1 * millisecondsSinceEraGenesis);
-        var effectiveTime = eraGenesisTime.AddHours(epoch);
-        
-        return effectiveTime;
-    }
-
-    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo, ImportState importState, BakerUpdateResultsBuilder resultBuilder)
-    {
-        if (blockInfo.BlockSlotTime >= importState.NextPendingBakerChangeTime)
+        if (blockInfo.BlockSlotTime >= importState.NextPendingBakerChangeTime && pendingChangeStrategy.MustApplyPendingChangesDue())
         {
             await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, baker => ApplyPendingChange(baker, resultBuilder));
 
