@@ -22,7 +22,8 @@ public class DelegationImportHandler
             .ToArray();
 
         var txEvents = allTransactionEvents.Where(x => x
-            is ConcordiumSdk.NodeApi.Types.DelegationAdded);
+            is ConcordiumSdk.NodeApi.Types.DelegationAdded
+            or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings);
 
         await UpdateDelegationFromTransactionEvents(txEvents);
     }
@@ -31,14 +32,24 @@ public class DelegationImportHandler
     {
         foreach (var txEvent in txEvents)
         {
-            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationAdded delegationAdded)
+            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationAdded added)
             {
-                await _writer.UpdateAccount(delegationAdded,
+                await _writer.UpdateAccount(added,
                     src => src.DelegatorId,
                     (_, dst) =>
                     {
                         if (dst.Delegation != null) throw new InvalidOperationException("Trying to add delegation to an account that already has a delegation set!");
                         dst.Delegation = new Delegation(false);
+                    });
+            }
+            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings setRestakeEarnings)
+            {
+                await _writer.UpdateAccount(setRestakeEarnings,
+                    src => src.DelegatorId,
+                    (src, dst) =>
+                    {
+                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
+                        dst.Delegation.RestakeEarnings = src.RestakeEarnings;
                     });
             }
         }
