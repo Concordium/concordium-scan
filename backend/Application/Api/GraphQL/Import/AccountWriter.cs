@@ -165,6 +165,24 @@ public class AccountWriter
         
         await context.SaveChangesAsync();
     }
+    
+    public async Task UpdateAccountsWithPendingDelegationChange(DateTimeOffset effectiveTimeEqualOrBefore, Action<Account> updateAction)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccountsWithPendingDelegationChange));
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        var sql = $"select * from graphql_accounts where delegation_pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
+        var accounts = await context.Accounts
+            .FromSqlRaw(sql)
+            .ToArrayAsync();
+
+        foreach (var account in accounts)
+            updateAction(account);
+            
+        await context.SaveChangesAsync();
+    }
+
 }
 
 public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);

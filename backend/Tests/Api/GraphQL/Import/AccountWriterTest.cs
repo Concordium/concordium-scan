@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Import;
 using Dapper;
 using FluentAssertions;
@@ -15,6 +14,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly AccountWriter _target;
+    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public AccountWriterTest(DatabaseFixture dbFixture)
     {
@@ -127,6 +127,30 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         accounts[0].Amount.Should().Be(0UL);
         accounts[1].Amount.Should().Be(101000UL);
         accounts[2].Amount.Should().Be(1500UL);
+    }
+    
+    [Theory]
+    [InlineData(10, new long[] {}, new long[] { 10, 11, 12, 13, 14 })]
+    [InlineData(59, new long[] {12}, new long[] { 10, 11, 13, 14 })]
+    [InlineData(60, new long[] {10, 12}, new long[] { 11, 13, 14 })]
+    [InlineData(61, new long[] {10, 12}, new long[] { 11, 13, 14 })]
+    [InlineData(90, new long[] {10, 11, 12}, new long[] { 13, 14 })]
+    public async Task UpdateAccountsWithPendingDelegationChange(int minutesToAdd, long[] expectedAccountIdsModified, long[] expectedAccountIdsNotModified)
+    {
+        await AddAccounts(
+            new AccountBuilder().WithId(10).WithDelegation(new DelegationBuilder().WithPendingChange(new PendingDelegationRemoval(_anyDateTimeOffset.AddMinutes(60))).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(11).WithDelegation(new DelegationBuilder().WithPendingChange(new PendingDelegationReduceStake(_anyDateTimeOffset.AddMinutes(90), 1000)).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(12).WithDelegation(new DelegationBuilder().WithPendingChange(new PendingDelegationRemoval(_anyDateTimeOffset.AddMinutes(30))).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(13).WithDelegation(new DelegationBuilder().WithPendingChange(null).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(14).WithDelegation(null).WithUniqueAddress().Build());
+
+        await _target.UpdateAccountsWithPendingDelegationChange(_anyDateTimeOffset.AddMinutes(minutesToAdd), baker => baker.Amount = 100);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var fromDb = await context.Accounts.OrderBy(x => x.Id).ToArrayAsync();
+
+        fromDb.Where(x => x.Amount == 100).Select(x => x.Id).Should().Equal(expectedAccountIdsModified);
+        fromDb.Where(x => x.Amount != 100).Select(x => x.Id).Should().Equal(expectedAccountIdsNotModified);
     }
 
     private record AccountUpdateStub(ulong AccountId, ulong ValueToAdd); 

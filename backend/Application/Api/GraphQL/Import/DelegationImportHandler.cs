@@ -8,10 +8,12 @@ namespace Application.Api.GraphQL.Import;
 public class DelegationImportHandler
 {
     private readonly AccountWriter _writer;
+    private readonly ILogger _logger;
 
     public DelegationImportHandler(AccountWriter writer)
     {
         _writer = writer;
+        _logger = Log.ForContext<DelegationImportHandler>();
     }
 
     public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters)
@@ -20,6 +22,13 @@ public class DelegationImportHandler
         {
             var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
             
+            var isFirstBlockAfterPayday = payload.BlockSummary.SpecialEvents.Any(x => x is PaydayPoolRewardSpecialEvent);
+            if (isFirstBlockAfterPayday)
+            {
+                _logger.Information($"Block at height {payload.BlockInfo.BlockHeight} with slot time {payload.BlockInfo.BlockSlotTime:G} was first block after payday!");
+                await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
+            }
+
             var allTransactionEvents = payload.BlockSummary.TransactionSummaries
                 .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
                 .SelectMany(x => x.Events)
@@ -33,6 +42,15 @@ public class DelegationImportHandler
 
             await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1);
         }
+    }
+    
+    private void ApplyPendingChange(Account account)
+    {
+        var delegation = account.Delegation ?? throw new InvalidOperationException("Apply pending delegation change to an account that has no delegation!");
+        if (delegation.PendingChange is PendingDelegationRemoval)
+            account.Delegation = null;
+        else if (delegation.PendingChange is PendingDelegationReduceStake)
+            delegation.PendingChange = null;
     }
 
     private async Task UpdateDelegationFromTransactionEvents(IEnumerable<TransactionResultEvent> txEvents,
