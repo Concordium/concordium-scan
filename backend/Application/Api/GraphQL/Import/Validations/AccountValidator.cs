@@ -26,7 +26,7 @@ public class AccountValidator
         var blockHash = blockHashes.Single();
             
         var accountAddresses = await _nodeClient.GetAccountListAsync(blockHash);
-        var nodeBalances = new List<Item>();
+        var nodeAccountInfos = new List<AccountInfo>();
         var nodeAccountBakers = new List<AccountBaker>();
 
         foreach (var chunk in Chunk(accountAddresses, 10))
@@ -34,8 +34,7 @@ public class AccountValidator
             var accountInfos = await Task.WhenAll(chunk
                 .Select(x => _nodeClient.GetAccountInfoAsync(x, blockHash)));
             
-            nodeBalances.AddRange(accountInfos
-                .Select(x => new Item(x.AccountAddress.AsString, (long)x.AccountAmount.MicroCcdValue)));
+            nodeAccountInfos.AddRange(accountInfos);
             
             nodeAccountBakers.AddRange(accountInfos
                 .Where(x => x.AccountBaker != null)
@@ -44,33 +43,56 @@ public class AccountValidator
         }
         
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        await ValidateAccountBalances(nodeBalances, blockHeight, dbContext);
+        await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext);
         await ValidateBakers(nodeAccountBakers, blockHeight, dbContext);
     }
 
-    private async Task ValidateAccountBalances(List<Item> nodeBalances, ulong blockHeight, GraphQlDbContext dbContext)
+    private async Task ValidateAccounts(List<AccountInfo> nodeAccountInfos, ulong blockHeight, GraphQlDbContext dbContext)
     {
-        var dbBalances = await dbContext.Accounts
-            .Select(x => new Item(x.CanonicalAddress.AsString, (long)x.Amount))
+        var mappedNodeAccounts = nodeAccountInfos.Select(x => new
+            {
+                AccountAddress = x.AccountAddress.AsString,
+                AccountBalance = x.AccountAmount.MicroCcdValue,
+            })
+            .OrderBy(x => x.AccountAddress)
+            .ToArray();
+
+        var dbAccountInfos = await dbContext.Accounts.Select(x => new
+            {
+                x.CanonicalAddress,
+                x.Amount
+            })
             .ToArrayAsync();
 
-        var equal = nodeBalances.OrderBy(x => x.Address)
-            .SequenceEqual(dbBalances.OrderBy(x => x.Address));
+        var mappedDbAccounts = dbAccountInfos.Select(x => new
+            {
+                AccountAddress = x.CanonicalAddress.AsString,
+                AccountBalance = x.Amount
+            })
+            .OrderBy(x => x.AccountAddress)
+            .ToArray();
+        
+        var equal = mappedNodeAccounts.SequenceEqual(mappedDbAccounts);
+        
         _logger.Information(
-            "Validated {accountCount} accounts at block height {blockHeight}. Node and database balances equal: {result}",
-            nodeBalances.Count, blockHeight, equal);
+            "Validated {accountCount} accounts at block height {blockHeight}. Node and database accounts equal: {result}",
+            nodeAccountInfos.Count, blockHeight, equal);
 
         if (!equal)
         {
-            var diff1 = nodeBalances.Except(dbBalances);
-            var format = String.Join(Environment.NewLine,
-                diff1.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
-            _logger.Warning($"NodeBalances.Except(dbBalances): {Environment.NewLine}{format}");
+            var diff1 = mappedNodeAccounts.Except(mappedDbAccounts).ToArray();
+            if (diff1.Length > 0)
+            {
+                var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   {diff}"));
+                _logger.Warning($"node had accounts not in database: {Environment.NewLine}{format}");
+            }
 
-            var diff2 = dbBalances.Except(nodeBalances);
-            format = String.Join(Environment.NewLine,
-                diff2.Select(diff => $"   [Address={diff.Address}] [Amount={diff.Amount}]"));
-            _logger.Warning($"dbBalances.Except(nodeBalances): {Environment.NewLine}{format}");
+            var diff2 = mappedDbAccounts.Except(mappedNodeAccounts).ToArray();
+            if (diff2.Length > 0)
+            {
+                var format = String.Join(Environment.NewLine, diff2.Select(diff => $"   {diff}"));
+                _logger.Warning($"database had accounts not in node: {Environment.NewLine}{format}");
+            }
         }
     }
 
@@ -122,14 +144,14 @@ public class AccountValidator
             var diff1 = nodeBakers.Except(dbBakers).ToArray();
             if (diff1.Length > 0)
             {
-                var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   [BakerId={diff}]"));
+                var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   {diff}"));
                 _logger.Warning($"node had bakers not in database: {Environment.NewLine}{format}");
             }
 
             var diff2 = dbBakers.Except(nodeBakers).ToArray();
             if (diff2.Length > 0)
             {
-                var format = String.Join(Environment.NewLine, diff2.Select(diff => $"   [BakerId={diff}]"));
+                var format = String.Join(Environment.NewLine, diff2.Select(diff => $"   {diff}"));
                 _logger.Warning($"database had bakers not in node: {Environment.NewLine}{format}");
             }
         }

@@ -136,7 +136,7 @@ public class BakerImportHandler
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
     {
         // Migrate to baker pool first time a block with protocol version 4 (or greater) is encountered.
-        if (importState.MigrationToBakerPoolsCompleted || payload.BlockSummary.ProtocolVersion < 4)
+        if (importState.MigrationToBakerPoolsCompleted || !payload.BlockSummary.ProtocolVersion.HasValue || payload.BlockSummary.ProtocolVersion.Value < 4)
             return;
         
         _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
