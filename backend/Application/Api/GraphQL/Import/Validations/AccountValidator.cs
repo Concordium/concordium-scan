@@ -53,21 +53,33 @@ public class AccountValidator
             {
                 AccountAddress = x.AccountAddress.AsString,
                 AccountBalance = x.AccountAmount.MicroCcdValue,
+                Delegation = x.AccountDelegation == null ? null : new
+                {
+                    RestakeEarnings = x.AccountDelegation.RestakeEarnings
+                }
             })
             .OrderBy(x => x.AccountAddress)
             .ToArray();
 
-        var dbAccountInfos = await dbContext.Accounts.Select(x => new
+        var dbAccountInfos = await dbContext.Accounts
+            .AsNoTracking()
+            .Select(x => new
             {
                 x.CanonicalAddress,
-                x.Amount
+                x.Amount,
+                x.Delegation
             })
             .ToArrayAsync();
 
         var mappedDbAccounts = dbAccountInfos.Select(x => new
             {
                 AccountAddress = x.CanonicalAddress.AsString,
-                AccountBalance = x.Amount
+                AccountBalance = x.Amount,
+                Delegation = x.Delegation == null ? null : new
+                {
+                    RestakeEarnings = x.Delegation.RestakeEarnings
+                }
+
             })
             .OrderBy(x => x.AccountAddress)
             .ToArray();
@@ -117,6 +129,7 @@ public class AccountValidator
             .ToArray();
 
         var dbBakers = await dbContext.Bakers
+            .AsNoTracking()
             .Where(x => x.ActiveState != null)
             .Select(x => new
             {
