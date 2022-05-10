@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
@@ -55,7 +56,8 @@ public class AccountValidator
                 AccountBalance = x.AccountAmount.MicroCcdValue,
                 Delegation = x.AccountDelegation == null ? null : new
                 {
-                    RestakeEarnings = x.AccountDelegation.RestakeEarnings
+                    RestakeEarnings = x.AccountDelegation.RestakeEarnings,
+                    PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange)
                 }
             })
             .OrderBy(x => x.AccountAddress)
@@ -77,7 +79,8 @@ public class AccountValidator
                 AccountBalance = x.Amount,
                 Delegation = x.Delegation == null ? null : new
                 {
-                    RestakeEarnings = x.Delegation.RestakeEarnings
+                    RestakeEarnings = x.Delegation.RestakeEarnings,
+                    PendingChange = x.Delegation.PendingChange == null ? null : Format(x.Delegation.PendingChange)
                 }
 
             })
@@ -106,6 +109,26 @@ public class AccountValidator
                 _logger.Warning($"database had accounts not in node: {Environment.NewLine}{format}");
             }
         }
+    }
+
+    private string Format(AccountDelegationPendingChange pendingChange)
+    {
+        return pendingChange switch
+        {
+            AccountDelegationRemovePending x => $"Remove@{x.EffectiveTime:O}",
+            AccountDelegationReduceStakePending x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStake.MicroCcdValue}",
+            _ => throw new NotImplementedException()
+        };
+    }
+
+    private string Format(PendingDelegationChange pendingChange)
+    {
+        return pendingChange switch
+        {
+            PendingDelegationRemoval x => $"Remove@{x.EffectiveTime:O}",
+            PendingDelegationReduceStake x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStakedAmount}",
+            _ => throw new NotImplementedException()
+        };
     }
 
     private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, ulong blockHeight, GraphQlDbContext dbContext)

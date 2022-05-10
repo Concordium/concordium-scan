@@ -151,11 +151,11 @@ public class ImportWriteController : BackgroundService
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
         
-        var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
-        
-        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, importState);
-        await _delegationHandler.HandleDelegationUpdates(payload);
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
+
+        var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
+        var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, importState);
+        await _delegationHandler.HandleDelegationUpdates(payload, chainParameters);
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 

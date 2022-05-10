@@ -10,7 +10,9 @@ public class Delegation
     public Delegation(bool restakeEarnings)
     {
         RestakeEarnings = restakeEarnings;
+        PendingChange = null;
     }
 
     public bool RestakeEarnings { get; set; }
+    public PendingDelegationChange? PendingChange { get; set; }
 }

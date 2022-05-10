@@ -6,7 +6,8 @@
     ccd_amount                  bigint    not null,
     transaction_count           int       not null,
     created_at                  timestamp not null,
-    delegation_restake_earnings bool      null
+    delegation_restake_earnings bool      null,
+    delegation_pending_change   json      null
 );
 
 create unique index graphql_accounts_base_address_uindex

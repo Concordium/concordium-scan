@@ -12,6 +12,7 @@ public class AccountTest : IClassFixture<DatabaseFixture>
 {
     private readonly DatabaseFixture _dbFixture;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
+    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
     public AccountTest(DatabaseFixture dbFixture)
     {
@@ -44,6 +45,7 @@ public class AccountTest : IClassFixture<DatabaseFixture>
             .WithId(0)
             .WithDelegation(new DelegationBuilder()
                 .WithRestakeEarnings(true)
+                .WithPendingChange(null)
                 .Build())
             .Build();
 
@@ -53,6 +55,46 @@ public class AccountTest : IClassFixture<DatabaseFixture>
         var account = dbContext.Accounts.Single();
         account.Delegation.Should().NotBeNull();
         account.Delegation!.RestakeEarnings.Should().BeTrue();
+        account.Delegation.PendingChange.Should().BeNull();
+    }
+    
+    [Fact]
+    public async Task WriteAndReadAccount_DelegationNotNull_PendingChangeRemoveDelegation()
+    {
+        var entity = new AccountBuilder()
+            .WithId(0)
+            .WithDelegation(new DelegationBuilder()
+                .WithRestakeEarnings(true)
+                .WithPendingChange(new PendingDelegationRemoval(_anyDateTimeOffset))
+                .Build())
+            .Build();
+
+        await AddAccount(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var account = dbContext.Accounts.Single();
+        var change = account.Delegation!.PendingChange.Should().BeOfType<PendingDelegationRemoval>().Subject!;
+        change.EffectiveTime.Should().Be(_anyDateTimeOffset);
+    }
+    
+    [Fact]
+    public async Task WriteAndReadAccount_DelegationNotNull_PendingChangeReduceStake()
+    {
+        var entity = new AccountBuilder()
+            .WithId(0)
+            .WithDelegation(new DelegationBuilder()
+                .WithRestakeEarnings(true)
+                .WithPendingChange(new PendingDelegationReduceStake(_anyDateTimeOffset, 1000))
+                .Build())
+            .Build();
+
+        await AddAccount(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var account = dbContext.Accounts.Single();
+        var change = account.Delegation!.PendingChange.Should().BeOfType<PendingDelegationReduceStake>().Subject!;
+        change.EffectiveTime.Should().Be(_anyDateTimeOffset);
+        change.NewStakedAmount.Should().Be(1000UL);
     }
     
     private async Task AddAccount(Account entity)
