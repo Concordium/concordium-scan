@@ -41,6 +41,7 @@ public static class GrpcNodeJsonSerializerOptionsFactory
                 new InvalidReceiveMethodConverter(),
                 new AmountTooLargeConverter(),
                 new AccountBakerPendingChangeConverter(),
+                new AccountDelegationPendingChangeConverter(),
                 new BlockSummaryConverter(),
                 new DelegationTargetConverter(),
                 new RewardStatusConverter()

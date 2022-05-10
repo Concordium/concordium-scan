@@ -9,4 +9,5 @@ public class AccountInfo
     public ulong AccountIndex { get; init; }
     public AccountAddress AccountAddress { get; init; }
     public AccountBaker? AccountBaker { get; init; }
+    public AccountDelegation? AccountDelegation { get; init; }
 }
