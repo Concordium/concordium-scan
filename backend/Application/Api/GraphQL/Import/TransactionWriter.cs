@@ -165,6 +165,7 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission x => new Transactions.BakerSetFinalizationRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.FinalizationRewardCommission),
                 ConcordiumSdk.NodeApi.Types.DelegationAdded x => new Transactions.DelegationAdded(x.DelegatorId, MapAccountAddress(x.Account)),
                 ConcordiumSdk.NodeApi.Types.DelegationRemoved x => new Transactions.DelegationRemoved(x.DelegatorId, MapAccountAddress(x.Account)),
+                ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased x => new Transactions.DelegationStakeIncreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
                 ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased x => new Transactions.DelegationStakeDecreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
                 ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings x => new Transactions.DelegationSetRestakeEarnings(x.DelegatorId, MapAccountAddress(x.Account), x.RestakeEarnings),
                 ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget x => new Transactions.DelegationSetDelegationTarget(x.DelegatorId, MapAccountAddress(x.Account), MapDelegationTarget(x.DelegationTarget)),

@@ -37,7 +37,8 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(DelegationRemoved), 29 },
         { typeof(DelegationSetRestakeEarnings), 30 },
         { typeof(DelegationSetDelegationTarget), 31 },
-        { typeof(DelegationStakeDecreased), 32 },
+        { typeof(DelegationStakeIncreased), 32 },
+        { typeof(DelegationStakeDecreased), 33 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

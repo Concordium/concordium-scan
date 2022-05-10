@@ -43,6 +43,7 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
             { "BakerSetFinalizationRewardCommission", typeof(BakerSetFinalizationRewardCommission) },
             { "DelegationAdded", typeof(DelegationAdded) },
             { "DelegationRemoved", typeof(DelegationRemoved) },
+            { "DelegationStakeIncreased", typeof(DelegationStakeIncreased) },
             { "DelegationStakeDecreased", typeof(DelegationStakeDecreased) },
             { "DelegationSetRestakeEarnings", typeof(DelegationSetRestakeEarnings) },
             { "DelegationSetDelegationTarget", typeof(DelegationSetDelegationTarget) },

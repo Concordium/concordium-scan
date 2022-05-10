@@ -414,7 +414,16 @@ public record BakerSetFinalizationRewardCommission(
     }
 }
     
-// TODO: DelegationStakeIncreased 
+public record DelegationStakeIncreased(
+    ulong DelegatorId,
+    AccountAddress Account,
+    CcdAmount NewStake) : TransactionResultEvent
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Account;
+    }
+}
 
 public record DelegationStakeDecreased(
     ulong DelegatorId,

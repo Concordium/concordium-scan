@@ -38,6 +38,7 @@ using DelegationRemoved = ConcordiumSdk.NodeApi.Types.DelegationRemoved;
 using DelegationSetDelegationTarget = ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget;
 using DelegationSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings;
 using DelegationStakeDecreased = ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased;
+using DelegationStakeIncreased = ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased;
 using DuplicateAggregationKey = ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey;
 using DuplicateCredIds = ConcordiumSdk.NodeApi.Types.DuplicateCredIds;
 using EncryptedAmountSelfTransfer = ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer;
@@ -777,6 +778,24 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationRemoved>();
         result.DelegatorId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_DelegationStakeIncreased() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new DelegationStakeIncreased(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationStakeIncreased>();
+        result.DelegatorId.Should().Be(42);
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.NewStakedAmount.Should().Be(758111);
     }
 
     [Fact]

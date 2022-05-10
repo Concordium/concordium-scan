@@ -507,6 +507,26 @@ public class TransactionResultEventConverterTest
     }
     
     [Fact]
+    public void RoundTrip_DelegationStakeIncreased()
+    {
+        var json = @"{
+                        ""tag"": ""DelegationStakeIncreased"",
+                        ""account"": ""4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS"",
+                        ""newStake"": ""100000000"",
+                        ""delegatorId"": 27
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<DelegationStakeIncreased>(deserialized);
+        typed.DelegatorId.Should().Be(27);
+        typed.Account.AsString.Should().Be("4hbWAFJTSwYdt4ArhzAmCLdUYfnrf9C7EPNbc2Dt4bS4rUxhiS");
+        typed.NewStake.Should().Be(CcdAmount.FromMicroCcd(100000000));
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
     public void RoundTrip_DelegationStakeDecreased()
     {
         var json = @"{

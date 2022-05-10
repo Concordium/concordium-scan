@@ -229,6 +229,11 @@ public record DelegationRemoved(
     ulong DelegatorId,
     AccountAddress AccountAddress) : TransactionResultEvent;
 
+public record DelegationStakeIncreased(
+    ulong DelegatorId,
+    AccountAddress AccountAddress,
+    ulong NewStakedAmount) : TransactionResultEvent;
+
 public record DelegationStakeDecreased(
     ulong DelegatorId,
     AccountAddress AccountAddress,
