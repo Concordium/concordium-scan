@@ -3,14 +3,7 @@
 		<AccountDetailsHeader :account="account" />
 		<DrawerContent>
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
-				<DetailsCard>
-					<template #title>Amount (Ͼ)</template>
-					<template #default
-						><span class="numerical">
-							{{ convertMicroCcdToCcd(account.amount) }}
-						</span>
-					</template>
-				</DetailsCard>
+				<AccountDetailsAmounts :account="account" />
 				<DetailsCard>
 					<template #title>Age</template>
 					<template #default>
@@ -83,6 +76,11 @@
 
 <script lang="ts" setup>
 import AccountDetailsBaker from './AccountDetailsBaker.vue'
+import AccountDetailsHeader from './AccountDetailsHeader.vue'
+import AccountDetailsAmounts from './AccountDetailsAmounts.vue'
+import AccountDetailsTransactions from './AccountDetailsTransactions.vue'
+import AccountDetailsReleaseScheduleTransactions from './AccountDetailsReleaseScheduleTransactions.vue'
+import AccountDetailsAccountStatement from './AccountDetailsAccountStatement.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import {
@@ -91,12 +89,8 @@ import {
 	convertMicroCcdToCcd,
 } from '~/utils/format'
 import type { Account, PageInfo } from '~/types/generated'
-import AccountDetailsHeader from '~/components/Accounts/AccountDetailsHeader.vue'
-import AccountDetailsTransactions from '~/components/Accounts/AccountDetailsTransactions.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
-import AccountDetailsReleaseScheduleTransactions from '~/components/Accounts/AccountDetailsReleaseScheduleTransactions.vue'
-import AccountDetailsAccountStatement from '~/components/Accounts/AccountDetailsAccountStatement.vue'
 
 const { NOW } = useDateNow()
 

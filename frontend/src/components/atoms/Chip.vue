@@ -1,13 +1,23 @@
 ﻿<template>
 	<div
-		class="bg-theme-background-interactive px-3 rounded-full text-xs text-theme-interactiveDark"
+		class="px-2 rounded-full text-xs uppercase tracking-wider"
+		:class="{
+			'bg-theme-background-interactive': variant !== 'secondary',
+			'text-theme-interactiveDark': variant !== 'secondary',
+			'text-theme-interactive': variant === 'secondary',
+			border: variant === 'secondary',
+			'border-solid': variant === 'secondary',
+			'border-current': variant === 'secondary',
+		}"
 	>
 		<slot />
 	</div>
 </template>
 
 <script lang="ts" setup>
-/* type Props = {}
+type Props = {
+	variant?: 'primary' | 'secondary'
+}
 
-const props = defineProps<Props>() */
+defineProps<Props>()
 </script>
