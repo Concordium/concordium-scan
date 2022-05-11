@@ -21,7 +21,6 @@
 				</Tooltip>
 				<Chip class="inline-block ml-4 px-0" variant="secondary">Locked</Chip>
 			</div>
-			{{ account.baker?.state.__typename }}
 
 			<div
 				v-if="
