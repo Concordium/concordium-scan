@@ -174,6 +174,45 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         fromDb[3].Delegation.Should().BeNull();
     }
     
+    [Fact]
+    public async Task UpdateDelegationStakeIfRestakingEarnings_AccountDoesNotExist()
+    {
+        var reward = new AccountReward(42, 100);
+        await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { reward });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Accounts.ToArrayAsync();
+        result.Length.Should().Be(0);
+    }
+    
+    [Fact]
+    public async Task UpdateDelegationStakeIfRestakingEarnings_DelegationNull()
+    {
+        await AddAccounts(new AccountBuilder().WithId(42).WithDelegation(null).WithUniqueAddress().Build());
+    
+        var reward = new AccountReward(42, 100);
+        await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { reward });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Accounts.SingleAsync();
+        result.Delegation.Should().BeNull();
+    }
+    
+    [Theory]
+    [InlineData(false, 1000)]
+    [InlineData(true, 1100)]
+    public async Task UpdateDelegationStakeIfRestakingEarnings_DelegationNotNull(bool restakeEarnings, ulong expectedResult)
+    {
+        await AddAccounts(new AccountBuilder().WithId(42).WithDelegation(new DelegationBuilder().WithStakedAmount(1000).WithRestakeEarnings(restakeEarnings).Build()).WithUniqueAddress().Build());
+
+        var bakerStakeUpdate = new AccountReward(42, 100);
+        await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { bakerStakeUpdate });
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Accounts.SingleAsync();
+        result.Delegation!.StakedAmount.Should().Be(expectedResult);
+    }
+    
     private record AccountUpdateStub(ulong AccountId, ulong ValueToAdd); 
     
     private async Task AddAccounts(params Account[] entities)

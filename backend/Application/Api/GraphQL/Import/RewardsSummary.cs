@@ -38,3 +38,5 @@ public class RewardsSummary
         return new RewardsSummary(accountRewards.ToArray());
     }
 }
+
+public record AccountReward(long AccountId, long RewardAmount);

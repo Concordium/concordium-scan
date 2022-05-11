@@ -56,6 +56,7 @@ public class AccountValidator
                 AccountBalance = x.AccountAmount.MicroCcdValue,
                 Delegation = x.AccountDelegation == null ? null : new
                 {
+                    StakedAmount = x.AccountDelegation.StakedAmount.MicroCcdValue,
                     RestakeEarnings = x.AccountDelegation.RestakeEarnings,
                     PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange),
                     Delegation = Format(x.AccountDelegation.DelegationTarget)
@@ -80,6 +81,7 @@ public class AccountValidator
                 AccountBalance = x.Amount,
                 Delegation = x.Delegation == null ? null : new
                 {
+                    StakedAmount = x.Delegation.StakedAmount,
                     RestakeEarnings = x.Delegation.RestakeEarnings,
                     PendingChange = x.Delegation.PendingChange == null ? null : Format(x.Delegation.PendingChange),
                     Delegation = Format(x.Delegation.DelegationTarget)

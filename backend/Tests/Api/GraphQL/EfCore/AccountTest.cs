@@ -46,6 +46,7 @@ public class AccountTest : IClassFixture<DatabaseFixture>
         var entity = new AccountBuilder()
             .WithId(0)
             .WithDelegation(new DelegationBuilder()
+                .WithStakedAmount(4242)
                 .WithRestakeEarnings(true)
                 .WithPendingChange(null)
                 .Build())
@@ -56,7 +57,8 @@ public class AccountTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var account = dbContext.Accounts.Single();
         account.Delegation.Should().NotBeNull();
-        account.Delegation!.RestakeEarnings.Should().BeTrue();
+        account.Delegation!.StakedAmount.Should().Be(4242UL);
+        account.Delegation.RestakeEarnings.Should().BeTrue();
         account.Delegation.PendingChange.Should().BeNull();
     }
     

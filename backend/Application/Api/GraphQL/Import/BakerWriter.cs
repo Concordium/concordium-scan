@@ -112,10 +112,12 @@ public class BakerWriter
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
 
-    public async Task UpdateStakeIfBakerActiveRestakingEarnings(IEnumerable<AccountReward> stakeUpdates)
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings(AccountReward[] stakeUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateStakeIfBakerActiveRestakingEarnings));
 
+        if (stakeUpdates.Length == 0) return;
+        
         var sql = @"
             update graphql_bakers 
             set active_staked_amount = active_staked_amount + @AddedStake 
@@ -166,5 +168,3 @@ public class BakerWriter
         await context.SaveChangesAsync();
     }
 }
-
-public record AccountReward(long AccountId, long RewardAmount);

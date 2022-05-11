@@ -18,7 +18,7 @@ public class DelegationImportHandler
     }
 
     public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters,
-        BakerUpdateResults bakerUpdateResults, bool isFirstBlockAfterPayday)
+        BakerUpdateResults bakerUpdateResults, RewardsSummary rewardsSummary, bool isFirstBlockAfterPayday)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
@@ -37,11 +37,13 @@ public class DelegationImportHandler
             var txEvents = allTransactionEvents.Where(x => x
                 is ConcordiumSdk.NodeApi.Types.DelegationAdded
                 or ConcordiumSdk.NodeApi.Types.DelegationRemoved
+                or ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased
                 or ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased
                 or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings
                 or ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget);
 
             await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1);
+            await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
         }
     }
 
@@ -61,9 +63,14 @@ public class DelegationImportHandler
     {
         var delegation = account.Delegation ?? throw new InvalidOperationException("Apply pending delegation change to an account that has no delegation!");
         if (delegation.PendingChange is PendingDelegationRemoval)
+        {
             account.Delegation = null;
-        else if (delegation.PendingChange is PendingDelegationReduceStake)
+        }
+        else if (delegation.PendingChange is PendingDelegationReduceStake x)
+        {
+            delegation.StakedAmount = x.NewStakedAmount;
             delegation.PendingChange = null;
+        }
     }
 
     private async Task UpdateDelegationFromTransactionEvents(IEnumerable<TransactionResultEvent> txEvents,
@@ -103,6 +110,16 @@ public class DelegationImportHandler
                         dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, stakeDecreased.NewStake.MicroCcdValue);
                     });
             }
+            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased stakeIncreased)
+            {
+                await _writer.UpdateAccount(stakeIncreased,
+                    src => src.DelegatorId,
+                    (src, dst) =>
+                    {
+                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
+                        dst.Delegation.StakedAmount = src.NewStake.MicroCcdValue;
+                    });
+            }
             else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings setRestakeEarnings)
             {
                 await _writer.UpdateAccount(setRestakeEarnings,
@@ -138,6 +155,6 @@ public class DelegationImportHandler
 
     private static Delegation CreateDefaultDelegation()
     {
-        return new Delegation(false, new PassiveDelegationTarget());
+        return new Delegation(0, false, new PassiveDelegationTarget());
     }
 }

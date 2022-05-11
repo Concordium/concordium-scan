@@ -185,6 +185,8 @@ public class AccountWriter
     
     public async Task UpdateAccounts(Expression<Func<Account, bool>> whereClause, Action<Account> updateAction)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var accounts = await context.Accounts
@@ -198,6 +200,39 @@ public class AccountWriter
             
             await context.SaveChangesAsync();
         }
+    }
+    
+    public async Task UpdateDelegationStakeIfRestakingEarnings(AccountReward[] stakeUpdates)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateDelegationStakeIfRestakingEarnings));
+
+        if (stakeUpdates.Length == 0) return;
+        
+        var sql = @"
+            update graphql_accounts 
+            set delegation_staked_amount = delegation_staked_amount + @AddedStake 
+            where id = @AccountId 
+              and delegation_restake_earnings = true";
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+
+        var batch = conn.CreateBatch();
+        foreach (var stakeUpdate in stakeUpdates)
+        {
+            var cmd = batch.CreateBatchCommand();
+            cmd.CommandText = sql;
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", stakeUpdate.AccountId));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.RewardAmount));
+            batch.BatchCommands.Add(cmd);
+        }
+
+        await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+        await batch.ExecuteNonQueryAsync();
+        
+        await conn.CloseAsync();
     }
 }
 

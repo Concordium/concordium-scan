@@ -6,6 +6,7 @@
     ccd_amount                  bigint    not null,
     transaction_count           int       not null,
     created_at                  timestamp not null,
+    delegation_staked_amount    bigint    null,
     delegation_restake_earnings bool      null,
     delegation_target_baker_id  bigint    null,
     delegation_pending_change   json      null
