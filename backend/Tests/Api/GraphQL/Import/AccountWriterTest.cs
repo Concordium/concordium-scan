@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Import;
 using Dapper;
 using FluentAssertions;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -14,9 +16,9 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly AccountWriter _target;
-    private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private readonly DateTimeOffset _anyDateTimeOffset = new(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
-    public AccountWriterTest(DatabaseFixture dbFixture)
+    public AccountWriterTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new AccountWriter(_dbContextFactory, new NullMetrics());
@@ -26,8 +28,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE graphql_account_transactions");
         connection.Execute("TRUNCATE TABLE graphql_account_release_schedule");
         connection.Execute("TRUNCATE TABLE graphql_account_statement_entries");
-    }
-    
+    }    
     [Theory]
     [InlineData(0)]
     [InlineData(143)]
@@ -153,6 +154,26 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         fromDb.Where(x => x.Amount != 100).Select(x => x.Id).Should().Equal(expectedAccountIdsNotModified);
     }
 
+    [Fact]
+    public async Task UpdateAccounts_WithWhereClauseAndUpdateAction()
+    {
+        await AddAccounts(
+            new AccountBuilder().WithId(10).WithDelegation(new DelegationBuilder().WithDelegationTarget(new BakerDelegationTarget(42)).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(11).WithDelegation(new DelegationBuilder().WithDelegationTarget(new BakerDelegationTarget(43)).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(12).WithDelegation(new DelegationBuilder().WithDelegationTarget(new PassiveDelegationTarget()).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(13).WithDelegation(null).WithUniqueAddress().Build());
+
+        await _target.UpdateAccounts(x => x.Delegation != null && x.Delegation.DelegationTarget == new BakerDelegationTarget(42),
+            x => x.Delegation!.DelegationTarget = new PassiveDelegationTarget());
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var fromDb = await context.Accounts.OrderBy(x => x.Id).ToArrayAsync();
+        fromDb[0].Delegation!.DelegationTarget.Should().Be(new PassiveDelegationTarget());
+        fromDb[1].Delegation!.DelegationTarget.Should().Be(new BakerDelegationTarget(43));
+        fromDb[2].Delegation!.DelegationTarget.Should().Be(new PassiveDelegationTarget());
+        fromDb[3].Delegation.Should().BeNull();
+    }
+    
     private record AccountUpdateStub(ulong AccountId, ulong ValueToAdd); 
     
     private async Task AddAccounts(params Account[] entities)
@@ -160,6 +181,5 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         await using var context = _dbContextFactory.CreateDbContext();
         context.Accounts.AddRange(entities);
         await context.SaveChangesAsync();
-
     }
 }

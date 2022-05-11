@@ -120,7 +120,7 @@ public class MetricsWriter
 
     public async Task AddBakerMetrics(DateTimeOffset blockSlotTime, BakerUpdateResults results, ImportState importState)
     {
-        if (results.BakersAdded > 0 || results.BakersRemoved > 0)
+        if (results.BakersAddedCount > 0 || results.BakersRemovedCount > 0)
         {
             using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddBakerMetrics));
 
@@ -128,14 +128,14 @@ public class MetricsWriter
                 insert into metrics_bakers (time, total_baker_count, bakers_added, bakers_removed) 
                 values (@Time, @TotalBakerCount, @BakersAdded, @BakersRemoved)";
 
-            var updateBakerCount = importState.TotalBakerCount + results.BakersAdded - results.BakersRemoved;
+            var updateBakerCount = importState.TotalBakerCount + results.BakersAddedCount - results.BakersRemovedCount;
             
             var accountsParams = new
             {
                 Time = blockSlotTime,
                 TotalBakerCount = updateBakerCount,
-                BakersAdded = results.BakersAdded,
-                BakersRemoved = results.BakersRemoved
+                BakersAdded = results.BakersAddedCount,
+                BakersRemoved = results.BakersRemovedCount
             };
 
             await using var conn = new NpgsqlConnection(_settings.ConnectionString);

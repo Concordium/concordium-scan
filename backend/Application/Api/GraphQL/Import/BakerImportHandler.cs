@@ -249,6 +249,9 @@ public class BakerImportHandler
                         var pool = GetPool(dst);
                         pool.OpenStatus = src.OpenStatus.MapToGraphQlEnum();
                     });
+
+                if (openStatus.OpenStatus == ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForAll)
+                    resultBuilder.AddBakerClosedForAll((long)openStatus.BakerId);
             }
             
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL metadataUrl)
@@ -324,7 +327,7 @@ public class BakerImportHandler
         {
             _logger.Information("Baker with id {bakerId} will be removed.", baker.Id);
             baker.State = new RemovedBakerState(pendingRemoval.EffectiveTime);
-            resultBuilder.IncrementBakersRemoved();
+            resultBuilder.AddBakerRemoved(baker.Id);
         }
         else if (activeState.PendingChange is PendingBakerReduceStake reduceStake)
         {
@@ -369,7 +372,8 @@ public class BakerImportHandler
     {
         private ulong _totalAmountStaked = 0;
         private int _bakersAdded = 0;
-        private int _bakersRemoved = 0;
+        private readonly List<long> _bakersRemoved = new ();
+        private readonly List<long> _bakersClosedForAll = new ();
 
         public void SetTotalAmountStaked(ulong totalAmountStaked)
         {
@@ -378,7 +382,8 @@ public class BakerImportHandler
 
         public BakerUpdateResults Build()
         {
-            return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved);
+            return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved.ToArray(), 
+                _bakersClosedForAll.ToArray());
         }
 
         public void IncrementBakersAdded(int incrementValue = 1)
@@ -386,14 +391,23 @@ public class BakerImportHandler
             _bakersAdded += incrementValue;
         }
 
-        public void IncrementBakersRemoved()
+        public void AddBakerRemoved(long bakerId)
         {
-            _bakersRemoved += 1;
+            _bakersRemoved.Add(bakerId);
+        }
+
+        public void AddBakerClosedForAll(long bakerId)
+        {
+            _bakersClosedForAll.Add(bakerId);
         }
     }
 }
 
 public record BakerUpdateResults(
     ulong TotalAmountStaked,
-    int BakersAdded,
-    int BakersRemoved);
+    int BakersAddedCount,
+    long[] BakerIdsRemoved, 
+    long[] BakerIdsClosedForAll)
+{
+    public int BakersRemovedCount => BakerIdsRemoved.Length;
+};

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -16,7 +17,8 @@ public class DelegationImportHandler
         _logger = Log.ForContext<DelegationImportHandler>();
     }
 
-    public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters, bool isFirstBlockAfterPayday)
+    public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters,
+        BakerUpdateResults bakerUpdateResults, bool isFirstBlockAfterPayday)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
@@ -25,6 +27,8 @@ public class DelegationImportHandler
             if (isFirstBlockAfterPayday)
                 await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
 
+            await HandleBakersRemovedOrClosedForAll(bakerUpdateResults);
+            
             var allTransactionEvents = payload.BlockSummary.TransactionSummaries
                 .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
                 .SelectMany(x => x.Events)
@@ -34,12 +38,25 @@ public class DelegationImportHandler
                 is ConcordiumSdk.NodeApi.Types.DelegationAdded
                 or ConcordiumSdk.NodeApi.Types.DelegationRemoved
                 or ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased
-                or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings);
+                or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings
+                or ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget);
 
             await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1);
         }
     }
-    
+
+    private async Task HandleBakersRemovedOrClosedForAll(BakerUpdateResults bakerUpdateResults)
+    {
+        var bakerIds = bakerUpdateResults.BakerIdsRemoved
+            .Concat(bakerUpdateResults.BakerIdsClosedForAll);
+            
+        foreach (var bakerId in bakerIds)
+        {
+            var target = new BakerDelegationTarget((ulong)bakerId);
+            await _writer.UpdateAccounts(account => account.Delegation != null && account.Delegation.DelegationTarget == target, account => account.Delegation!.DelegationTarget = new PassiveDelegationTarget());
+        }
+    }
+
     private void ApplyPendingChange(Account account)
     {
         var delegation = account.Delegation ?? throw new InvalidOperationException("Apply pending delegation change to an account that has no delegation!");
@@ -61,10 +78,10 @@ public class DelegationImportHandler
                     (_, dst) =>
                     {
                         if (dst.Delegation != null) throw new InvalidOperationException("Trying to add delegation to an account that already has a delegation set!");
-                        dst.Delegation = new Delegation(false);
+                        dst.Delegation = CreateDefaultDelegation();
                     });
             }
-            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationRemoved removed)
+            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationRemoved removed)
             {
                 await _writer.UpdateAccount(removed,
                     src => src.DelegatorId,
@@ -75,7 +92,7 @@ public class DelegationImportHandler
                         dst.Delegation.PendingChange = new PendingDelegationRemoval(effectiveTime);
                     });
             }
-            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased stakeDecreased)
+            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased stakeDecreased)
             {
                 await _writer.UpdateAccount(stakeDecreased,
                     src => src.DelegatorId,
@@ -96,6 +113,31 @@ public class DelegationImportHandler
                         dst.Delegation.RestakeEarnings = src.RestakeEarnings;
                     });
             }
+            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget setDelegationTarget)
+            {
+                await _writer.UpdateAccount(setDelegationTarget,
+                    src => src.DelegatorId,
+                    (src, dst) =>
+                    {
+                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
+                        dst.Delegation.DelegationTarget = Map(src.DelegationTarget);
+                    });
+            }
         }
+    }
+
+    private DelegationTarget Map(ConcordiumSdk.NodeApi.Types.DelegationTarget source)
+    {
+        return source switch
+        {
+            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
+            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget(x.BakerId),
+            _ => throw new NotImplementedException()
+        };
+    }
+
+    private static Delegation CreateDefaultDelegation()
+    {
+        return new Delegation(false, new PassiveDelegationTarget());
     }
 }

@@ -23,6 +23,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         {
             delegationBuilder.Property(x => x.RestakeEarnings).HasColumnName("delegation_restake_earnings");
             delegationBuilder.Property(x => x.PendingChange).HasColumnName("delegation_pending_change").HasColumnType("json").HasConversion<PendingDelegationChangeToJsonConverter>();
+            delegationBuilder.Property(x => x.DelegationTarget).HasColumnName("delegation_target_baker_id").HasConversion<DelegationTargetToLong>();
         });
     }
 }

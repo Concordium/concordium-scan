@@ -1,10 +1,10 @@
 ﻿using System.Data;
 using System.Data.Common;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -182,7 +182,23 @@ public class AccountWriter
             
         await context.SaveChangesAsync();
     }
+    
+    public async Task UpdateAccounts(Expression<Func<Account, bool>> whereClause, Action<Account> updateAction)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
 
+        var accounts = await context.Accounts
+            .Where(whereClause)
+            .ToArrayAsync();
+        
+        if (accounts.Length > 0)
+        {
+            foreach (var account in accounts)
+                updateAction(account);
+            
+            await context.SaveChangesAsync();
+        }
+    }
 }
 
 public record AccountUpdate(long AccountId, long AmountAdjustment, int TransactionsAdded);

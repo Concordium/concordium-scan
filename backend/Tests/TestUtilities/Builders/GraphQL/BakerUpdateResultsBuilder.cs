@@ -5,8 +5,8 @@ namespace Tests.TestUtilities.Builders.GraphQL;
 public class BakerUpdateResultsBuilder
 {
     private ulong _totalAmountStaked = 0;
-    private int _bakersAdded = 0;
-    private int _bakersRemoved = 0;
+    private int _bakersAddedCount = 0;
+    private long[] _bakersRemoved = Array.Empty<long>();
 
     public BakerUpdateResultsBuilder WithTotalAmountStaked(ulong value)
     {
@@ -14,20 +14,22 @@ public class BakerUpdateResultsBuilder
         return this;
     }
 
-    public BakerUpdateResultsBuilder WithBakersAdded(int value)
+    public BakerUpdateResultsBuilder WithBakersAddedCount(int value)
     {
-        _bakersAdded = value;
+        _bakersAddedCount = value;
         return this;
     }
 
-    public BakerUpdateResultsBuilder WithBakersRemoved(int value)
+    public BakerUpdateResultsBuilder WithBakersRemovedCount(int value)
     {
-        _bakersRemoved = value;
+        _bakersRemoved = new long[value];
+        for (int i = 0; i < value; i++)
+            _bakersRemoved[i] = i + 1;
         return this;
     }
 
     public BakerUpdateResults Build()
     {
-        return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved);
+        return new BakerUpdateResults(_totalAmountStaked, _bakersAddedCount, _bakersRemoved, Array.Empty<long>());
     }
 }

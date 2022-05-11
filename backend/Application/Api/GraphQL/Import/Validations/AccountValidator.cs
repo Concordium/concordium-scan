@@ -57,7 +57,8 @@ public class AccountValidator
                 Delegation = x.AccountDelegation == null ? null : new
                 {
                     RestakeEarnings = x.AccountDelegation.RestakeEarnings,
-                    PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange)
+                    PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange),
+                    Delegation = Format(x.AccountDelegation.DelegationTarget)
                 }
             })
             .OrderBy(x => x.AccountAddress)
@@ -80,7 +81,8 @@ public class AccountValidator
                 Delegation = x.Delegation == null ? null : new
                 {
                     RestakeEarnings = x.Delegation.RestakeEarnings,
-                    PendingChange = x.Delegation.PendingChange == null ? null : Format(x.Delegation.PendingChange)
+                    PendingChange = x.Delegation.PendingChange == null ? null : Format(x.Delegation.PendingChange),
+                    Delegation = Format(x.Delegation.DelegationTarget)
                 }
 
             })
@@ -109,6 +111,26 @@ public class AccountValidator
                 _logger.Warning($"database had accounts not in node: {Environment.NewLine}{format}");
             }
         }
+    }
+
+    private string Format(DelegationTarget value)
+    {
+        return value switch
+        {
+            PassiveDelegationTarget => "passive",
+            BakerDelegationTarget x => $"baker {x.BakerId}",
+            _ => throw new NotImplementedException()
+        };
+    }
+
+    private string Format(ConcordiumSdk.NodeApi.Types.DelegationTarget value)
+    {
+        return value switch
+        {
+            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => "passive",
+            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => $"baker {x.BakerId}",
+            _ => throw new NotImplementedException()
+        };
     }
 
     private string Format(AccountDelegationPendingChange pendingChange)

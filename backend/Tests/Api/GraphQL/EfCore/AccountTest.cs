@@ -1,9 +1,11 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.EfCore;
 
@@ -14,10 +16,10 @@ public class AccountTest : IClassFixture<DatabaseFixture>
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
 
-    public AccountTest(DatabaseFixture dbFixture)
+    public AccountTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
         _dbFixture = dbFixture;
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings, outputHelper);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
@@ -95,6 +97,43 @@ public class AccountTest : IClassFixture<DatabaseFixture>
         var change = account.Delegation!.PendingChange.Should().BeOfType<PendingDelegationReduceStake>().Subject!;
         change.EffectiveTime.Should().Be(_anyDateTimeOffset);
         change.NewStakedAmount.Should().Be(1000UL);
+    }
+    
+    [Fact]
+    public async Task WriteAndReadAccount_DelegationNotNull_DelegationTargetPassive()
+    {
+        var entity = new AccountBuilder()
+            .WithId(0)
+            .WithDelegation(new DelegationBuilder()
+                .WithRestakeEarnings(true)
+                .WithDelegationTarget(new PassiveDelegationTarget())
+                .Build())
+            .Build();
+
+        await AddAccount(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var account = dbContext.Accounts.Single();
+        account.Delegation!.DelegationTarget.Should().BeOfType<PassiveDelegationTarget>();
+    }
+    
+    [Fact]
+    public async Task WriteAndReadAccount_DelegationNotNull_DelegationTargetBaker()
+    {
+        var entity = new AccountBuilder()
+            .WithId(0)
+            .WithDelegation(new DelegationBuilder()
+                .WithRestakeEarnings(true)
+                .WithDelegationTarget(new BakerDelegationTarget(42))
+                .Build())
+            .Build();
+
+        await AddAccount(entity);
+        
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var account = dbContext.Accounts.Single();
+        var result = account.Delegation!.DelegationTarget.Should().BeOfType<BakerDelegationTarget>().Subject!;
+        result.BakerId.Should().Be(42);
     }
     
     private async Task AddAccount(Account entity)

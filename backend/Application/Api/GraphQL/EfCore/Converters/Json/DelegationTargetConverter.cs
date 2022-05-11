@@ -1,6 +1,4 @@
-﻿using Application.Api.GraphQL.Transactions;
-
-namespace Application.Api.GraphQL.EfCore.Converters.Json;
+﻿namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
 public class DelegationTargetConverter : PolymorphicJsonConverter<DelegationTarget>
 {

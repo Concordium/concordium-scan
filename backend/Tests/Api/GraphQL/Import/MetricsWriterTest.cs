@@ -128,8 +128,8 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     public async Task AddBakerMetrics_NoChanges()
     {
         var input = new BakerUpdateResultsBuilder()
-            .WithBakersAdded(0)
-            .WithBakersRemoved(0)
+            .WithBakersAddedCount(0)
+            .WithBakersRemovedCount(0)
             .Build();
 
         var importState = new ImportStateBuilder()
@@ -152,8 +152,8 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     public async Task AddBakerMetrics_Changes(int bakersAdded, int bakersRemoved, int expectedTotalCount)
     {
         var input = new BakerUpdateResultsBuilder()
-            .WithBakersAdded(bakersAdded)
-            .WithBakersRemoved(bakersRemoved)
+            .WithBakersAddedCount(bakersAdded)
+            .WithBakersRemovedCount(bakersRemoved)
             .Build();
 
         var importState = new ImportStateBuilder()
