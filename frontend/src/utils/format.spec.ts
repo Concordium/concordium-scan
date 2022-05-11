@@ -31,6 +31,8 @@ describe('format', () => {
 		it('should default the comparision date to current date', () => {
 			const today = new Date()
 			today.setFullYear(today.getFullYear() + 2)
+			// prevent flakyness caused by "almost" and "about" both being N years
+			today.setMonth(today.getMonth() + 2)
 
 			const timestamp = today.toISOString()
 
@@ -42,6 +44,8 @@ describe('format', () => {
 		it('should show a suffix for a future date', () => {
 			const today = new Date()
 			today.setFullYear(today.getFullYear() + 2)
+			// prevent flakyness caused by "almost" and "about" both being N years
+			today.setMonth(today.getMonth() + 2)
 
 			const timestamp = today.toISOString()
 
@@ -53,6 +57,8 @@ describe('format', () => {
 		it('should show a suffix for a past date', () => {
 			const today = new Date()
 			today.setFullYear(today.getFullYear() - 2)
+			// prevent flakyness caused by "almost" and "about" both being N years
+			today.setMonth(today.getMonth() - 2)
 
 			const timestamp = today.toISOString()
 
