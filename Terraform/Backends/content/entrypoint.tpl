@@ -131,6 +131,7 @@ docker run -td \
   --log-driver none \
   -e ImportValidation:Enabled=${backend_import_validation_enabled} \
   -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
+  -e PostgresDatabase:ConnectionStringNodeCache="Host=postgres;Port=5432;Database=ccscan_node_cache;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.mainnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
@@ -143,6 +144,7 @@ docker run -td \
   --log-driver none \
   -e ImportValidation:Enabled=${backend_import_validation_enabled} \
   -e PostgresDatabase:ConnectionString="Host=postgres;Port=5432;Database=ccscan;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
+  -e PostgresDatabase:ConnectionStringNodeCache="Host=postgres;Port=5432;Database=ccscan_node_cache;User ID=${postgres_user};Password=${postgres_password};Include Error Detail=true;" \
   -e ConcordiumNodeGrpc:AuthenticationToken="${cc_node_auth_token}" \
   -v /data/backend-logs.testnet:/app/logs \
   ccscan.azurecr.io/${container_repository_backend}:latest 
