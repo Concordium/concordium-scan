@@ -16,10 +16,6 @@ type BlockQueryVariables = {
 	beforeTx: QueryVariables['before']
 	firstTx: QueryVariables['first']
 	lastTx: QueryVariables['last']
-	afterFinalizationRewards: QueryVariables['after']
-	beforeFinalizationRewards: QueryVariables['before']
-	firstFinalizationRewards: QueryVariables['first']
-	lastFinalizationRewards: QueryVariables['last']
 }
 
 const transactionsFragment = `
@@ -53,9 +49,8 @@ pageInfo {
 	hasNextPage
 }
 `
-
 const BlockQuery = gql<BlockResponse>`
-	query ($id: ID!, $afterTx: String, $beforeTx: String, $firstTx: Int, $lastTx: Int, $afterFinalizationRewards: String, $beforeFinalizationRewards: String, $firstFinalizationRewards: Int, $lastFinalizationRewards: Int) {
+	query ($id: ID!, $afterTx: String, $beforeTx: String, $firstTx: Int, $lastTx: Int) {
 		block(id: $id) {
 			id
 			blockHash
@@ -70,43 +65,6 @@ const BlockQuery = gql<BlockResponse>`
 				blockTime
 				finalizationTime
 			}
-			specialEventsOld {
-				mint {
-					bakingReward
-					finalizationReward
-					platformDevelopmentCharge
-				}
-				finalizationRewards {
-					remainder
-					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
-						nodes {
-							amount
-							address {
-								asString
-							}
-						}
-						pageInfo {
-							startCursor
-							endCursor
-							hasPreviousPage
-							hasNextPage
-						}
-					}
-				}
-				blockRewards {
-					bakerReward
-					transactionFees
-					oldGasAccount
-					newGasAccount
-					foundationCharge
-					bakerAccountAddress {
-						asString
-					}
-					foundationAccountAddress {
-						asString
-					}
-				}
-			}
 		}
 	}
 `
@@ -118,10 +76,6 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 		$beforeTx: String
 		$firstTx: Int
 		$lastTx: Int
-		$afterFinalizationRewards: String
-		$beforeFinalizationRewards: String
-		$firstFinalizationRewards: Int
-		$lastFinalizationRewards: Int
 	) {
 		blockByBlockHash(blockHash: $hash) {
 			id
@@ -136,43 +90,6 @@ const BlockQueryByHash = gql<BlockByBlockHashResponse>`
 			blockStatistics {
 				blockTime
 				finalizationTime
-			}
-			specialEventsOld {
-				mint {
-					bakingReward
-					finalizationReward
-					platformDevelopmentCharge
-				}
-				finalizationRewards {
-					remainder
-					rewards(after: $afterFinalizationRewards, before: $beforeFinalizationRewards, first: $firstFinalizationRewards, last: $lastFinalizationRewards) {
-						nodes {
-							amount
-							address {
-								asString
-							}
-						}
-						pageInfo {
-							startCursor
-							endCursor
-							hasPreviousPage
-							hasNextPage
-						}
-					}
-				}
-				blockRewards {
-					bakerReward
-					transactionFees
-					oldGasAccount
-					newGasAccount
-					foundationCharge
-					bakerAccountAddress {
-						asString
-					}
-					foundationAccountAddress {
-						asString
-					}
-				}
 			}
 		}
 	}

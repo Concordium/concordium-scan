@@ -11,9 +11,12 @@
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					<TableRow v-for="finalizer in data" :key="finalizer.address.asString">
+					<TableRow
+						v-for="finalizer in data"
+						:key="finalizer.accountAddress.asString"
+					>
 						<TableTd>
-							<AccountLink :address="finalizer.address.asString" />
+							<AccountLink :address="finalizer.accountAddress.asString" />
 						</TableTd>
 						<TableTd class="numerical text-right">
 							{{ calculateWeight(finalizer.amount, totalAmount) }}%
@@ -38,11 +41,11 @@
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd, calculateWeight } from '~/utils/format'
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { FinalizationReward, PageInfo } from '~/types/generated'
+import type { AccountAddressAmount, PageInfo } from '~/types/generated'
 
 type Props = {
-	data?: FinalizationReward[]
-	pageInfo: PageInfo
+	data?: AccountAddressAmount[]
+	pageInfo?: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 

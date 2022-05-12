@@ -27,26 +27,7 @@
 			<Accordion>
 				Tokenomics
 				<template #content>
-					<MintDistribution
-						v-if="props.block.specialEventsOld.mint"
-						:data="props.block.specialEventsOld.mint"
-					/>
-					<FinalizationRewards
-						v-if="
-							props.block.specialEventsOld.finalizationRewards?.rewards?.nodes
-						"
-						:data="
-							props.block.specialEventsOld.finalizationRewards.rewards.nodes
-						"
-						:page-info="
-							props.block.specialEventsOld.finalizationRewards.rewards.pageInfo
-						"
-						:go-to-page="props.goToPageFinalizationRewards"
-					/>
-					<BlockRewards
-						v-if="props.block.specialEventsOld.blockRewards"
-						:data="props.block.specialEventsOld.blockRewards"
-					/>
+					<BlockDetailsTokenomics :block-id="block.id" />
 				</template>
 			</Accordion>
 			<Accordion>
@@ -80,13 +61,11 @@
 <script lang="ts" setup>
 import BlockDetailsHeader from './BlockDetailsHeader.vue'
 import BlockDetailsStatistics from './BlockDetailsStatistics.vue'
+import BlockDetailsTokenomics from './BlockDetailsTokenomics.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'
-import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
-import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
-import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
 import type { PageInfo, Block } from '~/types/generated'
@@ -98,9 +77,6 @@ const { NOW } = useDateNow()
 type Props = {
 	block: Block
 	goToPageTx: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageFinalizationRewards: (
-		page: PageInfo
-	) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()

@@ -45,10 +45,10 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd } from '~/utils/format'
-import type { Mint } from '~/types/generated'
+import type { MintSpecialEvent } from '~/types/generated'
 
 type Props = {
-	data: Mint
+	data: MintSpecialEvent
 }
 
 defineProps<Props>()

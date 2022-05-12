@@ -50,11 +50,11 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import { convertMicroCcdToCcd } from '~/utils/format'
-import type { BlockRewards } from '~/types/generated'
+import type { BlockRewardsSpecialEvent } from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 
 type Props = {
-	data: BlockRewards
+	data: BlockRewardsSpecialEvent
 }
 
 defineProps<Props>()
