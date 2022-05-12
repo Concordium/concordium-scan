@@ -23,13 +23,13 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
-    private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
+    private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new();
     private readonly DelegationUpdateResultsBuilder _delegationUpdateResultsBuilder = new();
     private int _chainParametersId = 20;
 
     public BlockWriterTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings, outputHelper);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new BlockWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();

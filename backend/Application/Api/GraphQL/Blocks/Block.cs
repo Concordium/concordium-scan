@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
@@ -26,12 +27,43 @@ public class Block : IBlockOrTransactionUnion
 
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<SpecialEvent> GetSpecialEvents([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<SpecialEvent> GetSpecialEvents(
+        [ScopedService] GraphQlDbContext dbContext,
+        [GraphQLDescription("Filter special events by special event type. Set to null to return all special events (no filtering).")]
+        SpecialEventTypeFilter[]? includeFilter = null)
     {
-        return dbContext.SpecialEvents
+        var query = dbContext.SpecialEvents
             .AsNoTracking()
-            .Where(x => x.BlockId == Id)
+            .Where(x => x.BlockId == Id);
+
+        if (includeFilter != null)
+        {
+            var parameter = Expression.Parameter(typeof(SpecialEvent));
+            var includedTypes = includeFilter.Select(Map);
+            var typeIsExpressions = includedTypes.Select(x => Expression.TypeIs(parameter, x));
+            var combinedExpression = typeIsExpressions.Cast<Expression>().Aggregate(Expression.Or);
+            var filterLambda = Expression.Lambda<Func<SpecialEvent, bool>>(combinedExpression, parameter);
+            query = query.Where(filterLambda);
+        }
+
+        return query
             .OrderBy(x => x.Index);
+    }
+
+    private Type Map(SpecialEventTypeFilter arg)
+    {
+        return arg switch
+        {
+            SpecialEventTypeFilter.Mint =>typeof(MintSpecialEvent), 
+            SpecialEventTypeFilter.FinalizationRewards =>typeof(FinalizationRewardsSpecialEvent),
+            SpecialEventTypeFilter.BlockRewards =>typeof(BlockRewardsSpecialEvent),
+            SpecialEventTypeFilter.BakingRewards =>typeof(BakingRewardsSpecialEvent),
+            SpecialEventTypeFilter.PaydayAccountReward =>typeof(PaydayAccountRewardSpecialEvent),
+            SpecialEventTypeFilter.BlockAccrueReward =>typeof(BlockAccrueRewardSpecialEvent),
+            SpecialEventTypeFilter.PaydayFoundationReward =>typeof(PaydayFoundationRewardSpecialEvent), 
+            SpecialEventTypeFilter.PaydayPoolReward =>typeof(PaydayPoolRewardSpecialEvent), 
+            _ => throw new NotImplementedException()
+        };
     }
 
     [UseDbContext(typeof(GraphQlDbContext))]
@@ -53,4 +85,16 @@ public class Block : IBlockOrTransactionUnion
             .AsNoTracking()
             .SingleAsync(x => x.Id == ChainParametersId);
     }
+}
+
+public enum SpecialEventTypeFilter
+{
+    Mint,
+    FinalizationRewards,
+    BlockRewards,
+    BakingRewards,
+    PaydayAccountReward,
+    BlockAccrueReward,
+    PaydayFoundationReward,
+    PaydayPoolReward
 }
