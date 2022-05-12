@@ -20,8 +20,13 @@ public class GrpcNodeClient : INodeClient, IDisposable
     private readonly Metadata _metadata;
     private readonly GrpcChannel _grpcChannel;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
+    private readonly IGrpcNodeCache _cache;
 
-    public GrpcNodeClient(GrpcNodeClientSettings settings, HttpClient httpClient)
+    public GrpcNodeClient(GrpcNodeClientSettings settings, HttpClient httpClient) : this(settings, httpClient, new NullGrpcNodeCache())
+    {
+    }
+
+    public GrpcNodeClient(GrpcNodeClientSettings settings, HttpClient httpClient, IGrpcNodeCache cache)
     {
         _metadata = new Metadata
         {
@@ -39,6 +44,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
         _client = new P2P.P2PClient(_grpcChannel);
 
         _jsonSerializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
+        _cache = cache;
     }
 
     public async Task<ConsensusStatus> GetConsensusStatusAsync(CancellationToken cancellationToken = default)
@@ -88,23 +94,21 @@ public class GrpcNodeClient : INodeClient, IDisposable
 
     public async Task<string> GetBlockSummaryStringAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
-        var blockSummary = _lastBlockSummary;
-        if (blockSummary?.Item1 == blockHash)
-            return blockSummary.Item2;
-        
-        var request = new Concordium.BlockHash
+        var result = await _cache.GetOrCreateBlockSummaryAsync(blockHash.AsString, async () =>
         {
-            BlockHash_ = blockHash.AsString
-        };
+            var request = new Concordium.BlockHash
+            {
+                BlockHash_ = blockHash.AsString
+            };
+
+            var call = _client.GetBlockSummaryAsync(request, CreateCallOptions(cancellationToken));
+            var response = await call;
+            return response.Value;
+        });
         
-        var call = _client.GetBlockSummaryAsync(request, CreateCallOptions(cancellationToken));
-        var response = await call;
-        _lastBlockSummary = new Tuple<BlockHash, string>(blockHash, response.Value);
-        return response.Value;
+        return result;
     }
 
-    private Tuple<BlockHash, string> _lastBlockSummary;
-    
     public async Task<BlockSummaryBase> GetBlockSummaryAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var stringResponse = await GetBlockSummaryStringAsync(blockHash, cancellationToken);

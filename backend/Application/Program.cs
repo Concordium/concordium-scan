@@ -59,6 +59,7 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
+builder.Services.AddSingleton<IGrpcNodeCache, NodeCache>();
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
@@ -72,7 +73,7 @@ var app = builder.Build();
 try
 {
     logger.Information("Starting database migration...");
-    app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabase();
+    app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabases();
     logger.Information("Database migration finished successfully");
 
     app

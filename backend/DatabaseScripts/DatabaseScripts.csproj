@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="SqlScripts/*.sql" />
+        <EmbeddedResource Include="SqlScriptsNodeCache/*.sql" />
     </ItemGroup>
 
     <!--

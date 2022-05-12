@@ -9,6 +9,8 @@ namespace Application.Database
 {
     public class DatabaseMigrator
     {
+        private const string MainDatabaseSqlScriptsFolder = "SqlScripts";
+        private const string NodeCacheSqlScriptsFolder = "SqlScriptsNodeCache";
         private readonly DatabaseSettings _settings;
         private readonly ILogger _logger;
         private readonly DbUpLogWrapper _dbUpLogWrapper;
@@ -22,11 +24,16 @@ namespace Application.Database
             _sqlScriptsAssembly = typeof(DatabaseScriptsMarkerType).Assembly;
         }
 
-        public void MigrateDatabase()
+        public void MigrateDatabases()
         {
-            EnsureDatabase.For.PostgresqlDatabase(_settings.ConnectionString, _dbUpLogWrapper);
+            MigrateDatabase(_settings.ConnectionString, MainDatabaseSqlScriptsFolder);
+            MigrateDatabase(_settings.ConnectionStringNodeCache, NodeCacheSqlScriptsFolder);
+        }
+        private void MigrateDatabase(string connectionString, string sqlScriptsFolder)
+        {
+            EnsureDatabase.For.PostgresqlDatabase(connectionString, _dbUpLogWrapper);
 
-            var upgrader = GetUpgrader();
+            var upgrader = GetUpgrader(connectionString, sqlScriptsFolder);
             EnsureExecutedScriptsStillExist(upgrader);
             
             if (upgrader.IsUpgradeRequired())
@@ -49,39 +56,12 @@ namespace Application.Database
             }
         }
 
-        public void EnsureDatabaseMigrationNotNeeded()
-        {
-            _logger.Information("Ensuring that database exists and that it is fully upgraded...");
-            
-            var upgrader = GetUpgrader();
-            bool isUpgradeRequired;
-            try
-            {
-                isUpgradeRequired = upgrader.IsUpgradeRequired();
-                if (isUpgradeRequired)
-                    _logger.Warning("Database exists but requires upgrading. Run the application in database migration mode to upgrade database.");
-                else
-                    _logger.Information("Database exists and is fully upgraded.");
-            }
-            catch (PostgresException e)
-            {
-                if (e.SqlState == "3D000") 
-                {
-                    _logger.Warning("Database does not exist. Run the application in database migration mode to create and upgrade database.");
-                    isUpgradeRequired = true;
-                }
-                else
-                    throw;
-            }
-            
-            if (isUpgradeRequired)
-                throw new DatabaseValidationException("Database upgrade required!");
-        }
-
         public void EnsureScriptNamingConventionsFollowed()
         {
-            var upgrader = GetUpgrader();
-            EnsureScriptNamingConventionsFollowed(upgrader);
+            var mainUpgrader = GetUpgrader(_settings.ConnectionString, MainDatabaseSqlScriptsFolder);
+            EnsureScriptNamingConventionsFollowed(mainUpgrader);
+            var nodeCacheUpgrader = GetUpgrader(_settings.ConnectionStringNodeCache, NodeCacheSqlScriptsFolder);
+            EnsureScriptNamingConventionsFollowed(nodeCacheUpgrader);
         }
 
         private void EnsureScriptNamingConventionsFollowed(UpgradeEngine upgrader)
@@ -98,11 +78,11 @@ namespace Application.Database
                 throw new DatabaseValidationException($"Already executed scripts are no longer present: {string.Join(", ", executedButNotDiscoveredScripts)}");
         }
 
-        private UpgradeEngine GetUpgrader()
+        private UpgradeEngine GetUpgrader(string connectionString, string sqlScriptsFolder)
         {
             var upgrader = DeployChanges.To
-                .PostgresqlDatabase(_settings.ConnectionString)
-                .WithScriptsEmbeddedInAssembly(_sqlScriptsAssembly, scriptPath => scriptPath.EndsWith(".sql") && scriptPath.Contains(".SqlScripts."))
+                .PostgresqlDatabase(connectionString)
+                .WithScriptsEmbeddedInAssembly(_sqlScriptsAssembly, scriptPath => scriptPath.EndsWith(".sql") && scriptPath.Contains($".{sqlScriptsFolder}."))
                 .LogTo(_dbUpLogWrapper)
                 .WithTransaction()
                 .Build();

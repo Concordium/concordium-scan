@@ -9,7 +9,12 @@ public class DatabaseFixture
     private static bool _databaseAlreadyMigrated;
 
     public const string ConnectionString = "Host=localhost;Port=5432;Database=ccscan_unittest;User ID=postgres;Password=lingo-bingo;Include Error Detail=true;";
-    public DatabaseSettings DatabaseSettings => new() {ConnectionString = ConnectionString};
+    public const string ConnectionStringNodeCache = "Host=localhost;Port=5432;Database=ccscan_node_cache_unittest;User ID=postgres;Password=lingo-bingo;Include Error Detail=true;";
+    public DatabaseSettings DatabaseSettings => new()
+    {
+        ConnectionString = ConnectionString,
+        ConnectionStringNodeCache = ConnectionStringNodeCache
+    };
 
     public DatabaseFixture()
     {
@@ -18,7 +23,7 @@ public class DatabaseFixture
             if (!_databaseAlreadyMigrated)
             {
                 var databaseMigrator = new DatabaseMigrator(DatabaseSettings);
-                databaseMigrator.MigrateDatabase();
+                databaseMigrator.MigrateDatabases();
 
                 Console.WriteLine("Database migrated");
                 _databaseAlreadyMigrated = true;
@@ -31,7 +36,12 @@ public class DatabaseFixture
         var connection = new NpgsqlConnection(ConnectionString);
         connection.Open();
         return connection;
-
-
+    }
+    
+    public NpgsqlConnection GetOpenNodeCacheConnection()
+    {
+        var connection = new NpgsqlConnection(ConnectionStringNodeCache);
+        connection.Open();
+        return connection;
     }
 }
