@@ -414,34 +414,6 @@ type BakersEdge {
   node: Baker!
 }
 
-type BakingReward {
-  amount: UnsignedLong!
-  address: AccountAddress!
-}
-
-"A connection to a list of items."
-type BakingRewardConnection {
-  "Information to aid in pagination."
-  pageInfo: PageInfo!
-  "A list of edges."
-  edges: [BakingRewardEdge!]
-  "A flattened list of the nodes."
-  nodes: [BakingReward!]
-}
-
-"An edge in a connection."
-type BakingRewardEdge {
-  "A cursor for use in pagination."
-  cursor: String!
-  "The item at the end of the edge."
-  node: BakingReward!
-}
-
-type BakingRewards {
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakingRewardConnection
-  remainder: UnsignedLong!
-}
-
 type BakingRewardsSpecialEvent {
   bakingRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountAddressAmountConnection
   remainder: UnsignedLong!
@@ -468,7 +440,7 @@ type BalanceStatistics {
 }
 
 type Block {
-  specialEvents("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SpecialEventsConnection
+  specialEvents("Filter special events by special event type. Set to null to return all special events (no filtering)." includeFilter: [SpecialEventTypeFilter!] "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SpecialEventsConnection
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   chainParameters: ChainParameters!
   id: ID!
@@ -478,7 +450,6 @@ type Block {
   bakerId: Int
   finalized: Boolean!
   transactionCount: Int!
-  specialEventsOld: SpecialEvents!
   finalizationSummary: FinalizationSummary
   balanceStatistics: BalanceStatistics!
   blockStatistics: BlockStatistics!
@@ -561,16 +532,6 @@ type BlockMetricsBuckets {
   y_MaxTotalMicroCcdStaked: [Long!]!
   "The total amount of CCD staked at the end of the bucket period. Intended y-axis value."
   y_LastTotalMicroCcdStaked: [Long!]!
-}
-
-type BlockRewards {
-  transactionFees: UnsignedLong!
-  oldGasAccount: UnsignedLong!
-  newGasAccount: UnsignedLong!
-  bakerReward: UnsignedLong!
-  foundationCharge: UnsignedLong!
-  bakerAccountAddress: AccountAddress!
-  foundationAccountAddress: AccountAddress!
 }
 
 type BlockRewardsSpecialEvent {
@@ -805,34 +766,6 @@ type ExchangeRate {
   denominator: UnsignedLong!
 }
 
-type FinalizationReward {
-  amount: UnsignedLong!
-  address: AccountAddress!
-}
-
-"A connection to a list of items."
-type FinalizationRewardConnection {
-  "Information to aid in pagination."
-  pageInfo: PageInfo!
-  "A list of edges."
-  edges: [FinalizationRewardEdge!]
-  "A flattened list of the nodes."
-  nodes: [FinalizationReward!]
-}
-
-"An edge in a connection."
-type FinalizationRewardEdge {
-  "A cursor for use in pagination."
-  cursor: String!
-  "The item at the end of the edge."
-  node: FinalizationReward!
-}
-
-type FinalizationRewards {
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): FinalizationRewardConnection
-  remainder: UnsignedLong!
-}
-
 type FinalizationRewardsSpecialEvent {
   finalizationRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountAddressAmountConnection
   remainder: UnsignedLong!
@@ -966,13 +899,6 @@ type LeverageFactor {
 
 type MicroCcdPerEuroChainUpdatePayload {
   exchangeRate: ExchangeRate!
-}
-
-type Mint {
-  bakingReward: UnsignedLong!
-  finalizationReward: UnsignedLong!
-  platformDevelopmentCharge: UnsignedLong!
-  foundationAccountAddress: AccountAddress!
 }
 
 type MintDistributionChainUpdatePayload {
@@ -1219,13 +1145,6 @@ type SerializationFailure {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
-type SpecialEvents {
-  mint: Mint
-  finalizationRewards: FinalizationRewards
-  blockRewards: BlockRewards
-  bakingRewards: BakingRewards
-}
-
 "A connection to a list of items."
 type SpecialEventsConnection {
   "Information to aid in pagination."
@@ -1462,6 +1381,17 @@ enum MetricsPeriod {
   LAST7_DAYS
   LAST30_DAYS
   LAST_YEAR
+}
+
+enum SpecialEventTypeFilter {
+  MINT
+  FINALIZATION_REWARDS
+  BLOCK_REWARDS
+  BAKING_REWARDS
+  PAYDAY_ACCOUNT_REWARD
+  BLOCK_ACCRUE_REWARD
+  PAYDAY_FOUNDATION_REWARD
+  PAYDAY_POOL_REWARD
 }
 
 enum TextDecodeType {

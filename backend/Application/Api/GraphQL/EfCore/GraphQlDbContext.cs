@@ -12,8 +12,6 @@ public class GraphQlDbContext : DbContext
     public DbSet<ImportState> ImportState { get; private set; }
     public DbSet<ChainParameters> ChainParameters { get; private set; }
     public DbSet<Block> Blocks { get; private set; }
-    public DbSet<BlockRelated<FinalizationReward>> FinalizationRewards { get; private set; }
-    public DbSet<BlockRelated<BakingReward>> BakingRewards { get; private set; }
     public DbSet<BlockRelated<FinalizationSummaryParty>> FinalizationSummaryFinalizers { get; private set; }
     public DbSet<SpecialEvent> SpecialEvents { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }

@@ -10,7 +10,7 @@ public class BlockBuilder
     private long _id = 0;
     private int _blockHeight = 47;
     private string _blockHash = "5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1";
-    private DateTimeOffset _blockSlotTime = new DateTimeOffset(2010, 10, 10, 12, 0, 0, TimeSpan.Zero);
+    private DateTimeOffset _blockSlotTime = new(2010, 10, 10, 12, 0, 0, TimeSpan.Zero);
     private FinalizationSummary? _finalizationSummary = null;
     private BalanceStatistics _balanceStatistics = new BalanceStatisticsBuilder().Build();
     private BlockStatistics _blockStatistics = new BlockStatisticsBuilder().Build();
@@ -26,7 +26,6 @@ public class BlockBuilder
             BakerId = 7,
             Finalized = true,
             TransactionCount = 0,
-            SpecialEventsOld = new SpecialEvents(),
             FinalizationSummary = _finalizationSummary,
             BalanceStatistics = _balanceStatistics,
             BlockStatistics = _blockStatistics

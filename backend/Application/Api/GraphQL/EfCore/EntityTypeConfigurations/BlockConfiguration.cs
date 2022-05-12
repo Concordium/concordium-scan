@@ -19,37 +19,6 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.Property(b => b.BakerId).HasColumnName("baker_id");
         builder.Property(b => b.Finalized).HasColumnName("finalized");
         builder.Property(b => b.TransactionCount).HasColumnName("transaction_count");
-        builder.OwnsOne(block => block.SpecialEventsOld, specialEventsBuilder =>
-        {
-            specialEventsBuilder.WithOwner(x => x.Owner);
-            specialEventsBuilder.OwnsOne(x => x.Mint, builder =>
-            {
-                builder.Property(m => m.BakingReward).HasColumnName("mint_baking_reward");
-                builder.Property(m => m.FinalizationReward).HasColumnName("mint_finalization_reward");
-                builder.Property(m => m.PlatformDevelopmentCharge).HasColumnName("mint_platform_development_charge");
-                builder.Property(m => m.FoundationAccountAddress).HasColumnName("mint_foundation_account").HasConversion<AccountAddressConverter>();
-            });
-            specialEventsBuilder.OwnsOne(x => x.FinalizationRewards, builder =>
-            {
-                builder.WithOwner(x => x.Owner);
-                builder.Property(f => f.Remainder).HasColumnName("finalization_reward_remainder");
-            });
-            specialEventsBuilder.OwnsOne(x => x.BlockRewards, builder =>
-            {
-                builder.Property(x => x.TransactionFees).HasColumnName("block_reward_transaction_fees");
-                builder.Property(x => x.OldGasAccount).HasColumnName("block_reward_old_gas_account");
-                builder.Property(x => x.NewGasAccount).HasColumnName("block_reward_new_gas_account");
-                builder.Property(x => x.BakerReward).HasColumnName("block_reward_baker_reward");
-                builder.Property(x => x.FoundationCharge).HasColumnName("block_reward_foundation_charge");
-                builder.Property(x => x.BakerAccountAddress).HasColumnName("block_reward_baker_address").HasConversion<AccountAddressConverter>();
-                builder.Property(x => x.FoundationAccountAddress).HasColumnName("block_reward_foundation_account").HasConversion<AccountAddressConverter>();
-            });
-            specialEventsBuilder.OwnsOne(x => x.BakingRewards, builder =>
-            {
-                builder.WithOwner(x => x.Owner);
-                builder.Property(f => f.Remainder).HasColumnName("baking_reward_remainder");
-            });
-        });
         builder.OwnsOne(block => block.FinalizationSummary, builder =>
         {
             builder.WithOwner(x => x.Owner);

@@ -20,7 +20,6 @@ public class Block : IBlockOrTransactionUnion
     public int? BakerId { get; init; }
     public bool Finalized { get; init; }
     public int TransactionCount { get; init; }
-    public SpecialEvents SpecialEventsOld { get; init; }
     public FinalizationSummary? FinalizationSummary { get; init; }
     public BalanceStatistics BalanceStatistics { get; init; }
     public BlockStatistics BlockStatistics { get; init; }

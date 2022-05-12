@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Blocks;
+﻿using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.Types;
 using Dapper;
@@ -10,7 +9,6 @@ using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
-using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -34,8 +32,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
-        connection.Execute("TRUNCATE TABLE graphql_finalization_rewards");
-        connection.Execute("TRUNCATE TABLE graphql_baking_rewards");
         connection.Execute("TRUNCATE TABLE graphql_finalization_summary_finalizers");
     }
     
@@ -83,191 +79,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = dbContext.Blocks.Single();
         result.BakerId.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SpecialEvents_Mint_Exists()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents(new MintSpecialEventBuilder()
-                .WithBakingReward(CcdAmount.FromMicroCcd(371021))
-                .WithFinalizationReward(CcdAmount.FromMicroCcd(4577291))
-                .WithPlatformDevelopmentCharge(CcdAmount.FromMicroCcd(2890562))
-                .WithFoundationAccount(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"))
-                .Build());
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.Should().NotBeNull();
-        block.SpecialEventsOld.Mint.Should().NotBeNull();
-        block.SpecialEventsOld.Mint!.BakingReward.Should().Be(371021);
-        block.SpecialEventsOld.Mint.FinalizationReward.Should().Be(4577291);
-        block.SpecialEventsOld.Mint.PlatformDevelopmentCharge.Should().Be(2890562);
-        block.SpecialEventsOld.Mint.FoundationAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-    }
-
-    [Fact]
-    public async Task SpecialEvents_Mint_DoesNotExist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents();
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.Mint.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SpecialEvents_FinalizationRewards_Exist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents(new FinalizationRewardsSpecialEventBuilder()
-                .WithRemainder(CcdAmount.FromMicroCcd(371021))
-                .WithFinalizationRewards(new()
-                {
-                    Amount = CcdAmount.FromMicroCcd(55511115),
-                    Address = new AccountAddress("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi")
-                }, new()
-                {
-                    Amount = CcdAmount.FromMicroCcd(91425373),
-                    Address = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")
-                })
-                .Build());
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.Owner.Should().BeSameAs(block);
-        block.SpecialEventsOld.FinalizationRewards.Should().NotBeNull();
-        block.SpecialEventsOld.FinalizationRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld);
-        block.SpecialEventsOld.FinalizationRewards.Remainder.Should().Be(371021);
-        
-        var result = dbContext.FinalizationRewards.ToArray();
-        result.Length.Should().Be(2);
-        result[0].BlockId.Should().Be(block.Id);
-        result[0].Index.Should().Be(0);
-        result[0].Entity.Amount.Should().Be(55511115);
-        result[0].Entity.Address.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
-        result[1].BlockId.Should().Be(block.Id);
-        result[1].Index.Should().Be(1);
-        result[1].Entity.Amount.Should().Be(91425373);
-        result[1].Entity.Address.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-    }
-    
-    [Fact]
-    public async Task SpecialEvents_FinalizationRewards_DoesNotExist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents();
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.FinalizationRewards.Should().BeNull();
-        
-        var result = dbContext.FinalizationRewards.ToArray();
-        result.Length.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task SpecialEvents_BlockRewards_Exists()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents(new BlockRewardSpecialEventBuilder()
-                .WithBakerReward(CcdAmount.FromMicroCcd(5111884))
-                .WithFoundationCharge(CcdAmount.FromMicroCcd(4884))
-                .WithTransactionFees(CcdAmount.FromMicroCcd(8888))
-                .WithNewGasAccount(CcdAmount.FromMicroCcd(455))
-                .WithOldGasAccount(CcdAmount.FromMicroCcd(22))
-                .WithBaker(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"))
-                .WithFoundationAccount(new AccountAddress("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi"))
-                .Build());
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.Should().NotBeNull();
-        block.SpecialEventsOld.BlockRewards.Should().NotBeNull();
-        block.SpecialEventsOld.BlockRewards!.BakerReward.Should().Be(5111884);
-        block.SpecialEventsOld.BlockRewards.FoundationCharge.Should().Be(4884);
-        block.SpecialEventsOld.BlockRewards.TransactionFees.Should().Be(8888);
-        block.SpecialEventsOld.BlockRewards.NewGasAccount.Should().Be(455);
-        block.SpecialEventsOld.BlockRewards.OldGasAccount.Should().Be(22);
-        block.SpecialEventsOld.BlockRewards.BakerAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        block.SpecialEventsOld.BlockRewards.FoundationAccountAddress.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
-    }
-
-    [Fact]
-    public async Task SpecialEvents_BlockRewards_DoesNotExist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents();
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.BlockRewards.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SpecialEvents_BakingRewards_Exist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents(new BakingRewardsSpecialEventBuilder()
-                .WithRemainder(CcdAmount.FromMicroCcd(371021))
-                .WithBakerRewards(new()
-                {
-                    Amount = CcdAmount.FromMicroCcd(55511115),
-                    Address = new AccountAddress("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi")
-                }, new()
-                {
-                    Amount = CcdAmount.FromMicroCcd(91425373),
-                    Address = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")
-                })
-                .Build());
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.BakingRewards.Should().NotBeNull();
-        block.SpecialEventsOld.BakingRewards!.Owner.Should().BeSameAs(block.SpecialEventsOld);
-        block.SpecialEventsOld.BakingRewards.Remainder.Should().Be(371021);
-        
-        var result = dbContext.BakingRewards.ToArray();
-        result.Length.Should().Be(2);
-        result[0].BlockId.Should().Be(block.Id);
-        result[0].Index.Should().Be(0);
-        result[0].Entity.Amount.Should().Be(55511115);
-        result[0].Entity.Address.AsString.Should().Be("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
-        result[1].BlockId.Should().Be(block.Id);
-        result[1].Index.Should().Be(1);
-        result[1].Entity.Amount.Should().Be(91425373);
-        result[1].Entity.Address.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-    }
-    
-    [Fact]
-    public async Task SpecialEvents_BakingRewards_DoesNotExist()
-    {
-        _blockSummaryBuilder
-            .WithSpecialEvents();
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.SpecialEventsOld.BakingRewards.Should().BeNull();
-        
-        var result = dbContext.BakingRewards.ToArray();
-        result.Length.Should().Be(0);
     }
 
     [Fact]
@@ -502,21 +313,5 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
         await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState);
-    }
-}
-
-public class DelegationUpdateResultsBuilder
-{
-    private ulong _totalAmountStaked = 0;
-
-    public DelegationUpdateResults Build()
-    {
-        return new DelegationUpdateResults(_totalAmountStaked);
-    }
-
-    public DelegationUpdateResultsBuilder WithTotalAmountStaked(ulong value)
-    {
-        _totalAmountStaked = value;
-        return this;
     }
 }
