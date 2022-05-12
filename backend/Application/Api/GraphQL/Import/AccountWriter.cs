@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -233,6 +234,20 @@ public class AccountWriter
         await batch.ExecuteNonQueryAsync();
         
         await conn.CloseAsync();
+    }
+
+    public async Task<ulong> GetTotalDelegationAmountStaked()
+    {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(GetTotalDelegationAmountStaked));
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        var result = await conn.QuerySingleAsync<long?>("select sum(delegation_staked_amount) from graphql_accounts");
+        await conn.CloseAsync();
+
+        return result.HasValue ? (ulong)result.Value : 0;
     }
 }
 

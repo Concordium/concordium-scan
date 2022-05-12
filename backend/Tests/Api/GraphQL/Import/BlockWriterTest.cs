@@ -9,6 +9,7 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using Xunit.Abstractions;
 using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.Import;
@@ -23,11 +24,12 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly RewardStatusBuilder _rewardStatusBuilder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new BakerUpdateResultsBuilder();
+    private readonly DelegationUpdateResultsBuilder _delegationUpdateResultsBuilder = new();
     private int _chainParametersId = 20;
 
-    public BlockWriterTest(DatabaseFixture dbFixture)
+    public BlockWriterTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings, outputHelper);
         _target = new BlockWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
@@ -50,7 +52,8 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         
         _chainParametersId = 42;
 
-        _bakerUpdateResultsBuilder.WithTotalAmountStaked(561864);
+        _bakerUpdateResultsBuilder.WithTotalAmountStaked(10000);
+        _delegationUpdateResultsBuilder.WithTotalAmountStaked(5000);
         
         await WriteData();
 
@@ -65,7 +68,9 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         result.Finalized.Should().BeTrue();
         result.TransactionCount.Should().Be(221);
         result.ChainParametersId.Should().Be(42);
-        result.BalanceStatistics.TotalAmountStaked.Should().Be(561864);
+        result.BalanceStatistics.TotalAmountStaked.Should().Be(15000);
+        result.BalanceStatistics.TotalAmountStakedByBakers.Should().Be(10000);
+        result.BalanceStatistics.TotalAmountStakedByDelegation.Should().Be(5000);
     }
     
     [Fact]
@@ -495,6 +500,23 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var blockSummary = _blockSummaryBuilder.Build();
         var rewardStatus = _rewardStatusBuilder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, _importState);
+        var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
+        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState);
+    }
+}
+
+public class DelegationUpdateResultsBuilder
+{
+    private ulong _totalAmountStaked = 0;
+
+    public DelegationUpdateResults Build()
+    {
+        return new DelegationUpdateResults(_totalAmountStaked);
+    }
+
+    public DelegationUpdateResultsBuilder WithTotalAmountStaked(ulong value)
+    {
+        _totalAmountStaked = value;
+        return this;
     }
 }

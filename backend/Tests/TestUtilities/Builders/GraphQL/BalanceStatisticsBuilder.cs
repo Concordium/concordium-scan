@@ -7,11 +7,15 @@ public class BalanceStatisticsBuilder
     private ulong _totalAmount = 0;
     private ulong _totalAmountEncrypted = 0;
     private ulong _totalAmountStaked = 0;
+    private ulong _totalAmountStakedByBakers = 0;
+    private ulong _totalAmountStakedByDelegation = 0;
     private ulong? _totalAmountReleased = 0;
 
     public BalanceStatistics Build()
     {
-        return new BalanceStatistics(_totalAmount, _totalAmountReleased, _totalAmountEncrypted, 0, _totalAmountStaked, 0, 0, 0);
+        return new BalanceStatistics(_totalAmount, _totalAmountReleased, _totalAmountEncrypted, 
+            0, _totalAmountStaked, _totalAmountStakedByBakers, 
+            _totalAmountStakedByDelegation, 0, 0, 0);
     }
 
     public BalanceStatisticsBuilder WithTotalAmount(ulong value)

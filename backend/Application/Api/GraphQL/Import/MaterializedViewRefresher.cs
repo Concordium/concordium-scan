@@ -28,7 +28,7 @@ public class MaterializedViewRefresher
             await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
             await conn.OpenAsync();
             await conn.ExecuteAsync("refresh materialized view graphql_baker_statistics");
-            
+
             _lastRefreshTime = currentTickCount;
         }
     }

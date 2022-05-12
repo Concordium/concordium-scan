@@ -213,6 +213,26 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
         result.Delegation!.StakedAmount.Should().Be(expectedResult);
     }
     
+    [Fact]
+    public async Task GetTotalDelegationAmountStaked_NoDelegators()
+    {
+        var result = await _target.GetTotalDelegationAmountStaked();
+        result.Should().Be(0);
+    }
+ 
+    [Fact]
+    public async Task GetTotalDelegationAmountStaked_Delegators()
+    {
+        await AddAccounts(
+            new AccountBuilder().WithId(10).WithDelegation(new DelegationBuilder().WithStakedAmount(1500).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(11).WithDelegation(new DelegationBuilder().WithStakedAmount(200).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(12).WithDelegation(new DelegationBuilder().WithStakedAmount(700).Build()).WithUniqueAddress().Build(),
+            new AccountBuilder().WithId(13).WithDelegation(null).WithUniqueAddress().Build());
+
+        var result = await _target.GetTotalDelegationAmountStaked();
+        result.Should().Be(2400);
+    }
+    
     private record AccountUpdateStub(ulong AccountId, ulong ValueToAdd); 
     
     private async Task AddAccounts(params Account[] entities)

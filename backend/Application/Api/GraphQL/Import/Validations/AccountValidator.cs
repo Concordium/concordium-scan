@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
 
-public class AccountValidator
+public class AccountValidator : IImportValidator
 {
     private readonly GrpcNodeClient _nodeClient;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
@@ -21,8 +22,9 @@ public class AccountValidator
         _logger = Log.ForContext<AccountValidator>();
     }
 
-    public async Task ValidateAccounts(ulong blockHeight)
+    public async Task Validate(Block block)
     {
+        var blockHeight = (ulong)block.BlockHeight;
         var blockHashes = await _nodeClient.GetBlocksAtHeightAsync(blockHeight);
         var blockHash = blockHashes.Single();
             
@@ -217,8 +219,6 @@ public class AccountValidator
         }
     }
 
-    private record Item(string Address, long Amount);
-    
     private IEnumerable<IEnumerable<T>> Chunk<T>(T[] list, int batchSize)
     {
         int total = 0;

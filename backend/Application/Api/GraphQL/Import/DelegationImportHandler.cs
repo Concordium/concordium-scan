@@ -17,13 +17,15 @@ public class DelegationImportHandler
         _logger = Log.ForContext<DelegationImportHandler>();
     }
 
-    public async Task HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters,
+    public async Task<DelegationUpdateResults> HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters,
         BakerUpdateResults bakerUpdateResults, RewardsSummary rewardsSummary, bool isFirstBlockAfterPayday)
     {
+        var resultBuilder = new DelegationUpdateResultsBuilder();
+
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
             var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
-
+    
             if (isFirstBlockAfterPayday)
                 await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
 
@@ -44,7 +46,11 @@ public class DelegationImportHandler
 
             await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1);
             await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
+            
+            resultBuilder.SetTotalAmountStaked(await _writer.GetTotalDelegationAmountStaked());
         }
+
+        return resultBuilder.Build();
     }
 
     private async Task HandleBakersRemovedOrClosedForAll(BakerUpdateResults bakerUpdateResults)
@@ -157,4 +163,22 @@ public class DelegationImportHandler
     {
         return new Delegation(0, false, new PassiveDelegationTarget());
     }
+    
+    private class DelegationUpdateResultsBuilder
+    {
+        private ulong _totalAmountStaked = 0;
+
+        public void SetTotalAmountStaked(ulong totalAmountStaked)
+        {
+            _totalAmountStaked = totalAmountStaked;
+        }
+
+        public DelegationUpdateResults Build()
+        {
+            return new DelegationUpdateResults(_totalAmountStaked);
+        }
+    }
 }
+
+public record DelegationUpdateResults(
+    ulong TotalAmountStaked);
