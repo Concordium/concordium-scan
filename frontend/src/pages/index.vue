@@ -69,7 +69,7 @@
 								align="right"
 								width="25%"
 							>
-								Baker reward (Ͼ)
+								Transactions
 							</TableTh>
 						</TableRow>
 					</TableHead>
@@ -99,11 +99,7 @@
 								align="right"
 								class="numerical"
 							>
-								{{
-									convertMicroCcdToCcd(
-										block.specialEventsOld.blockRewards?.bakerReward
-									)
-								}}
+								{{ block.transactionCount }}
 							</TableTd>
 						</TableRow>
 					</TransitionGroup>

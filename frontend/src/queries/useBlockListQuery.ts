@@ -20,11 +20,6 @@ const BlocksQuery = gql<BlockListResponse>`
 				blockSlotTime
 				finalized
 				transactionCount
-				specialEventsOld {
-					blockRewards {
-						bakerReward
-					}
-				}
 			}
 			pageInfo {
 				startCursor
