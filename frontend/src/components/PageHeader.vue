@@ -8,7 +8,7 @@
 				<LogoNoText class="h-6 lg:hidden block align-middle" />
 			</NuxtLink>
 
-			<NetworkSelect />
+			<NetworkSelect class="hidden lg:block" />
 		</div>
 
 		<Search />
