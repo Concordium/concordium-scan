@@ -28,13 +28,13 @@ public class NodeCacheRepositoryTest : IClassFixture<DatabaseFixture>
     }
     
     [Theory]
-    [InlineData("foo", "hello world")]
-    [InlineData("bar", "lorem ipsum")]
+    [InlineData("foo", "{\"value\": 42}")]
+    [InlineData("bar", "{\"value\": 1337}")]
     [InlineData("xyz", null)]
     public void WriteAndRead(string query, string? expectedResult)
     {
-        _target.WriteBlockSummary("foo", "hello world");
-        _target.WriteBlockSummary("bar", "lorem ipsum");
+        _target.WriteBlockSummary("foo", "{\"value\": 42}");
+        _target.WriteBlockSummary("bar", "{\"value\": 1337}");
         
         var result = _target.ReadBlockSummary(query);
         result.Should().Be(expectedResult);

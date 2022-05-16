@@ -19,18 +19,18 @@ public class NodeCacheRepository
         _metrics = metrics;
     }
     
-    public void WriteBlockSummary(string blockHash, string content)
+    public void WriteBlockSummary(string blockHash, string jsonContent)
     {
         using var counter = _metrics.MeasureDuration(nameof(NodeCache), nameof(WriteBlockSummary));
 
         using var conn = new NpgsqlConnection(_dbSettings.ConnectionStringNodeCache);
         conn.Open();
 
-        var sql = @"insert into block_summary (block_hash, compressed_data) values (@BlockHash, @CompressedData)";
+        var sql = @"insert into block_summary (block_hash, data) values (@BlockHash, @Data::json)";
         var args = new
         {
             BlockHash = blockHash, 
-            CompressedData = Compress(content)
+            Data = jsonContent
         };
         
         conn.Execute(sql, args);
@@ -43,11 +43,11 @@ public class NodeCacheRepository
         using var conn = new NpgsqlConnection(_dbSettings.ConnectionStringNodeCache);
         conn.Open();
 
-        var sql = @"select compressed_data from block_summary where block_hash = @BlockHash;";
+        var sql = @"select data from block_summary where block_hash = @BlockHash;";
         var args = new { BlockHash = blockHash };
         
-        var result = conn.ExecuteScalar<byte[]>(sql, args);
-        return result != null ? Decompress(result) : null;
+        var result = conn.ExecuteScalar<string?>(sql, args);
+        return result;
     }
 
     private static byte[] Compress(string text) 
