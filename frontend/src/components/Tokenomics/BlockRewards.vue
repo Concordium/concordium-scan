@@ -1,6 +1,6 @@
 <template>
 	<TokenomicsDisplay class="p-4">
-		<template #title>Baker rewards</template>
+		<template #title>Block rewards</template>
 		<template #content>
 			<dl class="grid grid-cols-2 col-span-2">
 				<dt>Baker</dt>

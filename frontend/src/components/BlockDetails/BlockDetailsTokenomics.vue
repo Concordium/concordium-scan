@@ -21,15 +21,22 @@
 			/>
 
 			<FinalizationRewards
-				v-if="event.__typename === 'FinalizationRewardsSpecialEvent'"
+				v-else-if="event.__typename === 'FinalizationRewardsSpecialEvent'"
 				:data="event.finalizationRewards?.nodes || []"
 				:page-info="event.finalizationRewards?.pageInfo"
 				:go-to-page="goToPageFinalizationRewards"
 			/>
 
 			<BlockRewards
-				v-if="event.__typename === 'BlockRewardsSpecialEvent'"
+				v-else-if="event.__typename === 'BlockRewardsSpecialEvent'"
 				:data="event"
+			/>
+
+			<BakingRewards
+				v-else-if="event.__typename === 'BakingRewardsSpecialEvent'"
+				:data="event"
+				:page-info="event.bakingRewards?.pageInfo"
+				:go-to-page="goToPageBakingRewards"
 			/>
 		</div>
 	</div>
@@ -40,6 +47,7 @@ import { useBlockSpecialEventsQuery } from '~/queries/useBlockSpecialEventsQuery
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
+import BakingRewards from '~/components/Tokenomics/BakingRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
@@ -55,6 +63,15 @@ const {
 	goToPage: goToPageFinalizationRewards,
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
+// baking rewards pagination variables
+const {
+	first: firstBakingRewards,
+	last: lastBakingRewards,
+	after: afterBakingRewards,
+	before: beforeBakingRewards,
+	goToPage: goToPageBakingRewards,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+
 type Props = {
 	blockId: Block['id']
 }
@@ -68,6 +85,10 @@ const { data, error, componentState } = useBlockSpecialEventsQuery({
 		lastFinalizationRewards,
 		afterFinalizationRewards,
 		beforeFinalizationRewards,
+		firstBakingRewards,
+		lastBakingRewards,
+		afterBakingRewards,
+		beforeBakingRewards,
 	},
 })
 </script>

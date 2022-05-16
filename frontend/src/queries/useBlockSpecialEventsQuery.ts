@@ -12,6 +12,10 @@ type BlockQueryVariables = {
 	beforeFinalizationRewards?: QueryVariables['before']
 	firstFinalizationRewards?: QueryVariables['first']
 	lastFinalizationRewards?: QueryVariables['last']
+	afterBakingRewards?: QueryVariables['after']
+	beforeBakingRewards?: QueryVariables['before']
+	firstBakingRewards?: QueryVariables['first']
+	lastBakingRewards?: QueryVariables['last']
 }
 
 const BlockSpecialEventsQuery = gql<BlockSpecialEventsResponse>`
@@ -64,6 +68,23 @@ const BlockSpecialEventsQuery = gql<BlockSpecialEventsResponse>`
 						}
 						foundationAccountAddress {
 							asString
+						}
+					}
+					... on BakingRewardsSpecialEvent {
+						remainder
+						bakingRewards {
+							nodes {
+								amount
+								accountAddress {
+									asString
+								}
+							}
+							pageInfo {
+								startCursor
+								endCursor
+								hasPreviousPage
+								hasNextPage
+							}
 						}
 					}
 				}

@@ -6,7 +6,6 @@
 				<TableHead>
 					<TableRow>
 						<TableTh>Finaliser</TableTh>
-						<TableTh align="right">Weight</TableTh>
 						<TableTh align="right">Reward (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
@@ -17,9 +16,6 @@
 					>
 						<TableTd>
 							<AccountLink :address="finalizer.accountAddress.asString" />
-						</TableTd>
-						<TableTd class="numerical text-right">
-							{{ calculateWeight(finalizer.amount, totalAmount) }}%
 						</TableTd>
 						<TableTd align="right" class="numerical">
 							{{ convertMicroCcdToCcd(finalizer.amount) }}
@@ -39,7 +35,15 @@
 
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
-import { convertMicroCcdToCcd, calculateWeight } from '~/utils/format'
+import AccountLink from '~/components/molecules/AccountLink.vue'
+import Table from '~/components/Table/Table.vue'
+import TableTd from '~/components/Table/TableTd.vue'
+import TableTh from '~/components/Table/TableTh.vue'
+import TableRow from '~/components/Table/TableRow.vue'
+import TableBody from '~/components/Table/TableBody.vue'
+import TableHead from '~/components/Table/TableHead.vue'
+import Pagination from '~/components/Pagination.vue'
+import { convertMicroCcdToCcd } from '~/utils/format'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { AccountAddressAmount, PageInfo } from '~/types/generated'
 
@@ -49,10 +53,5 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-const props = defineProps<Props>()
-
-const totalAmount =
-	props.data !== undefined
-		? props.data.reduce((sum, curr) => sum + curr.amount, 0)
-		: 0
+defineProps<Props>()
 </script>
