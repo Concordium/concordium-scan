@@ -59,7 +59,9 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
-builder.Services.AddSingleton<IGrpcNodeCache, NodeCache>();
+builder.Services.AddSingleton<NodeCache>();
+builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());
+builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
