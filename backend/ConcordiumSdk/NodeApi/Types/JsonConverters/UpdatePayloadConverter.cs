@@ -21,9 +21,13 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             { typeof(GasRewardsUpdatePayload), "gASRewards" },
             { typeof(Level1UpdatePayload), "level1" },
             { typeof(MicroGtuPerEuroUpdatePayload), "microGTUPerEuro" },
-            { typeof(MintDistributionUpdatePayload), "mintDistribution" },
+            { typeof(MintDistributionV0UpdatePayload), "mintDistribution" },
             { typeof(ProtocolUpdatePayload), "protocol" },
             { typeof(TransactionFeeDistributionUpdatePayload), "transactionFeeDistribution" },
+            { typeof(CooldownParametersUpdatePayload), "cooldownParametersCPV1" },
+            { typeof(PoolParametersUpdatePayload), "poolParametersCPV1" },
+            { typeof(TimeParametersUpdatePayload), "timeParameters" },
+            { typeof(MintDistributionV1UpdatePayload), "mintDistributionCPV1" },
         };
     }
 
@@ -107,7 +111,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             case "mintDistribution":
             {
                 var content = JsonSerializer.Deserialize<MintDistributionV0>(ref reader, options)!;
-                result = new MintDistributionUpdatePayload(content);
+                result = new MintDistributionV0UpdatePayload(content);
                 break;
             }
             case "protocol":
@@ -120,6 +124,30 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             {
                 var content = JsonSerializer.Deserialize<TransactionFeeDistribution>(ref reader, options)!;
                 result = new TransactionFeeDistributionUpdatePayload(content);
+                break;
+            }
+            case "cooldownParametersCPV1":
+            {
+                var content = JsonSerializer.Deserialize<CooldownParameters>(ref reader, options)!;
+                result = new CooldownParametersUpdatePayload(content);
+                break;
+            }
+            case "poolParametersCPV1":
+            {
+                var content = JsonSerializer.Deserialize<PoolParameters>(ref reader, options)!;
+                result = new PoolParametersUpdatePayload(content);
+                break;
+            }
+            case "timeParameters":
+            {
+                var content = JsonSerializer.Deserialize<TimeParameters>(ref reader, options)!;
+                result = new TimeParametersUpdatePayload(content);
+                break;
+            }
+            case "mintDistributionCPV1":
+            {
+                var content = JsonSerializer.Deserialize<MintDistributionV1>(ref reader, options)!;
+                result = new MintDistributionV1UpdatePayload(content);
                 break;
             }
             default:
@@ -149,9 +177,13 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             GasRewardsUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             Level1UpdatePayload payload => (payload.Content, typeof(Level1Update)),
             MicroGtuPerEuroUpdatePayload payload => (payload.Content, payload.Content.GetType()),
-            MintDistributionUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            MintDistributionV0UpdatePayload payload => (payload.Content, payload.Content.GetType()),
             ProtocolUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             TransactionFeeDistributionUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            CooldownParametersUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            PoolParametersUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            TimeParametersUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            MintDistributionV1UpdatePayload payload => (payload.Content, payload.Content.GetType()),
             _ => throw new NotImplementedException($"Serialization of type {value.GetType()} is not implemented.")
         };
         JsonSerializer.Serialize(writer, payloadValue, payloadType, options);

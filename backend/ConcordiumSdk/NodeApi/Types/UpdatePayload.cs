@@ -19,7 +19,7 @@ public record MicroGtuPerEuroUpdatePayload(
 public record FoundationAccountUpdatePayload(
     AccountAddress Account) : UpdatePayload;
 
-public record MintDistributionUpdatePayload(
+public record MintDistributionV0UpdatePayload(
     MintDistributionV0 Content) : UpdatePayload;
 
 public record TransactionFeeDistributionUpdatePayload(
@@ -42,3 +42,17 @@ public record AddAnonymityRevokerUpdatePayload(
 
 public record AddIdentityProviderUpdatePayload(
     IdentityProviderInfo Content) : UpdatePayload;
+
+public record CooldownParametersUpdatePayload(
+    CooldownParameters Content) : UpdatePayload;
+    
+public record PoolParametersUpdatePayload(
+    PoolParameters Content) : UpdatePayload;
+    
+public record TimeParametersUpdatePayload(
+    TimeParameters Content) : UpdatePayload;
+    
+public record MintDistributionV1UpdatePayload(
+    MintDistributionV1 Content) : UpdatePayload;
+    
+    

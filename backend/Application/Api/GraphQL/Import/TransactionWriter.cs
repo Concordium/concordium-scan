@@ -205,7 +205,7 @@ public class TransactionWriter
             EuroPerEnergyUpdatePayload x => new EuroPerEnergyChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
             MicroGtuPerEuroUpdatePayload x => new MicroCcdPerEuroChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
             FoundationAccountUpdatePayload x => new FoundationAccountChainUpdatePayload(new AccountAddress(x.Account.AsString)),
-            MintDistributionUpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
+            MintDistributionV0UpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
             TransactionFeeDistributionUpdatePayload x => new TransactionFeeDistributionChainUpdatePayload(x.Content.Baker, x.Content.GasAccount),
             GasRewardsUpdatePayload x => new GasRewardsChainUpdatePayload(x.Content.Baker, x.Content.FinalizationProof, x.Content.AccountCreation, x.Content.ChainUpdate),
             BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Amount.MicroCcdValue),
@@ -213,8 +213,27 @@ public class TransactionWriter
             Level1UpdatePayload x => new Level1KeysChainUpdatePayload(),
             AddAnonymityRevokerUpdatePayload x => new AddAnonymityRevokerChainUpdatePayload((int)x.Content.ArIdentity, x.Content.ArDescription.Name, x.Content.ArDescription.Url, x.Content.ArDescription.Description),
             AddIdentityProviderUpdatePayload x => new AddIdentityProviderChainUpdatePayload((int)x.Content.IpIdentity, x.Content.IpDescription.Name, x.Content.IpDescription.Url, x.Content.IpDescription.Description),
+            CooldownParametersUpdatePayload x => new CooldownParametersChainUpdatePayload(x.Content.PoolOwnerCooldown, x.Content.DelegatorCooldown),
+            PoolParametersUpdatePayload x => MapPoolParametersChainUpdatePayload(x),
+            TimeParametersUpdatePayload x => new TimeParametersChainUpdatePayload(x.Content.RewardPeriodLength, x.Content.MintPerPayday),
+            MintDistributionV1UpdatePayload x => new MintDistributionV1ChainUpdatePayload(x.Content.BakingReward, x.Content.FinalizationReward),
             _ => throw new NotImplementedException()
         };
+    }
+
+    private static PoolParametersChainUpdatePayload MapPoolParametersChainUpdatePayload(PoolParametersUpdatePayload x)
+    {
+        return new PoolParametersChainUpdatePayload(x.Content.PassiveFinalizationCommission,
+            x.Content.PassiveBakingCommission, x.Content.PassiveTransactionCommission,
+            MapCommissionRange(x.Content.FinalizationCommissionRange),
+            MapCommissionRange(x.Content.BakingCommissionRange),
+            MapCommissionRange(x.Content.TransactionCommissionRange),
+            x.Content.MinimumEquityCapital, x.Content.CapitalBound,
+            new LeverageFactor
+            {
+                Numerator = x.Content.LeverageBound.Numerator,
+                Denominator = x.Content.LeverageBound.Denominator
+            });
     }
 
     private Address MapAddress(ConcordiumSdk.Types.Address value)
@@ -230,6 +249,11 @@ public class TransactionWriter
     private static ContractAddress MapContractAddress(ConcordiumSdk.Types.ContractAddress value)
     {
         return new ContractAddress(value.Index, value.SubIndex);
+    }
+
+    private static CommissionRange MapCommissionRange(InclusiveRange<decimal> src)
+    {
+        return new () { Min = src.Min, Max = src.Max};
     }
 
     private TransactionRejectReason? MapRejectReason(TransactionRejectResult? value)

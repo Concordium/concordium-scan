@@ -652,6 +652,104 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         item.ExchangeRate.Denominator.Should().Be(2);
     }
 
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_CooldownParametersUpdatePayload() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new CooldownParametersUpdatePayload(new CooldownParameters(20, 40))))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<CooldownParametersChainUpdatePayload>(result.Payload);
+        item.PoolOwnerCooldown.Should().Be(20);
+        item.DelegatorCooldown.Should().Be(40);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_PoolParametersUpdatePayload() 
+    {
+        var payload = new PoolParametersUpdatePayload(new PoolParameters(
+            0.1m, 0.2m, 0.3m, 
+            new InclusiveRange<decimal>(1.0m, 1.2m),
+            new InclusiveRange<decimal>(2.0m, 2.2m),
+            new InclusiveRange<decimal>(3.0m, 3.2m),
+            12000UL, 3.0m, new LeverageFactor(13, 17)));
+        
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<PoolParametersChainUpdatePayload>(result.Payload);
+        item.PassiveFinalizationCommission.Should().Be(0.1m);
+        item.PassiveBakingCommission.Should().Be(0.2m);
+        item.PassiveTransactionCommission.Should().Be(0.3m);
+        item.FinalizationCommissionRange.Min.Should().Be(1.0m);
+        item.FinalizationCommissionRange.Max.Should().Be(1.2m);
+        item.BakingCommissionRange.Min.Should().Be(2.0m);
+        item.BakingCommissionRange.Max.Should().Be(2.2m);
+        item.TransactionCommissionRange.Min.Should().Be(3.0m);
+        item.TransactionCommissionRange.Max.Should().Be(3.2m);
+        item.MinimumEquityCapital.Should().Be(12000UL);
+        item.CapitalBound.Should().Be(3.0m);
+        item.LeverageBound.Numerator.Should().Be(13);
+        item.LeverageBound.Denominator.Should().Be(17);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_TimeParametersUpdatePayload() 
+    {
+        var payload = new TimeParametersUpdatePayload(new TimeParameters(170, 4.2m));
+        
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<TimeParametersChainUpdatePayload>(result.Payload);
+        item.RewardPeriodLength.Should().Be(170);
+        item.MintPerPayday.Should().Be(4.2m);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_MintDistributionV1UpdatePayload() 
+    {
+        var payload = new MintDistributionV1UpdatePayload(new MintDistributionV1(1.1m, 0.5m));
+        
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<MintDistributionV1ChainUpdatePayload>(result.Payload);
+        item.BakingReward.Should().Be(1.1m);
+        item.FinalizationReward.Should().Be(0.5m);
+    }
+
     [Theory]
     [InlineData(BakerPoolOpenStatus.OpenForAll, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.OpenForAll)]
     [InlineData(BakerPoolOpenStatus.ClosedForNew, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.ClosedForNew)]

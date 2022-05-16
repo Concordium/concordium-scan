@@ -66,3 +66,27 @@ public record AddIdentityProviderChainUpdatePayload(
     string Name,
     string Url, 
     string Description) : ChainUpdatePayload;
+
+public record CooldownParametersChainUpdatePayload(
+    ulong PoolOwnerCooldown,
+    ulong DelegatorCooldown) : ChainUpdatePayload;
+
+public record PoolParametersChainUpdatePayload(
+    decimal PassiveFinalizationCommission,
+    decimal PassiveBakingCommission,
+    decimal PassiveTransactionCommission,
+    CommissionRange FinalizationCommissionRange,
+    CommissionRange BakingCommissionRange,
+    CommissionRange TransactionCommissionRange,
+    ulong MinimumEquityCapital,
+    decimal CapitalBound,
+    LeverageFactor LeverageBound) : ChainUpdatePayload;
+
+public record TimeParametersChainUpdatePayload(
+    ulong RewardPeriodLength,
+    decimal MintPerPayday) : ChainUpdatePayload;
+
+public record MintDistributionV1ChainUpdatePayload(
+    decimal BakingReward,
+    decimal FinalizationReward) : ChainUpdatePayload;
+    

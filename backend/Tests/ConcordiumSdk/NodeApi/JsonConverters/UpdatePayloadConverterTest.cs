@@ -92,7 +92,7 @@ public class UpdatePayloadConverterTest
         var json = "{\"updateType\": \"mintDistribution\", \"update\": {\"mintPerSlot\": 0.000000000755560725, \"bakingReward\": 0.60001, \"finalizationReward\": 0.30002}}";
         
         var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
-        var typed = Assert.IsType<MintDistributionUpdatePayload>(deserialized);
+        var typed = Assert.IsType<MintDistributionV0UpdatePayload>(deserialized);
         typed.Content.MintPerSlot.Should().Be(0.000000000755560725m);
         typed.Content.BakingReward.Should().Be(0.60001m);
         typed.Content.FinalizationReward.Should().Be(0.30002m);

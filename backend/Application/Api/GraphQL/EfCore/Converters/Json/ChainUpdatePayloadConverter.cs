@@ -19,6 +19,10 @@ public class ChainUpdatePayloadConverter : PolymorphicJsonConverter<ChainUpdateP
         { typeof(Level1KeysChainUpdatePayload), 11 },
         { typeof(AddAnonymityRevokerChainUpdatePayload), 12 },
         { typeof(AddIdentityProviderChainUpdatePayload), 13 },
+        { typeof(CooldownParametersChainUpdatePayload), 14 },
+        { typeof(PoolParametersChainUpdatePayload), 15 },
+        { typeof(TimeParametersChainUpdatePayload), 16 },
+        { typeof(MintDistributionV1ChainUpdatePayload), 17 },
     };
         
     public ChainUpdatePayloadConverter() : base(SerializeMap)
