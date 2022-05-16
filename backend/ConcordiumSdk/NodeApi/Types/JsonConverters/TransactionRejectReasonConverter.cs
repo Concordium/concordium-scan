@@ -55,6 +55,20 @@ public class TransactionRejectReasonConverter : JsonConverter<TransactionRejectR
             { "NotAllowedMultipleCredentials", typeof(NotAllowedMultipleCredentials) },
             { "NotAllowedToReceiveEncrypted", typeof(NotAllowedToReceiveEncrypted) },
             { "NotAllowedToHandleEncrypted", typeof(NotAllowedToHandleEncrypted) },
+            { "MissingBakerAddParameters", typeof(MissingBakerAddParameters) },
+            { "FinalizationRewardCommissionNotInRange", typeof(FinalizationRewardCommissionNotInRange) },
+            { "BakingRewardCommissionNotInRange", typeof(BakingRewardCommissionNotInRange) },
+            { "TransactionFeeCommissionNotInRange", typeof(TransactionFeeCommissionNotInRange) },
+            { "AlreadyADelegator", typeof(AlreadyADelegator) },
+            { "InsufficientBalanceForDelegationStake", typeof(InsufficientBalanceForDelegationStake) },
+            { "MissingDelegationAddParameters", typeof(MissingDelegationAddParameters) },
+            { "InsufficientDelegationStake", typeof(InsufficientDelegationStake) },
+            { "DelegatorInCooldown", typeof(DelegatorInCooldown) },
+            { "NotADelegator", typeof(NotADelegator) },
+            { "DelegationTargetNotABaker", typeof(DelegationTargetNotABaker) },
+            { "StakeOverMaximumThresholdForPool", typeof(StakeOverMaximumThresholdForPool) },
+            { "PoolWouldBecomeOverDelegated", typeof(PoolWouldBecomeOverDelegated) },
+            { "PoolClosed", typeof(PoolClosed) },
         };
         
         _serializeMap = _deserializeMap

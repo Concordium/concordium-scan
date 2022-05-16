@@ -202,6 +202,10 @@ type AlreadyABaker {
   bakerId: UnsignedLong!
 }
 
+type AlreadyADelegator {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
 type AmountAddedByDecryption {
   amount: UnsignedLong!
   accountAddress: AccountAddress!
@@ -412,6 +416,10 @@ type BakersEdge {
   cursor: String!
   "The item at the end of the edge."
   node: Baker!
+}
+
+type BakingRewardCommissionNotInRange {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
 type BakingRewardsSpecialEvent {
@@ -706,6 +714,15 @@ type DelegationStakeIncreased {
   newStakedAmount: UnsignedLong!
 }
 
+type DelegationTargetNotABaker {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  bakerId: UnsignedLong!
+}
+
+type DelegatorInCooldown {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
 type DuplicateAggregationKey {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   aggregationKey: String!
@@ -764,6 +781,10 @@ type EventsEdge {
 type ExchangeRate {
   numerator: UnsignedLong!
   denominator: UnsignedLong!
+}
+
+type FinalizationRewardCommissionNotInRange {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
 type FinalizationRewardsSpecialEvent {
@@ -826,6 +847,14 @@ type GasRewardsChainUpdatePayload {
 }
 
 type InsufficientBalanceForBakerStake {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InsufficientBalanceForDelegationStake {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type InsufficientDelegationStake {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
@@ -926,6 +955,14 @@ type MintSpecialEvent {
   id: ID!
 }
 
+type MissingBakerAddParameters {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type MissingDelegationAddParameters {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
 type ModuleHashAlreadyExists {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   moduleRef: String!
@@ -960,6 +997,11 @@ type NonIncreasingSchedule {
 }
 
 type NotABaker {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+  accountAddress: AccountAddress!
+}
+
+type NotADelegator {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   accountAddress: AccountAddress!
 }
@@ -1033,6 +1075,14 @@ type PendingBakerReduceStake {
 
 type PendingBakerRemoval {
   effectiveTime: DateTime!
+}
+
+type PoolClosed {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type PoolWouldBecomeOverDelegated {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
 type ProtocolChainUpdatePayload {
@@ -1163,6 +1213,10 @@ type SpecialEventsEdge {
   node: SpecialEvent!
 }
 
+type StakeOverMaximumThresholdForPool {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
 type StakeUnderMinimumThresholdForBaking {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1208,6 +1262,10 @@ type Transaction {
   energyCost: UnsignedLong!
   transactionType: TransactionType!
   result: TransactionResult!
+}
+
+type TransactionFeeCommissionNotInRange {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
 
 type TransactionFeeDistribution {
@@ -1299,7 +1357,7 @@ union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 
 union SpecialEvent = MintSpecialEvent | FinalizationRewardsSpecialEvent | BlockRewardsSpecialEvent | BakingRewardsSpecialEvent | PaydayAccountRewardSpecialEvent | BlockAccrueRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent
 
-union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted
+union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed
 
 union TransactionResult = Success | Rejected
 

@@ -291,3 +291,81 @@ public record NotAllowedToReceiveEncrypted : TransactionRejectReason;
 /// The account is not allowed to send encrypted transfers (or transfer from/to public to/from encrypted).
 /// </summary>
 public record NotAllowedToHandleEncrypted : TransactionRejectReason;
+
+/// <summary>
+/// A configure baker transaction is missing one or more arguments in order to add a baker.
+/// </summary>
+public record MissingBakerAddParameters : TransactionRejectReason;
+
+/// <summary>
+/// Finalization reward commission is not in the valid range for a baker
+/// </summary>
+public record FinalizationRewardCommissionNotInRange : TransactionRejectReason;
+
+/// <summary>
+/// Baking reward commission is not in the valid range for a baker
+/// </summary>
+public record BakingRewardCommissionNotInRange : TransactionRejectReason;
+
+/// <summary>
+/// Transaction fee commission is not in the valid range for a baker
+/// </summary>
+public record TransactionFeeCommissionNotInRange : TransactionRejectReason;
+
+/// <summary>
+/// Tried to add baker for an account that already has a delegator
+/// </summary>
+public record AlreadyADelegator : TransactionRejectReason;
+
+/// <summary>
+/// The amount on the account was insufficient to cover the proposed stake
+/// </summary>
+public record InsufficientBalanceForDelegationStake : TransactionRejectReason;
+
+/// <summary>
+/// A configure delegation transaction is missing one or more arguments in order to add a delegator.
+/// </summary>
+public record MissingDelegationAddParameters : TransactionRejectReason;
+
+/// <summary>
+/// The delegation stake when adding a baker was 0.
+/// </summary>
+public record InsufficientDelegationStake : TransactionRejectReason;
+
+/// <summary>
+/// The change could not be made because the delegator is in cooldown
+/// </summary>
+public record DelegatorInCooldown : TransactionRejectReason;
+
+/// <summary>
+/// Account is not a delegation account
+/// </summary>
+public record NotADelegator( 
+    AccountAddress Contents) : TransactionRejectReason
+{
+    public override IEnumerable<AccountAddress> GetAccountAddresses()
+    {
+        yield return Contents;
+    }
+}
+
+/// <summary>
+/// Delegation target is not a baker
+/// </summary>
+public record DelegationTargetNotABaker(
+    ulong Contents) : TransactionRejectReason;
+
+/// <summary>
+/// The amount would result in pool capital higher than the maximum threshold
+/// </summary>
+public record StakeOverMaximumThresholdForPool : TransactionRejectReason;
+
+/// <summary>
+/// The amount would result in pool with a too high fraction of delegated capital.
+/// </summary>
+public record PoolWouldBecomeOverDelegated : TransactionRejectReason;
+
+/// <summary>
+/// The pool is not open to delegators.
+/// </summary>
+public record PoolClosed : TransactionRejectReason;

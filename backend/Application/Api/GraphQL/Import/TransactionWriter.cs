@@ -279,6 +279,20 @@ public class TransactionWriter
             ConcordiumSdk.NodeApi.Types.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
             ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
             ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
+            ConcordiumSdk.NodeApi.Types.MissingBakerAddParameters => new Transactions.MissingBakerAddParameters(),
+            ConcordiumSdk.NodeApi.Types.FinalizationRewardCommissionNotInRange => new Transactions.FinalizationRewardCommissionNotInRange(),
+            ConcordiumSdk.NodeApi.Types.BakingRewardCommissionNotInRange => new Transactions.BakingRewardCommissionNotInRange(),
+            ConcordiumSdk.NodeApi.Types.TransactionFeeCommissionNotInRange => new Transactions.TransactionFeeCommissionNotInRange(),
+            ConcordiumSdk.NodeApi.Types.AlreadyADelegator => new Transactions.AlreadyADelegator(),
+            ConcordiumSdk.NodeApi.Types.InsufficientBalanceForDelegationStake => new Transactions.InsufficientBalanceForDelegationStake(),
+            ConcordiumSdk.NodeApi.Types.MissingDelegationAddParameters => new Transactions.MissingDelegationAddParameters(),
+            ConcordiumSdk.NodeApi.Types.InsufficientDelegationStake => new Transactions.InsufficientDelegationStake(),
+            ConcordiumSdk.NodeApi.Types.DelegatorInCooldown => new Transactions.DelegatorInCooldown(),
+            ConcordiumSdk.NodeApi.Types.NotADelegator x => new Transactions.NotADelegator(MapAccountAddress(x.Contents)),
+            ConcordiumSdk.NodeApi.Types.DelegationTargetNotABaker x => new Transactions.DelegationTargetNotABaker(x.Contents),
+            ConcordiumSdk.NodeApi.Types.StakeOverMaximumThresholdForPool => new Transactions.StakeOverMaximumThresholdForPool(),
+            ConcordiumSdk.NodeApi.Types.PoolWouldBecomeOverDelegated => new Transactions.PoolWouldBecomeOverDelegated(),
+            ConcordiumSdk.NodeApi.Types.PoolClosed => new Transactions.PoolClosed(),
             _ => throw new NotImplementedException("Reject reason not mapped!")
         };
     }

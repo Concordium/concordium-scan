@@ -47,6 +47,20 @@ public class TransactionRejectReasonConverter : PolymorphicJsonConverter<Transac
         { typeof(NotAllowedMultipleCredentials), 39 },
         { typeof(NotAllowedToReceiveEncrypted), 40 },
         { typeof(NotAllowedToHandleEncrypted), 41 },
+        { typeof(MissingBakerAddParameters), 42 },
+        { typeof(FinalizationRewardCommissionNotInRange), 43 },
+        { typeof(BakingRewardCommissionNotInRange), 44 },
+        { typeof(TransactionFeeCommissionNotInRange), 45 },
+        { typeof(AlreadyADelegator), 46 },
+        { typeof(InsufficientBalanceForDelegationStake), 47 },
+        { typeof(MissingDelegationAddParameters), 48 },
+        { typeof(InsufficientDelegationStake), 49 },
+        { typeof(DelegatorInCooldown), 50 },
+        { typeof(NotADelegator), 51 },
+        { typeof(DelegationTargetNotABaker), 52 },
+        { typeof(StakeOverMaximumThresholdForPool), 53 },
+        { typeof(PoolWouldBecomeOverDelegated), 54 },
+        { typeof(PoolClosed), 55 },
     };
 
     public TransactionRejectReasonConverter() : base(SerializeMap)

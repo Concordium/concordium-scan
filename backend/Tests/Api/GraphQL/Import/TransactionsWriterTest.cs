@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Import;
+﻿using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -1273,6 +1272,148 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_MissingBakerAddParameters()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.MissingBakerAddParameters();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingBakerAddParameters>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_FinalizationRewardCommissionNotInRange()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.FinalizationRewardCommissionNotInRange();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FinalizationRewardCommissionNotInRange>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_BakingRewardCommissionNotInRange()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.BakingRewardCommissionNotInRange();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakingRewardCommissionNotInRange>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_TransactionFeeCommissionNotInRange()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.TransactionFeeCommissionNotInRange();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.TransactionFeeCommissionNotInRange>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_AlreadyADelegator()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.AlreadyADelegator();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AlreadyADelegator>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_InsufficientBalanceForDelegationStake()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.InsufficientBalanceForDelegationStake();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForDelegationStake>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_MissingDelegationAddParameters()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.MissingDelegationAddParameters();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingDelegationAddParameters>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_InsufficientDelegationStake()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.InsufficientDelegationStake();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientDelegationStake>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_DelegatorInCooldown()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.DelegatorInCooldown();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegatorInCooldown>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_NotADelegator()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.NotADelegator(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotADelegator>();
+        result.Should().NotBeNull();
+        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_DelegationTargetNotABaker()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.DelegationTargetNotABaker(42UL);
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegationTargetNotABaker>();
+        result.Should().NotBeNull();
+        result.BakerId.Should().Be(42UL);
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_StakeOverMaximumThresholdForPool()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.StakeOverMaximumThresholdForPool();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeOverMaximumThresholdForPool>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_PoolWouldBecomeOverDelegated()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.PoolWouldBecomeOverDelegated();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolWouldBecomeOverDelegated>();
+        result.Should().NotBeNull();
+    }
+    
+    [Fact]
+    public async Task TransactionRejectReason_PoolClosed()
+    {
+        var inputReason = new global::ConcordiumSdk.NodeApi.Types.PoolClosed();
+        await WriteSingleRejectedTransaction(inputReason);
+        
+        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolClosed>();
         result.Should().NotBeNull();
     }
     
