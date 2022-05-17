@@ -62,6 +62,8 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         {
             AccountBakerRemovePendingV0 x => new PendingBakerRemoval(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.Epoch), 
             AccountBakerReduceStakePendingV0 x => new PendingBakerReduceStake(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.NewStake.MicroCcdValue, x.Epoch),
+            AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
+            AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
         };
     }
