@@ -11,9 +11,9 @@ public class BlockSummaryConverter : JsonConverter<BlockSummaryBase>
         var protocolVersion = reader.ReadInt32("protocolVersion", false);
         return protocolVersion switch
         {
-            null => JsonSerializer.Deserialize<BlockSummaryV0>(ref reader, options)!,
-            4 => JsonSerializer.Deserialize<BlockSummaryV1>(ref reader, options)!,
-            _ => throw new NotImplementedException()
+            null or 1 or 2 or 3 => JsonSerializer.Deserialize<BlockSummaryV0>(ref reader, options)!,
+            >= 4 => JsonSerializer.Deserialize<BlockSummaryV1>(ref reader, options)!,
+            _ => throw new NotImplementedException($"Deserialization of block summary with protocol version {protocolVersion} not implemented.")
         };
     }
 
