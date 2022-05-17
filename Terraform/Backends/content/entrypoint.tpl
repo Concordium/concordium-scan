@@ -80,7 +80,7 @@ docker run -td \
  -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
  -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
- ccscan.azurecr.io/ccnode-mainnet:3.0.1-0
+ ccscan.azurecr.io/ccnode-mainnet:3.0.2-0
 
 docker run -td  \
  -p 10111:10000 \
@@ -96,7 +96,7 @@ docker run -td  \
  -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
  -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.testnet:/var/lib/concordium/data \
- ccscan.azurecr.io/ccnode-testnet:3.0.1-0
+ ccscan.azurecr.io/ccnode-testnet:4.0.11-0
 
 
 # Set up postgresql containers
