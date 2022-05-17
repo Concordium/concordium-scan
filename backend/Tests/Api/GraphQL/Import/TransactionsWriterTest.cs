@@ -653,6 +653,24 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_BakerStakeThresholdV1UpdatePayload() 
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new BakerStakeThresholdUpdatePayload(new BakerParameters(CcdAmount.FromMicroCcd(12345)))))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        var item = Assert.IsType<BakerStakeThresholdChainUpdatePayload>(result.Payload);
+        item.Amount.Should().Be(12345);
+    }
+
+    [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_CooldownParametersUpdatePayload() 
     {
         _blockSummaryBuilder

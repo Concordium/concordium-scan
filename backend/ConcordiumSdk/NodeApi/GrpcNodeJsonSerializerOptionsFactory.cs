@@ -44,7 +44,9 @@ public static class GrpcNodeJsonSerializerOptionsFactory
                 new AccountDelegationPendingChangeConverter(),
                 new BlockSummaryConverter(),
                 new DelegationTargetConverter(),
-                new RewardStatusConverter()
+                new RewardStatusConverter(),
+                new BakerParametersConverter(),
+                new LegacyBakerParametersConverter()
             }
         };
     }

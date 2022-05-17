@@ -19,7 +19,7 @@ public class PendingUpdatesV0Builder
             new UpdateQueue<MintDistributionV0>(0, Array.Empty<ScheduledUpdate<MintDistributionV0>>()),
             new UpdateQueue<TransactionFeeDistribution>(0, Array.Empty<ScheduledUpdate<TransactionFeeDistribution>>()),
             new UpdateQueue<GasRewards>(0, Array.Empty<ScheduledUpdate<GasRewards>>()),
-            new UpdateQueue<CcdAmount>(0, Array.Empty<ScheduledUpdate<CcdAmount>>()),
+            new UpdateQueue<BakerParameters>(0, Array.Empty<ScheduledUpdate<BakerParameters>>()),
             new UpdateQueue<AnonymityRevokerInfo>(0, Array.Empty<ScheduledUpdate<AnonymityRevokerInfo>>()),
             new UpdateQueue<IdentityProviderInfo>(0, Array.Empty<ScheduledUpdate<IdentityProviderInfo>>())
         );

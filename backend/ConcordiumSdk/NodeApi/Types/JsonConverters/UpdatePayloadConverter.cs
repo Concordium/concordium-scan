@@ -68,7 +68,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             }
             case "bakerStakeThreshold":
             {
-                var content = JsonSerializer.Deserialize<CcdAmount>(ref reader, options);
+                var content = JsonSerializer.Deserialize<BakerParameters>(ref reader, options)!;
                 result = new BakerStakeThresholdUpdatePayload(content);
                 break;
             }
@@ -170,7 +170,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
         {
             AddAnonymityRevokerUpdatePayload payload => ((object)payload.Content, payload.Content.GetType()),
             AddIdentityProviderUpdatePayload payload => (payload.Content, payload.Content.GetType()),
-            BakerStakeThresholdUpdatePayload payload => (payload.Amount, payload.Amount.GetType()),
+            BakerStakeThresholdUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             ElectionDifficultyUpdatePayload payload => (payload.ElectionDifficulty, payload.ElectionDifficulty.GetType()),
             EuroPerEnergyUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             FoundationAccountUpdatePayload payload => (payload.Account, payload.Account.GetType()),

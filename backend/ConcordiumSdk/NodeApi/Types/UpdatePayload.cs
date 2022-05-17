@@ -29,7 +29,7 @@ public record GasRewardsUpdatePayload(
     GasRewards Content) : UpdatePayload;
 
 public record BakerStakeThresholdUpdatePayload(
-    CcdAmount Amount) : UpdatePayload;
+    BakerParameters Content) : UpdatePayload;
 
 public record RootUpdatePayload(
      RootUpdate Content) : UpdatePayload;

@@ -131,14 +131,36 @@ public class UpdatePayloadConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
+    /// <summary>
+    /// This test can be removed once Concordium Nodes have been upgraded to at least version 4.0
+    /// on both test- and mainnet.
+    /// </summary>
     [Fact]
-    public void RoundTrip_BakerStakeThreshold()
+    public void RoundTrip_BakerStakeThreshold_ConcordiumNodeVersion3()
     {
         var json = "{\"updateType\": \"bakerStakeThreshold\", \"update\": \"14000000000\"}";
         
         var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
         var typed = Assert.IsType<BakerStakeThresholdUpdatePayload>(deserialized);
-        typed.Amount.Should().Be(CcdAmount.FromMicroCcd(14000000000));
+        typed.Content.MinimumThresholdForBaking.Should().Be(CcdAmount.FromMicroCcd(14000000000));
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_BakerStakeThreshold()
+    {
+        var json = @"{
+                         ""updateType"": ""bakerStakeThreshold"",
+                         ""update"": {
+                             ""minimumThresholdForBaking"": ""14000000000""
+                         }
+                     }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<BakerStakeThresholdUpdatePayload>(deserialized);
+        typed.Content.MinimumThresholdForBaking.Should().Be(CcdAmount.FromMicroCcd(14000000000));
         
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);

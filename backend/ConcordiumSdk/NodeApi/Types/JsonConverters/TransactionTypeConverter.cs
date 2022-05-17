@@ -72,6 +72,9 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
             { UpdateTransactionType.UpdateRootKeys, "updateRootKeys" },
             { UpdateTransactionType.UpdateLevel1Keys, "updateLevel1Keys" },
             { UpdateTransactionType.UpdateLevel2Keys , "updateLevel2Keys" },
+            { UpdateTransactionType.UpdatePoolParameters , "updatePoolParameters" },
+            { UpdateTransactionType.UpdateCooldownParameters , "updateCooldownParameters" },
+            { UpdateTransactionType.UpdateTimeParameters , "updateTimeParameters" },
         };
         
         _mapStringToUpdateTransactionType = _mapUpdateTransactionTypeToString

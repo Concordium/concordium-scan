@@ -208,7 +208,7 @@ public class TransactionWriter
             MintDistributionV0UpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
             TransactionFeeDistributionUpdatePayload x => new TransactionFeeDistributionChainUpdatePayload(x.Content.Baker, x.Content.GasAccount),
             GasRewardsUpdatePayload x => new GasRewardsChainUpdatePayload(x.Content.Baker, x.Content.FinalizationProof, x.Content.AccountCreation, x.Content.ChainUpdate),
-            BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Amount.MicroCcdValue),
+            BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Content.MinimumThresholdForBaking.MicroCcdValue),
             RootUpdatePayload x => new RootKeysChainUpdatePayload(),
             Level1UpdatePayload x => new Level1KeysChainUpdatePayload(),
             AddAnonymityRevokerUpdatePayload x => new AddAnonymityRevokerChainUpdatePayload((int)x.Content.ArIdentity, x.Content.ArDescription.Name, x.Content.ArDescription.Url, x.Content.ArDescription.Description),

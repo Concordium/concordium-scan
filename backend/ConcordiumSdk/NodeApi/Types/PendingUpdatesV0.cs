@@ -1,6 +1,4 @@
-﻿using ConcordiumSdk.Types;
-
-namespace ConcordiumSdk.NodeApi.Types;
+﻿namespace ConcordiumSdk.NodeApi.Types;
 
 public record PendingUpdatesV0(
     UpdateQueue<HigherLevelAccessStructureRootKeys> RootKeys,
@@ -14,6 +12,6 @@ public record PendingUpdatesV0(
     UpdateQueue<MintDistributionV0> MintDistribution,
     UpdateQueue<TransactionFeeDistribution> TransactionFeeDistribution,
     UpdateQueue<GasRewards> GasRewards,
-    UpdateQueue<CcdAmount> BakerStakeThreshold,
+    UpdateQueue<BakerParameters> BakerStakeThreshold,
     UpdateQueue<AnonymityRevokerInfo> AddAnonymityRevoker,
     UpdateQueue<IdentityProviderInfo> AddIdentityProvider);

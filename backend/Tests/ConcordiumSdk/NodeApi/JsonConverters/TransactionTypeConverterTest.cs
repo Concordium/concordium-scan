@@ -94,6 +94,9 @@ public class TransactionTypeConverterTest
     [InlineData("\"updateRootKeys\"", UpdateTransactionType.UpdateRootKeys)]
     [InlineData("\"updateLevel1Keys\"", UpdateTransactionType.UpdateLevel1Keys)]
     [InlineData("\"updateLevel2Keys\"", UpdateTransactionType.UpdateLevel2Keys)]
+    [InlineData("\"updatePoolParameters\"", UpdateTransactionType.UpdatePoolParameters)]
+    [InlineData("\"updateCooldownParameters\"", UpdateTransactionType.UpdateCooldownParameters)]
+    [InlineData("\"updateTimeParameters\"", UpdateTransactionType.UpdateTimeParameters)]
     [InlineData("null", null)]
     public void Deserialize_Update(string contentsString, UpdateTransactionType? expected)
     {
