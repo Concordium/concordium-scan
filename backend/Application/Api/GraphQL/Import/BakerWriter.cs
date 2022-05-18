@@ -167,4 +167,25 @@ public class BakerWriter
         context.BakerTransactionRelations.AddRange(items);
         await context.SaveChangesAsync();
     }
+
+    public async Task UpdateDelegatedStake()
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateDelegatedStake));
+
+        var sql = @"update graphql_bakers
+                    set active_pool_delegated_stake = 
+                    (
+                        select sum(delegation_staked_amount) 
+                        from graphql_accounts 
+                        where delegation_target_baker_id = id
+                    )
+                    where active_pool_open_status is not null";
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(sql);
+        await conn.CloseAsync();
+    }
 }

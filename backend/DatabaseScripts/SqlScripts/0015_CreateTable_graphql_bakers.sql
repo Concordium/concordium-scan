@@ -9,5 +9,6 @@
     active_pool_transaction_commission  numeric   null,
     active_pool_finalization_commission numeric   null,
     active_pool_baking_commission       numeric   null,
+    active_pool_delegated_stake         bigint    null,
     removed_timestamp                   timestamp null
 );

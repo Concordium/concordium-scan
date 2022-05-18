@@ -67,6 +67,12 @@ public class BakerImportHandler
         await _writer.AddBakerTransactionRelations(items);
     }
 
+    public async Task UpdateDelegatedStake(BlockDataPayload payload)
+    {
+        if (payload.BlockSummary.ProtocolVersion >= 4)
+            await _writer.UpdateDelegatedStake();
+    }
+    
     private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder, ImportState importState)
     {
         var mapBakerPool = payload.BlockSummary.ProtocolVersion >= 4;
