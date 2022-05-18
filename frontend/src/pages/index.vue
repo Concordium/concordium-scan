@@ -56,7 +56,9 @@
 						<Button title="Show all blocks">Show all</Button>
 					</NuxtLink>
 				</header>
-				<Table>
+				<TableSkeletonLoader v-if="pausedSubscriptions" />
+
+				<Table v-else>
 					<TableHead>
 						<TableRow>
 							<TableTh width="25%">Height</TableTh>
@@ -113,7 +115,8 @@
 						<Button title="Show all transactions">Show all</Button>
 					</NuxtLink>
 				</header>
-				<Table>
+				<TableSkeletonLoader v-if="pausedSubscriptions" />
+				<Table v-else>
 					<TableHead>
 						<TableRow>
 							<TableTh width="25%">Type</TableTh>
@@ -199,6 +202,7 @@ import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
+import TableSkeletonLoader from '~/components/Table/TableSkeletonLoader.vue'
 
 const pageSize = 10
 const queueSize = 10
@@ -254,13 +258,14 @@ const { data: blockData, executeQuery: blockRefetch } = useBlockListQuery({
 })
 const { data: txData, executeQuery: transactionsRefetch } =
 	useTransactionsListQuery({ first: pageSize })
-
+const pausedSubscriptions = ref(false)
 onMounted(() => {
 	resumeSubscription()
 	drawFunc()
 	if (window) {
 		window.onblur = () => {
 			if (loopInterval) clearInterval(loopInterval)
+			pausedSubscriptions.value = true
 			pauseSubscription()
 		}
 		window.onfocus = () => {
@@ -270,6 +275,7 @@ onMounted(() => {
 			transactionsRefetch({
 				requestPolicy: 'network-only',
 			})
+			pausedSubscriptions.value = false
 			resumeSubscription()
 			drawFunc()
 		}
@@ -348,7 +354,7 @@ const drawFunc = () => {
 }
 </script>
 
-<style>
+<style module>
 .list-move,
 .list-enter-active,
 .list-leave-active {
