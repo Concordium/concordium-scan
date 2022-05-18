@@ -9,6 +9,7 @@ public class BakerPoolBuilder
     private decimal _transactionCommission = 0.1m;
     private decimal _finalizationCommission = 0.1m;
     private decimal _bakingCommission = 0.1m;
+    private ulong _delegatedStake = 0UL;
 
     public BakerPool Build()
     {
@@ -21,7 +22,8 @@ public class BakerPoolBuilder
                 TransactionCommission = _transactionCommission,
                 FinalizationCommission = _finalizationCommission,
                 BakingCommission = _bakingCommission
-            }
+            },
+            DelegatedStake = _delegatedStake
         };
     }
 
@@ -36,12 +38,18 @@ public class BakerPoolBuilder
         _metadataUrl = value;
         return this;
     }
-    
+
     public BakerPoolBuilder WithCommissionRates(decimal transactionCommission = 0.1m, decimal finalizationCommission = 0.1m, decimal bakingCommission = 0.1m)
     {
         _transactionCommission = transactionCommission;
         _finalizationCommission = finalizationCommission;
         _bakingCommission = bakingCommission;
+        return this;
+    }
+
+    public BakerPoolBuilder WithDelegatedStake(ulong value)
+    {
+        _delegatedStake = value;
         return this;
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -10,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
-using Xunit.Abstractions;
 using BakerDelegationTarget = Application.Api.GraphQL.BakerDelegationTarget;
 using PassiveDelegationTarget = Application.Api.GraphQL.PassiveDelegationTarget;
 
@@ -283,22 +280,22 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
             new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
             new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithPool(null).Build()).Build(),
             new BakerBuilder().WithId(5).WithState(new RemovedBakerStateBuilder().Build()).Build());
-
+        
         await AddAccounts(
             new AccountBuilder().WithId(20).WithDelegation(new DelegationBuilder().WithStakedAmount(1000).WithDelegationTarget(new BakerDelegationTarget(1)).Build()).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(21).WithDelegation(new DelegationBuilder().WithStakedAmount(2000).WithDelegationTarget(new BakerDelegationTarget(1)).Build()).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(22).WithDelegation(new DelegationBuilder().WithStakedAmount(5000).WithDelegationTarget(new BakerDelegationTarget(2)).Build()).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(23).WithDelegation(new DelegationBuilder().WithStakedAmount(700).WithDelegationTarget(new PassiveDelegationTarget()).Build()).WithUniqueAddress().Build(),
             new AccountBuilder().WithId(24).WithDelegation(null).WithUniqueAddress().Build());
-
+        
         await _target.UpdateDelegatedStake();
         
         await using var context = _dbContextFactory.CreateDbContext();
         var results = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
-        (results[0].State as ActiveBakerState)?.Pool?.DelegatedStake.Should().Be(3000);
-        (results[1].State as ActiveBakerState)?.Pool?.DelegatedStake.Should().Be(5000);
-        (results[2].State as ActiveBakerState)?.Pool?.DelegatedStake.Should().Be(0);
-        (results[3].State as ActiveBakerState)?.Pool.Should().BeNull();
+        (results[0].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(3000);
+        (results[1].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(5000);
+        (results[2].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(0);
+        (results[3].State as ActiveBakerState)!.Pool.Should().BeNull();
         results[4].State.Should().BeOfType<RemovedBakerState>();
     }
 

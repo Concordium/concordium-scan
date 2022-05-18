@@ -106,6 +106,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
                     .WithOpenStatus(BakerPoolOpenStatus.ClosedForAll)
                     .WithMetadataUrl("https://example.com/ccd-baker-metadata")
                     .WithCommissionRates(0.1m, 0.2m, 0.3m)
+                    .WithDelegatedStake(1234)
                     .Build())
                 .Build())
             .Build();
@@ -121,6 +122,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         activeBakerState.Pool.CommissionRates.TransactionCommission.Should().Be(0.1m);
         activeBakerState.Pool.CommissionRates.FinalizationCommission.Should().Be(0.2m);
         activeBakerState.Pool.CommissionRates.BakingCommission.Should().Be(0.3m);
+        activeBakerState.Pool.DelegatedStake.Should().Be(1234);
     }
     
     [Fact]
