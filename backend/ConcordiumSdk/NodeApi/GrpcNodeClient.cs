@@ -82,6 +82,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
     
     public async Task<BlockInfo> GetBlockInfoAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
+        
         var request = new Concordium.BlockHash
         {
             BlockHash_ = blockHash.AsString
@@ -286,5 +287,12 @@ public class GrpcNodeClient : INodeClient, IDisposable
         var result = JsonSerializer.Deserialize<ContractInstanceInfo>(response.Value, _jsonSerializerOptions);
         if (result == null) throw new InvalidOperationException("Deserialization unexpectedly returned null!");
         return result;
+    }
+
+    public async Task<PeerVersion> GetPeerVersionAsync()
+    {
+        var result = await _client.PeerVersionAsync(new Empty(), CreateCallOptions(CancellationToken.None));
+        if (result == null) throw new InvalidOperationException("Unexpectedly received null from rpc operation.");
+        return PeerVersion.Parse(result.Value);
     }
 }

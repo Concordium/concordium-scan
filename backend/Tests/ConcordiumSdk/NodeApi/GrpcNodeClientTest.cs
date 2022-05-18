@@ -48,7 +48,7 @@ public class GrpcNodeClientTest : IDisposable
         var result = await _target.GetConsensusStatusAsync();
         Assert.NotNull(result);
     }
-    
+
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task GetTransactionStatusAsync_KnownFinalizedBlock()
     {
@@ -72,7 +72,7 @@ public class GrpcNodeClientTest : IDisposable
         var result = await _target.GetAccountListAsync(blockHash);
         Assert.NotNull(result);
     }
-    
+
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task GetAccountInfo()
     {
@@ -101,7 +101,7 @@ public class GrpcNodeClientTest : IDisposable
         var result = await _target.GetIdentityProvidersAsync(blockHashes.Single());
         result.Should().NotBeNull();
     }
-    
+
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task HarvestAccounts()
     {
@@ -131,7 +131,7 @@ public class GrpcNodeClientTest : IDisposable
         var contractAddresses = await _target.GetInstancesAsync(blockHash);
         contractAddresses.Should().NotBeNullOrEmpty();
     }
-    
+
     [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
     public async Task GetInstanceInfoAsync()
     {
@@ -139,5 +139,12 @@ public class GrpcNodeClientTest : IDisposable
         var contractAddresses = await _target.GetInstancesAsync(blockHash);
         var contractInfo = await _target.GetInstanceInfoAsync(contractAddresses.First(), blockHash);
         contractInfo.Should().NotBeNull();
+    }
+
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetPeerVersionAsync()
+    {
+        var result = await _target.GetPeerVersionAsync();
+        result.Should().Be(new PeerVersion(4, 0 , 11));
     }
 }
