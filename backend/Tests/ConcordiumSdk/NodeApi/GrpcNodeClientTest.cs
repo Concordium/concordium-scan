@@ -147,4 +147,20 @@ public class GrpcNodeClientTest : IDisposable
         var result = await _target.GetPeerVersionAsync();
         result.Should().Be(new PeerVersion(4, 0 , 11));
     }
+
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetPoolStatusForBaker()
+    {
+        var blockHashes = await _target.GetBlocksAtHeightAsync(0);
+        var result = await _target.GetPoolStatusForBaker(0, blockHashes.Single());
+        result.Should().NotBeNull();
+    }
+    
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetPoolStatusForPassiveDelegation()
+    {
+        var blockHashes = await _target.GetBlocksAtHeightAsync(0);
+        var result = await _target.GetPoolStatusForPassiveDelegation(blockHashes.Single());
+        result.Should().NotBeNull();
+    }
 }

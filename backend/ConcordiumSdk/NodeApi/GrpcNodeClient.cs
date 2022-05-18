@@ -289,10 +289,37 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
-    public async Task<PeerVersion> GetPeerVersionAsync()
+    public async Task<PeerVersion> GetPeerVersionAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _client.PeerVersionAsync(new Empty(), CreateCallOptions(CancellationToken.None));
+        var result = await _client.PeerVersionAsync(new Empty(), CreateCallOptions(cancellationToken));
         if (result == null) throw new InvalidOperationException("Unexpectedly received null from rpc operation.");
         return PeerVersion.Parse(result.Value);
+    }
+
+    public async Task<BakerPoolStatus?> GetPoolStatusForBaker(ulong bakerId, BlockHash blockHash, CancellationToken cancellationToken = default)
+    {
+        var response = await GetPoolStatusStringAsync(blockHash, bakerId, false, cancellationToken);
+        var result = JsonSerializer.Deserialize<BakerPoolStatus>(response, _jsonSerializerOptions);
+        return result;
+    }
+    
+    public async Task<PoolStatusPassiveDelegation?> GetPoolStatusForPassiveDelegation(BlockHash blockHash, CancellationToken cancellationToken = default)
+    {
+        var response = await GetPoolStatusStringAsync(blockHash, 0, true, cancellationToken);
+        var result = JsonSerializer.Deserialize<PoolStatusPassiveDelegation>(response, _jsonSerializerOptions);
+        return result;
+    }
+
+    private async Task<string> GetPoolStatusStringAsync(BlockHash blockHash, ulong bakerId, bool passiveDelegation, CancellationToken cancellationToken)
+    {
+        var request = new GetPoolStatusRequest
+        {
+            BakerId = bakerId,
+            BlockHash = blockHash.AsString,
+            PassiveDelegation = passiveDelegation
+        };
+        var result = await _client.GetPoolStatusAsync(request, CreateCallOptions(cancellationToken));
+        if (result == null) throw new InvalidOperationException("Unexpectedly received null from rpc operation.");
+        return result.Value;
     }
 }
