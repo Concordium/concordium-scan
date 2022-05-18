@@ -1,4 +1,4 @@
-﻿syntax = "proto3";
+syntax = "proto3";
 
 import "google/protobuf/wrappers.proto";
 
@@ -110,6 +110,14 @@ message GetAddressInfoRequest {
   string address = 2;
 }
 
+// Request for invoking a contract without a transaction.
+message InvokeContractRequest {
+  // Hash of the block (encoded in hex) at which to invoke the contract.
+  string block_hash = 1;
+  // A JSON object that specifies which contract to invoke, and how.
+  string context = 2;
+}
+
 message GetModuleSourceRequest {
   string block_hash = 1;
   string module_ref = 2;
@@ -127,6 +135,12 @@ message PeersRequest {
 message GetTransactionStatusInBlockRequest {
   string transaction_hash = 1;
   string block_hash = 2;
+}
+
+message GetPoolStatusRequest {
+  string block_hash = 1;
+  bool passive_delegation = 2;
+  uint64 baker_id = 3 [jstype = JS_STRING];
 }
 
 message BlockHeight {
@@ -184,6 +198,7 @@ service P2P {
   rpc GetInstances(BlockHash) returns (JsonResponse) {}
   rpc GetAccountInfo(GetAddressInfoRequest) returns (JsonResponse) {}
   rpc GetInstanceInfo(GetAddressInfoRequest) returns (JsonResponse) {}
+  rpc InvokeContract(InvokeContractRequest) returns (JsonResponse) {}
   rpc GetRewardStatus(BlockHash) returns (JsonResponse) {}
   rpc GetBirkParameters(BlockHash) returns (JsonResponse) {}
   rpc GetModuleList(BlockHash) returns (JsonResponse) {}
@@ -191,6 +206,8 @@ service P2P {
   rpc GetIdentityProviders(BlockHash) returns (JsonResponse) {}
   rpc GetAnonymityRevokers(BlockHash) returns (JsonResponse) {}
   rpc GetCryptographicParameters(BlockHash) returns (JsonResponse) {}
+  rpc GetBakerList(BlockHash) returns (JsonResponse) {}
+  rpc GetPoolStatus(GetPoolStatusRequest) returns (JsonResponse) {}
 
   rpc GetBannedPeers(Empty) returns (PeerListResponse) {}
   rpc Shutdown(Empty) returns (BoolResponse) {}
