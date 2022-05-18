@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
+using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
@@ -47,7 +48,7 @@ public class AccountValidator : IImportValidator
         
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext);
-        await ValidateBakers(nodeAccountBakers, blockHeight, dbContext);
+        await ValidateBakers(nodeAccountBakers, block, dbContext);
     }
 
     private async Task ValidateAccounts(List<AccountInfo> nodeAccountInfos, ulong blockHeight, GraphQlDbContext dbContext)
@@ -157,8 +158,20 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, ulong blockHeight, GraphQlDbContext dbContext)
+    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext)
     {
+        var blockHeight = (ulong)block.BlockHeight;
+        var blockHash = new BlockHash(block.BlockHash);
+
+        var poolStatuses = new List<BakerPoolStatus>();
+        foreach (var chunk in Chunk(nodeAccountBakers.ToArray(), 10))
+        {
+            var chunkResult = await Task.WhenAll(chunk
+                .Select(x => _nodeClient.GetPoolStatusForBaker(x.BakerId, blockHash)));
+
+            poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
+        }
+        
         var nodeBakers = nodeAccountBakers
             .Select(x => new
             {
@@ -171,7 +184,8 @@ public class AccountValidator : IImportValidator
                     MetadataUrl = x.BakerPoolInfo.MetadataUrl,
                     TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
                     FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
-                    BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission
+                    BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
+                    DelegatedStake = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapital.MicroCcdValue
                 }
             })
             .OrderBy(x => x.Id)
@@ -191,7 +205,8 @@ public class AccountValidator : IImportValidator
                     MetadataUrl = x.ActiveState!.Pool.MetadataUrl,
                     TransactionCommission = x.ActiveState!.Pool.CommissionRates.TransactionCommission,
                     FinalizationCommission = x.ActiveState!.Pool.CommissionRates.FinalizationCommission,
-                    BakingCommission = x.ActiveState!.Pool.CommissionRates.BakingCommission
+                    BakingCommission = x.ActiveState!.Pool.CommissionRates.BakingCommission,
+                    DelegatedStake = x.ActiveState!.Pool.DelegatedStake
                 }
             })
             .OrderBy(x => x.Id)
