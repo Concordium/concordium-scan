@@ -57,7 +57,6 @@
 					</NuxtLink>
 				</header>
 				<TableSkeletonLoader v-if="pausedSubscriptions" />
-
 				<Table v-else>
 					<TableHead>
 						<TableRow>

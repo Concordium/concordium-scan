@@ -1,6 +1,6 @@
 ﻿<template>
-	<div class="relative">
-		<Table :class="$style.pauseOverlay">
+	<div class="relative max-w-full overflow-x-auto" :class="$style.pauseOverlay">
+		<Table>
 			<TableHead>
 				<TableRow>
 					<TableTh width="25%"
@@ -19,12 +19,12 @@
 			</TableHead>
 
 			<TableRow v-for="n in 10" :key="n">
-				<TableTd v-for="kn in 4" :key="kn">
+				<TableTd v-for="kn4 in columnCount" :key="kn4">
 					<div :class="$style.pauseOverlayBar">&nbsp;</div>
 				</TableTd>
 			</TableRow>
 		</Table>
-		<div class="absolute top-1/4 left-1/3 z-10">
+		<div class="absolute top-1/4 z-10" :class="$style.centerSvg">
 			<h1 class="animate-pulse"><PauseIcon class="h-56 w-56" /></h1>
 		</div>
 	</div>
@@ -33,10 +33,18 @@
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import PauseIcon from '~/components/icons/PauseIcon.vue'
 const { breakpoint } = useBreakpoint()
+const columnCount = computed(() => {
+	if (breakpoint.value >= Breakpoint.MD) return 4
+	else if (breakpoint.value >= Breakpoint.SM) return 3
+	return 2
+})
 </script>
 <style module>
 .pauseOverlay {
 	min-height: 527px;
+}
+.centerSvg {
+	left: calc(50% - 7rem);
 }
 .pauseOverlayBar {
 	@apply px-6 py-3 overflow-hidden;
@@ -45,6 +53,7 @@ const { breakpoint } = useBreakpoint()
 	line-height: 32px;
 	border-radius: 7px;
 	width: 80%;
+	min-width: 120px;
 	&:after {
 		position: absolute;
 		transform: translateY(-50%);
