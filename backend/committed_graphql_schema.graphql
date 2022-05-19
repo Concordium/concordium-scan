@@ -312,6 +312,10 @@ type BakerPoolCommissionRates {
   bakingCommission: Decimal!
 }
 
+type BakerPoolRewardTarget {
+  bakerId: UnsignedLong!
+}
+
 type BakerRemoved {
   bakerId: UnsignedLong!
   accountAddress: AccountAddress!
@@ -1069,6 +1073,10 @@ type PageInfo {
   endCursor: String
 }
 
+type PassiveDelegationPoolRewardTarget {
+  _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
+}
+
 type PassiveDelegationTarget {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
@@ -1092,8 +1100,8 @@ type PaydayFoundationRewardSpecialEvent {
 }
 
 type PaydayPoolRewardSpecialEvent {
-  "The pool owner (passive delegators when null)."
-  poolOwner: UnsignedLong
+  "The pool awarded."
+  pool: PoolRewardTarget!
   "Accrued transaction fees for pool."
   transactionFees: UnsignedLong!
   "Accrued baking rewards for pool."
@@ -1417,6 +1425,8 @@ union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdde
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 
 union PendingDelegationChange = PendingDelegationRemoval | PendingDelegationReduceStake
+
+union PoolRewardTarget = PassiveDelegationPoolRewardTarget | BakerPoolRewardTarget
 
 union SpecialEvent = MintSpecialEvent | FinalizationRewardsSpecialEvent | BlockRewardsSpecialEvent | BakingRewardsSpecialEvent | PaydayAccountRewardSpecialEvent | BlockAccrueRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent
 
