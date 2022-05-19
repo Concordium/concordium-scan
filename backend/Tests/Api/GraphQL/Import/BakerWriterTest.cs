@@ -275,10 +275,10 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     public async Task UpdateDelegatedStake()
     {
         await AddBakers(
-            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
-            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
-            new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
-            new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithPool(null).Build()).Build(),
+            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithStakedAmount(2500).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(1500).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithStakedAmount(1300).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithStakedAmount(5000).WithPool(null).Build()).Build(),
             new BakerBuilder().WithId(5).WithState(new RemovedBakerStateBuilder().Build()).Build());
         
         await AddAccounts(
@@ -293,8 +293,11 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         await using var context = _dbContextFactory.CreateDbContext();
         var results = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
         (results[0].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(3000);
+        (results[0].State as ActiveBakerState)!.Pool!.TotalStake.Should().Be(5500);
         (results[1].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(5000);
+        (results[1].State as ActiveBakerState)!.Pool!.TotalStake.Should().Be(6500);
         (results[2].State as ActiveBakerState)!.Pool!.DelegatedStake.Should().Be(0);
+        (results[2].State as ActiveBakerState)!.Pool!.TotalStake.Should().Be(1300);
         (results[3].State as ActiveBakerState)!.Pool.Should().BeNull();
         results[4].State.Should().BeOfType<RemovedBakerState>();
     }

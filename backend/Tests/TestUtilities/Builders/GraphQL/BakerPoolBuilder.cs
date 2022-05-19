@@ -10,6 +10,7 @@ public class BakerPoolBuilder
     private decimal _finalizationCommission = 0.1m;
     private decimal _bakingCommission = 0.1m;
     private ulong _delegatedStake = 0UL;
+    private ulong _totalStake = 0UL;
 
     public BakerPool Build()
     {
@@ -23,7 +24,8 @@ public class BakerPoolBuilder
                 FinalizationCommission = _finalizationCommission,
                 BakingCommission = _bakingCommission
             },
-            DelegatedStake = _delegatedStake
+            DelegatedStake = _delegatedStake,
+            TotalStake = _totalStake
         };
     }
 
@@ -50,6 +52,12 @@ public class BakerPoolBuilder
     public BakerPoolBuilder WithDelegatedStake(ulong value)
     {
         _delegatedStake = value;
+        return this;
+    }
+
+    public BakerPoolBuilder WithTotalStake(ulong value)
+    {
+        _totalStake = value;
         return this;
     }
 }

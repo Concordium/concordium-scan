@@ -172,14 +172,21 @@ public class BakerWriter
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateDelegatedStake));
 
-        var sql = @"update graphql_bakers baker
-                    set active_pool_delegated_stake = 
+        var sql = @"with new_values as 
                     (
-                        select coalesce(sum(acct.delegation_staked_amount), 0) 
-                        from graphql_accounts acct 
-                        where acct.delegation_target_baker_id = baker.id
+                        select 
+                            baker.id as baker_id, 
+                            (select coalesce(sum(acct.delegation_staked_amount), 0) 
+                                from graphql_accounts acct 
+                                where acct.delegation_target_baker_id = baker.id) as delegated_stake 
+                        from graphql_bakers baker 
+                        where baker.active_pool_open_status is not null
                     )
-                    where baker.active_pool_open_status is not null";
+                    update graphql_bakers baker set
+                        active_pool_delegated_stake = new_values.delegated_stake,
+                        active_pool_total_stake = new_values.delegated_stake + active_staked_amount
+                    from new_values 
+                    where new_values.baker_id = baker.id";
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();

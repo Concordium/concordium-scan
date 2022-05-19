@@ -300,7 +300,9 @@ type BakerPool {
   openStatus: BakerPoolOpenStatus!
   commissionRates: BakerPoolCommissionRates!
   metadataUrl: String!
-  "The total stake delegated to this baker pool."
+  "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
+  totalStake: UnsignedLong!
+  "The total amount staked by delegation to this baker pool."
   delegatedStake: UnsignedLong!
 }
 

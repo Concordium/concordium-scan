@@ -8,6 +8,9 @@ public class BakerPool
     public BakerPoolCommissionRates CommissionRates { get; init; }
     public string MetadataUrl { get; set; }
     
-    [GraphQLDescription("The total stake delegated to this baker pool.")]
-    public ulong DelegatedStake { get; set; }
+    [GraphQLDescription("The total amount staked in this baker pool. Includes both baker stake and delegated stake.")]
+    public ulong TotalStake { get; init; }
+    
+    [GraphQLDescription("The total amount staked by delegation to this baker pool.")]
+    public ulong DelegatedStake { get; init; }
 }
