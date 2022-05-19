@@ -61,6 +61,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<BakerState>(builder);
         AddAllTypesDerivedFrom<PendingBakerChange>(builder);
         AddAllTypesDerivedFrom<DelegationTarget>(builder);
+        AddAllTypesDerivedFrom<PendingDelegationChange>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

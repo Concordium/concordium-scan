@@ -26,7 +26,6 @@ public class Account
     
     public DateTimeOffset CreatedAt { get; init; }
     
-    [GraphQLIgnore] // Still not made available on graphql schema...
     public Delegation? Delegation { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
