@@ -175,10 +175,6 @@ type AccountsMetricsBuckets {
 }
 
 type ActiveBakerState {
-  "Stake of the baker as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
-  stakePercentage: Decimal
-  "Ranking of the baker by staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
-  rankingByStake: Ranking
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
   pool: BakerPool
@@ -297,13 +293,17 @@ type BakerMetricsBuckets {
 }
 
 type BakerPool {
+  "Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
+  totalStakePercentage: Decimal
+  "Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
+  rankingByTotalStake: Ranking
   openStatus: BakerPoolOpenStatus!
   commissionRates: BakerPoolCommissionRates!
   metadataUrl: String!
-  "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
-  totalStake: UnsignedLong!
   "The total amount staked by delegation to this baker pool."
   delegatedStake: UnsignedLong!
+  "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
+  totalStake: UnsignedLong!
 }
 
 type BakerPoolCommissionRates {
