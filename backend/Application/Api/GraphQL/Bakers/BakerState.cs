@@ -34,7 +34,6 @@ public class ActiveBakerState : BakerState
     
     public bool RestakeEarnings { get; set; }
 
-    [GraphQLIgnore] // Still not ready for graphql endpoint...
     public BakerPool? Pool { get; set; }
 
     public PendingBakerChange? PendingChange { get; set; }

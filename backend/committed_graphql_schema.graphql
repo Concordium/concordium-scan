@@ -181,6 +181,7 @@ type ActiveBakerState {
   rankingByStake: Ranking
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
+  pool: BakerPool
   pendingChange: PendingBakerChange
 }
 
@@ -293,6 +294,20 @@ type BakerMetricsBuckets {
   y_BakersAdded: [Int!]!
   "Number of bakers removed within bucket time period. Intended y-axis value."
   y_BakersRemoved: [Int!]!
+}
+
+type BakerPool {
+  openStatus: BakerPoolOpenStatus!
+  commissionRates: BakerPoolCommissionRates!
+  metadataUrl: String!
+  "The total stake delegated to this baker pool."
+  delegatedStake: UnsignedLong!
+}
+
+type BakerPoolCommissionRates {
+  transactionCommission: Decimal!
+  finalizationCommission: Decimal!
+  bakingCommission: Decimal!
 }
 
 type BakerRemoved {
