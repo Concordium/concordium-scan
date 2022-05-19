@@ -60,7 +60,7 @@ public class DelegationImportHandler
             
         foreach (var bakerId in bakerIds)
         {
-            var target = new BakerDelegationTarget((ulong)bakerId);
+            var target = new BakerDelegationTarget(bakerId);
             await _writer.UpdateAccounts(account => account.Delegation != null && account.Delegation.DelegationTarget == target, account => account.Delegation!.DelegationTarget = new PassiveDelegationTarget());
         }
     }
@@ -154,7 +154,7 @@ public class DelegationImportHandler
         return source switch
         {
             ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget(x.BakerId),
+            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
             _ => throw new NotImplementedException()
         };
     }

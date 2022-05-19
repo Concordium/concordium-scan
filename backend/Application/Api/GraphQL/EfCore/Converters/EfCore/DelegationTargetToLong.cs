@@ -13,7 +13,7 @@ public class DelegationTargetToLong : ValueConverter<DelegationTarget, long>
     private static DelegationTarget ConvertToAccountAddress(long value)
     {
         if (value == -1) return new PassiveDelegationTarget();
-        return new BakerDelegationTarget((ulong)value);
+        return new BakerDelegationTarget(value);
     }
 
     private static long ConvertToString(DelegationTarget value)
@@ -21,7 +21,7 @@ public class DelegationTargetToLong : ValueConverter<DelegationTarget, long>
         return value switch
         {
             PassiveDelegationTarget => -1,
-            BakerDelegationTarget x => (long)x.BakerId,
+            BakerDelegationTarget x => x.BakerId,
             _ => throw new NotImplementedException()
         };
     }

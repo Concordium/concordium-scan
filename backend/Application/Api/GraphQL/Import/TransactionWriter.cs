@@ -179,7 +179,7 @@ public class TransactionWriter
         return src switch
         {
             ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget(x.BakerId),
+            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
             _ => throw new NotImplementedException()
         };
     }

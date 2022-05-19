@@ -16,4 +16,4 @@ public record PassiveDelegationTarget : DelegationTarget
 }
 
 public record BakerDelegationTarget(
-    ulong BakerId) : DelegationTarget;
+    long BakerId) : DelegationTarget;
