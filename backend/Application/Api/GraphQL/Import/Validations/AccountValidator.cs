@@ -164,14 +164,19 @@ public class AccountValidator : IImportValidator
         var blockHash = new BlockHash(block.BlockHash);
 
         var poolStatuses = new List<BakerPoolStatus>();
-        foreach (var chunk in Chunk(nodeAccountBakers.ToArray(), 10))
-        {
-            var chunkResult = await Task.WhenAll(chunk
-                .Select(x => _nodeClient.GetPoolStatusForBaker(x.BakerId, blockHash)));
 
-            poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
+        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
+        if (nodeSwVersion.Major >= 4)
+        {
+            foreach (var chunk in Chunk(nodeAccountBakers.ToArray(), 10))
+            {
+                var chunkResult = await Task.WhenAll(chunk
+                    .Select(x => _nodeClient.GetPoolStatusForBaker(x.BakerId, blockHash)));
+
+                poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
+            }
         }
-        
+
         var nodeBakers = nodeAccountBakers
             .Select(x => new
             {
