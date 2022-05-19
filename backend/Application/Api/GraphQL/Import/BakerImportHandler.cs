@@ -184,6 +184,8 @@ public class BakerImportHandler
                     };
                     _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime} based on epoch value {epochValue}", baker.BakerId, activeState.PendingChange.EffectiveTime, pendingChange.Epoch.Value);
                 }
+                else
+                    _logger.Warning("Would have rescheduled pending baker change for baker {bakerId}, but it had no epoch value.", baker.BakerId);
             });
 
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
