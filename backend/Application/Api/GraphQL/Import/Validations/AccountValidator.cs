@@ -6,6 +6,7 @@ using Application.Api.GraphQL.EfCore;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
@@ -237,6 +238,55 @@ public class AccountValidator : IImportValidator
                 _logger.Warning($"database had bakers not in node: {Environment.NewLine}{format}");
             }
         }
+        
+        await ValidateBakerConsistencyInDatabase(dbContext);
+    }
+
+    private async Task ValidateBakerConsistencyInDatabase(GraphQlDbContext graphQlDbContext)
+    {
+        var conn = graphQlDbContext.Database.GetDbConnection();
+        await conn.OpenAsync();
+
+        var expectedSql = "select id, active_pool_delegator_count from graphql_bakers where active_pool_delegator_count > 0 order by id;";
+        var expectedRows = await conn.QueryAsync(expectedSql);
+        var expectedMapped = expectedRows
+            .Select(row => new
+            {
+                BakerId = row.id,
+                DelegatorCount = row.active_pool_delegator_count
+            })
+            .ToArray();
+        
+        var actualSql = "select delegation_target_baker_id as baker_id, count(*) as delegator_count from graphql_accounts where delegation_target_baker_id >= 0 group by (delegation_target_baker_id) order by delegation_target_baker_id;";
+        var actualRows = await conn.QueryAsync(actualSql);
+        var actualMapped = actualRows
+            .Select(row => new
+            {
+                BakerId = row.baker_id,
+                DelegatorCount = row.delegator_count
+            })
+            .ToArray();
+
+        var equal = expectedMapped.SequenceEqual(actualMapped);
+        _logger.Information("Delegator count on bakers matched expected: {equal}", equal);
+        if (!equal)
+        {
+            var diff1 = expectedMapped.Except(actualMapped).ToArray();
+            if (diff1.Length > 0)
+            {
+                var format = String.Join(Environment.NewLine, diff1.Select(diff => $"   {diff}"));
+                _logger.Warning($"expected list had items not in actual: {Environment.NewLine}{format}");
+            }
+
+            var diff2 = actualMapped.Except(expectedMapped).ToArray();
+            if (diff2.Length > 0)
+            {
+                var format = String.Join(Environment.NewLine, diff2.Select(diff => $"   {diff}"));
+                _logger.Warning($"actual list had items not in expected: {Environment.NewLine}{format}");
+            }
+        }
+        
+        await conn.CloseAsync();
     }
 
     private IEnumerable<IEnumerable<T>> Chunk<T>(T[] list, int batchSize)
