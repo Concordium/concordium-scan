@@ -21,6 +21,7 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.OwnsOne(x => x.Delegation, delegationBuilder =>
         {
+            delegationBuilder.WithOwner(x => x.Owner);
             delegationBuilder.Property(x => x.StakedAmount).HasColumnName("delegation_staked_amount");
             delegationBuilder.Property(x => x.RestakeEarnings).HasColumnName("delegation_restake_earnings");
             delegationBuilder.Property(x => x.PendingChange).HasColumnName("delegation_pending_change").HasColumnType("json").HasConversion<PendingDelegationChangeToJsonConverter>();

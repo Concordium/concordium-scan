@@ -709,6 +709,7 @@ type DecodedTransferMemo {
 }
 
 type Delegation {
+  delegatorId: Long!
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
   delegationTarget: DelegationTarget!
