@@ -36,6 +36,7 @@ public class BakerConfiguration :
                 });
                 poolBuilder.Property(x => x.DelegatedStake).HasColumnName("active_pool_delegated_stake");
                 poolBuilder.Property(x => x.TotalStake).HasColumnName("active_pool_total_stake");
+                poolBuilder.Property(x => x.DelegatorCount).HasColumnName("active_pool_delegator_count");
             });
 
         });

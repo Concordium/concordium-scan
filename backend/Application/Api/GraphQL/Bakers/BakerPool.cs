@@ -26,6 +26,8 @@ public class BakerPool
     [GraphQLDescription("The total amount staked in this baker pool. Includes both baker stake and delegated stake.")]
     public ulong TotalStake { get; init; }
 
+    public int DelegatorCount { get; set; }
+
     [GraphQLDescription("Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
     public decimal? GetTotalStakePercentage()
     {

@@ -305,6 +305,7 @@ type BakerPool {
   delegatedStake: UnsignedLong!
   "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
   totalStake: UnsignedLong!
+  delegatorCount: Int!
 }
 
 type BakerPoolCommissionRates {

@@ -67,10 +67,21 @@ public class BakerImportHandler
         await _writer.AddBakerTransactionRelations(items);
     }
 
-    public async Task UpdateDelegatedStake(BlockDataPayload payload)
+    public async Task ApplyDelegationUpdates(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload)
     {
-        if (payload.BlockSummary.ProtocolVersion >= 4)
-            await _writer.UpdateDelegatedStake();
+        if (payload.BlockSummary.ProtocolVersion >= 4) // TODO: Could be optimized by only invoking on payday block (?)
+            await _writer.UpdateDelegatedStake(); 
+
+        foreach (var delegatorCountDelta in delegationUpdateResults.DelegatorCountDeltas)
+        {
+            // Could be optimized by using a raw sql statement, but few delegation target changes are expected per block.
+            if (delegatorCountDelta.DelegationTarget is BakerDelegationTarget bakerTarget)
+                await _writer.UpdateBaker(bakerTarget, obj => (ulong)obj.BakerId, (_, dst) =>
+                {
+                    if (dst.State is ActiveBakerState activeState) // Check, since baker might have been removed in this block!
+                        activeState.Pool!.DelegatorCount += delegatorCountDelta.DelegatorCountDelta;
+                });
+        }
     }
     
     private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder, ImportState importState)

@@ -1,5 +1,5 @@
-﻿using System.Linq.Expressions;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using System.Xml;
 using Application.Api.GraphQL.Accounts;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -29,7 +29,7 @@ public class DelegationImportHandler
             if (isFirstBlockAfterPayday)
                 await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
 
-            await HandleBakersRemovedOrClosedForAll(bakerUpdateResults);
+            await HandleBakersRemovedOrClosedForAll(bakerUpdateResults, resultBuilder);
             
             var allTransactionEvents = payload.BlockSummary.TransactionSummaries
                 .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
@@ -44,7 +44,7 @@ public class DelegationImportHandler
                 or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings
                 or ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget);
 
-            await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1);
+            await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1, resultBuilder);
             await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
             
             resultBuilder.SetTotalAmountStaked(await _writer.GetTotalDelegationAmountStaked());
@@ -53,7 +53,7 @@ public class DelegationImportHandler
         return resultBuilder.Build();
     }
 
-    private async Task HandleBakersRemovedOrClosedForAll(BakerUpdateResults bakerUpdateResults)
+    private async Task HandleBakersRemovedOrClosedForAll(BakerUpdateResults bakerUpdateResults, DelegationUpdateResultsBuilder resultBuilder)
     {
         var bakerIds = bakerUpdateResults.BakerIdsRemoved
             .Concat(bakerUpdateResults.BakerIdsClosedForAll);
@@ -61,7 +61,13 @@ public class DelegationImportHandler
         foreach (var bakerId in bakerIds)
         {
             var target = new BakerDelegationTarget(bakerId);
-            await _writer.UpdateAccounts(account => account.Delegation != null && account.Delegation.DelegationTarget == target, account => account.Delegation!.DelegationTarget = new PassiveDelegationTarget());
+            await _writer.UpdateAccounts(account => account.Delegation != null && account.Delegation.DelegationTarget == target, account =>
+            {
+                resultBuilder.DelegationTargetRemoved(account.Delegation!.DelegationTarget);
+                account.Delegation!.DelegationTarget = new PassiveDelegationTarget();
+                resultBuilder.DelegationTargetAdded(account.Delegation!.DelegationTarget);
+
+            });
         }
     }
 
@@ -80,7 +86,7 @@ public class DelegationImportHandler
     }
 
     private async Task UpdateDelegationFromTransactionEvents(IEnumerable<TransactionResultEvent> txEvents,
-        BlockInfo blockInfo, ChainParametersV1 chainParameters)
+        BlockInfo blockInfo, ChainParametersV1 chainParameters, DelegationUpdateResultsBuilder resultBuilder)
     {
         foreach (var txEvent in txEvents)
         {
@@ -91,7 +97,8 @@ public class DelegationImportHandler
                     (_, dst) =>
                     {
                         if (dst.Delegation != null) throw new InvalidOperationException("Trying to add delegation to an account that already has a delegation set!");
-                        dst.Delegation = CreateDefaultDelegation();
+                        dst.Delegation = new Delegation(0, false, new PassiveDelegationTarget());
+                        resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
                     });
             }
             else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationRemoved removed)
@@ -143,7 +150,10 @@ public class DelegationImportHandler
                     (src, dst) =>
                     {
                         if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
+                        resultBuilder.DelegationTargetRemoved(dst.Delegation.DelegationTarget);
                         dst.Delegation.DelegationTarget = Map(src.DelegationTarget);
+                        resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
+
                     });
             }
         }
@@ -159,13 +169,10 @@ public class DelegationImportHandler
         };
     }
 
-    private static Delegation CreateDefaultDelegation()
+    public class DelegationUpdateResultsBuilder
     {
-        return new Delegation(0, false, new PassiveDelegationTarget());
-    }
-    
-    private class DelegationUpdateResultsBuilder
-    {
+        private readonly List<DelegationTarget> _delegationTargetsRemoved = new ();
+        private readonly List<DelegationTarget> _delegationTargetsAdded = new();
         private ulong _totalAmountStaked = 0;
 
         public void SetTotalAmountStaked(ulong totalAmountStaked)
@@ -175,10 +182,38 @@ public class DelegationImportHandler
 
         public DelegationUpdateResults Build()
         {
-            return new DelegationUpdateResults(_totalAmountStaked);
+            var adds = _delegationTargetsAdded.Select(x => new DelegationTargetDelegatorCountDelta(x, 1));
+            var removes = _delegationTargetsRemoved.Select(x => new DelegationTargetDelegatorCountDelta(x, -1));
+
+            var all = adds.Concat(removes)
+                .GroupBy(x => x.DelegationTarget)
+                .Select(x =>
+                {
+                    var delegatorCountDelta = x.Aggregate(0, (result, item) => result + item.DelegatorCountDelta);
+                    return new DelegationTargetDelegatorCountDelta(x.Key, delegatorCountDelta);
+                })
+                .Where(x => x.DelegatorCountDelta != 0)
+                .ToArray();
+            
+            return new DelegationUpdateResults(_totalAmountStaked, all);
+        }
+
+        public void DelegationTargetRemoved(DelegationTarget delegationTarget)
+        {
+            _delegationTargetsRemoved.Add(delegationTarget);
+        }
+
+        public void DelegationTargetAdded(DelegationTarget delegationTarget)
+        {
+            _delegationTargetsAdded.Add(delegationTarget);
         }
     }
 }
 
 public record DelegationUpdateResults(
-    ulong TotalAmountStaked);
+    ulong TotalAmountStaked,
+    DelegationTargetDelegatorCountDelta[] DelegatorCountDeltas);
+    
+public record DelegationTargetDelegatorCountDelta(
+    DelegationTarget DelegationTarget, 
+    int DelegatorCountDelta);

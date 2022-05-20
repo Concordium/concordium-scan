@@ -108,6 +108,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
                     .WithCommissionRates(0.1m, 0.2m, 0.3m)
                     .WithDelegatedStake(1234)
                     .WithTotalStake(2000)
+                    .WithDelegatorCount(42)
                     .Build())
                 .Build())
             .Build();
@@ -125,6 +126,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         activeBakerState.Pool.CommissionRates.BakingCommission.Should().Be(0.3m);
         activeBakerState.Pool.DelegatedStake.Should().Be(1234);
         activeBakerState.Pool.TotalStake.Should().Be(2000);
+        activeBakerState.Pool.DelegatorCount.Should().Be(42);
     }
     
     [Fact]
