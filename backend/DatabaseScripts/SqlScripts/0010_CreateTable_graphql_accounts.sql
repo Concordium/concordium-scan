@@ -22,4 +22,8 @@ create index graphql_accounts_ccd_amount_index
     on graphql_accounts (ccd_amount);
 
 create index graphql_accounts_transaction_count_index
-    on graphql_accounts (transaction_count)
+    on graphql_accounts (transaction_count);
+
+create index graphql_accounts_delegation_target_baker_id_index
+    on graphql_accounts (delegation_target_baker_id, delegation_staked_amount desc)
+    where delegation_target_baker_id is not null;
