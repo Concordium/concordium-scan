@@ -117,7 +117,52 @@
 					v-else-if="event.__typename === 'ChainUpdateEnqueued'"
 					:event="event"
 				/>
-
+				<BakerSetOpenStatus
+					v-else-if="event.__typename === 'BakerSetOpenStatus'"
+					:event="event"
+				/>
+				<BakerSetMetadataURL
+					v-else-if="event.__typename === 'BakerSetMetadataURL'"
+					:event="event"
+				/>
+				<BakerSetTransactionFeeCommission
+					v-else-if="event.__typename === 'BakerSetTransactionFeeCommission'"
+					:event="event"
+				/>
+				<BakerSetBakingRewardCommission
+					v-else-if="event.__typename === 'BakerSetBakingRewardCommission'"
+					:event="event"
+				/>
+				<BakerSetFinalizationRewardCommission
+					v-else-if="
+						event.__typename === 'BakerSetFinalizationRewardCommission'
+					"
+					:event="event"
+				/>
+				<DelegationStakeIncreased
+					v-else-if="event.__typename === 'DelegationStakeIncreased'"
+					:event="event"
+				/>
+				<DelegationStakeDecreased
+					v-else-if="event.__typename === 'DelegationStakeDecreased'"
+					:event="event"
+				/>
+				<DelegationSetRestakeEarnings
+					v-else-if="event.__typename === 'DelegationSetRestakeEarnings'"
+					:event="event"
+				/>
+				<DelegationSetDelegationTarget
+					v-else-if="event.__typename === 'DelegationSetDelegationTarget'"
+					:event="event"
+				/>
+				<DelegationAdded
+					v-else-if="event.__typename === 'DelegationAdded'"
+					:event="event"
+				/>
+				<DelegationRemoved
+					v-else-if="event.__typename === 'DelegationRemoved'"
+					:event="event"
+				/>
 				<span v-else>Transaction event: {{ event.__typename }}</span>
 			</li>
 		</ul>
@@ -152,6 +197,17 @@ import NewEncryptedAmount from './Events/NewEncryptedAmount.vue'
 import TransferMemo from './Events/TransferMemo.vue'
 import Transferred from './Events/Transferred.vue'
 import TransferredWithSchedule from './Events/TransferredWithSchedule.vue'
+import BakerSetOpenStatus from '~/components/TransactionEventList/Events/BakerSetOpenStatus.vue'
+import BakerSetMetadataURL from '~/components/TransactionEventList/Events/BakerSetMetadataURL.vue'
+import BakerSetTransactionFeeCommission from '~/components/TransactionEventList/Events/BakerSetTransactionFeeCommission.vue'
+import BakerSetBakingRewardCommission from '~/components/TransactionEventList/Events/BakerSetBakingRewardCommission.vue'
+import BakerSetFinalizationRewardCommission from '~/components/TransactionEventList/Events/BakerSetFinalizationRewardCommission.vue'
+import DelegationStakeIncreased from '~/components/TransactionEventList/Events/DelegationStakeIncreased.vue'
+import DelegationStakeDecreased from '~/components/TransactionEventList/Events/DelegationStakeDecreased.vue'
+import DelegationSetRestakeEarnings from '~/components/TransactionEventList/Events/DelegationSetRestakeEarnings.vue'
+import DelegationSetDelegationTarget from '~/components/TransactionEventList/Events/DelegationSetDelegationTarget.vue'
+import DelegationAdded from '~/components/TransactionEventList/Events/DelegationAdded.vue'
+import DelegationRemoved from '~/components/TransactionEventList/Events/DelegationRemoved.vue'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { Success, PageInfo, Transaction } from '~/types/generated'

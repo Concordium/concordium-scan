@@ -31,6 +31,7 @@ export type Account = {
   amount: Scalars['UnsignedLong'];
   baker?: Maybe<Baker>;
   createdAt: Scalars['DateTime'];
+  delegation?: Maybe<Delegation>;
   id: Scalars['ID'];
   releaseSchedule: AccountReleaseSchedule;
   transactionCount: Scalars['Int'];
@@ -279,6 +280,7 @@ export type AccountsMetricsBuckets = {
 export type ActiveBakerState = {
   __typename?: 'ActiveBakerState';
   pendingChange?: Maybe<PendingBakerChange>;
+  pool?: Maybe<BakerPool>;
   restakeEarnings: Scalars['Boolean'];
   stakedAmount: Scalars['UnsignedLong'];
 };
@@ -306,6 +308,12 @@ export type AlreadyABaker = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   bakerId: Scalars['UnsignedLong'];
+};
+
+export type AlreadyADelegator = {
+  __typename?: 'AlreadyADelegator';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type AmountAddedByDecryption = {
@@ -380,6 +388,11 @@ export type BakerAdded = {
   stakedAmount: Scalars['UnsignedLong'];
 };
 
+export type BakerDelegationTarget = {
+  __typename?: 'BakerDelegationTarget';
+  bakerId: Scalars['Long'];
+};
+
 export type BakerInCooldown = {
   __typename?: 'BakerInCooldown';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -418,6 +431,48 @@ export type BakerMetricsBuckets = {
   y_BakersRemoved: Array<Scalars['Int']>;
   /** Number of bakers at the end of the bucket period. Intended y-axis value. */
   y_LastBakerCount: Array<Scalars['Int']>;
+};
+
+export type BakerPool = {
+  __typename?: 'BakerPool';
+  commissionRates: BakerPoolCommissionRates;
+  /** The total amount staked by delegation to this baker pool. */
+  delegatedStake: Scalars['UnsignedLong'];
+  delegators?: Maybe<DelegatorsConnection>;
+  metadataUrl: Scalars['String'];
+  openStatus: BakerPoolOpenStatus;
+  /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
+  rankingByTotalStake?: Maybe<Ranking>;
+  /** The total amount staked in this baker pool. Includes both baker stake and delegated stake. */
+  totalStake: Scalars['UnsignedLong'];
+  /** Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
+  totalStakePercentage?: Maybe<Scalars['Decimal']>;
+};
+
+
+export type BakerPoolDelegatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type BakerPoolCommissionRates = {
+  __typename?: 'BakerPoolCommissionRates';
+  bakingCommission: Scalars['Decimal'];
+  finalizationCommission: Scalars['Decimal'];
+  transactionCommission: Scalars['Decimal'];
+};
+
+export enum BakerPoolOpenStatus {
+  ClosedForAll = 'CLOSED_FOR_ALL',
+  ClosedForNew = 'CLOSED_FOR_NEW',
+  OpenForAll = 'OPEN_FOR_ALL'
+}
+
+export type BakerPoolRewardTarget = {
+  __typename?: 'BakerPoolRewardTarget';
+  bakerId: Scalars['UnsignedLong'];
 };
 
 export type BakerRemoved = {
@@ -462,11 +517,46 @@ export enum BakerRewardType {
   TransactionFeeReward = 'TRANSACTION_FEE_REWARD'
 }
 
+export type BakerSetBakingRewardCommission = {
+  __typename?: 'BakerSetBakingRewardCommission';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['UnsignedLong'];
+  bakingRewardCommission: Scalars['Decimal'];
+};
+
+export type BakerSetFinalizationRewardCommission = {
+  __typename?: 'BakerSetFinalizationRewardCommission';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['UnsignedLong'];
+  finalizationRewardCommission: Scalars['Decimal'];
+};
+
+export type BakerSetMetadataUrl = {
+  __typename?: 'BakerSetMetadataURL';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['UnsignedLong'];
+  metadataUrl: Scalars['String'];
+};
+
+export type BakerSetOpenStatus = {
+  __typename?: 'BakerSetOpenStatus';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['UnsignedLong'];
+  openStatus: BakerPoolOpenStatus;
+};
+
 export type BakerSetRestakeEarnings = {
   __typename?: 'BakerSetRestakeEarnings';
   accountAddress: AccountAddress;
   bakerId: Scalars['UnsignedLong'];
   restakeEarnings: Scalars['Boolean'];
+};
+
+export type BakerSetTransactionFeeCommission = {
+  __typename?: 'BakerSetTransactionFeeCommission';
+  accountAddress: AccountAddress;
+  bakerId: Scalars['UnsignedLong'];
+  transactionFeeCommission: Scalars['Decimal'];
 };
 
 export enum BakerSort {
@@ -543,44 +633,10 @@ export type BakersEdge = {
   node: Baker;
 };
 
-export type BakingReward = {
-  __typename?: 'BakingReward';
-  address: AccountAddress;
-  amount: Scalars['UnsignedLong'];
-};
-
-/** A connection to a list of items. */
-export type BakingRewardConnection = {
-  __typename?: 'BakingRewardConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<BakingRewardEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<BakingReward>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type BakingRewardEdge = {
-  __typename?: 'BakingRewardEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: BakingReward;
-};
-
-export type BakingRewards = {
-  __typename?: 'BakingRewards';
-  remainder: Scalars['UnsignedLong'];
-  rewards?: Maybe<BakingRewardConnection>;
-};
-
-
-export type BakingRewardsRewardsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+export type BakingRewardCommissionNotInRange = {
+  __typename?: 'BakingRewardCommissionNotInRange';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type BakingRewardsSpecialEvent = {
@@ -631,7 +687,6 @@ export type Block = {
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
   specialEvents?: Maybe<SpecialEventsConnection>;
-  specialEventsOld: SpecialEvents;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<TransactionsConnection>;
 };
@@ -641,6 +696,7 @@ export type BlockSpecialEventsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
+  includeFilter?: InputMaybe<Array<SpecialEventTypeFilter>>;
   last?: InputMaybe<Scalars['Int']>;
 };
 
@@ -661,12 +717,12 @@ export type BlockAccrueRewardSpecialEvent = {
   /** The amount awarded to the foundation. */
   foundationCharge: Scalars['UnsignedLong'];
   id: Scalars['ID'];
-  /** The amount awarded to the L-Pool. */
-  lPoolReward: Scalars['UnsignedLong'];
   /** The new balance of the GAS account. */
   newGasAccount: Scalars['UnsignedLong'];
   /** The old balance of the GAS account. */
   oldGasAccount: Scalars['UnsignedLong'];
+  /** The amount awarded to the passive delegators. */
+  passiveReward: Scalars['UnsignedLong'];
   /** The total fees paid for transactions in the block. */
   transactionFees: Scalars['UnsignedLong'];
 };
@@ -736,17 +792,6 @@ export type BlockMetricsBuckets = {
 
 export type BlockOrTransaction = Block | Transaction;
 
-export type BlockRewards = {
-  __typename?: 'BlockRewards';
-  bakerAccountAddress: AccountAddress;
-  bakerReward: Scalars['UnsignedLong'];
-  foundationAccountAddress: AccountAddress;
-  foundationCharge: Scalars['UnsignedLong'];
-  newGasAccount: Scalars['UnsignedLong'];
-  oldGasAccount: Scalars['UnsignedLong'];
-  transactionFees: Scalars['UnsignedLong'];
-};
-
 export type BlockRewardsSpecialEvent = {
   __typename?: 'BlockRewardsSpecialEvent';
   bakerAccountAddress: AccountAddress;
@@ -786,15 +831,46 @@ export type BlocksEdge = {
 };
 
 export type ChainParameters = {
-  __typename?: 'ChainParameters';
+  accountCreationLimit: Scalars['Int'];
+  electionDifficulty: Scalars['Decimal'];
+  euroPerEnergy: ExchangeRate;
+  foundationAccountAddress: AccountAddress;
+  microCcdPerEuro: ExchangeRate;
+};
+
+export type ChainParametersV0 = ChainParameters & {
+  __typename?: 'ChainParametersV0';
+  accountCreationLimit: Scalars['Int'];
   bakerCooldownEpochs: Scalars['UnsignedLong'];
-  credentialsPerBlockLimit: Scalars['Int'];
   electionDifficulty: Scalars['Decimal'];
   euroPerEnergy: ExchangeRate;
   foundationAccountAddress: AccountAddress;
   microCcdPerEuro: ExchangeRate;
   minimumThresholdForBaking: Scalars['UnsignedLong'];
-  rewardParameters: RewardParameters;
+  rewardParameters: RewardParametersV0;
+};
+
+export type ChainParametersV1 = ChainParameters & {
+  __typename?: 'ChainParametersV1';
+  accountCreationLimit: Scalars['Int'];
+  bakingCommissionRange: CommissionRange;
+  capitalBound: Scalars['Decimal'];
+  delegatorCooldown: Scalars['UnsignedLong'];
+  electionDifficulty: Scalars['Decimal'];
+  euroPerEnergy: ExchangeRate;
+  finalizationCommissionRange: CommissionRange;
+  foundationAccountAddress: AccountAddress;
+  leverageBound: LeverageFactor;
+  microCcdPerEuro: ExchangeRate;
+  minimumEquityCapital: Scalars['UnsignedLong'];
+  mintPerPayday: Scalars['Decimal'];
+  passiveBakingCommission: Scalars['Decimal'];
+  passiveFinalizationCommission: Scalars['Decimal'];
+  passiveTransactionCommission: Scalars['Decimal'];
+  poolOwnerCooldown: Scalars['UnsignedLong'];
+  rewardParameters: RewardParametersV1;
+  rewardPeriodLength: Scalars['UnsignedLong'];
+  transactionCommissionRange: CommissionRange;
 };
 
 export type ChainUpdateEnqueued = {
@@ -804,7 +880,13 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MintDistributionChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload;
+
+export type CommissionRange = {
+  __typename?: 'CommissionRange';
+  max: Scalars['Decimal'];
+  min: Scalars['Decimal'];
+};
 
 export type ContractAddress = {
   __typename?: 'ContractAddress';
@@ -853,6 +935,12 @@ export type ContractUpdatedEventsAsHexArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type CooldownParametersChainUpdatePayload = {
+  __typename?: 'CooldownParametersChainUpdatePayload';
+  delegatorCooldown: Scalars['UnsignedLong'];
+  poolOwnerCooldown: Scalars['UnsignedLong'];
+};
+
 export type CredentialDeployed = {
   __typename?: 'CredentialDeployed';
   accountAddress: AccountAddress;
@@ -897,6 +985,96 @@ export type DecodedTransferMemo = {
   __typename?: 'DecodedTransferMemo';
   decodeType: TextDecodeType;
   text: Scalars['String'];
+};
+
+export type Delegation = {
+  __typename?: 'Delegation';
+  delegationTarget: DelegationTarget;
+  pendingChange?: Maybe<PendingDelegationChange>;
+  restakeEarnings: Scalars['Boolean'];
+  stakedAmount: Scalars['UnsignedLong'];
+};
+
+export type DelegationAdded = {
+  __typename?: 'DelegationAdded';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['UnsignedLong'];
+};
+
+export type DelegationRemoved = {
+  __typename?: 'DelegationRemoved';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['UnsignedLong'];
+};
+
+export type DelegationSetDelegationTarget = {
+  __typename?: 'DelegationSetDelegationTarget';
+  accountAddress: AccountAddress;
+  delegationTarget: DelegationTarget;
+  delegatorId: Scalars['UnsignedLong'];
+};
+
+export type DelegationSetRestakeEarnings = {
+  __typename?: 'DelegationSetRestakeEarnings';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['UnsignedLong'];
+  restakeEarnings: Scalars['Boolean'];
+};
+
+export type DelegationStakeDecreased = {
+  __typename?: 'DelegationStakeDecreased';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['UnsignedLong'];
+  newStakedAmount: Scalars['UnsignedLong'];
+};
+
+export type DelegationStakeIncreased = {
+  __typename?: 'DelegationStakeIncreased';
+  accountAddress: AccountAddress;
+  delegatorId: Scalars['UnsignedLong'];
+  newStakedAmount: Scalars['UnsignedLong'];
+};
+
+export type DelegationSummary = {
+  __typename?: 'DelegationSummary';
+  accountAddress: AccountAddress;
+  restakeEarnings: Scalars['Boolean'];
+  stakedAmount: Scalars['UnsignedLong'];
+};
+
+export type DelegationTarget = BakerDelegationTarget | PassiveDelegationTarget;
+
+export type DelegationTargetNotABaker = {
+  __typename?: 'DelegationTargetNotABaker';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+  bakerId: Scalars['UnsignedLong'];
+};
+
+export type DelegatorInCooldown = {
+  __typename?: 'DelegatorInCooldown';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+/** A connection to a list of items. */
+export type DelegatorsConnection = {
+  __typename?: 'DelegatorsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<DelegatorsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<DelegationSummary>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type DelegatorsEdge = {
+  __typename?: 'DelegatorsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: DelegationSummary;
 };
 
 export type DuplicateAggregationKey = {
@@ -945,7 +1123,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: ExchangeRate;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
 
 /** A connection to a list of items. */
 export type EventsConnection = {
@@ -974,44 +1152,10 @@ export type ExchangeRate = {
   numerator: Scalars['UnsignedLong'];
 };
 
-export type FinalizationReward = {
-  __typename?: 'FinalizationReward';
-  address: AccountAddress;
-  amount: Scalars['UnsignedLong'];
-};
-
-/** A connection to a list of items. */
-export type FinalizationRewardConnection = {
-  __typename?: 'FinalizationRewardConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<FinalizationRewardEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<FinalizationReward>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type FinalizationRewardEdge = {
-  __typename?: 'FinalizationRewardEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: FinalizationReward;
-};
-
-export type FinalizationRewards = {
-  __typename?: 'FinalizationRewards';
-  remainder: Scalars['UnsignedLong'];
-  rewards?: Maybe<FinalizationRewardConnection>;
-};
-
-
-export type FinalizationRewardsRewardsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+export type FinalizationRewardCommissionNotInRange = {
+  __typename?: 'FinalizationRewardCommissionNotInRange';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type FinalizationRewardsSpecialEvent = {
@@ -1101,6 +1245,18 @@ export type GasRewardsChainUpdatePayload = {
 
 export type InsufficientBalanceForBakerStake = {
   __typename?: 'InsufficientBalanceForBakerStake';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+export type InsufficientBalanceForDelegationStake = {
+  __typename?: 'InsufficientBalanceForDelegationStake';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+export type InsufficientDelegationStake = {
+  __typename?: 'InsufficientDelegationStake';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
 };
@@ -1196,6 +1352,12 @@ export type Level1KeysChainUpdatePayload = {
   _: Scalars['Boolean'];
 };
 
+export type LeverageFactor = {
+  __typename?: 'LeverageFactor';
+  denominator: Scalars['UnsignedLong'];
+  numerator: Scalars['UnsignedLong'];
+};
+
 export enum MetricsPeriod {
   Last7Days = 'LAST7_DAYS',
   Last24Hours = 'LAST24_HOURS',
@@ -1209,26 +1371,30 @@ export type MicroCcdPerEuroChainUpdatePayload = {
   exchangeRate: ExchangeRate;
 };
 
-export type Mint = {
-  __typename?: 'Mint';
-  bakingReward: Scalars['UnsignedLong'];
-  finalizationReward: Scalars['UnsignedLong'];
-  foundationAccountAddress: AccountAddress;
-  platformDevelopmentCharge: Scalars['UnsignedLong'];
-};
-
-export type MintDistribution = {
-  __typename?: 'MintDistribution';
-  bakingReward: Scalars['Decimal'];
-  finalizationReward: Scalars['Decimal'];
-  mintPerSlot: Scalars['Decimal'];
-};
-
 export type MintDistributionChainUpdatePayload = {
   __typename?: 'MintDistributionChainUpdatePayload';
   bakingReward: Scalars['Decimal'];
   finalizationReward: Scalars['Decimal'];
   mintPerSlot: Scalars['Decimal'];
+};
+
+export type MintDistributionV0 = {
+  __typename?: 'MintDistributionV0';
+  bakingReward: Scalars['Decimal'];
+  finalizationReward: Scalars['Decimal'];
+  mintPerSlot: Scalars['Decimal'];
+};
+
+export type MintDistributionV1 = {
+  __typename?: 'MintDistributionV1';
+  bakingReward: Scalars['Decimal'];
+  finalizationReward: Scalars['Decimal'];
+};
+
+export type MintDistributionV1ChainUpdatePayload = {
+  __typename?: 'MintDistributionV1ChainUpdatePayload';
+  bakingReward: Scalars['Decimal'];
+  finalizationReward: Scalars['Decimal'];
 };
 
 export type MintSpecialEvent = {
@@ -1238,6 +1404,18 @@ export type MintSpecialEvent = {
   foundationAccountAddress: AccountAddress;
   id: Scalars['ID'];
   platformDevelopmentCharge: Scalars['UnsignedLong'];
+};
+
+export type MissingBakerAddParameters = {
+  __typename?: 'MissingBakerAddParameters';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+export type MissingDelegationAddParameters = {
+  __typename?: 'MissingDelegationAddParameters';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type ModuleHashAlreadyExists = {
@@ -1293,6 +1471,13 @@ export type NotABaker = {
   accountAddress: AccountAddress;
 };
 
+export type NotADelegator = {
+  __typename?: 'NotADelegator';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+  accountAddress: AccountAddress;
+};
+
 export type NotAllowedMultipleCredentials = {
   __typename?: 'NotAllowedMultipleCredentials';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -1330,6 +1515,18 @@ export type PageInfo = {
   startCursor?: Maybe<Scalars['String']>;
 };
 
+export type PassiveDelegationPoolRewardTarget = {
+  __typename?: 'PassiveDelegationPoolRewardTarget';
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+export type PassiveDelegationTarget = {
+  __typename?: 'PassiveDelegationTarget';
+  /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
 export type PaydayAccountRewardSpecialEvent = {
   __typename?: 'PaydayAccountRewardSpecialEvent';
   /** The account that got rewarded. */
@@ -1357,8 +1554,8 @@ export type PaydayPoolRewardSpecialEvent = {
   /** Accrued finalization rewards for pool. */
   finalizationReward: Scalars['UnsignedLong'];
   id: Scalars['ID'];
-  /** The pool owner (L-Pool when null). */
-  poolOwner?: Maybe<Scalars['UnsignedLong']>;
+  /** The pool awarded. */
+  pool: PoolRewardTarget;
   /** Accrued transaction fees for pool. */
   transactionFees: Scalars['UnsignedLong'];
 };
@@ -1374,6 +1571,46 @@ export type PendingBakerReduceStake = {
 export type PendingBakerRemoval = {
   __typename?: 'PendingBakerRemoval';
   effectiveTime: Scalars['DateTime'];
+};
+
+export type PendingDelegationChange = PendingDelegationReduceStake | PendingDelegationRemoval;
+
+export type PendingDelegationReduceStake = {
+  __typename?: 'PendingDelegationReduceStake';
+  effectiveTime: Scalars['DateTime'];
+  newStakedAmount: Scalars['UnsignedLong'];
+};
+
+export type PendingDelegationRemoval = {
+  __typename?: 'PendingDelegationRemoval';
+  effectiveTime: Scalars['DateTime'];
+};
+
+export type PoolClosed = {
+  __typename?: 'PoolClosed';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
+};
+
+export type PoolParametersChainUpdatePayload = {
+  __typename?: 'PoolParametersChainUpdatePayload';
+  bakingCommissionRange: CommissionRange;
+  capitalBound: Scalars['Decimal'];
+  finalizationCommissionRange: CommissionRange;
+  leverageBound: LeverageFactor;
+  minimumEquityCapital: Scalars['UnsignedLong'];
+  passiveBakingCommission: Scalars['Decimal'];
+  passiveFinalizationCommission: Scalars['Decimal'];
+  passiveTransactionCommission: Scalars['Decimal'];
+  transactionCommissionRange: CommissionRange;
+};
+
+export type PoolRewardTarget = BakerPoolRewardTarget | PassiveDelegationPoolRewardTarget;
+
+export type PoolWouldBecomeOverDelegated = {
+  __typename?: 'PoolWouldBecomeOverDelegated';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type ProtocolChainUpdatePayload = {
@@ -1517,6 +1754,12 @@ export type QueryTransactionsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type Ranking = {
+  __typename?: 'Ranking';
+  rank: Scalars['Int'];
+  total: Scalars['Int'];
+};
+
 export type Rejected = {
   __typename?: 'Rejected';
   reason: TransactionRejectReason;
@@ -1567,10 +1810,17 @@ export type RewardMetricsBuckets = {
   y_SumRewards: Array<Scalars['Long']>;
 };
 
-export type RewardParameters = {
-  __typename?: 'RewardParameters';
+export type RewardParametersV0 = {
+  __typename?: 'RewardParametersV0';
   gasRewards: GasRewards;
-  mintDistribution: MintDistribution;
+  mintDistribution: MintDistributionV0;
+  transactionFeeDistribution: TransactionFeeDistribution;
+};
+
+export type RewardParametersV1 = {
+  __typename?: 'RewardParametersV1';
+  gasRewards: GasRewards;
+  mintDistribution: MintDistributionV1;
   transactionFeeDistribution: TransactionFeeDistribution;
 };
 
@@ -1641,13 +1891,16 @@ export type SerializationFailure = {
 
 export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent;
 
-export type SpecialEvents = {
-  __typename?: 'SpecialEvents';
-  bakingRewards?: Maybe<BakingRewards>;
-  blockRewards?: Maybe<BlockRewards>;
-  finalizationRewards?: Maybe<FinalizationRewards>;
-  mint?: Maybe<Mint>;
-};
+export enum SpecialEventTypeFilter {
+  BakingRewards = 'BAKING_REWARDS',
+  BlockAccrueReward = 'BLOCK_ACCRUE_REWARD',
+  BlockRewards = 'BLOCK_REWARDS',
+  FinalizationRewards = 'FINALIZATION_REWARDS',
+  Mint = 'MINT',
+  PaydayAccountReward = 'PAYDAY_ACCOUNT_REWARD',
+  PaydayFoundationReward = 'PAYDAY_FOUNDATION_REWARD',
+  PaydayPoolReward = 'PAYDAY_POOL_REWARD'
+}
 
 /** A connection to a list of items. */
 export type SpecialEventsConnection = {
@@ -1667,6 +1920,12 @@ export type SpecialEventsEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge. */
   node: SpecialEvent;
+};
+
+export type StakeOverMaximumThresholdForPool = {
+  __typename?: 'StakeOverMaximumThresholdForPool';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type StakeUnderMinimumThresholdForBaking = {
@@ -1718,6 +1977,12 @@ export enum TextDecodeType {
   Hex = 'HEX'
 }
 
+export type TimeParametersChainUpdatePayload = {
+  __typename?: 'TimeParametersChainUpdatePayload';
+  mintPerPayday: Scalars['Decimal'];
+  rewardPeriodLength: Scalars['UnsignedLong'];
+};
+
 export type TimestampedAmount = {
   __typename?: 'TimestampedAmount';
   amount: Scalars['UnsignedLong'];
@@ -1735,6 +2000,12 @@ export type Transaction = {
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['Int'];
   transactionType: TransactionType;
+};
+
+export type TransactionFeeCommissionNotInRange = {
+  __typename?: 'TransactionFeeCommissionNotInRange';
+  /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
+  _: Scalars['Boolean'];
 };
 
 export type TransactionFeeDistribution = {
@@ -1770,7 +2041,7 @@ export type TransactionMetricsBuckets = {
   y_TransactionCount: Array<Scalars['Int']>;
 };
 
-export type TransactionRejectReason = AlreadyABaker | AmountTooLarge | BakerInCooldown | CredentialHolderDidNotSign | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonIncreasingSchedule | NotABaker | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeUnderMinimumThresholdForBaking | ZeroScheduledAmount;
+export type TransactionRejectReason = AlreadyABaker | AlreadyADelegator | AmountTooLarge | BakerInCooldown | BakingRewardCommissionNotInRange | CredentialHolderDidNotSign | DelegationTargetNotABaker | DelegatorInCooldown | DuplicateAggregationKey | DuplicateCredIds | EncryptedAmountSelfTransfer | FinalizationRewardCommissionNotInRange | FirstScheduledReleaseExpired | InsufficientBalanceForBakerStake | InsufficientBalanceForDelegationStake | InsufficientDelegationStake | InvalidAccountReference | InvalidAccountThreshold | InvalidContractAddress | InvalidCredentialKeySignThreshold | InvalidCredentials | InvalidEncryptedAmountTransferProof | InvalidIndexOnEncryptedTransfer | InvalidInitMethod | InvalidModuleReference | InvalidProof | InvalidReceiveMethod | InvalidTransferToPublicProof | KeyIndexAlreadyInUse | MissingBakerAddParameters | MissingDelegationAddParameters | ModuleHashAlreadyExists | ModuleNotWf | NonExistentCredIds | NonExistentCredentialId | NonExistentRewardAccount | NonIncreasingSchedule | NotABaker | NotADelegator | NotAllowedMultipleCredentials | NotAllowedToHandleEncrypted | NotAllowedToReceiveEncrypted | OutOfEnergy | PoolClosed | PoolWouldBecomeOverDelegated | RejectedInit | RejectedReceive | RemoveFirstCredential | RuntimeFailure | ScheduledSelfTransfer | SerializationFailure | StakeOverMaximumThresholdForPool | StakeUnderMinimumThresholdForBaking | TransactionFeeCommissionNotInRange | ZeroScheduledAmount;
 
 export type TransactionResult = Rejected | Success;
 
