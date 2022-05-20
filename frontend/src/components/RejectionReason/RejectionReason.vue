@@ -1,3 +1,4 @@
+'
 <template>
 	<div class="px-4">
 		<ModuleHashAlreadyExists
@@ -76,7 +77,62 @@
 			v-else-if="reason.__typename === 'NonExistentCredIds'"
 			:reason="reason"
 		/>
-
+		<MissingBakerAddParameters
+			v-else-if="reason.__typename === 'MissingBakerAddParameters'"
+			:reason="reason"
+		/>
+		<FinalizationRewardCommissionNotInRange
+			v-else-if="reason.__typename === 'FinalizationRewardCommissionNotInRange'"
+			:reason="reason"
+		/>
+		<BakingRewardCommissionNotInRange
+			v-else-if="reason.__typename === 'BakingRewardCommissionNotInRange'"
+			:reason="reason"
+		/>
+		<TransactionFeeCommissionNotInRange
+			v-else-if="reason.__typename === 'TransactionFeeCommissionNotInRange'"
+			:reason="reason"
+		/>
+		<AlreadyADelegator
+			v-else-if="reason.__typename === 'AlreadyADelegator'"
+			:reason="reason"
+		/>
+		<InsufficientBalanceForDelegationStake
+			v-else-if="reason.__typename === 'InsufficientBalanceForDelegationStake'"
+			:reason="reason"
+		/>
+		<MissingDelegationAddParameters
+			v-else-if="reason.__typename === 'MissingDelegationAddParameters'"
+			:reason="reason"
+		/>
+		<InsufficientDelegationStake
+			v-else-if="reason.__typename === 'InsufficientDelegationStake'"
+			:reason="reason"
+		/>
+		<DelegatorInCooldown
+			v-else-if="reason.__typename === 'DelegatorInCooldown'"
+			:reason="reason"
+		/>
+		<NotADelegator
+			v-else-if="reason.__typename === 'NotADelegator'"
+			:reason="reason"
+		/>
+		<DelegationTargetNotABaker
+			v-else-if="reason.__typename === 'DelegationTargetNotABaker'"
+			:reason="reason"
+		/>
+		<StakeOverMaximumThresholdForPool
+			v-else-if="reason.__typename === 'StakeOverMaximumThresholdForPool'"
+			:reason="reason"
+		/>
+		<PoolWouldBecomeOverDelegated
+			v-else-if="reason.__typename === 'PoolWouldBecomeOverDelegated'"
+			:reason="reason"
+		/>
+		<PoolClosed
+			v-else-if="reason.__typename === 'PoolClosed'"
+			:reason="reason"
+		/>
 		<span v-else>{{ translateRejectionReasons(reason) }}</span>
 	</div>
 </template>
@@ -100,6 +156,20 @@ import DuplicateCredIds from './Reasons/DuplicateCredIds.vue'
 import NonExistentCredIds from './Reasons/NonExistentCredIds.vue'
 import { translateRejectionReasons } from '~/utils/translateRejectionReasons'
 import type { TransactionRejectReason } from '~/types/generated'
+import MissingBakerAddParameters from '~/components/RejectionReason/Reasons/MissingBakerAddParameters.vue'
+import FinalizationRewardCommissionNotInRange from '~/components/RejectionReason/Reasons/FinalizationRewardCommissionNotInRange.vue'
+import BakingRewardCommissionNotInRange from '~/components/RejectionReason/Reasons/BakingRewardCommissionNotInRange.vue'
+import TransactionFeeCommissionNotInRange from '~/components/RejectionReason/Reasons/TransactionFeeCommissionNotInRange.vue'
+import AlreadyADelegator from '~/components/RejectionReason/Reasons/AlreadyADelegator.vue'
+import InsufficientBalanceForDelegationStake from '~/components/RejectionReason/Reasons/InsufficientBalanceForDelegationStake.vue'
+import MissingDelegationAddParameters from '~/components/RejectionReason/Reasons/MissingDelegationAddParameters.vue'
+import InsufficientDelegationStake from '~/components/RejectionReason/Reasons/InsufficientDelegationStake.vue'
+import DelegatorInCooldown from '~/components/RejectionReason/Reasons/DelegatorInCooldown.vue'
+import NotADelegator from '~/components/RejectionReason/Reasons/NotADelegator.vue'
+import DelegationTargetNotABaker from '~/components/RejectionReason/Reasons/DelegationTargetNotABaker.vue'
+import StakeOverMaximumThresholdForPool from '~/components/RejectionReason/Reasons/StakeOverMaximumThresholdForPool.vue'
+import PoolWouldBecomeOverDelegated from '~/components/RejectionReason/Reasons/PoolWouldBecomeOverDelegated.vue'
+import PoolClosed from '~/components/RejectionReason/Reasons/PoolClosed.vue'
 
 type Props = {
 	reason: TransactionRejectReason
