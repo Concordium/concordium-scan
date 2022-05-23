@@ -24,7 +24,7 @@ public class PassiveDelegationTest : IClassFixture<DatabaseFixture>
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
     
-        _target = new PassiveDelegation(new CommissionRates());
+        _target = new PassiveDelegation();
     }
 
     [Fact]

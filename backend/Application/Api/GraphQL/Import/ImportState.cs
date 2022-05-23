@@ -16,6 +16,7 @@ public class ImportState
     public int LastGenesisIndex { get; set; }
     public int TotalBakerCount { get; set; }
     public bool MigrationToBakerPoolsCompleted { get; set; }
+    public bool PassiveDelegationAdded { get; set; }
 
     public static ImportState CreateGenesisState(GenesisBlockDataPayload payload)
     {
@@ -31,7 +32,8 @@ public class ImportState
             LatestWrittenChainParameters = null,
             LastGenesisIndex = 0,
             TotalBakerCount = 0,
-            MigrationToBakerPoolsCompleted = false
+            MigrationToBakerPoolsCompleted = false,
+            PassiveDelegationAdded = false
         };
     }
 
@@ -49,5 +51,6 @@ public class ImportState
         LastGenesisIndex = source.LastGenesisIndex;
         TotalBakerCount = source.TotalBakerCount;
         MigrationToBakerPoolsCompleted = source.MigrationToBakerPoolsCompleted;
+        PassiveDelegationAdded = source.PassiveDelegationAdded;
     }
 }

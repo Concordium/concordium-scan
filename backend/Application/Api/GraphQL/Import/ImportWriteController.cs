@@ -34,6 +34,7 @@ public class ImportWriteController : BackgroundService
     private readonly IAccountLookup _accountLookup;
     private readonly MaterializedViewRefresher _materializedViewRefresher;
     private readonly DelegationImportHandler _delegationHandler;
+    private readonly PassiveDelegationImportHandler _passiveDelegationHandler;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
@@ -57,6 +58,7 @@ public class ImportWriteController : BackgroundService
         _logger = Log.ForContext(GetType());
         _importStateController = new ImportStateController(dbContextFactory, metrics);
         _materializedViewRefresher = new MaterializedViewRefresher(dbSettings, metrics);
+        _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -160,6 +162,7 @@ public class ImportWriteController : BackgroundService
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, isFirstBlockAfterPayday, importState);
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters, bakerUpdateResults, rewardsSummary, isFirstBlockAfterPayday);
         await _bakerHandler.ApplyDelegationUpdates(delegationUpdateResults, payload);
+        await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, delegationUpdateResults, importState);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
