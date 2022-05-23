@@ -221,6 +221,66 @@ __typename
 		asString
 	}
 }
+... on BakerSetOpenStatus {
+	bakerId
+	accountAddress {asString}
+	openStatus
+}
+... on BakerSetMetadataURL {
+	bakerId
+	accountAddress {asString}
+	metadataUrl
+}
+... on BakerSetTransactionFeeCommission {
+	bakerId
+	accountAddress {asString}
+	transactionFeeCommission
+}
+... on BakerSetBakingRewardCommission {
+	bakerId
+	accountAddress {asString}
+	bakingRewardCommission
+}
+... on BakerSetFinalizationRewardCommission {
+	bakerId
+	accountAddress {asString}
+	finalizationRewardCommission
+}
+... on DelegationStakeIncreased {
+	delegatorId
+	accountAddress {asString}
+	newStakedAmount
+}
+... on DelegationStakeDecreased {
+	delegatorId
+	accountAddress {asString}
+	newStakedAmount
+}
+... on DelegationSetRestakeEarnings {
+	delegatorId
+	accountAddress {asString}
+	restakeEarnings
+}
+... on DelegationSetDelegationTarget {
+	delegatorId
+	accountAddress {asString}
+	delegationTarget {
+		... on BakerDelegationTarget {
+			bakerId
+		}
+		... on PassiveDelegationTarget {
+			__typename
+		}
+		__typename}
+}
+... on DelegationAdded {
+	delegatorId
+	accountAddress {asString}
+}
+... on DelegationRemoved {
+	delegatorId
+	accountAddress {asString}
+}
 `
 
 const rejectionFragment = `
