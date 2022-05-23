@@ -658,8 +658,18 @@ type ContractInitialized {
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
+type ContractInterrupted {
+  contractAddress: ContractAddress!
+  eventsAsHex: [String!]!
+}
+
 type ContractModuleDeployed {
   moduleRef: String!
+}
+
+type ContractResumed {
+  contractAddress: ContractAddress!
+  success: Boolean!
 }
 
 type ContractUpdated {
@@ -1453,7 +1463,7 @@ union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainU
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
-union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
+union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | ContractInterrupted | ContractResumed | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
 
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 

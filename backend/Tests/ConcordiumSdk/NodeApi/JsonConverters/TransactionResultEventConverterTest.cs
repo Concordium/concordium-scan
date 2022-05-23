@@ -357,6 +357,50 @@ public class TransactionResultEventConverterTest
     }
 
     [Fact]
+    public void RoundTrip_Interrupted()
+    {
+        var json = @"{
+                        ""tag"": ""Interrupted"",
+                        ""address"": {
+                            ""subindex"": 2,
+                            ""index"": 5040
+                        },
+                        ""events"": [
+                            ""fd00070000000000000000d116251dba02ec447b5fee61b48d920a32dc96a645686a8d8beed3d71ed5843d""
+                        ]
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<Interrupted>(deserialized);
+        typed.Address.Should().Be(new ContractAddress(5040, 2));
+        typed.Events.Should().ContainSingle().Which.AsHexString.Should().Be("fd00070000000000000000d116251dba02ec447b5fee61b48d920a32dc96a645686a8d8beed3d71ed5843d");
+
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
+    public void RoundTrip_Resumed()
+    {
+        var json = @"{
+                        ""tag"": ""Resumed"",
+                        ""success"": true,
+                        ""address"": {
+                            ""subindex"": 3,
+                            ""index"": 5040
+                        }
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
+        var typed = Assert.IsType<Resumed>(deserialized);
+        typed.Address.Should().Be(new ContractAddress(5040, 3));
+        typed.Success.Should().BeTrue();
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
+    [Fact]
     public void RoundTrip_BakerSetOpenStatus()
     {
         var json = "{\"bakerId\": 27,\"tag\": \"BakerSetOpenStatus\",\"account\": \"44Ernz8GQrPvPSDRiC59xQE2GsXPDok9hLKU9KTVteH4xq9HyH\",\"openStatus\": \"openForAll\"}";

@@ -36,6 +36,8 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
             { "CredentialsUpdated", typeof(CredentialsUpdated) },
             { "TransferMemo", typeof(TransferMemo) },
             { "DataRegistered", typeof(DataRegistered) },
+            { "Interrupted", typeof(Interrupted) },
+            { "Resumed", typeof(Resumed) },
             { "BakerSetOpenStatus", typeof(BakerSetOpenStatus) },
             { "BakerSetMetadataURL", typeof(BakerSetMetadataURL) },
             { "BakerSetTransactionFeeCommission", typeof(BakerSetTransactionFeeCommission) },

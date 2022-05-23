@@ -39,6 +39,8 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(DelegationSetDelegationTarget), 31 },
         { typeof(DelegationStakeIncreased), 32 },
         { typeof(DelegationStakeDecreased), 33 },
+        { typeof(ContractInterrupted), 34 },
+        { typeof(ContractResumed), 35 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

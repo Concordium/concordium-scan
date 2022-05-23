@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using System.Linq;
 using ConcordiumSdk.Types;
 
@@ -331,8 +332,13 @@ public record DataRegistered(
 public record TransferMemo(
     Memo Memo) : TransactionResultEvent;
 
-// TODO: Interrupted 
-// TODO: Resumed
+public record Interrupted(
+    ContractAddress Address,
+    BinaryData[] Events) : TransactionResultEvent;
+
+public record Resumed(
+    ContractAddress Address,
+    bool Success) : TransactionResultEvent;
 
 public record BakerSetOpenStatus(
     ulong BakerId,

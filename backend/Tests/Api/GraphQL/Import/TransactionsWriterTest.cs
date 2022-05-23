@@ -571,6 +571,48 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
+    public async Task TransactionEvents_ContractInterrupted()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new Interrupted(
+                        new ContractAddress(1423, 1),
+                        new []
+                        {
+                            BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
+                            BinaryData.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32")
+                        }))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ContractInterrupted>();
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.EventsAsHex.Should().Equal("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32", "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ContractResumed()
+    {
+        _blockSummaryBuilder
+            .WithTransactionSummaries(new TransactionSummaryBuilder()
+                .WithResult(new TransactionSuccessResultBuilder()
+                    .WithEvents(new Resumed(
+                        new ContractAddress(1423, 1),
+                        true))
+                    .Build())
+                .Build());
+        
+        await WriteData();
+
+        var result = await ReadSingleTransactionEventType<ContractResumed>();
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task TransactionEvents_TransferredWithSchedule()
     {
         var baseTimestamp = new DateTimeOffset(2010, 10, 01, 12, 0, 0, TimeSpan.Zero);

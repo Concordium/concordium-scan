@@ -196,6 +196,14 @@ public record ChainUpdateEnqueued(
     bool EffectiveImmediately,
     ChainUpdatePayload Payload) : TransactionResultEvent; 
     
+public record ContractInterrupted(
+    ContractAddress ContractAddress,
+    string[] EventsAsHex) : TransactionResultEvent;
+
+public record ContractResumed(
+    ContractAddress ContractAddress,
+    bool Success) : TransactionResultEvent;
+
 public record BakerSetOpenStatus(
     ulong BakerId,
     AccountAddress AccountAddress,

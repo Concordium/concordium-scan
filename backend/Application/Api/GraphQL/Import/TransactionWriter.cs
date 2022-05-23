@@ -154,6 +154,8 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.ContractInitialized x => new ContractInitialized(x.Ref.AsString, MapContractAddress(x.Address), x.Amount.MicroCcdValue, x.InitName, x.Events.Select(data => data.AsHexString).ToArray()),
                 ConcordiumSdk.NodeApi.Types.ModuleDeployed x => new ContractModuleDeployed(x.Contents.AsString),
                 ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.MicroCcdValue, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
+                ConcordiumSdk.NodeApi.Types.Interrupted x => new ContractInterrupted(MapContractAddress(x.Address), x.Events.Select(data => data.AsHexString).ToArray()),
+                ConcordiumSdk.NodeApi.Types.Resumed x => new ContractResumed(MapContractAddress(x.Address), x.Success),
                 ConcordiumSdk.NodeApi.Types.TransferredWithSchedule x => new TransferredWithSchedule(MapAccountAddress(x.From), MapAccountAddress(x.To), x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.MicroCcdValue)).ToArray()),
                 ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
                 ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
