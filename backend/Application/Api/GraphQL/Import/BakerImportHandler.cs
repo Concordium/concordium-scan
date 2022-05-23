@@ -7,6 +7,7 @@ using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
 using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
+using CommissionRates = Application.Api.GraphQL.Bakers.CommissionRates;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -117,7 +118,7 @@ public class BakerImportHandler
         {
             OpenStatus = src.OpenStatus.MapToGraphQlEnum(),
             MetadataUrl = src.MetadataUrl,
-            CommissionRates = new BakerPoolCommissionRates
+            CommissionRates = new CommissionRates
             {
                 TransactionCommission = src.CommissionRates.TransactionCommission,
                 FinalizationCommission = src.CommissionRates.FinalizationCommission,
@@ -372,7 +373,7 @@ public class BakerImportHandler
         {
             OpenStatus = BakerPoolOpenStatus.ClosedForAll,
             MetadataUrl = "",
-            CommissionRates = new BakerPoolCommissionRates
+            CommissionRates = new CommissionRates
             {
                 TransactionCommission = 0.0m,
                 FinalizationCommission = 0.0m,

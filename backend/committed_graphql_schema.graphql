@@ -299,19 +299,13 @@ type BakerPool {
   rankingByTotalStake: Ranking
   delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
   openStatus: BakerPoolOpenStatus!
-  commissionRates: BakerPoolCommissionRates!
+  commissionRates: CommissionRates!
   metadataUrl: String!
   "The total amount staked by delegation to this baker pool."
   delegatedStake: UnsignedLong!
   "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
   totalStake: UnsignedLong!
   delegatorCount: Int!
-}
-
-type BakerPoolCommissionRates {
-  transactionCommission: Decimal!
-  finalizationCommission: Decimal!
-  bakingCommission: Decimal!
 }
 
 type BakerPoolRewardTarget {
@@ -642,6 +636,12 @@ type ChainUpdateEnqueued {
 type CommissionRange {
   min: Decimal!
   max: Decimal!
+}
+
+type CommissionRates {
+  transactionCommission: Decimal!
+  finalizationCommission: Decimal!
+  bakingCommission: Decimal!
 }
 
 type ContractAddress {
@@ -1100,6 +1100,10 @@ type PageInfo {
   endCursor: String
 }
 
+type PassiveDelegation {
+  commissionRates: CommissionRates!
+}
+
 type PassiveDelegationPoolRewardTarget {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)")
 }
@@ -1203,6 +1207,7 @@ type Query {
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
   rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics!
+  passiveDelegation: PassiveDelegation
 }
 
 type Ranking {

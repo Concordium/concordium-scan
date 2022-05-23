@@ -17,7 +17,7 @@ public class BakerPool
     public ActiveBakerState Owner { get; private set; } = null!;
 
     public BakerPoolOpenStatus OpenStatus { get; set; }
-    public BakerPoolCommissionRates CommissionRates { get; init; }
+    public CommissionRates CommissionRates { get; init; }
     public string MetadataUrl { get; set; }
 
     [GraphQLDescription("The total amount staked by delegation to this baker pool.")]

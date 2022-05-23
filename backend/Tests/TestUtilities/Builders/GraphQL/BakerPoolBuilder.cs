@@ -19,7 +19,7 @@ public class BakerPoolBuilder
         {
             OpenStatus = _openStatus,
             MetadataUrl = _metadataUrl,
-            CommissionRates = new BakerPoolCommissionRates
+            CommissionRates = new CommissionRates
             {
                 TransactionCommission = _transactionCommission,
                 FinalizationCommission = _finalizationCommission,

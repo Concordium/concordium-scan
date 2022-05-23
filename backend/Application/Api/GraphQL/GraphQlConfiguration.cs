@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Pagination;
+using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Search;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
@@ -42,7 +43,8 @@ public static class GraphQlConfiguration
             .AddType<BlockMetricsQuery>()
             .AddType<TransactionMetricsQuery>()
             .AddType<BakerMetricsQuery>()
-            .AddType<RewardMetricsQuery>();
+            .AddType<RewardMetricsQuery>()
+            .AddType<PassiveDelegationQuery>();
         
         builder.AddSubscriptionType<Subscription>();
         
