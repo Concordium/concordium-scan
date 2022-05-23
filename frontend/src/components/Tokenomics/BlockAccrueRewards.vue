@@ -1,12 +1,12 @@
 <template>
-	<TokenomicsDisplay class="p-4">
-		<template #title>Block rewards</template>
+	<TokenomicsDisplay class="p-4 pr-0">
+		<template #title>Accrued block rewards</template>
 		<template #content>
 			<DescriptionList v-for="event in data.nodes" :key="event.id">
 				<DescriptionListItem>
 					Baker
 					<template #content>
-						<AccountLink :address="event.bakerAccountAddress.asString" />
+						<BakerLink :id="event.bakerId" />
 					</template>
 				</DescriptionListItem>
 
@@ -58,26 +58,18 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import Amount from '~/components/atoms/Amount.vue'
-import AccountLink from '~/components/molecules/AccountLink.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import DescriptionList from '~/components/atoms/DescriptionList.vue'
 import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
 import Pagination from '~/components/Pagination.vue'
-import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 import type { PaginationTarget } from '~/composables/usePagination'
-import type { PageInfo, BlockRewardsSpecialEvent } from '~/types/generated'
+import type { PageInfo, BlockAccrueRewardSpecialEvent } from '~/types/generated'
+import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 
 type Props = {
-	data: FilteredSpecialEvent<BlockRewardsSpecialEvent>
+	data: FilteredSpecialEvent<BlockAccrueRewardSpecialEvent>
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()
 </script>
-
-<style>
-.totalRow {
-	border-top: solid 1px white;
-	margin-top: 4px;
-	padding-top: 4px;
-}
-</style>

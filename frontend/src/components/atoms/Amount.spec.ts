@@ -13,4 +13,11 @@ describe('Amount', () => {
 
 		expect(screen.getByTestId('amount')).toHaveTextContent('1,337.421337')
 	})
+
+	it('can show a CCD symbol', () => {
+		const props = { showSymbol: true }
+		render({ props })
+
+		expect(screen.getByTestId('amount')).toHaveTextContent('Ͼ 1,337.421337')
+	})
 })

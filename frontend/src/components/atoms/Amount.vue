@@ -1,8 +1,9 @@
 <template>
 	<span class="inline-block pt-1" data-testid="amount">
+		{{ symbol }}
 		<span class="numerical"> {{ formatNumber(amounts[0]) }}</span>
 
-		<span class="numerical text-xs opacity-60">{{ amounts[1] }}</span>
+		<span class="numerical text-sm opacity-50">{{ amounts[1] }}</span>
 	</span>
 </template>
 
@@ -12,10 +13,12 @@ import { formatNumber } from '~/utils/format'
 
 type Props = {
 	amount: number
-	size?: 'sm' | 'md' | 'lg'
+	showSymbol?: boolean
 }
 
 const props = defineProps<Props>()
+
+const symbol = computed(() => (props.showSymbol ? 'Ͼ' : undefined))
 
 const amounts: ComputedRef<[number, string]> = computed(() => {
 	const ccdAmount = props.amount / 1_000_000

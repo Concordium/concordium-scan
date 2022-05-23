@@ -2,53 +2,65 @@
 	<TokenomicsDisplay class="p-4">
 		<template #title>Distributed minted CCD</template>
 		<template #content>
-			<dl class="grid grid-cols-2 col-span-2">
-				<dt>Baking reward account</dt>
-				<dd class="text-right mb-2">
-					<span class="numerical">
-						{{ convertMicroCcdToCcd(data.bakingReward) }}
-					</span>
-					Ͼ
-				</dd>
-				<dt>Finalisation reward account</dt>
-				<dd class="text-right mb-2">
-					<span class="numerical">
-						{{ convertMicroCcdToCcd(data.finalizationReward) }}
-					</span>
-					Ͼ
-				</dd>
-				<dt>Foundation account</dt>
-				<dd class="text-right mb-2">
-					<span class="numerical">
-						{{ convertMicroCcdToCcd(data.platformDevelopmentCharge) }}
-					</span>
-					Ͼ
-				</dd>
-				<dt class="totalRow">TOTAL</dt>
-				<dd class="totalRow text-right mb-2">
-					<span class="numerical">
-						{{
-							convertMicroCcdToCcd(
-								data.platformDevelopmentCharge +
-									data.finalizationReward +
-									data.bakingReward
-							)
-						}}
-					</span>
-					Ͼ
-				</dd>
-			</dl>
+			<DescriptionList v-for="event in data.nodes" :key="event.id">
+				<DescriptionListItem>
+					Baking reward account
+					<template #content>
+						<Amount :amount="event.bakingReward" :show-symbol="true" />
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalisation reward account
+					<template #content>
+						<Amount :amount="event.finalizationReward" :show-symbol="true" />
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Foundation account
+					<template #content>
+						<Amount
+							:amount="event.platformDevelopmentCharge"
+							:show-symbol="true"
+						/>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem class="totalRow">
+					TOTAL
+					<template #content>
+						<Amount
+							:amount="
+								event.platformDevelopmentCharge +
+								event.finalizationReward +
+								event.bakingReward
+							"
+							:show-symbol="true"
+						/>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+			<Pagination
+				v-if="data.pageInfo.hasNextPage || data.pageInfo.hasPreviousPage"
+				position="relative"
+				:page-info="data.pageInfo"
+				:go-to-page="goToPage"
+			/>
 		</template>
 	</TokenomicsDisplay>
 </template>
 
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
-import { convertMicroCcdToCcd } from '~/utils/format'
-import type { MintSpecialEvent } from '~/types/generated'
+import Amount from '~/components/atoms/Amount.vue'
+import DescriptionList from '~/components/atoms/DescriptionList.vue'
+import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
+import Pagination from '~/components/Pagination.vue'
+import type { PageInfo, MintSpecialEvent } from '~/types/generated'
+import type { PaginationTarget } from '~/composables/usePagination'
+import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 
 type Props = {
-	data: MintSpecialEvent
+	data: FilteredSpecialEvent<MintSpecialEvent>
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()

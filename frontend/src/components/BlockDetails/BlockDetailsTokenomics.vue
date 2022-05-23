@@ -10,33 +10,55 @@
 			class="pt-20"
 		/>
 
-		<div
-			v-for="event in data!.block.specialEvents?.nodes"
-			v-else-if="componentState === 'success'"
-			:key="event.id"
-		>
+		<div v-else-if="componentState === 'success' && data">
 			<MintDistribution
-				v-if="event.__typename === 'MintSpecialEvent'"
-				:data="event"
+				v-if="data.block.mintDistribution.nodes.length"
+				:data="data.block.mintDistribution"
+				:go-to-page="goToPageMintDistribution"
 			/>
 
 			<FinalizationRewards
-				v-else-if="event.__typename === 'FinalizationRewardsSpecialEvent'"
-				:data="event.finalizationRewards?.nodes || []"
-				:page-info="event.finalizationRewards?.pageInfo"
+				v-if="data.block.finalizationRewards.nodes.length"
+				:data="data.block.finalizationRewards"
 				:go-to-page="goToPageFinalizationRewards"
+				:go-to-sub-page="goToSubPageFinalizationRewards"
 			/>
 
 			<BlockRewards
-				v-else-if="event.__typename === 'BlockRewardsSpecialEvent'"
-				:data="event"
+				v-if="data.block.blockRewards.nodes.length"
+				:data="data.block.blockRewards"
+				:go-to-page="goToPageBlockRewards"
 			/>
 
 			<BakingRewards
-				v-else-if="event.__typename === 'BakingRewardsSpecialEvent'"
-				:data="event"
-				:page-info="event.bakingRewards?.pageInfo"
+				v-if="data.block.bakingRewards.nodes.length"
+				:data="data.block.bakingRewards"
 				:go-to-page="goToPageBakingRewards"
+				:go-to-sub-page="goToSubPageBakingRewards"
+			/>
+
+			<BlockAccrueRewards
+				v-if="data.block.blockAccruedRewards.nodes.length"
+				:data="data.block.blockAccruedRewards"
+				:go-to-page="goToPageBlockAccrueRewards"
+			/>
+
+			<PaydayFoundationReward
+				v-if="data.block.paydayFoundationRewards.nodes.length"
+				:data="data.block.paydayFoundationRewards"
+				:go-to-page="goToPagePaydayFoundationRewards"
+			/>
+
+			<PaydayAccountReward
+				v-if="data.block.paydayAccountRewards.nodes.length"
+				:data="data.block.paydayAccountRewards"
+				:go-to-page="goToPagePaydayAccountRewards"
+			/>
+
+			<PaydayPoolReward
+				v-if="data.block.paydayPoolRewards.nodes.length"
+				:data="data.block.paydayPoolRewards"
+				:go-to-page="goToPagePaydayPoolRewards"
 			/>
 		</div>
 	</div>
@@ -44,33 +66,34 @@
 
 <script lang="ts" setup>
 import { useBlockSpecialEventsQuery } from '~/queries/useBlockSpecialEventsQuery'
-import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
+import PaydayFoundationReward from '~/components/Tokenomics/PaydayFoundationReward.vue'
+import PaydayAccountReward from '~/components/Tokenomics/PaydayAccountReward.vue'
+import PaydayPoolReward from '~/components/Tokenomics/PaydayPoolReward.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
+import BlockAccrueRewards from '~/components/Tokenomics/BlockAccrueRewards.vue'
 import BakingRewards from '~/components/Tokenomics/BakingRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
+import { useSpecialEventsPagination } from '~/composables/useSpecialEventsPagination'
 import type { Block } from '~/types/generated'
 
 // finalization rewards pagination variables
 const {
-	first: firstFinalizationRewards,
-	last: lastFinalizationRewards,
-	after: afterFinalizationRewards,
-	before: beforeFinalizationRewards,
-	goToPage: goToPageFinalizationRewards,
-} = usePagination({ pageSize: PAGE_SIZE_SMALL })
-
-// baking rewards pagination variables
-const {
-	first: firstBakingRewards,
-	last: lastBakingRewards,
-	after: afterBakingRewards,
-	before: beforeBakingRewards,
-	goToPage: goToPageBakingRewards,
-} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+	paginationVariables,
+	goToPageBlockRewards,
+	goToPageBakingRewards,
+	goToSubPageBakingRewards,
+	goToPageMintDistribution,
+	goToPageBlockAccrueRewards,
+	goToPageFinalizationRewards,
+	goToSubPageFinalizationRewards,
+	goToPagePaydayFoundationRewards,
+	goToPagePaydayAccountRewards,
+	goToPagePaydayPoolRewards,
+} = useSpecialEventsPagination()
 
 type Props = {
 	blockId: Block['id']
@@ -80,15 +103,6 @@ const props = defineProps<Props>()
 
 const { data, error, componentState } = useBlockSpecialEventsQuery({
 	blockId: props.blockId,
-	paginationVariables: {
-		firstFinalizationRewards,
-		lastFinalizationRewards,
-		afterFinalizationRewards,
-		beforeFinalizationRewards,
-		firstBakingRewards,
-		lastBakingRewards,
-		afterBakingRewards,
-		beforeBakingRewards,
-	},
+	paginationVariables,
 })
 </script>

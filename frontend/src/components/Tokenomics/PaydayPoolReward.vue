@@ -1,45 +1,47 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Baking rewards</template>
+		<template #title>Payday: Pool rewards</template>
 		<template #content>
-			<Table v-for="bakingRewards in data.nodes" :key="bakingRewards.id">
+			<Table>
 				<TableHead>
 					<TableRow>
-						<TableTh>Baker</TableTh>
-						<TableTh align="right">Reward (Ͼ)</TableTh>
+						<TableTh>Pool</TableTh>
+						<TableTh align="right">Baker reward (Ͼ)</TableTh>
+						<TableTh align="right">Finalisation reward (Ͼ)</TableTh>
+						<TableTh align="right">Transaction fees (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					<TableRow
-						v-for="baker in bakingRewards.bakingRewards?.nodes"
-						:key="baker.accountAddress.asString"
-					>
+					<TableRow v-for="rewards in data.nodes" :key="rewards.id">
 						<TableTd>
-							<AccountLink :address="baker.accountAddress.asString" />
+							<BakerLink
+								v-if="rewards.pool.__typename === 'BakerPoolRewardTarget'"
+								:id="rewards.pool.bakerId"
+							/>
+							<span
+								v-else-if="
+									rewards.pool.__typename ===
+									'PassiveDelegationPoolRewardTarget'
+								"
+							>
+								Passive delegation
+							</span>
 						</TableTd>
 						<TableTd align="right" class="numerical">
-							<Amount :amount="baker.amount" />
+							<Amount :amount="rewards.bakerReward" />
 						</TableTd>
-					</TableRow>
-					<TableRow>
-						<TableTd colspan="2">
-							<Pagination
-								v-if="
-									bakingRewards.bakingRewards?.pageInfo &&
-									(bakingRewards.bakingRewards.pageInfo.hasNextPage ||
-										bakingRewards.bakingRewards.pageInfo.hasPreviousPage)
-								"
-								class="relative"
-								:page-info="bakingRewards.bakingRewards.pageInfo"
-								:go-to-page="goToSubPage"
-							/>
+						<TableTd align="right" class="numerical">
+							<Amount :amount="rewards.finalizationReward" />
+						</TableTd>
+						<TableTd align="right" class="numerical">
+							<Amount :amount="rewards.transactionFees" />
 						</TableTd>
 					</TableRow>
 				</TableBody>
 			</Table>
 			<Pagination
 				v-if="data.pageInfo.hasNextPage || data.pageInfo.hasPreviousPage"
-				class="relative"
+				position="relative"
 				:page-info="data.pageInfo"
 				:go-to-page="goToPage"
 			/>
@@ -50,7 +52,7 @@
 <script lang="ts" setup>
 import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import Amount from '~/components/atoms/Amount.vue'
-import AccountLink from '~/components/molecules/AccountLink.vue'
+import BakerLink from '~/components/molecules/BakerLink.vue'
 import Table from '~/components/Table/Table.vue'
 import TableTd from '~/components/Table/TableTd.vue'
 import TableTh from '~/components/Table/TableTh.vue'
@@ -58,14 +60,13 @@ import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
 import Pagination from '~/components/Pagination.vue'
-import type { PaginationTarget } from '~/composables/usePagination'
 import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
-import type { BakingRewardsSpecialEvent, PageInfo } from '~/types/generated'
+import type { PaginationTarget } from '~/composables/usePagination'
+import type { PageInfo, PaydayPoolRewardSpecialEvent } from '~/types/generated'
 
 type Props = {
-	data: FilteredSpecialEvent<BakingRewardsSpecialEvent>
+	data: FilteredSpecialEvent<PaydayPoolRewardSpecialEvent>
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
-	goToSubPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()

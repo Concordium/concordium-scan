@@ -438,6 +438,7 @@ export type BakerPool = {
   commissionRates: BakerPoolCommissionRates;
   /** The total amount staked by delegation to this baker pool. */
   delegatedStake: Scalars['UnsignedLong'];
+  delegatorCount: Scalars['Int'];
   delegators?: Maybe<DelegatorsConnection>;
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
@@ -990,6 +991,7 @@ export type DecodedTransferMemo = {
 export type Delegation = {
   __typename?: 'Delegation';
   delegationTarget: DelegationTarget;
+  delegatorId: Scalars['Long'];
   pendingChange?: Maybe<PendingDelegationChange>;
   restakeEarnings: Scalars['Boolean'];
   stakedAmount: Scalars['UnsignedLong'];
