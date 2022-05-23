@@ -17,7 +17,8 @@ public class ImportValidationController
         _validators = new IImportValidator[]
         {
             new AccountValidator(grpcNodeClient, dbContextFactory),
-            new BalanceStatisticsValidator(grpcNodeClient, dbContextFactory)
+            new BalanceStatisticsValidator(grpcNodeClient, dbContextFactory),
+            new PassiveDelegationValidator(dbContextFactory)
         };
     }
 
