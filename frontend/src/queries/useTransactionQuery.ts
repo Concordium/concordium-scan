@@ -364,6 +364,51 @@ reason {
 			asString
 		}
 	}
+  ... on MissingBakerAddParameters {
+	  __typename
+  }
+  ... on FinalizationRewardCommissionNotInRange {
+		__typename
+  }
+  ... on BakingRewardCommissionNotInRange {
+		__typename
+  }
+  ... on TransactionFeeCommissionNotInRange {
+		__typename
+  }
+  ... on AlreadyADelegator {
+		__typename
+  }
+  ... on InsufficientBalanceForDelegationStake {
+		__typename
+  }
+  ... on MissingDelegationAddParameters {
+		__typename
+  }
+  ... on InsufficientDelegationStake {
+		__typename
+
+  }
+  ... on DelegatorInCooldown {
+		__typename
+  }
+  ... on NotADelegator {
+		accountAddress {asString}
+		__typename
+  }
+  ... on DelegationTargetNotABaker {
+		bakerId
+		__typename
+  }
+  ... on StakeOverMaximumThresholdForPool {
+		__typename
+  }
+  ... on PoolWouldBecomeOverDelegated {
+		__typename
+  }
+  ... on PoolClosed {
+		__typename
+  }
 }
 `
 
