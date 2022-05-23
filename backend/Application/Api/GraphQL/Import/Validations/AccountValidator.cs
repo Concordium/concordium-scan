@@ -247,23 +247,32 @@ public class AccountValidator : IImportValidator
         var conn = graphQlDbContext.Database.GetDbConnection();
         await conn.OpenAsync();
 
-        var expectedSql = "select id, active_pool_delegator_count from graphql_bakers where active_pool_delegator_count > 0 order by id;";
+        var expectedSql = @"select id, active_pool_delegator_count 
+                            from graphql_bakers 
+                            where active_pool_delegator_count > 0 
+                            order by id;";
+        
         var expectedRows = await conn.QueryAsync(expectedSql);
         var expectedMapped = expectedRows
             .Select(row => new
             {
-                BakerId = row.id,
-                DelegatorCount = row.active_pool_delegator_count
+                BakerId = (long)row.id,
+                DelegatorCount = (int)row.active_pool_delegator_count
             })
             .ToArray();
         
-        var actualSql = "select delegation_target_baker_id as baker_id, count(*) as delegator_count from graphql_accounts where delegation_target_baker_id >= 0 group by (delegation_target_baker_id) order by delegation_target_baker_id;";
+        var actualSql = @"select delegation_target_baker_id as baker_id, count(*) as delegator_count 
+                          from graphql_accounts 
+                          where delegation_target_baker_id >= 0 
+                          group by (delegation_target_baker_id) 
+                          order by delegation_target_baker_id;";
+        
         var actualRows = await conn.QueryAsync(actualSql);
         var actualMapped = actualRows
             .Select(row => new
             {
-                BakerId = row.baker_id,
-                DelegatorCount = row.delegator_count
+                BakerId = (long)row.baker_id,
+                DelegatorCount = (int)row.delegator_count
             })
             .ToArray();
 
