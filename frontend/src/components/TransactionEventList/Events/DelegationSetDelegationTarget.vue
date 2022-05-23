@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		<AccountLink :address="event.accountAddress.asString" /> (delegator
+		Delegator <AccountLink :address="event.accountAddress.asString" /> (id
 		{{ event.delegatorId }}) set delegation target to
 		<BakerLink
 			v-if="event.delegationTarget.__typename === 'BakerDelegationTarget'"

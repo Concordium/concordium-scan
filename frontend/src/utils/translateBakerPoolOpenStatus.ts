@@ -2,9 +2,9 @@
 
 const translations = {
 	entryTypes: {
-		CLOSED_FOR_ALL: 'Closed for all',
-		OPEN_FOR_ALL: 'Open for all',
-		CLOSED_FOR_NEW: 'Closed for new',
+		CLOSED_FOR_ALL: 'closed for all',
+		OPEN_FOR_ALL: 'open for all',
+		CLOSED_FOR_NEW: 'closed for new',
 	} as Record<BakerPoolOpenStatus | 'UNKNOWN', string>,
 }
 export const translateBakerPoolOpenStatus = (

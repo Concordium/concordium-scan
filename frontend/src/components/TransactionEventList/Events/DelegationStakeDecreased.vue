@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		<AccountLink :address="event.accountAddress.asString" /> (delegator
+		Delegator <AccountLink :address="event.accountAddress.asString" /> (id
 		{{ event.delegatorId }}) decreased stake to
 		{{ convertMicroCcdToCcd(event.newStakedAmount) }}Ͼ</span
 	>

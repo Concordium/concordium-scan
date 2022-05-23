@@ -1,7 +1,7 @@
 ﻿<template>
 	<span>
-		Delegation removed for
-		<AccountLink :address="event.accountAddress.asString" /> (delegator
+		Delegation removed for delegator
+		<AccountLink :address="event.accountAddress.asString" /> (id
 		{{ event.delegatorId }})</span
 	>
 </template>
