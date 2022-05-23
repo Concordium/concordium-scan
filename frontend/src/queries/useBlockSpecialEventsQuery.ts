@@ -325,6 +325,9 @@ type QueryParams = {
 	paginationVariables: BlockQueryVariables
 }
 
+export const hasData = (data: Record<string, FilteredSpecialEvent<unknown>>) =>
+	Object.keys(data).some((key: string) => data[key] && data[key].nodes?.length)
+
 export const useBlockSpecialEventsQuery = ({
 	blockId,
 	paginationVariables,
@@ -442,13 +445,22 @@ export const useBlockSpecialEventsQuery = ({
 		},
 	})
 
-	const componentState = useComponentState<
-		BlockSpecialEventsResponse | undefined
-	>({
-		fetching,
-		error,
-		data,
-	})
+	const hasDataRef = ref(hasData(data.value?.block ?? {}))
+
+	const componentState = ref(
+		useComponentState<boolean | undefined>({
+			fetching,
+			error,
+			data: hasDataRef,
+		})
+	)
+
+	watch(
+		() => data.value,
+		value => {
+			hasDataRef.value = hasData(value?.block ?? {})
+		}
+	)
 
 	return { data, error, componentState }
 }

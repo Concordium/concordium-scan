@@ -3,12 +3,11 @@
 		<div v-if="componentState === 'loading'" class="h-48 relative">
 			<Loader />
 		</div>
-		<NotFound v-else-if="componentState === 'empty'" class="pt-20" />
-		<Error
-			v-else-if="componentState === 'error'"
-			:error="error"
-			class="pt-20"
-		/>
+		<NotFound v-else-if="componentState === 'empty'" class="mb-8">
+			No data
+			<template #secondary>This block has no special events to show</template>
+		</NotFound>
+		<Error v-else-if="componentState === 'error'" :error="error" class="mb-8" />
 
 		<div v-else-if="componentState === 'success' && data">
 			<MintDistribution
