@@ -25,7 +25,9 @@ public class ImportValidationController
     {
         if (!_settings.Enabled) return;
 
-        if (block.BlockHeight % 10000 == 0)
+        // TODO: temporarily increase occurrence of validation in blocks after P4 update (testnet)
+        var modValue = block.BlockHeight < 3221721 ? 10000 : 1000;
+        if (block.BlockHeight % modValue == 0)
         {
             foreach (var validator in _validators)
                 await validator.Validate(block);

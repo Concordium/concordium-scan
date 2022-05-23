@@ -166,7 +166,7 @@ public class BakerImportHandler
         _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
 
         await _writer.UpdateBakers(
-            baker => baker.ActiveState!.Pool = CreateDefaultBakerPool(),
+            baker => baker.ActiveState!.Pool = CreateDefaultBakerPool(transactionCommission: 0.1m, finalizationCommission: 1.0m, bakingCommission: 0.1m, openStatus: BakerPoolOpenStatus.ClosedForAll),
             baker => baker.ActiveState != null);
         
         importState.MigrationToBakerPoolsCompleted = true;
@@ -367,17 +367,18 @@ public class BakerImportHandler
         };
     }
 
-    private BakerPool CreateDefaultBakerPool()
+    private BakerPool CreateDefaultBakerPool(BakerPoolOpenStatus openStatus = BakerPoolOpenStatus.ClosedForAll,
+        decimal transactionCommission = 0.0m, decimal finalizationCommission = 0.0m, decimal bakingCommission = 0.0m)
     {
         return new BakerPool
         {
-            OpenStatus = BakerPoolOpenStatus.ClosedForAll,
+            OpenStatus = openStatus,
             MetadataUrl = "",
             CommissionRates = new CommissionRates
             {
-                TransactionCommission = 0.0m,
-                FinalizationCommission = 0.0m,
-                BakingCommission = 0.0m
+                TransactionCommission = transactionCommission,
+                FinalizationCommission = finalizationCommission,
+                BakingCommission = bakingCommission
             }
         };
     }
