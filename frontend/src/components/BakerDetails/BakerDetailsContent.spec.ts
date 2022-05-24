@@ -211,4 +211,32 @@ describe('BakerDetailsContent', () => {
 			).toBeInTheDocument()
 		})
 	})
+
+	describe('delegators accordion', () => {
+		it('will not show delegators accordion if baker has no delegators', () => {
+			render({})
+
+			expect(screen.queryByText('Delegators')).not.toBeInTheDocument()
+		})
+
+		it('will show delegators accordion and delegator count if the baker has delegators', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						...defaultProps.baker.state,
+						pool: {
+							delegatorCount: 1337,
+						},
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(screen.getByTestId('delegators-accordion')).toHaveTextContent(
+				'Delegators (1337)'
+			)
+		})
+	})
 })

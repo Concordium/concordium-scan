@@ -22,6 +22,10 @@ const BakerQuery = gql<BakerResponse>`
 				... on ActiveBakerState {
 					stakedAmount
 					restakeEarnings
+					pool {
+						totalStakePercentage
+						delegatorCount
+					}
 					pendingChange {
 						... on PendingBakerReduceStake {
 							__typename

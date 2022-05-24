@@ -88,6 +88,22 @@
 					<BakerDetailsTransactions :baker-id="baker.bakerId" />
 				</template>
 			</Accordion>
+
+			<Accordion
+				v-if="
+					baker.state.__typename === 'ActiveBakerState' &&
+					baker.state.pool?.delegatorCount
+				"
+				data-testid="delegators-accordion"
+			>
+				Delegators
+				<span class="text-theme-faded numerical ml-1">
+					({{ baker.state.pool.delegatorCount }})
+				</span>
+				<template #content>
+					<BakerDetailsDelegators :baker-id="baker.bakerId" />
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -96,6 +112,7 @@
 import { ref, computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
+import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
