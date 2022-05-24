@@ -28,23 +28,22 @@ watch(
 watch(currentDrawerCount, v => {
 	toggleClasses(v > 0)
 })
-
+let openScroll = 0
 const toggleClasses = (isOpen: boolean) => {
 	const appEl = document.getElementById('app')
 
-	const classes = [
-		'max-h-screen',
-		'w-full',
-		'overflow-hidden',
-		'fixed',
-		'top-0',
-		'left-0',
-	]
+	const classes = ['w-full', 'overflow-hidden', 'fixed']
 
 	if (isOpen) {
+		if (!appEl?.classList.contains('fixed')) {
+			openScroll = window.scrollY
+			if (appEl !== null) appEl.style.top = `-${openScroll}px`
+		}
 		appEl?.classList.add(...classes)
 	} else {
 		appEl?.classList.remove(...classes)
+		if (openScroll !== 0) window.scrollTo(0, openScroll)
+		openScroll = 0
 	}
 }
 </script>
