@@ -1,39 +1,45 @@
 <template>
 	<nav
-		class="flex justify-center mt-8 p-4 bottom-0 pagination"
-		:class="position ? position : 'relative'"
+		class="flex bottom-0 pagination"
+		:class="[
+			position ? position : 'relative',
+			size === 'sm' ? 'justify-end' : 'justify-center mt-8 p-4',
+		]"
 	>
 		<Button
 			class="mr-4"
 			aria-label="Go to the first page"
+			:size="size"
 			:disabled="!props.pageInfo.hasPreviousPage"
 			:on-click="goToFirst"
 		>
-			<ChevronDoubleLeftIcon class="h-4 inline align-text-top" />
-			<span class="hidden md:inline">First</span>
+			<ChevronDoubleLeftIcon :class="buttonClasses" />
+			<span v-if="size !== 'sm'" class="hidden md:inline">First</span>
 		</Button>
 		<Button
 			class="rounded-none rounded-l-lg"
 			aria-label="Go to the previous page"
+			:size="size"
 			:disabled="!props.pageInfo.hasPreviousPage"
 			group-position="first"
 			:on-click="goToPrevious"
 		>
 			<ChevronRightIcon
-				class="h-4 inline align-text-top"
+				:class="buttonClasses"
 				style="transform: rotate(180deg)"
 			/>
-			<span class="hidden md:inline">Previous</span>
+			<span v-if="size !== 'sm'" class="hidden md:inline">Previous</span>
 		</Button>
 		<Button
 			class="rounded-none rounded-r-lg"
 			aria-label="Go to the next page"
+			:size="size"
 			group-position="last"
 			:disabled="!props.pageInfo.hasNextPage"
 			:on-click="goToNext"
 		>
-			<span class="hidden md:inline">Next</span>
-			<ChevronRightIcon class="h-4 inline align-text-top" />
+			<ChevronRightIcon :class="buttonClasses" />
+			<span v-if="size !== 'sm'" class="hidden md:inline">Next</span>
 		</Button>
 	</nav>
 </template>
@@ -50,11 +56,15 @@ import type { PaginationTarget } from '~/composables/usePagination'
 type Props = {
 	// would love to use CSSProperties['position'], but seems not to be exported from Vue
 	position?: 'relative' | 'sticky'
+	size?: 'sm' | 'md'
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 const props = defineProps<Props>()
+
+const buttonClasses =
+	props.size === 'sm' ? 'h-4 inline' : 'h-4 inline align-text-top'
 
 const paginate = (target: PaginationTarget) =>
 	props.goToPage(props.pageInfo)(target)

@@ -1,14 +1,18 @@
 <template>
 	<button
-		class="bg-theme-button-primary px-8 py-3"
+		class="bg-theme-button-primary"
 		:class="{
+			'px-8': !props.size,
+			'py-3': !props.size,
+			'py-0': props.size === 'sm',
+			'px-4': props.size === 'sm',
 			'cursor-not-allowed': props.disabled,
 			'bg-theme-button-primary-disabled': props.disabled,
 			'hover:bg-theme-button-primary-hover': !props.disabled,
-			'rounded-lg': !props.groupPosition,
-			'rounded-lg-l': props.groupPosition === 'first',
-			'rounded-none': props.groupPosition === 'middle',
-			'rounded-lg-r': props.groupPosition === 'last',
+			rounded: !props.groupPosition,
+			first: props.groupPosition === 'first',
+			middle: props.groupPosition === 'middle',
+			last: props.groupPosition === 'last',
 		}"
 		:disabled="props.disabled"
 		@click="handleOnClick"
@@ -20,6 +24,7 @@
 <script lang="ts" setup>
 type Props = {
 	disabled?: boolean
+	size?: 'sm' | 'md'
 	groupPosition?: 'first' | 'middle' | 'last'
 	onClick?: () => void
 }
@@ -31,4 +36,20 @@ const handleOnClick = () => {
 		props.onClick?.()
 	}
 }
+
+const borderRadiusSize = props.size === 'sm' ? '4px' : '8px'
 </script>
+
+<style scoped>
+.first {
+	border-radius: v-bind(borderRadiusSize) 0 0 v-bind(borderRadiusSize);
+}
+
+.middle {
+	border-radius: 0;
+}
+
+.last {
+	border-radius: 0 v-bind(borderRadiusSize) v-bind(borderRadiusSize) 0;
+}
+</style>

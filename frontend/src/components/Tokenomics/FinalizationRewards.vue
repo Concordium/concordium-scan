@@ -24,8 +24,10 @@
 							<Amount :amount="finalizer.amount" />
 						</TableTd>
 					</TableRow>
+				</TableBody>
+				<TableFooter>
 					<TableRow>
-						<TableTd colspan="2">
+						<TableTd colspan="2" variant="with-background">
 							<Pagination
 								v-if="
 									finalizationRewards.finalizationRewards?.pageInfo &&
@@ -34,13 +36,14 @@
 										finalizationRewards.finalizationRewards.pageInfo
 											.hasPreviousPage)
 								"
-								class="relative"
+								position="relative"
+								size="sm"
 								:page-info="finalizationRewards.finalizationRewards.pageInfo"
 								:go-to-page="goToSubPage"
 							/>
 						</TableTd>
 					</TableRow>
-				</TableBody>
+				</TableFooter>
 			</Table>
 			<Pagination
 				v-if="data.pageInfo.hasNextPage || data.pageInfo.hasPreviousPage"
@@ -62,6 +65,7 @@ import TableTh from '~/components/Table/TableTh.vue'
 import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
+import TableFooter from '~/components/Table/TableFooter.vue'
 import Pagination from '~/components/Pagination.vue'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'

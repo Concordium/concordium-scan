@@ -26,7 +26,7 @@ const {
 	after: afterTx,
 	before: beforeTx,
 	goToPage: goToPageTx,
-} = usePagination()
+} = usePagination({ pageSize: 5 })
 
 const paginationVars = {
 	firstTx,

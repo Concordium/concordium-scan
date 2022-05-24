@@ -21,21 +21,24 @@
 							<Amount :amount="baker.amount" />
 						</TableTd>
 					</TableRow>
+				</TableBody>
+				<TableFooter>
 					<TableRow>
-						<TableTd colspan="2">
+						<TableTd colspan="2" variant="with-background">
 							<Pagination
 								v-if="
 									bakingRewards.bakingRewards?.pageInfo &&
 									(bakingRewards.bakingRewards.pageInfo.hasNextPage ||
 										bakingRewards.bakingRewards.pageInfo.hasPreviousPage)
 								"
-								class="relative"
+								position="relative"
+								size="sm"
 								:page-info="bakingRewards.bakingRewards.pageInfo"
 								:go-to-page="goToSubPage"
 							/>
 						</TableTd>
 					</TableRow>
-				</TableBody>
+				</TableFooter>
 			</Table>
 			<Pagination
 				v-if="data.pageInfo.hasNextPage || data.pageInfo.hasPreviousPage"
