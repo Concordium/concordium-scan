@@ -18,6 +18,9 @@ public class PassiveDelegation
     [GraphQLDescription("The total amount staked by delegators to passive delegation.")]
     public ulong DelegatedStake { get; set; }
 
+    [GraphQLDescription("Total stake passively delegated as a percentage of all CCDs in existence.")]
+    public decimal DelegatedStakePercentage { get; set; }
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
     public IQueryable<DelegationSummary> GetDelegators([ScopedService] GraphQlDbContext dbContext)
