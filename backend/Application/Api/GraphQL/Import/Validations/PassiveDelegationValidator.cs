@@ -55,10 +55,10 @@ public class PassiveDelegationValidator : IImportValidator
         var conn = dbContext.Database.GetDbConnection();
         await conn.OpenAsync();
         var actualSql = "select count(*) from graphql_accounts where delegation_target_baker_id = -1;";
-        var actualValue = await conn.QuerySingleOrDefaultAsync<int?>(actualSql);
+        var actualValue = await conn.QuerySingleOrDefaultAsync<int>(actualSql);
         await conn.CloseAsync();
 
-        var equal = expectedValue == actualValue;
+        var equal = expectedValue.HasValue ? expectedValue.Value == actualValue : actualValue == 0;
         _logger.Information("Passive delegator count matched expected: {equal}", equal);
         if (!equal)
             _logger.Information("Entity count: {expectedCount}, aggregated database value: {actualCount}", expectedValue, actualValue);
