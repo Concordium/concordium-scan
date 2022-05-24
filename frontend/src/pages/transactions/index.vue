@@ -2,7 +2,9 @@
 	<div>
 		<Title>CCDScan | Transactions</Title>
 		<div>
-			<div class="flex flex-row justify-center lg:place-content-end">
+			<div
+				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
+			>
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
 			<FtbCarousel non-carousel-classes="grid-cols-2">
