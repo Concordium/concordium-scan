@@ -25,7 +25,8 @@ public class PassiveDelegationConfigurationTest : IClassFixture<DatabaseFixture>
     {
         var input = new PassiveDelegation
         {
-            DelegatorCount = 17
+            DelegatorCount = 17,
+            DelegatedStake = 4100
         };
 
         await AddPassiveDelegation(input);
@@ -34,6 +35,7 @@ public class PassiveDelegationConfigurationTest : IClassFixture<DatabaseFixture>
         var result = await dbContext.PassiveDelegations.SingleOrDefaultAsync();
         result.Should().NotBeNull();
         result!.DelegatorCount.Should().Be(17);
+        result.DelegatedStake.Should().Be(4100);
     }
 
     private async Task AddPassiveDelegation(PassiveDelegation input)

@@ -13,5 +13,6 @@ public class PassiveDelegationConfiguration : IEntityTypeConfiguration<PassiveDe
 
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
         builder.Property(x => x.DelegatorCount).HasColumnName("delegator_count");
+        builder.Property(x => x.DelegatedStake).HasColumnName("delegated_stake");
     }
 }

@@ -26,17 +26,29 @@ public class PassiveDelegationImportHandler
                 .SingleOrDefault(x => x.DelegationTarget == new PassiveDelegationTarget())?
                 .DelegatorCountDelta ?? 0;
 
-            if (delegatorCountDelta != 0)
-                await UpdatePassiveDelegation(delegatorCountDelta);
+            var totalDelegatedStake = await GetTotalStakedToPassiveDelegation();
+            await UpdatePassiveDelegation(delegatorCountDelta, totalDelegatedStake);
         }
     }
 
-    private async Task UpdatePassiveDelegation(int delegatorCountDelta)
+    private async Task UpdatePassiveDelegation(int delegatorCountDelta, ulong totalDelegatedStake)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var instance = await dbContext.PassiveDelegations.SingleAsync();
         instance.DelegatorCount += delegatorCountDelta;
+        instance.DelegatedStake = totalDelegatedStake;
         await dbContext.SaveChangesAsync();
+    }
+    
+    private async Task<ulong> GetTotalStakedToPassiveDelegation()
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        
+        var result = await dbContext.Accounts.AsNoTracking()
+            .Where(x => x.Delegation!.DelegationTarget == new PassiveDelegationTarget())
+            .SumAsync(x => (long)x.Delegation!.StakedAmount);
+        
+        return (ulong)result;
     }
 
     private async Task EnsureInitialized(ImportState importState)

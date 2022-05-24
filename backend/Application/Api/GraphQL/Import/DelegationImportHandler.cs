@@ -27,7 +27,8 @@ public class DelegationImportHandler
             var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
     
             if (isFirstBlockAfterPayday)
-                await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime, ApplyPendingChange);
+                await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime,
+                    account => ApplyPendingChange(account, resultBuilder));
 
             await HandleBakersRemovedOrClosedForAll(bakerUpdateResults, resultBuilder);
             
@@ -71,11 +72,12 @@ public class DelegationImportHandler
         }
     }
 
-    private void ApplyPendingChange(Account account)
+    private void ApplyPendingChange(Account account, DelegationUpdateResultsBuilder resultsBuilder)
     {
         var delegation = account.Delegation ?? throw new InvalidOperationException("Apply pending delegation change to an account that has no delegation!");
         if (delegation.PendingChange is PendingDelegationRemoval)
         {
+            resultsBuilder.DelegationTargetRemoved(account.Delegation.DelegationTarget);
             account.Delegation = null;
         }
         else if (delegation.PendingChange is PendingDelegationReduceStake x)

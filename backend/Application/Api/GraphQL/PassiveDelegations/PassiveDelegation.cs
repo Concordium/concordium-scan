@@ -15,6 +15,9 @@ public class PassiveDelegation
     
     public int DelegatorCount { get; set; }
     
+    [GraphQLDescription("The total amount staked by delegators to passive delegation.")]
+    public ulong DelegatedStake { get; set; }
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
     public IQueryable<DelegationSummary> GetDelegators([ScopedService] GraphQlDbContext dbContext)
