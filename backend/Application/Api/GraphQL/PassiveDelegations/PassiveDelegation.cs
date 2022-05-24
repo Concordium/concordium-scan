@@ -13,7 +13,6 @@ public class PassiveDelegation
     [GraphQLIgnore] 
     public int Id { get; init; }
     
-    [GraphQLIgnore] // TODO: Still not part of schema
     public int DelegatorCount { get; set; }
     
     [UseDbContext(typeof(GraphQlDbContext))]
