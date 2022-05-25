@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.PassiveDelegations;
+using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Transactions;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<BakerReward> BakerRewards { get; private set; }
     public DbSet<BakerTransactionRelation> BakerTransactionRelations { get; private set; }
     public DbSet<PassiveDelegation> PassiveDelegations { get; private set; }
+    public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

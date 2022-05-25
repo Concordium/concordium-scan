@@ -35,6 +35,7 @@ public class ImportWriteController : BackgroundService
     private readonly MaterializedViewRefresher _materializedViewRefresher;
     private readonly DelegationImportHandler _delegationHandler;
     private readonly PassiveDelegationImportHandler _passiveDelegationHandler;
+    private readonly PaydayStatusImportHandler _paydayStatusHandler;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
         ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
@@ -59,6 +60,7 @@ public class ImportWriteController : BackgroundService
         _importStateController = new ImportStateController(dbContextFactory, metrics);
         _materializedViewRefresher = new MaterializedViewRefresher(dbSettings, metrics);
         _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
+        _paydayStatusHandler = new PaydayStatusImportHandler(dbContextFactory, metrics);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -171,7 +173,8 @@ public class ImportWriteController : BackgroundService
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
-
+        await _paydayStatusHandler.UpdatePaydayStatus(payload);
+        
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
