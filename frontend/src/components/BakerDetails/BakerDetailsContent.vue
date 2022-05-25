@@ -78,15 +78,12 @@
 					<RewardMetricsForBakerChart
 						:reward-metrics-data="rewardMetricsForBakerData"
 						:is-loading="rewardMetricsForBakerFetching"
+						class="mb-20"
 					/>
-				</template>
-			</Accordion>
-			<Accordion>
-				Rewards details
-				<template #content>
 					<BakerDetailsRewards :baker-id="baker.bakerId" />
 				</template>
 			</Accordion>
+
 			<Accordion>
 				Related transactions
 				<template #content>

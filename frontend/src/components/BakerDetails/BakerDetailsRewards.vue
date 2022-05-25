@@ -24,7 +24,9 @@
 							<span class="pl-2"
 								><RewardIcon
 									class="h-4 text-theme-white inline align-text-top"
-								/>{{ translateBakerRewardType(reward.rewardType) }}</span
+								/><span class="pl-2">{{
+									translateBakerRewardType(reward.rewardType)
+								}}</span></span
 							>
 						</div>
 					</TableTd>
