@@ -70,6 +70,12 @@
 					<AccountDetailsBaker :baker="account.baker" />
 				</template>
 			</Accordion>
+			<Accordion v-if="account.delegation">
+				Delegation
+				<template #content>
+					<AccountDetailsDelegation :delegation="account.delegation" />
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -91,6 +97,7 @@ import {
 import type { Account, PageInfo } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
+import AccountDetailsDelegation from '~/components/Accounts/AccountDetailsDelegation.vue'
 
 const { NOW } = useDateNow()
 

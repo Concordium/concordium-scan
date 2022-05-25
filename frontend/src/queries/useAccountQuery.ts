@@ -157,6 +157,32 @@ releaseSchedule {
 		}
 	}
 }
+delegation {
+	delegatorId
+	stakedAmount
+	restakeEarnings
+	delegationTarget {
+		... on BakerDelegationTarget {
+			bakerId
+			__typename
+		}
+		... on PassiveDelegationTarget {
+			__typename
+		}
+	__typename
+	}
+	pendingChange {
+		... on PendingDelegationRemoval {
+			effectiveTime
+			__typename
+		}
+		... on PendingDelegationReduceStake {
+			newStakedAmount
+			effectiveTime
+			__typename
+		}
+	}
+}
 createdAt
 __typename
 `
