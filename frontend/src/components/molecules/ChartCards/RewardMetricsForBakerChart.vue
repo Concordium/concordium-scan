@@ -25,13 +25,12 @@
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import type { TooltipItem } from 'chart.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import { type RewardMetricsForBakerQueryResponse } from '~/queries/useRewardMetricsForBakerQuery'
 type Props = {
-	rewardMetricsData: Ref<RewardMetricsForBakerQueryResponse | undefined>
+	rewardMetricsData?: RewardMetricsForBakerQueryResponse
 	isLoading?: boolean
 }
 const formatLabel = (c: TooltipItem<'bar'>) => {

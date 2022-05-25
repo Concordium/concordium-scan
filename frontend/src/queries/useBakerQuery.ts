@@ -25,6 +25,17 @@ const BakerQuery = gql<BakerResponse>`
 					pool {
 						totalStakePercentage
 						delegatorCount
+						totalStake
+						delegatedStake
+						rankingByTotalStake {
+							rank
+							total
+						}
+						commissionRates {
+							transactionCommission
+							finalizationCommission
+							bakingCommission
+						}
 					}
 					pendingChange {
 						... on PendingBakerReduceStake {

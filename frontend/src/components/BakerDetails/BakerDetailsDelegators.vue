@@ -20,6 +20,7 @@
 					:key="delegator.accountAddress.asString"
 				>
 					<TableTd class="numerical">
+						{{ data?.bakerByBakerId.state.stakedAmount }}
 						<AccountLink :address="delegator.accountAddress.asString" />
 					</TableTd>
 					<TableTd align="right">
