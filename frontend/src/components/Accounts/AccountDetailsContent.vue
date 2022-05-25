@@ -2,6 +2,66 @@
 	<div>
 		<AccountDetailsHeader :account="account" />
 		<DrawerContent>
+			<Alert v-if="account.delegation && account.delegation?.pendingChange">
+				Pending change
+				<template
+					v-if="
+						account.delegation?.pendingChange?.__typename ===
+						'PendingDelegationReduceStake'
+					"
+					#secondary
+				>
+					<!-- vue-tsc doesn't seem to be satisfied with the template condition ... -->
+					<span
+						v-if="
+							account.delegation?.pendingChange?.__typename ===
+							'PendingDelegationReduceStake'
+						"
+					>
+						Stake will be reduced to
+						<Amount
+							:amount="account.delegation?.pendingChange?.newStakedAmount"
+							:show-symbol="true"
+						/>
+						in
+						<Tooltip
+							:text="
+								formatTimestamp(
+									account.delegation?.pendingChange?.effectiveTime
+								)
+							"
+						>
+							{{
+								convertTimestampToRelative(
+									account.delegation?.pendingChange?.effectiveTime,
+									NOW
+								)
+							}}
+						</Tooltip>
+					</span>
+				</template>
+				<template
+					v-else-if="
+						account.delegation?.pendingChange?.__typename ===
+						'PendingDelegationRemoval'
+					"
+					#secondary
+				>
+					Delegation will be removed in
+					<Tooltip
+						:text="
+							formatTimestamp(account.delegation?.pendingChange?.effectiveTime)
+						"
+					>
+						{{
+							convertTimestampToRelative(
+								account.delegation?.pendingChange?.effectiveTime,
+								NOW
+							)
+						}}
+					</Tooltip>
+				</template>
+			</Alert>
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<AccountDetailsAmounts :account="account" />
 				<DetailsCard>
@@ -98,6 +158,8 @@ import type { Account, PageInfo } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
 import AccountDetailsDelegation from '~/components/Accounts/AccountDetailsDelegation.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import Amount from '~/components/atoms/Amount.vue'
 
 const { NOW } = useDateNow()
 

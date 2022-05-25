@@ -1,54 +1,5 @@
 ﻿<template>
 	<dl class="grid grid-cols-2 col-span-2 px-4">
-		<dt v-if="delegation.pendingChange" id="delegatoraccordion-pendingchange">
-			Pending change
-		</dt>
-		<dd
-			v-if="delegation.pendingChange"
-			class="text-right mb-2"
-			aria-labelledby="delegatoraccordion-pendingchange"
-		>
-			<div
-				v-if="
-					delegation.pendingChange?.__typename === 'PendingDelegationRemoval'
-				"
-			>
-				Removal at
-				<Tooltip
-					:text="formatTimestamp(delegation.pendingChange?.effectiveTime)"
-				>
-					{{
-						convertTimestampToRelative(
-							delegation.pendingChange?.effectiveTime,
-							NOW
-						)
-					}}
-				</Tooltip>
-			</div>
-			<div
-				v-else-if="
-					delegation.pendingChange?.__typename ===
-					'PendingDelegationReduceStake'
-				"
-			>
-				Reducing stake to
-				<Amount :amount="delegation.pendingChange?.newStakedAmount" />
-				at
-				<Tooltip
-					:text="formatTimestamp(delegation.pendingChange?.effectiveTime)"
-				>
-					{{
-						convertTimestampToRelative(
-							delegation.pendingChange?.effectiveTime,
-							NOW
-						)
-					}}
-				</Tooltip>
-			</div>
-			<div v-else>
-				Unknown pending change {{ delegation.pendingChange?.__typename }}
-			</div>
-		</dd>
 		<dt id="delegatoraccordion-bakerid">Delegator ID</dt>
 		<dd class="text-right mb-2" aria-labelledby="bakeraccordion-bakerid">
 			{{ delegation.delegatorId }}
@@ -93,12 +44,9 @@
 </template>
 
 <script lang="ts" setup>
-import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import type { Delegation } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
-import Tooltip from '~/components/atoms/Tooltip.vue'
 import Amount from '~/components/atoms/Amount.vue'
-const { NOW } = useDateNow()
 
 type Props = {
 	delegation: Delegation

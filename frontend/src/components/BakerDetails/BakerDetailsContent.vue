@@ -22,10 +22,19 @@
 						"
 					>
 						Stake will be reduced to
-						{{
-							convertMicroCcdToCcd(baker.state.pendingChange.newStakedAmount)
-						}}
-						Ͼ on {{ formatTimestamp(baker.state.pendingChange.effectiveTime) }}
+						<Amount
+							:amount="baker.state.pendingChange.newStakedAmount"
+							:show-symbol="true"
+						/>
+						on
+						<Tooltip :text="baker.state.pendingChange.effectiveTime">
+							{{
+								convertTimestampToRelative(
+									baker.state.pendingChange.effectiveTime,
+									NOW
+								)
+							}}
+						</Tooltip>
 					</span>
 				</template>
 				<template
@@ -34,8 +43,15 @@
 					"
 					#secondary
 				>
-					Baker will be removed
-					{{ formatTimestamp(baker.state.pendingChange.effectiveTime) }}
+					Baker will be removed in
+					<Tooltip :text="baker.state.pendingChange.effectiveTime">
+						{{
+							convertTimestampToRelative(
+								baker.state.pendingChange.effectiveTime,
+								NOW
+							)
+						}}
+					</Tooltip>
 				</template>
 			</Alert>
 
@@ -132,6 +148,8 @@ import { MetricsPeriod } from '~/types/generated'
 import { useRewardMetricsForBakerQueryQuery } from '~/queries/useRewardMetricsForBakerQuery'
 import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
 import BakerDetailsRewards from '~/components/BakerDetails/BakerDetailsRewards.vue'
+import Amount from '~/components/atoms/Amount.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 
 const { NOW } = useDateNow()
 
