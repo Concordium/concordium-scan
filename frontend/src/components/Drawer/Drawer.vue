@@ -28,7 +28,7 @@ watch(
 watch(currentDrawerCount, v => {
 	toggleClasses(v > 0)
 })
-let openScroll = 0
+const openScroll = ref(0)
 const toggleClasses = (isOpen: boolean) => {
 	const appEl = document.getElementById('app')
 
@@ -36,14 +36,14 @@ const toggleClasses = (isOpen: boolean) => {
 
 	if (isOpen) {
 		if (!appEl?.classList.contains('fixed')) {
-			openScroll = window.scrollY
-			if (appEl !== null) appEl.style.top = `-${openScroll}px`
+			openScroll.value = window.scrollY
+			if (appEl !== null) appEl.style.top = `-${openScroll.value}px`
 		}
 		appEl?.classList.add(...classes)
 	} else {
 		appEl?.classList.remove(...classes)
-		if (openScroll !== 0) window.scrollTo(0, openScroll)
-		openScroll = 0
+		if (openScroll.value !== 0) window.scrollTo(0, openScroll.value)
+		openScroll.value = 0
 	}
 }
 </script>
