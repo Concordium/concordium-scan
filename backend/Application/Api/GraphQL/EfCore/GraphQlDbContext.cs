@@ -28,6 +28,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<BakerTransactionRelation> BakerTransactionRelations { get; private set; }
     public DbSet<PassiveDelegation> PassiveDelegations { get; private set; }
     public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
+    public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
