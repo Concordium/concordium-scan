@@ -254,4 +254,24 @@ public class UpdatePayloadConverterTest
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
     }
+    
+    [Fact]
+    public void RoundTrip_cooldownParametersCPV1()
+    {
+        var json = @"{
+                         ""updateType"": ""cooldownParametersCPV1"",
+                         ""update"": {
+                             ""poolOwnerCooldown"": 7200,
+                             ""delegatorCooldown"": 3800
+                         }
+                     }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<CooldownParametersUpdatePayload>(deserialized);
+        typed.Content.PoolOwnerCooldown.Should().Be(7200);
+        typed.Content.DelegatorCooldown.Should().Be(3800);
+
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
 }
