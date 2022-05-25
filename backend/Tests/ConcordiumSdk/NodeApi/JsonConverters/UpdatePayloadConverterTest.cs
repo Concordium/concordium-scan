@@ -234,4 +234,24 @@ public class UpdatePayloadConverterTest
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
     }
+    
+    [Fact]
+    public void RoundTrip_TimeParametersCPV1()
+    {
+        var json = @"{
+                         ""updateType"": ""timeParametersCPV1"",
+                         ""update"": {
+                             ""mintPerPayday"": 0.0002,
+                             ""rewardPeriodLength"": 2
+                         }
+                     }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<TimeParametersUpdatePayload>(deserialized);
+        typed.Content.MintPerPayday.Should().Be(0.0002m);
+        typed.Content.RewardPeriodLength.Should().Be(2);
+
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
 }

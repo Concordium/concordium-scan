@@ -26,7 +26,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             { typeof(TransactionFeeDistributionUpdatePayload), "transactionFeeDistribution" },
             { typeof(CooldownParametersUpdatePayload), "cooldownParametersCPV1" },
             { typeof(PoolParametersUpdatePayload), "poolParametersCPV1" },
-            { typeof(TimeParametersUpdatePayload), "timeParameters" },
+            { typeof(TimeParametersUpdatePayload), "timeParametersCPV1" },
             { typeof(MintDistributionV1UpdatePayload), "mintDistributionCPV1" },
         };
     }
@@ -138,7 +138,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
                 result = new PoolParametersUpdatePayload(content);
                 break;
             }
-            case "timeParameters":
+            case "timeParametersCPV1":
             {
                 var content = JsonSerializer.Deserialize<TimeParameters>(ref reader, options)!;
                 result = new TimeParametersUpdatePayload(content);
