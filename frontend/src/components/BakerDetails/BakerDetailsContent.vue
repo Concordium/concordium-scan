@@ -81,7 +81,12 @@
 					/>
 				</template>
 			</Accordion>
-
+			<Accordion>
+				Rewards details
+				<template #content>
+					<BakerDetailsRewards :baker-id="baker.bakerId" />
+				</template>
+			</Accordion>
 			<Accordion>
 				Related transactions
 				<template #content>
@@ -129,6 +134,7 @@ import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.
 import { MetricsPeriod } from '~/types/generated'
 import { useRewardMetricsForBakerQueryQuery } from '~/queries/useRewardMetricsForBakerQuery'
 import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
+import BakerDetailsRewards from '~/components/BakerDetails/BakerDetailsRewards.vue'
 
 const { NOW } = useDateNow()
 
