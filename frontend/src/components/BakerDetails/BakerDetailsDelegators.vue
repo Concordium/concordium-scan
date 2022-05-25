@@ -43,7 +43,7 @@
 		</Table>
 
 		<NotFound v-else-if="componentState === 'empty'">
-			No data
+			No delegators
 			<template #secondary>
 				There are no delegators for this baker pool
 			</template>

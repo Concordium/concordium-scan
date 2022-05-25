@@ -108,15 +108,12 @@
 			</Accordion>
 
 			<Accordion
-				v-if="
-					baker.state.__typename === 'ActiveBakerState' &&
-					baker.state.pool?.delegatorCount
-				"
+				v-if="baker.state.__typename === 'ActiveBakerState'"
 				data-testid="delegators-accordion"
 			>
 				Delegators
 				<span class="text-theme-faded numerical ml-1">
-					({{ baker.state.pool.delegatorCount }})
+					({{ baker.state.pool?.delegatorCount || 0 }})
 				</span>
 				<template #content>
 					<BakerDetailsDelegators :baker-id="baker.bakerId" />
