@@ -16,17 +16,12 @@
 			</span>
 		</template>
 		<template
-			v-else-if="baker.state.pendingChange.__typename === 'PendingBakerRemoval'"
+			v-else-if="pendingChange.__typename === 'PendingBakerRemoval'"
 			#secondary
 		>
 			Baker will be removed in
 			<Tooltip :text="pendingChange.effectiveTime">
-				{{
-					convertTimestampToRelative(
-						baker.state.pendingChange.effectiveTime,
-						NOW
-					)
-				}}
+				{{ convertTimestampToRelative(pendingChange.effectiveTime, NOW) }}
 			</Tooltip>
 		</template>
 	</Alert>

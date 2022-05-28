@@ -1,6 +1,7 @@
 import { h } from 'vue'
-import BakerDetailsContent from './BakerDetailsContent.vue'
+import BakerDetailsPoolContent from './BakerDetailsPoolContent.vue'
 import { setupComponent, screen, within } from '~/utils/testing'
+import { BakerPoolOpenStatus } from '~/types/generated'
 
 jest.mock('~/composables/useDrawer', () => ({
 	useDrawer: () => ({
@@ -54,91 +55,31 @@ const defaultProps = {
 			__typename: 'ActiveBakerState',
 			stakedAmount: 1337420666,
 			restakeEarnings: true,
+			pool: {
+				delegatedStake: 421337,
+				delegatorCount: 1337,
+				metadataUrl: 'https://ccdscan.io/',
+				openStatus: BakerPoolOpenStatus.OpenForAll,
+				totalStake: 1337420,
+				commissionRates: {
+					bakingCommission: 0.7,
+					finalizationCommission: 4.2,
+					transactionCommission: 1.0,
+				},
+			},
 		},
 	},
 }
 
-const { render } = setupComponent(BakerDetailsContent, {
+const { render } = setupComponent(BakerDetailsPoolContent, {
 	defaultProps,
 })
 
-describe('BakerDetailsContent', () => {
+describe('BakerDetailsPoolContent', () => {
 	it('will show the account address', () => {
 		render({})
 
 		expect(screen.getByText('c001-acc0un7')).toBeInTheDocument()
-	})
-
-	it('will not show the removed details', () => {
-		render({})
-
-		expect(screen.queryByText('Removed at')).not.toBeInTheDocument()
-	})
-
-	describe('when the baker is ACTIVE', () => {
-		it('will show the staked amount', () => {
-			render({})
-
-			expect(screen.getByText('1,337.420666 Ͼ')).toBeInTheDocument()
-		})
-
-		it('can show that the earnings are being restaked', () => {
-			render({})
-
-			expect(
-				screen.getByText('Earnings are being restaked')
-			).toBeInTheDocument()
-		})
-
-		it('can show that the earnings are not being restaked', () => {
-			const props = {
-				baker: {
-					...defaultProps.baker,
-					state: { ...defaultProps.baker.state, restakeEarnings: false },
-				},
-			}
-
-			render({ props })
-
-			expect(
-				screen.getByText('Earnings are not being restaked')
-			).toBeInTheDocument()
-		})
-	})
-
-	describe('when the baker is REMOVED', () => {
-		it('will show the time it was removed', () => {
-			const props = {
-				baker: {
-					...defaultProps.baker,
-					state: {
-						__typename: 'RemovedBakerState',
-						removedAt: '1969-07-20T20:17:40.000Z',
-					},
-				},
-			}
-
-			render({ props })
-
-			expect(screen.getByText('Removed at')).toBeInTheDocument()
-			expect(screen.getByText('Jul 20, 1969, 8:17 PM')).toBeInTheDocument()
-		})
-
-		it('will not show staked amount', () => {
-			const props = {
-				baker: {
-					...defaultProps.baker,
-					state: {
-						__typename: 'RemovedBakerState',
-						removedAt: '1969-07-20T20:17:40.000Z',
-					},
-				},
-			}
-
-			render({ props })
-
-			expect(screen.queryByText('Staked amount')).not.toBeInTheDocument()
-		})
 	})
 
 	describe('when the baker has a pending change', () => {
@@ -165,5 +106,13 @@ describe('BakerDetailsContent', () => {
 				'Pending change'
 			)
 		})
+	})
+
+	it('will show delegator count in delegator accordion', () => {
+		render({})
+
+		expect(screen.getByTestId('delegators-accordion')).toHaveTextContent(
+			'Delegators (1337)'
+		)
 	})
 })

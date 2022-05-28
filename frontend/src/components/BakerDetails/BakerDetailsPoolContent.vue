@@ -71,7 +71,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking comission</template>
+					<template #title>Baking commission</template>
 					<template #default>
 						<span class="numerical">
 							{{
@@ -83,7 +83,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Finalisation comission</template>
+					<template #title>Finalisation commission</template>
 					<template #default>
 						<span class="numerical">
 							{{
@@ -95,7 +95,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Transaction comission</template>
+					<template #title>Transaction commission</template>
 					<template #default>
 						<span class="numerical">
 							{{
