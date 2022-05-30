@@ -1116,6 +1116,8 @@ type PassiveDelegation {
   delegatorCount: Int!
   "The total amount staked by delegators to passive delegation."
   delegatedStake: UnsignedLong!
+  "Total stake passively delegated as a percentage of all CCDs in existence."
+  delegatedStakePercentage: Decimal!
 }
 
 type PassiveDelegationPoolRewardTarget {
@@ -1154,6 +1156,33 @@ type PaydayPoolRewardSpecialEvent {
   "Accrued finalization rewards for pool."
   finalizationReward: UnsignedLong!
   id: ID!
+}
+
+type PaydayStatus {
+  paydaySummaries("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PaydaySummariesConnection
+  nextPaydayTime: DateTime!
+}
+
+"A connection to a list of items."
+type PaydaySummariesConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [PaydaySummariesEdge!]
+  "A flattened list of the nodes."
+  nodes: [PaydaySummary!]
+}
+
+"An edge in a connection."
+type PaydaySummariesEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: PaydaySummary!
+}
+
+type PaydaySummary {
+  block: Block!
 }
 
 type PendingBakerReduceStake {
@@ -1220,8 +1249,10 @@ type Query {
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
-  rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics!
+  rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics! @deprecated(reason: "Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")
+  rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!): RewardMetrics!
   passiveDelegation: PassiveDelegation
+  paydayStatus: PaydayStatus
 }
 
 type Ranking {

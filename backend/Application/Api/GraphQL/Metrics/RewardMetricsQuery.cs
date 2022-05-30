@@ -2,7 +2,9 @@
 using Application.Common;
 using Application.Database;
 using Dapper;
+using HotChocolate;
 using HotChocolate.Types;
+using HotChocolate.Types.Relay;
 using Npgsql;
 
 namespace Application.Api.GraphQL.Metrics;
@@ -24,17 +26,23 @@ public class RewardMetricsQuery
         return await GetResponse(period);
     }
 
+    [GraphQLDeprecated("Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")]
     public async Task<RewardMetrics> GetRewardMetricsForBaker(long bakerId, MetricsPeriod period)
     {
         return await GetResponse(period, bakerId);
     }
+    
+    public async Task<RewardMetrics> GetRewardMetricsForAccount([ID] long accountId, MetricsPeriod period)
+    {
+        return await GetResponse(period, accountId);
+    }
 
-    private async Task<RewardMetrics> GetResponse(MetricsPeriod period, long? bakerId = null)
+    private async Task<RewardMetrics> GetResponse(MetricsPeriod period, long? accountId = null)
     {
         await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         await conn.OpenAsync();
 
-        var queryParams = RewardQueryParams.Create(period, bakerId, _timeProvider);
+        var queryParams = RewardQueryParams.Create(period, accountId, _timeProvider);
 
         var sql = @"select coalesce(sum(amount), 0) as sum_amount
                     from metrics_rewards
