@@ -75,9 +75,15 @@
 							"
 							class="h-4 text-theme-white inline align-text-top"
 						/>
-						<span v-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
-							translateAccountStatementEntryType(accountStatementItem.entryType)
-						}}</span>
+						<Tooltip
+							:text="translateBakerRewardType(accountStatementItem.entryType)"
+						>
+							<span v-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
+								translateAccountStatementEntryType(
+									accountStatementItem.entryType
+								)
+							}}</span></Tooltip
+						>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XL"
 						><TransactionLink
@@ -132,6 +138,7 @@ import TransferIconIn from '~/components/icons/TransferIconIn.vue'
 import TransferIconOut from '~/components/icons/TransferIconOut.vue'
 import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
 import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
+import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

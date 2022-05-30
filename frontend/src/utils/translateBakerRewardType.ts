@@ -1,4 +1,5 @@
 ﻿import type { BakerRewardType } from '~/types/generated'
+import { AccountStatementEntryType } from '~/types/generated'
 
 const translations = {
 	entryTypes: {
@@ -7,10 +8,10 @@ const translations = {
 		FINALIZATION_REWARD: 'Finalization reward',
 		TRANSACTION_FEE_REWARD: 'Transaction fee reward',
 		UNKNOWN: 'Unknown',
-	} as Record<BakerRewardType | 'UNKNOWN', string>,
+	} as Record<BakerRewardType | AccountStatementEntryType | 'UNKNOWN', string>,
 }
 export const translateBakerRewardType = (
-	accountStatementEntry: BakerRewardType
+	accountStatementEntry: BakerRewardType | AccountStatementEntryType
 ) => {
 	const translationKey = accountStatementEntry || 'UNKNOWN'
 	return (

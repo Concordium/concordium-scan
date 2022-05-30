@@ -46,6 +46,30 @@
 					Staked
 				</Chip>
 			</div>
+			<div
+				v-if="
+					account.delegation?.stakedAmount &&
+					account.delegation?.stakedAmount > 0
+				"
+				class="text-sm"
+			>
+				<Tooltip
+					:text="`${calculatePercentage(
+						account.delegation?.stakedAmount,
+						account.amount
+					)}% of account balance is staked`"
+					class="text-theme-white"
+				>
+					<Amount
+						:amount="account.delegation?.stakedAmount"
+						class="text-theme-faded"
+						data-testid="staked-amount"
+					/>
+				</Tooltip>
+				<Chip class="inline-block ml-4 px-0 ml-2" variant="secondary">
+					Staked
+				</Chip>
+			</div>
 		</template>
 	</DetailsCard>
 </template>
