@@ -11,11 +11,8 @@
 				</h1>
 			</div>
 			<div class="flex items-center">
-				<Badge
-					v-if="baker.state.__typename === 'RemovedBakerState'"
-					type="failure"
-				>
-					Removed
+				<Badge v-if="computedBadgeOptions" :type="computedBadgeOptions[0]">
+					{{ computedBadgeOptions[1] }}
 				</Badge>
 			</div>
 		</div>
@@ -23,14 +20,18 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
 import Badge from '~/components/Badge.vue'
 import BakerIcon from '~/components/icons/BakerIcon.vue'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
+import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import type { Baker } from '~/types/generated'
 
 type Props = {
 	baker: Baker
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const computedBadgeOptions = computed(() => composeBakerStatus(props.baker))
 </script>

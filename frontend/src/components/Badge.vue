@@ -11,7 +11,7 @@
 import { ref, watch } from 'vue'
 
 type Props = {
-	type: 'success' | 'failure'
+	type: 'success' | 'failure' | 'info'
 }
 
 const props = defineProps<Props>()
@@ -35,5 +35,10 @@ watch(
 .badge--failure {
 	background-color: hsl(var(--color-error));
 	color: hsl(var(--color-error-dark));
+}
+
+.badge--info {
+	background-color: hsl(var(--color-info));
+	color: hsl(var(--color-info-dark));
 }
 </style>

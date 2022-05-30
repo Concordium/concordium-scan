@@ -23,6 +23,7 @@ const BakerQuery = gql<BakerResponse>`
 					stakedAmount
 					restakeEarnings
 					pool {
+						openStatus
 						totalStakePercentage
 						delegatorCount
 						totalStake
