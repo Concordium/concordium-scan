@@ -13,6 +13,9 @@
 *_LOCAL_*.txt
 *_REMOTE_*.txt
 
+### Misc ###
+.DS_Store
+
 ### Node ###
 # Logs
 logs
