@@ -81,7 +81,7 @@ describe('BakerDetailsHeader', () => {
 
 		render({ props })
 
-		expect(screen.getByText('Open for all')).toBeInTheDocument()
+		expect(screen.getByText('Open')).toBeInTheDocument()
 	})
 
 	it('will show the correct badge for a baker which is closed for now', () => {
@@ -117,6 +117,6 @@ describe('BakerDetailsHeader', () => {
 
 		render({ props })
 
-		expect(screen.getByText('Closed for all')).toBeInTheDocument()
+		expect(screen.getByText('Closed')).toBeInTheDocument()
 	})
 })

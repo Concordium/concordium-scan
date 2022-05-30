@@ -24,6 +24,10 @@ const BakerQuery = gql<BakerListResponse>`
 					... on ActiveBakerState {
 						__typename
 						stakedAmount
+						pool {
+							openStatus
+							delegatorCount
+						}
 					}
 					... on RemovedBakerState {
 						__typename

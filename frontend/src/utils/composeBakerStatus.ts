@@ -13,7 +13,7 @@ export const composeBakerStatus = (
 
 	if (state.__typename === 'ActiveBakerState') {
 		if (state.pool?.openStatus === BakerPoolOpenStatus.OpenForAll) {
-			return ['success', 'Open for all']
+			return ['success', 'Open']
 		}
 
 		if (state.pool?.openStatus === BakerPoolOpenStatus.ClosedForNew) {
@@ -21,7 +21,7 @@ export const composeBakerStatus = (
 		}
 
 		if (state.pool?.openStatus === BakerPoolOpenStatus.ClosedForAll) {
-			return ['failure', 'Closed for all']
+			return ['info', 'Closed']
 		}
 	}
 

@@ -31,9 +31,18 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="30%">Baker ID</TableTh>
-					<TableTh width="30%">Account</TableTh>
-					<TableTh width="40%" class="text-right">Staked amount (Ͼ)</TableTh>
+					<TableTh width="20%">Baker ID</TableTh>
+					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
+						Status
+					</TableTh>
+					<TableTh width="20%">Account</TableTh>
+					<TableTh
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						align="right"
+					>
+						Delegators
+					</TableTh>
+					<TableTh width="40%" align="right">Staked amount (Ͼ)</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -41,16 +50,40 @@
 					<TableTd>
 						<BakerLink :id="baker.bakerId" />
 						<Badge
-							v-if="baker.state.__typename === 'RemovedBakerState'"
+							v-if="
+								!hasPoolData && baker.state.__typename === 'RemovedBakerState'
+							"
 							type="failure"
-							class="badge"
+							class="badge ml-4"
 						>
 							Removed
 						</Badge>
 					</TableTd>
 
+					<TableTd v-if="hasPoolData && breakpoint >= Breakpoint.MD">
+						<Badge
+							v-if="composeBakerStatus(baker)?.[0]"
+							:type="composeBakerStatus(baker)?.[0] || 'success'"
+							class="badge"
+						>
+							{{ composeBakerStatus(baker)?.[1] }}
+						</Badge>
+					</TableTd>
+
 					<TableTd>
 						<AccountLink :address="baker.account.address.asString" />
+					</TableTd>
+
+					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						align="right"
+					>
+						<span
+							v-if="baker.state.__typename === 'ActiveBakerState'"
+							class="numeric"
+						>
+							{{ baker.state.pool?.delegatorCount }}
+						</span>
 					</TableTd>
 
 					<TableTd class="text-right">
@@ -75,7 +108,9 @@
 <script lang="ts" setup>
 import { useBakerListQuery } from '~/queries/useBakerListQuery'
 import { convertMicroCcdToCcd } from '~/utils/format'
+import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import Badge from '~/components/Badge.vue'
 import Pagination from '~/components/Pagination.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
@@ -90,6 +125,7 @@ import { useRewardMetricsQuery } from '~/queries/useRewardMetricsQuery'
 import TotalRewardsChart from '~/components/molecules/ChartCards/TotalRewardsChart.vue'
 import TotalAmountStakedChart from '~/components/molecules/ChartCards/TotalAmountStakedChart.vue'
 
+const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
 
 const { data } = useBakerListQuery({ first, last, after, before })
@@ -101,6 +137,12 @@ const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
 	useRewardMetricsQuery(selectedMetricsPeriod)
 const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	useBlockMetricsQuery(selectedMetricsPeriod)
+
+const hasPoolData = computed(() =>
+	data.value?.bakers.nodes?.some(
+		baker => baker.state.__typename === 'ActiveBakerState' && baker.state.pool
+	)
+)
 </script>
 
 <style scoped>
@@ -112,6 +154,7 @@ const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	display: inline-block;
 	font-size: 0.75rem;
 	padding: 0.4rem 0.5rem 0.25rem;
+	margin: 0;
 	line-height: 1;
 }
 </style>
