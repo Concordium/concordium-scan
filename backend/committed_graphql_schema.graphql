@@ -262,7 +262,7 @@ type AmountsScheduleEdge {
 
 type Baker {
   account: Account!
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection @deprecated(reason: "Do not use, will be removed in the near future. For individual baker rewards get them via the Account and for Baker Pool rewards get them via the Baker Pool")
   "Get the transactions that have affected the baker."
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerTransactionRelationConnection
   id: ID!
