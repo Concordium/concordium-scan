@@ -15,6 +15,7 @@ type Account {
   releaseSchedule: AccountReleaseSchedule!
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
   accountStatement("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountStatementEntryConnection
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountRewardConnection
   baker: Baker
   id: ID!
   address: AccountAddress!
@@ -82,6 +83,32 @@ type AccountReleaseScheduleItemEdge {
   cursor: String!
   "The item at the end of the edge."
   node: AccountReleaseScheduleItem!
+}
+
+type AccountReward {
+  block: Block!
+  id: ID!
+  timestamp: DateTime!
+  rewardType: RewardType!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type AccountRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [AccountRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [AccountReward!]
+}
+
+"An edge in a connection."
+type AccountRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: AccountReward!
 }
 
 type AccountStatementEntry {
@@ -1589,6 +1616,13 @@ enum MetricsPeriod {
   LAST7_DAYS
   LAST30_DAYS
   LAST_YEAR
+}
+
+enum RewardType {
+  FINALIZATION_REWARD
+  FOUNDATION_REWARD
+  BAKER_REWARD
+  TRANSACTION_FEE_REWARD
 }
 
 enum SpecialEventTypeFilter {

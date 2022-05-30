@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
+using AccountReward = Application.Api.GraphQL.Import.AccountReward;
 using BakerDelegationTarget = Application.Api.GraphQL.BakerDelegationTarget;
 using PassiveDelegationTarget = Application.Api.GraphQL.PassiveDelegationTarget;
 

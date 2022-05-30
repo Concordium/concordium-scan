@@ -8,6 +8,7 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
+using AccountReward = Application.Api.GraphQL.Import.AccountReward;
 
 namespace Tests.Api.GraphQL.Import;
 
