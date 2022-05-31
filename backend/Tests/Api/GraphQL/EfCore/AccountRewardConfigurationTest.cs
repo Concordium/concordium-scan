@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

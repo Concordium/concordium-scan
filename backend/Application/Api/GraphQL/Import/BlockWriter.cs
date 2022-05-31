@@ -139,7 +139,7 @@ public class BlockWriter
                 PaydayPoolRewardSpecialEvent x => new Blocks.PaydayPoolRewardSpecialEvent
                 {
                     BlockId = blockId,
-                    PoolOwner = x.PoolOwner,
+                    Pool = x.PoolOwner.HasValue ? new BakerPoolRewardTarget((long)x.PoolOwner.Value) : new PassiveDelegationPoolRewardTarget(),
                     TransactionFees = x.TransactionFees.MicroCcdValue,
                     BakerReward = x.BakerReward.MicroCcdValue,
                     FinalizationReward = x.FinalizationReward.MicroCcdValue

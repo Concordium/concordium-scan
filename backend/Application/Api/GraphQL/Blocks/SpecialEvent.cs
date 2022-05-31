@@ -140,17 +140,9 @@ public class PaydayFoundationRewardSpecialEvent : SpecialEvent
 
 public class PaydayPoolRewardSpecialEvent : SpecialEvent
 {
-    [GraphQLIgnore] 
-    public ulong? PoolOwner { get; init; }
-
     [GraphQLDescription("The pool awarded.")]
-    public PoolRewardTarget GetPool()
-    {
-        if (PoolOwner.HasValue)
-            return new BakerPoolRewardTarget(PoolOwner.Value);
-        return new PassiveDelegationPoolRewardTarget();
-    }
-    
+    public PoolRewardTarget Pool { get; init; }
+
     [GraphQLDescription("Accrued transaction fees for pool.")]
     public ulong TransactionFees { get; init; }
     

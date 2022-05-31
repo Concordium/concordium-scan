@@ -1,6 +1,6 @@
 ﻿using ConcordiumSdk.NodeApi.Types;
 
-namespace Application.Api.GraphQL.Accounts;
+namespace Application.Api.GraphQL;
 
 public enum RewardType
 {

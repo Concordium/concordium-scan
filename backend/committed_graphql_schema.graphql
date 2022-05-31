@@ -336,7 +336,7 @@ type BakerPool {
 }
 
 type BakerPoolRewardTarget {
-  bakerId: UnsignedLong!
+  bakerId: Long!
 }
 
 type BakerRemoved {

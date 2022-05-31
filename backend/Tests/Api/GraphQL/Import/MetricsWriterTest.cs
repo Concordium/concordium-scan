@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Database;
@@ -209,7 +209,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 
         var specialEvents = new SpecialEvent[]
         {
-            new PaydayPoolRewardSpecialEvent { PoolOwner = 42, BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
+            new PaydayPoolRewardSpecialEvent { Pool = new BakerPoolRewardTarget(42), BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
         };
 
         var rewardsSummary = new RewardsSummary(new []

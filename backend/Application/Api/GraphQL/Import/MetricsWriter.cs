@@ -198,9 +198,9 @@ public class MetricsWriter
         var batch = conn.CreateBatch();
         foreach (var poolReward in poolRewards)
         {
-            if (poolReward.GetPool() is BakerPoolRewardTarget bakerTarget)
+            if (poolReward.Pool is BakerPoolRewardTarget bakerTarget)
             {
-                var bakerId = (long)bakerTarget.BakerId;
+                var bakerId = bakerTarget.BakerId;
                 var bakerRewardsSummary = rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == bakerId);
                 AddCommand(batch, sql, block, bakerId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
                 AddCommand(batch, sql, block, bakerId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
