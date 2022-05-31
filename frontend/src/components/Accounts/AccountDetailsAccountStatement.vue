@@ -76,6 +76,16 @@
 							class="h-4 text-theme-white inline align-text-top"
 						/>
 						<Tooltip
+							v-if="
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.FinalizationReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.TransactionFeeReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.BakerReward ||
+								accountStatementItem.entryType ===
+									AccountStatementEntryType.FoundationReward
+							"
 							:text="translateBakerRewardType(accountStatementItem.entryType)"
 						>
 							<span v-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
@@ -84,6 +94,10 @@
 								)
 							}}</span></Tooltip
 						>
+
+						<span v-else-if="breakpoint >= Breakpoint.LG" class="pl-2">{{
+							translateAccountStatementEntryType(accountStatementItem.entryType)
+						}}</span>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.XL"
 						><TransactionLink
