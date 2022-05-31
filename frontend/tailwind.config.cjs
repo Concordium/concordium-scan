@@ -27,6 +27,12 @@ const withHslOpacity = (variableName, important) => {
 
 module.exports = {
 	purge: ['./*.{vue,js,ts,css}', './**/*.{vue,js,ts,css}'],
+	content: [
+		'./src/components/**/*.{js,vue,ts}',
+		'./src/layouts/**/*.vue',
+		'./src/pages/**/*.vue',
+		'./src/plugins/**/*.{js,ts}',
+	],
 	darkMode: false, // or 'media' or 'class'
 	theme: {
 		fontFamily: {

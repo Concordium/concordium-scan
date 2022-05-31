@@ -28,10 +28,10 @@
 		"firebase-functions": "^3.16.0",
 		"firebase-functions-test": "^0.3.3",
 		"graphql": "^16.1.0",
-		"nuxt3": "^3.0.0-27356801.e9128f3",
+		"nuxt": "^3.0.0-rc.3",
 		"subscriptions-transport-ws": "^0.11.0",
 		"tailwindcss": "^2.2.19",
-		"vue": "^3.2.26",
+		"vue": "^3.2.36",
 		"vue3-carousel": "^0.1.36"
 	},
 	"devDependencies": {
