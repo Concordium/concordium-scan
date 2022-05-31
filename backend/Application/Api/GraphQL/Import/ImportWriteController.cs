@@ -167,6 +167,7 @@ public class ImportWriteController : BackgroundService
         await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, delegationUpdateResults, importState);
+        var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
         await _bakerHandler.AddBakerTransactionRelations(transactions);
@@ -178,9 +179,10 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
-        _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
-
+        _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
+        _metricsWriter.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
 

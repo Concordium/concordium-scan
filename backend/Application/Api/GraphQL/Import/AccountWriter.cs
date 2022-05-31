@@ -203,7 +203,7 @@ public class AccountWriter
         }
     }
     
-    public async Task UpdateDelegationStakeIfRestakingEarnings(AccountReward[] stakeUpdates)
+    public async Task UpdateDelegationStakeIfRestakingEarnings(AccountRewardSummary[] stakeUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateDelegationStakeIfRestakingEarnings));
 
@@ -226,7 +226,7 @@ public class AccountWriter
             var cmd = batch.CreateBatchCommand();
             cmd.CommandText = sql;
             cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", stakeUpdate.AccountId));
-            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.RewardAmount));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.TotalAmount));
             batch.BatchCommands.Add(cmd);
         }
 

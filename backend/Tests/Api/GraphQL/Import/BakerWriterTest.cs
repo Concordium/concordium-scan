@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
-using AccountReward = Application.Api.GraphQL.Import.AccountReward;
 using BakerDelegationTarget = Application.Api.GraphQL.BakerDelegationTarget;
 using PassiveDelegationTarget = Application.Api.GraphQL.PassiveDelegationTarget;
 
@@ -216,7 +215,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task UpdateStakeIfBakerActiveRestakingEarnings_BakerDoesNotExist()
     {
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -229,7 +228,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddBakers(new BakerBuilder().WithId(42).WithState(new RemovedBakerStateBuilder().Build()).Build());
 
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -244,7 +243,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddBakers(new BakerBuilder().WithId(42).WithState(new ActiveBakerStateBuilder().WithRestakeRewards(restakeEarnings).WithStakedAmount(1000).Build()).Build());
 
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();

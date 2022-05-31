@@ -112,7 +112,7 @@ public class BakerWriter
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
 
-    public async Task UpdateStakeIfBakerActiveRestakingEarnings(AccountReward[] stakeUpdates)
+    public async Task UpdateStakeIfBakerActiveRestakingEarnings(AccountRewardSummary[] stakeUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateStakeIfBakerActiveRestakingEarnings));
 
@@ -135,7 +135,7 @@ public class BakerWriter
             var cmd = batch.CreateBatchCommand();
             cmd.CommandText = sql;
             cmd.Parameters.Add(new NpgsqlParameter<long>("BakerId", stakeUpdate.AccountId));
-            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.RewardAmount));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("AddedStake", stakeUpdate.TotalAmount));
             batch.BatchCommands.Add(cmd);
         }
 

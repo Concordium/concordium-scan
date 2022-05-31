@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
@@ -6,6 +7,8 @@ using Application.Database;
 using ConcordiumSdk.NodeApi.Types;
 using Dapper;
 using Npgsql;
+using PaydayPoolRewardSpecialEvent = Application.Api.GraphQL.Blocks.PaydayPoolRewardSpecialEvent;
+using SpecialEvent = Application.Api.GraphQL.Blocks.SpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -164,7 +167,7 @@ public class MetricsWriter
             cmd.CommandText = sql;
             cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", blockSlotTime.UtcDateTime));
             cmd.Parameters.Add(new NpgsqlParameter<long>("AccountId", accountReward.AccountId));
-            cmd.Parameters.Add(new NpgsqlParameter<long>("Amount", accountReward.RewardAmount));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("Amount", accountReward.TotalAmount));
             batch.BatchCommands.Add(cmd);
         }
 
@@ -172,5 +175,61 @@ public class MetricsWriter
         batch.ExecuteNonQuery();
 
         conn.Close();
+    }
+
+    public void AddPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary)
+    {
+        var poolRewards = specialEvents
+            .OfType<PaydayPoolRewardSpecialEvent>()
+            .ToArray();
+        
+        if (poolRewards.Length == 0) 
+            return;
+        
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPoolRewardMetrics));
+
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+
+        var sql = @"
+                insert into metrics_pool_rewards (time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id) 
+                values (@Time, @PoolId, @TotalAmount, @BakerAmount, @DelegatorAmount, @RewardType, @BlockId)";
+        
+        var batch = conn.CreateBatch();
+        foreach (var poolReward in poolRewards)
+        {
+            if (poolReward.GetPool() is BakerPoolRewardTarget bakerTarget)
+            {
+                var bakerId = (long)bakerTarget.BakerId;
+                var bakerRewardsSummary = rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == bakerId);
+                AddCommand(batch, sql, block, bakerId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
+                AddCommand(batch, sql, block, bakerId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
+                AddCommand(batch, sql, block, bakerId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary);
+            }
+        }
+
+        batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
+        batch.ExecuteNonQuery();
+
+        conn.Close();
+    }
+
+    private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType, 
+        long totalAmount, AccountRewardSummary rewardSummary)
+    {
+        var cmd = batch.CreateBatchCommand();
+        cmd.CommandText = sql;
+
+        var bakerAmount = rewardSummary.TotalAmountByType.SingleOrDefault(x => x.RewardType == rewardType)?.TotalAmount ?? 0;
+
+        cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("TotalAmount", totalAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("BakerAmount", bakerAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("DelegatorAmount", totalAmount - bakerAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<int>("RewardType", (int)rewardType));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
+
+        batch.BatchCommands.Add(cmd);
     }
 }

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Database;
 using Dapper;
@@ -26,6 +28,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE metrics_blocks");
         connection.Execute("TRUNCATE TABLE metrics_bakers");
         connection.Execute("TRUNCATE TABLE metrics_rewards");
+        connection.Execute("TRUNCATE TABLE metrics_pool_rewards");
     }
 
     [Fact]
@@ -179,8 +182,8 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     {
         var input = new RewardsSummary(new[]
         {
-            new AccountReward(10, 1000),
-            new AccountReward(421, 24100)
+            new AccountRewardSummaryBuilder().WithAccountId(10).WithTotalAmount(1000).Build(),
+            new AccountRewardSummaryBuilder().WithAccountId(421).WithTotalAmount(24100).Build()
         });
         _target.AddRewardMetrics(_anyDateTimeOffset, input);
 
@@ -194,6 +197,61 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         Assert.Equal(1000, result[0].amount);
         Assert.Equal(421, result[1].account_id);
         Assert.Equal(24100, result[1].amount);
+    }
+
+    [Fact]
+    public void AddPoolRewardMetrics_BakerPool()
+    {
+        var block = new BlockBuilder()
+            .WithId(138)
+            .WithBlockSlotTime(_anyDateTimeOffset)
+            .Build();
+
+        var specialEvents = new SpecialEvent[]
+        {
+            new PaydayPoolRewardSpecialEvent { PoolOwner = 42, BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
+        };
+
+        var rewardsSummary = new RewardsSummary(new []
+        {
+            new AccountRewardSummaryBuilder()
+                .WithAccountId(42)
+                .WithTotalAmountByType(
+                    new RewardTypeAmount(RewardType.BakerReward, 98),
+                    new RewardTypeAmount(RewardType.TransactionFeeReward, 30),
+                    new RewardTypeAmount(RewardType.FinalizationReward, 70))
+                .Build()
+        });
+        
+        _target.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+
+        var result = Query(@"
+                select time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id
+                from metrics_pool_rewards
+                order by pool_id, total_amount"
+            )
+            .Select(row => new
+            {
+                PoolId = (long)row.pool_id,
+                Time = (DateTimeOffset)DateTime.SpecifyKind(row.time, DateTimeKind.Utc),
+                TotalAmount = (long)row.total_amount,
+                BakerAmount = (long)row.baker_amount,
+                DelegatorAmount = (long)row.delegator_amount,
+                RewardType = (int)row.reward_type,
+                BlockId = (long)row.block_id
+                
+            })
+            .ToArray();
+
+        var expected = new[]
+            {
+                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 35L, BakerAmount = 30L, DelegatorAmount = 5L, RewardType = (int)RewardType.TransactionFeeReward, BlockId = 138L },
+                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 80L, BakerAmount = 70L, DelegatorAmount = 10L, RewardType = (int)RewardType.FinalizationReward, BlockId = 138L },
+                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 100L, BakerAmount = 98L, DelegatorAmount = 2L, RewardType = (int)RewardType.BakerReward, BlockId = 138L },
+            }
+            .ToArray();
+
+        result.Should().Equal(expected);
     }
     
     private IEnumerable<dynamic> Query(string sql)

@@ -56,13 +56,22 @@ public class BlockWriter
             context.FinalizationSummaryFinalizers.AddRange(toSave);
         }
 
-        var specialEvents = MapSpecialEvents(block.Id, blockSummary.SpecialEvents);
-        context.SpecialEvents.AddRange(specialEvents);
-        
         await context.SaveChangesAsync();
         return block; 
     }
 
+    public async Task<Blocks.SpecialEvent[]> AddSpecialEvents(Block block, BlockSummaryBase blockSummary)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddSpecialEvents));
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var specialEvents = MapSpecialEvents(block.Id, blockSummary.SpecialEvents).ToArray();
+        context.SpecialEvents.AddRange(specialEvents);
+        
+        await context.SaveChangesAsync();
+        return specialEvents;
+    }
+    
     private IEnumerable<Blocks.SpecialEvent> MapSpecialEvents(long blockId, SpecialEvent[] inputs)
     {
         foreach (var input in inputs)
