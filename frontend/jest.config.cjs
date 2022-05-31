@@ -8,7 +8,7 @@ module.exports = {
 		'^#app': '<rootDir>/node_modules/nuxt/dist/app/index.d.ts',
 	},
 	transform: {
-		'^.+.vue$': 'vue-jest',
+		'^.+.vue$': '@vue/vue3-jest',
 		'^.+.jsx?$': '<rootDir>/node_modules/babel-jest',
 		'^.+.js$': '<rootDir>/node_modules/babel-jest',
 	},
