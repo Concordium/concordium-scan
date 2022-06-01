@@ -1275,6 +1275,29 @@ type PoolRewardEdge {
   node: PoolReward!
 }
 
+type PoolRewardMetrics {
+  "Sum of all rewards in requested period as micro CCD"
+  sumTotalRewardAmount: Long!
+  "Sum of all rewards in requested period that were awarded to the baker (as micro CCD)"
+  sumBakerRewardAmount: Long!
+  "Sum of all rewards in requested period that were awarded to the delegators (as micro CCD)"
+  sumDelegatorsRewardAmount: Long!
+  buckets: PoolRewardMetricsBuckets!
+}
+
+type PoolRewardMetricsBuckets {
+  "The width (time interval) of each bucket."
+  bucketWidth: TimeSpan!
+  "Start of the bucket time period. Intended x-axis value."
+  x_Time: [DateTime!]!
+  "Sum of rewards (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumTotalRewards: [Long!]!
+  "Sum of rewards that were awarded to the baker (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumBakerRewards: [Long!]!
+  "Sum of rewards that were awarded to the delegators (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumDelegatorsRewards: [Long!]!
+}
+
 type PoolWouldBecomeOverDelegated {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1307,6 +1330,7 @@ type Query {
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
   rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics! @deprecated(reason: "Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")
   rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!): RewardMetrics!
+  poolRewardMetrics(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
 }

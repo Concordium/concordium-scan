@@ -47,6 +47,7 @@ public static class GraphQlConfiguration
             .AddType<TransactionMetricsQuery>()
             .AddType<BakerMetricsQuery>()
             .AddType<RewardMetricsQuery>()
+            .AddType<PoolRewardMetricsQuery>()
             .AddType<PassiveDelegationQuery>()
             .AddType<PaydayQuery>();
         
