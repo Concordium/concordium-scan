@@ -9,7 +9,7 @@
 			<span v-if="pendingChange.__typename === 'PendingBakerReduceStake'">
 				Stake will be reduced to
 				<Amount :amount="pendingChange.newStakedAmount" :show-symbol="true" />
-				on
+				in
 				<Tooltip :text="pendingChange.effectiveTime">
 					{{ convertTimestampToRelative(pendingChange.effectiveTime, NOW) }}
 				</Tooltip>
