@@ -16,7 +16,7 @@ public class PoolRewardConfiguration
 
             builder.Property(x => x.Index).HasColumnName("index").ValueGeneratedOnAdd();
             builder.Property(x => x.Timestamp).HasColumnName("time").HasConversion<DateTimeOffsetToTimestampConverter>();
-            builder.Property(x => x.Pool).HasColumnName("pool_id").HasConversion<PoolRewardTargetToLong>();
+            builder.Property(x => x.Pool).HasColumnName("pool_id").HasConversion<PoolRewardTargetToLongConverter>();
             builder.Property(x => x.TotalAmount).HasColumnName("total_amount");
             builder.Property(x => x.BakerAmount).HasColumnName("baker_amount");
             builder.Property(x => x.DelegatorsAmount).HasColumnName("delegator_amount");

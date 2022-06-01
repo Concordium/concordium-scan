@@ -104,7 +104,7 @@ public class SpecialEventConfiguration :
 
     public void Configure(EntityTypeBuilder<PaydayPoolRewardSpecialEvent> builder)
     {
-        builder.Property(x => x.Pool).HasColumnName("pool_owner").HasConversion<PoolRewardTargetToLong>();
+        builder.Property(x => x.Pool).HasColumnName("pool_owner").HasConversion<PoolRewardTargetToLongConverter>();
         builder.Property(x => x.TransactionFees).HasColumnName("transaction_fees");
         builder.Property(x => x.BakerReward).HasColumnName("baker_reward");
         builder.Property(x => x.FinalizationReward).HasColumnName("finalization_reward");

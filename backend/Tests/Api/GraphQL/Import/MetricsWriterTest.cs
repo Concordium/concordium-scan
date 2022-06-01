@@ -254,6 +254,52 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         result.Should().Equal(expected);
     }
     
+    [Fact]
+    public void AddPoolRewardMetrics_PassiveDelegation()
+    {
+        var block = new BlockBuilder()
+            .WithId(138)
+            .WithBlockSlotTime(_anyDateTimeOffset)
+            .Build();
+
+        var specialEvents = new SpecialEvent[]
+        {
+            new PaydayPoolRewardSpecialEvent { Pool = new PassiveDelegationPoolRewardTarget(), BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
+        };
+
+        var rewardsSummary = new RewardsSummary(Array.Empty<AccountRewardSummary>());
+        
+        _target.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+
+        var result = Query(@"
+                select time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id
+                from metrics_pool_rewards
+                order by pool_id, total_amount"
+            )
+            .Select(row => new
+            {
+                PoolId = (long)row.pool_id,
+                Time = (DateTimeOffset)DateTime.SpecifyKind(row.time, DateTimeKind.Utc),
+                TotalAmount = (long)row.total_amount,
+                BakerAmount = (long)row.baker_amount,
+                DelegatorAmount = (long)row.delegator_amount,
+                RewardType = (int)row.reward_type,
+                BlockId = (long)row.block_id
+                
+            })
+            .ToArray();
+
+        var expected = new[]
+            {
+                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 35L, BakerAmount = 0L, DelegatorAmount = 35L, RewardType = (int)RewardType.TransactionFeeReward, BlockId = 138L },
+                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 80L, BakerAmount = 0L, DelegatorAmount = 80L, RewardType = (int)RewardType.FinalizationReward, BlockId = 138L },
+                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 100L, BakerAmount = 0L, DelegatorAmount = 100L, RewardType = (int)RewardType.BakerReward, BlockId = 138L },
+            }
+            .ToArray();
+
+        result.Should().Equal(expected);
+    }
+    
     private IEnumerable<dynamic> Query(string sql)
     {
         using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);

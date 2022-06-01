@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
@@ -198,14 +198,18 @@ public class MetricsWriter
         var batch = conn.CreateBatch();
         foreach (var poolReward in poolRewards)
         {
-            if (poolReward.Pool is BakerPoolRewardTarget bakerTarget)
+            var poolId = PoolRewardTargetToLongConverter.ConvertToLong(poolReward.Pool);
+            
+            var bakerRewardsSummary = poolReward.Pool switch
             {
-                var bakerId = bakerTarget.BakerId;
-                var bakerRewardsSummary = rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == bakerId);
-                AddCommand(batch, sql, block, bakerId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
-                AddCommand(batch, sql, block, bakerId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
-                AddCommand(batch, sql, block, bakerId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary);
-            }
+                BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == baker.BakerId),
+                PassiveDelegationPoolRewardTarget => null,
+                _ => throw new NotImplementedException()
+            };
+
+            AddCommand(batch, sql, block, poolId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
+            AddCommand(batch, sql, block, poolId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
+            AddCommand(batch, sql, block, poolId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary);
         }
 
         batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
@@ -215,12 +219,12 @@ public class MetricsWriter
     }
 
     private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType, 
-        long totalAmount, AccountRewardSummary rewardSummary)
+        long totalAmount, AccountRewardSummary? rewardSummary)
     {
         var cmd = batch.CreateBatchCommand();
         cmd.CommandText = sql;
 
-        var bakerAmount = rewardSummary.TotalAmountByType.SingleOrDefault(x => x.RewardType == rewardType)?.TotalAmount ?? 0;
+        var bakerAmount = rewardSummary?.TotalAmountByType.SingleOrDefault(x => x.RewardType == rewardType)?.TotalAmount ?? 0;
 
         cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
         cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));

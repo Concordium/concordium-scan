@@ -2,21 +2,21 @@
 
 namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
 
-public class PoolRewardTargetToLong : ValueConverter<PoolRewardTarget, long>
+public class PoolRewardTargetToLongConverter : ValueConverter<PoolRewardTarget, long>
 {
-    public PoolRewardTargetToLong() : base(
+    public PoolRewardTargetToLongConverter() : base(
         v => ConvertToLong(v),
         v => ConvertToPoolRewardTarget(v))
     {
     }
-    
-    private static PoolRewardTarget ConvertToPoolRewardTarget(long value)
+
+    public static PoolRewardTarget ConvertToPoolRewardTarget(long value)
     {
         if (value == -1) return new PassiveDelegationPoolRewardTarget();
         return new BakerPoolRewardTarget(value);
     }
 
-    private static long ConvertToLong(PoolRewardTarget value)
+    public static long ConvertToLong(PoolRewardTarget value)
     {
         return value switch
         {
