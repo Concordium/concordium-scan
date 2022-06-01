@@ -1,4 +1,4 @@
-import { defineNuxtConfig } from 'nuxt'
+import { defineNuxtConfig } from 'nuxt3'
 
 type Environment = 'dev' | 'test' | 'prod'
 type Config = {
