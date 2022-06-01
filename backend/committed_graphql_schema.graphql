@@ -1331,7 +1331,8 @@ type Query {
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
   rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics! @deprecated(reason: "Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")
   rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!): RewardMetrics!
-  poolRewardMetrics(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
+  poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
+  poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
 }

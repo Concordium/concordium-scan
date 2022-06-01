@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Common;
 using Application.Database;
 using Dapper;
@@ -21,11 +22,24 @@ public class PoolRewardMetricsQuery
         _timeProvider = timeProvider;
     }
 
-    public async Task<PoolRewardMetrics> GetPoolRewardMetrics([ID] long bakerId, MetricsPeriod period)
+    public Task<PoolRewardMetrics> GetPoolRewardMetricsForPassiveDelegation(MetricsPeriod period)
+    {
+        var pool = new PassiveDelegationPoolRewardTarget();
+        return GetPoolRewardMetrics(pool, period);
+    }
+
+    public Task<PoolRewardMetrics> GetPoolRewardMetricsForBakerPool([ID] long bakerId, MetricsPeriod period)
+    {
+        var pool = new BakerPoolRewardTarget(bakerId);
+        return GetPoolRewardMetrics(pool, period);
+    }
+
+    private async Task<PoolRewardMetrics> GetPoolRewardMetrics(PoolRewardTarget pool, MetricsPeriod period)
     {
         await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
         await conn.OpenAsync();
 
+        var bakerId = PoolRewardTargetToLongConverter.ConvertToLong(pool);
         var queryParams = RewardQueryParams.Create(period, bakerId, _timeProvider);
 
         var sql = @"select coalesce(sum(total_amount), 0)       as sum_total_amount,
