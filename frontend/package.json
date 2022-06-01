@@ -11,8 +11,8 @@
 		"build": "nuxt build",
 		"start": "nuxi start",
 		"generate": "nuxt generate",
-		"test": "TZ=Universal jest",
-		"test:watch": "TZ=Universal jest --watch",
+		"test": "cross-env TZ=Universal jest",
+		"test:watch": "cross-env TZ=Universal jest --watch",
 		"typecheck": "vue-tsc --noEmit",
 		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue .",
 		"gql-codegen": "graphql-codegen --config graphql-codegen.yml"
@@ -22,6 +22,7 @@
 		"@urql/devtools": "^2.0.3",
 		"@urql/vue": "^0.6.1",
 		"chart.js": "^3.7.1",
+		"cross-env": "^7.0.3",
 		"date-fns": "^2.27.0",
 		"duration-fns": "^3.0.0",
 		"firebase-admin": "^10.2.0",

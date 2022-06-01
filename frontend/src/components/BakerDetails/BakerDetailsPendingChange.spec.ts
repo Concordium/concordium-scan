@@ -55,7 +55,7 @@ describe('BakerDetailsPendingChange', () => {
 
 		expect(
 			screen.getByText(
-				'Stake will be reduced to 421,337.421337 Ͼ on Jul 20, 1969, 8:17 PM'
+				'Baker stake will be reduced to 421,337.421337 Ͼ on Jul 20, 1969, 8:17 PM'
 			)
 		).toBeInTheDocument()
 	})
