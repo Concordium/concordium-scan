@@ -11,7 +11,7 @@
 				event.delegationTarget.__typename === 'PassiveDelegationTarget'
 			"
 		>
-			passive delegation
+			<PassiveDelegationLink />
 		</span>
 	</span>
 </template>
@@ -20,6 +20,7 @@
 import type { DelegationSetDelegationTarget } from '~/types/generated'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
+import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
 
 type Props = {
 	event: DelegationSetDelegationTarget
