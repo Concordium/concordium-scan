@@ -14,8 +14,8 @@
 				<DetailsCard v-if="baker.state.__typename === 'ActiveBakerState'">
 					<template #title>Staked amount</template>
 					<template #default>
-						<span class="numerical">
-							{{ convertMicroCcdToCcd(baker.state.stakedAmount) }} Ͼ
+						<span class="numerical" data-testid="staked-amount">
+							<Amount :amount="baker.state.stakedAmount" :show-symbol="true" />
 						</span>
 					</template>
 					<template #secondary> {{ restakeText }} </template>
@@ -65,6 +65,7 @@ import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import {

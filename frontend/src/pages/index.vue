@@ -162,7 +162,7 @@
 								align="right"
 								class="numerical"
 							>
-								{{ convertMicroCcdToCcd(transaction.ccdCost) }}
+								<Amount :amount="transaction.ccdCost" />
 							</TableTd>
 						</TableRow>
 					</TransitionGroup>
@@ -177,9 +177,7 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useTransactionsListQuery } from '~/queries/useTransactionListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
-import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import {
 	MetricsPeriod,
@@ -189,6 +187,7 @@ import {
 } from '~/types/generated'
 import { useTransactionMetricsQuery } from '~/queries/useTransactionMetrics'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
+import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'

@@ -61,7 +61,7 @@
 						align="right"
 						class="numerical"
 					>
-						{{ convertMicroCcdToCcd(accountTxRelation.transaction.ccdCost) }}
+						<Amount :amount="accountTxRelation.transaction.ccdCost" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -76,16 +76,13 @@
 
 <script lang="ts" setup>
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import {
-	convertMicroCcdToCcd,
-	formatTimestamp,
-	convertTimestampToRelative,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PageInfo, AccountTransactionRelation } from '~/types/generated'
+import Amount from '~/components/atoms/Amount.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { NOW } = useDateNow()

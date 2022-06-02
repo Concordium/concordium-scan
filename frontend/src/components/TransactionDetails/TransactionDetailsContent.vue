@@ -9,7 +9,9 @@
 				<DetailsCard>
 					<template #title>Block height / block hash</template>
 					<template #default>
-						{{ props.transaction?.block.blockHeight }}
+						<span class="numerical">
+							{{ props.transaction?.block.blockHeight }}
+						</span>
 					</template>
 					<template #secondary>
 						<BlockLink
@@ -39,7 +41,7 @@
 						{{ translateTransactionType(props.transaction?.transactionType) }}
 					</template>
 					<template #secondary>
-						{{ convertMicroCcdToCcd(props.transaction?.ccdCost) }}
+						<Amount :amount="props.transaction?.ccdCost" />
 					</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.transaction?.senderAccountAddress?.asString">
@@ -60,7 +62,7 @@
 				:is-initial-open="true"
 			>
 				Events
-				<span class="text-theme-faded ml-1">
+				<span class="numerical text-theme-faded ml-1">
 					({{ props.transaction?.result.events?.totalCount }})
 				</span>
 				<template #content>
@@ -88,16 +90,13 @@
 
 <script lang="ts" setup>
 import TransactionDetailsHeader from './TransactionDetailsHeader.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'
 import TransactionEventList from '~/components/TransactionEventList/TransactionEventList.vue'
 import RejectionReason from '~/components/RejectionReason/RejectionReason.vue'
-import {
-	formatTimestamp,
-	convertMicroCcdToCcd,
-	convertTimestampToRelative,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PageInfo, Transaction } from '~/types/generated'

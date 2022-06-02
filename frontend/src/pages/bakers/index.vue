@@ -80,19 +80,17 @@
 					>
 						<span
 							v-if="baker.state.__typename === 'ActiveBakerState'"
-							class="numeric"
+							class="numerical"
 						>
 							{{ baker.state.pool?.delegatorCount }}
 						</span>
 					</TableTd>
 
 					<TableTd class="text-right">
-						<span
+						<Amount
 							v-if="baker.state.__typename === 'ActiveBakerState'"
-							class="numerical"
-						>
-							{{ convertMicroCcdToCcd(baker.state.stakedAmount) }}
-						</span>
+							:amount="baker.state.stakedAmount"
+						/>
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -107,12 +105,12 @@
 </template>
 <script lang="ts" setup>
 import { useBakerListQuery } from '~/queries/useBakerListQuery'
-import { convertMicroCcdToCcd } from '~/utils/format'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import Badge from '~/components/Badge.vue'
 import Pagination from '~/components/Pagination.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { MetricsPeriod } from '~/types/generated'

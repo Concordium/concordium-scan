@@ -39,9 +39,7 @@
 						<AccountLink :address="account.address.asString" />
 					</TableTd>
 					<TableTd class="text-right">
-						<span class="numerical">
-							{{ convertMicroCcdToCcd(account.amount) }}
-						</span>
+						<Amount :amount="account.amount" />
 					</TableTd>
 					<TableTd>
 						<span class="numerical">
@@ -70,12 +68,9 @@ import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import type { Account } from '~/types/generated'
-import {
-	formatTimestamp,
-	convertTimestampToRelative,
-	convertMicroCcdToCcd,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
+import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'

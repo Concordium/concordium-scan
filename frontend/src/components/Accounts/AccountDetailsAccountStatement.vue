@@ -110,14 +110,14 @@
 						></BlockLink>
 					</TableTd>
 					<TableTd align="right" class="numerical">
-						{{ convertMicroCcdToCcd(accountStatementItem.amount) }}
+						<Amount :amount="accountStatementItem.amount" />
 					</TableTd>
 					<TableTd
 						v-if="breakpoint >= Breakpoint.XXL"
 						align="right"
 						class="numerical"
 					>
-						{{ convertMicroCcdToCcd(accountStatementItem.accountBalance) }}
+						<Amount :amount="accountStatementItem.accountBalance" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -131,12 +131,17 @@
 </template>
 
 <script lang="ts" setup>
+import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
-import {
-	convertMicroCcdToCcd,
-	formatTimestamp,
-	convertTimestampToRelative,
-} from '~/utils/format'
+import RewardIcon from '~/components/icons/RewardIcon.vue'
+import FeeIcon from '~/components/icons/FeeIcon.vue'
+import TransferIconIn from '~/components/icons/TransferIconIn.vue'
+import TransferIconOut from '~/components/icons/TransferIconOut.vue'
+import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
+import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
+import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import { translateAccountStatementEntryType } from '~/utils/translateAccountStatementEntry'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
@@ -145,14 +150,6 @@ import {
 	type AccountStatementEntry,
 	AccountStatementEntryType,
 } from '~/types/generated'
-import { translateAccountStatementEntryType } from '~/utils/translateAccountStatementEntry'
-import RewardIcon from '~/components/icons/RewardIcon.vue'
-import FeeIcon from '~/components/icons/FeeIcon.vue'
-import TransferIconIn from '~/components/icons/TransferIconIn.vue'
-import TransferIconOut from '~/components/icons/TransferIconOut.vue'
-import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
-import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
-import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()

@@ -12,6 +12,8 @@
 		<template #icon><StopwatchIcon /></template>
 		<template #value>{{
 			blockMetricsData?.blockMetrics?.avgBlockTime
+				? formatNumber(blockMetricsData?.blockMetrics?.avgBlockTime)
+				: '-'
 		}}</template>
 		<template #unit>s</template>
 		<template #chip>average</template>
@@ -20,9 +22,10 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
 import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
+import { formatNumber } from '~/utils/format'
 
 type Props = {
-	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	blockMetricsData?: BlockMetricsQueryResponse
 	isLoading?: boolean
 }
 defineProps<Props>()

@@ -76,7 +76,9 @@
 			</div>
 			<Accordion>
 				Transactions
-				<span class="text-theme-faded">({{ account.transactionCount }})</span>
+				<span class="numerical text-theme-faded"
+					>({{ account.transactionCount }})</span
+				>
 				<template #content>
 					<AccountDetailsTransactions
 						v-if="
