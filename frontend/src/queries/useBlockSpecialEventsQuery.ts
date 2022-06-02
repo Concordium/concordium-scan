@@ -206,6 +206,9 @@ const BlockSpecialEventsQuery = gql<BlockSpecialEventsResponse>`
 						bakingReward
 						finalizationReward
 						platformDevelopmentCharge
+						foundationAccountAddress {
+							asString
+						}
 					}
 				}
 				pageInfo {
