@@ -24,12 +24,15 @@ type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
 }
-
+type PassiveDelegationItem = {
+	entityTypeName: 'passiveDelegation'
+}
 export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
 	| AccountDrawerItem
 	| BakerDrawerItem
+	| PassiveDelegationItem
 ) & {
 	scrollY?: number
 }
@@ -76,6 +79,12 @@ export const isItemOnTop = (
 	) {
 		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
 	}
+
+	if (
+		item.entityTypeName === 'passiveDelegation' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return true
 
 	return false
 }
@@ -150,6 +159,13 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'baker',
 					bakerId: parseInt(route.query.did.toString()),
+				},
+				false
+			)
+		} else if (route.query.dentity === 'passiveDelegation') {
+			push(
+				{
+					entityTypeName: 'passiveDelegation',
 				},
 				false
 			)

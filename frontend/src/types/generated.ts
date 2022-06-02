@@ -34,12 +34,21 @@ export type Account = {
   delegation?: Maybe<Delegation>;
   id: Scalars['ID'];
   releaseSchedule: AccountReleaseSchedule;
+  rewards?: Maybe<AccountRewardConnection>;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<AccountTransactionRelationConnection>;
 };
 
 
 export type AccountAccountStatementArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountRewardsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -129,6 +138,35 @@ export type AccountReleaseScheduleItemEdge = {
   cursor: Scalars['String'];
   /** The item at the end of the edge. */
   node: AccountReleaseScheduleItem;
+};
+
+export type AccountReward = {
+  __typename?: 'AccountReward';
+  amount: Scalars['UnsignedLong'];
+  block: Block;
+  id: Scalars['ID'];
+  rewardType: RewardType;
+  timestamp: Scalars['DateTime'];
+};
+
+/** A connection to a list of items. */
+export type AccountRewardConnection = {
+  __typename?: 'AccountRewardConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountRewardEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<AccountReward>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountRewardEdge = {
+  __typename?: 'AccountRewardEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: AccountReward;
 };
 
 export enum AccountSort {
@@ -355,6 +393,7 @@ export type Baker = {
   account: Account;
   bakerId: Scalars['Long'];
   id: Scalars['ID'];
+  /** @deprecated Do not use, will be removed in the near future. For individual baker rewards get them via the Account and for Baker Pool rewards get them via the Baker Pool */
   rewards?: Maybe<BakerRewardConnection>;
   state: BakerState;
   /** Get the transactions that have affected the baker. */
@@ -435,7 +474,7 @@ export type BakerMetricsBuckets = {
 
 export type BakerPool = {
   __typename?: 'BakerPool';
-  commissionRates: BakerPoolCommissionRates;
+  commissionRates: CommissionRates;
   /** The total amount staked by delegation to this baker pool. */
   delegatedStake: Scalars['UnsignedLong'];
   delegatorCount: Scalars['Int'];
@@ -444,6 +483,7 @@ export type BakerPool = {
   openStatus: BakerPoolOpenStatus;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
+  rewards?: Maybe<PoolRewardConnection>;
   /** The total amount staked in this baker pool. Includes both baker stake and delegated stake. */
   totalStake: Scalars['UnsignedLong'];
   /** Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
@@ -458,11 +498,12 @@ export type BakerPoolDelegatorsArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
-export type BakerPoolCommissionRates = {
-  __typename?: 'BakerPoolCommissionRates';
-  bakingCommission: Scalars['Decimal'];
-  finalizationCommission: Scalars['Decimal'];
-  transactionCommission: Scalars['Decimal'];
+
+export type BakerPoolRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export enum BakerPoolOpenStatus {
@@ -473,7 +514,7 @@ export enum BakerPoolOpenStatus {
 
 export type BakerPoolRewardTarget = {
   __typename?: 'BakerPoolRewardTarget';
-  bakerId: Scalars['UnsignedLong'];
+  bakerId: Scalars['Long'];
 };
 
 export type BakerRemoved = {
@@ -889,6 +930,13 @@ export type CommissionRange = {
   min: Scalars['Decimal'];
 };
 
+export type CommissionRates = {
+  __typename?: 'CommissionRates';
+  bakingCommission: Scalars['Decimal'];
+  finalizationCommission: Scalars['Decimal'];
+  transactionCommission: Scalars['Decimal'];
+};
+
 export type ContractAddress = {
   __typename?: 'ContractAddress';
   asString: Scalars['String'];
@@ -913,9 +961,21 @@ export type ContractInitializedEventsAsHexArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type ContractInterrupted = {
+  __typename?: 'ContractInterrupted';
+  contractAddress: ContractAddress;
+  eventsAsHex: Array<Scalars['String']>;
+};
+
 export type ContractModuleDeployed = {
   __typename?: 'ContractModuleDeployed';
   moduleRef: Scalars['String'];
+};
+
+export type ContractResumed = {
+  __typename?: 'ContractResumed';
+  contractAddress: ContractAddress;
+  success: Scalars['Boolean'];
 };
 
 export type ContractUpdated = {
@@ -1125,7 +1185,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: ExchangeRate;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
 
 /** A connection to a list of items. */
 export type EventsConnection = {
@@ -1517,6 +1577,34 @@ export type PageInfo = {
   startCursor?: Maybe<Scalars['String']>;
 };
 
+export type PassiveDelegation = {
+  __typename?: 'PassiveDelegation';
+  commissionRates: CommissionRates;
+  /** The total amount staked by delegators to passive delegation. */
+  delegatedStake: Scalars['UnsignedLong'];
+  /** Total stake passively delegated as a percentage of all CCDs in existence. */
+  delegatedStakePercentage: Scalars['Decimal'];
+  delegatorCount: Scalars['Int'];
+  delegators?: Maybe<DelegatorsConnection>;
+  rewards?: Maybe<PoolRewardConnection>;
+};
+
+
+export type PassiveDelegationDelegatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type PassiveDelegationRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
 export type PassiveDelegationPoolRewardTarget = {
   __typename?: 'PassiveDelegationPoolRewardTarget';
   /** @deprecated Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields) */
@@ -1560,6 +1648,45 @@ export type PaydayPoolRewardSpecialEvent = {
   pool: PoolRewardTarget;
   /** Accrued transaction fees for pool. */
   transactionFees: Scalars['UnsignedLong'];
+};
+
+export type PaydayStatus = {
+  __typename?: 'PaydayStatus';
+  nextPaydayTime: Scalars['DateTime'];
+  paydaySummaries?: Maybe<PaydaySummariesConnection>;
+};
+
+
+export type PaydayStatusPaydaySummariesArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+/** A connection to a list of items. */
+export type PaydaySummariesConnection = {
+  __typename?: 'PaydaySummariesConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<PaydaySummariesEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<PaydaySummary>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PaydaySummariesEdge = {
+  __typename?: 'PaydaySummariesEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: PaydaySummary;
+};
+
+export type PaydaySummary = {
+  __typename?: 'PaydaySummary';
+  block: Block;
 };
 
 export type PendingBakerChange = PendingBakerReduceStake | PendingBakerRemoval;
@@ -1607,6 +1734,62 @@ export type PoolParametersChainUpdatePayload = {
   transactionCommissionRange: CommissionRange;
 };
 
+export type PoolReward = {
+  __typename?: 'PoolReward';
+  bakerAmount: Scalars['UnsignedLong'];
+  block: Block;
+  delegatorsAmount: Scalars['UnsignedLong'];
+  id: Scalars['ID'];
+  rewardType: RewardType;
+  timestamp: Scalars['DateTime'];
+  totalAmount: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type PoolRewardConnection = {
+  __typename?: 'PoolRewardConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<PoolRewardEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<PoolReward>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PoolRewardEdge = {
+  __typename?: 'PoolRewardEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: PoolReward;
+};
+
+export type PoolRewardMetrics = {
+  __typename?: 'PoolRewardMetrics';
+  buckets: PoolRewardMetricsBuckets;
+  /** Sum of all rewards in requested period that were awarded to the baker (as micro CCD) */
+  sumBakerRewardAmount: Scalars['Long'];
+  /** Sum of all rewards in requested period that were awarded to the delegators (as micro CCD) */
+  sumDelegatorsRewardAmount: Scalars['Long'];
+  /** Sum of all rewards in requested period as micro CCD */
+  sumTotalRewardAmount: Scalars['Long'];
+};
+
+export type PoolRewardMetricsBuckets = {
+  __typename?: 'PoolRewardMetricsBuckets';
+  /** The width (time interval) of each bucket. */
+  bucketWidth: Scalars['TimeSpan'];
+  /** Start of the bucket time period. Intended x-axis value. */
+  x_Time: Array<Scalars['DateTime']>;
+  /** Sum of rewards that were awarded to the baker (as micro CCD) within bucket time period. Intended y-axis value. */
+  y_SumBakerRewards: Array<Scalars['Long']>;
+  /** Sum of rewards that were awarded to the delegators (as micro CCD) within bucket time period. Intended y-axis value. */
+  y_SumDelegatorsRewards: Array<Scalars['Long']>;
+  /** Sum of rewards (as micro CCD) within bucket time period. Intended y-axis value. */
+  y_SumTotalRewards: Array<Scalars['Long']>;
+};
+
 export type PoolRewardTarget = BakerPoolRewardTarget | PassiveDelegationPoolRewardTarget;
 
 export type PoolWouldBecomeOverDelegated = {
@@ -1637,7 +1820,13 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  passiveDelegation?: Maybe<PassiveDelegation>;
+  paydayStatus?: Maybe<PaydayStatus>;
+  poolRewardMetricsForBakerPool: PoolRewardMetrics;
+  poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;
+  rewardMetricsForAccount: RewardMetrics;
+  /** @deprecated Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future. */
   rewardMetricsForBaker: RewardMetrics;
   search: SearchResult;
   transaction?: Maybe<Transaction>;
@@ -1718,7 +1907,24 @@ export type QueryBlocksArgs = {
 };
 
 
+export type QueryPoolRewardMetricsForBakerPoolArgs = {
+  bakerId: Scalars['ID'];
+  period: MetricsPeriod;
+};
+
+
+export type QueryPoolRewardMetricsForPassiveDelegationArgs = {
+  period: MetricsPeriod;
+};
+
+
 export type QueryRewardMetricsArgs = {
+  period: MetricsPeriod;
+};
+
+
+export type QueryRewardMetricsForAccountArgs = {
+  accountId: Scalars['ID'];
   period: MetricsPeriod;
 };
 
@@ -1825,6 +2031,13 @@ export type RewardParametersV1 = {
   mintDistribution: MintDistributionV1;
   transactionFeeDistribution: TransactionFeeDistribution;
 };
+
+export enum RewardType {
+  BakerReward = 'BAKER_REWARD',
+  FinalizationReward = 'FINALIZATION_REWARD',
+  FoundationReward = 'FOUNDATION_REWARD',
+  TransactionFeeReward = 'TRANSACTION_FEE_REWARD'
+}
 
 export type RootKeysChainUpdatePayload = {
   __typename?: 'RootKeysChainUpdatePayload';

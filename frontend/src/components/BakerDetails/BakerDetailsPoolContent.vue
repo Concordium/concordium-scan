@@ -149,19 +149,13 @@ import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import type { Baker } from '~/types/generated'
+import { formatPercentage } from '~/utils/format'
 
 type Props = {
 	baker: Baker
 }
 
 defineProps<Props>()
-
-const formatPercentage = (num: number) => {
-	return new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(num * 100)
-}
 </script>
 
 <style scoped>

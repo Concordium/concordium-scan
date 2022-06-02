@@ -44,6 +44,11 @@
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'baker'"
 							:baker-id="drawerItem.bakerId"
 						/>
+						<PassiveDelegationContainer
+							v-else-if="
+								drawerItem && drawerItem.entityTypeName === 'passiveDelegation'
+							"
+						/>
 					</template>
 
 					<template #actions>
@@ -66,6 +71,7 @@ import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContain
 import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'
+import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDelegationContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()
