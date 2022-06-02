@@ -1,5 +1,14 @@
 ﻿<template>
 	<div>
+		<div class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0">
+			<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
+		</div>
+		<PoolRewardTotalChart
+			:reward-metrics-data="rewardMetricsData"
+			:is-loading="rewardMetricsFetching"
+			class="mb-20"
+		/>
+
 		<Table>
 			<TableHead>
 				<TableRow>
@@ -54,6 +63,10 @@ import { useDateNow } from '~/composables/useDateNow'
 import type { PageInfo, PoolReward } from '~/types/generated'
 import Amount from '~/components/atoms/Amount.vue'
 import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
+import { usePassiveDelegationPoolRewardMetrics } from '~/queries/usePassiveDelegationPoolRewardMetrics'
+import { MetricsPeriod } from '~/types/generated'
+import PoolRewardTotalChart from '~/components/molecules/ChartCards/PoolRewardTotalChart.vue'
+import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
@@ -65,4 +78,8 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
+
+const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
+	usePassiveDelegationPoolRewardMetrics(selectedMetricsPeriod)
 </script>
