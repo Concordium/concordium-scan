@@ -28,6 +28,25 @@ type AccountByAddressResponse = {
 }
 
 const AccountQueryFragment = `
+ rewards (	after: $afterAccountReward
+				before: $beforeAccountReward
+				first: $firstAccountReward
+				last: $lastAccountReward){
+		 pageInfo {
+    hasNextPage
+    hasPreviousPage
+    startCursor
+    endCursor
+		__typename
+  }
+		nodes {
+			block {blockHash}
+			id
+			timestamp
+			rewardType
+			amount
+		}
+	}
 accountStatement(
 				after: $afterAccountStatement
 				before: $beforeAccountStatement
@@ -202,6 +221,10 @@ const AccountQuery = gql<AccountByIdResponse>`
 		$beforeAccountStatement: String
 		$firstAccountStatement: Int
 		$lastAccountStatement: Int
+		$afterAccountReward: String
+		$beforeAccountReward: String
+		$firstAccountReward: Int
+		$lastAccountReward: Int
 	) {
 		account(id: $id) {
 			${AccountQueryFragment}
@@ -224,6 +247,10 @@ const AccountQueryByAddress = gql<AccountByAddressResponse>`
 		$beforeAccountStatement: String
 		$firstAccountStatement: Int
 		$lastAccountStatement: Int
+		$afterAccountReward: String
+		$beforeAccountReward: String
+		$firstAccountReward: Int
+		$lastAccountReward: Int
 	) {
 		accountByAddress(accountAddress: $address) {
 			${AccountQueryFragment}
