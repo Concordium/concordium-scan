@@ -191,9 +191,14 @@ public class MetricsWriter
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
 
+        var bakerPoolStakesSql = @"select id as BakerId, active_pool_total_stake as TotalStakedAmount, active_staked_amount as BakerStakedAmount, active_pool_delegated_stake as DelegatedStakedAmount from graphql_bakers where active_pool_open_status is not null";
+        var bakerPoolStakes = conn.Query<PoolStakeInfo>(bakerPoolStakesSql).ToDictionary(x => x.BakerId);
+        var passiveDelegationStake = conn.QuerySingle<long>("select delegated_stake from graphql_passive_delegation");
+        var passiveDelegationStakes = new PoolStakeInfo(-1, passiveDelegationStake, 0, passiveDelegationStake);
+            
         var sql = @"
-                insert into metrics_pool_rewards (time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id) 
-                values (@Time, @PoolId, @TotalAmount, @BakerAmount, @DelegatorAmount, @RewardType, @BlockId)";
+                insert into metrics_pool_rewards (time, pool_id, total_amount, baker_amount, delegator_amount, total_staked_amount, baker_staked_amount, delegated_staked_amount, reward_type, block_id) 
+                values (@Time, @PoolId, @TotalAmount, @BakerAmount, @DelegatorAmount, @TotalStakedAmount, @BakerStakedAmount, @DelegatorStakedAmount, @RewardType, @BlockId)";
         
         var batch = conn.CreateBatch();
         foreach (var poolReward in poolRewards)
@@ -207,9 +212,16 @@ public class MetricsWriter
                 _ => throw new NotImplementedException()
             };
 
-            AddCommand(batch, sql, block, poolId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
-            AddCommand(batch, sql, block, poolId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
-            AddCommand(batch, sql, block, poolId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary);
+            PoolStakeInfo poolStakes = poolReward.Pool switch
+            {
+                BakerPoolRewardTarget baker => bakerPoolStakes[baker.BakerId],
+                PassiveDelegationPoolRewardTarget => passiveDelegationStakes,
+                _ => throw new NotImplementedException()
+            };
+
+            AddCommand(batch, sql, block, poolId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary, poolStakes);
+            AddCommand(batch, sql, block, poolId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary, poolStakes);
+            AddCommand(batch, sql, block, poolId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary, poolStakes);
         }
 
         batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
@@ -218,8 +230,10 @@ public class MetricsWriter
         conn.Close();
     }
 
-    private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType, 
-        long totalAmount, AccountRewardSummary? rewardSummary)
+    private record PoolStakeInfo(long BakerId, long TotalStakedAmount, long BakerStakedAmount, long DelegatedStakedAmount);
+    
+    private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType,
+        long totalAmount, AccountRewardSummary? rewardSummary, PoolStakeInfo poolStakeInfo)
     {
         var cmd = batch.CreateBatchCommand();
         cmd.CommandText = sql;
@@ -231,6 +245,9 @@ public class MetricsWriter
         cmd.Parameters.Add(new NpgsqlParameter<long>("TotalAmount", totalAmount));
         cmd.Parameters.Add(new NpgsqlParameter<long>("BakerAmount", bakerAmount));
         cmd.Parameters.Add(new NpgsqlParameter<long>("DelegatorAmount", totalAmount - bakerAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("TotalStakedAmount", poolStakeInfo.TotalStakedAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("BakerStakedAmount", poolStakeInfo.BakerStakedAmount));
+        cmd.Parameters.Add(new NpgsqlParameter<long>("DelegatorStakedAmount", poolStakeInfo.DelegatedStakedAmount));
         cmd.Parameters.Add(new NpgsqlParameter<int>("RewardType", (int)rewardType));
         cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
 
