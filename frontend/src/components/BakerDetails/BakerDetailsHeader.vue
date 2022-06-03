@@ -11,7 +11,13 @@
 				</h1>
 			</div>
 			<div class="flex items-center">
-				<Badge v-if="computedBadgeOptions" :type="computedBadgeOptions[0]">
+				<Badge
+					v-if="
+						computedBadgeOptions &&
+						baker.state.__typename === 'RemovedBakerState'
+					"
+					:type="computedBadgeOptions[0]"
+				>
 					{{ computedBadgeOptions[1] }}
 				</Badge>
 			</div>

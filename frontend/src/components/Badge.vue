@@ -12,11 +12,12 @@ import { ref, watch } from 'vue'
 
 type Props = {
 	type: 'success' | 'failure' | 'info'
+	variant?: 'primary' | 'secondary'
 }
 
 const props = defineProps<Props>()
 
-const cssClass = ref(`badge--${props.type}`)
+const cssClass = ref(`badge--${props.type}-${props.variant || 'primary'}`)
 
 watch(
 	() => props.type,
@@ -27,18 +28,33 @@ watch(
 </script>
 
 <style>
-.badge--success {
+.badge--success-primary {
 	background-color: hsl(var(--color-interactive));
 	color: hsl(var(--color-interactive-dark));
 }
 
-.badge--failure {
+.badge--success-secondary {
+	border: solid 1px currentColor;
+	color: hsl(var(--color-interactive));
+}
+
+.badge--failure-primary {
 	background-color: hsl(var(--color-error));
 	color: hsl(var(--color-error-dark));
 }
 
-.badge--info {
+.badge--failure-secondary {
+	border: solid 1px currentColor;
+	color: hsl(var(--color-error));
+}
+
+.badge--info-primary {
 	background-color: hsl(var(--color-info));
 	color: hsl(var(--color-info-dark));
+}
+
+.badge--info-secondary {
+	border: solid 1px currentColor;
+	color: hsl(var(--color-info));
 }
 </style>

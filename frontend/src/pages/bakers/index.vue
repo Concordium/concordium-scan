@@ -32,10 +32,10 @@
 			<TableHead>
 				<TableRow>
 					<TableTh width="20%">Baker ID</TableTh>
-					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
-						Status
-					</TableTh>
 					<TableTh width="20%">Account</TableTh>
+					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
+						Delegation pool status
+					</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
@@ -50,9 +50,7 @@
 					<TableTd>
 						<BakerLink :id="baker.bakerId" />
 						<Badge
-							v-if="
-								!hasPoolData && baker.state.__typename === 'RemovedBakerState'
-							"
+							v-if="baker.state.__typename === 'RemovedBakerState'"
 							type="failure"
 							class="badge ml-4"
 						>
@@ -60,18 +58,22 @@
 						</Badge>
 					</TableTd>
 
+					<TableTd>
+						<AccountLink :address="baker.account.address.asString" />
+					</TableTd>
+
 					<TableTd v-if="hasPoolData && breakpoint >= Breakpoint.MD">
 						<Badge
-							v-if="composeBakerStatus(baker)?.[0]"
+							v-if="
+								baker.state.__typename === 'ActiveBakerState' &&
+								composeBakerStatus(baker)?.[0]
+							"
 							:type="composeBakerStatus(baker)?.[0] || 'success'"
 							class="badge"
+							variant="secondary"
 						>
 							{{ composeBakerStatus(baker)?.[1] }}
 						</Badge>
-					</TableTd>
-
-					<TableTd>
-						<AccountLink :address="baker.account.address.asString" />
 					</TableTd>
 
 					<TableTd
@@ -152,7 +154,7 @@ const hasPoolData = computed(() =>
 	display: inline-block;
 	font-size: 0.75rem;
 	padding: 0.4rem 0.5rem 0.25rem;
-	margin: 0;
+	margin: 0 1rem 0 0;
 	line-height: 1;
 }
 </style>

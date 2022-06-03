@@ -7,7 +7,7 @@
 				:pending-change="baker.state.pendingChange"
 			/>
 
-			<div class="grid gap-8 md:grid-cols-2 mb-8">
+			<div class="grid gap-8 md:grid-cols-3 mb-8">
 				<DetailsCard>
 					<template #title>Total stake</template>
 					<template #default>
@@ -47,6 +47,22 @@
 								Delegated
 							</Chip>
 						</div>
+					</template>
+				</DetailsCard>
+
+				<DetailsCard v-if="computedBadgeOptions">
+					<template #title>Delegation pool status</template>
+					<template #default>
+						<StatusCircle
+							:class="[
+								'h-4 inline mr-2 text-theme-interactive align-text-top',
+								{
+									'text-theme-info': computedBadgeOptions[0] === 'info',
+									'text-theme-error': computedBadgeOptions[0] === 'failure',
+								},
+							]"
+						/>
+						{{ computedBadgeOptions[1] }}
 					</template>
 				</DetailsCard>
 
@@ -139,6 +155,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsRewards from './BakerDetailsRewards.vue'
 import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
@@ -148,18 +165,22 @@ import Amount from '~/components/atoms/Amount.vue'
 import Chip from '~/components/atoms/Chip.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import StatusCircle from '~/components/icons/StatusCircle.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import type { Baker } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
 import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
+import { composeBakerStatus } from '~/utils/composeBakerStatus'
 
 type Props = {
 	baker: Baker
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const computedBadgeOptions = computed(() => composeBakerStatus(props.baker))
 </script>
 
 <style scoped>
