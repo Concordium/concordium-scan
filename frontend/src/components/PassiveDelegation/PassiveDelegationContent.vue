@@ -6,18 +6,18 @@
 				<DetailsCard>
 					<template #title>Delegated stake</template>
 					<template #default>
-						<Amount
-							:amount="passiveDelegationData.delegatedStake"
-							:show-symbol="true"
-						/>
+						<Tooltip
+							:text="`${formatPercentage(
+								passiveDelegationData.delegatedStakePercentage
+							)}% of all CCD in existence`"
+							class="text-theme-white"
+						>
+							<Amount
+								:amount="passiveDelegationData.delegatedStake"
+								:show-symbol="true"
+							/>
+						</Tooltip>
 					</template>
-					<template #secondary>
-						{{
-							Math.round(
-								passiveDelegationData.delegatedStakePercentage * 10000
-							) / 100
-						}}% of total</template
-					>
 				</DetailsCard>
 			</div>
 
@@ -110,6 +110,7 @@ import PassiveDelegationHeader from '~/components/PassiveDelegation/PassiveDeleg
 import Accordion from '~/components/Accordion.vue'
 import PassiveDelegationDelegators from '~/components/PassiveDelegation/PassiveDelegationDelegators.vue'
 import PassiveDelegationRewards from '~/components/PassiveDelegation/PassiveDelegationRewards.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
 	passiveDelegationData: PassiveDelegation
