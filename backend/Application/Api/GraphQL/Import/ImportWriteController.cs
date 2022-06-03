@@ -163,7 +163,7 @@ public class ImportWriteController : BackgroundService
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, isFirstBlockAfterPayday, importState);
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters, bakerUpdateResults, rewardsSummary, isFirstBlockAfterPayday);
-        await _bakerHandler.ApplyDelegationUpdates(delegationUpdateResults, payload);
+        await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters);
         await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, delegationUpdateResults, importState);

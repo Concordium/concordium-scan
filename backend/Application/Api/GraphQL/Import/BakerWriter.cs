@@ -195,4 +195,32 @@ public class BakerWriter
         await conn.ExecuteAsync(sql);
         await conn.CloseAsync();
     }
+
+    public async Task UpdateDelegatedStakeCap(ulong totalStakedAmount, decimal capitalBound, decimal leverageFactor)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateDelegatedStakeCap));
+
+        var param = new
+        {
+            TotalStaked = (long)totalStakedAmount,
+            CapitalBound = capitalBound,
+            LeverageFactor = leverageFactor
+        };
+        
+        var sql = @"update graphql_bakers 
+                        set active_pool_delegated_stake_cap = 
+                            greatest(
+                                0, 
+                                least(
+                                    floor((@CapitalBound * @TotalStaked - active_staked_amount) / (1 - @CapitalBound)),
+                                    (@LeverageFactor - 1.0) * active_staked_amount)) 
+                        where active_pool_open_status is not null;";
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(sql, param);
+        await conn.CloseAsync();
+    }
 }

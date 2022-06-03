@@ -23,6 +23,9 @@ public class BakerPool
     [GraphQLDescription("The total amount staked by delegation to this baker pool.")]
     public ulong DelegatedStake { get; init; }
 
+    [GraphQLDescription("The maximum amount that may be delegated to the pool, accounting for leverage and stake limits.")]
+    public ulong DelegatedStakeCap { get; init; }
+
     [GraphQLDescription("The total amount staked in this baker pool. Includes both baker stake and delegated stake.")]
     public ulong TotalStake { get; init; }
 

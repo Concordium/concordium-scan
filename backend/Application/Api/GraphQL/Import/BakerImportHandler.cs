@@ -40,7 +40,8 @@ public class BakerImportHandler
         else
             await ApplyBakerChanges(payload, rewardsSummary, pendingChangeStrategy, importState, resultBuilder);
 
-        resultBuilder.SetTotalAmountStaked(await _writer.GetTotalAmountStaked());
+        var totalAmountStaked = await _writer.GetTotalAmountStaked();
+        resultBuilder.SetTotalAmountStaked(totalAmountStaked);
         return resultBuilder.Build();
     }
 
@@ -68,7 +69,8 @@ public class BakerImportHandler
         await _writer.AddBakerTransactionRelations(items);
     }
 
-    public async Task ApplyDelegationUpdates(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload)
+    public async Task ApplyDelegationUpdates(BlockDataPayload payload, DelegationUpdateResults delegationUpdateResults,
+        BakerUpdateResults bakerUpdateResults, ChainParameters chainParameters)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4) // TODO: Could be optimized by only invoking on payday block (?)
             await _writer.UpdateDelegatedStake(); 
@@ -82,6 +84,16 @@ public class BakerImportHandler
                     if (dst.State is ActiveBakerState activeState) // Check, since baker might have been removed in this block!
                         activeState.Pool!.DelegatorCount += delegatorCountDelta.DelegatorCountDelta;
                 });
+        }
+        
+        if (payload.BlockSummary.ProtocolVersion >= 4)
+        {
+            var chainParametersV1 = (ChainParametersV1)chainParameters;
+            var capitalBound = chainParametersV1.CapitalBound;
+            var leverageFactor = chainParametersV1.LeverageBound.AsDecimal();
+
+            var totalAmountStaked = bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked;
+            await _writer.UpdateDelegatedStakeCap(totalAmountStaked, capitalBound, leverageFactor);
         }
     }
     
