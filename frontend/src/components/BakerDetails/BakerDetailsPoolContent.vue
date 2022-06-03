@@ -150,6 +150,13 @@
 					<BakerDetailsDelegators :baker-id="baker.bakerId" />
 				</template>
 			</Accordion>
+
+			<Accordion v-if="baker.state.pool.metadataUrl">
+				Metadata
+				<template #content>
+					{{ baker.state.pool.metadataUrl }}
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>

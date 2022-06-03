@@ -28,6 +28,7 @@ const BakerQuery = gql<BakerResponse>`
 						delegatorCount
 						totalStake
 						delegatedStake
+						metadataUrl
 						rankingByTotalStake {
 							rank
 							total
