@@ -111,7 +111,10 @@
 			<Accordion>
 				Rewards
 				<template #content>
-					<BakerDetailsRewards :baker-id="baker.bakerId" />
+					<BakerDetailsPoolRewards
+						:baker-id="baker.bakerId"
+						:raw-id="baker.id"
+					/>
 				</template>
 			</Accordion>
 
@@ -150,6 +153,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import type { Baker } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
+import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
 
 type Props = {
 	baker: Baker

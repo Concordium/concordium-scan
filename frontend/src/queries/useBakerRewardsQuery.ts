@@ -1,21 +1,21 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { Baker, BakerReward } from '~/types/generated'
+import type { Account, AccountReward, BakerReward } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerRewardsResponse = {
-	bakerByBakerId: Baker
+	accountByAddress: Account
 }
 
 const BakerRewardsQuery = gql<BakerRewardsResponse>`
 	query (
-		$bakerId: Long!
+		$accountAddress: String!
 		$after: String
 		$before: String
 		$first: Int
 		$last: Int
 	) {
-		bakerByBakerId(bakerId: $bakerId) {
+		accountByAddress(accountAddress: $accountAddress) {
 			rewards(after: $after, before: $before, first: $first, last: $last) {
 				nodes {
 					block {
@@ -38,21 +38,21 @@ const BakerRewardsQuery = gql<BakerRewardsResponse>`
 `
 
 export const useBakerRewardsQuery = (
-	bakerId: number,
+	accountAddress: string,
 	variables: Partial<QueryVariables>
 ) => {
 	const { data, fetching, error } = useQuery({
 		query: BakerRewardsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: {
-			bakerId,
+			accountAddress,
 			...variables,
 		},
 	})
 
-	const dataRef = ref(data.value?.bakerByBakerId?.rewards?.nodes?.[0])
+	const dataRef = ref(data.value?.accountByAddress?.rewards?.nodes?.[0])
 
-	const componentState = useComponentState<BakerReward | undefined>({
+	const componentState = useComponentState<AccountReward | undefined>({
 		fetching,
 		error,
 		data: dataRef,
@@ -60,7 +60,7 @@ export const useBakerRewardsQuery = (
 
 	watch(
 		() => data.value,
-		value => (dataRef.value = value?.bakerByBakerId?.rewards?.nodes?.[0])
+		value => (dataRef.value = value?.accountByAddress?.rewards?.nodes?.[0])
 	)
 
 	return { data, error, componentState }

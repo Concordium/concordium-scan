@@ -42,7 +42,10 @@
 			<Accordion>
 				Rewards
 				<template #content>
-					<BakerDetailsRewards :baker-id="baker.bakerId" />
+					<BakerDetailsRewards
+						:account-address="baker.account.address.asString"
+						:baker-id="baker.bakerId"
+					/>
 				</template>
 			</Accordion>
 

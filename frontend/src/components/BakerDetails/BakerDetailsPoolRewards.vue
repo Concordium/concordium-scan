@@ -3,15 +3,16 @@
 		<div v-if="componentState === 'success' || componentState === 'loading'">
 			<div
 				v-if="componentState === 'success'"
-				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
+				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0 gap-4"
 			>
+				<RewardTakerTypeDropdown v-model="selectedRewardTakerType" />
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<RewardMetricsForBakerChart
+			<RewardMetricsForPoolChart
 				v-if="componentState === 'success'"
 				:reward-metrics-data="rewardMetricsForBakerData"
 				:is-loading="rewardMetricsForBakerFetching"
-				class="mb-20"
+				:reward-taker-type="selectedRewardTakerType"
 			/>
 
 			<Table>
@@ -25,7 +26,8 @@
 				</TableHead>
 				<TableBody v-if="componentState === 'success'">
 					<TableRow
-						v-for="reward in data?.accountByAddress.rewards?.nodes || []"
+						v-for="reward in data?.bakerByBakerId.state.pool.rewards?.nodes ||
+						[]"
 						:key="reward.id"
 					>
 						<TableTd>
@@ -51,7 +53,18 @@
 							<BlockLink :hash="reward.block.blockHash" />
 						</TableTd>
 						<TableTd class="numerical" align="right">
-							<Amount :amount="reward.amount" />
+							<Amount
+								v-if="selectedRewardTakerType === RewardTakerTypes.Bakers"
+								:amount="reward.bakerAmount"
+							/>
+							<Amount
+								v-if="selectedRewardTakerType === RewardTakerTypes.Delegators"
+								:amount="reward.delegatorsAmount"
+							/>
+							<Amount
+								v-if="selectedRewardTakerType === RewardTakerTypes.Total"
+								:amount="reward.totalAmount"
+							/>
 						</TableTd>
 					</TableRow>
 				</TableBody>
@@ -111,8 +124,12 @@ import RewardIcon from '~/components/icons/RewardIcon.vue'
 
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import { MetricsPeriod } from '~/types/generated'
-import { useRewardMetricsForBakerQueryQuery } from '~/queries/useRewardMetricsForBakerQuery'
+import { useBakerPoolRewardsQuery } from '~/queries/useBakerPoolRewardsQuery'
 import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
+import { useBakerPoolRewardMetrics } from '~/queries/useBakerPoolRewardMetrics'
+import RewardTakerTypeDropdown from '~/components/molecules/RewardTakerTypeDropdown.vue'
+import { RewardTakerTypes } from '~/types/rewardTakerTypes'
+import RewardMetricsForPoolChart from '~/components/molecules/ChartCards/RewardMetricsForPoolChart.vue'
 
 const { first, last, after, before, goToPage } = usePagination({
 	pageSize: PAGE_SIZE_SMALL,
@@ -122,13 +139,13 @@ const { NOW } = useDateNow()
 
 type Props = {
 	bakerId: Baker['bakerId']
-	accountAddress: string
+	rawId: Baker['id']
 }
 
 const props = defineProps<Props>()
 
-const { data, error, componentState } = useBakerRewardsQuery(
-	props.accountAddress,
+const { data, error, componentState } = useBakerPoolRewardsQuery(
+	props.bakerId,
 	{
 		first,
 		last,
@@ -136,19 +153,19 @@ const { data, error, componentState } = useBakerRewardsQuery(
 		before,
 	}
 )
-
+const selectedRewardTakerType = ref(RewardTakerTypes.Total)
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const {
 	data: rewardMetricsForBakerData,
 	fetching: rewardMetricsForBakerFetching,
-} = useRewardMetricsForBakerQueryQuery(props.bakerId, selectedMetricsPeriod)
+} = useBakerPoolRewardMetrics(props.rawId, selectedMetricsPeriod)
 
 const pageInfo = ref<PageInfo | undefined>(
-	data?.value?.accountByAddress?.rewards?.pageInfo
+	data?.value?.bakerByBakerId?.rewards?.pageInfo
 )
 const { breakpoint } = useBreakpoint()
 watch(
 	() => data.value,
-	value => (pageInfo.value = value?.accountByAddress?.rewards?.pageInfo)
+	value => (pageInfo.value = value?.bakerByBakerId?.rewards?.pageInfo)
 )
 </script>
