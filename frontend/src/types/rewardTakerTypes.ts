@@ -1,7 +1,5 @@
-﻿import { Ref } from 'vue'
-
-export enum RewardTakerTypes {
+﻿export enum RewardTakerTypes {
 	Total = 'Total',
-	Bakers = 'Bakers',
+	Baker = 'Baker',
 	Delegators = 'Delegators',
 }

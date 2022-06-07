@@ -8,37 +8,36 @@
 		>
 			<option
 				class="bg-theme-background-primary"
-				:selected="refVal === RewardTakerTypes.Total"
+				:selected="refVal == RewardTakerTypes.Total"
 				:value="RewardTakerTypes.Total"
 			>
 				Total
 			</option>
 			<option
 				class="bg-theme-background-primary"
-				:selected="refVal === RewardTakerTypes.Delegators"
+				:selected="refVal == RewardTakerTypes.Delegators"
 				:value="RewardTakerTypes.Delegators"
 			>
 				Delegators
 			</option>
 			<option
 				class="bg-theme-background-primary"
-				:selected="refVal === RewardTakerTypes.Bakers"
-				:value="RewardTakerTypes.Bakers"
+				:selected="refVal == RewardTakerTypes.Baker"
+				:value="RewardTakerTypes.Baker"
 			>
-				Bakers
+				Baker
 			</option>
 		</select>
 	</div>
 </template>
 <script lang="ts" setup>
 import { toRef } from 'vue'
-
 import FunnelIcon from '~/components/icons/FunnelIcon.vue'
 import { RewardTakerTypes } from '~/types/rewardTakerTypes'
 const emit = defineEmits(['update:modelValue'])
 
 type Props = {
-	modelValue: string
+	modelValue: RewardTakerTypes
 }
 const props = defineProps<Props>()
 const refVal = toRef(props, 'modelValue')

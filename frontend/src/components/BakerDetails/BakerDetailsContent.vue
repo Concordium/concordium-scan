@@ -71,11 +71,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
-import {
-	convertMicroCcdToCcd,
-	formatTimestamp,
-	convertTimestampToRelative,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import type { Baker } from '~/types/generated'
 
 const { NOW } = useDateNow()

@@ -44,7 +44,7 @@ watch([rewardTakerType, rewardMetricsData], () => {
 })
 const setType = (newType: RewardTakerTypes) => {
 	switch (newType) {
-		case RewardTakerTypes.Bakers:
+		case RewardTakerTypes.Baker:
 			yValues.value =
 				props.rewardMetricsData?.poolRewardMetricsForBakerPool.buckets.y_SumBakerRewards
 			chipValue.value = convertMicroCcdToCcd(

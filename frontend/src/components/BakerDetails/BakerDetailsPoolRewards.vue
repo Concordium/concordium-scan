@@ -24,9 +24,14 @@
 						<TableTh align="right">Amount (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
-				<TableBody v-if="componentState === 'success'">
+				<TableBody
+					v-if="
+						componentState === 'success' &&
+						data?.bakerByBakerId.state.__typename === 'ActiveBakerState'
+					"
+				>
 					<TableRow
-						v-for="reward in data?.bakerByBakerId.state.pool.rewards?.nodes ||
+						v-for="reward in data?.bakerByBakerId.state.pool?.rewards?.nodes ||
 						[]"
 						:key="reward.id"
 					>
@@ -52,9 +57,9 @@
 						<TableTd v-if="breakpoint >= Breakpoint.XL">
 							<BlockLink :hash="reward.block.blockHash" />
 						</TableTd>
-						<TableTd class="numerical" align="right">
+						<TableTd class="numerical" align="right" width="20%">
 							<Amount
-								v-if="selectedRewardTakerType === RewardTakerTypes.Bakers"
+								v-if="selectedRewardTakerType === RewardTakerTypes.Baker"
 								:amount="reward.bakerAmount"
 							/>
 							<Amount
@@ -71,7 +76,7 @@
 
 				<TableBody v-else-if="componentState === 'loading'">
 					<TableRow>
-						<TableTd colspan="3">
+						<TableTd colspan="4">
 							<div v-if="componentState === 'loading'" class="relative h-48">
 								<Loader />
 							</div>
@@ -101,14 +106,19 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { useDateNow } from '~/composables/useDateNow'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
+
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
+import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
+import RewardMetricsForPoolChart from '~/components/molecules/ChartCards/RewardMetricsForPoolChart.vue'
+import RewardTakerTypeDropdown from '~/components/molecules/RewardTakerTypeDropdown.vue'
 import Pagination from '~/components/Pagination.vue'
 import Table from '~/components/Table/Table.vue'
 import TableTd from '~/components/Table/TableTd.vue'
@@ -116,20 +126,14 @@ import TableTh from '~/components/Table/TableTh.vue'
 import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
-import type { Baker, PageInfo } from '~/types/generated'
-import { useBakerRewardsQuery } from '~/queries/useBakerRewardsQuery'
 import BlockLink from '~/components/molecules/BlockLink.vue'
-import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import RewardIcon from '~/components/icons/RewardIcon.vue'
 
-import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
-import { MetricsPeriod } from '~/types/generated'
 import { useBakerPoolRewardsQuery } from '~/queries/useBakerPoolRewardsQuery'
-import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
 import { useBakerPoolRewardMetrics } from '~/queries/useBakerPoolRewardMetrics'
-import RewardTakerTypeDropdown from '~/components/molecules/RewardTakerTypeDropdown.vue'
 import { RewardTakerTypes } from '~/types/rewardTakerTypes'
-import RewardMetricsForPoolChart from '~/components/molecules/ChartCards/RewardMetricsForPoolChart.vue'
+import { MetricsPeriod } from '~/types/generated'
+import type { Baker, PageInfo } from '~/types/generated'
 
 const { first, last, after, before, goToPage } = usePagination({
 	pageSize: PAGE_SIZE_SMALL,
