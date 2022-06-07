@@ -202,6 +202,8 @@ type AccountsMetricsBuckets {
 }
 
 type ActiveBakerState {
+  "The status of the bakers node. Will be null if no status for the node exists."
+  nodeStatus: NodeStatus
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
   pool: BakerPool
@@ -1084,6 +1086,75 @@ type NewEncryptedAmount {
   encryptedAmount: String!
 }
 
+type NodeStatus {
+  peersList: [PeerReference!]!
+  nodeName: String!
+  nodeId: String!
+  peerType: String!
+  uptime: UnsignedLong!
+  clientVersion: String!
+  averagePing: Float
+  peersCount: UnsignedLong!
+  bestBlock: String!
+  bestBlockHeight: UnsignedLong!
+  bestBlockBakerId: UnsignedLong
+  bestArrivedTime: DateTime
+  blockArrivePeriodEma: Float
+  blockArrivePeriodEmsd: Float
+  blockArriveLatencyEma: Float
+  blockArriveLatencyEmsd: Float
+  blockReceivePeriodEma: Float
+  blockReceivePeriodEmsd: Float
+  blockReceiveLatencyEma: Float
+  blockReceiveLatencyEmsd: Float
+  finalizedBlock: String!
+  finalizedBlockHeight: UnsignedLong!
+  finalizedTime: DateTime
+  finalizationPeriodEma: Float
+  finalizationPeriodEmsd: Float
+  packetsSent: UnsignedLong!
+  packetsReceived: UnsignedLong!
+  consensusRunning: Boolean!
+  bakingCommitteeMember: String!
+  consensusBakerId: UnsignedLong
+  finalizationCommitteeMember: Boolean!
+  transactionsPerBlockEma: Float
+  transactionsPerBlockEmsd: Float
+  bestBlockTransactionsSize: UnsignedLong
+  bestBlockTotalEncryptedAmount: UnsignedLong
+  bestBlockTotalAmount: UnsignedLong
+  bestBlockTransactionCount: UnsignedLong
+  bestBlockTransactionEnergyCost: UnsignedLong
+  bestBlockExecutionCost: UnsignedLong
+  bestBlockCentralBankAmount: UnsignedLong
+  blocksReceivedCount: UnsignedLong
+  blocksVerifiedCount: UnsignedLong
+  genesisBlock: String!
+  finalizationCount: UnsignedLong
+  finalizedBlockParent: String!
+  averageBytesPerSecondIn: Float!
+  averageBytesPerSecondOut: Float!
+  id: ID!
+}
+
+"A connection to a list of items."
+type NodeStatusesConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [NodeStatusesEdge!]
+  "A flattened list of the nodes."
+  nodes: [NodeStatus!]
+}
+
+"An edge in a connection."
+type NodeStatusesEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: NodeStatus!
+}
+
 type NonExistentCredIds {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   credIds: [String!]!
@@ -1216,6 +1287,12 @@ type PaydaySummary {
   block: Block!
 }
 
+type PeerReference {
+  "The node status of the peer. Will be null if no status for the peer exists."
+  nodeStatus: NodeStatus
+  nodeId: String!
+}
+
 type PendingBakerReduceStake {
   newStakedAmount: UnsignedLong!
   effectiveTime: DateTime!
@@ -1337,6 +1414,8 @@ type Query {
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
+  nodeStatuses("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
+  nodeStatus(id: ID!): NodeStatus
 }
 
 type Ranking {

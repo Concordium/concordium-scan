@@ -1,4 +1,5 @@
-﻿using HotChocolate;
+﻿using Application.Api.GraphQL.Network;
+using HotChocolate;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Bakers;
@@ -37,6 +38,14 @@ public class ActiveBakerState : BakerState
     public BakerPool? Pool { get; set; }
 
     public PendingBakerChange? PendingChange { get; set; }
+    
+    [GraphQLDescription("The status of the bakers node. Will be null if no status for the node exists.")]
+    public NodeStatus? GetNodeStatus([Service] NodeStatusSnapshot nodeSummarySnapshot)
+    {
+        var status = nodeSummarySnapshot.NodeStatuses
+            .SingleOrDefault(x => x.ConsensusBakerId == (ulong)Owner.BakerId);
+        return status;
+    }
 }
 
 public class RemovedBakerState : BakerState
