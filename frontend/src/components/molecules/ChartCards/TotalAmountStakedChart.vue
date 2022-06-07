@@ -16,7 +16,8 @@
 		<template #title>Staked</template>
 		<template #value>{{
 			convertMicroCcdToCcd(
-				blockMetricsData?.blockMetrics?.lastTotalMicroCcdStaked
+				blockMetricsData?.blockMetrics?.lastTotalMicroCcdStaked,
+				true
 			)
 		}}</template>
 		<template #chip>latest</template>
