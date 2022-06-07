@@ -7,7 +7,14 @@
 			>
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<FtbCarousel non-carousel-classes="grid-cols-3">
+			<FtbCarousel
+				:non-carousel-classes="
+					networkType === 'testnet' ? 'grid-cols-4' : 'grid-cols-3'
+				"
+			>
+				<CarouselSlide v-if="networkType === 'testnet'" class="w-full">
+					<Payday />
+				</CarouselSlide>
 				<CarouselSlide class="w-full">
 					<TotalAmountStakedChart
 						:block-metrics-data="blockMetricsData"
@@ -106,7 +113,6 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { useBakerListQuery } from '~/queries/useBakerListQuery'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
@@ -115,15 +121,17 @@ import Pagination from '~/components/Pagination.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
-import { MetricsPeriod } from '~/types/generated'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import TotalBakersChart from '~/components/molecules/ChartCards/TotalBakersChart.vue'
+import Payday from '~/components/molecules/ChartCards/Payday.vue'
+import TotalRewardsChart from '~/components/molecules/ChartCards/TotalRewardsChart.vue'
+import TotalAmountStakedChart from '~/components/molecules/ChartCards/TotalAmountStakedChart.vue'
+import { useBakerListQuery } from '~/queries/useBakerListQuery'
 import { useBakerMetricsQuery } from '~/queries/useBakerMetricsQuery'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { useRewardMetricsQuery } from '~/queries/useRewardMetricsQuery'
-import TotalRewardsChart from '~/components/molecules/ChartCards/TotalRewardsChart.vue'
-import TotalAmountStakedChart from '~/components/molecules/ChartCards/TotalAmountStakedChart.vue'
+import { MetricsPeriod } from '~/types/generated'
 
 const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
@@ -137,6 +145,9 @@ const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
 	useRewardMetricsQuery(selectedMetricsPeriod)
 const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	useBlockMetricsQuery(selectedMetricsPeriod)
+
+// TODO: This needs to be deleted when paydayStatus hits mainnet
+const networkType = location.host.includes('testnet') ? 'testnet' : 'mainnet'
 
 const hasPoolData = computed(() =>
 	data.value?.bakers.nodes?.some(
