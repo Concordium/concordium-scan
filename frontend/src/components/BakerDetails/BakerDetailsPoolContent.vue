@@ -164,7 +164,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
-import BakerDetailsRewards from './BakerDetailsRewards.vue'
 import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
