@@ -38,8 +38,8 @@
 			:disabled="!props.pageInfo.hasNextPage"
 			:on-click="goToNext"
 		>
-			<ChevronRightIcon :class="buttonClasses" />
 			<span v-if="size !== 'sm'" class="hidden md:inline">Next</span>
+			<ChevronRightIcon :class="buttonClasses" />
 		</Button>
 	</nav>
 </template>
