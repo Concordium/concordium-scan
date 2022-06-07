@@ -214,7 +214,7 @@ public class MetricsWriter
 
             PoolStakeInfo poolStakes = poolReward.Pool switch
             {
-                BakerPoolRewardTarget baker => bakerPoolStakes[baker.BakerId],
+                BakerPoolRewardTarget baker => bakerPoolStakes.ContainsKey(baker.BakerId) ? bakerPoolStakes[baker.BakerId] : new PoolStakeInfo(baker.BakerId, 0, 0, 0),
                 PassiveDelegationPoolRewardTarget => passiveDelegationStakes,
                 _ => throw new NotImplementedException()
             };
