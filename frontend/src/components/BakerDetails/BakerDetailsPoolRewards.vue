@@ -135,11 +135,11 @@ import { RewardTakerTypes } from '~/types/rewardTakerTypes'
 import { MetricsPeriod } from '~/types/generated'
 import type { Baker, PageInfo } from '~/types/generated'
 
+const { NOW } = useDateNow()
+const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination({
 	pageSize: PAGE_SIZE_SMALL,
 })
-
-const { NOW } = useDateNow()
 
 type Props = {
 	bakerId: Baker['bakerId']
@@ -165,11 +165,17 @@ const {
 } = useBakerPoolRewardMetrics(props.rawId, selectedMetricsPeriod)
 
 const pageInfo = ref<PageInfo | undefined>(
-	data?.value?.bakerByBakerId?.rewards?.pageInfo
+	data.value?.bakerByBakerId.state.__typename === 'ActiveBakerState'
+		? data?.value?.bakerByBakerId?.state.pool?.rewards?.pageInfo
+		: undefined
 )
-const { breakpoint } = useBreakpoint()
+
 watch(
 	() => data.value,
-	value => (pageInfo.value = value?.bakerByBakerId?.rewards?.pageInfo)
+	value => {
+		if (value?.bakerByBakerId.state.__typename === 'ActiveBakerState') {
+			pageInfo.value = value?.bakerByBakerId?.state.pool?.rewards?.pageInfo
+		}
+	}
 )
 </script>
