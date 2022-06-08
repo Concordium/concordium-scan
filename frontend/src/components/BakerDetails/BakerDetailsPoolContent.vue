@@ -7,8 +7,8 @@
 				:pending-change="baker.state.pendingChange"
 			/>
 
-			<div class="grid gap-8 md:grid-cols-3 mb-8">
-				<DetailsCard>
+			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+				<DetailsCard class="sm:col-span-2 lg:col-span-1">
 					<template #title>Total stake</template>
 					<template #default>
 						<Tooltip
