@@ -26,7 +26,7 @@
 						</button>
 					</div>
 
-					<NetworkSelect class="lg:hidden absolute left-6 top-5 p-2" />
+					<NetworkSelect class="lg:hidden absolute left-6 top-5 m-2" />
 
 					<nav class="flex flex-col items-end p-6 pr-8 pt-24">
 						<div
