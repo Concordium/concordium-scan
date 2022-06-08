@@ -59,6 +59,21 @@ __typename
 	amount
 	moduleRef
 }
+... on ContractInterrupted {
+	contractAddress {
+		__typename
+		index
+		subIndex
+	}
+}
+... on ContractResumed {
+	contractAddress {
+		__typename
+		index
+		subIndex
+	}
+	success
+}
 ... on ContractModuleDeployed {
 	moduleRef
 }

@@ -62,6 +62,16 @@
 					:event="event"
 				/>
 
+				<ContractInterrupted
+					v-else-if="event.__typename === 'ContractInterrupted'"
+					:event="event"
+				/>
+
+				<ContractResumed
+					v-else-if="event.__typename === 'ContractResumed'"
+					:event="event"
+				/>
+
 				<CredentialDeployed
 					v-else-if="event.__typename === 'CredentialDeployed'"
 					:event="event"
@@ -186,6 +196,8 @@ import BakerStakeIncreased from './Events/BakerStakeIncreased.vue'
 import ChainUpdateEnqueued from './Events/ChainUpdateEnqueued.vue'
 import ContractInitialized from './Events/ContractInitialized.vue'
 import ContractModuleDeployed from './Events/ContractModuleDeployed.vue'
+import ContractInterrupted from './Events/ContractInterrupted.vue'
+import ContractResumed from './Events/ContractResumed.vue'
 import ContractUpdated from './Events/ContractUpdated.vue'
 import CredentialDeployed from './Events/CredentialDeployed.vue'
 import CredentialKeysUpdated from './Events/CredentialKeysUpdated.vue'
