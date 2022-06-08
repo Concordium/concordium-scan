@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Application.Common.FeatureFlags;
 using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
@@ -12,13 +13,15 @@ namespace Application.Database
         private const string MainDatabaseSqlScriptsFolder = "SqlScripts";
         private const string NodeCacheSqlScriptsFolder = "SqlScriptsNodeCache";
         private readonly DatabaseSettings _settings;
+        private readonly IFeatureFlags _featureFlags;
         private readonly ILogger _logger;
         private readonly DbUpLogWrapper _dbUpLogWrapper;
         private readonly Assembly _sqlScriptsAssembly;
 
-        public DatabaseMigrator(DatabaseSettings settings)
+        public DatabaseMigrator(DatabaseSettings settings, IFeatureFlags featureFlags)
         {
             _settings = settings;
+            _featureFlags = featureFlags;
             _logger = Log.ForContext(GetType());
             _dbUpLogWrapper = new DbUpLogWrapper(_logger);
             _sqlScriptsAssembly = typeof(DatabaseScriptsMarkerType).Assembly;
@@ -26,8 +29,17 @@ namespace Application.Database
 
         public void MigrateDatabases()
         {
-            MigrateDatabase(_settings.ConnectionString, MainDatabaseSqlScriptsFolder);
-            MigrateDatabase(_settings.ConnectionStringNodeCache, NodeCacheSqlScriptsFolder);
+            if (_featureFlags.MigrateDatabasesAtStartup)
+            {
+                _logger.Information("Starting database migration...");
+                MigrateDatabase(_settings.ConnectionString, MainDatabaseSqlScriptsFolder);
+                MigrateDatabase(_settings.ConnectionStringNodeCache, NodeCacheSqlScriptsFolder);
+                _logger.Information("Database migration finished successfully");
+            }
+            else
+            {
+                _logger.Warning("Migration of databases is disabled. Will not check if any changed needs to be applied to databases!");
+            }
         }
         private void MigrateDatabase(string connectionString, string sqlScriptsFolder)
         {

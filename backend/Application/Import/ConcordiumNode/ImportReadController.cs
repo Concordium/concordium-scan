@@ -31,9 +31,9 @@ public class ImportReadController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_featureFlags.IsEnabled("ccnode-import"))
+        if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
-            _logger.Warning("Reading data from Concordium node is disabled. No data will be imported!");
+            _logger.Warning("Import data from Concordium node is disabled. This controller will not run!");
             return;
         }
 

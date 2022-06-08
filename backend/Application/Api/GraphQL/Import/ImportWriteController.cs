@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Common.Diagnostics;
+using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
 using ConcordiumSdk.Types;
@@ -31,6 +32,7 @@ public class ImportWriteController : BackgroundService
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
+    private readonly IFeatureFlags _featureFlags;
     private readonly IAccountLookup _accountLookup;
     private readonly MaterializedViewRefresher _materializedViewRefresher;
     private readonly DelegationImportHandler _delegationHandler;
@@ -38,9 +40,10 @@ public class ImportWriteController : BackgroundService
     private readonly PaydayImportHandler _paydayHandler;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
-        ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
+        IFeatureFlags featureFlags, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
         IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
     {
+        _featureFlags = featureFlags;
         _accountLookup = accountLookup;
         _sender = sender;
         _channel = channel;
@@ -65,6 +68,12 @@ public class ImportWriteController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_featureFlags.ConcordiumNodeImportEnabled)
+        {
+            _logger.Warning("Import data from Concordium node is disabled. This controller will not run!");
+            return;
+        }
+        
         try
         {
             await ReadAndPublishInitialState();

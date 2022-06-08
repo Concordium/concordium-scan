@@ -1,5 +1,6 @@
 ﻿using Application.Database;
 using Npgsql;
+using Tests.TestUtilities.Stubs;
 
 namespace Tests.TestUtilities;
 
@@ -22,7 +23,8 @@ public class DatabaseFixture
         {
             if (!_databaseAlreadyMigrated)
             {
-                var databaseMigrator = new DatabaseMigrator(DatabaseSettings);
+                var featureFlags = new FeatureFlagsStub(migrateDatabasesAtStartup:true);
+                var databaseMigrator = new DatabaseMigrator(DatabaseSettings, featureFlags);
                 databaseMigrator.MigrateDatabases();
 
                 Console.WriteLine("Database migrated");
