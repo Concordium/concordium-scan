@@ -37,7 +37,7 @@
 					delegation.delegationTarget.__typename === 'PassiveDelegationTarget'
 				"
 			>
-				Passive delegation
+				<PassiveDelegationLink />
 			</span>
 		</dd>
 	</dl>
@@ -47,6 +47,7 @@
 import type { Delegation } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
 
 type Props = {
 	delegation: Delegation

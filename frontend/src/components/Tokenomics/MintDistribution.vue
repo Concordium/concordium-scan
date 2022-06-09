@@ -16,7 +16,8 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Foundation account
+					Foundation account (
+					<AccountLink :address="event.foundationAccountAddress.asString" /> )
 					<template #content>
 						<Amount
 							:amount="event.platformDevelopmentCharge"
@@ -53,6 +54,7 @@ import TokenomicsDisplay from './TokenomicsDisplay.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import DescriptionList from '~/components/atoms/DescriptionList.vue'
 import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
+import AccountLink from '~/components/molecules/AccountLink.vue'
 import Pagination from '~/components/Pagination.vue'
 import type { PageInfo, MintSpecialEvent } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'

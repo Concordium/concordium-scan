@@ -4,7 +4,7 @@
 		<template #content>
 			<DescriptionList v-for="event in data.nodes" :key="event.id">
 				<DescriptionListItem>
-					Payday account
+					Foundation account
 					<template #content>
 						<AccountLink :address="event.foundationAccount.asString" />
 					</template>

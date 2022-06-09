@@ -1,4 +1,5 @@
 ﻿using Application.Database;
+using Tests.TestUtilities.Stubs;
 
 namespace Tests.DatabaseScripts;
 
@@ -13,8 +14,9 @@ public class SqlScriptNamingConventionsTest
     {
         var connectionString = ""; // this test will not execute any scripts, so connection string is irrelevant! 
         var settings = new DatabaseSettings {ConnectionString = connectionString};
-        
-        var databaseMigrator = new DatabaseMigrator(settings);
+
+        var featureFlags = new FeatureFlagsStub(migrateDatabasesAtStartup: true);
+        var databaseMigrator = new DatabaseMigrator(settings, featureFlags);
         databaseMigrator.EnsureScriptNamingConventionsFollowed();
     }
 }

@@ -32,8 +32,8 @@
 			</Accordion>
 			<Accordion>
 				Transactions
-				<span class="text-theme-faded ml-1">
-					({{ props.block.transactionCount }})
+				<span class="numerical text-theme-faded ml-1">
+					({{ formatNumber(props.block.transactionCount) }})
 				</span>
 				<template #content>
 					<BlockDetailsTransactions
@@ -67,7 +67,11 @@ import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'
 import { useDateNow } from '~/composables/useDateNow'
-import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
+import {
+	convertTimestampToRelative,
+	formatTimestamp,
+	formatNumber,
+} from '~/utils/format'
 import type { PageInfo, Block } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 import BlockDetailsTransactions from '~/components/BlockDetails/BlockDetailsTransactions.vue'

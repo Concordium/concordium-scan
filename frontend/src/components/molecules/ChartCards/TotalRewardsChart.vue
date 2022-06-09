@@ -13,7 +13,10 @@
 		<template #title>Rewards</template>
 		<template #icon>Ͼ</template>
 		<template #value>{{
-			convertMicroCcdToCcd(rewardMetricsData?.rewardMetrics?.sumRewardAmount)
+			convertMicroCcdToCcd(
+				rewardMetricsData?.rewardMetrics?.sumRewardAmount,
+				true
+			)
 		}}</template>
 		<template #chip>sum</template>
 	</KeyValueChartCard>

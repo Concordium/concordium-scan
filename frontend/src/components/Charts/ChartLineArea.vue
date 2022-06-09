@@ -75,8 +75,8 @@ watch(props, () => {
 	if (
 		(props.yValuesHigh &&
 			props.xValues &&
-			props.yValuesHigh[0] === chartData.datasets[0].data[0] &&
-			props.xValues[0] === chartData.labels[0]) ||
+			props.yValuesHigh === chartData.datasets[0].data &&
+			props.xValues === chartData.labels) ||
 		!chartInstance
 	)
 		return

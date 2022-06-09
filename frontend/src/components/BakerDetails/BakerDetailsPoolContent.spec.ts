@@ -1,6 +1,12 @@
 import { h } from 'vue'
 import BakerDetailsPoolContent from './BakerDetailsPoolContent.vue'
-import { setupComponent, screen, within } from '~/utils/testing'
+import {
+	setupComponent,
+	screen,
+	within,
+	fireEvent,
+	waitFor,
+} from '~/utils/testing'
 import { BakerPoolOpenStatus } from '~/types/generated'
 
 jest.mock('~/composables/useDrawer', () => ({
@@ -25,7 +31,7 @@ jest.mock('vue-router', () => ({
 
 // mocked as some of its imports causes problems for Jest
 jest.mock(
-	'~/components/molecules/ChartCards/RewardMetricsForBakerChart',
+	'~/components/molecules/ChartCards/RewardMetricsForPoolChart',
 	() => ({
 		render: () => h('div'),
 	})
@@ -114,5 +120,42 @@ describe('BakerDetailsPoolContent', () => {
 		expect(screen.getByTestId('delegators-accordion')).toHaveTextContent(
 			'Delegators (1337)'
 		)
+	})
+
+	describe('when the baker has metadata', () => {
+		it('will show metadata accordion', () => {
+			render({})
+
+			expect(screen.getByText('Metadata')).toBeInTheDocument()
+		})
+
+		it('will show metadata inside metadata accordion', async () => {
+			render({})
+
+			expect(screen.queryByText('http://ccdscan.io/')).not.toBeInTheDocument()
+
+			fireEvent.click(screen.getByText('Metadata'))
+
+			expect(await screen.findByText('https://ccdscan.io/')).toBeVisible()
+		})
+
+		it('will not show metadata accordion if the baker has no metadata', () => {
+			const props = {
+				baker: {
+					...defaultProps.baker,
+					state: {
+						...defaultProps.baker.state,
+						pool: {
+							...defaultProps.baker.state.pool,
+							metadataUrl: undefined,
+						},
+					},
+				},
+			}
+
+			render({ props })
+
+			expect(screen.queryByText('Metadata')).not.toBeInTheDocument()
+		})
 	})
 })

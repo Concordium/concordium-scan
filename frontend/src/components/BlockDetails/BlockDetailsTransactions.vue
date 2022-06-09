@@ -38,7 +38,7 @@
 						align="right"
 						class="numerical"
 					>
-						{{ convertMicroCcdToCcd(transaction.ccdCost) }}
+						<Amount :amount="transaction.ccdCost" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -52,12 +52,12 @@
 </template>
 
 <script lang="ts" setup>
-import { convertMicroCcdToCcd } from '~/utils/format'
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
 import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PageInfo, Transaction } from '~/types/generated'
+import Amount from '~/components/atoms/Amount.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 
 const { breakpoint } = useBreakpoint()

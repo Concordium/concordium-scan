@@ -18,5 +18,5 @@ public record BakerPoolStatus(
     CcdAmount DelegatedCapitalCap,
     BakerPoolInfo PoolInfo,
     // TODO: baker_stake_pending_change: PoolPendingChange
-    // TODO: current_payday_status:      Option<CurrentPaydayBakerPoolStatus>
+    CurrentPaydayBakerPoolStatus? CurrentPaydayStatus,
     CcdAmount AllPoolTotalCapital);

@@ -177,7 +177,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task UpdateDelegationStakeIfRestakingEarnings_AccountDoesNotExist()
     {
-        var reward = new AccountReward(42, 100);
+        var reward = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { reward });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -190,7 +190,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddAccounts(new AccountBuilder().WithId(42).WithDelegation(null).WithUniqueAddress().Build());
     
-        var reward = new AccountReward(42, 100);
+        var reward = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { reward });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -205,7 +205,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddAccounts(new AccountBuilder().WithId(42).WithDelegation(new DelegationBuilder().WithStakedAmount(1000).WithRestakeEarnings(restakeEarnings).Build()).WithUniqueAddress().Build());
 
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateDelegationStakeIfRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();

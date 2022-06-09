@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Common.Diagnostics;
+using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
 using ConcordiumSdk.Types;
@@ -31,6 +32,7 @@ public class ImportWriteController : BackgroundService
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
+    private readonly IFeatureFlags _featureFlags;
     private readonly IAccountLookup _accountLookup;
     private readonly MaterializedViewRefresher _materializedViewRefresher;
     private readonly DelegationImportHandler _delegationHandler;
@@ -38,9 +40,10 @@ public class ImportWriteController : BackgroundService
     private readonly PaydayImportHandler _paydayHandler;
 
     public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
-        ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
+        IFeatureFlags featureFlags, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
         IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
     {
+        _featureFlags = featureFlags;
         _accountLookup = accountLookup;
         _sender = sender;
         _channel = channel;
@@ -65,6 +68,12 @@ public class ImportWriteController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_featureFlags.ConcordiumNodeImportEnabled)
+        {
+            _logger.Warning("Import data from Concordium node is disabled. This controller will not run!");
+            return;
+        }
+        
         try
         {
             await ReadAndPublishInitialState();
@@ -163,10 +172,11 @@ public class ImportWriteController : BackgroundService
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, isFirstBlockAfterPayday, importState);
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters, bakerUpdateResults, rewardsSummary, isFirstBlockAfterPayday);
-        await _bakerHandler.ApplyDelegationUpdates(delegationUpdateResults, payload);
+        await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters);
         await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState);
         
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Id, bakerUpdateResults, delegationUpdateResults, importState);
+        var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
         await _bakerHandler.AddBakerTransactionRelations(transactions);
@@ -178,9 +188,10 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
-        _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
-
+        _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
+        _metricsWriter.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
 

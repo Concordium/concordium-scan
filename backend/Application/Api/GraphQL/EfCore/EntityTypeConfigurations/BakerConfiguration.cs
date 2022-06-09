@@ -35,6 +35,7 @@ public class BakerConfiguration :
                     commissionRatesBuilder.Property(x => x.BakingCommission).HasColumnName("active_pool_baking_commission");
                 });
                 poolBuilder.Property(x => x.DelegatedStake).HasColumnName("active_pool_delegated_stake");
+                poolBuilder.Property(x => x.DelegatedStakeCap).HasColumnName("active_pool_delegated_stake_cap");
                 poolBuilder.Property(x => x.TotalStake).HasColumnName("active_pool_total_stake");
                 poolBuilder.Property(x => x.DelegatorCount).HasColumnName("active_pool_delegator_count");
             });

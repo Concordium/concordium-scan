@@ -14,8 +14,8 @@
 				<DetailsCard v-if="baker.state.__typename === 'ActiveBakerState'">
 					<template #title>Staked amount</template>
 					<template #default>
-						<span class="numerical">
-							{{ convertMicroCcdToCcd(baker.state.stakedAmount) }} Ͼ
+						<span class="numerical" data-testid="staked-amount">
+							<Amount :amount="baker.state.stakedAmount" :show-symbol="true" />
 						</span>
 					</template>
 					<template #secondary> {{ restakeText }} </template>
@@ -42,7 +42,10 @@
 			<Accordion>
 				Rewards
 				<template #content>
-					<BakerDetailsRewards :baker-id="baker.bakerId" />
+					<BakerDetailsRewards
+						:account-address="baker.account.address.asString"
+						:baker-id="baker.bakerId"
+					/>
 				</template>
 			</Accordion>
 
@@ -65,13 +68,10 @@ import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
-import {
-	convertMicroCcdToCcd,
-	formatTimestamp,
-	convertTimestampToRelative,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import type { Baker } from '~/types/generated'
 
 const { NOW } = useDateNow()

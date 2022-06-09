@@ -22,6 +22,8 @@ public class GraphQlDbContext : DbContext
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
     public DbSet<AccountReleaseScheduleItem> AccountReleaseScheduleItems { get; private set; }
     public DbSet<IdentityProvider> IdentityProviders { get; private set; }
+    public DbSet<AccountReward> AccountRewards { get; private set; }
+    public DbSet<PoolReward> PoolRewards { get; private set; }
     public DbSet<AccountStatementEntry> AccountStatementEntries { get; private set; }
     public DbSet<Baker> Bakers { get; private set; }
     public DbSet<BakerReward> BakerRewards { get; private set; }

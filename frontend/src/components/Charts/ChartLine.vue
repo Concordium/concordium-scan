@@ -42,12 +42,11 @@ watch(props, () => {
 	if (
 		(props.yValues &&
 			props.xValues &&
-			props.yValues[0] === chartData.datasets[0].data[0] &&
-			props.xValues[0] === chartData.labels[0]) ||
+			props.yValues === chartData.datasets[0].data &&
+			props.xValues === chartData.labels) ||
 		!chartInstance
 	)
 		return
-
 	chartInstance.data.labels = props.xValues
 	chartInstance.data.datasets[0].data =
 		props.yValues?.filter(x => x !== undefined) || []

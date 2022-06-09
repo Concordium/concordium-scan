@@ -159,3 +159,10 @@ export const formatSeconds = (seconds: number) =>
 		minimumFractionDigits: 1,
 		maximumFractionDigits: 1,
 	}).format(seconds)
+
+export const formatPercentage = (num: number) => {
+	return new Intl.NumberFormat(undefined, {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(num * 100)
+}

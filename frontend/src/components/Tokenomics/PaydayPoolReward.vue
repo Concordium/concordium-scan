@@ -24,7 +24,7 @@
 									'PassiveDelegationPoolRewardTarget'
 								"
 							>
-								Passive delegation
+								<PassiveDelegationLink />
 							</span>
 						</TableTd>
 						<TableTd align="right" class="numerical">
@@ -63,6 +63,7 @@ import Pagination from '~/components/Pagination.vue'
 import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { PageInfo, PaydayPoolRewardSpecialEvent } from '~/types/generated'
+import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
 
 type Props = {
 	data: FilteredSpecialEvent<PaydayPoolRewardSpecialEvent>

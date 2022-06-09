@@ -76,7 +76,9 @@
 			</div>
 			<Accordion>
 				Transactions
-				<span class="text-theme-faded">({{ account.transactionCount }})</span>
+				<span class="numerical text-theme-faded"
+					>({{ account.transactionCount }})</span
+				>
 				<template #content>
 					<AccountDetailsTransactions
 						v-if="
@@ -136,6 +138,21 @@
 					<AccountDetailsDelegation :delegation="account.delegation" />
 				</template>
 			</Accordion>
+			<Accordion
+				v-if="
+					account.rewards?.nodes.length && account.rewards?.nodes.length > 0
+				"
+			>
+				Rewards
+				<template #content>
+					<AccountDetailsRewards
+						:account-rewards="account.rewards.nodes"
+						:page-info="account.rewards.pageInfo"
+						:go-to-page="goToPageAccountRewards"
+						:account-id="account.id"
+					/>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -160,6 +177,7 @@ import type { PaginationTarget } from '~/composables/usePagination'
 import AccountDetailsDelegation from '~/components/Accounts/AccountDetailsDelegation.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import AccountDetailsRewards from '~/components/Accounts/AccountDetailsRewards.vue'
 
 const { NOW } = useDateNow()
 
@@ -172,6 +190,7 @@ type Props = {
 	goToPageAccountStatement: (
 		page: PageInfo
 	) => (target: PaginationTarget) => void
+	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()

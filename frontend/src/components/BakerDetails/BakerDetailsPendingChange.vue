@@ -7,9 +7,9 @@
 		>
 			<!-- vue-tsc doesn't seem to be satisfied with the template condition ... -->
 			<span v-if="pendingChange.__typename === 'PendingBakerReduceStake'">
-				Stake will be reduced to
+				Baker stake will be reduced to
 				<Amount :amount="pendingChange.newStakedAmount" :show-symbol="true" />
-				on
+				in
 				<Tooltip :text="pendingChange.effectiveTime">
 					{{ convertTimestampToRelative(pendingChange.effectiveTime, NOW) }}
 				</Tooltip>

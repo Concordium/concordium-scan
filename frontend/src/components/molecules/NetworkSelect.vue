@@ -1,5 +1,5 @@
 <template>
-	<div class="relative">
+	<div class="relative w-min">
 		<select
 			class="border-2 border-solid text-sm rounded-full align-middle uppercase ml-4 px-4 py-2 pr-8 appearance-none uppercase select"
 			:class="`select--${selectedValue}`"

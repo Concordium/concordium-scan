@@ -3,7 +3,7 @@
 		<transition name="drawer-mask">
 			<div
 				v-if="currentDrawerCount > 0"
-				class="h-screen w-screen fixed top-0 left-0 z-20"
+				class="h-screen w-screen fixed top-0 left-0 z-20 lg:lol"
 				:class="$style.drawerMask"
 				@click="() => softReset()"
 			></div>
@@ -12,7 +12,7 @@
 			<div
 				v-for="(drawerItem, index) in getDisplayItems()"
 				:key="index"
-				class="flex-col flex-nowrap justify-between min-h-screen w-full md:w-3/4 xl:w-1/2 absolute top-0 right-0 z-20 overflow-x-hidden"
+				class="flex-col flex-nowrap justify-between min-h-screen w-full absolute top-0 right-0 z-20 overflow-x-hidden lol"
 				:class="[
 					$style.drawer,
 					$style.fixedAndMaxHeight,
@@ -44,6 +44,11 @@
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'baker'"
 							:baker-id="drawerItem.bakerId"
 						/>
+						<PassiveDelegationContainer
+							v-else-if="
+								drawerItem && drawerItem.entityTypeName === 'passiveDelegation'
+							"
+						/>
 					</template>
 
 					<template #actions>
@@ -66,6 +71,7 @@ import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContain
 import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'
+import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDelegationContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()

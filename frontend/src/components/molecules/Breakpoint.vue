@@ -15,5 +15,6 @@ const { breakpoint } = useBreakpoint()
 <style scoped>
 .breakpoint {
 	background: var(--color-input-bg);
+	z-index: 90001;
 }
 </style>

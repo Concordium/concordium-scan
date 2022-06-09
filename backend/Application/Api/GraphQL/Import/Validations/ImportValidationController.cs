@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
+using Application.Common.FeatureFlags;
 using ConcordiumSdk.NodeApi;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,12 +9,12 @@ namespace Application.Api.GraphQL.Import.Validations;
 
 public class ImportValidationController
 {
-    private readonly ImportValidationSettings _settings;
+    private readonly IFeatureFlags _featureFlags;
     private readonly IImportValidator[] _validators;
 
-    public ImportValidationController(GrpcNodeClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory, ImportValidationSettings settings)
+    public ImportValidationController(GrpcNodeClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory, IFeatureFlags featureFlags)
     {
-        _settings = settings;
+        _featureFlags = featureFlags;
         _validators = new IImportValidator[]
         {
             new AccountValidator(grpcNodeClient, dbContextFactory),
@@ -24,7 +25,7 @@ public class ImportValidationController
 
     public async Task PerformValidations(Block block)
     {
-        if (!_settings.Enabled) return;
+        if (!_featureFlags.ConcordiumNodeImportValidationEnabled) return;
 
         // TODO: temporarily increase occurrence of validation in blocks after P4 update (testnet)
         var modValue = block.BlockHeight < 3221721 ? 10000 : 1000;

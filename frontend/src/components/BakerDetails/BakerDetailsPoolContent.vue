@@ -7,8 +7,8 @@
 				:pending-change="baker.state.pendingChange"
 			/>
 
-			<div class="grid gap-8 md:grid-cols-2 mb-8">
-				<DetailsCard>
+			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+				<DetailsCard class="sm:col-span-2 lg:col-span-1">
 					<template #title>Total stake</template>
 					<template #default>
 						<Tooltip
@@ -47,6 +47,22 @@
 								Delegated
 							</Chip>
 						</div>
+					</template>
+				</DetailsCard>
+
+				<DetailsCard v-if="computedBadgeOptions">
+					<template #title>Delegation pool status</template>
+					<template #default>
+						<StatusCircle
+							:class="[
+								'h-4 inline mr-2 text-theme-interactive align-text-top',
+								{
+									'text-theme-info': computedBadgeOptions[0] === 'info',
+									'text-theme-error': computedBadgeOptions[0] === 'failure',
+								},
+							]"
+						/>
+						{{ computedBadgeOptions[1] }}
 					</template>
 				</DetailsCard>
 
@@ -111,7 +127,10 @@
 			<Accordion>
 				Rewards
 				<template #content>
-					<BakerDetailsRewards :baker-id="baker.bakerId" />
+					<BakerDetailsPoolRewards
+						:baker-id="baker.bakerId"
+						:raw-id="baker.id"
+					/>
 				</template>
 			</Accordion>
 
@@ -131,13 +150,20 @@
 					<BakerDetailsDelegators :baker-id="baker.bakerId" />
 				</template>
 			</Accordion>
+
+			<Accordion v-if="baker.state.pool.metadataUrl">
+				Metadata
+				<template #content>
+					{{ baker.state.pool.metadataUrl }}
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
-import BakerDetailsRewards from './BakerDetailsRewards.vue'
 import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
@@ -145,23 +171,22 @@ import Amount from '~/components/atoms/Amount.vue'
 import Chip from '~/components/atoms/Chip.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import StatusCircle from '~/components/icons/StatusCircle.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import type { Baker } from '~/types/generated'
+import { formatPercentage } from '~/utils/format'
+import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
+import { composeBakerStatus } from '~/utils/composeBakerStatus'
 
 type Props = {
 	baker: Baker
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-const formatPercentage = (num: number) => {
-	return new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(num * 100)
-}
+const computedBadgeOptions = computed(() => composeBakerStatus(props.baker))
 </script>
 
 <style scoped>

@@ -25,7 +25,7 @@
 				</TableHead>
 				<TableBody v-if="componentState === 'success'">
 					<TableRow
-						v-for="reward in data?.bakerByBakerId.rewards?.nodes || []"
+						v-for="reward in data?.accountByAddress.rewards?.nodes || []"
 						:key="reward.id"
 					>
 						<TableTd>
@@ -122,16 +122,20 @@ const { NOW } = useDateNow()
 
 type Props = {
 	bakerId: Baker['bakerId']
+	accountAddress: string
 }
 
 const props = defineProps<Props>()
 
-const { data, error, componentState } = useBakerRewardsQuery(props.bakerId, {
-	first,
-	last,
-	after,
-	before,
-})
+const { data, error, componentState } = useBakerRewardsQuery(
+	props.accountAddress,
+	{
+		first,
+		last,
+		after,
+		before,
+	}
+)
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
 const {
@@ -140,11 +144,11 @@ const {
 } = useRewardMetricsForBakerQueryQuery(props.bakerId, selectedMetricsPeriod)
 
 const pageInfo = ref<PageInfo | undefined>(
-	data?.value?.bakerByBakerId?.rewards?.pageInfo
+	data?.value?.accountByAddress?.rewards?.pageInfo
 )
 const { breakpoint } = useBreakpoint()
 watch(
 	() => data.value,
-	value => (pageInfo.value = value?.bakerByBakerId?.rewards?.pageInfo)
+	value => (pageInfo.value = value?.accountByAddress?.rewards?.pageInfo)
 )
 </script>

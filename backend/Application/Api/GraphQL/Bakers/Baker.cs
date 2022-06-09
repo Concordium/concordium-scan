@@ -66,7 +66,8 @@ public class Baker
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_reward_by_descending_index")]  
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_reward_by_descending_index")]
+    [GraphQLDeprecated("Do not use, will be removed in the near future. For individual baker rewards get them via the Account and for Baker Pool rewards get them via the Baker Pool")]
     public IQueryable<BakerReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.BakerRewards

@@ -2,5 +2,7 @@
 
 public interface IFeatureFlags
 {
-    bool IsEnabled(string featureName);
+    bool ConcordiumNodeImportEnabled { get; }
+    bool MigrateDatabasesAtStartup { get; }
+    bool ConcordiumNodeImportValidationEnabled { get; }
 }

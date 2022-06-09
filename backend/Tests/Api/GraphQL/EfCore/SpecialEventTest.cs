@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Dapper;
 using FluentAssertions;
@@ -230,14 +231,18 @@ public class SpecialEventTest : IClassFixture<DatabaseFixture>
     }
     
     [Theory]
-    [InlineData(17UL)]
+    [InlineData(17L)]
     [InlineData(null)]
-    public async Task PaydayPoolRewardSpecialEvent(ulong? poolOwner)
+    public async Task PaydayPoolRewardSpecialEvent(long? poolOwner)
     {
+        PoolRewardTarget pool = poolOwner.HasValue
+            ? new BakerPoolRewardTarget(poolOwner.Value)
+            : new PassiveDelegationPoolRewardTarget();
+        
         var entity = new PaydayPoolRewardSpecialEvent
         {
             BlockId = 42,
-            PoolOwner = poolOwner,
+            Pool = pool,
             TransactionFees = 1000,
             BakerReward = 2000,
             FinalizationReward = 3000
@@ -252,7 +257,7 @@ public class SpecialEventTest : IClassFixture<DatabaseFixture>
         result.Index.Should().BeGreaterThan(0);
         
         var typed = result.Should().BeOfType<PaydayPoolRewardSpecialEvent>().Subject;
-        typed.PoolOwner.Should().Be(poolOwner);
+        typed.Pool.Should().Be(pool);
         typed.TransactionFees.Should().Be(1000);
         typed.BakerReward.Should().Be(2000);
         typed.FinalizationReward.Should().Be(3000);

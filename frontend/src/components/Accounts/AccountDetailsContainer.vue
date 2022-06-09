@@ -9,6 +9,7 @@
 		:go-to-page-tx="goToPageTx"
 		:go-to-page-release-schedule="goToPageReleaseSchedule"
 		:go-to-page-account-statement="goToPageAccountStatement"
+		:go-to-page-account-rewards="goToPageAccountRewards"
 	/>
 </template>
 
@@ -46,6 +47,14 @@ const {
 } = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
 const {
+	first: firstAccountReward,
+	last: lastAccountReward,
+	after: afterAccountReward,
+	before: beforeAccountReward,
+	goToPage: goToPageAccountRewards,
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
+
+const {
 	first: firstAccountStatement,
 	last: lastAccountStatement,
 	after: afterAccountStatement,
@@ -66,6 +75,10 @@ const transactionVariables = {
 	lastAccountStatement,
 	afterAccountStatement,
 	beforeAccountStatement,
+	firstAccountReward,
+	lastAccountReward,
+	afterAccountReward,
+	beforeAccountReward,
 }
 
 const { data, error, componentState } = useAccountQuery({

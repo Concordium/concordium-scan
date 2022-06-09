@@ -187,3 +187,10 @@ This will generate a new set of types in `types/generated.ts`. You should never 
 
 - **Vue3 Carousel does not properly export it's types**
   We've "solved" this by declaring the module on our own, but that just hides the problem. See https://github.com/ismail9k/vue3-carousel/issues/10.
+
+- **Tailwind config causes build error**
+  When building the application with a RC version of Nuxt, we see an error:
+
+  > Importing directly from a nuxt.config file is not allowed. Instead, use runtime config or a module.
+
+  This error occurs because Tailwind is traversing `nuxt.config` directly into their own config. Overwriting this on our end seems not to work, so for the time being we've reverted to a working version of Nuxt. See https://github.com/nuxt/framework/issues/2886.

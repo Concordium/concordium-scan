@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL;
+﻿using HotChocolate;
+
+namespace Application.Api.GraphQL;
 
 public class LeverageFactor
 {
@@ -27,5 +29,11 @@ public class LeverageFactor
     public static bool operator !=(LeverageFactor? left, LeverageFactor? right)
     {
         return !Equals(left, right);
+    }
+
+    [GraphQLIgnore]
+    public decimal AsDecimal()
+    {
+        return (decimal)Numerator / Denominator;
     }
 }

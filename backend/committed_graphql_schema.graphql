@@ -15,6 +15,7 @@ type Account {
   releaseSchedule: AccountReleaseSchedule!
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTransactionRelationConnection
   accountStatement("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountStatementEntryConnection
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountRewardConnection
   baker: Baker
   id: ID!
   address: AccountAddress!
@@ -82,6 +83,32 @@ type AccountReleaseScheduleItemEdge {
   cursor: String!
   "The item at the end of the edge."
   node: AccountReleaseScheduleItem!
+}
+
+type AccountReward {
+  block: Block!
+  id: ID!
+  timestamp: DateTime!
+  rewardType: RewardType!
+  amount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type AccountRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [AccountRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [AccountReward!]
+}
+
+"An edge in a connection."
+type AccountRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: AccountReward!
 }
 
 type AccountStatementEntry {
@@ -175,6 +202,8 @@ type AccountsMetricsBuckets {
 }
 
 type ActiveBakerState {
+  "The status of the bakers node. Will be null if no status for the node exists."
+  nodeStatus: NodeStatus
   stakedAmount: UnsignedLong!
   restakeEarnings: Boolean!
   pool: BakerPool
@@ -235,7 +264,7 @@ type AmountsScheduleEdge {
 
 type Baker {
   account: Account!
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerRewardConnection @deprecated(reason: "Do not use, will be removed in the near future. For individual baker rewards get them via the Account and for Baker Pool rewards get them via the Baker Pool")
   "Get the transactions that have affected the baker."
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerTransactionRelationConnection
   id: ID!
@@ -298,18 +327,21 @@ type BakerPool {
   "Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
   rankingByTotalStake: Ranking
   delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PoolRewardConnection
   openStatus: BakerPoolOpenStatus!
   commissionRates: CommissionRates!
   metadataUrl: String!
   "The total amount staked by delegation to this baker pool."
   delegatedStake: UnsignedLong!
+  "The maximum amount that may be delegated to the pool, accounting for leverage and stake limits."
+  delegatedStakeCap: UnsignedLong!
   "The total amount staked in this baker pool. Includes both baker stake and delegated stake."
   totalStake: UnsignedLong!
   delegatorCount: Int!
 }
 
 type BakerPoolRewardTarget {
-  bakerId: UnsignedLong!
+  bakerId: Long!
 }
 
 type BakerRemoved {
@@ -1054,6 +1086,75 @@ type NewEncryptedAmount {
   encryptedAmount: String!
 }
 
+type NodeStatus {
+  peersList: [PeerReference!]!
+  nodeName: String!
+  nodeId: String!
+  peerType: String!
+  uptime: UnsignedLong!
+  clientVersion: String!
+  averagePing: Float
+  peersCount: UnsignedLong!
+  bestBlock: String!
+  bestBlockHeight: UnsignedLong!
+  bestBlockBakerId: UnsignedLong
+  bestArrivedTime: DateTime
+  blockArrivePeriodEma: Float
+  blockArrivePeriodEmsd: Float
+  blockArriveLatencyEma: Float
+  blockArriveLatencyEmsd: Float
+  blockReceivePeriodEma: Float
+  blockReceivePeriodEmsd: Float
+  blockReceiveLatencyEma: Float
+  blockReceiveLatencyEmsd: Float
+  finalizedBlock: String!
+  finalizedBlockHeight: UnsignedLong!
+  finalizedTime: DateTime
+  finalizationPeriodEma: Float
+  finalizationPeriodEmsd: Float
+  packetsSent: UnsignedLong!
+  packetsReceived: UnsignedLong!
+  consensusRunning: Boolean!
+  bakingCommitteeMember: String!
+  consensusBakerId: UnsignedLong
+  finalizationCommitteeMember: Boolean!
+  transactionsPerBlockEma: Float
+  transactionsPerBlockEmsd: Float
+  bestBlockTransactionsSize: UnsignedLong
+  bestBlockTotalEncryptedAmount: UnsignedLong
+  bestBlockTotalAmount: UnsignedLong
+  bestBlockTransactionCount: UnsignedLong
+  bestBlockTransactionEnergyCost: UnsignedLong
+  bestBlockExecutionCost: UnsignedLong
+  bestBlockCentralBankAmount: UnsignedLong
+  blocksReceivedCount: UnsignedLong
+  blocksVerifiedCount: UnsignedLong
+  genesisBlock: String!
+  finalizationCount: UnsignedLong
+  finalizedBlockParent: String!
+  averageBytesPerSecondIn: Float!
+  averageBytesPerSecondOut: Float!
+  id: ID!
+}
+
+"A connection to a list of items."
+type NodeStatusesConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [NodeStatusesEdge!]
+  "A flattened list of the nodes."
+  nodes: [NodeStatus!]
+}
+
+"An edge in a connection."
+type NodeStatusesEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: NodeStatus!
+}
+
 type NonExistentCredIds {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
   credIds: [String!]!
@@ -1113,6 +1214,7 @@ type PageInfo {
 type PassiveDelegation {
   delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
   commissionRates: CommissionRates!
+  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PoolRewardConnection
   delegatorCount: Int!
   "The total amount staked by delegators to passive delegation."
   delegatedStake: UnsignedLong!
@@ -1185,6 +1287,12 @@ type PaydaySummary {
   block: Block!
 }
 
+type PeerReference {
+  "The node status of the peer. Will be null if no status for the peer exists."
+  nodeStatus: NodeStatus
+  nodeId: String!
+}
+
 type PendingBakerReduceStake {
   newStakedAmount: UnsignedLong!
   effectiveTime: DateTime!
@@ -1219,6 +1327,57 @@ type PoolParametersChainUpdatePayload {
   leverageBound: LeverageFactor!
 }
 
+type PoolReward {
+  block: Block!
+  id: ID!
+  timestamp: DateTime!
+  rewardType: RewardType!
+  totalAmount: UnsignedLong!
+  bakerAmount: UnsignedLong!
+  delegatorsAmount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type PoolRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [PoolRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [PoolReward!]
+}
+
+"An edge in a connection."
+type PoolRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: PoolReward!
+}
+
+type PoolRewardMetrics {
+  "Sum of all rewards in requested period as micro CCD"
+  sumTotalRewardAmount: Long!
+  "Sum of all rewards in requested period that were awarded to the baker (as micro CCD)"
+  sumBakerRewardAmount: Long!
+  "Sum of all rewards in requested period that were awarded to the delegators (as micro CCD)"
+  sumDelegatorsRewardAmount: Long!
+  buckets: PoolRewardMetricsBuckets!
+}
+
+type PoolRewardMetricsBuckets {
+  "The width (time interval) of each bucket."
+  bucketWidth: TimeSpan!
+  "Start of the bucket time period. Intended x-axis value."
+  x_Time: [DateTime!]!
+  "Sum of rewards (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumTotalRewards: [Long!]!
+  "Sum of rewards that were awarded to the baker (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumBakerRewards: [Long!]!
+  "Sum of rewards that were awarded to the delegators (as micro CCD) within bucket time period. Intended y-axis value."
+  y_SumDelegatorsRewards: [Long!]!
+}
+
 type PoolWouldBecomeOverDelegated {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1251,8 +1410,12 @@ type Query {
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
   rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics! @deprecated(reason: "Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")
   rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!): RewardMetrics!
+  poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
+  poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
+  nodeStatuses("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
+  nodeStatus(id: ID!): NodeStatus
 }
 
 type Ranking {
@@ -1589,6 +1752,13 @@ enum MetricsPeriod {
   LAST7_DAYS
   LAST30_DAYS
   LAST_YEAR
+}
+
+enum RewardType {
+  FINALIZATION_REWARD
+  FOUNDATION_REWARD
+  BAKER_REWARD
+  TRANSACTION_FEE_REWARD
 }
 
 enum SpecialEventTypeFilter {

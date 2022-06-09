@@ -60,6 +60,15 @@ public class Account
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_reward_by_descending_index")] 
+    public IQueryable<AccountReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.AccountRewards.AsNoTracking()
+            .Where(x => x.AccountId == Id)
+            .OrderByDescending(x => x.Index);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
     public Task<Baker?> GetBaker([ScopedService] GraphQlDbContext dbContext)
     {
         // Account and baker share the same ID!

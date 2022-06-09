@@ -79,7 +79,9 @@ describe('BakerDetailsContent', () => {
 		it('will show the staked amount', () => {
 			render({})
 
-			expect(screen.getByText('1,337.420666 Ͼ')).toBeInTheDocument()
+			expect(screen.getByTestId('staked-amount')).toHaveTextContent(
+				'Ͼ 1,337.420666'
+			)
 		})
 
 		it('can show that the earnings are being restaked', () => {

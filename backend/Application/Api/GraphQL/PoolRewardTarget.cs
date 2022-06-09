@@ -16,4 +16,4 @@ public record PassiveDelegationPoolRewardTarget : PoolRewardTarget
 }
 
 public record BakerPoolRewardTarget(
-    ulong BakerId) : PoolRewardTarget;
+    long BakerId) : PoolRewardTarget;

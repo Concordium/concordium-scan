@@ -23,6 +23,9 @@ public class BakerPool
     [GraphQLDescription("The total amount staked by delegation to this baker pool.")]
     public ulong DelegatedStake { get; init; }
 
+    [GraphQLDescription("The maximum amount that may be delegated to the pool, accounting for leverage and stake limits.")]
+    public ulong DelegatedStakeCap { get; init; }
+
     [GraphQLDescription("The total amount staked in this baker pool. Includes both baker stake and delegated stake.")]
     public ulong TotalStake { get; init; }
 
@@ -55,5 +58,16 @@ public class BakerPool
             .Where(x => x.Delegation!.DelegationTarget == new BakerDelegationTarget(bakerId))
             .OrderByDescending(x => x.Delegation!.StakedAmount)
             .Select(x => new DelegationSummary(x.CanonicalAddress, x.Delegation!.StakedAmount, x.Delegation.RestakeEarnings));
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
+    public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    {
+        var pool = new BakerPoolRewardTarget(Owner.Owner.BakerId);
+
+        return dbContext.PoolRewards.AsNoTracking()
+            .Where(x => x.Pool == pool)
+            .OrderByDescending(x => x.Index);
     }
 }

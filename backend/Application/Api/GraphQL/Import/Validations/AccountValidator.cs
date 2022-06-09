@@ -191,7 +191,8 @@ public class AccountValidator : IImportValidator
                     TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
                     FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
                     BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
-                    DelegatedStake = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapital.MicroCcdValue
+                    DelegatedStake = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapital.MicroCcdValue,
+                    DelegatedStakeCap = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapitalCap.MicroCcdValue,
                 }
             })
             .OrderBy(x => x.Id)
@@ -212,7 +213,8 @@ public class AccountValidator : IImportValidator
                     TransactionCommission = x.ActiveState!.Pool.CommissionRates.TransactionCommission,
                     FinalizationCommission = x.ActiveState!.Pool.CommissionRates.FinalizationCommission,
                     BakingCommission = x.ActiveState!.Pool.CommissionRates.BakingCommission,
-                    DelegatedStake = x.ActiveState!.Pool.DelegatedStake
+                    DelegatedStake = x.ActiveState!.Pool.DelegatedStake,
+                    DelegatedStakeCap = x.ActiveState!.Pool.DelegatedStakeCap
                 }
             })
             .OrderBy(x => x.Id)

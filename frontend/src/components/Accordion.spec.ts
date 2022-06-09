@@ -17,7 +17,7 @@ describe('Accordion', () => {
 		expect(screen.getByText(TITLE)).toBeVisible()
 	})
 
-	it('will show content when clicking header', () => {
+	it('will show content when clicking header', async () => {
 		const slots = { content: CONTENT }
 		render({ slots })
 
@@ -25,25 +25,21 @@ describe('Accordion', () => {
 
 		fireEvent.click(screen.getByText(TITLE))
 
-		waitFor(() => {
-			expect(screen.getByText(CONTENT)).toBeVisible()
-		})
+		expect(await screen.findByText(CONTENT)).toBeVisible()
 	})
 
-	it('will hide content when closing the accordion', () => {
+	it('will hide content when closing the accordion', async () => {
 		const slots = { content: CONTENT }
 		render({ slots })
 
 		fireEvent.click(screen.getByText(TITLE))
 
-		waitFor(() => {
-			expect(screen.getByText(CONTENT)).toBeVisible()
-		})
+		expect(await screen.findByText(CONTENT)).toBeVisible()
 
 		fireEvent.click(screen.getByText(TITLE))
 
-		waitFor(() => {
-			expect(screen.getByText(CONTENT)).not.toBeVisible()
+		waitFor(async () => {
+			expect(await screen.findByText(CONTENT)).not.toBeVisible()
 		})
 	})
 

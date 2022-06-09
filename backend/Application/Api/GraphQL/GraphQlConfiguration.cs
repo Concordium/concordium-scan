@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Metrics;
+using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
@@ -27,6 +28,8 @@ public static class GraphQlConfiguration
             .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"account_transaction_relation_by_descending_index")
             .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(providerName:"account_statement_entry_by_descending_index")
             .AddCursorPagingProvider<BakerRewardByDescendingIndexCursorPagingProvider>(providerName:"baker_reward_by_descending_index")
+            .AddCursorPagingProvider<PoolRewardByDescendingIndexCursorPagingProvider>(providerName:"pool_reward_by_descending_index")
+            .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(providerName:"account_reward_by_descending_index")
             .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"baker_transaction_relation_by_descending_index");
     }
 
@@ -45,8 +48,10 @@ public static class GraphQlConfiguration
             .AddType<TransactionMetricsQuery>()
             .AddType<BakerMetricsQuery>()
             .AddType<RewardMetricsQuery>()
+            .AddType<PoolRewardMetricsQuery>()
             .AddType<PassiveDelegationQuery>()
-            .AddType<PaydayQuery>();
+            .AddType<PaydayQuery>()
+            .AddType<NetworkQuery>();
         
         builder.AddSubscriptionType<Subscription>();
         

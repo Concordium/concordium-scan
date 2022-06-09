@@ -215,7 +215,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task UpdateStakeIfBakerActiveRestakingEarnings_BakerDoesNotExist()
     {
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -228,7 +228,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddBakers(new BakerBuilder().WithId(42).WithState(new RemovedBakerStateBuilder().Build()).Build());
 
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -243,7 +243,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
     {
         await AddBakers(new BakerBuilder().WithId(42).WithState(new ActiveBakerStateBuilder().WithRestakeRewards(restakeEarnings).WithStakedAmount(1000).Build()).Build());
 
-        var bakerStakeUpdate = new AccountReward(42, 100);
+        var bakerStakeUpdate = new AccountRewardSummaryBuilder().WithAccountId(42).WithTotalAmount(100).Build();
         await _target.UpdateStakeIfBakerActiveRestakingEarnings(new[] { bakerStakeUpdate });
         
         await using var context = _dbContextFactory.CreateDbContext();
@@ -302,6 +302,47 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         results[4].State.Should().BeOfType<RemovedBakerState>();
     }
 
+    [Fact]
+    public async Task UpdateDelegatedStakeCap()
+    {
+        await AddBakers(
+            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithStakedAmount(5100).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(4900).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithStakedAmount(1000).WithPool(new BakerPoolBuilder().Build()).Build()).Build(),
+            new BakerBuilder().WithId(4).WithState(new ActiveBakerStateBuilder().WithStakedAmount(4000).WithPool(null).Build()).Build(),
+            new BakerBuilder().WithId(5).WithState(new RemovedBakerStateBuilder().Build()).Build());
+
+        await _target.UpdateDelegatedStakeCap(20000, 0.25m, 3m);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var results = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
+
+        (results[0].State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(0);
+        (results[1].State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(133);
+        (results[2].State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(2000);
+        (results[3].State as ActiveBakerState)!.Pool.Should().BeNull();
+        results[4].State.Should().BeOfType<RemovedBakerState>();
+    }
+    
+    [Fact]
+    public async Task UpdateDelegatedStakeCap_Rounding()
+    {
+        var baker = new BakerBuilder()
+            .WithId(1)
+            .WithState(new ActiveBakerStateBuilder()
+                .WithStakedAmount(3000000000000)
+                .WithPool(new BakerPoolBuilder().Build()).Build())
+            .Build();
+        
+        await AddBakers(baker);
+
+        await _target.UpdateDelegatedStakeCap(15000107677733, 0.25m, 3m);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Bakers.SingleAsync();
+        (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1000035892577);
+    }
+    
     private async Task AddBakers(params long[] bakerIds)
     {
         var bakers = bakerIds.Select(id => new BakerBuilder().WithId(id).Build()).ToArray();
