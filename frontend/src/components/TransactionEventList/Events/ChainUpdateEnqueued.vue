@@ -75,22 +75,40 @@
 			<br />
 			Update gas rewards to:
 
-			<dl class="flex flex-wrap justify-between pl-4 pt-2">
-				<dt class="w-1/2">Account creation</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.accountCreation }}
-				</dd>
-				<dt class="w-1/2">Baker</dt>
-				<dd class="w-1/2 numerical text-right">{{ event.payload.baker }}</dd>
-				<dt class="w-1/2">Chain update</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.chainUpdate }}
-				</dd>
-				<dt class="w-1/2">Finalisation proof</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.finalizationProof }}
-				</dd>
-			</dl>
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Account creation
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.accountCreation }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Baker
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.baker }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Chain update
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.chainUpdate }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalisation proof
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.finalizationProof }}
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
 		</span>
 
 		<span
@@ -135,20 +153,30 @@
 			<br />
 			Update mint distribution to:
 
-			<dl class="flex flex-wrap justify-between pl-4 pt-2">
-				<dt class="w-1/2">Baking reward account</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.bakingReward }}%
-				</dd>
-				<dt class="w-1/2">Finalisation reward account</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.finalizationReward }}%
-				</dd>
-				<dt class="w-1/2">Mint per slot</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.mintPerSlot }}
-				</dd>
-			</dl>
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Baking reward account
+					<template #content>
+						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalisation reward account
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.finalizationReward }}%
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Mint per slot
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.mintPerSlot }}
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
 		</span>
 
 		<span
@@ -179,14 +207,21 @@
 		>
 			<br />
 			Update transaction fee distribution to:
-			<dl class="flex flex-wrap justify-between pl-4 pt-2">
-				<dt class="w-1/2">Baker account</dt>
-				<dd class="w-1/2 numerical text-right">{{ event.payload.baker }}%</dd>
-				<dt class="w-1/2">Gas account</dt>
-				<dd class="w-1/2 numerical text-right">
-					{{ event.payload.gasAccount }}%
-				</dd>
-			</dl>
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Baker account
+					<template #content>
+						<span class="numerical"> {{ event.payload.baker }}% </span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Gas account
+					<template #content>
+						<span class="numerical"> {{ event.payload.gasAccount }}% </span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
 		</span>
 	</span>
 </template>
@@ -199,6 +234,8 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
+import DescriptionList from '~/components/atoms/DescriptionList.vue'
+import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ExternalLink from '~/components/molecules/ExternalLink.vue'
 import type { ChainUpdateEnqueued } from '~/types/generated'
