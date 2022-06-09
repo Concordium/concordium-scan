@@ -739,7 +739,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             new InclusiveRange<decimal>(1.0m, 1.2m),
             new InclusiveRange<decimal>(2.0m, 2.2m),
             new InclusiveRange<decimal>(3.0m, 3.2m),
-            12000UL, 3.0m, new LeverageFactor(13, 17)));
+            CcdAmount.FromMicroCcd(12000), 3.0m, new LeverageFactor(13, 17)));
         
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
