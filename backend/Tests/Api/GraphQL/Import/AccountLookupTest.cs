@@ -23,7 +23,7 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
 
         var options = new MemoryCacheOptions();
         _memoryCache = new MemoryCache(options);
-        _target = new AccountLookup(_memoryCache, dbFixture.DatabaseSettings);
+        _target = new AccountLookup(_memoryCache, dbFixture.DatabaseSettings, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");

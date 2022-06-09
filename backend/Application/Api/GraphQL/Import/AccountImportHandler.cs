@@ -17,7 +17,7 @@ public class AccountImportHandler
     {
         _accountLookup = accountLookup;
         _metrics = metrics;
-        _changeCalculator = new AccountChangeCalculator(_accountLookup);
+        _changeCalculator = new AccountChangeCalculator(_accountLookup, metrics);
         _writer = accountWriter;
     }
 

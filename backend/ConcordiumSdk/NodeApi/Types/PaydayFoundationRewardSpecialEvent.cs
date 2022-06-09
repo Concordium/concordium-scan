@@ -9,9 +9,6 @@ public class PaydayFoundationRewardSpecialEvent : SpecialEvent
 
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        return new AccountBalanceUpdate[]
-        {
-            new(FoundationAccount, (long)DevelopmentCharge.MicroCcdValue, BalanceUpdateType.FoundationReward) 
-        };
+        yield return new(FoundationAccount, (long)DevelopmentCharge.MicroCcdValue, BalanceUpdateType.FoundationReward);
     }
 }
