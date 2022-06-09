@@ -66,17 +66,6 @@ public class Baker
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_reward_by_descending_index")]
-    [GraphQLDeprecated("Do not use, will be removed in the near future. For individual baker rewards get them via the Account and for Baker Pool rewards get them via the Baker Pool")]
-    public IQueryable<BakerReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
-    {
-        return dbContext.BakerRewards
-            .AsNoTracking()
-            .Where(x => x.BakerId == Id)
-            .OrderByDescending(x => x.Index);
-    }
-    
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_transaction_relation_by_descending_index")] 
     [GraphQLDescription("Get the transactions that have affected the baker.")]
     public IQueryable<BakerTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)

@@ -27,7 +27,6 @@ public static class GraphQlConfiguration
             .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(providerName:"transaction_by_descending_id")
             .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"account_transaction_relation_by_descending_index")
             .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(providerName:"account_statement_entry_by_descending_index")
-            .AddCursorPagingProvider<BakerRewardByDescendingIndexCursorPagingProvider>(providerName:"baker_reward_by_descending_index")
             .AddCursorPagingProvider<PoolRewardByDescendingIndexCursorPagingProvider>(providerName:"pool_reward_by_descending_index")
             .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(providerName:"account_reward_by_descending_index")
             .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"baker_transaction_relation_by_descending_index");

@@ -1,4 +1,6 @@
-﻿namespace ConcordiumSdk.NodeApi.Types;
+﻿using ConcordiumSdk.Types;
+
+namespace ConcordiumSdk.NodeApi.Types;
 
 /// <summary>
 /// Parameters related to staking pools.
@@ -19,6 +21,6 @@ public record PoolParameters(
     InclusiveRange<decimal> FinalizationCommissionRange,
     InclusiveRange<decimal> BakingCommissionRange,
     InclusiveRange<decimal> TransactionCommissionRange,
-    ulong MinimumEquityCapital,
+    CcdAmount MinimumEquityCapital,
     decimal CapitalBound,
     LeverageFactor LeverageBound);

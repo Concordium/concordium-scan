@@ -230,7 +230,7 @@ public class TransactionWriter
             MapCommissionRange(x.Content.FinalizationCommissionRange),
             MapCommissionRange(x.Content.BakingCommissionRange),
             MapCommissionRange(x.Content.TransactionCommissionRange),
-            x.Content.MinimumEquityCapital, x.Content.CapitalBound,
+            x.Content.MinimumEquityCapital.MicroCcdValue, x.Content.CapitalBound,
             new LeverageFactor
             {
                 Numerator = x.Content.LeverageBound.Numerator,

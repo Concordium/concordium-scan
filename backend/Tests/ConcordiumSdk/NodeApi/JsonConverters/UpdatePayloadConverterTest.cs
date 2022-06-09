@@ -256,7 +256,7 @@ public class UpdatePayloadConverterTest
     }
     
     [Fact]
-    public void RoundTrip_cooldownParametersCPV1()
+    public void RoundTrip_CooldownParametersCPV1()
     {
         var json = @"{
                          ""updateType"": ""cooldownParametersCPV1"",
@@ -270,6 +270,56 @@ public class UpdatePayloadConverterTest
         var typed = Assert.IsType<CooldownParametersUpdatePayload>(deserialized);
         typed.Content.PoolOwnerCooldown.Should().Be(7200);
         typed.Content.DelegatorCooldown.Should().Be(3800);
+
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
+    public void RoundTrip_PoolParametersCPV1()
+    {
+        var json = @"{
+                         ""updateType"": ""poolParametersCPV1"",
+                         ""update"": {
+                             ""capitalBound"": 0.4,
+                             ""passiveBakingCommission"": 0.12,
+                             ""leverageBound"": {
+                                 ""denominator"": 1,
+                                 ""numerator"": 3
+                             },
+                             ""passiveFinalizationCommission"": 1.0,
+                             ""passiveTransactionCommission"": 0.12,
+                             ""bakingCommissionRange"": {
+                                 ""max"": 0.1,
+                                 ""min"": 0.1
+                             },
+                             ""finalizationCommissionRange"": {
+                                 ""max"": 1.0,
+                                 ""min"": 1.0
+                             },
+                             ""transactionCommissionRange"": {
+                                 ""max"": 0.1,
+                                 ""min"": 0.1
+                             },
+                             ""minimumEquityCapital"": ""14000000000""
+                         }
+                     }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<PoolParametersUpdatePayload>(deserialized);
+        typed.Content.CapitalBound.Should().Be(0.4m);
+        typed.Content.PassiveBakingCommission.Should().Be(0.12m);
+        typed.Content.LeverageBound.Denominator.Should().Be(1);
+        typed.Content.LeverageBound.Numerator.Should().Be(3);
+        typed.Content.PassiveFinalizationCommission.Should().Be(1.0m);
+        typed.Content.PassiveTransactionCommission.Should().Be(0.12m);
+        typed.Content.BakingCommissionRange.Min.Should().Be(0.1m);
+        typed.Content.BakingCommissionRange.Max.Should().Be(0.1m);
+        typed.Content.FinalizationCommissionRange.Min.Should().Be(1.0m);
+        typed.Content.FinalizationCommissionRange.Max.Should().Be(1.0m);
+        typed.Content.TransactionCommissionRange.Min.Should().Be(0.1m);
+        typed.Content.TransactionCommissionRange.Max.Should().Be(0.1m);
+        typed.Content.MinimumEquityCapital.Should().Be(CcdAmount.FromMicroCcd(14000000000));
 
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
