@@ -203,6 +203,41 @@ __typename
 			baker
 			gasAccount
 		}
+		...on CooldownParametersChainUpdatePayload {
+			delegatorCooldown
+			poolOwnerCooldown
+		}
+		...on TimeParametersChainUpdatePayload {
+			mintPerPayday
+			rewardPeriodLength
+		}
+		...on MintDistributionV1ChainUpdatePayload {
+			bakingReward
+			finalizationReward
+		}
+		...on PoolParametersChainUpdatePayload {
+			bakingCommissionRange {
+				min
+				max
+			}
+			finalizationCommissionRange {
+				min
+				max
+			}
+			transactionCommissionRange {
+				min
+				max
+			}
+			passiveBakingCommission
+			passiveFinalizationCommission
+			passiveTransactionCommission
+			minimumEquityCapital
+			capitalBound
+			leverageBound {
+				denominator
+				numerator
+			}
+		}
 	}
 }
 ... on Transferred {

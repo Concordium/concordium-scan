@@ -3,6 +3,7 @@
 		Chain update enqueued to be effective at
 		{{ formatTimestamp(event.effectiveTime) }}
 		({{ convertTimestampToRelative(event.effectiveTime, NOW, true) }})
+		<br />
 
 		<span
 			v-if="
@@ -10,7 +11,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Add anonymity revoker '{{ event.payload.name }}'
 		</span>
 
@@ -20,7 +20,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Add identity provider '{{ event.payload.name }}'
 		</span>
 
@@ -30,7 +29,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Update baker stake threshold to
 			{{ convertMicroCcdToCcd(event.payload.amount) }}Ͼ
 		</span>
@@ -41,7 +39,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Update election difficulty to {{ event.payload.electionDifficulty }}%
 		</span>
 
@@ -49,7 +46,6 @@
 			v-else-if="event.payload.__typename === 'EuroPerEnergyChainUpdatePayload'"
 			class="text-theme-faded"
 		>
-			<br />
 			Update EUR/ENERGY exchange rate to
 			{{
 				event.payload.exchangeRate.numerator /
@@ -63,7 +59,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Change foundation account to
 			<AccountLink :address="event.payload.accountAddress.asString" />
 		</span>
@@ -72,7 +67,6 @@
 			v-else-if="event.payload.__typename === 'GasRewardsChainUpdatePayload'"
 			class="text-theme-faded"
 		>
-			<br />
 			Update gas rewards to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -115,7 +109,6 @@
 			v-else-if="event.payload.__typename === 'Level1KeysChainUpdatePayload'"
 			class="text-theme-faded"
 		>
-			<br />
 			Update Level 1 keys
 		</span>
 
@@ -125,7 +118,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Update CCD/EUR exchange rate to
 			{{
 				convertMicroCcdToCcd(
@@ -150,7 +142,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Update mint distribution to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -183,7 +174,6 @@
 			v-else-if="event.payload.__typename === 'ProtocolChainUpdatePayload'"
 			class="text-theme-faded"
 		>
-			<br />
 			Update protocol: '{{ event.payload.message }}'.
 			<ExternalLink :href="event.payload.specificationUrl"
 				>See specification</ExternalLink
@@ -194,7 +184,6 @@
 			v-else-if="event.payload.__typename === 'RootKeysChainUpdatePayload'"
 			class="text-theme-faded"
 		>
-			<br />
 			Update root keys
 		</span>
 
@@ -205,7 +194,6 @@
 			"
 			class="text-theme-faded"
 		>
-			<br />
 			Update transaction fee distribution to:
 
 			<DescriptionList class="mt-4 ml-8">
@@ -223,6 +211,188 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
+
+		<span
+			v-else-if="
+				event.payload.__typename === 'CooldownParametersChainUpdatePayload'
+			"
+			class="text-theme-faded"
+		>
+			Update cooldown parameters to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Delegator cooldown
+					<template #content>
+						<span class="numerical">
+							{{ formatNumber(event.payload.delegatorCooldown) }}s
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Pool owner cooldown
+					<template #content>
+						<span class="numerical">
+							{{ formatNumber(event.payload.poolOwnerCooldown) }}s
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+
+		<span
+			v-else-if="
+				event.payload.__typename === 'PoolParametersChainUpdatePayload'
+			"
+			class="text-theme-faded"
+		>
+			Update pool parameters to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Baking commission range
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.bakingCommissionRange.min * 100 }} </span
+						>% -
+						<span class="numerical">
+							{{ event.payload.bakingCommissionRange.max * 100 }} </span
+						>%
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalisation commission range
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.finalizationCommissionRange.min * 100 }}</span
+						>% -
+						<span class="numerical">
+							{{ event.payload.finalizationCommissionRange.max * 100 }} </span
+						>%
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Transaction commission range
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.transactionCommissionRange.min * 100 }}</span
+						>% -
+						<span class="numerical">
+							{{ event.payload.transactionCommissionRange.max * 100 }}</span
+						>%
+					</template>
+				</DescriptionListItem>
+
+				<DescriptionListItem>
+					Passive baking commission
+					<template #content>
+						<span class="numerical">{{
+							event.payload.passiveBakingCommission * 100
+						}}</span
+						>%
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Passive transaction commission
+					<template #content>
+						<span class="numerical">{{
+							event.payload.passiveTransactionCommission * 100
+						}}</span
+						>%
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Passive finalisation commission
+					<template #content>
+						<span class="numerical">{{
+							event.payload.passiveFinalizationCommission * 100
+						}}</span
+						>%
+					</template>
+				</DescriptionListItem>
+
+				<DescriptionListItem>
+					Min. baker stake
+					<template #content>
+						<Amount
+							:amount="event.payload.minimumEquityCapital"
+							:show-symbol="true"
+						/>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Max. capital bound
+					<template #content>
+						<span class="numerical">{{ event.payload.capitalBound * 100 }}</span
+						>%
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Max. leverage
+					<template #content>
+						<span class="numerical">{{
+							event.payload.leverageBound.numerator /
+							event.payload.leverageBound.denominator
+						}}</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+
+		<span
+			v-else-if="
+				event.payload.__typename === 'TimeParametersChainUpdatePayload'
+			"
+			class="text-theme-faded"
+		>
+			Update time parameters to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Mint per payday
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.mintPerPayday }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Reward period length
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.rewardPeriodLength }}
+						</span>
+						{{ event.payload.rewardPeriodLength === 1 ? 'epoch' : 'epochs' }}
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+
+		<span
+			v-else-if="
+				event.payload.__typename === 'MintDistributionV1ChainUpdatePayload'
+			"
+			class="text-theme-faded"
+		>
+			Update mint distribution to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Baking reward account
+					<template #content>
+						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalisation reward account
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.finalizationReward }}%
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
 	</span>
 </template>
 
@@ -234,6 +404,7 @@ import {
 	convertTimestampToRelative,
 } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
+import Amount from '~/components/atoms/Amount.vue'
 import DescriptionList from '~/components/atoms/DescriptionList.vue'
 import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
