@@ -33,6 +33,10 @@ public class GrpcNodeClientTest : IDisposable
             // Address = "http://20.223.186.133:10003",
             // AuthenticationToken = "rpcadmin"
 
+            // STAGE-NET:
+            // Address = "http://20.123.43.196:10000",
+            // AuthenticationToken = "foo-bar-fighting"
+
         };
         _target = new GrpcNodeClient(grpcNodeClientSettings, _httpClient);
     }
