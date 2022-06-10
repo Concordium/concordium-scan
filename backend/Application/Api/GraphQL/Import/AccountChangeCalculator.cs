@@ -1,5 +1,6 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
+using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
 
 namespace Application.Api.GraphQL.Import;
@@ -7,10 +8,12 @@ namespace Application.Api.GraphQL.Import;
 public class AccountChangeCalculator
 {
     private readonly IAccountLookup _accountLookup;
+    private readonly IMetrics _metrics;
 
-    public AccountChangeCalculator(IAccountLookup accountLookup)
+    public AccountChangeCalculator(IAccountLookup accountLookup, IMetrics metrics)
     {
         _accountLookup = accountLookup;
+        _metrics = metrics;
     }
 
     public IEnumerable<Account> GetAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
@@ -27,6 +30,8 @@ public class AccountChangeCalculator
 
     public AccountTransactionRelation[] GetAccountTransactionRelations(TransactionPair[] transactions)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAccountTransactionRelations));
+
         var result = Array.Empty<AccountTransactionRelation>();
 
         var accountTransactions = transactions
@@ -80,6 +85,8 @@ public class AccountChangeCalculator
 
     public AccountUpdate[] GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAggregatedAccountUpdates));
+
         var aggregatedBalanceUpdates = balanceUpdates
             .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
             .GroupBy(x => x.BaseAddress)
@@ -115,6 +122,8 @@ public class AccountChangeCalculator
 
     public AccountReleaseScheduleItem[] GetAccountReleaseScheduleItems(IEnumerable<TransactionPair> transactions)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAccountReleaseScheduleItems));
+
         AccountReleaseScheduleItem[] toInsert = Array.Empty<AccountReleaseScheduleItem>();
 
         var result = transactions
@@ -160,6 +169,8 @@ public class AccountChangeCalculator
     public IEnumerable<AccountStatementEntry> GetAccountStatementEntries(
         AccountBalanceUpdate[] balanceUpdates, AccountUpdateResult[] accountUpdateResults, Block block, TransactionPair[] transactions)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAccountStatementEntries));
+
         var distinctBaseAddresses = balanceUpdates
             .Select(x => x.AccountAddress.GetBaseAddress().AsString)
             .Distinct();
@@ -177,9 +188,10 @@ public class AccountChangeCalculator
             })
             .ToArray();
 
+        var accountUpdateResultsDictionary = accountUpdateResults.ToDictionary(x => x.AccountId);
         foreach (var accountGroup in result.GroupBy(x => x.AccountId))
         {
-            var updateResult = accountUpdateResults.Single(x => x.AccountId == accountGroup.Key);
+            var updateResult = accountUpdateResultsDictionary[accountGroup.Key];
             
             var accountBalance = updateResult.AccountBalanceBeforeUpdate;
             foreach (var entry in accountGroup)

@@ -26,11 +26,8 @@ public class PaydayAccountRewardSpecialEvent : SpecialEvent
 
     public override IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        return new AccountBalanceUpdate[]
-        {
-            new(Account, (long)TransactionFees.MicroCcdValue, BalanceUpdateType.TransactionFeeReward), 
-            new(Account, (long)BakerReward.MicroCcdValue, BalanceUpdateType.BakerReward),
-            new(Account, (long)FinalizationReward.MicroCcdValue, BalanceUpdateType.FinalizationReward)
-        };
+        yield return new(Account, (long)TransactionFees.MicroCcdValue, BalanceUpdateType.TransactionFeeReward);
+        yield return new(Account, (long)BakerReward.MicroCcdValue, BalanceUpdateType.BakerReward);
+        yield return new(Account, (long)FinalizationReward.MicroCcdValue, BalanceUpdateType.FinalizationReward);
     }
 }

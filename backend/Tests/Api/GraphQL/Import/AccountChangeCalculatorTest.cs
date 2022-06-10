@@ -27,7 +27,7 @@ public class AccountChangeCalculatorTest
     public AccountChangeCalculatorTest()
     {
         _accountLookupStub = new AccountLookupStub();
-        _target = new AccountChangeCalculator(_accountLookupStub);
+        _target = new AccountChangeCalculator(_accountLookupStub, new NullMetrics());
     }
 
     [Fact]

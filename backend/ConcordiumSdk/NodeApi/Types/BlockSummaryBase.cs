@@ -11,14 +11,10 @@ public abstract class BlockSummaryBase
 
     public IEnumerable<AccountBalanceUpdate> GetAccountBalanceUpdates()
     {
-        IEnumerable<AccountBalanceUpdate> result = Array.Empty<AccountBalanceUpdate>();
-        
-        foreach (var transactionSummary in TransactionSummaries)
-            result = result.Concat(transactionSummary.GetAccountBalanceUpdates());
-        
-        foreach (var specialEvent in SpecialEvents)
-            result = result.Concat(specialEvent.GetAccountBalanceUpdates());
-        
-        return result;
+        foreach (var item in TransactionSummaries.SelectMany(x => x.GetAccountBalanceUpdates()))
+            yield return item;
+
+        foreach (var item in SpecialEvents.SelectMany(x => x.GetAccountBalanceUpdates()))
+            yield return item;
     }
 }

@@ -1,4 +1,5 @@
-﻿using Application.Database;
+﻿using Application.Common.Diagnostics;
+using Application.Database;
 using Dapper;
 using Microsoft.Extensions.Caching.Memory;
 using Npgsql;
@@ -15,17 +16,21 @@ public class AccountLookup : IAccountLookup
 {
     private readonly IMemoryCache _cache;
     private readonly DatabaseSettings _dbSettings;
+    private readonly IMetrics _metrics;
     private readonly ILogger _logger;
 
-    public AccountLookup(IMemoryCache cache, DatabaseSettings dbSettings)
+    public AccountLookup(IMemoryCache cache, DatabaseSettings dbSettings, IMetrics metrics)
     {
         _cache = cache;
         _dbSettings = dbSettings;
+        _metrics = metrics;
         _logger = Log.ForContext(GetType());
     }
 
     public IDictionary<string, long?> GetAccountIdsFromBaseAddresses(IEnumerable<string> accountBaseAddresses)
     {
+        using var counter = _metrics.MeasureDuration(nameof(AccountLookup), nameof(GetAccountIdsFromBaseAddresses));
+
         var result = new List<LookupResult>();
         var notCached = new List<string>();
         
@@ -40,17 +45,16 @@ public class AccountLookup : IAccountLookup
         if (notCached.Count > 0)
         {
             _logger.Debug("Cache-miss for {count} accounts", notCached.Count);
-            
+
             var accounts = QueryDatabase(notCached);
             foreach (var account in accounts)
             {
                 AddToCache(account.Key, account.Result);
                 result.Add(account);
-
-                notCached.Remove(account.Key);
             }
 
-            foreach (var nonExistingAccount in notCached)
+            var nonExistingAccounts = notCached.Except(result.Select(x => x.Key));
+            foreach (var nonExistingAccount in nonExistingAccounts)
             {
                 AddToCache(nonExistingAccount, null);
                 result.Add(new LookupResult(nonExistingAccount, null));

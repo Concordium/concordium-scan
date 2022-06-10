@@ -59,6 +59,21 @@ __typename
 	amount
 	moduleRef
 }
+... on ContractInterrupted {
+	contractAddress {
+		__typename
+		index
+		subIndex
+	}
+}
+... on ContractResumed {
+	contractAddress {
+		__typename
+		index
+		subIndex
+	}
+	success
+}
 ... on ContractModuleDeployed {
 	moduleRef
 }
@@ -187,6 +202,41 @@ __typename
 		...on TransactionFeeDistributionChainUpdatePayload {
 			baker
 			gasAccount
+		}
+		...on CooldownParametersChainUpdatePayload {
+			delegatorCooldown
+			poolOwnerCooldown
+		}
+		...on TimeParametersChainUpdatePayload {
+			mintPerPayday
+			rewardPeriodLength
+		}
+		...on MintDistributionV1ChainUpdatePayload {
+			bakingReward
+			finalizationReward
+		}
+		...on PoolParametersChainUpdatePayload {
+			bakingCommissionRange {
+				min
+				max
+			}
+			finalizationCommissionRange {
+				min
+				max
+			}
+			transactionCommissionRange {
+				min
+				max
+			}
+			passiveBakingCommission
+			passiveFinalizationCommission
+			passiveTransactionCommission
+			minimumEquityCapital
+			capitalBound
+			leverageBound {
+				denominator
+				numerator
+			}
 		}
 	}
 }
