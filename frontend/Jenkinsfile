@@ -1,0 +1,42 @@
+// Params in JobDSL file
+// 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/docker_image_ccdscan.groovy':
+// - image_tag (default: "latest")
+pipeline {
+  agent any
+  environment {
+    image_repo = 'concordium/ccdscan'
+    image_name = "${image_repo}:${image_tag}"
+  }
+  stages {
+    stage('build') {
+      agent {
+        docker {
+          image 'node:16'
+          // Run the container on the node specified at the
+          // top-level of the Pipeline, in the same workspace,
+          // rather than on a new node entirely:
+          reuseNode true
+        }
+      }
+      steps {
+        sh '''\
+          cd frontend
+          
+          # Install non-dev dependencies only
+          yarn install --production
+
+          # Run linting
+          yarn lint
+
+          # Build application bundle
+          yarn build
+        '''.stripIndent()
+      }
+    }
+    stage('push') {
+      steps {
+        sh 'docker push "$image_name"'
+      }
+    }
+  }
+}
