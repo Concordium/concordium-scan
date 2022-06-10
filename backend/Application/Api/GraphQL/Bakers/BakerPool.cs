@@ -70,4 +70,15 @@ public class BakerPool
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
     }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
+    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
+    {
+        var pool = new BakerPoolRewardTarget(Owner.Owner.BakerId);
+
+        return dbContext.PaydayPoolRewards.AsNoTracking()
+            .Where(x => x.Pool == pool)
+            .OrderByDescending(x => x.Index);
+    }
 }

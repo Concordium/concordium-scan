@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Import;
 using Application.Database;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
@@ -18,10 +19,13 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     private readonly MetricsWriter _target;
     private readonly DatabaseSettings _databaseSettings;
     private readonly DateTimeOffset _anyDateTimeOffset = new(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
     public MetricsWriterTest(DatabaseFixture dbFixture)
     {
         _databaseSettings = dbFixture.DatabaseSettings;
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+
         _target = new MetricsWriter(_databaseSettings, new NullMetrics());
         
         using var connection = dbFixture.GetOpenConnection();
@@ -29,6 +33,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         connection.Execute("TRUNCATE TABLE metrics_bakers");
         connection.Execute("TRUNCATE TABLE metrics_rewards");
         connection.Execute("TRUNCATE TABLE metrics_pool_rewards");
+        connection.Execute("TRUNCATE TABLE metrics_payday_pool_rewards");
     }
 
     [Fact]
@@ -253,7 +258,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 
         result.Should().Equal(expected);
     }
-    
+
     [Fact]
     public void AddPoolRewardMetrics_PassiveDelegation()
     {
@@ -299,7 +304,78 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 
         result.Should().Equal(expected);
     }
-    
+
+    [Fact]
+    public async Task AddPaydayPoolRewardMetrics_BakerPool()
+    {
+        var block = new BlockBuilder()
+            .WithId(138)
+            .WithBlockSlotTime(_anyDateTimeOffset)
+            .Build();
+
+        var specialEvents = new SpecialEvent[]
+        {
+            new PaydayPoolRewardSpecialEvent { Pool = new BakerPoolRewardTarget(42), BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
+        };
+
+        var rewardsSummary = new RewardsSummary(new []
+        {
+            new AccountRewardSummaryBuilder()
+                .WithAccountId(42)
+                .WithTotalAmountByType(
+                    new RewardTypeAmount(RewardType.BakerReward, 98),
+                    new RewardTypeAmount(RewardType.TransactionFeeReward, 30),
+                    new RewardTypeAmount(RewardType.FinalizationReward, 70))
+                .Build()
+        });
+        
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
+        result.Should().NotBeNull();
+
+        result!.Pool.Should().BeOfType<BakerPoolRewardTarget>().Which.BakerId.Should().Be(42);
+        result.Timestamp.Should().Be(_anyDateTimeOffset);
+        result.TransactionFeesTotalAmount.Should().Be(35);
+        result.TransactionFeesBakerAmount.Should().Be(30);
+        result.TransactionFeesDelegatorsAmount.Should().Be(5);
+        result.BakerRewardTotalAmount.Should().Be(100);
+        result.BakerRewardBakerAmount.Should().Be(98);
+        result.BakerRewardDelegatorsAmount.Should().Be(2);
+        result.FinalizationRewardTotalAmount.Should().Be(80);
+        result.FinalizationRewardBakerAmount.Should().Be(70);
+        result.FinalizationRewardDelegatorsAmount.Should().Be(10);
+        result.SumTotalAmount.Should().Be(35 + 100 + 80);
+        result.SumBakerAmount.Should().Be(30 + 98 + 70);
+        result.SumDelegatorsAmount.Should().Be(5 + 2 + 10);
+        result.BlockId.Should().Be(138);
+    }
+
+    [Fact]
+    public async Task AddPaydayPoolRewardMetrics_PassiveDelegation()
+    {
+        var block = new BlockBuilder()
+            .WithId(138)
+            .WithBlockSlotTime(_anyDateTimeOffset)
+            .Build();
+
+        var specialEvents = new SpecialEvent[]
+        {
+            new PaydayPoolRewardSpecialEvent { Pool = new PassiveDelegationPoolRewardTarget(), BakerReward = 100, TransactionFees = 35, FinalizationReward = 80 }
+        };
+
+        var rewardsSummary = new RewardsSummary(Array.Empty<AccountRewardSummary>());
+        
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
+        result.Should().NotBeNull();
+
+        result!.Pool.Should().BeOfType<PassiveDelegationPoolRewardTarget>();
+    }
+
     private IEnumerable<dynamic> Query(string sql)
     {
         using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);

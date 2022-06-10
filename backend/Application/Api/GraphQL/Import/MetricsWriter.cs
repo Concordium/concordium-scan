@@ -231,7 +231,7 @@ public class MetricsWriter
     }
 
     private record PoolStakeInfo(long BakerId, long TotalStakedAmount, long BakerStakedAmount, long DelegatedStakedAmount);
-    
+
     private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType,
         long totalAmount, AccountRewardSummary? rewardSummary, PoolStakeInfo poolStakeInfo)
     {
@@ -252,5 +252,85 @@ public class MetricsWriter
         cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
 
         batch.BatchCommands.Add(cmd);
+    }
+
+    public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary)
+    {
+        var poolRewards = specialEvents
+            .OfType<PaydayPoolRewardSpecialEvent>()
+            .ToArray();
+        
+        if (poolRewards.Length == 0) 
+            return;
+        
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPoolRewardMetrics));
+
+        using var conn = new NpgsqlConnection(_settings.ConnectionString);
+        conn.Open();
+
+        var sql = @"
+                insert into metrics_payday_pool_rewards (time, pool_id, transaction_fees_total_amount, transaction_fees_baker_amount,  
+                    transaction_fees_delegator_amount, baker_reward_total_amount, baker_reward_baker_amount, baker_reward_delegator_amount,  
+                    finalization_reward_total_amount, finalization_reward_baker_amount, finalization_reward_delegator_amount, sum_total_amount,              
+                    sum_baker_amount, sum_delegator_amount, block_id) 
+                values (@Time, @PoolId, @TransactionFeesTotalAmount, @TransactionFeesBakerAmount, 
+                        @TransactionFeesDelegatorsAmount, @BakerRewardTotalAmount, @BakerRewardBakerAmount, @BakerRewardDelegatorsAmount,
+                        @FinalizationRewardTotalAmount, @FinalizationRewardBakerAmount, @FinalizationRewardDelegatorsAmount, @SumTotalAmount,
+                        @SumBakerAmount, @SumDelegatorsAmount, @BlockId)";
+        
+        var batch = conn.CreateBatch();
+        foreach (var poolReward in poolRewards)
+        {
+            var poolId = PoolRewardTargetToLongConverter.ConvertToLong(poolReward.Pool);
+            
+            var bakerRewardsSummary = poolReward.Pool switch
+            {
+                BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == baker.BakerId),
+                PassiveDelegationPoolRewardTarget => null,
+                _ => throw new NotImplementedException()
+            };
+
+            var cmd = batch.CreateBatchCommand();
+            cmd.CommandText = sql;
+
+            var transactionFeesTotal = (long)poolReward.TransactionFees;
+            var transactionFeesBaker = bakerRewardsSummary?.TotalAmountByType.SingleOrDefault(x => x.RewardType == RewardType.TransactionFeeReward)?.TotalAmount ?? 0;
+            var transactionFeesDelegators = transactionFeesTotal - transactionFeesBaker;
+
+            var bakerRewardTotal = (long)poolReward.BakerReward;
+            var bakerRewardBaker = bakerRewardsSummary?.TotalAmountByType.SingleOrDefault(x => x.RewardType == RewardType.BakerReward)?.TotalAmount ?? 0;
+            var bakerRewardDelegators = bakerRewardTotal - bakerRewardBaker;
+
+            var finalizationRewardTotal = (long)poolReward.FinalizationReward;
+            var finalizationRewardBaker = bakerRewardsSummary?.TotalAmountByType.SingleOrDefault(x => x.RewardType == RewardType.FinalizationReward)?.TotalAmount ?? 0;
+            var finalizationRewardDelegators = finalizationRewardTotal - finalizationRewardBaker;
+
+            var sumTotal = transactionFeesTotal + bakerRewardTotal + finalizationRewardTotal;
+            var sumBaker = transactionFeesBaker + bakerRewardBaker + finalizationRewardBaker;
+            var sumDelegators = transactionFeesDelegators + bakerRewardDelegators + finalizationRewardDelegators;
+
+            cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionFeesTotalAmount", transactionFeesTotal));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionFeesBakerAmount", transactionFeesBaker));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionFeesDelegatorsAmount", transactionFeesDelegators));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("BakerRewardTotalAmount", bakerRewardTotal));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("BakerRewardBakerAmount", bakerRewardBaker));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("BakerRewardDelegatorsAmount", bakerRewardDelegators));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("FinalizationRewardTotalAmount", finalizationRewardTotal));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("FinalizationRewardBakerAmount", finalizationRewardBaker));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("FinalizationRewardDelegatorsAmount", finalizationRewardDelegators));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("SumTotalAmount", sumTotal));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("SumBakerAmount", sumBaker));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("SumDelegatorsAmount", sumDelegators));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
+
+            batch.BatchCommands.Add(cmd);
+        }
+
+        batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
+        batch.ExecuteNonQuery();
+
+        conn.Close();
     }
 }
