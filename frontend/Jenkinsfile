@@ -1,11 +1,10 @@
 // Params in JobDSL file
-// 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/docker_image_ccdscan.groovy':
-// - image_tag (default: "latest")
+// 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/ccdscan_frontend.groovy':
+// - VERSION
 pipeline {
   agent any
   environment {
-    image_repo = 'concordium/ccdscan'
-    image_name = "${image_repo}:${image_tag}"
+    OUTFILE = "s3://ccdscan.concordium.com/ccdscan-frontend-${VERSION}.tar.gz"
   }
   stages {
     stage('build') {
@@ -31,11 +30,12 @@ pipeline {
           # Build application bundle
           yarn build
         '''.stripIndent()
+        tar file: "out.tar.gz", glob: "frontend/firebase.json, frontend/.output/**"
       }
     }
     stage('push') {
       steps {
-        sh 'docker push "$image_name"'
+        sh 'aws s3 cp out.tar.gz "${OUTFILE}"'
       }
     }
   }
