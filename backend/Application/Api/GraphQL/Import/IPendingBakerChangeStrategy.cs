@@ -9,7 +9,8 @@ public interface IPendingBakerChangeStrategy
 {
     Task<PendingBakerChange> SetPendingChangeOnBaker(BakerRemoved bakerRemoved);
     Task<PendingBakerChange> SetPendingChangeOnBaker(BakerStakeDecreased stakeDecreased);
-    bool MustApplyPendingChangesDue();
+    bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime);
+    DateTimeOffset GetEffectiveTime();
 }
 
 public class PreProtocol4Strategy : IPendingBakerChangeStrategy
@@ -35,9 +36,14 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         return SetPendingChangeOnBaker(stakeDecreased.Account);
     }
 
-    public bool MustApplyPendingChangesDue()
+    public bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime)
     {
-        return true;
+        return _blockInfo.BlockSlotTime >= nextPendingBakerChangeTime;
+    }
+
+    public DateTimeOffset GetEffectiveTime()
+    {
+        return _blockInfo.BlockSlotTime;
     }
 
     private async Task<PendingBakerChange> SetPendingChangeOnBaker(AccountAddress bakerAccountAddress)
@@ -90,13 +96,13 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
     private readonly BlockInfo _blockInfo;
     private readonly ChainParametersV1 _chainParameters;
     private readonly BakerWriter _writer;
-    private readonly bool _isFirstBlockAfterPayday;
+    private readonly BlockImportPaydayStatus _importPaydayStatus;
 
-    public PostProtocol4Strategy(BlockInfo blockInfo, ChainParametersV1 chainParameters, bool isFirstBlockAfterPayday, BakerWriter writer)
+    public PostProtocol4Strategy(BlockInfo blockInfo, ChainParametersV1 chainParameters, BlockImportPaydayStatus importPaydayStatus, BakerWriter writer)
     {
         _blockInfo = blockInfo;
         _chainParameters = chainParameters;
-        _isFirstBlockAfterPayday = isFirstBlockAfterPayday;
+        _importPaydayStatus = importPaydayStatus;
         _writer = writer;
     }
 
@@ -114,9 +120,18 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
         return ((ActiveBakerState)updatedBaker.State).PendingChange!;
     }
 
-    public bool MustApplyPendingChangesDue()
+    public bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime)
     {
-        return _isFirstBlockAfterPayday;
+        if (_importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+            return firstBlockAfterPayday.PaydayTimestamp >= nextPendingBakerChangeTime;
+        return false;
+    }
+
+    public DateTimeOffset GetEffectiveTime()
+    {
+        if (_importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+            return firstBlockAfterPayday.PaydayTimestamp;
+        throw new InvalidOperationException("This method should only be called if pending changes must be applied.");
     }
 
     private void SetPendingChange(Baker destination, object source)

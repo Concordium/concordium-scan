@@ -6,8 +6,6 @@ using Application.Common.Diagnostics;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
 using Microsoft.EntityFrameworkCore;
-using PaydayAccountRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayAccountRewardSpecialEvent;
-using PaydayFoundationRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayFoundationRewardSpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -22,68 +20,53 @@ public class PaydayImportHandler
         _metrics = metrics;
     }
 
-    public async Task UpdatePaydayStatus(BlockDataPayload payload, Block block)
+    public async Task<BlockImportPaydayStatus> UpdatePaydayStatus(BlockDataPayload payload)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
             using var counter = _metrics.MeasureDuration(nameof(PaydayImportHandler), nameof(UpdatePaydayStatus));
 
-            await UpdateRewardStatus(payload);
-            await AddPaydaySummaryOnPayday(payload, block);
-        }
-    }
+            var rewardStatus = payload.RewardStatus as RewardStatusV1;
+            if (rewardStatus == null) throw new InvalidOperationException("Expected reward status to be V1");
 
-    private async Task UpdateRewardStatus(BlockDataPayload payload)
-    {
-        var rewardStatus = payload.RewardStatus as RewardStatusV1;
-        if (rewardStatus == null) throw new InvalidOperationException("Expected reward status to be V1");
-
-        // TODO: Optimize performance by keeping the latest read payday status in (transient) import state
-        //       Re-attach to context before update!
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var status = await dbContext.PaydayStatuses.SingleOrDefaultAsync();
-        if (status == null)
-        {
-            status = new PaydayStatus();
-            dbContext.PaydayStatuses.Add(status);
-        }
-
-        status.NextPaydayTime = rewardStatus.NextPaydayTime;
-        await dbContext.SaveChangesAsync();
-    }
-
-    private async Task AddPaydaySummaryOnPayday(BlockDataPayload payload, Block block)
-    {
-        var paydayEvents = payload.BlockSummary.SpecialEvents
-            .Where(x => x is PaydayAccountRewardSpecialEvent or PaydayFoundationRewardSpecialEvent)
-            .ToArray();
-
-        if (paydayEvents.Length > 0)
-        {
-            ulong totalTransactionFees = 0;
-            ulong totalBakerRewards = 0;
-            ulong totalFinalizationRewards = 0;
-            ulong totalDevelopmentCharge = 0;
-            
-            foreach (var paydayEvent in paydayEvents)
+            // TODO: Optimize performance by keeping the latest read payday status in (transient) import state
+            //       Re-attach to context before update!
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+            var status = await dbContext.PaydayStatuses.SingleOrDefaultAsync();
+            if (status == null)
             {
-                if (paydayEvent is PaydayFoundationRewardSpecialEvent foundationRewards)
+                status = new PaydayStatus
                 {
-                    totalDevelopmentCharge += foundationRewards.DevelopmentCharge.MicroCcdValue;
-                }
-                else if (paydayEvent is PaydayAccountRewardSpecialEvent accountRewards)
-                {
-                    totalTransactionFees += accountRewards.TransactionFees.MicroCcdValue;
-                    totalBakerRewards += accountRewards.BakerReward.MicroCcdValue;
-                    totalFinalizationRewards += accountRewards.FinalizationReward.MicroCcdValue;
-                }
-                else
-                    throw new NotImplementedException();
+                    PaydayStartTime = payload.BlockInfo.BlockSlotTime, // Best guess at a start time for the first payday period!
+                    NextPaydayTime = rewardStatus.NextPaydayTime
+                };
+                dbContext.PaydayStatuses.Add(status);
+                await dbContext.SaveChangesAsync();
             }
+            else if (status.NextPaydayTime != rewardStatus.NextPaydayTime)
+            {
+                var duration = status.NextPaydayTime - status.PaydayStartTime;
+                var result = new FirstBlockAfterPayday(status.NextPaydayTime, Convert.ToInt64(duration.TotalSeconds));
+                
+                status.PaydayStartTime = status.NextPaydayTime;
+                status.NextPaydayTime = rewardStatus.NextPaydayTime;
+                await dbContext.SaveChangesAsync();
+                return result;
+            }
+        }
 
+        return new NotFirstBlockAfterPayday();
+    }
+    
+    public async Task AddPaydaySummaryOnPayday(BlockImportPaydayStatus importPaydayStatus, Block block)
+    {
+        if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+        {
             var result = new PaydaySummary
             {
-                BlockId = block.Id
+                BlockId = block.Id,
+                PaydayTime = firstBlockAfterPayday.PaydayTimestamp,
+                PaydayDurationSeconds = firstBlockAfterPayday.PaydayDurationSeconds
             };
             
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -92,3 +75,7 @@ public class PaydayImportHandler
         }
     }
 }
+
+public abstract record BlockImportPaydayStatus;
+public record NotFirstBlockAfterPayday : BlockImportPaydayStatus;
+public record FirstBlockAfterPayday(DateTimeOffset PaydayTimestamp, long PaydayDurationSeconds) : BlockImportPaydayStatus;

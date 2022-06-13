@@ -117,7 +117,7 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
-    public async Task<AccountInfo> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash, CancellationToken cancellationToken = default)
+    public async Task<AccountInfo?> GetAccountInfoAsync(ConcordiumSdk.Types.AccountAddress accountAddress, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new GetAddressInfoRequest()
         {

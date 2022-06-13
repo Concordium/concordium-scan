@@ -144,7 +144,8 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
             .WithChainParameters(_chainParametersV0Builder.Build())
             .Build();
 
-        return await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        var result = await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        return result.Current;
     }
     
     private async Task<ChainParameters> WriteV1Data()
@@ -153,7 +154,8 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
             .WithChainParameters(_chainParametersV1Builder.Build())
             .Build();
 
-        return await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        var result = await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        return result.Current;
     }
     
     private async Task CreateAccount(long accountId, AccountAddress canonicalAccountAddress)

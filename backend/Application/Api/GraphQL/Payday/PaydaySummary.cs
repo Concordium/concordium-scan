@@ -11,6 +11,12 @@ public class PaydaySummary
     [GraphQLIgnore]
     public long BlockId { get; init; }
     
+    [GraphQLIgnore]
+    public DateTimeOffset PaydayTime { get; init; }
+
+    [GraphQLIgnore]
+    public long PaydayDurationSeconds { get; init; }
+    
     [UseDbContext(typeof(GraphQlDbContext))]
     public Block GetBlock([ScopedService] GraphQlDbContext dbContext)
     {

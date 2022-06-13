@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
@@ -8,6 +9,7 @@ using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Application.Api.GraphQL.Import.Validations;
 
@@ -26,33 +28,50 @@ public class AccountValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
+        await InternalValidate(block);
+    }
+
+    public async Task ValidateSingle(Block block, SingleAccountValidationInfo singleAccountValidationInfo)
+    {
+        await InternalValidate(block, singleAccountValidationInfo);
+    }
+
+    private async Task InternalValidate(Block block, SingleAccountValidationInfo? singleAccountValidationInfo = null)
+    {
+        var blockHash = new BlockHash(block.BlockHash);
         var blockHeight = (ulong)block.BlockHeight;
-        var blockHashes = await _nodeClient.GetBlocksAtHeightAsync(blockHeight);
-        var blockHash = blockHashes.Single();
-            
-        var accountAddresses = await _nodeClient.GetAccountListAsync(blockHash);
+
+        var accountAddresses = singleAccountValidationInfo == null 
+            ? await _nodeClient.GetAccountListAsync(blockHash) 
+            : new [] { new AccountAddress(singleAccountValidationInfo.CanonicalAccountAddress) };
+
         var nodeAccountInfos = new List<AccountInfo>();
         var nodeAccountBakers = new List<AccountBaker>();
 
         foreach (var chunk in Chunk(accountAddresses, 10))
         {
-            var accountInfos = await Task.WhenAll(chunk
+            var accountInfoResults = await Task.WhenAll(chunk
                 .Select(x => _nodeClient.GetAccountInfoAsync(x, blockHash)));
             
+            var accountInfos = accountInfoResults
+                .Where(x => x != null)
+                .Select(x => x!)
+                .ToArray();
+
             nodeAccountInfos.AddRange(accountInfos);
-            
+
             nodeAccountBakers.AddRange(accountInfos
                 .Where(x => x.AccountBaker != null)
                 .Select(x => x.AccountBaker!)
                 .Select(x => x));
         }
-        
+
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext);
-        await ValidateBakers(nodeAccountBakers, block, dbContext);
+        await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext, singleAccountValidationInfo);
+        await ValidateBakers(nodeAccountBakers, block, dbContext, singleAccountValidationInfo);
     }
 
-    private async Task ValidateAccounts(List<AccountInfo> nodeAccountInfos, ulong blockHeight, GraphQlDbContext dbContext)
+    private async Task ValidateAccounts(List<AccountInfo> nodeAccountInfos, ulong blockHeight, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
     {
         var mappedNodeAccounts = nodeAccountInfos.Select(x => new
             {
@@ -69,8 +88,13 @@ public class AccountValidator : IImportValidator
             .OrderBy(x => x.AccountAddress)
             .ToArray();
 
+        Expression<Func<Account, bool>> whereClause = singleAccountAddress == null
+            ? account => true
+            : account => account.Id == singleAccountAddress.AccountId;  
+        
         var dbAccountInfos = await dbContext.Accounts
             .AsNoTracking()
+            .Where(whereClause)
             .Select(x => new
             {
                 x.CanonicalAddress,
@@ -159,7 +183,7 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext)
+    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
     {
         var blockHeight = (ulong)block.BlockHeight;
         var blockHash = new BlockHash(block.BlockHash);
@@ -179,28 +203,45 @@ public class AccountValidator : IImportValidator
         }
 
         var nodeBakers = nodeAccountBakers
-            .Select(x => new
+            .Select(x =>
             {
-                Id = x.BakerId,
-                StakedAmount = x.StakedAmount.MicroCcdValue,
-                RestakeEarnings = x.RestakeEarnings,
-                Pool = x.BakerPoolInfo == null ? null : new
+                var bakerPoolStatus = x.BakerPoolInfo != null 
+                    ? poolStatuses.Single(status => status.BakerId == x.BakerId) 
+                    : null;
+                
+                return new
                 {
-                    OpenStatus = x.BakerPoolInfo.OpenStatus.MapToGraphQlEnum(),
-                    MetadataUrl = x.BakerPoolInfo.MetadataUrl,
-                    TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
-                    FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
-                    BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
-                    DelegatedStake = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapital.MicroCcdValue,
-                    DelegatedStakeCap = poolStatuses.Single(status => status.BakerId == x.BakerId).DelegatedCapitalCap.MicroCcdValue,
-                }
+                    Id = x.BakerId,
+                    StakedAmount = x.StakedAmount.MicroCcdValue,
+                    RestakeEarnings = x.RestakeEarnings,
+                    Pool = x.BakerPoolInfo == null ? null : new
+                        {
+                            OpenStatus = x.BakerPoolInfo.OpenStatus.MapToGraphQlEnum(),
+                            MetadataUrl = x.BakerPoolInfo.MetadataUrl,
+                            TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
+                            FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
+                            BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
+                            DelegatedStake = bakerPoolStatus.DelegatedCapital.MicroCcdValue,
+                            DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap.MicroCcdValue,
+                            PaydayStatus = bakerPoolStatus.CurrentPaydayStatus == null ? null : new
+                            {
+                                BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.MicroCcdValue,
+                                DelegatedStake = bakerPoolStatus.CurrentPaydayStatus.DelegatedCapital.MicroCcdValue,
+                            }
+                        }
+                };
             })
             .OrderBy(x => x.Id)
             .ToArray();
 
+        Expression<Func<Baker, bool>> whereClause = singleAccountAddress == null
+            ? account => true
+            : baker => baker.Id == singleAccountAddress.AccountId;  
+
         var dbBakers = await dbContext.Bakers
             .AsNoTracking()
             .Where(x => x.ActiveState != null)
+            .Where(whereClause)
             .Select(x => new
             {
                 Id = (ulong)x.Id,
@@ -214,7 +255,12 @@ public class AccountValidator : IImportValidator
                     FinalizationCommission = x.ActiveState!.Pool.CommissionRates.FinalizationCommission,
                     BakingCommission = x.ActiveState!.Pool.CommissionRates.BakingCommission,
                     DelegatedStake = x.ActiveState!.Pool.DelegatedStake,
-                    DelegatedStakeCap = x.ActiveState!.Pool.DelegatedStakeCap
+                    DelegatedStakeCap = x.ActiveState!.Pool.DelegatedStakeCap,
+                    PaydayStatus = x.ActiveState!.Pool.PaydayStatus == null ? null : new
+                    {
+                        BakerStake = x.ActiveState!.Pool.PaydayStatus.BakerStake,
+                        DelegatedStake = x.ActiveState!.Pool.PaydayStatus.DelegatedStake,
+                    }
                 }
             })
             .OrderBy(x => x.Id)
@@ -310,3 +356,5 @@ public class AccountValidator : IImportValidator
         }
     }
 }
+
+public record SingleAccountValidationInfo(string CanonicalAccountAddress, long AccountId);

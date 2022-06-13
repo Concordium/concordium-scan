@@ -13,6 +13,9 @@ public class PaydayStatus
     public int Id { get; init; }
     
     public DateTimeOffset NextPaydayTime { get; set; }
+
+    [GraphQLIgnore]
+    public DateTimeOffset PaydayStartTime { get; set; }
     
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]

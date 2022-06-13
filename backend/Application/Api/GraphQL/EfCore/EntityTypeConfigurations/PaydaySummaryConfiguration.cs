@@ -13,5 +13,7 @@ public class PaydaySummaryConfiguration : IEntityTypeConfiguration<PaydaySummary
         builder.HasKey(x => x.BlockId);
 
         builder.Property(x => x.BlockId).HasColumnName("block_id").ValueGeneratedNever();
+        builder.Property(x => x.PaydayTime).HasColumnName("payday_time").HasConversion<DateTimeOffsetToTimestampConverter>();
+        builder.Property(x => x.PaydayDurationSeconds).HasColumnName("payday_duration_seconds");
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Threading.Tasks;
-using System.Xml;
 using Application.Api.GraphQL.Accounts;
 using Application.Import;
 using ConcordiumSdk.NodeApi.Types;
@@ -17,8 +16,9 @@ public class DelegationImportHandler
         _logger = Log.ForContext<DelegationImportHandler>();
     }
 
-    public async Task<DelegationUpdateResults> HandleDelegationUpdates(BlockDataPayload payload, ChainParameters chainParameters,
-        BakerUpdateResults bakerUpdateResults, RewardsSummary rewardsSummary, bool isFirstBlockAfterPayday)
+    public async Task<DelegationUpdateResults> HandleDelegationUpdates(BlockDataPayload payload,
+        ChainParameters chainParameters, BakerUpdateResults bakerUpdateResults, RewardsSummary rewardsSummary, 
+        BlockImportPaydayStatus importPaydayStatus)
     {
         var resultBuilder = new DelegationUpdateResultsBuilder();
 
@@ -26,8 +26,8 @@ public class DelegationImportHandler
         {
             var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
     
-            if (isFirstBlockAfterPayday)
-                await _writer.UpdateAccountsWithPendingDelegationChange(payload.BlockInfo.BlockSlotTime,
+            if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+                await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
                     account => ApplyPendingChange(account, resultBuilder));
 
             await HandleBakersRemovedOrClosedForAll(bakerUpdateResults, resultBuilder);

@@ -27,7 +27,8 @@ public class PaydayStatusConfigurationTest : IClassFixture<DatabaseFixture>
     {
         var input = new PaydayStatus
         {
-            NextPaydayTime = _anyDateTimeOffset
+            PaydayStartTime = _anyDateTimeOffset,
+            NextPaydayTime = _anyDateTimeOffset.AddHours(2),
         };
 
         await AddPaydayStatus(input);
@@ -35,7 +36,8 @@ public class PaydayStatusConfigurationTest : IClassFixture<DatabaseFixture>
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayStatuses.SingleOrDefaultAsync();
         result.Should().NotBeNull();
-        result!.NextPaydayTime.Should().Be(_anyDateTimeOffset);
+        result!.PaydayStartTime.Should().Be(_anyDateTimeOffset);
+        result.NextPaydayTime.Should().Be(_anyDateTimeOffset.AddHours(2));
     }
 
     private async Task AddPaydayStatus(PaydayStatus input)

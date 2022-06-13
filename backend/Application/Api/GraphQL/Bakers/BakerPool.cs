@@ -31,6 +31,9 @@ public class BakerPool
 
     public int DelegatorCount { get; set; }
 
+    [GraphQLIgnore]
+    public CurrentPaydayStatus? PaydayStatus { get; set; }
+    
     [GraphQLDescription("Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
     public decimal? GetTotalStakePercentage()
     {

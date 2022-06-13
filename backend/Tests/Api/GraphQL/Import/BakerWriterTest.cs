@@ -343,6 +343,33 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1000035892577);
     }
     
+    [Fact]
+    public async Task UpdatePaydayStatuses()
+    {
+        var bakerWithPool = new BakerBuilder()
+            .WithId(1)
+            .WithState(new ActiveBakerStateBuilder()
+                .WithStakedAmount(30000)
+                .WithPool(new BakerPoolBuilder()
+                    .WithDelegatedStake(50000)
+                    .Build()).Build())
+            .Build();
+        
+        var bakerWithoutPool = new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(40000).WithPool(null).Build()).Build();
+        var removedBaker = new BakerBuilder().WithId(3).WithState(new RemovedBakerStateBuilder().Build()).Build();
+        
+        await AddBakers(bakerWithPool, bakerWithoutPool, removedBaker);
+
+        await _target.UpdatePaydayStatuses();
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var results = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
+        (results[0].State as ActiveBakerState)!.Pool!.PaydayStatus!.BakerStake.Should().Be(30000);
+        (results[0].State as ActiveBakerState)!.Pool!.PaydayStatus!.DelegatedStake.Should().Be(50000);
+        (results[1].State as ActiveBakerState)!.Pool.Should().BeNull();
+        results[2].State.Should().BeOfType<RemovedBakerState>();
+    }
+    
     private async Task AddBakers(params long[] bakerIds)
     {
         var bakers = bakerIds.Select(id => new BakerBuilder().WithId(id).Build()).ToArray();
