@@ -1,6 +1,6 @@
 import { defineNuxtConfig } from 'nuxt3'
 
-type Environment = 'dev' | 'test' | 'prod'
+type Environment = 'dev' | 'stagenet' | 'testnet' | 'mainnet'
 type Config = {
 	apiUrl: string
 	wsUrl: string
@@ -13,11 +13,15 @@ const VARS: Record<Environment, Config> = {
 		apiUrl: 'https://mainnet.dev-api.ccdscan.io/graphql',
 		wsUrl: 'wss://mainnet.dev-api.ccdscan.io/graphql',
 	},
-	test: {
+	stagenet: {
+		apiUrl: 'https://api-ccdscan.stagenet.concordium.com/graphql/',
+		wsUrl: 'wss://api-ccdscan.stagenet.concordium.com/graphql',
+	},
+	testnet: {
 		apiUrl: 'https://staging-mainnet.api.ccdscan.io/graphql/',
 		wsUrl: 'wss://staging-mainnet.api.ccdscan.io/graphql',
 	},
-	prod: {
+	mainnet: {
 		apiUrl: 'https://mainnet.api.ccdscan.io/graphql/',
 		wsUrl: 'wss://mainnet.api.ccdscan.io/graphql',
 	},
@@ -37,7 +41,7 @@ export default defineNuxtConfig({
 	publicRuntimeConfig: {
 		...VARS[ENVIRONMENT],
 		environment: ENVIRONMENT,
-		includeDevTools: ENVIRONMENT === 'dev' || ENVIRONMENT === 'test',
+		includeDevTools: ENVIRONMENT === 'dev' || ENVIRONMENT === 'stagenet' || ENVIRONMENT === 'testnet',
 	},
 	nitro: {
 		preset: 'firebase',

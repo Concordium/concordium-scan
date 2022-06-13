@@ -1,6 +1,7 @@
 // Params in JobDSL file
 // 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/ccdscan_frontend.groovy':
 // - VERSION
+// - TARGET_NET
 pipeline {
   agent any
   environment {
@@ -22,15 +23,18 @@ pipeline {
           cd frontend
           
           # Install non-dev dependencies only
-          yarn install --production
+          yarn install
 
           # Run linting
+          npm install eslint --save-dev
           yarn lint
 
           # Build application bundle
-          yarn build
+          env ENVIRONMENT="${TARGET_NET}" yarn build
+
+          # Package
+          tar cvzf out.tar.gz firebase.json .output
         '''.stripIndent()
-        tar file: "out.tar.gz", glob: "frontend/firebase.json, frontend/.output/**"
       }
     }
     stage('push') {
