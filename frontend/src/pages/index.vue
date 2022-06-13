@@ -262,7 +262,7 @@ onMounted(() => {
 	drawFunc()
 	if (window) {
 		window.onblur = () => {
-			if (loopInterval) clearInterval(loopInterval)
+			if (loopInterval) clearTimeout(loopInterval)
 			pausedSubscriptions.value = true
 			pauseSubscription()
 		}
