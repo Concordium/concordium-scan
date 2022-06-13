@@ -51,6 +51,7 @@ public class PassiveDelegation
         throw new NotImplementedException("Cannot get commission rates for passive delegation for this version of chain parameters!");
     }
     
+    [GraphQLDeprecated("Use poolRewards instead. Will be removed in the near future")]
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
     public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
@@ -58,6 +59,17 @@ public class PassiveDelegation
         var pool = new PassiveDelegationPoolRewardTarget();
 
         return dbContext.PoolRewards.AsNoTracking()
+            .Where(x => x.Pool == pool)
+            .OrderByDescending(x => x.Index);
+    }
+    
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
+    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
+    {
+        var pool = new PassiveDelegationPoolRewardTarget();
+
+        return dbContext.PaydayPoolRewards.AsNoTracking()
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
     }

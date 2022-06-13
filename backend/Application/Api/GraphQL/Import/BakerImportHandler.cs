@@ -434,6 +434,11 @@ public class BakerImportHandler
                 TransactionCommission = transactionCommission,
                 FinalizationCommission = finalizationCommission,
                 BakingCommission = bakingCommission
+            },
+            PaydayStatus = new CurrentPaydayStatus
+            {
+                BakerStake = 0,
+                DelegatedStake = 0
             }
         };
     }

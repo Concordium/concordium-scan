@@ -32,7 +32,7 @@ public class BakerPool
     public int DelegatorCount { get; set; }
 
     [GraphQLIgnore]
-    public CurrentPaydayStatus? PaydayStatus { get; set; }
+    public CurrentPaydayStatus PaydayStatus { get; set; }
     
     [GraphQLDescription("Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
     public decimal? GetTotalStakePercentage()
@@ -63,6 +63,7 @@ public class BakerPool
             .Select(x => new DelegationSummary(x.CanonicalAddress, x.Delegation!.StakedAmount, x.Delegation.RestakeEarnings));
     }
     
+    [GraphQLDeprecated("Use poolRewards instead. Will be removed in the near future")]
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
     public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
