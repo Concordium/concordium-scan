@@ -49,7 +49,12 @@
 					>
 						Delegators
 					</TableTh>
-					<TableTh width="40%" align="right">Staked amount (Ͼ)</TableTh>
+					<TableTh v-if="hasPoolData" align="right"
+						>Available for delegation (Ͼ)</TableTh
+					>
+					<TableTh align="right"
+						>{{ hasPoolData ? 'Total stake (Ͼ)' : 'Staked amount (Ͼ)' }}
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -95,9 +100,137 @@
 						</span>
 					</TableTd>
 
-					<TableTd class="text-right">
-						<Amount
+					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						align="right"
+					>
+						<span
 							v-if="baker.state.__typename === 'ActiveBakerState'"
+							class="numerical"
+						>
+							<Tooltip
+								:text="
+									formatDelegationAvailableTooltip(
+										baker.state.pool?.delegatedStake,
+										baker.state.pool?.delegatedStakeCap
+									)
+								"
+								class="font-sans"
+							>
+								<Amount
+									v-if="
+										baker.state.pool && baker.state.pool?.delegatedStake >= 0
+									"
+									:amount="
+										calculateAmountAvailable(
+											baker.state.pool.delegatedStake,
+											baker.state.pool.delegatedStakeCap
+										)
+									"
+								/>
+
+								<FillBar
+									v-if="baker.state.pool"
+									:class="[
+										calculateDelegatedStakePercent(
+											baker.state.pool?.delegatedStake,
+											baker.state.pool?.delegatedStakeCap
+										) < 10
+											? 'bar-warn'
+											: '',
+										,
+									]"
+								>
+									<FillBarItem
+										:width="
+											calculateDelegatedStakePercent(
+												baker.state.pool?.delegatedStake,
+												baker.state.pool?.delegatedStakeCap
+											)
+										"
+									/>
+								</FillBar>
+							</Tooltip>
+						</span>
+					</TableTd>
+
+					<TableTd class="text-right">
+						<Tooltip
+							v-if="
+								baker.state.__typename === 'ActiveBakerState' &&
+								baker.state.pool
+							"
+							text-class="text-left"
+						>
+							<template #content>
+								<div>
+									<span class="legend"></span>
+									Baker
+									<span class="text-theme-faded"
+										>({{
+											formatPercentage(
+												calculatePercentage(
+													baker.state.stakedAmount,
+													baker.state.pool.totalStake
+												) / 100
+											)
+										}}%)</span
+									>
+								</div>
+								<div v-if="baker.state.pool.delegatedStake">
+									<span class="legend legend-green"></span>
+									Delegators
+									<span class="text-theme-faded"
+										>({{
+											formatPercentage(
+												calculatePercentage(
+													baker.state.pool.delegatedStake,
+													baker.state.pool.totalStake
+												) / 100
+											)
+										}}%)
+									</span>
+								</div>
+							</template>
+							<Amount
+								v-if="
+									baker.state.__typename === 'ActiveBakerState' &&
+									baker.state.pool
+								"
+								:amount="
+									baker.state.pool
+										? baker.state.pool.totalStake
+										: baker.state.stakedAmount
+								"
+							/>
+
+							<FillBar
+								v-if="
+									baker.state.__typename === 'ActiveBakerState' &&
+									baker.state.pool
+								"
+							>
+								<FillBarItem
+									:width="
+										calculatePercentage(
+											baker.state.stakedAmount,
+											baker.state.pool.totalStake
+										)
+									"
+								/>
+								<FillBarItem
+									:width="
+										calculatePercentage(
+											baker.state.pool.delegatedStake,
+											baker.state.pool.totalStake
+										)
+									"
+									class="bar-green"
+								/>
+							</FillBar>
+						</Tooltip>
+						<Amount
+							v-else-if="baker.state.__typename === 'ActiveBakerState'"
 							:amount="baker.state.stakedAmount"
 						/>
 					</TableTd>
@@ -119,6 +252,9 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import Badge from '~/components/Badge.vue'
 import Pagination from '~/components/Pagination.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import FillBar from '~/components/atoms/FillBar.vue'
+import FillBarItem from '~~/src/components/atoms/FillBarItem.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
@@ -132,6 +268,13 @@ import { useBakerMetricsQuery } from '~/queries/useBakerMetricsQuery'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { useRewardMetricsQuery } from '~/queries/useRewardMetricsQuery'
 import { MetricsPeriod } from '~/types/generated'
+import TableTh from '~~/src/components/Table/TableTh.vue'
+
+import { formatPercentage, calculatePercentage } from '~/utils/format'
+import {
+	calculateAmountAvailable,
+	formatDelegationAvailableTooltip,
+} from '~/utils/stakingAndDelegation'
 
 const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
@@ -154,6 +297,11 @@ const hasPoolData = computed(() =>
 		baker => baker.state.__typename === 'ActiveBakerState' && baker.state.pool
 	)
 )
+
+const calculateDelegatedStakePercent = (
+	delegatedStake: number,
+	delegatedStakeCap: number
+) => calculatePercentage(delegatedStakeCap - delegatedStake, delegatedStakeCap)
 </script>
 
 <style scoped>
@@ -167,5 +315,34 @@ const hasPoolData = computed(() =>
 	padding: 0.4rem 0.5rem 0.25rem;
 	margin: 0 1rem 0 0;
 	line-height: 1;
+}
+
+.bar {
+	height: 4px;
+	float: left;
+}
+
+.bar-warn {
+	background-color: hsl(var(--color-error-dark));
+}
+
+.bar-warn .bar {
+	background-color: hsl(var(--color-error));
+}
+
+.bar-green {
+	background-color: hsl(var(--color-interactive));
+}
+
+.legend {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	background-color: hsl(var(--color-info));
+	margin-right: 0.5em;
+}
+
+.legend-green {
+	background-color: hsl(var(--color-interactive));
 }
 </style>

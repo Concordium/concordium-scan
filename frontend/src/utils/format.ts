@@ -124,17 +124,11 @@ export const formatNumber = (num: number): string =>
  * @param {number} total - Total amount to calculate from
  * @returns {string} - Total weight in percent
  * @example
- * // returns 5.00
- * calculateWeight(25, 500);
+ * // returns 5
+ * calculatePercentage(25, 500);
  */
-export const calculateWeight = (amount: number, total: number) => {
-	const weight = (amount / total) * 100
-
-	return new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(weight)
-}
+export const calculatePercentage = (amount: number, total: number) =>
+	(amount / total) * 100
 
 /**
  * Shortens a hash (or any other long string)
