@@ -26,7 +26,6 @@ pipeline {
           yarn install
 
           # Run linting
-          npm install eslint --save-dev
           yarn lint
 
           # Build application bundle
