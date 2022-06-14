@@ -1,5 +1,5 @@
 <template>
-	<div class="flex justify-end lg:w-1/3">
+	<div class="flex justify-end">
 		<MobileNavigation :nav-routes="routes" />
 
 		<DesktopNavigation :nav-routes="routes" />

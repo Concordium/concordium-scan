@@ -3,7 +3,7 @@
 		<transition name="drawer-mask">
 			<div
 				v-if="currentDrawerCount > 0"
-				class="h-screen w-screen fixed top-0 left-0 z-20 lg:lol"
+				class="h-screen w-screen fixed top-0 left-0 z-20"
 				:class="$style.drawerMask"
 				@click="() => softReset()"
 			></div>
@@ -12,7 +12,7 @@
 			<div
 				v-for="(drawerItem, index) in getDisplayItems()"
 				:key="index"
-				class="flex-col flex-nowrap justify-between min-h-screen w-full absolute top-0 right-0 z-20 overflow-x-hidden lol"
+				class="flex-col flex-nowrap justify-between min-h-screen w-full absolute top-0 right-0 z-20 overflow-x-hidden"
 				:class="[
 					$style.drawer,
 					$style.fixedAndMaxHeight,

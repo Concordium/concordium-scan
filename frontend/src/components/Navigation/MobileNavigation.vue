@@ -1,5 +1,5 @@
 <template>
-	<div class="2xl:hidden">
+	<div class="lg:hidden">
 		<button
 			type="button"
 			aria-label="Open navigation"

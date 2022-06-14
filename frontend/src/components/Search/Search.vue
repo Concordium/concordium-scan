@@ -1,6 +1,10 @@
 <template>
-	<div ref="rootSearchContainer" class="lg:relative md:w-1/3 w-full">
-		<div class="relative flex flex-row">
+	<div
+		ref="rootSearchContainer"
+		class="xl:relative flex-grow w-min z-20"
+		:class="$style.container"
+	>
+		<div class="relative flex flex-row z-20">
 			<div class="hidden md:block pointer-events-none p-2 absolute left-0">
 				<SearchIcon class="h-6 md:h-5" />
 			</div>
@@ -17,7 +21,7 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
+			class="left-0 xl:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -161,6 +165,8 @@
 				</div>
 			</div>
 		</div>
+
+		<div v-if="status !== 'idle'" :class="$style.mask" />
 	</div>
 </template>
 
@@ -184,6 +190,7 @@ const tooltipPositionBottom = 'bottom' as Position
 const tooltipPositionTop = 'top' as Position
 const searchValue = ref('')
 const delayedSearchValue = ref('')
+const isMaskVisible = ref(false)
 
 const { data, executeQuery } = useSearchQuery(delayedSearchValue)
 let searchQueryTimeout: NodeJS.Timeout | null = null
@@ -199,6 +206,7 @@ watch(data, () => {
 watch(searchValue, (newValue, _oldValue) => {
 	if (searchQueryTimeout) clearTimeout(searchQueryTimeout)
 	status.value = 'loading'
+	isMaskVisible.value = true
 
 	if (!newValue) {
 		status.value = 'idle'
@@ -240,6 +248,7 @@ const gotoSearchResult = () => {
 
 	searchValue.value = ''
 	status.value = 'idle'
+	isMaskVisible.value = false
 }
 
 const rootSearchContainer = ref()
@@ -283,5 +292,20 @@ const resultCount = computed(() => ({
 
 .loading {
 	min-height: 100px;
+}
+
+.container {
+	max-width: 600px;
+}
+
+.mask {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: hsla(247, 40%, 4%, 0.5);
+	backdrop-filter: blur(2px);
+	z-index: 11;
 }
 </style>
