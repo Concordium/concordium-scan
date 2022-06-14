@@ -227,6 +227,8 @@ public class AccountValidator : IImportValidator
                             {
                                 BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.MicroCcdValue,
                                 DelegatedStake = bakerPoolStatus.CurrentPaydayStatus.DelegatedCapital.MicroCcdValue,
+                                EffectiveStake = bakerPoolStatus.CurrentPaydayStatus.EffectiveStake.MicroCcdValue,
+                                LotteryPower = bakerPoolStatus.CurrentPaydayStatus.LotteryPower
                             }
                         }
                 };
@@ -260,6 +262,8 @@ public class AccountValidator : IImportValidator
                     {
                         BakerStake = x.ActiveState!.Pool.PaydayStatus.BakerStake,
                         DelegatedStake = x.ActiveState!.Pool.PaydayStatus.DelegatedStake,
+                        EffectiveStake = x.ActiveState!.Pool.PaydayStatus.EffectiveStake,
+                        LotteryPower = x.ActiveState!.Pool.PaydayStatus.LotteryPower
                     }
                 }
             })

@@ -42,6 +42,8 @@ public class BakerConfiguration :
                 {
                     paydayStatusBuilder.Property(x => x.BakerStake).HasColumnName("active_pool_payday_status_baker_stake");
                     paydayStatusBuilder.Property(x => x.DelegatedStake).HasColumnName("active_pool_payday_status_delegated_stake");
+                    paydayStatusBuilder.Property(x => x.EffectiveStake).HasColumnName("active_pool_payday_status_effective_stake");
+                    paydayStatusBuilder.Property(x => x.LotteryPower).HasColumnName("active_pool_payday_status_lottery_power");
                 });
             });
 

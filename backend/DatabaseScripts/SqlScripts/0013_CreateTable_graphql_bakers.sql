@@ -15,5 +15,7 @@
     active_pool_delegated_stake_cap           bigint    null,
     active_pool_payday_status_baker_stake     bigint    null,
     active_pool_payday_status_delegated_stake bigint    null,
+    active_pool_payday_status_effective_stake bigint    null,
+    active_pool_payday_status_lottery_power   numeric   null,
     removed_timestamp                         timestamp null
 );

@@ -162,8 +162,13 @@ public class BakerImportHandler
             {
                 await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
                 {
-                    dst.ActiveState!.Pool!.PaydayStatus.BakerStake = src.CurrentPaydayStatus!.BakerEquityCapital.MicroCcdValue;
-                    dst.ActiveState!.Pool!.PaydayStatus.DelegatedStake = src.CurrentPaydayStatus!.DelegatedCapital.MicroCcdValue;
+                    var obj = dst.ActiveState!.Pool!.PaydayStatus;
+                    var status = src.CurrentPaydayStatus!;
+                    
+                    obj.BakerStake = status.BakerEquityCapital.MicroCcdValue;
+                    obj.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
+                    obj.EffectiveStake = status.EffectiveStake.MicroCcdValue;
+                    obj.LotteryPower = status.LotteryPower;
                 });
             }
         }
