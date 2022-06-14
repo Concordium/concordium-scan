@@ -2,6 +2,6 @@
 
 public class CurrentPaydayStatus
 {
-    public ulong BakerStake { get; init; }
-    public ulong DelegatedStake { get; init; }
+    public ulong BakerStake { get; set; }
+    public ulong DelegatedStake { get; set; }
 }

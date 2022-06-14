@@ -91,7 +91,7 @@ public class BakerImportHandler
             var chainParametersV1 = (ChainParametersV1)chainParameters;
             var capitalBound = chainParametersV1.CapitalBound;
             var leverageFactor = chainParametersV1.LeverageBound.AsDecimal();
-
+        
             var totalAmountStaked = bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked;
             await _writer.UpdateDelegatedStakeCap(totalAmountStaked, capitalBound, leverageFactor);
         }
@@ -156,7 +156,17 @@ public class BakerImportHandler
         await UpdateBakersWithPendingChangesDue(pendingChangeStrategy, importState, resultBuilder);
 
         if (isFirstBlockAfterPayday)
-            await _writer.UpdatePaydayStatuses();
+        {
+            var poolStatuses = await payload.ReadAllBakerPoolStatuses();
+            foreach (var poolStatus in poolStatuses)
+            {
+                await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+                {
+                    dst.ActiveState!.Pool!.PaydayStatus.BakerStake = src.CurrentPaydayStatus!.BakerEquityCapital.MicroCcdValue;
+                    dst.ActiveState!.Pool!.PaydayStatus.DelegatedStake = src.CurrentPaydayStatus!.DelegatedCapital.MicroCcdValue;
+                });
+            }
+        }
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()

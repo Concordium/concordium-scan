@@ -342,32 +342,26 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var result = await context.Bakers.SingleAsync();
         (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1000035892577);
     }
-    
-    [Fact]
-    public async Task UpdatePaydayStatuses()
+        
+    [Fact(Skip = "Missing details from concordium on how the delegated stake should play into calculating delegated stake cap!")]
+    public async Task UpdateDelegatedStakeCap_PoolHasDelegatedStake()
     {
-        var bakerWithPool = new BakerBuilder()
+        var baker = new BakerBuilder()
             .WithId(1)
             .WithState(new ActiveBakerStateBuilder()
-                .WithStakedAmount(30000)
+                .WithStakedAmount(1000000000000000)
                 .WithPool(new BakerPoolBuilder()
-                    .WithDelegatedStake(50000)
+                    .WithDelegatedStake(205004302694424)
                     .Build()).Build())
             .Build();
         
-        var bakerWithoutPool = new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithStakedAmount(40000).WithPool(null).Build()).Build();
-        var removedBaker = new BakerBuilder().WithId(3).WithState(new RemovedBakerStateBuilder().Build()).Build();
-        
-        await AddBakers(bakerWithPool, bakerWithoutPool, removedBaker);
-
-        await _target.UpdatePaydayStatuses();
+        await AddBakers(baker);
+    
+        await _target.UpdateDelegatedStakeCap(5656544697987840, 0.4m, 3m);
         
         await using var context = _dbContextFactory.CreateDbContext();
-        var results = await context.Bakers.OrderBy(x => x.Id).ToArrayAsync();
-        (results[0].State as ActiveBakerState)!.Pool!.PaydayStatus!.BakerStake.Should().Be(30000);
-        (results[0].State as ActiveBakerState)!.Pool!.PaydayStatus!.DelegatedStake.Should().Be(50000);
-        (results[1].State as ActiveBakerState)!.Pool.Should().BeNull();
-        results[2].State.Should().BeOfType<RemovedBakerState>();
+        var result = await context.Bakers.SingleAsync();
+        (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1967693596862277);
     }
     
     private async Task AddBakers(params long[] bakerIds)

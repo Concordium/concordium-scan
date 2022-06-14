@@ -296,6 +296,18 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return PeerVersion.Parse(result.Value);
     }
 
+    public async Task<ulong[]> GetBakerListAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
+    {
+        var request = new Concordium.BlockHash
+        {
+            BlockHash_ = blockHash.AsString
+        };
+        var response = await _client.GetBakerListAsync(request, CreateCallOptions(cancellationToken));
+        var result = JsonSerializer.Deserialize<ulong[]>(response.Value, _jsonSerializerOptions)!;
+        if (result == null) throw new InvalidOperationException("Unexpectedly received null from rpc operation.");
+        return result;
+    }
+
     public async Task<BakerPoolStatus?> GetPoolStatusForBaker(ulong bakerId, BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var response = await GetPoolStatusStringAsync(blockHash, bakerId, false, cancellationToken);

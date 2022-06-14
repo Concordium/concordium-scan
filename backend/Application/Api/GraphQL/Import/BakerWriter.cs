@@ -223,21 +223,4 @@ public class BakerWriter
         await conn.ExecuteAsync(sql, param);
         await conn.CloseAsync();
     }
-    
-    public async Task UpdatePaydayStatuses()
-    {
-        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdatePaydayStatuses));
-
-        var sql = @"update graphql_bakers set 
-                        active_pool_payday_status_baker_stake = active_staked_amount,
-                        active_pool_payday_status_delegated_stake = active_pool_delegated_stake
-                    where active_pool_open_status is not null;";
-        
-        await using var context = await _dbContextFactory.CreateDbContextAsync();
-        var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
-        await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
-    }
 }

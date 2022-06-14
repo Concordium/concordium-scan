@@ -106,21 +106,38 @@ public class ImportReadController : BackgroundService
         var rewardStatus = await rewardStatusTask;
 
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
+        
+        // Dont proactively read pool statuses for each block, we will let the write controller decide if they must be read!
+        var bakerPoolStatuses = () => GetWithGrpcRetryAsync(() => GetAllBakerPoolStatusesAsync(blockInfo, blockSummary, stoppingToken), nameof(GetAllBakerPoolStatusesAsync), stoppingToken);
 
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
             var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
-
-            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus,
-                genesisIdentityProviders);
+            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, genesisIdentityProviders, bakerPoolStatuses);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus);
+            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, bakerPoolStatuses);
         }
 
         return new BlockDataEnvelope(payload);
+    }
+
+    private async Task<BakerPoolStatus[]> GetAllBakerPoolStatusesAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    {
+        if (!(blockSummary.ProtocolVersion >= 4))
+            throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
+
+        var result = new List<BakerPoolStatus>();
+        var bakerIds = await _client.GetBakerListAsync(blockInfo.BlockHash, stoppingToken);
+        foreach (var bakerId in bakerIds)
+        {
+            var bakerPoolStatus = await _client.GetPoolStatusForBaker(bakerId, blockInfo.BlockHash, stoppingToken);
+            if (bakerPoolStatus == null) throw new InvalidOperationException("Did not expect baker pool status to be null");
+            result.Add(bakerPoolStatus);
+        }
+        return result.ToArray();
     }
 
     private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
