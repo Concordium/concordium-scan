@@ -22,7 +22,7 @@ pipeline {
         sh '''\
           cd frontend
           
-          # Install non-dev dependencies only
+          # Install dependencies
           yarn install
 
           # Run linting
@@ -38,7 +38,7 @@ pipeline {
     }
     stage('push') {
       steps {
-        sh 'aws s3 cp out.tar.gz "${OUTFILE}"'
+        sh 'aws s3 cp frontend/out.tar.gz "${OUTFILE}"'
       }
     }
   }
