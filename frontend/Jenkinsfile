@@ -5,7 +5,7 @@
 pipeline {
   agent any
   environment {
-    OUTFILE = "s3://ccdscan.concordium.com/ccdscan-frontend-${VERSION}.tar.gz"
+    OUTFILE = "s3://ccdscan.concordium.com/${TARGET_NET}/ccdscan-frontend-${VERSION}.tar.gz"
   }
   stages {
     stage('build') {
