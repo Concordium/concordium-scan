@@ -41,6 +41,10 @@ public class PaydayPoolRewardConfigurationTest : IClassFixture<DatabaseFixture>
             SumTotalAmount = 1006,
             SumBakerAmount = 753,
             SumDelegatorsAmount = 253,
+            PaydayDurationSeconds = 2000,
+            TotalApy = 0.08,
+            BakerApy = 0.09,
+            DelegatorsApy = 0.07,
             BlockId = 42,
         };
 
@@ -63,6 +67,10 @@ public class PaydayPoolRewardConfigurationTest : IClassFixture<DatabaseFixture>
         result.SumTotalAmount.Should().Be(1006);
         result.SumBakerAmount.Should().Be(753);
         result.SumDelegatorsAmount.Should().Be(253);
+        result.PaydayDurationSeconds.Should().Be(2000);
+        result.TotalApy.Should().Be(0.08);
+        result.BakerApy.Should().Be(0.09);
+        result.DelegatorsApy.Should().Be(0.07);
         result.BlockId.Should().Be(42);
     }
 

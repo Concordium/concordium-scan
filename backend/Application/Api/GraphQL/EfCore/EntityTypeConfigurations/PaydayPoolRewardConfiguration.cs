@@ -27,6 +27,10 @@ public class PaydayPoolRewardConfiguration: IEntityTypeConfiguration<PaydayPoolR
         builder.Property(x => x.SumTotalAmount).HasColumnName("sum_total_amount");
         builder.Property(x => x.SumBakerAmount).HasColumnName("sum_baker_amount");
         builder.Property(x => x.SumDelegatorsAmount).HasColumnName("sum_delegator_amount");
+        builder.Property(x => x.PaydayDurationSeconds).HasColumnName("payday_duration_seconds");
+        builder.Property(x => x.TotalApy).HasColumnName("total_apy");
+        builder.Property(x => x.BakerApy).HasColumnName("baker_apy");
+        builder.Property(x => x.DelegatorsApy).HasColumnName("delegators_apy");
         builder.Property(x => x.BlockId).HasColumnName("block_id");
     }
 }

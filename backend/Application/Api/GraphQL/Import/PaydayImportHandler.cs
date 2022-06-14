@@ -58,7 +58,7 @@ public class PaydayImportHandler
         return new NotFirstBlockAfterPayday();
     }
     
-    public async Task AddPaydaySummaryOnPayday(BlockImportPaydayStatus importPaydayStatus, Block block)
+    public async Task<PaydaySummary?> AddPaydaySummaryOnPayday(BlockImportPaydayStatus importPaydayStatus, Block block)
     {
         if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
         {
@@ -72,7 +72,11 @@ public class PaydayImportHandler
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             dbContext.PaydaySummaries.Add(result);
             await dbContext.SaveChangesAsync();
+
+            return result;
         }
+
+        return null;
     }
 }
 

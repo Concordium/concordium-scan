@@ -13,7 +13,7 @@ public class BakerPoolBuilder
     private ulong _totalStake = 0UL;
     private int _delegatorCount = 0;
     private ulong _delegatedStakeCap = 1000;
-    private CurrentPaydayStatus? _paydayStatus = null;
+    private CurrentPaydayStatus _paydayStatus = null;
 
     public BakerPool Build()
     {
@@ -78,7 +78,7 @@ public class BakerPoolBuilder
         return this;
     }
 
-    public BakerPoolBuilder WithPaydayStatus(CurrentPaydayStatus? value)
+    public BakerPoolBuilder WithPaydayStatus(CurrentPaydayStatus value)
     {
         _paydayStatus = value;
         return this;

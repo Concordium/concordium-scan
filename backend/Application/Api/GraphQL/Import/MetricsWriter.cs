@@ -1,6 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System.Data;
+using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
+using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
@@ -237,7 +239,8 @@ public class MetricsWriter
         batch.BatchCommands.Add(cmd);
     }
 
-    public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary)
+    public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary,
+        PaydaySummary? paydaySummary, PaydayPoolStakeSnapshot? paydayPoolStakeSnapshot)
     {
         var poolRewards = specialEvents
             .OfType<PaydayPoolRewardSpecialEvent>()
@@ -246,6 +249,9 @@ public class MetricsWriter
         if (poolRewards.Length == 0) 
             return;
         
+        if (paydaySummary == null) throw new ArgumentNullException(nameof(paydaySummary));
+        if (paydayPoolStakeSnapshot == null) throw new ArgumentNullException(nameof(paydayPoolStakeSnapshot));
+
         using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPoolRewardMetrics));
 
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
@@ -255,11 +261,11 @@ public class MetricsWriter
                 insert into metrics_payday_pool_rewards (time, pool_id, transaction_fees_total_amount, transaction_fees_baker_amount,  
                     transaction_fees_delegator_amount, baker_reward_total_amount, baker_reward_baker_amount, baker_reward_delegator_amount,  
                     finalization_reward_total_amount, finalization_reward_baker_amount, finalization_reward_delegator_amount, sum_total_amount,              
-                    sum_baker_amount, sum_delegator_amount, block_id) 
+                    sum_baker_amount, sum_delegator_amount, payday_duration_seconds, total_apy, baker_apy, delegators_apy, block_id) 
                 values (@Time, @PoolId, @TransactionFeesTotalAmount, @TransactionFeesBakerAmount, 
                         @TransactionFeesDelegatorsAmount, @BakerRewardTotalAmount, @BakerRewardBakerAmount, @BakerRewardDelegatorsAmount,
                         @FinalizationRewardTotalAmount, @FinalizationRewardBakerAmount, @FinalizationRewardDelegatorsAmount, @SumTotalAmount,
-                        @SumBakerAmount, @SumDelegatorsAmount, @BlockId)";
+                        @SumBakerAmount, @SumDelegatorsAmount, @PaydayDurationSeconds, @TotalApy, @BakerApy, @DelegatorsApy, @BlockId)";
         
         var batch = conn.CreateBatch();
         foreach (var poolReward in poolRewards)
@@ -269,6 +275,13 @@ public class MetricsWriter
             var bakerRewardsSummary = poolReward.Pool switch
             {
                 BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == baker.BakerId),
+                PassiveDelegationPoolRewardTarget => null,
+                _ => throw new NotImplementedException()
+            };
+            
+            var stakeSnapshot = poolReward.Pool switch
+            {
+                BakerPoolRewardTarget baker => paydayPoolStakeSnapshot.Items.Single(x => x.BakerId == baker.BakerId),
                 PassiveDelegationPoolRewardTarget => null,
                 _ => throw new NotImplementedException()
             };
@@ -292,6 +305,10 @@ public class MetricsWriter
             var sumBaker = transactionFeesBaker + bakerRewardBaker + finalizationRewardBaker;
             var sumDelegators = transactionFeesDelegators + bakerRewardDelegators + finalizationRewardDelegators;
 
+            var totalApy = stakeSnapshot != null ? CalculateApy(sumTotal, stakeSnapshot.BakerStake + stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds) : 0;
+            var bakerApy = stakeSnapshot != null ? CalculateApy(sumBaker, stakeSnapshot.BakerStake, paydaySummary.PaydayDurationSeconds) : 0;
+            var delegatorsApy = stakeSnapshot != null ? CalculateApy(sumDelegators, stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds) : 0;
+            
             cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
             cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));
             cmd.Parameters.Add(new NpgsqlParameter<long>("TransactionFeesTotalAmount", transactionFeesTotal));
@@ -306,6 +323,10 @@ public class MetricsWriter
             cmd.Parameters.Add(new NpgsqlParameter<long>("SumTotalAmount", sumTotal));
             cmd.Parameters.Add(new NpgsqlParameter<long>("SumBakerAmount", sumBaker));
             cmd.Parameters.Add(new NpgsqlParameter<long>("SumDelegatorsAmount", sumDelegators));
+            cmd.Parameters.Add(new NpgsqlParameter<long>("PaydayDurationSeconds", paydaySummary.PaydayDurationSeconds));
+            cmd.Parameters.Add(totalApy.HasValue ? new NpgsqlParameter<double>("TotalApy", totalApy.Value) : new NpgsqlParameter<double?>("TotalApy", null));
+            cmd.Parameters.Add(bakerApy.HasValue ? new NpgsqlParameter<double>("BakerApy", bakerApy.Value) : new NpgsqlParameter<double?>("BakerApy", null));
+            cmd.Parameters.Add(delegatorsApy.HasValue ? new NpgsqlParameter<double>("DelegatorsApy", delegatorsApy.Value) : new NpgsqlParameter<double?>("DelegatorsApy", null));
             cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
 
             batch.BatchCommands.Add(cmd);
@@ -315,5 +336,18 @@ public class MetricsWriter
         batch.ExecuteNonQuery();
 
         conn.Close();
+    }
+
+    public static double? CalculateApy(long rewardAmount, long stakedAmount, long paydayDurationSeconds)
+    {
+        if (paydayDurationSeconds <= 0) throw new ArgumentException("Duration must be greater than zero");
+        if (stakedAmount < 0) throw new ArgumentException("Duration must be greater than or equal to zero");
+
+        if (stakedAmount == 0) return null;
+        
+        const double secondsPerYear = 365 * 24 * 60 * 60;
+        var v1 = 1 + rewardAmount / (double)stakedAmount;
+        var v2 = secondsPerYear / paydayDurationSeconds;
+        return Math.Pow(v1, v2) - 1;
     }
 }

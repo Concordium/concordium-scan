@@ -2,6 +2,7 @@
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Payday;
 using Application.Database;
 using Dapper;
 using FluentAssertions;
@@ -328,8 +329,16 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
                     new RewardTypeAmount(RewardType.FinalizationReward, 70))
                 .Build()
         });
+
+        var paydaySummary = new PaydaySummary
+        {
+            PaydayDurationSeconds = 2 * 60 * 60
+        };
+
+        var stakeSnapshot = new PaydayPoolStakeSnapshot(
+            new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
         
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, stakeSnapshot);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
@@ -349,6 +358,10 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         result.SumTotalAmount.Should().Be(35 + 100 + 80);
         result.SumBakerAmount.Should().Be(30 + 98 + 70);
         result.SumDelegatorsAmount.Should().Be(5 + 2 + 10);
+        result.PaydayDurationSeconds.Should().Be(2 * 60 * 60);
+        result.TotalApy.Should().BeApproximately(0.09, 0.01);
+        result.BakerApy.Should().BeApproximately(0.1, 0.01);
+        result.DelegatorsApy.Should().BeApproximately(0.07, 0.01);
         result.BlockId.Should().Be(138);
     }
 
@@ -367,7 +380,15 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 
         var rewardsSummary = new RewardsSummary(Array.Empty<AccountRewardSummary>());
         
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        var paydaySummary = new PaydaySummary
+        {
+            PaydayDurationSeconds = 2 * 60 * 60
+        };
+
+        var stakeSnapshot = new PaydayPoolStakeSnapshot(
+            new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
+
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, stakeSnapshot);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
@@ -376,6 +397,30 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
         result!.Pool.Should().BeOfType<PassiveDelegationPoolRewardTarget>();
     }
 
+    [Fact]
+    public void CalculateApy_HasStake()
+    {
+        // Example from Excel sheet reviewed by Christian Matts from Concordium
+        var reward = 13148991050L;
+        var stake = 795760615434465L;
+        var durationSeconds = 2 * 60 * 60;
+
+        var result = MetricsWriter.CalculateApy(reward, stake, durationSeconds);
+        result.Should().BeApproximately(0.075056970, 0.000000001);
+    }
+
+    [Fact]
+    public void CalculateApy_HasNoStake()
+    {
+        // Example from Excel sheet reviewed by Christian Matts from Concordium
+        var reward = 13148991050L;
+        var stake = 0L;
+        var durationSeconds = 2 * 60 * 60;
+
+        var result = MetricsWriter.CalculateApy(reward, stake, durationSeconds);
+        result.Should().BeNull();
+    }
+    
     private IEnumerable<dynamic> Query(string sql)
     {
         using var conn = new NpgsqlConnection(_databaseSettings.ConnectionString);

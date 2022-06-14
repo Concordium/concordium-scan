@@ -30,6 +30,6 @@ public class BakerUpdateResultsBuilder
 
     public BakerUpdateResults Build()
     {
-        return new BakerUpdateResults(_totalAmountStaked, _bakersAddedCount, _bakersRemoved, Array.Empty<long>());
+        return new BakerUpdateResults(_totalAmountStaked, _bakersAddedCount, _bakersRemoved, Array.Empty<long>(), null);
     }
 }

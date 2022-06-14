@@ -35,6 +35,12 @@ public class BakerImportHandler
 
         var resultBuilder = new BakerUpdateResultsBuilder();
 
+        if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+        {
+            var stakeSnapshot = await _writer.GetPaydayPoolStakeSnapshot();
+            resultBuilder.SetPaydayStakeSnapshot(stakeSnapshot);
+        }
+        
         if (payload is GenesisBlockDataPayload)
             await AddGenesisBakers(payload, resultBuilder, importState);
         else
@@ -471,6 +477,7 @@ public class BakerImportHandler
         private int _bakersAdded = 0;
         private readonly List<long> _bakersRemoved = new ();
         private readonly List<long> _bakersClosedForAll = new ();
+        private PaydayPoolStakeSnapshot? _paydayStakeSnapshot = null;
 
         public void SetTotalAmountStaked(ulong totalAmountStaked)
         {
@@ -480,7 +487,7 @@ public class BakerImportHandler
         public BakerUpdateResults Build()
         {
             return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved.ToArray(), 
-                _bakersClosedForAll.ToArray());
+                _bakersClosedForAll.ToArray(), _paydayStakeSnapshot);
         }
 
         public void IncrementBakersAdded(int incrementValue = 1)
@@ -497,14 +504,19 @@ public class BakerImportHandler
         {
             _bakersClosedForAll.Add(bakerId);
         }
+
+        public void SetPaydayStakeSnapshot(PaydayPoolStakeSnapshot stakeSnapshot)
+        {
+            _paydayStakeSnapshot = stakeSnapshot;
+        }
     }
 }
 
-public record BakerUpdateResults(
-    ulong TotalAmountStaked,
+public record BakerUpdateResults(ulong TotalAmountStaked,
     int BakersAddedCount,
-    long[] BakerIdsRemoved, 
-    long[] BakerIdsClosedForAll)
+    long[] BakerIdsRemoved,
+    long[] BakerIdsClosedForAll, 
+    PaydayPoolStakeSnapshot? PaydayPoolStakeSnapshot)
 {
     public int BakersRemovedCount => BakerIdsRemoved.Length;
 };

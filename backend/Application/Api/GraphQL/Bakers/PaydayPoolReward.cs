@@ -53,6 +53,16 @@ public class PaydayPoolReward
     [GraphQLIgnore]
     public ulong SumDelegatorsAmount { get; init; }
 
+    [GraphQLIgnore]
+    public ulong PaydayDurationSeconds { get; init; }
+    
+    [GraphQLIgnore]
+    public double? TotalApy { get; init; }
+    [GraphQLIgnore]
+    public double? BakerApy { get; init; }
+    [GraphQLIgnore]
+    public double? DelegatorsApy { get; init; }
+
     [GraphQLDescription("The sum of the transaction fees, baker rewards and finalization rewards.")]
     public PaydayPoolRewardAmounts Sum => new(SumTotalAmount, SumBakerAmount, SumDelegatorsAmount);
 

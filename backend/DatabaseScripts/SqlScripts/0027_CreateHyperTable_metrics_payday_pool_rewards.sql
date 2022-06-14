@@ -15,6 +15,10 @@
     sum_total_amount                     bigint    not null,
     sum_baker_amount                     bigint    not null,
     sum_delegator_amount                 bigint    not null,
+    payday_duration_seconds              bigint    not null,
+    total_apy                            numeric   null,
+    baker_apy                            numeric   null,
+    delegators_apy                       numeric   null,
     block_id                             bigint    not null
 );
 

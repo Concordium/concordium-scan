@@ -223,4 +223,22 @@ public class BakerWriter
         await conn.ExecuteAsync(sql, param);
         await conn.CloseAsync();
     }
+
+    public async Task<PaydayPoolStakeSnapshot> GetPaydayPoolStakeSnapshot()
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(GetPaydayPoolStakeSnapshot));
+
+        string sql = @"select id as BakerId, active_pool_payday_status_baker_stake as BakerStake, active_pool_payday_status_delegated_stake as DelegatedStake 
+                       from graphql_bakers 
+                       where active_pool_open_status is not null";
+
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
+        await conn.CloseAsync();
+
+        return new PaydayPoolStakeSnapshot(items.ToArray());
+    }
 }

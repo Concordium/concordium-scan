@@ -181,7 +181,7 @@ public class ImportWriteController : BackgroundService
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
-        await _paydayHandler.AddPaydaySummaryOnPayday(importPaydayStatus, block);
+        var paydaySummary = await _paydayHandler.AddPaydaySummaryOnPayday(importPaydayStatus, block);
         
         await _metricsWriter.AddBlockMetrics(block);
         await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
@@ -189,7 +189,7 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
         _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         _metricsWriter.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
-        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot);
         
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
