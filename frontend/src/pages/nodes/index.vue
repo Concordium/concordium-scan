@@ -150,7 +150,6 @@ const formatUptime = (uptime: number) => {
 watch(
 	() => data.value,
 	value => {
-		console.log(value?.nodeStatuses.nodes.length)
 		addPagedData(value?.nodeStatuses.nodes || [], value?.nodeStatuses.pageInfo)
 	}
 )
