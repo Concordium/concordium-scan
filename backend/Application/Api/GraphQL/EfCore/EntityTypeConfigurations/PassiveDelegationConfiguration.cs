@@ -15,5 +15,6 @@ public class PassiveDelegationConfiguration : IEntityTypeConfiguration<PassiveDe
         builder.Property(x => x.DelegatorCount).HasColumnName("delegator_count");
         builder.Property(x => x.DelegatedStake).HasColumnName("delegated_stake");
         builder.Property(x => x.DelegatedStakePercentage).HasColumnName("delegated_stake_percentage");
+        builder.Property(x => x.CurrentPaydayDelegatedStake).HasColumnName("current_payday_delegated_stake");
     }
 }

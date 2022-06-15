@@ -44,18 +44,21 @@ public record BlockDataEnvelope(BlockDataPayload Payload);
 public record BlockDataPayload
 {
     private readonly Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc;
+    private readonly Func<Task<PoolStatusPassiveDelegation>> _passiveDelegationPoolStatusFunc;
 
-    public BlockDataPayload(BlockInfo blockInfo, 
-        BlockSummaryBase blockSummary, 
+    public BlockDataPayload(BlockInfo blockInfo,
+        BlockSummaryBase blockSummary,
         AccountInfosRetrieved accountInfos,
         RewardStatusBase rewardStatus,
-        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc)
+        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc)
     {
         BlockInfo = blockInfo;
         BlockSummary = blockSummary;
         AccountInfos = accountInfos;
         RewardStatus = rewardStatus;
         _readAllBakerPoolStatusesFunc = readAllBakerPoolStatusesFunc;
+        _passiveDelegationPoolStatusFunc = passiveDelegationPoolStatusFunc;
     }
 
     public BlockInfo BlockInfo { get; }
@@ -67,6 +70,11 @@ public record BlockDataPayload
     {
         return await _readAllBakerPoolStatusesFunc();
     }
+
+    public async Task<PoolStatusPassiveDelegation> ReadPassiveDelegationPoolStatus()
+    {
+        return await _passiveDelegationPoolStatusFunc();
+    }
 }
 
 public record GenesisBlockDataPayload : BlockDataPayload
@@ -74,10 +82,11 @@ public record GenesisBlockDataPayload : BlockDataPayload
     public GenesisBlockDataPayload(BlockInfo blockInfo,
         BlockSummaryBase blockSummary,
         AccountInfosRetrieved accountInfos,
-        RewardStatusBase rewardStatus, 
+        RewardStatusBase rewardStatus,
         IdentityProviderInfo[] genesisIdentityProviders,
-        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc) 
-        : base(blockInfo, blockSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc)
+        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc) 
+        : base(blockInfo, blockSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
     {
         GenesisIdentityProviders = genesisIdentityProviders;
     }

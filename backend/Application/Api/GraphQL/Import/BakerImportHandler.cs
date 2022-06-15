@@ -35,7 +35,7 @@ public class BakerImportHandler
 
         var resultBuilder = new BakerUpdateResultsBuilder();
 
-        if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+        if (importPaydayStatus is FirstBlockAfterPayday)
         {
             var stakeSnapshot = await _writer.GetPaydayPoolStakeSnapshot();
             resultBuilder.SetPaydayStakeSnapshot(stakeSnapshot);
@@ -162,22 +162,7 @@ public class BakerImportHandler
         await UpdateBakersWithPendingChangesDue(pendingChangeStrategy, importState, resultBuilder);
 
         if (isFirstBlockAfterPayday)
-        {
-            var poolStatuses = await payload.ReadAllBakerPoolStatuses();
-            foreach (var poolStatus in poolStatuses)
-            {
-                await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
-                {
-                    var obj = dst.ActiveState!.Pool!.PaydayStatus;
-                    var status = src.CurrentPaydayStatus!;
-                    
-                    obj.BakerStake = status.BakerEquityCapital.MicroCcdValue;
-                    obj.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
-                    obj.EffectiveStake = status.EffectiveStake.MicroCcdValue;
-                    obj.LotteryPower = status.LotteryPower;
-                });
-            }
-        }
+            await UpdateCurrentPaydayStatusOnAllBakers(payload);
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
@@ -198,6 +183,24 @@ public class BakerImportHandler
 
         await UpdateBakersFromTransactionEvents(txEvents, pendingChangeStrategy, importState, resultBuilder);
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
+    }
+
+    private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
+    {
+        var poolStatuses = await payload.ReadAllBakerPoolStatuses();
+        foreach (var poolStatus in poolStatuses)
+        {
+            await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+            {
+                var obj = dst.ActiveState!.Pool!.PaydayStatus;
+                var status = src.CurrentPaydayStatus!;
+
+                obj.BakerStake = status.BakerEquityCapital.MicroCcdValue;
+                obj.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
+                obj.EffectiveStake = status.EffectiveStake.MicroCcdValue;
+                obj.LotteryPower = status.LotteryPower;
+            });
+        }
     }
 
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)

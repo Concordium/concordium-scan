@@ -16,7 +16,7 @@ public class PassiveDelegationImportHandler
     }
 
     public async Task UpdatePassiveDelegation(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload,
-        ImportState importState)
+        ImportState importState, BlockImportPaydayStatus importPaydayStatus)
     {
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
@@ -28,20 +28,23 @@ public class PassiveDelegationImportHandler
 
             var delegatedStake = await GetTotalStakedToPassiveDelegation();
             var delegatedStakePercentage = Math.Round((decimal)delegatedStake / payload.RewardStatus.TotalAmount.MicroCcdValue, 10);
-            await UpdatePassiveDelegation(delegatorCountDelta, delegatedStake, delegatedStakePercentage);
+
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+            var instance = await dbContext.PassiveDelegations.SingleAsync();
+            instance.DelegatorCount += delegatorCountDelta;
+            instance.DelegatedStake = delegatedStake;
+            instance.DelegatedStakePercentage = delegatedStakePercentage;
+
+            if (importPaydayStatus is FirstBlockAfterPayday)
+            {
+                var status = await payload.ReadPassiveDelegationPoolStatus();
+                instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.MicroCcdValue;
+            }
+            
+            await dbContext.SaveChangesAsync();
         }
     }
 
-    private async Task UpdatePassiveDelegation(int delegatorCountDelta, ulong delegatedStake, decimal delegatedStakePercentage)
-    {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var instance = await dbContext.PassiveDelegations.SingleAsync();
-        instance.DelegatorCount += delegatorCountDelta;
-        instance.DelegatedStake = delegatedStake;
-        instance.DelegatedStakePercentage = delegatedStakePercentage;
-        await dbContext.SaveChangesAsync();
-    }
-    
     private async Task<ulong> GetTotalStakedToPassiveDelegation()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
@@ -60,7 +63,9 @@ public class PassiveDelegationImportHandler
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             var instance = new PassiveDelegation
             {
-                DelegatorCount = 0
+                DelegatorCount = 0,
+                DelegatedStakePercentage = 0m,
+                CurrentPaydayDelegatedStake = 0
             };
             dbContext.Add(instance);
             await dbContext.SaveChangesAsync();
