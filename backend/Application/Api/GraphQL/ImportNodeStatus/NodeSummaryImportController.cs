@@ -35,6 +35,7 @@ public class NodeSummaryImportController : BackgroundService
             {
                 _repository.AllNodeStatuses = policyResult.Result
                     .Select(MapToNodeStatus)
+                    .OrderBy(x => x.NodeName)
                     .ToArray();
             }
             else if (_repository.AllNodeStatuses != null)
