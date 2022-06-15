@@ -335,10 +335,12 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
             PaydayDurationSeconds = 2 * 60 * 60
         };
 
-        var stakeSnapshot = new PaydayPoolStakeSnapshot(
+        var paydayPoolStakeSnapshot = new PaydayPoolStakeSnapshot(
             new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
+
+        var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(200000);
         
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, stakeSnapshot);
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
@@ -385,16 +387,22 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
             PaydayDurationSeconds = 2 * 60 * 60
         };
 
-        var stakeSnapshot = new PaydayPoolStakeSnapshot(
+        var paydayPoolStakeSnapshot = new PaydayPoolStakeSnapshot(
             new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
 
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, stakeSnapshot);
+        var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(20000000);
+
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
         result.Should().NotBeNull();
 
         result!.Pool.Should().BeOfType<PassiveDelegationPoolRewardTarget>();
+        result.TotalApy.Should().BeApproximately(0.04, 0.01);
+        result.BakerApy.Should().BeNull();
+        result.DelegatorsApy.Should().BeApproximately(0.04, 0.01);
+
     }
 
     [Fact]

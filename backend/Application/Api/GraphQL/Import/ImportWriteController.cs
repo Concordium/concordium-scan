@@ -171,8 +171,8 @@ public class ImportWriteController : BackgroundService
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, importPaydayStatus, importState);
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters.Current, bakerUpdateResults, rewardsSummary, importPaydayStatus);
         await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters.Current);
-        await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus);
-        
+        var passiveDelegationUpdateResults = await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus);
+
         var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Current.Id, bakerUpdateResults, delegationUpdateResults, importState);
         var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
@@ -189,7 +189,7 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
         _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         _metricsWriter.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
-        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot);
+        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot, passiveDelegationUpdateResults) ;
         
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);

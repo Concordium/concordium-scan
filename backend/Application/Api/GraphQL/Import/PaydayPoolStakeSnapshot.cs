@@ -2,7 +2,7 @@
 
 public record PaydayPoolStakeSnapshot(
     PaydayPoolStakeSnapshotItem[] Items);
-    
+
 public record PaydayPoolStakeSnapshotItem(
     long BakerId,
     long BakerStake,

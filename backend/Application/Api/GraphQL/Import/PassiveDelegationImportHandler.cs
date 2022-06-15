@@ -15,9 +15,11 @@ public class PassiveDelegationImportHandler
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task UpdatePassiveDelegation(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload,
+    public async Task<PaydayPassiveDelegationStakeSnapshot?> UpdatePassiveDelegation(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload,
         ImportState importState, BlockImportPaydayStatus importPaydayStatus)
     {
+        PaydayPassiveDelegationStakeSnapshot? result = null;
+        
         if (payload.BlockSummary.ProtocolVersion >= 4)
         {
             await EnsureInitialized(importState);
@@ -37,12 +39,16 @@ public class PassiveDelegationImportHandler
 
             if (importPaydayStatus is FirstBlockAfterPayday)
             {
+                result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
+                
                 var status = await payload.ReadPassiveDelegationPoolStatus();
                 instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.MicroCcdValue;
             }
             
             await dbContext.SaveChangesAsync();
         }
+
+        return result;
     }
 
     private async Task<ulong> GetTotalStakedToPassiveDelegation()
