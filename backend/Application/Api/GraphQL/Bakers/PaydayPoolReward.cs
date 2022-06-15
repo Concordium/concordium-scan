@@ -19,52 +19,52 @@ public class PaydayPoolReward
     
     public DateTimeOffset Timestamp { get; init; }
     
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the TransactionFees aggregated type
     public ulong TransactionFeesTotalAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the TransactionFees aggregated type
     public ulong TransactionFeesBakerAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the TransactionFees aggregated type
     public ulong TransactionFeesDelegatorsAmount { get; init; }
 
     public PaydayPoolRewardAmounts TransactionFees => new(TransactionFeesTotalAmount, TransactionFeesBakerAmount, TransactionFeesDelegatorsAmount);
     
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the BakerReward aggregated type
     public ulong BakerRewardTotalAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the BakerReward aggregated type
     public ulong BakerRewardBakerAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the BakerReward aggregated type
     public ulong BakerRewardDelegatorsAmount { get; init; }
 
     public PaydayPoolRewardAmounts BakerReward => new(BakerRewardTotalAmount, BakerRewardBakerAmount, BakerRewardDelegatorsAmount);
 
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the FinalizationReward aggregated type
     public ulong FinalizationRewardTotalAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the FinalizationReward aggregated type
     public ulong FinalizationRewardBakerAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the FinalizationReward aggregated type
     public ulong FinalizationRewardDelegatorsAmount { get; init; }
 
     public PaydayPoolRewardAmounts FinalizationReward => new(FinalizationRewardTotalAmount, FinalizationRewardBakerAmount, FinalizationRewardDelegatorsAmount);
 
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the Sum aggregated type
     public ulong SumTotalAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the Sum aggregated type
     public ulong SumBakerAmount { get; init; }
-    [GraphQLIgnore]
+    [GraphQLIgnore] // Included in the Sum aggregated type
     public ulong SumDelegatorsAmount { get; init; }
+
+    [GraphQLDescription("The sum of the transaction fees, baker rewards and finalization rewards.")]
+    public PaydayPoolRewardAmounts Sum => new(SumTotalAmount, SumBakerAmount, SumDelegatorsAmount);
 
     [GraphQLIgnore]
     public ulong PaydayDurationSeconds { get; init; }
     
-    [GraphQLIgnore]
+    [GraphQLDescription("The APY calculated for this single reward taking into consideration the combined reward and stake of baker and delegators.")]
     public double? TotalApy { get; init; }
-    [GraphQLIgnore]
+    [GraphQLDescription("The APY calculated for this single reward taking into consideration only the bakers reward and stake. Will be null if there was no baker stake (passive delegation).")]
     public double? BakerApy { get; init; }
-    [GraphQLIgnore]
+    [GraphQLDescription("The APY calculated for this single reward taking into consideration only the delegators reward and stake. Will be null if there was no delegated stake.")]
     public double? DelegatorsApy { get; init; }
-
-    [GraphQLDescription("The sum of the transaction fees, baker rewards and finalization rewards.")]
-    public PaydayPoolRewardAmounts Sum => new(SumTotalAmount, SumBakerAmount, SumDelegatorsAmount);
 
     /// <summary>
     /// Reference to the block yielding the reward. 

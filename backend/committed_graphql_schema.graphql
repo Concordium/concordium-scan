@@ -1232,6 +1232,12 @@ type PaydayPoolReward {
   finalizationReward: PaydayPoolRewardAmounts!
   "The sum of the transaction fees, baker rewards and finalization rewards."
   sum: PaydayPoolRewardAmounts!
+  "The APY calculated for this single reward taking into consideration the combined reward and stake of baker and delegators."
+  totalApy: Float
+  "The APY calculated for this single reward taking into consideration only the bakers reward and stake. Will be null if there was no baker stake (passive delegation)."
+  bakerApy: Float
+  "The APY calculated for this single reward taking into consideration only the delegators reward and stake. Will be null if there was no delegated stake."
+  delegatorsApy: Float
 }
 
 type PaydayPoolRewardAmounts {
