@@ -45,10 +45,10 @@
 				</TableRow>
 			</TableBody>
 
-			<TableBody v-else-if="componentState !== 'success'">
+			<TableBody v-else-if="componentState === 'loading'">
 				<TableRow>
 					<TableTd colspan="3">
-						<div v-if="componentState === 'loading'" class="relative h-48">
+						<div class="relative h-48">
 							<Loader />
 						</div>
 					</TableTd>

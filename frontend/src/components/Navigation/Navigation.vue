@@ -32,5 +32,9 @@ const routes: Route[] = [
 		title: 'Bakers',
 		path: '/bakers',
 	},
+	{
+		title: 'Nodes',
+		path: '/nodes',
+	},
 ]
 </script>

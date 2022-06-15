@@ -115,8 +115,13 @@ export const convertMicroCcdToCcd = (
  * // returns 1,337.42
  * convertMicroCcdToCcd(1337.42);
  */
-export const formatNumber = (num: number): string =>
-	Number.isFinite(num) ? new Intl.NumberFormat().format(num) : '-'
+export const formatNumber = (num: number, decimalCount?: number): string =>
+	Number.isFinite(num)
+		? new Intl.NumberFormat(undefined, {
+				minimumFractionDigits: decimalCount,
+				maximumFractionDigits: decimalCount,
+		  }).format(num)
+		: '-'
 
 /**
  * Calculates and formats weight of total in percentage
