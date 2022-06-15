@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Application.Import;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
@@ -195,20 +196,24 @@ public class BakerImportHandler
                 var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
 
                 var status = src.CurrentPaydayStatus;
-                if (status != null)
-                {
-                    if (pool.PaydayStatus == null) pool.PaydayStatus = new CurrentPaydayStatus();
-                    pool.PaydayStatus.BakerStake = status.BakerEquityCapital.MicroCcdValue;
-                    pool.PaydayStatus.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
-                    pool.PaydayStatus.EffectiveStake = status.EffectiveStake.MicroCcdValue;
-                    pool.PaydayStatus.LotteryPower = status.LotteryPower;
-                }
-                else
-                {
-                    pool.PaydayStatus = null;
-                }
+                ApplyPaydayStatus(pool, status);
             });
         }
+    }
+
+    private static void ApplyPaydayStatus(BakerPool pool, CurrentPaydayBakerPoolStatus? source)
+    {
+        if (source != null)
+        {
+            if (pool.PaydayStatus == null) 
+                pool.PaydayStatus = new CurrentPaydayStatus();
+            pool.PaydayStatus.BakerStake = source.BakerEquityCapital.MicroCcdValue;
+            pool.PaydayStatus.DelegatedStake = source.DelegatedCapital.MicroCcdValue;
+            pool.PaydayStatus.EffectiveStake = source.EffectiveStake.MicroCcdValue;
+            pool.PaydayStatus.LotteryPower = source.LotteryPower;
+        }
+        else
+            pool.PaydayStatus = null;
     }
 
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
@@ -219,8 +224,34 @@ public class BakerImportHandler
         
         _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
 
+        var bakerPoolStatuses = await payload.ReadAllBakerPoolStatuses();
+        var bakerPoolStatusesDict = bakerPoolStatuses
+            .ToDictionary(x => (long)x.BakerId);
+        
         await _writer.UpdateBakers(
-            baker => baker.ActiveState!.Pool = CreateDefaultBakerPool(transactionCommission: 0.1m, finalizationCommission: 1.0m, bakingCommission: 0.1m, openStatus: BakerPoolOpenStatus.ClosedForAll, bakerStake: baker.ActiveState!.StakedAmount),
+            baker =>
+            {
+                var source = bakerPoolStatusesDict[baker.BakerId];
+
+                var pool = new BakerPool
+                {
+                    OpenStatus = source.PoolInfo.OpenStatus.MapToGraphQlEnum(),
+                    MetadataUrl = source.PoolInfo.MetadataUrl,
+                    CommissionRates = new CommissionRates
+                    {
+                        TransactionCommission = source.PoolInfo.CommissionRates.TransactionCommission,
+                        FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission,
+                        BakingCommission = source.PoolInfo.CommissionRates.BakingCommission
+                    },
+                    DelegatedStake = source.DelegatedCapital.MicroCcdValue,
+                    DelegatorCount = 0,
+                    DelegatedStakeCap = source.DelegatedCapitalCap.MicroCcdValue,
+                    TotalStake = source.BakerEquityCapital.MicroCcdValue + source.DelegatedCapital.MicroCcdValue
+                };
+                ApplyPaydayStatus(pool, source.CurrentPaydayStatus);
+                
+                baker.ActiveState!.Pool = pool;
+            },
             baker => baker.ActiveState != null);
         
         importState.MigrationToBakerPoolsCompleted = true;
@@ -300,7 +331,7 @@ public class BakerImportHandler
         {
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
             {
-                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool(createDefaultPaydayStatus: false) : null;
+                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool() : null;
                 
                 await _writer.AddOrUpdateBaker(bakerAdded,
                     src => src.BakerId,
@@ -455,8 +486,7 @@ public class BakerImportHandler
     }
 
     private BakerPool CreateDefaultBakerPool(BakerPoolOpenStatus openStatus = BakerPoolOpenStatus.ClosedForAll,
-        decimal transactionCommission = 0.0m, decimal finalizationCommission = 0.0m, decimal bakingCommission = 0.0m,
-        ulong bakerStake = 0, bool createDefaultPaydayStatus = true)
+        decimal transactionCommission = 0.0m, decimal finalizationCommission = 0.0m, decimal bakingCommission = 0.0m)
     {
         return new BakerPool
         {
@@ -468,11 +498,7 @@ public class BakerImportHandler
                 FinalizationCommission = finalizationCommission,
                 BakingCommission = bakingCommission
             },
-            PaydayStatus = createDefaultPaydayStatus ? new CurrentPaydayStatus
-            {
-                BakerStake = bakerStake,
-                DelegatedStake = 0
-            } : null
+            PaydayStatus = null,
         };
     }
 
