@@ -300,7 +300,7 @@ public class BakerImportHandler
         {
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
             {
-                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool() : null;
+                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool(createDefaultPaydayStatus: false) : null;
                 
                 await _writer.AddOrUpdateBaker(bakerAdded,
                     src => src.BakerId,
@@ -456,7 +456,7 @@ public class BakerImportHandler
 
     private BakerPool CreateDefaultBakerPool(BakerPoolOpenStatus openStatus = BakerPoolOpenStatus.ClosedForAll,
         decimal transactionCommission = 0.0m, decimal finalizationCommission = 0.0m, decimal bakingCommission = 0.0m,
-        ulong bakerStake = 0)
+        ulong bakerStake = 0, bool createDefaultPaydayStatus = true)
     {
         return new BakerPool
         {
@@ -468,11 +468,11 @@ public class BakerImportHandler
                 FinalizationCommission = finalizationCommission,
                 BakingCommission = bakingCommission
             },
-            PaydayStatus = new CurrentPaydayStatus
+            PaydayStatus = createDefaultPaydayStatus ? new CurrentPaydayStatus
             {
                 BakerStake = bakerStake,
                 DelegatedStake = 0
-            }
+            } : null
         };
     }
 
