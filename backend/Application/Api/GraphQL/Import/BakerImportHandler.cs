@@ -192,13 +192,21 @@ public class BakerImportHandler
         {
             await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
             {
-                var obj = dst.ActiveState!.Pool!.PaydayStatus;
-                var status = src.CurrentPaydayStatus!;
+                var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
 
-                obj.BakerStake = status.BakerEquityCapital.MicroCcdValue;
-                obj.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
-                obj.EffectiveStake = status.EffectiveStake.MicroCcdValue;
-                obj.LotteryPower = status.LotteryPower;
+                var status = src.CurrentPaydayStatus;
+                if (status != null)
+                {
+                    if (pool.PaydayStatus == null) pool.PaydayStatus = new CurrentPaydayStatus();
+                    pool.PaydayStatus.BakerStake = status.BakerEquityCapital.MicroCcdValue;
+                    pool.PaydayStatus.DelegatedStake = status.DelegatedCapital.MicroCcdValue;
+                    pool.PaydayStatus.EffectiveStake = status.EffectiveStake.MicroCcdValue;
+                    pool.PaydayStatus.LotteryPower = status.LotteryPower;
+                }
+                else
+                {
+                    pool.PaydayStatus = null;
+                }
             });
         }
     }
