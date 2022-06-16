@@ -1,9 +1,24 @@
 import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { Baker } from '~/types/generated'
+import type {
+	Baker,
+	BakerState,
+	BakerPool,
+	ActiveBakerState,
+	PoolApy,
+} from '~/types/generated'
+
+export type BakerWithAPYFilter = Baker & {
+	state: BakerState & {
+		pool?: ActiveBakerState['pool'] & {
+			apy7days: PoolApy
+			apy30days: PoolApy
+		}
+	}
+}
 
 type BakerResponse = {
-	bakerByBakerId: Baker
+	bakerByBakerId: BakerWithAPYFilter
 }
 
 const BakerQuery = gql<BakerResponse>`
@@ -37,6 +52,16 @@ const BakerQuery = gql<BakerResponse>`
 							transactionCommission
 							finalizationCommission
 							bakingCommission
+						}
+						apy7days: apy(period: LAST7_DAYS) {
+							bakerApy
+							delegatorsApy
+							totalApy
+						}
+						apy30days: apy(period: LAST30_DAYS) {
+							bakerApy
+							delegatorsApy
+							totalApy
 						}
 					}
 					pendingChange {
