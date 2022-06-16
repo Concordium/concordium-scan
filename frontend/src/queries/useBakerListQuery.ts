@@ -30,6 +30,11 @@ const BakerQuery = gql<BakerListResponse>`
 							delegatorCount
 							delegatedStake
 							delegatedStakeCap
+							apy(period: LAST7_DAYS) {
+								bakerApy
+								delegatorsApy
+								totalApy
+							}
 						}
 					}
 					... on RemovedBakerState {

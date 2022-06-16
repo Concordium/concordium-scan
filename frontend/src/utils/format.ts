@@ -142,7 +142,7 @@ export const formatNumber = (num: number, decimalCount?: number): string =>
 		: '-'
 
 /**
- * Calculates and formats weight of total in percentage
+ * Calculates a weight of total in percentage
  * @param {number} amount - Single amount
  * @param {number} total - Total amount to calculate from
  * @returns {string} - Total weight in percent

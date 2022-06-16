@@ -390,6 +390,11 @@ export type AmountsScheduleEdge = {
   node: TimestampedAmount;
 };
 
+export enum ApyPeriod {
+  Last7Days = 'LAST7_DAYS',
+  Last30Days = 'LAST30_DAYS'
+}
+
 export type Baker = {
   __typename?: 'Baker';
   account: Account;
@@ -466,6 +471,7 @@ export type BakerMetricsBuckets = {
 
 export type BakerPool = {
   __typename?: 'BakerPool';
+  apy: PoolApy;
   commissionRates: CommissionRates;
   /** The total amount staked by delegation to this baker pool. */
   delegatedStake: Scalars['UnsignedLong'];
@@ -484,6 +490,11 @@ export type BakerPool = {
   totalStake: Scalars['UnsignedLong'];
   /** Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   totalStakePercentage?: Maybe<Scalars['Decimal']>;
+};
+
+
+export type BakerPoolApyArgs = {
+  period: ApyPeriod;
 };
 
 
@@ -1689,13 +1700,19 @@ export type PaydayFoundationRewardSpecialEvent = {
 
 export type PaydayPoolReward = {
   __typename?: 'PaydayPoolReward';
+  /** The APY calculated for this single reward taking into consideration only the bakers reward and stake. Will be null if there was no baker stake (passive delegation). */
+  bakerApy?: Maybe<Scalars['Float']>;
   bakerReward: PaydayPoolRewardAmounts;
   block: Block;
+  /** The APY calculated for this single reward taking into consideration only the delegators reward and stake. Will be null if there was no delegated stake. */
+  delegatorsApy?: Maybe<Scalars['Float']>;
   finalizationReward: PaydayPoolRewardAmounts;
   id: Scalars['ID'];
   /** The sum of the transaction fees, baker rewards and finalization rewards. */
   sum: PaydayPoolRewardAmounts;
   timestamp: Scalars['DateTime'];
+  /** The APY calculated for this single reward taking into consideration the combined reward and stake of baker and delegators. */
+  totalApy?: Maybe<Scalars['Float']>;
   transactionFees: PaydayPoolRewardAmounts;
 };
 
@@ -1812,6 +1829,13 @@ export type PendingDelegationReduceStake = {
 export type PendingDelegationRemoval = {
   __typename?: 'PendingDelegationRemoval';
   effectiveTime: Scalars['DateTime'];
+};
+
+export type PoolApy = {
+  __typename?: 'PoolApy';
+  bakerApy?: Maybe<Scalars['Float']>;
+  delegatorsApy?: Maybe<Scalars['Float']>;
+  totalApy?: Maybe<Scalars['Float']>;
 };
 
 export type PoolClosed = {
