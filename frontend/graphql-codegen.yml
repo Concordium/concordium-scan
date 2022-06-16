@@ -1,5 +1,5 @@
 overwrite: true
-schema: 'https://mainnet.dev-api.ccdscan.io/graphql/'
+schema: '../backend/committed_graphql_schema.graphql'
 generates:
   src/types/generated.ts:
     plugins:

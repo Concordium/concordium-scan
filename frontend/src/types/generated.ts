@@ -475,8 +475,10 @@ export type BakerPool = {
   delegators?: Maybe<DelegatorsConnection>;
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
+  poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
+  /** @deprecated Use poolRewards instead. Will be removed in the near future */
   rewards?: Maybe<PoolRewardConnection>;
   /** The total amount staked in this baker pool. Includes both baker stake and delegated stake. */
   totalStake: Scalars['UnsignedLong'];
@@ -486,6 +488,14 @@ export type BakerPool = {
 
 
 export type BakerPoolDelegatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type BakerPoolPoolRewardsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -1616,11 +1626,21 @@ export type PassiveDelegation = {
   delegatedStakePercentage: Scalars['Decimal'];
   delegatorCount: Scalars['Int'];
   delegators?: Maybe<DelegatorsConnection>;
+  poolRewards?: Maybe<PaydayPoolRewardConnection>;
+  /** @deprecated Use poolRewards instead. Will be removed in the near future */
   rewards?: Maybe<PoolRewardConnection>;
 };
 
 
 export type PassiveDelegationDelegatorsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type PassiveDelegationPoolRewardsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -1665,6 +1685,48 @@ export type PaydayFoundationRewardSpecialEvent = {
   developmentCharge: Scalars['UnsignedLong'];
   foundationAccount: AccountAddress;
   id: Scalars['ID'];
+};
+
+export type PaydayPoolReward = {
+  __typename?: 'PaydayPoolReward';
+  bakerReward: PaydayPoolRewardAmounts;
+  block: Block;
+  finalizationReward: PaydayPoolRewardAmounts;
+  id: Scalars['ID'];
+  /** The sum of the transaction fees, baker rewards and finalization rewards. */
+  sum: PaydayPoolRewardAmounts;
+  timestamp: Scalars['DateTime'];
+  transactionFees: PaydayPoolRewardAmounts;
+};
+
+export type PaydayPoolRewardAmounts = {
+  __typename?: 'PaydayPoolRewardAmounts';
+  /** The bakers share of the reward */
+  bakerAmount: Scalars['UnsignedLong'];
+  /** The delegators share of the reward */
+  delegatorsAmount: Scalars['UnsignedLong'];
+  /** The total amount (baker + delegators) */
+  totalAmount: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type PaydayPoolRewardConnection = {
+  __typename?: 'PaydayPoolRewardConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<PaydayPoolRewardEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<PaydayPoolReward>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type PaydayPoolRewardEdge = {
+  __typename?: 'PaydayPoolRewardEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: PaydayPoolReward;
 };
 
 export type PaydayPoolRewardSpecialEvent = {

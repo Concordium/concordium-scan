@@ -67,6 +67,24 @@ export const formatTimestamp = (timestamp: string) => {
 }
 
 /**
+ * Formats timestamp using browser locale
+ * @param {string} timestamp - ISO string
+ * @returns {string} - Nicely formatted string
+ * @example
+ * // returns "Jul 20, 1969, 8:17 PM"
+ * formatTimestamp(1969-07-20T20:17:40.000Z);
+ */
+export const formatShortTimestamp = (timestamp: string) => {
+	const options = {
+		year: 'numeric',
+		month: 'numeric',
+		day: 'numeric',
+	} as Intl.DateTimeFormatOptions
+
+	return new Intl.DateTimeFormat('default', options).format(new Date(timestamp))
+}
+
+/**
  * Outputs a formatted relative date comparision (e.g. 1 day ago)
  * @param {string} timestamp - Date as ISO string
  * @param {Date} compareDate - Date to compare with (defaults to days date)
