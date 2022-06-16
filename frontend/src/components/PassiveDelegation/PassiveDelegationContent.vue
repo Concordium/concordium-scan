@@ -65,15 +65,10 @@
 				>Rewards
 				<template #content>
 					<PassiveDelegationRewards
-						v-if="
-							passiveDelegationData.rewards &&
-							passiveDelegationData.rewards?.nodes?.length &&
-							passiveDelegationData.rewards?.nodes?.length > 0
-						"
+						v-if="passiveDelegationData.poolRewards?.nodes?.length"
 						:go-to-page="goToPageRewards"
-						:page-info="passiveDelegationData.rewards!.pageInfo"
-						:total-count="passiveDelegationData.rewards!.nodes.length"
-						:rewards="passiveDelegationData.rewards!.nodes"
+						:page-info="passiveDelegationData.poolRewards!.pageInfo"
+						:pool-rewards="passiveDelegationData.poolRewards!.nodes"
 					/> </template
 			></Accordion>
 			<Accordion
@@ -100,17 +95,18 @@
 </template>
 
 <script lang="ts" setup>
+import PassiveDelegationHeader from './PassiveDelegationHeader.vue'
+import PassiveDelegationDelegators from './PassiveDelegationDelegators.vue'
+import PassiveDelegationRewards from './PassiveDelegationRewards.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import Amount from '~/components/atoms/Amount.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import Accordion from '~/components/Accordion.vue'
+
 import { formatPercentage } from '~/utils/format'
 import type { PageInfo, PassiveDelegation } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
-import Amount from '~/components/atoms/Amount.vue'
-import PassiveDelegationHeader from '~/components/PassiveDelegation/PassiveDelegationHeader.vue'
-import Accordion from '~/components/Accordion.vue'
-import PassiveDelegationDelegators from '~/components/PassiveDelegation/PassiveDelegationDelegators.vue'
-import PassiveDelegationRewards from '~/components/PassiveDelegation/PassiveDelegationRewards.vue'
-import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
 	passiveDelegationData: PassiveDelegation

@@ -49,7 +49,7 @@ const PassiveDelegationQuery = gql<PassiveDelegationResponse>`
 					endCursor
 				}
 			}
-			rewards(
+			poolRewards(
 				after: $afterRewards
 				before: $beforeRewards
 				first: $firstRewards
@@ -66,11 +66,22 @@ const PassiveDelegationQuery = gql<PassiveDelegationResponse>`
 						blockHash
 					}
 					id
-					totalAmount
-					delegatorsAmount
-					bakerAmount
-					rewardType
 					timestamp
+					bakerReward {
+						bakerAmount
+						delegatorsAmount
+						totalAmount
+					}
+					finalizationReward {
+						bakerAmount
+						delegatorsAmount
+						totalAmount
+					}
+					transactionFees {
+						bakerAmount
+						delegatorsAmount
+						totalAmount
+					}
 				}
 			}
 			commissionRates {

@@ -159,19 +159,6 @@ const totalAmounts = {
 </script>
 
 <style scoped>
-.bar {
-	height: 4px;
-	float: left;
-}
-
-.bar-warn {
-	background-color: hsl(var(--color-error-dark));
-}
-
-.bar-warn .bar {
-	background-color: hsl(var(--color-error));
-}
-
 .bar-green {
 	background-color: hsl(var(--color-interactive));
 }
