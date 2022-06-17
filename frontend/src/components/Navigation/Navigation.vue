@@ -29,8 +29,8 @@ const routes: Route[] = [
 		path: '/accounts',
 	},
 	{
-		title: 'Bakers',
-		path: '/bakers',
+		title: 'Staking',
+		path: '/staking',
 	},
 	{
 		title: 'Nodes',
