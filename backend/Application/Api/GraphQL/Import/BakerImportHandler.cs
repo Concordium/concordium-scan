@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Application.Import;
@@ -52,10 +53,14 @@ public class BakerImportHandler
         return resultBuilder.Build();
     }
 
-    public async Task AddBakerTransactionRelations(TransactionPair[] transactions)
+    public async Task ApplyChangesAfterBlocksAndTransactionsWritten(Block block, TransactionPair[] transactions,
+        BlockImportPaydayStatus importPaydayStatus)
     {
-        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddBakerTransactionRelations));
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(ApplyChangesAfterBlocksAndTransactionsWritten));
 
+        if (importPaydayStatus is FirstBlockAfterPayday)
+            await _writer.UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(block.Id);
+        
         var items = transactions
             .Select(tx =>
             {
@@ -188,6 +193,8 @@ public class BakerImportHandler
 
     private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
     {
+        await _writer.CreateTemporaryBakerPoolPaydayStatuses();
+        
         var poolStatuses = await payload.ReadAllBakerPoolStatuses();
         foreach (var poolStatus in poolStatuses)
         {

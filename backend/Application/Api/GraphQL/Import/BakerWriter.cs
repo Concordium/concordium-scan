@@ -241,4 +241,48 @@ public class BakerWriter
 
         return new PaydayPoolStakeSnapshot(items.ToArray());
     }
+
+    public async Task CreateTemporaryBakerPoolPaydayStatuses()
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(CreateTemporaryBakerPoolPaydayStatuses));
+
+        var sql = @"
+            insert into graphql_baker_pool_payday_statuses (payout_block_id, baker_id, baker_stake, delegated_stake,
+                                                            effective_stake, lottery_power)
+            select -1,
+                   id,
+                   active_pool_payday_status_baker_stake,
+                   active_pool_payday_status_delegated_stake,
+                   active_pool_payday_status_effective_stake,
+                   active_pool_payday_status_lottery_power
+            from graphql_bakers
+            where active_pool_payday_status_baker_stake is not null;";
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(sql);
+        await conn.CloseAsync();
+    }
+    
+    public async Task UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(long payoutBlockId)
+    {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(CreateTemporaryBakerPoolPaydayStatuses));
+
+        var param = new
+        {
+            PayoutBlockId = payoutBlockId
+        };
+        
+        var sql = @"
+            update graphql_baker_pool_payday_statuses set payout_block_id = @PayoutBlockId where payout_block_id = -1;";
+        
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var conn = context.Database.GetDbConnection();
+
+        await conn.OpenAsync();
+        await conn.ExecuteAsync(sql, param);
+        await conn.CloseAsync();
+    }
 }

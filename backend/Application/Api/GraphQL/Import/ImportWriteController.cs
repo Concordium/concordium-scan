@@ -177,7 +177,7 @@ public class ImportWriteController : BackgroundService
         var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
-        await _bakerHandler.AddBakerTransactionRelations(transactions);
+        await _bakerHandler.ApplyChangesAfterBlocksAndTransactionsWritten(block, transactions, importPaydayStatus);
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
