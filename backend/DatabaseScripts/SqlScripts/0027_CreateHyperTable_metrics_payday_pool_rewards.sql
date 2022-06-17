@@ -24,5 +24,6 @@
 
 create index on metrics_payday_pool_rewards (pool_id, time DESC);
 create index on metrics_payday_pool_rewards (pool_id, index DESC);
+create index on metrics_payday_pool_rewards (pool_id, block_id);
 
 SELECT create_hypertable('metrics_payday_pool_rewards', 'time');
