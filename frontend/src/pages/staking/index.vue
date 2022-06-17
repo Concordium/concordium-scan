@@ -197,7 +197,7 @@
 											baker.state.pool?.delegatedStakeCap
 										) < 10
 											? 'bar-warn'
-											: '',
+											: 'bar-green-wrapper',
 										,
 									]"
 								>
@@ -393,8 +393,13 @@ const calculateDelegatedStakePercent = (
 	background-color: hsl(var(--color-error));
 }
 
+.bar-green-wrapper .bar,
 .bar-green {
 	background-color: hsl(var(--color-interactive));
+}
+
+.bar-green-wrapper {
+	background-color: hsl(var(--color-interactive-dark));
 }
 
 .legend {
