@@ -36,7 +36,7 @@ const BakerQuery = gql<NodeResponse>`
 export const useNodeQuery = (variables: Partial<QueryVariables>) => {
 	const { data, fetching, error } = useQuery({
 		query: BakerQuery,
-		requestPolicy: 'cache-first',
+		requestPolicy: 'cache-and-network',
 		variables,
 	})
 
