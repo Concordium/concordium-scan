@@ -66,28 +66,10 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
         activeState.PendingChange = source.PendingChange switch
         {
-            AccountBakerRemovePendingV0 x => new PendingBakerRemoval(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.Epoch), 
-            AccountBakerReduceStakePendingV0 x => new PendingBakerReduceStake(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.NewStake.MicroCcdValue, x.Epoch),
             AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
             AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
         };
-    }
-
-    public static DateTimeOffset CalculateEffectiveTime(ulong epoch, DateTimeOffset blockSlotTime, int blockSlot)
-    {
-        // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
-        //       We should be able to change this once we switch to concordium node v4 or greater!
-        //
-        // BUILT-IN ASSUMPTIONS (that can change but probably wont):
-        //       Block time is 250ms
-        //       Epoch duration is 1 hour
-        
-        var millisecondsSinceEraGenesis = (long)blockSlot * 250; // cast to long to avoid overflow!
-        var eraGenesisTime = blockSlotTime.AddMilliseconds(-1 * millisecondsSinceEraGenesis);
-        var effectiveTime = eraGenesisTime.AddHours(epoch);
-        
-        return effectiveTime;
     }
 }
 

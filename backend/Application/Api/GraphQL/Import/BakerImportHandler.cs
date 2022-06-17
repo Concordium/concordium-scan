@@ -315,11 +315,7 @@ public class BakerImportHandler
                 var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
                 if (pendingChange.Epoch.HasValue)
                 {
-                    activeState.PendingChange = pendingChange with
-                    {
-                        EffectiveTime = PreProtocol4Strategy.CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
-                    };
-                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime} based on epoch value {epochValue}", baker.BakerId, activeState.PendingChange.EffectiveTime, pendingChange.Epoch.Value);
+                    throw new NotImplementedException("Did not expect this point to be hit anymore!");
                 }
                 else
                     _logger.Warning("Would have rescheduled pending baker change for baker {bakerId}, but it had no epoch value.", baker.BakerId);
