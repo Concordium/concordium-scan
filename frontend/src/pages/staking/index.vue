@@ -39,8 +39,19 @@
 			<TableHead>
 				<TableRow>
 					<TableTh width="20%">Baker ID</TableTh>
-					<TableTh width="20%">Account</TableTh>
-					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
+					<TableTh
+						v-if="
+							(!hasPoolData && breakpoint >= Breakpoint.SM) ||
+							breakpoint >= Breakpoint.XL
+						"
+						width="20%"
+					>
+						Account
+					</TableTh>
+					<TableTh
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						align="right"
+					>
 						APY <span class="text-theme-faded">(7 days)</span>
 					</TableTh>
 					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
@@ -52,11 +63,14 @@
 					>
 						Delegators
 					</TableTh>
-					<TableTh v-if="hasPoolData" align="right"
-						>Available for delegation
+					<TableTh v-if="hasPoolData" align="right">
+						Available for delegation
 						<span class="text-theme-faded">(Ͼ)</span></TableTh
 					>
-					<TableTh align="right">
+					<TableTh
+						v-if="!hasPoolData || breakpoint >= Breakpoint.LG"
+						align="right"
+					>
 						{{ hasPoolData ? 'Total stake ' : 'Staked amount ' }}
 						<span class="text-theme-faded">(Ͼ)</span>
 					</TableTh>
@@ -75,12 +89,17 @@
 						</Badge>
 					</TableTd>
 
-					<TableTd>
+					<TableTd
+						v-if="
+							(!hasPoolData && breakpoint >= Breakpoint.SM) ||
+							breakpoint >= Breakpoint.XL
+						"
+					>
 						<AccountLink :address="baker.account.address.asString" />
 					</TableTd>
 
 					<TableTd
-						v-if="hasPoolData && breakpoint >= Breakpoint.MD"
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
 						<Tooltip
@@ -104,13 +123,9 @@
 									class="grid grid-cols-2"
 								>
 									<span>Delegators:</span>
-									<span class="numerical text-theme-faded"
-										>{{
+									<span class="numerical text-theme-faded">
+										{{
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
-
-
-
-
 
 										}}%
 									</span>
@@ -148,10 +163,7 @@
 						</span>
 					</TableTd>
 
-					<TableTd
-						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
-						align="right"
-					>
+					<TableTd v-if="hasPoolData" align="right">
 						<span
 							v-if="baker.state.__typename === 'ActiveBakerState'"
 							class="numerical"
@@ -202,7 +214,10 @@
 						</span>
 					</TableTd>
 
-					<TableTd class="text-right">
+					<TableTd
+						v-if="!hasPoolData || breakpoint >= Breakpoint.LG"
+						class="text-right"
+					>
 						<Tooltip
 							v-if="
 								baker.state.__typename === 'ActiveBakerState' &&
