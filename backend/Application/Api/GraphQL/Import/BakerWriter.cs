@@ -273,7 +273,7 @@ public class BakerWriter
         };
         
         var sql = @"
-            update graphql_baker_pool_payday_statuses set payout_block_id = @PayoutBlockId where payout_block_id = -1;";
+            update graphql_pool_payday_stakes set payout_block_id = @PayoutBlockId where payout_block_id = -1;";
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
