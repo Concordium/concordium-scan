@@ -44,9 +44,8 @@ public class ApyQuery
                          coalesce(baker_apy, 0) + 1      as baker,
                          coalesce(delegators_apy, 0) + 1 as delegators
                   from graphql_payday_summaries ps
-                           left join metrics_payday_pool_rewards r on r.block_id = ps.block_id
-                  where ps.payday_time between @FromTime and @ToTime
-                    and r.pool_id = @PoolId) a;";
+                           left join metrics_payday_pool_rewards r on r.block_id = ps.block_id and r.pool_id = @PoolId
+                  where ps.payday_time between @FromTime and @ToTime) a;";
         
         var result = await conn.QuerySingleAsync(sql, queryParams);
         var totalApy = (double?)result.total_apy_geom_mean;
