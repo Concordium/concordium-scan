@@ -1191,6 +1191,7 @@ type PassiveDelegation {
   commissionRates: CommissionRates!
   rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PoolRewardConnection @deprecated(reason: "Use poolRewards instead. Will be removed in the near future")
   poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PaydayPoolRewardConnection
+  apy(period: ApyPeriod!): Float
   delegatorCount: Int!
   "The total amount staked by delegators to passive delegation."
   delegatedStake: UnsignedLong!

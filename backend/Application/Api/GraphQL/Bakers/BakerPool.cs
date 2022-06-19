@@ -1,15 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Metrics;
-using Application.Common;
-using Application.Database;
-using Dapper;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace Application.Api.GraphQL.Bakers;
 
@@ -46,42 +41,9 @@ public class BakerPool
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
     }
 
-    public async Task<PoolApy> GetApy([Service] DatabaseSettings dbSettings, [Service] ITimeProvider timeProvider,  ApyPeriod period)
+    public async Task<PoolApy> GetApy([Service] ApyQuery query,  ApyPeriod period)
     {
-        await using var conn = new NpgsqlConnection(dbSettings.ConnectionString);
-        await conn.OpenAsync();
-
-        var utcNow = timeProvider.UtcNow;
-        var queryParams = new
-        {
-            FromTime = period switch
-            {
-                ApyPeriod.Last7Days => utcNow.AddDays(-7),
-                ApyPeriod.Last30Days => utcNow.AddDays(-30),
-                _ => throw new NotImplementedException()
-            },
-            ToTime = utcNow,
-            PoolId = Owner.Owner.BakerId
-        };
-            
-        var sql = @"
-            select exp(avg(ln(total))) - 1      as total_apy_geom_mean,
-                   exp(avg(ln(baker))) - 1      as baker_apy_geom_mean,
-                   exp(avg(ln(delegators))) - 1 as delegators_apy_geom_mean
-            from (select coalesce(total_apy, 0) + 1      as total,
-                         coalesce(baker_apy, 0) + 1      as baker,
-                         coalesce(delegators_apy, 0) + 1 as delegators
-                  from graphql_payday_summaries ps
-                           left join metrics_payday_pool_rewards r on r.block_id = ps.block_id
-                  where ps.payday_time between @FromTime and @ToTime
-                    and r.pool_id = @PoolId) a;";
-        
-        var result = await conn.QuerySingleAsync(sql, queryParams);
-        var totalApy = (double?)result.total_apy_geom_mean;
-        var bakerApy = (double?)result.baker_apy_geom_mean;
-        var delegatorsApy = (double?)result.delegators_apy_geom_mean;
-
-        return new PoolApy(totalApy, bakerApy, delegatorsApy);
+        return await query.GetApy(new BakerPoolRewardTarget(Owner.Owner.BakerId), period);
     }
 
     [GraphQLDescription("Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
@@ -130,14 +92,3 @@ public class BakerPool
             .OrderByDescending(x => x.Index);
     }
 }
-
-public enum ApyPeriod
-{
-    Last7Days,
-    Last30Days
-}
-
-public record PoolApy(
-    double? TotalApy,
-    double? BakerApy,
-    double? DelegatorsApy);

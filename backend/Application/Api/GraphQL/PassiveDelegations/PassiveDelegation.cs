@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
@@ -75,5 +76,11 @@ public class PassiveDelegation
         return dbContext.PaydayPoolRewards.AsNoTracking()
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
+    }
+    
+    public async Task<double?> GetApy([Service] ApyQuery query,  ApyPeriod period)
+    {
+        var result = await query.GetApy(new PassiveDelegationPoolRewardTarget(), period);
+        return result.DelegatorsApy;
     }
 }
