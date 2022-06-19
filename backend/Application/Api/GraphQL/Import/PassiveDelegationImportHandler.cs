@@ -44,7 +44,7 @@ public class PassiveDelegationImportHandler
                 var stakes = new PoolPaydayStakes
                 {
                     PayoutBlockId = block.Id,
-                    BakerId = -1,
+                    PoolId = -1,
                     BakerStake = 0,
                     DelegatedStake = (long)instance.CurrentPaydayDelegatedStake
                 };

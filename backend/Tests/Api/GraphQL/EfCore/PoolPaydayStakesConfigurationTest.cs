@@ -28,7 +28,7 @@ public class PoolPaydayStakesConfigurationTest : IClassFixture<DatabaseFixture>
         var input = new PoolPaydayStakes
         {
             PayoutBlockId = 42,
-            BakerId = 7,
+            PoolId = 7,
             BakerStake = 1000,
             DelegatedStake = 2000
         };
@@ -39,7 +39,7 @@ public class PoolPaydayStakesConfigurationTest : IClassFixture<DatabaseFixture>
         var result = await dbContext.PoolPaydayStakes.SingleOrDefaultAsync();
         result.Should().NotBeNull();
         result!.PayoutBlockId.Should().Be(42);
-        result.BakerId.Should().Be(7);
+        result.PoolId.Should().Be(7);
         result.BakerStake.Should().Be(1000);
         result.DelegatedStake.Should().Be(2000);
     }

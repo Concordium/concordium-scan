@@ -9,10 +9,10 @@ public class PoolPaydayStakesConfiguration : IEntityTypeConfiguration<PoolPayday
     public void Configure(EntityTypeBuilder<PoolPaydayStakes> builder)
     {
         builder.ToTable("graphql_pool_payday_stakes");
-        builder.HasKey(x => new { x.PayoutBlockId, x.BakerId});
+        builder.HasKey(x => new { x.PayoutBlockId, BakerId = x.PoolId});
 
         builder.Property(x => x.PayoutBlockId).HasColumnName("payout_block_id").ValueGeneratedNever();
-        builder.Property(x => x.BakerId).HasColumnName("baker_id").ValueGeneratedNever();
+        builder.Property(x => x.PoolId).HasColumnName("pool_id").ValueGeneratedNever();
         builder.Property(x => x.BakerStake).HasColumnName("baker_stake");
         builder.Property(x => x.DelegatedStake).HasColumnName("delegated_stake");
     }
