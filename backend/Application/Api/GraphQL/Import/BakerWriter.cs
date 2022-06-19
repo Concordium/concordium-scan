@@ -247,14 +247,11 @@ public class BakerWriter
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(CreateTemporaryBakerPoolPaydayStatuses));
 
         var sql = @"
-            insert into graphql_baker_pool_payday_statuses (payout_block_id, baker_id, baker_stake, delegated_stake,
-                                                            effective_stake, lottery_power)
+            insert into graphql_pool_payday_stakes (payout_block_id, baker_id, baker_stake, delegated_stake)
             select -1,
                    id,
                    active_pool_payday_status_baker_stake,
-                   active_pool_payday_status_delegated_stake,
-                   active_pool_payday_status_effective_stake,
-                   active_pool_payday_status_lottery_power
+                   active_pool_payday_status_delegated_stake
             from graphql_bakers
             where active_pool_payday_status_baker_stake is not null;";
         

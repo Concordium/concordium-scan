@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Import;
@@ -15,8 +16,9 @@ public class PassiveDelegationImportHandler
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<PaydayPassiveDelegationStakeSnapshot?> UpdatePassiveDelegation(DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload,
-        ImportState importState, BlockImportPaydayStatus importPaydayStatus)
+    public async Task<PaydayPassiveDelegationStakeSnapshot?> UpdatePassiveDelegation(
+        DelegationUpdateResults delegationUpdateResults, BlockDataPayload payload,
+        ImportState importState, BlockImportPaydayStatus importPaydayStatus, Block block)
     {
         PaydayPassiveDelegationStakeSnapshot? result = null;
         
@@ -39,8 +41,17 @@ public class PassiveDelegationImportHandler
 
             if (importPaydayStatus is FirstBlockAfterPayday)
             {
-                result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
+                var stakes = new PoolPaydayStakes
+                {
+                    PayoutBlockId = block.Id,
+                    BakerId = -1,
+                    BakerStake = 0,
+                    DelegatedStake = (long)instance.CurrentPaydayDelegatedStake
+                };
+                dbContext.PoolPaydayStakes.Add(stakes);
                 
+                result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
+
                 var status = await payload.ReadPassiveDelegationPoolStatus();
                 instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.MicroCcdValue;
             }
