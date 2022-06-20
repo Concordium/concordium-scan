@@ -40,12 +40,12 @@ public class BakersQuery
         {
             BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),
             BakerSort.BakerIdDesc => result.OrderByDescending(x => x.Id),
-            BakerSort.BakerStakedAmountAsc => result.OrderBy(x => x.ActiveState.StakedAmount != null).ThenBy(x => x.ActiveState!.StakedAmount),
-            BakerSort.BakerStakedAmountDesc => result.OrderBy(x => x.ActiveState.StakedAmount != null).ThenByDescending(x => x.ActiveState!.StakedAmount),
-            BakerSort.TotalStakedAmountAsc => result.OrderBy(x => x.ActiveState.Pool.TotalStake != null).ThenBy(x => x.ActiveState!.Pool!.TotalStake),
-            BakerSort.TotalStakedAmountDesc => result.OrderBy(x => x.ActiveState.Pool.TotalStake != null).ThenByDescending(x => x.ActiveState.Pool.TotalStake),
-            BakerSort.DelegatorCountAsc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount != null).ThenBy(x => x.ActiveState!.Pool!.DelegatorCount),
-            BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount != null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
+            BakerSort.BakerStakedAmountAsc => result.OrderBy(x => x.ActiveState.StakedAmount == null).ThenBy(x => x.ActiveState!.StakedAmount),
+            BakerSort.BakerStakedAmountDesc => result.OrderBy(x => x.ActiveState.StakedAmount == null).ThenByDescending(x => x.ActiveState!.StakedAmount),
+            BakerSort.TotalStakedAmountAsc => result.OrderBy(x => x.ActiveState.Pool.TotalStake == null).ThenBy(x => x.ActiveState!.Pool!.TotalStake),
+            BakerSort.TotalStakedAmountDesc => result.OrderBy(x => x.ActiveState.Pool.TotalStake == null).ThenByDescending(x => x.ActiveState.Pool.TotalStake),
+            BakerSort.DelegatorCountAsc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount == null).ThenBy(x => x.ActiveState!.Pool!.DelegatorCount),
+            BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount == null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
             _ => throw new NotImplementedException()
         };
 
