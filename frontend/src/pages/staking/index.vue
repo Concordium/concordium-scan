@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<Title>CCDScan | Bakers</Title>
+		<Title>CCDScan | Staking</Title>
 		<div class="">
 			<div
 				class="flex flex-row justify-center lg:place-content-end mb-4 lg:mb-0"
@@ -126,6 +126,7 @@
 									<span class="numerical text-theme-faded">
 										{{
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
+
 
 										}}%
 									</span>
