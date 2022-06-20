@@ -212,7 +212,7 @@ public class BakerWriter
                             greatest(
                                 0, 
                                 least(
-                                    floor((@CapitalBound * @TotalStaked - active_staked_amount) / (1 - @CapitalBound)),
+                                    floor((@CapitalBound * (@TotalStaked - active_pool_delegated_stake) - active_staked_amount) / (1 - @CapitalBound)),
                                     (@LeverageFactor - 1.0) * active_staked_amount)) 
                         where active_pool_open_status is not null;";
         

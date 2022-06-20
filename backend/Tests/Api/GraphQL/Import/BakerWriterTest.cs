@@ -343,7 +343,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1000035892577);
     }
         
-    [Fact(Skip = "Missing details from concordium on how the delegated stake should play into calculating delegated stake cap!")]
+    [Fact]
     public async Task UpdateDelegatedStakeCap_PoolHasDelegatedStake()
     {
         var baker = new BakerBuilder()
