@@ -28,12 +28,15 @@ public class BakersQuery
          
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.BakerIdAsc)
+    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.BakerIdAsc, BakerFilter? filter = null)
     {
         var result = dbContext.Bakers
             .AsNoTracking();
+
+        if (filter != null && filter.OpenStatusFilter != null)
+            result = result.Where(x => x.ActiveState!.Pool!.OpenStatus == filter.OpenStatusFilter);
         
-        return sort switch
+        result = sort switch
         {
             BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),
             BakerSort.BakerIdDesc => result.OrderByDescending(x => x.Id),
@@ -45,5 +48,7 @@ public class BakersQuery
             BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount != null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
             _ => throw new NotImplementedException()
         };
+
+        return result;
     }
 }

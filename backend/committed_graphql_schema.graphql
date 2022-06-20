@@ -1428,7 +1428,7 @@ type Query {
   accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
-  bakers(sort: BakerSort! = STAKED_AMOUNT_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
+  bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
   search(query: String!): SearchResult!
   accountsMetrics(period: MetricsPeriod!): AccountsMetrics
   blockMetrics(period: MetricsPeriod!): BlockMetrics!
@@ -1703,6 +1703,10 @@ union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
 
+input BakerFilterInput {
+  openStatusFilter: BakerPoolOpenStatus
+}
+
 enum AccountSort {
   AGE_ASC
   AGE_DESC
@@ -1762,8 +1766,12 @@ enum BakerPoolOpenStatus {
 enum BakerSort {
   BAKER_ID_ASC
   BAKER_ID_DESC
-  STAKED_AMOUNT_ASC
-  STAKED_AMOUNT_DESC
+  BAKER_STAKED_AMOUNT_ASC
+  BAKER_STAKED_AMOUNT_DESC
+  TOTAL_STAKED_AMOUNT_ASC
+  TOTAL_STAKED_AMOUNT_DESC
+  DELEGATOR_COUNT_ASC
+  DELEGATOR_COUNT_DESC
 }
 
 enum CredentialDeploymentTransactionType {
