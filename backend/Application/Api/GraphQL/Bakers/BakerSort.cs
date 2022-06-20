@@ -4,6 +4,10 @@ public enum BakerSort
 {
     BakerIdAsc,
     BakerIdDesc,
-    StakedAmountAsc,
-    StakedAmountDesc
+    BakerStakedAmountAsc,
+    BakerStakedAmountDesc,
+    TotalStakedAmountAsc,
+    TotalStakedAmountDesc,
+    DelegatorCountAsc,
+    DelegatorCountDesc
 }

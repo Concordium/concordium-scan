@@ -28,7 +28,7 @@ public class BakersQuery
          
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.StakedAmountDesc)
+    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.BakerIdAsc)
     {
         var result = dbContext.Bakers
             .AsNoTracking();
@@ -37,8 +37,12 @@ public class BakersQuery
         {
             BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),
             BakerSort.BakerIdDesc => result.OrderByDescending(x => x.Id),
-            BakerSort.StakedAmountAsc => result.OrderBy(x => x.ActiveState != null ? (long)x.ActiveState.StakedAmount : -1),
-            BakerSort.StakedAmountDesc => result.OrderByDescending(x => x.ActiveState != null ? (long)x.ActiveState.StakedAmount : -1),
+            BakerSort.BakerStakedAmountAsc => result.OrderBy(x => x.ActiveState.StakedAmount != null).ThenBy(x => x.ActiveState!.StakedAmount),
+            BakerSort.BakerStakedAmountDesc => result.OrderBy(x => x.ActiveState.StakedAmount != null).ThenByDescending(x => x.ActiveState!.StakedAmount),
+            BakerSort.TotalStakedAmountAsc => result.OrderBy(x => x.ActiveState.Pool.TotalStake != null).ThenBy(x => x.ActiveState!.Pool!.TotalStake),
+            BakerSort.TotalStakedAmountDesc => result.OrderBy(x => x.ActiveState.Pool.TotalStake != null).ThenByDescending(x => x.ActiveState.Pool.TotalStake),
+            BakerSort.DelegatorCountAsc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount != null).ThenBy(x => x.ActiveState!.Pool!.DelegatorCount),
+            BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount != null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
             _ => throw new NotImplementedException()
         };
     }
