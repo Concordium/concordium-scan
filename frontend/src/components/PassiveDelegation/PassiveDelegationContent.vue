@@ -2,7 +2,7 @@
 	<div>
 		<PassiveDelegationHeader />
 		<DrawerContent>
-			<div>
+			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8 mb-8">
 				<DetailsCard>
 					<template #title>Delegated stake</template>
 					<template #default>
@@ -19,10 +19,42 @@
 						</Tooltip>
 					</template>
 				</DetailsCard>
+
+				<DetailsCard>
+					<template #title>APY (7 days)</template>
+					<template #default>
+						<span
+							v-if="
+								passiveDelegationData &&
+								Number.isFinite(passiveDelegationData.apy7days)
+							"
+							class="numerical"
+						>
+							{{formatPercentage(passiveDelegationData.apy7days!)}}%
+						</span>
+						<span v-else>-</span>
+					</template>
+				</DetailsCard>
+
+				<DetailsCard>
+					<template #title>APY (30 days)</template>
+					<template #default>
+						<span
+							v-if="
+								passiveDelegationData &&
+								Number.isFinite(passiveDelegationData.apy30days)
+							"
+							class="numerical"
+						>
+							{{formatPercentage(passiveDelegationData.apy30days!)}}%
+						</span>
+						<span v-else>-</span>
+					</template>
+				</DetailsCard>
 			</div>
 
 			<div
-				class="grid gap-8 grid-cols-3 mb-16 commission-rates rounded-lg py-4"
+				class="grid gap-8 grid-cols-3 mb-16 commission-rates rounded-lg px-8 py-4"
 			>
 				<DetailsCard>
 					<template #title>Baking commission</template>
@@ -105,14 +137,21 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import Accordion from '~/components/Accordion.vue'
 
 import { formatPercentage } from '~/utils/format'
-import type { PageInfo, PassiveDelegation } from '~/types/generated'
+import type { PassiveDelegationWithAPYFilter } from '~/queries/usePassiveDelegationQuery'
+import type { PageInfo } from '~/types/generated'
 import type { PaginationTarget } from '~/composables/usePagination'
 
 type Props = {
-	passiveDelegationData: PassiveDelegation
+	passiveDelegationData: PassiveDelegationWithAPYFilter
 	goToPageDelegators: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageRewards: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()
 </script>
+
+<style scoped>
+.commission-rates {
+	background-color: var(--color-thead-bg);
+}
+</style>

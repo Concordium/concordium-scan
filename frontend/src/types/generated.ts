@@ -1630,6 +1630,7 @@ export type PageInfo = {
 
 export type PassiveDelegation = {
   __typename?: 'PassiveDelegation';
+  apy?: Maybe<Scalars['Float']>;
   commissionRates: CommissionRates;
   /** The total amount staked by delegators to passive delegation. */
   delegatedStake: Scalars['UnsignedLong'];
@@ -1640,6 +1641,11 @@ export type PassiveDelegation = {
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** @deprecated Use poolRewards instead. Will be removed in the near future */
   rewards?: Maybe<PoolRewardConnection>;
+};
+
+
+export type PassiveDelegationApyArgs = {
+  period: ApyPeriod;
 };
 
 

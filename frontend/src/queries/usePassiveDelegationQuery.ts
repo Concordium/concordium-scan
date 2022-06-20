@@ -3,9 +3,15 @@ import { useComponentState } from '~/composables/useComponentState'
 import type { PassiveDelegation } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
-type PassiveDelegationResponse = {
-	passiveDelegation: PassiveDelegation
+export type PassiveDelegationWithAPYFilter = PassiveDelegation & {
+	apy7days: PassiveDelegation['apy']
+	apy30days: PassiveDelegation['apy']
 }
+
+type PassiveDelegationResponse = {
+	passiveDelegation: PassiveDelegationWithAPYFilter
+}
+
 type PassiveDelegationQueryVariables = {
 	firstDelegators: QueryVariables['first']
 	lastDelegators: QueryVariables['last']
@@ -89,7 +95,8 @@ const PassiveDelegationQuery = gql<PassiveDelegationResponse>`
 				finalizationCommission
 				bakingCommission
 			}
-
+			apy7days: apy(period: LAST7_DAYS)
+			apy30days: apy(period: LAST30_DAYS)
 			delegatorCount
 			delegatedStake
 			delegatedStakePercentage
@@ -109,7 +116,9 @@ export const usePassiveDelegationQuery = (
 	})
 
 	const dataRef = ref(data.value?.passiveDelegation)
-	const componentState = useComponentState<PassiveDelegation | undefined>({
+	const componentState = useComponentState<
+		PassiveDelegationWithAPYFilter | undefined
+	>({
 		fetching,
 		error,
 		data: dataRef,
