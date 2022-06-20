@@ -305,24 +305,25 @@ public class BakerImportHandler
             // Work-around for bug in concordium node: https://github.com/Concordium/concordium-node/issues/225
             // A pending change will be (significantly) prolonged if a change to a baker is pending when a
             // protocol update occurs (causing a new era to start and thus resetting epoch to zero)
+            // Only baker 1900 on mainnet is affected by this bug (after the testnet reset in June 2022).
 
             importState.LastGenesisIndex = blockInfo.GenesisIndex;
-            _logger.Information("New genesis index detected. Will check for pending baker changes to be prolonged. [BlockSlot:{blockSlot}] [BlockSlotTime:{blockSlotTime:O}]", blockInfo.BlockSlot, blockInfo.BlockSlotTime);
-            
-            await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker =>
-            {
-                var activeState = (ActiveBakerState)baker.State;
-                var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
-                if (pendingChange.Epoch.HasValue)
-                {
-                    throw new NotImplementedException("Did not expect this point to be hit anymore!");
-                }
-                else
-                    _logger.Warning("Would have rescheduled pending baker change for baker {bakerId}, but it had no epoch value.", baker.BakerId);
-            });
 
-            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
-            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+            var networkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(new BlockHash(importState.GenesisBlockHash));
+            var isMainnet = networkId == ConcordiumNetworkId.Mainnet;
+            if (isMainnet && blockInfo.GenesisIndex == 2 && blockInfo.BlockHeight == 1848787)
+            {
+                _logger.Information("Genesis index 2 detected on mainnet at expected block height. Will update effective time on baker 1900.");
+
+                await _writer.UpdateBaker(1900UL, bakerId => bakerId, (bakerId, baker) => 
+                {
+                    var activeState = (ActiveBakerState)baker.State;
+                    activeState.PendingChange = new PendingBakerRemoval(new DateTimeOffset(2022, 04, 11, 20, 0, 3, 750, TimeSpan.Zero));
+                });
+
+                importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
+                _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+            }
         }
     }
 
