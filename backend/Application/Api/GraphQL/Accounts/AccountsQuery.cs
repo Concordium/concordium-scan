@@ -31,13 +31,18 @@ public class AccountsQuery
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging]  // NOTE: Sorting will cause pages to be unstable (if account is update between page loads it might have shifted between pages)  
-    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext, AccountSort sort = AccountSort.AgeDesc)
+    [UsePaging]  // NOTE: Sorting will cause pages to be unstable (if account is updated between page loads it might have shifted between pages)  
+    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext, AccountSort sort = AccountSort.AgeDesc, AccountFilter? filter = null)
     {
         var result = dbContext.Accounts
             .AsNoTracking();
 
-        return sort switch
+        if (filter is { IsDelegator: true })
+            result = result.Where(x => x.Delegation.StakedAmount != null);
+        else if (filter is { IsDelegator: false })
+            result = result.Where(x => x.Delegation.StakedAmount == null);
+        
+        result = sort switch
         {
             AccountSort.AgeAsc => result.OrderBy(x => x.Id),
             AccountSort.AgeDesc => result.OrderByDescending(x => x.Id),
@@ -45,8 +50,12 @@ public class AccountsQuery
             AccountSort.AmountDesc => result.OrderByDescending(x => x.Amount),
             AccountSort.TransactionCountAsc => result.OrderBy(x => x.TransactionCount),
             AccountSort.TransactionCountDesc => result.OrderByDescending(x => x.TransactionCount),
+            AccountSort.DelegatedStakeAsc => result.OrderBy(x => x.Delegation.StakedAmount != null).ThenBy(x => x.Delegation.StakedAmount),
+            AccountSort.DelegatedStakeDesc => result.OrderBy(x => x.Delegation.StakedAmount == null).ThenByDescending(x => x.Delegation.StakedAmount),
             _ => throw new NotImplementedException()
         };
+
+        return result;
     }
 }
 
@@ -57,5 +66,12 @@ public enum AccountSort
     AmountAsc,
     AmountDesc,
     TransactionCountAsc,
-    TransactionCountDesc
+    TransactionCountDesc,
+    DelegatedStakeAsc,
+    DelegatedStakeDesc
+}
+
+public class AccountFilter
+{
+    public bool? IsDelegator { get; set; }
 }

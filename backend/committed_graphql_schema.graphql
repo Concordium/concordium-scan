@@ -1425,7 +1425,7 @@ type Query {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
-  accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
+  accounts(sort: AccountSort! = AGE_DESC filter: AccountFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
   bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
@@ -1703,6 +1703,10 @@ union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
 
+input AccountFilterInput {
+  isDelegator: Boolean
+}
+
 input BakerFilterInput {
   openStatusFilter: BakerPoolOpenStatus
 }
@@ -1714,6 +1718,8 @@ enum AccountSort {
   AMOUNT_DESC
   TRANSACTION_COUNT_ASC
   TRANSACTION_COUNT_DESC
+  DELEGATED_STAKE_ASC
+  DELEGATED_STAKE_DESC
 }
 
 enum AccountStatementEntryType {
