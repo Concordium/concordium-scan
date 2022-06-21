@@ -200,7 +200,9 @@ const lastSearchTerm = ref('')
 const status = ref<'idle' | 'loading' | 'empty' | 'done'>('idle')
 
 watch(data, () => {
-	status.value = resultCount.value.total === 0 ? 'empty' : 'done'
+	if (searchValue.value) {
+		status.value = resultCount.value.total === 0 ? 'empty' : 'done'
+	}
 })
 
 watch(searchValue, (newValue, _oldValue) => {
