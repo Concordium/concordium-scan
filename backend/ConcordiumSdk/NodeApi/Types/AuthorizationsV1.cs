@@ -11,7 +11,7 @@ public record AuthorizationsV1(
     AccessStructure MintDistribution,
     AccessStructure TransactionFeeDistribution,
     AccessStructure ParamGASRewards,
-    AccessStructure BakerStakeThreshold,
+    AccessStructure PoolParameters,
     AccessStructure AddAnonymityRevoker,
     AccessStructure AddIdentityProvider,
     AccessStructure CooldownParameters,

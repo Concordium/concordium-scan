@@ -273,8 +273,6 @@ public class UpdateKeysCollectionTest
         result.Level2Keys.TransactionFeeDistribution.AuthorizedKeys.Should().Equal(0);
         result.Level2Keys.ParamGASRewards.Threshold.Should().Be(2);
         result.Level2Keys.ParamGASRewards.AuthorizedKeys.Should().Equal(0, 1);
-        result.Level2Keys.BakerStakeThreshold.Threshold.Should().Be(2);
-        result.Level2Keys.BakerStakeThreshold.AuthorizedKeys.Should().Equal(0, 1);
         result.Level2Keys.AddAnonymityRevoker.Threshold.Should().Be(2);
         result.Level2Keys.AddAnonymityRevoker.AuthorizedKeys.Should().Equal(0, 1);
         result.Level2Keys.AddIdentityProvider.Threshold.Should().Be(1);
