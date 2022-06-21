@@ -61,7 +61,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import { type PoolApy, ApyPeriod } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
