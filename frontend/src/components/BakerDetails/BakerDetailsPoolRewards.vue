@@ -114,7 +114,7 @@ const { data, error, componentState } = useBakerPoolRewardsQuery(
 	}
 )
 const selectedRewardTakerType = ref(RewardTakerTypes.Total)
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const {
 	data: rewardMetricsForBakerData,
 	fetching: rewardMetricsForBakerFetching,

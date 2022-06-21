@@ -92,7 +92,7 @@ watch(
 	}
 )
 
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { data: metricsData, fetching: metricsFetching } =
 	useAccountsMetricsQuery(selectedMetricsPeriod)
 </script>

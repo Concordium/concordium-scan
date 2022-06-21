@@ -53,7 +53,7 @@ type Props = {
 }
 defineProps<Props>()
 
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
 	usePassiveDelegationPoolRewardMetrics(selectedMetricsPeriod)
 </script>

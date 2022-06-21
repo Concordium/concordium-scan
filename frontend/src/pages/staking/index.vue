@@ -128,6 +128,7 @@
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
 
 
+
 										}}%
 									</span>
 								</div>
@@ -344,7 +345,7 @@ const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
 
 const { data } = useBakerListQuery({ first, last, after, before })
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 
 const { data: bakerMetricsData, fetching: bakerMetricsFetching } =
 	useBakerMetricsQuery(selectedMetricsPeriod)

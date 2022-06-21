@@ -279,7 +279,7 @@ onMounted(() => {
 		}
 	}
 })
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { data: accountMetricsData, fetching: accountMetricsFetching } =
 	useAccountsMetricsQuery(selectedMetricsPeriod)
 const { data: transactionMetricsData, fetching: transactionMetricsFetching } =
