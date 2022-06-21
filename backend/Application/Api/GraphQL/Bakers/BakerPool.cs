@@ -69,18 +69,6 @@ public class BakerPool
             .Select(x => new DelegationSummary(x.CanonicalAddress, x.Delegation!.StakedAmount, x.Delegation.RestakeEarnings));
     }
     
-    [GraphQLDeprecated("Use poolRewards instead. Will be removed in the near future")]
-    [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
-    public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
-    {
-        var pool = new BakerPoolRewardTarget(Owner.Owner.BakerId);
-
-        return dbContext.PoolRewards.AsNoTracking()
-            .Where(x => x.Pool == pool)
-            .OrderByDescending(x => x.Index);
-    }
-    
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
     public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)

@@ -42,10 +42,10 @@ public class PoolRewardMetricsQuery
         var bakerId = PoolRewardTargetToLongConverter.ConvertToLong(pool);
         var queryParams = RewardQueryParams.Create(period, bakerId, _timeProvider);
 
-        var sql = @"select coalesce(sum(total_amount), 0)       as sum_total_amount,
-                           coalesce(sum(baker_amount), 0)       as sum_baker_amount,
-                           coalesce(sum(delegator_amount), 0)   as sum_delegator_amount
-                    from metrics_pool_rewards
+        var sql = @"select coalesce(sum(sum_total_amount), 0)       as sum_total_amount,
+                           coalesce(sum(sum_baker_amount), 0)       as sum_baker_amount,
+                           coalesce(sum(sum_delegator_amount), 0)   as sum_delegator_amount
+                    from metrics_payday_pool_rewards
                     where time between @FromTime and @ToTime
                     and (pool_id = @BakerId);";
         var data = await conn.QuerySingleAsync(sql, queryParams);
@@ -62,10 +62,10 @@ public class PoolRewardMetricsQuery
         };
         var bucketsSql =
             @"select time_bucket_gapfill(@BucketWidth, time)  as interval_start,
-                     coalesce(sum(total_amount), 0)           as sum_total_amount,
-                     coalesce(sum(baker_amount), 0)           as sum_baker_amount,
-                     coalesce(sum(delegator_amount), 0)       as sum_delegator_amount
-            from metrics_pool_rewards
+                     coalesce(sum(sum_total_amount), 0)           as sum_total_amount,
+                     coalesce(sum(sum_baker_amount), 0)           as sum_baker_amount,
+                     coalesce(sum(sum_delegator_amount), 0)       as sum_delegator_amount
+            from metrics_payday_pool_rewards
             where time between @FromTime and @ToTime
             and (pool_id = @BakerId)
             group by interval_start

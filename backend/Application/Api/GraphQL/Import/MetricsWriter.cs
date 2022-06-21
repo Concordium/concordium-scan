@@ -179,66 +179,6 @@ public class MetricsWriter
         conn.Close();
     }
 
-    public void AddPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary)
-    {
-        var poolRewards = specialEvents
-            .OfType<PaydayPoolRewardSpecialEvent>()
-            .ToArray();
-        
-        if (poolRewards.Length == 0) 
-            return;
-        
-        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPoolRewardMetrics));
-
-        using var conn = new NpgsqlConnection(_settings.ConnectionString);
-        conn.Open();
-
-        var sql = @"
-                insert into metrics_pool_rewards (time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id) 
-                values (@Time, @PoolId, @TotalAmount, @BakerAmount, @DelegatorAmount, @RewardType, @BlockId)";
-        
-        var batch = conn.CreateBatch();
-        foreach (var poolReward in poolRewards)
-        {
-            var poolId = PoolRewardTargetToLongConverter.ConvertToLong(poolReward.Pool);
-            
-            var bakerRewardsSummary = poolReward.Pool switch
-            {
-                BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == baker.BakerId),
-                PassiveDelegationPoolRewardTarget => null,
-                _ => throw new NotImplementedException()
-            };
-
-            AddCommand(batch, sql, block, poolId, RewardType.BakerReward, (long)poolReward.BakerReward, bakerRewardsSummary);
-            AddCommand(batch, sql, block, poolId, RewardType.FinalizationReward, (long)poolReward.FinalizationReward, bakerRewardsSummary);
-            AddCommand(batch, sql, block, poolId, RewardType.TransactionFeeReward, (long)poolReward.TransactionFees, bakerRewardsSummary);
-        }
-
-        batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
-        batch.ExecuteNonQuery();
-
-        conn.Close();
-    }
-
-    private void AddCommand(NpgsqlBatch batch, string sql, Block block, long poolId, RewardType rewardType,
-        long totalAmount, AccountRewardSummary? rewardSummary)
-    {
-        var cmd = batch.CreateBatchCommand();
-        cmd.CommandText = sql;
-
-        var bakerAmount = rewardSummary?.TotalAmountByType.SingleOrDefault(x => x.RewardType == rewardType)?.TotalAmount ?? 0;
-
-        cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
-        cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));
-        cmd.Parameters.Add(new NpgsqlParameter<long>("TotalAmount", totalAmount));
-        cmd.Parameters.Add(new NpgsqlParameter<long>("BakerAmount", bakerAmount));
-        cmd.Parameters.Add(new NpgsqlParameter<long>("DelegatorAmount", totalAmount - bakerAmount));
-        cmd.Parameters.Add(new NpgsqlParameter<int>("RewardType", (int)rewardType));
-        cmd.Parameters.Add(new NpgsqlParameter<long>("BlockId", block.Id));
-
-        batch.BatchCommands.Add(cmd);
-    }
-
     public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary,
         PaydaySummary? paydaySummary, PaydayPoolStakeSnapshot? paydayPoolStakeSnapshot,
         PaydayPassiveDelegationStakeSnapshot? paydayPassiveDelegationStakeSnapshot)
@@ -254,7 +194,7 @@ public class MetricsWriter
         if (paydayPoolStakeSnapshot == null) throw new ArgumentNullException(nameof(paydayPoolStakeSnapshot));
         if (paydayPassiveDelegationStakeSnapshot == null) throw new ArgumentNullException(nameof(paydayPassiveDelegationStakeSnapshot));
 
-        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPoolRewardMetrics));
+        using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddPaydayPoolRewardMetrics));
 
         using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();

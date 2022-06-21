@@ -24,17 +24,17 @@ public class PoolRewardMetricsQueryTest : IClassFixture<DatabaseFixture>
         _target = new PoolRewardMetricsQuery(dbFixture.DatabaseSettings, _timeProviderStub);
 
         using var connection = dbFixture.GetOpenConnection();
-        connection.Execute("TRUNCATE TABLE metrics_pool_rewards");
+        connection.Execute("TRUNCATE TABLE metrics_payday_pool_rewards");
     }
 
     [Fact]
     public async Task GetPoolRewardMetricsForBakerPool_NewMetricsWithinPeriod()
     {
         await InsertPoolRewards(
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(3000, 2700, 300).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(10)).WithAmounts(2000, 1650, 350).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-15)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(1000, 900, 100).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-10)).WithPool(new PassiveDelegationPoolRewardTarget()).WithAmounts(3000, 2700, 300).Build()
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(3000, 2700, 300).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(10)).WithSumAmounts(2000, 1650, 350).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-15)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(1000, 900, 100).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-10)).WithPool(new PassiveDelegationPoolRewardTarget()).WithSumAmounts(3000, 2700, 300).Build()
         );
 
         _timeProviderStub.UtcNow = _anyDateTimeOffset;
@@ -53,10 +53,10 @@ public class PoolRewardMetricsQueryTest : IClassFixture<DatabaseFixture>
     public async Task GetPoolRewardMetricsForBakerPool_NoMetricsWithinPeriod()
     {
         await InsertPoolRewards(
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-50)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(3000, 2700, 300).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-45)).WithPool(new BakerPoolRewardTarget(10)).WithAmounts(2000, 1650, 350).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-40)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(1000, 900, 100).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-40)).WithPool(new PassiveDelegationPoolRewardTarget()).WithAmounts(3000, 2700, 300).Build()
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-50)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(3000, 2700, 300).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-45)).WithPool(new BakerPoolRewardTarget(10)).WithSumAmounts(2000, 1650, 350).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-40)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(1000, 900, 100).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-40)).WithPool(new PassiveDelegationPoolRewardTarget()).WithSumAmounts(3000, 2700, 300).Build()
         );
     
         _timeProviderStub.UtcNow = _anyDateTimeOffset;
@@ -73,10 +73,10 @@ public class PoolRewardMetricsQueryTest : IClassFixture<DatabaseFixture>
     public async Task GetPoolRewardMetricsForPassiveDelegation_NewMetricsWithinPeriod()
     {
         await InsertPoolRewards(
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(3000, 2700, 300).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(10)).WithAmounts(2000, 1650, 350).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-15)).WithPool(new BakerPoolRewardTarget(42)).WithAmounts(1000, 900, 100).Build(),
-            new PoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-10)).WithPool(new PassiveDelegationPoolRewardTarget()).WithAmounts(3000, 2700, 300).Build()
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(3000, 2700, 300).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-20)).WithPool(new BakerPoolRewardTarget(10)).WithSumAmounts(2000, 1650, 350).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-15)).WithPool(new BakerPoolRewardTarget(42)).WithSumAmounts(1000, 900, 100).Build(),
+            new PaydayPoolRewardBuilder().WithTimestamp(_anyDateTimeOffset.AddDays(-10)).WithPool(new PassiveDelegationPoolRewardTarget()).WithSumAmounts(3000, 2700, 300).Build()
         );
 
         _timeProviderStub.UtcNow = _anyDateTimeOffset;
@@ -92,10 +92,10 @@ public class PoolRewardMetricsQueryTest : IClassFixture<DatabaseFixture>
     }
 
 
-    private async Task InsertPoolRewards(params PoolReward[] param)
+    private async Task InsertPoolRewards(params PaydayPoolReward[] param)
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
-        dbContext.PoolRewards.AddRange(param);
+        dbContext.PaydayPoolRewards.AddRange(param);
         await dbContext.SaveChangesAsync();
     }
 }

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 
-public class PaydayPoolRewardConfiguration: IEntityTypeConfiguration<PaydayPoolReward>
+public class PaydayPoolRewardConfiguration : IEntityTypeConfiguration<PaydayPoolReward>
 {
     public void Configure(EntityTypeBuilder<PaydayPoolReward> builder)
     {
