@@ -1,6 +1,10 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { ActiveBakerState, Baker, PoolReward } from '~/types/generated'
+import type {
+	ActiveBakerState,
+	Baker,
+	PaydayPoolReward,
+} from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerPoolRewardsResponse = {
@@ -21,7 +25,7 @@ const BakerPoolRewardsQuery = gql<BakerPoolRewardsResponse>`
 					stakedAmount
 					restakeEarnings
 					pool {
-						rewards(
+						poolRewards(
 							after: $after
 							before: $before
 							first: $first
@@ -33,11 +37,21 @@ const BakerPoolRewardsQuery = gql<BakerPoolRewardsResponse>`
 								}
 								id
 								timestamp
-								rewardType
-
-								totalAmount
-								bakerAmount
-								delegatorsAmount
+								bakerReward {
+									bakerAmount
+									delegatorsAmount
+									totalAmount
+								}
+								finalizationReward {
+									bakerAmount
+									delegatorsAmount
+									totalAmount
+								}
+								transactionFees {
+									bakerAmount
+									delegatorsAmount
+									totalAmount
+								}
 							}
 							pageInfo {
 								startCursor
@@ -67,11 +81,11 @@ export const useBakerPoolRewardsQuery = (
 		},
 	})
 	const dataRef = ref(
-		(data.value?.bakerByBakerId?.state as ActiveBakerState)?.pool?.rewards
+		(data.value?.bakerByBakerId?.state as ActiveBakerState)?.pool?.poolRewards
 			?.nodes?.[0]
 	)
 
-	const componentState = useComponentState<PoolReward | undefined>({
+	const componentState = useComponentState<PaydayPoolReward | undefined>({
 		fetching,
 		error,
 		data: dataRef,
@@ -82,7 +96,7 @@ export const useBakerPoolRewardsQuery = (
 		value =>
 			(dataRef.value = (
 				value?.bakerByBakerId?.state as ActiveBakerState
-			)?.pool?.rewards?.nodes?.[0])
+			)?.pool?.poolRewards?.nodes?.[0])
 	)
 
 	return { data, error, componentState }

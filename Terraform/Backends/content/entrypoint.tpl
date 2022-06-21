@@ -64,7 +64,8 @@ docker network create -d bridge testnetDocker
 
 # Set up Concordium node containers
 wget https://catchup.mainnet.concordium.software/blocks_to_import.mdb --directory-prefix /data/concordium.mainnet/
-wget https://catchup.testnet.concordium.com/blocks_to_import.mdb --directory-prefix /data/concordium.testnet/
+# Temporarily disabled after testnet-reset in June 2022
+# wget https://catchup.testnet.concordium.com/blocks_to_import.mdb --directory-prefix /data/concordium.testnet/
 
 docker run -td \
  -p 10000:10000 \
@@ -80,7 +81,7 @@ docker run -td \
  -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
  -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.mainnet:/var/lib/concordium/data \
- ccscan.azurecr.io/ccnode-mainnet:3.0.2-0
+ ccscan.azurecr.io/ccnode-mainnet:4.1.1-0
 
 docker run -td  \
  -p 10111:10000 \
@@ -94,9 +95,8 @@ docker run -td  \
  -e CONCORDIUM_NODE_COLLECTOR_GRPC_AUTHENTICATION_TOKEN=${cc_node_auth_token} \
  -e CONCORDIUM_NODE_LISTEN_PORT=18888 \
  -e CONCORDIUM_NODE_RUNTIME_HASKELL_RTS_FLAGS=-N4 \
- -e CONCORDIUM_NODE_CONSENSUS_IMPORT_BLOCKS_FROM=/var/lib/concordium/data/blocks_to_import.mdb \
  -v /data/concordium.testnet:/var/lib/concordium/data \
- ccscan.azurecr.io/ccnode-testnet:4.0.11-0
+ ccscan.azurecr.io/ccnode-testnet:4.1.1-0
 
 
 # Set up postgresql containers

@@ -342,7 +342,48 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var result = await context.Bakers.SingleAsync();
         (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1000035892577);
     }
+        
+    [Fact]
+    public async Task UpdateDelegatedStakeCap_PoolHasDelegatedStake()
+    {
+        var baker = new BakerBuilder()
+            .WithId(1)
+            .WithState(new ActiveBakerStateBuilder()
+                .WithStakedAmount(1000000000000000)
+                .WithPool(new BakerPoolBuilder()
+                    .WithDelegatedStake(205004302694424)
+                    .Build()).Build())
+            .Build();
+        
+        await AddBakers(baker);
     
+        await _target.UpdateDelegatedStakeCap(5656544697987840, 0.4m, 3m);
+        
+        await using var context = _dbContextFactory.CreateDbContext();
+        var result = await context.Bakers.SingleAsync();
+        (result.State as ActiveBakerState)!.Pool!.DelegatedStakeCap.Should().Be(1967693596862277);
+    }
+    
+    [Fact]
+    public async Task GetPaydayPoolStakeSnapshot()
+    {
+        await AddBakers(
+            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().WithPaydayStatus(new CurrentPaydayStatus { BakerStake = 100, DelegatedStake = 50 }).Build()).Build()).Build(),
+            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().WithPaydayStatus(new CurrentPaydayStatus { BakerStake = 300, DelegatedStake = 200 }).Build()).Build()).Build(),
+            new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithPool(null).Build()).Build(),
+            new BakerBuilder().WithId(4).WithState(new RemovedBakerStateBuilder().Build()).Build());
+        
+        var result = await _target.GetPaydayPoolStakeSnapshot();
+        result.Items.Length.Should().Be(2);
+        var items = result.Items.OrderBy(x => x.BakerId).ToArray();
+        items[0].BakerId.Should().Be(1);
+        items[0].BakerStake.Should().Be(100);
+        items[0].DelegatedStake.Should().Be(50);
+        items[1].BakerId.Should().Be(2);
+        items[1].BakerStake.Should().Be(300);
+        items[1].DelegatedStake.Should().Be(200);
+    }
+
     private async Task AddBakers(params long[] bakerIds)
     {
         var bakers = bakerIds.Select(id => new BakerBuilder().WithId(id).Build()).ToArray();

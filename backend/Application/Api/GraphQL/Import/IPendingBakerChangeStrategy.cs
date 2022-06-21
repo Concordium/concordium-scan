@@ -9,7 +9,8 @@ public interface IPendingBakerChangeStrategy
 {
     Task<PendingBakerChange> SetPendingChangeOnBaker(BakerRemoved bakerRemoved);
     Task<PendingBakerChange> SetPendingChangeOnBaker(BakerStakeDecreased stakeDecreased);
-    bool MustApplyPendingChangesDue();
+    bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime);
+    DateTimeOffset GetEffectiveTime();
 }
 
 public class PreProtocol4Strategy : IPendingBakerChangeStrategy
@@ -35,9 +36,14 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         return SetPendingChangeOnBaker(stakeDecreased.Account);
     }
 
-    public bool MustApplyPendingChangesDue()
+    public bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime)
     {
-        return true;
+        return _blockInfo.BlockSlotTime >= nextPendingBakerChangeTime;
+    }
+
+    public DateTimeOffset GetEffectiveTime()
+    {
+        return _blockInfo.BlockSlotTime;
     }
 
     private async Task<PendingBakerChange> SetPendingChangeOnBaker(AccountAddress bakerAccountAddress)
@@ -60,28 +66,10 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
         activeState.PendingChange = source.PendingChange switch
         {
-            AccountBakerRemovePendingV0 x => new PendingBakerRemoval(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.Epoch), 
-            AccountBakerReduceStakePendingV0 x => new PendingBakerReduceStake(CalculateEffectiveTime(x.Epoch, blockInfo.BlockSlotTime, blockInfo.BlockSlot), x.NewStake.MicroCcdValue, x.Epoch),
             AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
             AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
         };
-    }
-
-    public static DateTimeOffset CalculateEffectiveTime(ulong epoch, DateTimeOffset blockSlotTime, int blockSlot)
-    {
-        // TODO: Prior to protocol update 4, the effective time must be calculated in this cumbersome way
-        //       We should be able to change this once we switch to concordium node v4 or greater!
-        //
-        // BUILT-IN ASSUMPTIONS (that can change but probably wont):
-        //       Block time is 250ms
-        //       Epoch duration is 1 hour
-        
-        var millisecondsSinceEraGenesis = (long)blockSlot * 250; // cast to long to avoid overflow!
-        var eraGenesisTime = blockSlotTime.AddMilliseconds(-1 * millisecondsSinceEraGenesis);
-        var effectiveTime = eraGenesisTime.AddHours(epoch);
-        
-        return effectiveTime;
     }
 }
 
@@ -90,13 +78,13 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
     private readonly BlockInfo _blockInfo;
     private readonly ChainParametersV1 _chainParameters;
     private readonly BakerWriter _writer;
-    private readonly bool _isFirstBlockAfterPayday;
+    private readonly BlockImportPaydayStatus _importPaydayStatus;
 
-    public PostProtocol4Strategy(BlockInfo blockInfo, ChainParametersV1 chainParameters, bool isFirstBlockAfterPayday, BakerWriter writer)
+    public PostProtocol4Strategy(BlockInfo blockInfo, ChainParametersV1 chainParameters, BlockImportPaydayStatus importPaydayStatus, BakerWriter writer)
     {
         _blockInfo = blockInfo;
         _chainParameters = chainParameters;
-        _isFirstBlockAfterPayday = isFirstBlockAfterPayday;
+        _importPaydayStatus = importPaydayStatus;
         _writer = writer;
     }
 
@@ -114,9 +102,18 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
         return ((ActiveBakerState)updatedBaker.State).PendingChange!;
     }
 
-    public bool MustApplyPendingChangesDue()
+    public bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime)
     {
-        return _isFirstBlockAfterPayday;
+        if (_importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+            return firstBlockAfterPayday.PaydayTimestamp >= nextPendingBakerChangeTime;
+        return false;
+    }
+
+    public DateTimeOffset GetEffectiveTime()
+    {
+        if (_importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+            return firstBlockAfterPayday.PaydayTimestamp;
+        throw new InvalidOperationException("This method should only be called if pending changes must be applied.");
     }
 
     private void SetPendingChange(Baker destination, object source)

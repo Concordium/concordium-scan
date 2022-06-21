@@ -323,10 +323,11 @@ type BakerMetricsBuckets {
 type BakerPool {
   "Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
   totalStakePercentage: Decimal
+  apy(period: ApyPeriod!): PoolApy!
   "Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition."
   rankingByTotalStake: Ranking
   delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PoolRewardConnection
+  poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PaydayPoolRewardConnection
   openStatus: BakerPoolOpenStatus!
   commissionRates: CommissionRates!
   metadataUrl: String!
@@ -1187,7 +1188,8 @@ type PageInfo {
 type PassiveDelegation {
   delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
   commissionRates: CommissionRates!
-  rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PoolRewardConnection
+  poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PaydayPoolRewardConnection
+  apy(period: ApyPeriod!): Float
   delegatorCount: Int!
   "The total amount staked by delegators to passive delegation."
   delegatedStake: UnsignedLong!
@@ -1219,6 +1221,50 @@ type PaydayFoundationRewardSpecialEvent {
   foundationAccount: AccountAddress!
   developmentCharge: UnsignedLong!
   id: ID!
+}
+
+type PaydayPoolReward {
+  block: Block!
+  id: ID!
+  timestamp: DateTime!
+  transactionFees: PaydayPoolRewardAmounts!
+  bakerReward: PaydayPoolRewardAmounts!
+  finalizationReward: PaydayPoolRewardAmounts!
+  "The sum of the transaction fees, baker rewards and finalization rewards."
+  sum: PaydayPoolRewardAmounts!
+  "The APY calculated for this single reward taking into consideration the combined reward and stake of baker and delegators."
+  totalApy: Float
+  "The APY calculated for this single reward taking into consideration only the bakers reward and stake. Will be null if there was no baker stake (passive delegation)."
+  bakerApy: Float
+  "The APY calculated for this single reward taking into consideration only the delegators reward and stake. Will be null if there was no delegated stake."
+  delegatorsApy: Float
+}
+
+type PaydayPoolRewardAmounts {
+  "The total amount (baker + delegators)"
+  totalAmount: UnsignedLong!
+  "The bakers share of the reward"
+  bakerAmount: UnsignedLong!
+  "The delegators share of the reward"
+  delegatorsAmount: UnsignedLong!
+}
+
+"A connection to a list of items."
+type PaydayPoolRewardConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [PaydayPoolRewardEdge!]
+  "A flattened list of the nodes."
+  nodes: [PaydayPoolReward!]
+}
+
+"An edge in a connection."
+type PaydayPoolRewardEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: PaydayPoolReward!
 }
 
 type PaydayPoolRewardSpecialEvent {
@@ -1284,6 +1330,12 @@ type PendingDelegationRemoval {
   effectiveTime: DateTime!
 }
 
+type PoolApy {
+  totalApy: Float
+  bakerApy: Float
+  delegatorsApy: Float
+}
+
 type PoolClosed {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1298,34 +1350,6 @@ type PoolParametersChainUpdatePayload {
   minimumEquityCapital: UnsignedLong!
   capitalBound: Decimal!
   leverageBound: LeverageFactor!
-}
-
-type PoolReward {
-  block: Block!
-  id: ID!
-  timestamp: DateTime!
-  rewardType: RewardType!
-  totalAmount: UnsignedLong!
-  bakerAmount: UnsignedLong!
-  delegatorsAmount: UnsignedLong!
-}
-
-"A connection to a list of items."
-type PoolRewardConnection {
-  "Information to aid in pagination."
-  pageInfo: PageInfo!
-  "A list of edges."
-  edges: [PoolRewardEdge!]
-  "A flattened list of the nodes."
-  nodes: [PoolReward!]
-}
-
-"An edge in a connection."
-type PoolRewardEdge {
-  "A cursor for use in pagination."
-  cursor: String!
-  "The item at the end of the edge."
-  node: PoolReward!
 }
 
 type PoolRewardMetrics {
@@ -1371,17 +1395,16 @@ type Query {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
-  accounts(sort: AccountSort! = AGE_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
+  accounts(sort: AccountSort! = AGE_DESC filter: AccountFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
-  bakers(sort: BakerSort! = STAKED_AMOUNT_DESC "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
+  bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
   search(query: String!): SearchResult!
   accountsMetrics(period: MetricsPeriod!): AccountsMetrics
   blockMetrics(period: MetricsPeriod!): BlockMetrics!
   transactionMetrics(period: MetricsPeriod!): TransactionMetrics
   bakerMetrics(period: MetricsPeriod!): BakerMetrics!
   rewardMetrics(period: MetricsPeriod!): RewardMetrics!
-  rewardMetricsForBaker(bakerId: Long! period: MetricsPeriod!): RewardMetrics! @deprecated(reason: "Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")
   rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!): RewardMetrics!
   poolRewardMetricsForPassiveDelegation(period: MetricsPeriod!): PoolRewardMetrics!
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
@@ -1649,6 +1672,14 @@ union TransactionResult = Success | Rejected
 
 union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
 
+input AccountFilterInput {
+  isDelegator: Boolean
+}
+
+input BakerFilterInput {
+  openStatusFilter: BakerPoolOpenStatus
+}
+
 enum AccountSort {
   AGE_ASC
   AGE_DESC
@@ -1656,6 +1687,8 @@ enum AccountSort {
   AMOUNT_DESC
   TRANSACTION_COUNT_ASC
   TRANSACTION_COUNT_DESC
+  DELEGATED_STAKE_ASC
+  DELEGATED_STAKE_DESC
 }
 
 enum AccountStatementEntryType {
@@ -1694,6 +1727,11 @@ enum AccountTransactionType {
   CONFIGURE_DELEGATION
 }
 
+enum ApyPeriod {
+  LAST7_DAYS
+  LAST30_DAYS
+}
+
 enum BakerPoolOpenStatus {
   OPEN_FOR_ALL
   CLOSED_FOR_NEW
@@ -1703,8 +1741,12 @@ enum BakerPoolOpenStatus {
 enum BakerSort {
   BAKER_ID_ASC
   BAKER_ID_DESC
-  STAKED_AMOUNT_ASC
-  STAKED_AMOUNT_DESC
+  BAKER_STAKED_AMOUNT_ASC
+  BAKER_STAKED_AMOUNT_DESC
+  TOTAL_STAKED_AMOUNT_ASC
+  TOTAL_STAKED_AMOUNT_DESC
+  DELEGATOR_COUNT_ASC
+  DELEGATOR_COUNT_DESC
 }
 
 enum CredentialDeploymentTransactionType {

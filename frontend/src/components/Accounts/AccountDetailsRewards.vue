@@ -89,7 +89,7 @@ type Props = {
 }
 const props = defineProps<Props>()
 
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
 	useAccountRewardMetricsQuery(props.accountId, selectedMetricsPeriod)
 </script>

@@ -1,7 +1,7 @@
 import {
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
-	calculateWeight,
+	calculatePercentage,
 	formatNumber,
 	formatTimestamp,
 	shortenHash,
@@ -111,13 +111,9 @@ describe('format', () => {
 		})
 	})
 
-	describe('calculateWeight', () => {
-		it('should calculate the weight of an amount', () => {
-			expect(calculateWeight(25, 500)).toBe('5.00')
-		})
-
-		it('should round the result to two decimals', () => {
-			expect(calculateWeight(25, 600)).toBe('4.17')
+	describe('calculatePercentage', () => {
+		it('should calculate the percentage of an amount', () => {
+			expect(calculatePercentage(25, 500)).toBe(5)
 		})
 	})
 

@@ -11,6 +11,7 @@
 				:class="textClass"
 			>
 				{{ text }}
+				<slot name="content" />
 				<span class="tooltip-triangle"></span>
 			</span>
 		</transition>
@@ -26,7 +27,7 @@ import type { Position } from '~/composables/useTooltip'
 const isVisible = ref(false)
 
 type Props = {
-	text: string
+	text?: string
 	textClass?: string
 	position?: Position
 	onMouseEnter?: () => void

@@ -19,7 +19,7 @@ public class ChainParametersWriter
         _metrics = metrics;
     }
 
-    public async Task<ChainParameters> GetOrCreateChainParameters(BlockSummaryBase blockSummary, ImportState importState)
+    public async Task<ChainParametersState> GetOrCreateChainParameters(BlockSummaryBase blockSummary, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(ChainParametersWriter), nameof(GetOrCreateChainParameters));
 
@@ -37,7 +37,7 @@ public class ChainParametersWriter
         {
             var mappedWithLatestId = MapChainParameters(blockSummary, foundationAccountAddress, lastWritten.Id);
             if (lastWritten.Equals(mappedWithLatestId))
-                return lastWritten;
+                return new ChainParametersState(lastWritten);
         }
 
         var mapped = MapChainParameters(blockSummary, foundationAccountAddress);
@@ -45,7 +45,10 @@ public class ChainParametersWriter
         await context.SaveChangesAsync();
 
         importState.LatestWrittenChainParameters = mapped;
-        return mapped;
+        
+        return lastWritten == null
+            ? new ChainParametersState(mapped)
+            : new ChainParametersChangedState(mapped, lastWritten);
     }
 
     private async Task<AccountAddress> GetFoundationAccountAddress(BlockSummaryBase blockSummary, GraphQlDbContext dbContext)
@@ -195,3 +198,6 @@ public class ChainParametersWriter
         };
     }
 }
+
+public record ChainParametersState(ChainParameters Current);
+public record ChainParametersChangedState(ChainParameters Current, ChainParameters Previous) : ChainParametersState(Current);

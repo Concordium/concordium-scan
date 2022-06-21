@@ -1,6 +1,9 @@
 <template>
 	<MetricCard class="pt-4">
-		<NotFound v-if="componentState === 'empty'" class="mb-8">
+		<NotFound
+			v-if="componentState === 'empty'"
+			class="mb-8 bg-theme-transparent not-found"
+		>
 			Payday not known
 			<template #secondary>We don't know when the next payday is</template>
 		</NotFound>
@@ -88,9 +91,7 @@ const handleOnClick = (hash?: string) => {
 </script>
 
 <style scoped>
-.wrapper {
-	height: 100%;
-	width: 100%;
-	border: solid 1px red;
+.not-found {
+	background: transparent;
 }
 </style>

@@ -1,6 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { Account, AccountReward, BakerReward } from '~/types/generated'
+import type { Account, AccountReward } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerRewardsResponse = {

@@ -24,7 +24,7 @@ jest.mock('vue-router', () => ({
 
 // mocked as some of its imports causes problems for Jest
 jest.mock(
-	'~/components/molecules/ChartCards/RewardMetricsForBakerChart',
+	'~/components/molecules/ChartCards/RewardMetricsForAccountChart',
 	() => ({
 		render: () => h('div'),
 	})

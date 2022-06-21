@@ -26,7 +26,15 @@ const BakerQuery = gql<BakerListResponse>`
 						stakedAmount
 						pool {
 							openStatus
+							totalStake
 							delegatorCount
+							delegatedStake
+							delegatedStakeCap
+							apy(period: LAST7_DAYS) {
+								bakerApy
+								delegatorsApy
+								totalApy
+							}
 						}
 					}
 					... on RemovedBakerState {

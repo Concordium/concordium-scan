@@ -36,7 +36,6 @@ public class GrpcNodeClientTest : IDisposable
             // STAGE-NET:
             // Address = "http://20.123.43.196:10000",
             // AuthenticationToken = "foo-bar-fighting"
-
         };
         _target = new GrpcNodeClient(grpcNodeClientSettings, _httpClient);
     }
@@ -157,6 +156,14 @@ public class GrpcNodeClientTest : IDisposable
     {
         var blockHashes = await _target.GetBlocksAtHeightAsync(0);
         var result = await _target.GetPoolStatusForBaker(0, blockHashes.Single());
+        result.Should().NotBeNull();
+    }
+ 
+    [Fact(Skip = "Intentionally skipped. Intended for manual integration test.")]
+    public async Task GetBakerListAsync()
+    {
+        var blockHashes = await _target.GetBlocksAtHeightAsync(40000);
+        var result = await _target.GetBakerListAsync(blockHashes.Single());
         result.Should().NotBeNull();
     }
     

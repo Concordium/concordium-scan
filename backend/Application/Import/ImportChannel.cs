@@ -1,5 +1,6 @@
 ﻿using System.Threading.Channels;
 using System.Threading.Tasks;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
@@ -40,18 +41,58 @@ public record InitialImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHa
 
 public record BlockDataEnvelope(BlockDataPayload Payload);
 
-public record BlockDataPayload(
-    BlockInfo BlockInfo, 
-    BlockSummaryBase BlockSummary, 
-    AccountInfosRetrieved AccountInfos,
-    RewardStatusBase RewardStatus);
+public record BlockDataPayload
+{
+    private readonly Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc;
+    private readonly Func<Task<PoolStatusPassiveDelegation>> _passiveDelegationPoolStatusFunc;
 
-public record GenesisBlockDataPayload(
-    BlockInfo BlockInfo,
-    BlockSummaryBase BlockSummary,
-    AccountInfosRetrieved AccountInfos,
-    RewardStatusBase RewardStatus, 
-    IdentityProviderInfo[] GenesisIdentityProviders) : BlockDataPayload(BlockInfo, BlockSummary, AccountInfos, RewardStatus);
+    public BlockDataPayload(BlockInfo blockInfo,
+        BlockSummaryBase blockSummary,
+        AccountInfosRetrieved accountInfos,
+        RewardStatusBase rewardStatus,
+        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc)
+    {
+        BlockInfo = blockInfo;
+        BlockSummary = blockSummary;
+        AccountInfos = accountInfos;
+        RewardStatus = rewardStatus;
+        _readAllBakerPoolStatusesFunc = readAllBakerPoolStatusesFunc;
+        _passiveDelegationPoolStatusFunc = passiveDelegationPoolStatusFunc;
+    }
+
+    public BlockInfo BlockInfo { get; }
+    public BlockSummaryBase BlockSummary { get; }
+    public AccountInfosRetrieved AccountInfos { get; }
+    public RewardStatusBase RewardStatus { get; }
+
+    public async Task<BakerPoolStatus[]> ReadAllBakerPoolStatuses()
+    {
+        return await _readAllBakerPoolStatusesFunc();
+    }
+
+    public async Task<PoolStatusPassiveDelegation> ReadPassiveDelegationPoolStatus()
+    {
+        return await _passiveDelegationPoolStatusFunc();
+    }
+}
+
+public record GenesisBlockDataPayload : BlockDataPayload
+{
+    public GenesisBlockDataPayload(BlockInfo blockInfo,
+        BlockSummaryBase blockSummary,
+        AccountInfosRetrieved accountInfos,
+        RewardStatusBase rewardStatus,
+        IdentityProviderInfo[] genesisIdentityProviders,
+        Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc) 
+        : base(blockInfo, blockSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
+    {
+        GenesisIdentityProviders = genesisIdentityProviders;
+    }
+
+    public IdentityProviderInfo[] GenesisIdentityProviders { get; init; }
+}
 
 public record AccountInfosRetrieved(
     AccountInfo[] CreatedAccounts,

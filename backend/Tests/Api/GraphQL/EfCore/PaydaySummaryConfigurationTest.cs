@@ -11,6 +11,7 @@ namespace Tests.Api.GraphQL.EfCore;
 public class PaydaySummaryConfigurationTest : IClassFixture<DatabaseFixture>
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
+    private readonly DateTimeOffset _anyTimestamp = new DateTimeOffset(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public PaydaySummaryConfigurationTest(DatabaseFixture dbFixture)
     {
@@ -26,6 +27,8 @@ public class PaydaySummaryConfigurationTest : IClassFixture<DatabaseFixture>
         var input = new PaydaySummary
         {
             BlockId = 42,
+            PaydayTime = _anyTimestamp,
+            PaydayDurationSeconds = 7800
         };
 
         await AddPaydaySummary(input);
@@ -34,6 +37,8 @@ public class PaydaySummaryConfigurationTest : IClassFixture<DatabaseFixture>
         var result = await dbContext.PaydaySummaries.SingleOrDefaultAsync();
         result.Should().NotBeNull();
         result!.BlockId.Should().Be(42);
+        result.PaydayTime.Should().Be(_anyTimestamp);
+        result.PaydayDurationSeconds.Should().Be(7800);
     }
 
     private async Task AddPaydaySummary(PaydaySummary input)

@@ -77,6 +77,11 @@
 			<div
 				class="grid gap-8 grid-cols-2 2xl:grid-cols-4 mb-16 commission-rates rounded-lg px-8 py-4"
 			>
+				<BakerDetailsPoolAPY
+					:apy7days="baker.state.pool.apy7days"
+					:apy30days="baker.state.pool.apy30days"
+				/>
+
 				<DetailsCard v-if="baker.state.pool.rankingByTotalStake">
 					<template #title>Baker rank</template>
 					<template #default>
@@ -125,7 +130,7 @@
 			</div>
 
 			<Accordion>
-				Rewards
+				Payday rewards
 				<template #content>
 					<BakerDetailsPoolRewards
 						:baker-id="baker.bakerId"
@@ -167,6 +172,7 @@ import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
+import BakerDetailsPoolAPY from './BakerDetailsPoolAPY.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Chip from '~/components/atoms/Chip.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
@@ -179,9 +185,10 @@ import type { Baker } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
 import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
+import type { BakerWithAPYFilter } from '~/queries/useBakerQuery'
 
 type Props = {
-	baker: Baker
+	baker: BakerWithAPYFilter
 }
 
 const props = defineProps<Props>()

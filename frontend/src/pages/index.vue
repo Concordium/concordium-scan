@@ -262,7 +262,7 @@ onMounted(() => {
 	drawFunc()
 	if (window) {
 		window.onblur = () => {
-			if (loopInterval) clearInterval(loopInterval)
+			if (loopInterval) clearTimeout(loopInterval)
 			pausedSubscriptions.value = true
 			pauseSubscription()
 		}
@@ -279,7 +279,7 @@ onMounted(() => {
 		}
 	}
 })
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { data: accountMetricsData, fetching: accountMetricsFetching } =
 	useAccountsMetricsQuery(selectedMetricsPeriod)
 const { data: transactionMetricsData, fetching: transactionMetricsFetching } =

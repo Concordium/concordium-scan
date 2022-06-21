@@ -26,12 +26,6 @@ public class RewardMetricsQuery
         return await GetResponse(period);
     }
 
-    [GraphQLDeprecated("Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future.")]
-    public async Task<RewardMetrics> GetRewardMetricsForBaker(long bakerId, MetricsPeriod period)
-    {
-        return await GetResponse(period, bakerId);
-    }
-    
     public async Task<RewardMetrics> GetRewardMetricsForAccount([ID] long accountId, MetricsPeriod period)
     {
         return await GetResponse(period, accountId);

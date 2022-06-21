@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
@@ -20,6 +21,9 @@ public class PassiveDelegation
 
     [GraphQLDescription("Total stake passively delegated as a percentage of all CCDs in existence.")]
     public decimal DelegatedStakePercentage { get; set; }
+
+    [GraphQLIgnore]
+    public ulong CurrentPaydayDelegatedStake { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
@@ -52,13 +56,19 @@ public class PassiveDelegation
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
-    public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
+    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
     {
         var pool = new PassiveDelegationPoolRewardTarget();
 
-        return dbContext.PoolRewards.AsNoTracking()
+        return dbContext.PaydayPoolRewards.AsNoTracking()
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
+    }
+    
+    public async Task<double?> GetApy([Service] ApyQuery query,  ApyPeriod period)
+    {
+        var result = await query.GetApy(new PassiveDelegationPoolRewardTarget(), period);
+        return result.DelegatorsApy;
     }
 }

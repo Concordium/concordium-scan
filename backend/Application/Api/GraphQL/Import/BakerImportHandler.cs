@@ -1,8 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Application.Import;
+using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using Microsoft.EntityFrameworkCore;
@@ -25,30 +27,40 @@ public class BakerImportHandler
     }
 
     public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, RewardsSummary rewardsSummary,
-        ChainParameters chainParameters, bool isFirstBlockAfterPayday, ImportState importState)
+        ChainParametersState chainParameters, BlockImportPaydayStatus importPaydayStatus, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
         IPendingBakerChangeStrategy pendingChangeStrategy = payload.BlockSummary.ProtocolVersion >= 4 
-            ? new PostProtocol4Strategy(payload.BlockInfo, (ChainParametersV1)chainParameters, isFirstBlockAfterPayday, _writer) 
+            ? new PostProtocol4Strategy(payload.BlockInfo, (ChainParametersV1)chainParameters.Current, importPaydayStatus, _writer) 
             : new PreProtocol4Strategy(payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, _writer);
 
         var resultBuilder = new BakerUpdateResultsBuilder();
+
+        if (importPaydayStatus is FirstBlockAfterPayday)
+        {
+            var stakeSnapshot = await _writer.GetPaydayPoolStakeSnapshot();
+            resultBuilder.SetPaydayStakeSnapshot(stakeSnapshot);
+        }
         
         if (payload is GenesisBlockDataPayload)
             await AddGenesisBakers(payload, resultBuilder, importState);
         else
-            await ApplyBakerChanges(payload, rewardsSummary, pendingChangeStrategy, importState, resultBuilder);
-
+            await ApplyBakerChanges(payload, rewardsSummary, chainParameters, pendingChangeStrategy, importState, resultBuilder, importPaydayStatus is FirstBlockAfterPayday);
+        
         var totalAmountStaked = await _writer.GetTotalAmountStaked();
         resultBuilder.SetTotalAmountStaked(totalAmountStaked);
         return resultBuilder.Build();
     }
 
-    public async Task AddBakerTransactionRelations(TransactionPair[] transactions)
+    public async Task ApplyChangesAfterBlocksAndTransactionsWritten(Block block, TransactionPair[] transactions,
+        BlockImportPaydayStatus importPaydayStatus)
     {
-        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(AddBakerTransactionRelations));
+        using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(ApplyChangesAfterBlocksAndTransactionsWritten));
 
+        if (importPaydayStatus is FirstBlockAfterPayday)
+            await _writer.UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(block.Id);
+        
         var items = transactions
             .Select(tx =>
             {
@@ -91,7 +103,7 @@ public class BakerImportHandler
             var chainParametersV1 = (ChainParametersV1)chainParameters;
             var capitalBound = chainParametersV1.CapitalBound;
             var leverageFactor = chainParametersV1.LeverageBound.AsDecimal();
-
+        
             var totalAmountStaked = bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked;
             await _writer.UpdateDelegatedStakeCap(totalAmountStaked, capitalBound, leverageFactor);
         }
@@ -117,36 +129,46 @@ public class BakerImportHandler
 
     private static Baker CreateGenesisBaker(AccountBaker src, bool mapBakerPool)
     {
-        var pool = mapBakerPool ? MapBakerPool(src.BakerPoolInfo) : null;
+        var pool = mapBakerPool ? MapBakerPool(src) : null;
         
         return CreateNewBaker(src.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
     }
 
-    private static BakerPool MapBakerPool(BakerPoolInfo? src)
+    private static BakerPool MapBakerPool(AccountBaker accountBaker)
     {
-        if (src == null) throw new ArgumentNullException(nameof(src), "Did not expect baker pool info to be null when trying to map it!");
+        var poolInfo = accountBaker.BakerPoolInfo;
+        if (poolInfo == null) throw new ArgumentNullException(nameof(accountBaker), "Did not expect baker pool info of the account to be null when trying to map it!");
         
         return new BakerPool
         {
-            OpenStatus = src.OpenStatus.MapToGraphQlEnum(),
-            MetadataUrl = src.MetadataUrl,
+            OpenStatus = poolInfo.OpenStatus.MapToGraphQlEnum(),
+            MetadataUrl = poolInfo.MetadataUrl,
             CommissionRates = new CommissionRates
             {
-                TransactionCommission = src.CommissionRates.TransactionCommission,
-                FinalizationCommission = src.CommissionRates.FinalizationCommission,
-                BakingCommission = src.CommissionRates.BakingCommission
+                TransactionCommission = poolInfo.CommissionRates.TransactionCommission,
+                FinalizationCommission = poolInfo.CommissionRates.FinalizationCommission,
+                BakingCommission = poolInfo.CommissionRates.BakingCommission
+            },
+            PaydayStatus = new CurrentPaydayStatus()
+            {
+                BakerStake = accountBaker.StakedAmount.MicroCcdValue,
+                DelegatedStake = 0
             }
         };
     }
 
     private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
-        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
-        BakerUpdateResultsBuilder resultBuilder)
+        ChainParametersState chainParameters, IPendingBakerChangeStrategy pendingChangeStrategy,
+        ImportState importState, BakerUpdateResultsBuilder resultBuilder, bool isFirstBlockAfterPayday)
     {
         await MaybeMigrateToBakerPools(payload, importState);
+        await MaybeApplyCommissionRangeChanges(chainParameters);
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
         
-        await UpdateBakersWithPendingChangesDue(payload.BlockInfo, pendingChangeStrategy, importState, resultBuilder);
+        await UpdateBakersWithPendingChangesDue(pendingChangeStrategy, importState, resultBuilder);
+
+        if (isFirstBlockAfterPayday)
+            await UpdateCurrentPaydayStatusOnAllBakers(payload);
 
         var allTransactionEvents = payload.BlockSummary.TransactionSummaries
             .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
@@ -169,6 +191,38 @@ public class BakerImportHandler
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
     }
 
+    private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
+    {
+        await _writer.CreateTemporaryBakerPoolPaydayStatuses();
+        
+        var poolStatuses = await payload.ReadAllBakerPoolStatuses();
+        foreach (var poolStatus in poolStatuses)
+        {
+            await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+            {
+                var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
+
+                var status = src.CurrentPaydayStatus;
+                ApplyPaydayStatus(pool, status);
+            });
+        }
+    }
+
+    private static void ApplyPaydayStatus(BakerPool pool, CurrentPaydayBakerPoolStatus? source)
+    {
+        if (source != null)
+        {
+            if (pool.PaydayStatus == null) 
+                pool.PaydayStatus = new CurrentPaydayStatus();
+            pool.PaydayStatus.BakerStake = source.BakerEquityCapital.MicroCcdValue;
+            pool.PaydayStatus.DelegatedStake = source.DelegatedCapital.MicroCcdValue;
+            pool.PaydayStatus.EffectiveStake = source.EffectiveStake.MicroCcdValue;
+            pool.PaydayStatus.LotteryPower = source.LotteryPower;
+        }
+        else
+            pool.PaydayStatus = null;
+    }
+
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
     {
         // Migrate to baker pool first time a block with protocol version 4 (or greater) is encountered.
@@ -177,12 +231,71 @@ public class BakerImportHandler
         
         _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
 
+        var bakerPoolStatuses = await payload.ReadAllBakerPoolStatuses();
+        var bakerPoolStatusesDict = bakerPoolStatuses
+            .ToDictionary(x => (long)x.BakerId);
+        
         await _writer.UpdateBakers(
-            baker => baker.ActiveState!.Pool = CreateDefaultBakerPool(transactionCommission: 0.1m, finalizationCommission: 1.0m, bakingCommission: 0.1m, openStatus: BakerPoolOpenStatus.ClosedForAll),
+            baker =>
+            {
+                var source = bakerPoolStatusesDict[baker.BakerId];
+
+                var pool = new BakerPool
+                {
+                    OpenStatus = source.PoolInfo.OpenStatus.MapToGraphQlEnum(),
+                    MetadataUrl = source.PoolInfo.MetadataUrl,
+                    CommissionRates = new CommissionRates
+                    {
+                        TransactionCommission = source.PoolInfo.CommissionRates.TransactionCommission,
+                        FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission,
+                        BakingCommission = source.PoolInfo.CommissionRates.BakingCommission
+                    },
+                    DelegatedStake = source.DelegatedCapital.MicroCcdValue,
+                    DelegatorCount = 0,
+                    DelegatedStakeCap = source.DelegatedCapitalCap.MicroCcdValue,
+                    TotalStake = source.BakerEquityCapital.MicroCcdValue + source.DelegatedCapital.MicroCcdValue
+                };
+                ApplyPaydayStatus(pool, source.CurrentPaydayStatus);
+                
+                baker.ActiveState!.Pool = pool;
+            },
             baker => baker.ActiveState != null);
         
         importState.MigrationToBakerPoolsCompleted = true;
         _logger.Information("Migration completed!");
+    }
+
+    private async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParameters)
+    {
+        if (chainParameters is ChainParametersChangedState { Current: ChainParametersV1 current, Previous: ChainParametersV1 previous })
+        {
+            if (current.FinalizationCommissionRange.Equals(previous.FinalizationCommissionRange)
+                && current.BakingCommissionRange.Equals(previous.BakingCommissionRange)
+                && current.TransactionCommissionRange.Equals(previous.TransactionCommissionRange))
+                return; // No commission ranges changed!
+
+            _logger.Information("Applying commission range changes to baker pools");
+
+            await _writer.UpdateBakers(baker =>
+                {
+                    var rates = baker.ActiveState!.Pool!.CommissionRates;
+                    rates.FinalizationCommission = AdjustValueToRange(rates.FinalizationCommission, current.FinalizationCommissionRange);
+                    rates.BakingCommission = AdjustValueToRange(rates.BakingCommission, current.BakingCommissionRange);
+                    rates.TransactionCommission = AdjustValueToRange(rates.TransactionCommission, current.TransactionCommissionRange);
+                },
+                baker => baker.ActiveState!.Pool != null);
+
+            _logger.Information("Commission range changed applied!");
+        }
+    }
+
+    private decimal AdjustValueToRange(decimal currentValue, CommissionRange allowedRange)
+    {
+        if (currentValue < allowedRange.Min)
+            return allowedRange.Min;
+        if (currentValue > allowedRange.Max)
+            return allowedRange.Max;
+        return currentValue;
     }
 
     private async Task WorkAroundConcordiumNodeBug225(BlockInfo blockInfo, ImportState importState)
@@ -192,28 +305,25 @@ public class BakerImportHandler
             // Work-around for bug in concordium node: https://github.com/Concordium/concordium-node/issues/225
             // A pending change will be (significantly) prolonged if a change to a baker is pending when a
             // protocol update occurs (causing a new era to start and thus resetting epoch to zero)
+            // Only baker 1900 on mainnet is affected by this bug (after the testnet reset in June 2022).
 
             importState.LastGenesisIndex = blockInfo.GenesisIndex;
-            _logger.Information("New genesis index detected. Will check for pending baker changes to be prolonged. [BlockSlot:{blockSlot}] [BlockSlotTime:{blockSlotTime:O}]", blockInfo.BlockSlot, blockInfo.BlockSlotTime);
-            
-            await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker =>
-            {
-                var activeState = (ActiveBakerState)baker.State;
-                var pendingChange = activeState.PendingChange ?? throw new InvalidOperationException("Pending change was null!");
-                if (pendingChange.Epoch.HasValue)
-                {
-                    activeState.PendingChange = pendingChange with
-                    {
-                        EffectiveTime = PreProtocol4Strategy.CalculateEffectiveTime(pendingChange.Epoch.Value, blockInfo.BlockSlotTime, blockInfo.BlockSlot)
-                    };
-                    _logger.Information("Rescheduled pending baker change for baker {bakerId} to {effectiveTime} based on epoch value {epochValue}", baker.BakerId, activeState.PendingChange.EffectiveTime, pendingChange.Epoch.Value);
-                }
-                else
-                    _logger.Warning("Would have rescheduled pending baker change for baker {bakerId}, but it had no epoch value.", baker.BakerId);
-            });
 
-            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
-            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+            var networkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(new BlockHash(importState.GenesisBlockHash));
+            var isMainnet = networkId == ConcordiumNetworkId.Mainnet;
+            if (isMainnet && blockInfo.GenesisIndex == 2 && blockInfo.BlockHeight == 1848787)
+            {
+                _logger.Information("Genesis index 2 detected on mainnet at expected block height. Will update effective time on baker 1900.");
+
+                await _writer.UpdateBaker(1900UL, bakerId => bakerId, (bakerId, baker) => 
+                {
+                    var activeState = (ActiveBakerState)baker.State;
+                    activeState.PendingChange = new PendingBakerRemoval(new DateTimeOffset(2022, 04, 11, 20, 0, 3, 750, TimeSpan.Zero));
+                });
+
+                importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
+                _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+            }
         }
     }
 
@@ -339,13 +449,13 @@ public class BakerImportHandler
             importState.NextPendingBakerChangeTime = pendingChangeTime;
     }
 
-    private async Task UpdateBakersWithPendingChangesDue(BlockInfo blockInfo,
-        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
-        BakerUpdateResultsBuilder resultBuilder)
+    private async Task UpdateBakersWithPendingChangesDue(IPendingBakerChangeStrategy pendingChangeStrategy, 
+        ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
-        if (blockInfo.BlockSlotTime >= importState.NextPendingBakerChangeTime && pendingChangeStrategy.MustApplyPendingChangesDue())
+        if (pendingChangeStrategy.MustApplyPendingChangesDue(importState.NextPendingBakerChangeTime))
         {
-            await _writer.UpdateBakersWithPendingChange(blockInfo.BlockSlotTime, baker => ApplyPendingChange(baker, resultBuilder));
+            var effectiveTime = pendingChangeStrategy.GetEffectiveTime();
+            await _writer.UpdateBakersWithPendingChange(effectiveTime, baker => ApplyPendingChange(baker, resultBuilder));
 
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
             _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
@@ -391,7 +501,8 @@ public class BakerImportHandler
                 TransactionCommission = transactionCommission,
                 FinalizationCommission = finalizationCommission,
                 BakingCommission = bakingCommission
-            }
+            },
+            PaydayStatus = null,
         };
     }
 
@@ -407,6 +518,7 @@ public class BakerImportHandler
         private int _bakersAdded = 0;
         private readonly List<long> _bakersRemoved = new ();
         private readonly List<long> _bakersClosedForAll = new ();
+        private PaydayPoolStakeSnapshot? _paydayStakeSnapshot = null;
 
         public void SetTotalAmountStaked(ulong totalAmountStaked)
         {
@@ -416,7 +528,7 @@ public class BakerImportHandler
         public BakerUpdateResults Build()
         {
             return new BakerUpdateResults(_totalAmountStaked, _bakersAdded, _bakersRemoved.ToArray(), 
-                _bakersClosedForAll.ToArray());
+                _bakersClosedForAll.ToArray(), _paydayStakeSnapshot);
         }
 
         public void IncrementBakersAdded(int incrementValue = 1)
@@ -433,14 +545,19 @@ public class BakerImportHandler
         {
             _bakersClosedForAll.Add(bakerId);
         }
+
+        public void SetPaydayStakeSnapshot(PaydayPoolStakeSnapshot stakeSnapshot)
+        {
+            _paydayStakeSnapshot = stakeSnapshot;
+        }
     }
 }
 
-public record BakerUpdateResults(
-    ulong TotalAmountStaked,
+public record BakerUpdateResults(ulong TotalAmountStaked,
     int BakersAddedCount,
-    long[] BakerIdsRemoved, 
-    long[] BakerIdsClosedForAll)
+    long[] BakerIdsRemoved,
+    long[] BakerIdsClosedForAll, 
+    PaydayPoolStakeSnapshot? PaydayPoolStakeSnapshot)
 {
     public int BakersRemovedCount => BakerIdsRemoved.Length;
 };

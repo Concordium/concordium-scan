@@ -126,7 +126,7 @@ const newItems = ref(0)
 const subscriptionHandler = (_prevData: void, _newData: Subscription) => {
 	newItems.value++
 }
-const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
+const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const { pause: pauseSubscription, resume: resumeSubscription } =
 	useBlockSubscription(subscriptionHandler)
 

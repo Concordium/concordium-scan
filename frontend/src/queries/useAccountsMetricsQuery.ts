@@ -22,11 +22,11 @@ const AccountsMetricsQuery = gql<AccountsMetricsQueryResponse>`
 `
 
 export const useAccountsMetricsQuery = (period: Ref<MetricsPeriod>) => {
-	const { data, fetching } = useQuery({
+	const { data, fetching, executeQuery } = useQuery({
 		query: AccountsMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
 	})
 
-	return { data, fetching }
+	return { data, fetching, executeQuery }
 }

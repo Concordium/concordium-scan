@@ -14,5 +14,6 @@ public class PaydayStatusConfiguration : IEntityTypeConfiguration<PaydayStatus>
 
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
         builder.Property(x => x.NextPaydayTime).HasColumnName("next_payday_time").HasConversion<DateTimeOffsetToTimestampConverter>();
+        builder.Property(x => x.PaydayStartTime).HasColumnName("payday_start_time").HasConversion<DateTimeOffsetToTimestampConverter>();
     }
 }

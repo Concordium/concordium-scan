@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Threading.Tasks;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
@@ -31,10 +32,18 @@ public class BakerPool
 
     public int DelegatorCount { get; set; }
 
+    [GraphQLIgnore]
+    public CurrentPaydayStatus? PaydayStatus { get; set; }
+    
     [GraphQLDescription("Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
     public decimal? GetTotalStakePercentage()
     {
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
+    }
+
+    public async Task<PoolApy> GetApy([Service] ApyQuery query,  ApyPeriod period)
+    {
+        return await query.GetApy(new BakerPoolRewardTarget(Owner.Owner.BakerId), period);
     }
 
     [GraphQLDescription("Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]
@@ -61,12 +70,12 @@ public class BakerPool
     }
     
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "pool_reward_by_descending_index")]
-    public IQueryable<PoolReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
+    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
     {
         var pool = new BakerPoolRewardTarget(Owner.Owner.BakerId);
 
-        return dbContext.PoolRewards.AsNoTracking()
+        return dbContext.PaydayPoolRewards.AsNoTracking()
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
     }

@@ -2,9 +2,11 @@
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Payday;
 using Application.Database;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
@@ -18,17 +20,20 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     private readonly MetricsWriter _target;
     private readonly DatabaseSettings _databaseSettings;
     private readonly DateTimeOffset _anyDateTimeOffset = new(2010, 10, 1, 12, 23, 34, 124, TimeSpan.Zero);
+    private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
     public MetricsWriterTest(DatabaseFixture dbFixture)
     {
         _databaseSettings = dbFixture.DatabaseSettings;
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+
         _target = new MetricsWriter(_databaseSettings, new NullMetrics());
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_blocks");
         connection.Execute("TRUNCATE TABLE metrics_bakers");
         connection.Execute("TRUNCATE TABLE metrics_rewards");
-        connection.Execute("TRUNCATE TABLE metrics_pool_rewards");
+        connection.Execute("TRUNCATE TABLE metrics_payday_pool_rewards");
     }
 
     [Fact]
@@ -200,7 +205,7 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
     }
 
     [Fact]
-    public void AddPoolRewardMetrics_BakerPool()
+    public async Task AddPaydayPoolRewardMetrics_BakerPool()
     {
         var block = new BlockBuilder()
             .WithId(138)
@@ -222,40 +227,46 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
                     new RewardTypeAmount(RewardType.FinalizationReward, 70))
                 .Build()
         });
+
+        var paydaySummary = new PaydaySummary
+        {
+            PaydayDurationSeconds = 2 * 60 * 60
+        };
+
+        var paydayPoolStakeSnapshot = new PaydayPoolStakeSnapshot(
+            new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
+
+        var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(200000);
         
-        _target.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
 
-        var result = Query(@"
-                select time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id
-                from metrics_pool_rewards
-                order by pool_id, total_amount"
-            )
-            .Select(row => new
-            {
-                PoolId = (long)row.pool_id,
-                Time = (DateTimeOffset)DateTime.SpecifyKind(row.time, DateTimeKind.Utc),
-                TotalAmount = (long)row.total_amount,
-                BakerAmount = (long)row.baker_amount,
-                DelegatorAmount = (long)row.delegator_amount,
-                RewardType = (int)row.reward_type,
-                BlockId = (long)row.block_id
-                
-            })
-            .ToArray();
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
+        result.Should().NotBeNull();
 
-        var expected = new[]
-            {
-                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 35L, BakerAmount = 30L, DelegatorAmount = 5L, RewardType = (int)RewardType.TransactionFeeReward, BlockId = 138L },
-                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 80L, BakerAmount = 70L, DelegatorAmount = 10L, RewardType = (int)RewardType.FinalizationReward, BlockId = 138L },
-                new { PoolId = 42L, Time = _anyDateTimeOffset, TotalAmount = 100L, BakerAmount = 98L, DelegatorAmount = 2L, RewardType = (int)RewardType.BakerReward, BlockId = 138L },
-            }
-            .ToArray();
-
-        result.Should().Equal(expected);
+        result!.Pool.Should().BeOfType<BakerPoolRewardTarget>().Which.BakerId.Should().Be(42);
+        result.Timestamp.Should().Be(_anyDateTimeOffset);
+        result.TransactionFeesTotalAmount.Should().Be(35);
+        result.TransactionFeesBakerAmount.Should().Be(30);
+        result.TransactionFeesDelegatorsAmount.Should().Be(5);
+        result.BakerRewardTotalAmount.Should().Be(100);
+        result.BakerRewardBakerAmount.Should().Be(98);
+        result.BakerRewardDelegatorsAmount.Should().Be(2);
+        result.FinalizationRewardTotalAmount.Should().Be(80);
+        result.FinalizationRewardBakerAmount.Should().Be(70);
+        result.FinalizationRewardDelegatorsAmount.Should().Be(10);
+        result.SumTotalAmount.Should().Be(35 + 100 + 80);
+        result.SumBakerAmount.Should().Be(30 + 98 + 70);
+        result.SumDelegatorsAmount.Should().Be(5 + 2 + 10);
+        result.PaydayDurationSeconds.Should().Be(2 * 60 * 60);
+        result.TotalApy.Should().BeApproximately(0.09, 0.01);
+        result.BakerApy.Should().BeApproximately(0.1, 0.01);
+        result.DelegatorsApy.Should().BeApproximately(0.07, 0.01);
+        result.BlockId.Should().Be(138);
     }
-    
+
     [Fact]
-    public void AddPoolRewardMetrics_PassiveDelegation()
+    public async Task AddPaydayPoolRewardMetrics_PassiveDelegation()
     {
         var block = new BlockBuilder()
             .WithId(138)
@@ -269,35 +280,51 @@ public class MetricsWriterTest : IClassFixture<DatabaseFixture>
 
         var rewardsSummary = new RewardsSummary(Array.Empty<AccountRewardSummary>());
         
-        _target.AddPoolRewardMetrics(block, specialEvents, rewardsSummary);
+        var paydaySummary = new PaydaySummary
+        {
+            PaydayDurationSeconds = 2 * 60 * 60
+        };
 
-        var result = Query(@"
-                select time, pool_id, total_amount, baker_amount, delegator_amount, reward_type, block_id
-                from metrics_pool_rewards
-                order by pool_id, total_amount"
-            )
-            .Select(row => new
-            {
-                PoolId = (long)row.pool_id,
-                Time = (DateTimeOffset)DateTime.SpecifyKind(row.time, DateTimeKind.Utc),
-                TotalAmount = (long)row.total_amount,
-                BakerAmount = (long)row.baker_amount,
-                DelegatorAmount = (long)row.delegator_amount,
-                RewardType = (int)row.reward_type,
-                BlockId = (long)row.block_id
-                
-            })
-            .ToArray();
+        var paydayPoolStakeSnapshot = new PaydayPoolStakeSnapshot(
+            new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
 
-        var expected = new[]
-            {
-                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 35L, BakerAmount = 0L, DelegatorAmount = 35L, RewardType = (int)RewardType.TransactionFeeReward, BlockId = 138L },
-                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 80L, BakerAmount = 0L, DelegatorAmount = 80L, RewardType = (int)RewardType.FinalizationReward, BlockId = 138L },
-                new { PoolId = -1L, Time = _anyDateTimeOffset, TotalAmount = 100L, BakerAmount = 0L, DelegatorAmount = 100L, RewardType = (int)RewardType.BakerReward, BlockId = 138L },
-            }
-            .ToArray();
+        var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(20000000);
 
-        result.Should().Equal(expected);
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
+
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
+        result.Should().NotBeNull();
+
+        result!.Pool.Should().BeOfType<PassiveDelegationPoolRewardTarget>();
+        result.TotalApy.Should().BeApproximately(0.04, 0.01);
+        result.BakerApy.Should().BeNull();
+        result.DelegatorsApy.Should().BeApproximately(0.04, 0.01);
+
+    }
+
+    [Fact]
+    public void CalculateApy_HasStake()
+    {
+        // Example from Excel sheet reviewed by Christian Matts from Concordium
+        var reward = 13148991050L;
+        var stake = 795760615434465L;
+        var durationSeconds = 2 * 60 * 60;
+
+        var result = MetricsWriter.CalculateApy(reward, stake, durationSeconds);
+        result.Should().BeApproximately(0.075056970, 0.000000001);
+    }
+
+    [Fact]
+    public void CalculateApy_HasNoStake()
+    {
+        // Example from Excel sheet reviewed by Christian Matts from Concordium
+        var reward = 13148991050L;
+        var stake = 0L;
+        var durationSeconds = 2 * 60 * 60;
+
+        var result = MetricsWriter.CalculateApy(reward, stake, durationSeconds);
+        result.Should().BeNull();
     }
     
     private IEnumerable<dynamic> Query(string sql)

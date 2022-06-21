@@ -10,7 +10,7 @@
 			@blur="emitBlur"
 			@click="() => handleOnClick(props.hash, props.id)"
 		>
-			<div v-if="props.hideTooltip" class="text-theme-body">
+			<div v-if="props.hideTooltip">
 				{{ shortenHash(props.hash) }}
 			</div>
 			<Tooltip v-else :text="props.hash" text-class="text-theme-body">

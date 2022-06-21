@@ -1,0 +1,1 @@
+﻿drop table metrics_pool_rewards;

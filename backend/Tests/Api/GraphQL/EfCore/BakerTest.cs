@@ -110,6 +110,13 @@ public class BakerTest : IClassFixture<DatabaseFixture>
                     .WithDelegatedStakeCap(2233)
                     .WithTotalStake(2000)
                     .WithDelegatorCount(42)
+                    .WithPaydayStatus(new CurrentPaydayStatus
+                    {
+                        BakerStake = 21000, 
+                        DelegatedStake = 23000,
+                        EffectiveStake = 20000,
+                        LotteryPower = 0.13m
+                    })
                     .Build())
                 .Build())
             .Build();
@@ -129,6 +136,11 @@ public class BakerTest : IClassFixture<DatabaseFixture>
         activeBakerState.Pool.DelegatedStakeCap.Should().Be(2233);
         activeBakerState.Pool.TotalStake.Should().Be(2000);
         activeBakerState.Pool.DelegatorCount.Should().Be(42);
+        activeBakerState.Pool.PaydayStatus.Should().NotBeNull();
+        activeBakerState.Pool.PaydayStatus!.BakerStake.Should().Be(21000);
+        activeBakerState.Pool.PaydayStatus.DelegatedStake.Should().Be(23000);
+        activeBakerState.Pool.PaydayStatus.EffectiveStake.Should().Be(20000);
+        activeBakerState.Pool.PaydayStatus.LotteryPower.Should().Be(0.13m);
     }
     
     [Fact]

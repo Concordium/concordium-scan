@@ -106,21 +106,49 @@ public class ImportReadController : BackgroundService
         var rewardStatus = await rewardStatusTask;
 
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
-
+        
+        // Dont proactively read pool statuses for each block, we will let the write controller decide if they must be read!
+        var bakerPoolStatusesFunc = () => GetWithGrpcRetryAsync(() => GetAllBakerPoolStatusesAsync(blockInfo, blockSummary, stoppingToken), nameof(GetAllBakerPoolStatusesAsync), stoppingToken);
+        var passiveDelegationPoolStatusFunc = () => GetWithGrpcRetryAsync(() => GetPassiveDelegationPoolStatusAsync(blockInfo, blockSummary, stoppingToken), nameof(GetPassiveDelegationPoolStatusAsync), stoppingToken);
+        
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
             var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
-
-            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus,
-                genesisIdentityProviders);
+            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, genesisIdentityProviders, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus);
+            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
         return new BlockDataEnvelope(payload);
+    }
+
+    private async Task<PoolStatusPassiveDelegation> GetPassiveDelegationPoolStatusAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    {
+        if (!(blockSummary.ProtocolVersion >= 4))
+            throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
+
+        var poolStatus = await _client.GetPoolStatusForPassiveDelegation(blockInfo.BlockHash, stoppingToken);
+        if (poolStatus == null) throw new InvalidOperationException("Did not expect pool status for passive delegation to be null");
+        return poolStatus;
+    }
+
+    private async Task<BakerPoolStatus[]> GetAllBakerPoolStatusesAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    {
+        if (!(blockSummary.ProtocolVersion >= 4))
+            throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
+
+        var result = new List<BakerPoolStatus>();
+        var bakerIds = await _client.GetBakerListAsync(blockInfo.BlockHash, stoppingToken);
+        foreach (var bakerId in bakerIds)
+        {
+            var bakerPoolStatus = await _client.GetPoolStatusForBaker(bakerId, blockInfo.BlockHash, stoppingToken);
+            if (bakerPoolStatus == null) throw new InvalidOperationException("Did not expect baker pool status to be null");
+            result.Add(bakerPoolStatus);
+        }
+        return result.ToArray();
     }
 
     private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)

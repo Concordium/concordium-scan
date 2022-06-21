@@ -29,25 +29,33 @@ public class PassiveDelegationValidator : IImportValidator
         {
             var target = await ReadPassiveDelegation();
 
-            await ValidateDelegatorCount(target);
-            await ValidateDelegatedStake(target, block);
+            await ValidateDatabaseConsistent(target);
+            await ValidateAgainstNodeData(target, block);
         }
     }
 
-    private async Task ValidateDelegatedStake(PassiveDelegation? passiveDelegation, Block block)
+    private async Task ValidateAgainstNodeData(PassiveDelegation? passiveDelegation, Block block)
     {
-        var expectedValue = passiveDelegation?.DelegatedStake;
+        var expectedValue = new
+        {
+            DelegatedStake = passiveDelegation?.DelegatedStake,
+            CurrentPaydayDelegatedStake = passiveDelegation?.CurrentPaydayDelegatedStake
+        };
 
-        var actual = await _nodeClient.GetPoolStatusForPassiveDelegation(new BlockHash(block.BlockHash));
-        var actualValue = actual?.DelegatedCapital.MicroCcdValue;
+        var nodePoolStatus = await _nodeClient.GetPoolStatusForPassiveDelegation(new BlockHash(block.BlockHash));
+        var actualValue = new
+        {
+            DelegatedStake = nodePoolStatus?.DelegatedCapital.MicroCcdValue,
+            CurrentPaydayDelegatedStake = nodePoolStatus?.CurrentPaydayDelegatedCapital.MicroCcdValue
+        };
 
-        var equal = expectedValue == actualValue;
+        var equal = expectedValue.Equals(actualValue);
         _logger.Information("Passive delegator delegated stake matched expected: {equal}", equal);
         if (!equal)
             _logger.Information("Entity stake: {expectedValue}, node value: {actualCount}", expectedValue, actualValue);
     }
 
-    private async Task ValidateDelegatorCount(PassiveDelegation? passiveDelegation)
+    private async Task ValidateDatabaseConsistent(PassiveDelegation? passiveDelegation)
     {
         var expectedValue = passiveDelegation?.DelegatorCount;
         

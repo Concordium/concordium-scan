@@ -1,5 +1,5 @@
 <template>
-	<nav class="hidden 2xl:flex -mr-4">
+	<nav class="hidden lg:flex -mr-4 lol flex-grow flex-shrink-0">
 		<NuxtLink
 			v-for="route in navRoutes"
 			:key="route.path"
@@ -32,6 +32,10 @@ defineProps<Props>()
 
 .linkInner {
 	@apply divide-x md:border-r-2 border-theme-white px-4;
+}
+
+.link:first-child .linkInner {
+	@apply pl-0;
 }
 
 .link:last-child .linkInner {

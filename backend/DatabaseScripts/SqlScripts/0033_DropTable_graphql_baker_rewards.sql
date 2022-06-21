@@ -1,1 +1,0 @@
-﻿drop view graphql_baker_rewards;

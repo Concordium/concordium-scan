@@ -67,6 +67,24 @@ export const formatTimestamp = (timestamp: string) => {
 }
 
 /**
+ * Formats timestamp using browser locale
+ * @param {string} timestamp - ISO string
+ * @returns {string} - Nicely formatted string
+ * @example
+ * // returns "Jul 20, 1969, 8:17 PM"
+ * formatTimestamp(1969-07-20T20:17:40.000Z);
+ */
+export const formatShortTimestamp = (timestamp: string) => {
+	const options = {
+		year: 'numeric',
+		month: 'numeric',
+		day: 'numeric',
+	} as Intl.DateTimeFormatOptions
+
+	return new Intl.DateTimeFormat('default', options).format(new Date(timestamp))
+}
+
+/**
  * Outputs a formatted relative date comparision (e.g. 1 day ago)
  * @param {string} timestamp - Date as ISO string
  * @param {Date} compareDate - Date to compare with (defaults to days date)
@@ -115,26 +133,25 @@ export const convertMicroCcdToCcd = (
  * // returns 1,337.42
  * convertMicroCcdToCcd(1337.42);
  */
-export const formatNumber = (num: number): string =>
-	Number.isFinite(num) ? new Intl.NumberFormat().format(num) : '-'
+export const formatNumber = (num: number, decimalCount?: number): string =>
+	Number.isFinite(num)
+		? new Intl.NumberFormat(undefined, {
+				minimumFractionDigits: decimalCount,
+				maximumFractionDigits: decimalCount,
+		  }).format(num)
+		: '-'
 
 /**
- * Calculates and formats weight of total in percentage
+ * Calculates a weight of total in percentage
  * @param {number} amount - Single amount
  * @param {number} total - Total amount to calculate from
  * @returns {string} - Total weight in percent
  * @example
- * // returns 5.00
- * calculateWeight(25, 500);
+ * // returns 5
+ * calculatePercentage(25, 500);
  */
-export const calculateWeight = (amount: number, total: number) => {
-	const weight = (amount / total) * 100
-
-	return new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}).format(weight)
-}
+export const calculatePercentage = (amount: number, total: number) =>
+	(amount / total) * 100
 
 /**
  * Shortens a hash (or any other long string)
