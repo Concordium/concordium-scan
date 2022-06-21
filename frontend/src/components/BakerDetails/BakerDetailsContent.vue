@@ -44,7 +44,7 @@
 				<template #content>
 					<BakerDetailsRewards
 						:account-address="baker.account.address.asString"
-						:baker-id="baker.bakerId"
+						:account-id="baker.account.id"
 					/>
 				</template>
 			</Accordion>

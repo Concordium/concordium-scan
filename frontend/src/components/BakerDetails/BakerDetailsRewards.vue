@@ -7,10 +7,10 @@
 			>
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<RewardMetricsForBakerChart
-				v-if="componentState === 'success'"
-				:reward-metrics-data="rewardMetricsForBakerData"
-				:is-loading="rewardMetricsForBakerFetching"
+
+			<RewardMetricsForAccountChart
+				:reward-metrics-data="rewardMetricsData"
+				:is-loading="rewardMetricsFetching"
 				class="mb-20"
 			/>
 
@@ -111,8 +111,8 @@ import RewardIcon from '~/components/icons/RewardIcon.vue'
 
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import { MetricsPeriod } from '~/types/generated'
-import { useRewardMetricsForBakerQueryQuery } from '~/queries/useRewardMetricsForBakerQuery'
-import RewardMetricsForBakerChart from '~/components/molecules/ChartCards/RewardMetricsForBakerChart.vue'
+import { useAccountRewardMetricsQuery } from '~/queries/useAccountRewardMetricsQuery'
+import RewardMetricsForAccountChart from '~/components/molecules/ChartCards/RewardMetricsForAccountChart.vue'
 
 const { first, last, after, before, goToPage } = usePagination({
 	pageSize: PAGE_SIZE_SMALL,
@@ -121,8 +121,8 @@ const { first, last, after, before, goToPage } = usePagination({
 const { NOW } = useDateNow()
 
 type Props = {
-	bakerId: Baker['bakerId']
 	accountAddress: string
+	accountId: string
 }
 
 const props = defineProps<Props>()
@@ -138,10 +138,9 @@ const { data, error, componentState } = useBakerRewardsQuery(
 )
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last7Days)
-const {
-	data: rewardMetricsForBakerData,
-	fetching: rewardMetricsForBakerFetching,
-} = useRewardMetricsForBakerQueryQuery(props.bakerId, selectedMetricsPeriod)
+
+const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
+	useAccountRewardMetricsQuery(props.accountId, selectedMetricsPeriod)
 
 const pageInfo = ref<PageInfo | undefined>(
 	data?.value?.accountByAddress?.rewards?.pageInfo

@@ -130,7 +130,7 @@
 			</div>
 
 			<Accordion>
-				Rewards
+				Payday rewards
 				<template #content>
 					<BakerDetailsPoolRewards
 						:baker-id="baker.bakerId"
