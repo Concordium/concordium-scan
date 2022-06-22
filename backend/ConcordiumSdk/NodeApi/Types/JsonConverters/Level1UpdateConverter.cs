@@ -12,7 +12,8 @@ public class Level1UpdateConverter : JsonConverter<Level1Update>
         _serializeMap = new Dictionary<Type, string>
         {
             { typeof(Level2KeysLevel1Update), "level2KeysUpdate" },
-            { typeof(Level1KeysLevel1Update), "level1KeysUpdate" }
+            { typeof(Level2KeysV1Level1Update), "level2KeysUpdateV1" },
+            { typeof(Level1KeysLevel1Update), "level1KeysUpdate" },
         };
     }
 
@@ -46,6 +47,12 @@ public class Level1UpdateConverter : JsonConverter<Level1Update>
                 result = new Level2KeysLevel1Update(content);
                 break;
             }
+            case "level2KeysUpdateV1":
+            {
+                var content = JsonSerializer.Deserialize<AuthorizationsV1>(ref reader, options)!;
+                result = new Level2KeysV1Level1Update(content);
+                break;
+            }
             default:
                 throw new NotImplementedException($"Deserialization of update type '{payloadTypeKey}' is not implemented.");
         }
@@ -66,6 +73,7 @@ public class Level1UpdateConverter : JsonConverter<Level1Update>
         {
             Level1KeysLevel1Update payload => payload.Content,
             Level2KeysLevel1Update payload => payload.Content,
+            Level2KeysV1Level1Update payload => payload.Content,
             _ => throw new NotImplementedException($"Serialization of type {value.GetType()} is not implemented.")
         };
         JsonSerializer.Serialize(writer, payloadValue, payloadValue.GetType(), options);

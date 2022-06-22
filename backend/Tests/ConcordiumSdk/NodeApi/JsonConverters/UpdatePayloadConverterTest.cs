@@ -205,6 +205,147 @@ public class UpdatePayloadConverterTest
     }
     
     [Fact]
+    public void RoundTrip_Level1_level2KeysUpdateV1()
+    {
+        var json = @"{
+                        ""updateType"": ""level1"",
+                        ""update"": {
+                            ""typeOfUpdate"": ""level2KeysUpdateV1"",
+                            ""updatePayload"": {
+                                ""mintDistribution"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        17,
+                                        18,
+                                        19
+                                    ]
+                                },
+                                ""cooldownParameters"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        32,
+                                        33,
+                                        34
+                                    ]
+                                },
+                                ""addAnonymityRevoker"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        37,
+                                        38,
+                                        39
+                                    ]
+                                },
+                                ""transactionFeeDistribution"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        22,
+                                        23,
+                                        24
+                                    ]
+                                },
+                                ""microGTUPerEuro"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        11,
+                                        47,
+                                        48
+                                    ]
+                                },
+                                ""protocol"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        5,
+                                        6,
+                                        48
+                                    ]
+                                },
+                                ""addIdentityProvider"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        42,
+                                        43,
+                                        44
+                                    ]
+                                },
+                                ""paramGASRewards"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        27,
+                                        28,
+                                        47,
+                                        48
+                                    ]
+                                },
+                                ""emergency"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        0,
+                                        1,
+                                        48
+                                    ]
+                                },
+                                ""keys"": [
+                                    {
+                                        ""verifyKey"": ""50ee8a6f47c4c3e7cf18e9472dd884c5e9999cc1e4b10e729b41202f4999c440"",
+                                        ""schemeId"": ""Ed25519""
+                                    },
+                                    {
+                                        ""verifyKey"": ""57ecaae59ce4356f967d68a436f49c71bd129d9cd08480d1eb90697c38e60267"",
+                                        ""schemeId"": ""Ed25519""
+                                    }
+                                ],
+                                ""timeParameters"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        32,
+                                        33,
+                                        34
+                                    ]
+                                },
+                                ""foundationAccount"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        12,
+                                        13,
+                                        14
+                                    ]
+                                },
+                                ""electionDifficulty"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        8,
+                                        9
+                                    ]
+                                },
+                                ""euroPerEnergy"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        8,
+                                        9
+                                    ]
+                                },
+                                ""poolParameters"": {
+                                    ""threshold"": 1,
+                                    ""authorizedKeys"": [
+                                        32,
+                                        48
+                                    ]
+                                }
+                            }
+                        }
+                    }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<Level1UpdatePayload>(deserialized);
+        var typedContent = Assert.IsType<Level2KeysV1Level1Update>(typed.Content);
+        typedContent.Content.Should().NotBeNull();
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+    
+    [Fact]
     public void RoundTrip_AddAnonymityRevoker()
     {
         var json = "{\"updateType\": \"addAnonymityRevoker\", \"update\": {\"arIdentity\": 4, \"arPublicKey\": \"b14cbfe44a02c6b1f78711176d5f437295367aa4f2a8c2551ee10d25a03adc69d61a332a058971919dad7312e1fc94c585c0e880a7ab8b608de967314803baa728e73868f8f61603db63f0e0cf1afcec230cd37ac7f0981241a375929d32fe42\", \"arDescription\": {\"url\": \"http://example.com\", \"name\": \"ar4\", \"description\": \"lorem ipsum\"}}}";
