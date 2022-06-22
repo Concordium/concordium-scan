@@ -99,6 +99,10 @@ export type AccountCreated = {
   accountAddress: AccountAddress;
 };
 
+export type AccountFilterInput = {
+  isDelegator?: InputMaybe<Scalars['Boolean']>;
+};
+
 export type AccountReleaseSchedule = {
   __typename?: 'AccountReleaseSchedule';
   schedule?: Maybe<AccountReleaseScheduleItemConnection>;
@@ -174,6 +178,8 @@ export enum AccountSort {
   AgeDesc = 'AGE_DESC',
   AmountAsc = 'AMOUNT_ASC',
   AmountDesc = 'AMOUNT_DESC',
+  DelegatedStakeAsc = 'DELEGATED_STAKE_ASC',
+  DelegatedStakeDesc = 'DELEGATED_STAKE_DESC',
   TransactionCountAsc = 'TRANSACTION_COUNT_ASC',
   TransactionCountDesc = 'TRANSACTION_COUNT_DESC'
 }
@@ -429,6 +435,10 @@ export type BakerDelegationTarget = {
   bakerId: Scalars['Long'];
 };
 
+export type BakerFilterInput = {
+  openStatusFilter?: InputMaybe<BakerPoolOpenStatus>;
+};
+
 export type BakerInCooldown = {
   __typename?: 'BakerInCooldown';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -484,8 +494,6 @@ export type BakerPool = {
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
-  /** @deprecated Use poolRewards instead. Will be removed in the near future */
-  rewards?: Maybe<PoolRewardConnection>;
   /** The total amount staked in this baker pool. Includes both baker stake and delegated stake. */
   totalStake: Scalars['UnsignedLong'];
   /** Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
@@ -507,14 +515,6 @@ export type BakerPoolDelegatorsArgs = {
 
 
 export type BakerPoolPoolRewardsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type BakerPoolRewardsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -583,8 +583,12 @@ export type BakerSetTransactionFeeCommission = {
 export enum BakerSort {
   BakerIdAsc = 'BAKER_ID_ASC',
   BakerIdDesc = 'BAKER_ID_DESC',
-  StakedAmountAsc = 'STAKED_AMOUNT_ASC',
-  StakedAmountDesc = 'STAKED_AMOUNT_DESC'
+  BakerStakedAmountAsc = 'BAKER_STAKED_AMOUNT_ASC',
+  BakerStakedAmountDesc = 'BAKER_STAKED_AMOUNT_DESC',
+  DelegatorCountAsc = 'DELEGATOR_COUNT_ASC',
+  DelegatorCountDesc = 'DELEGATOR_COUNT_DESC',
+  TotalStakedAmountAsc = 'TOTAL_STAKED_AMOUNT_ASC',
+  TotalStakedAmountDesc = 'TOTAL_STAKED_AMOUNT_DESC'
 }
 
 export type BakerStakeDecreased = {
@@ -1639,8 +1643,6 @@ export type PassiveDelegation = {
   delegatorCount: Scalars['Int'];
   delegators?: Maybe<DelegatorsConnection>;
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
-  /** @deprecated Use poolRewards instead. Will be removed in the near future */
-  rewards?: Maybe<PoolRewardConnection>;
 };
 
 
@@ -1658,14 +1660,6 @@ export type PassiveDelegationDelegatorsArgs = {
 
 
 export type PassiveDelegationPoolRewardsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-
-export type PassiveDelegationRewardsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -1863,37 +1857,6 @@ export type PoolParametersChainUpdatePayload = {
   transactionCommissionRange: CommissionRange;
 };
 
-export type PoolReward = {
-  __typename?: 'PoolReward';
-  bakerAmount: Scalars['UnsignedLong'];
-  block: Block;
-  delegatorsAmount: Scalars['UnsignedLong'];
-  id: Scalars['ID'];
-  rewardType: RewardType;
-  timestamp: Scalars['DateTime'];
-  totalAmount: Scalars['UnsignedLong'];
-};
-
-/** A connection to a list of items. */
-export type PoolRewardConnection = {
-  __typename?: 'PoolRewardConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<PoolRewardEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<PoolReward>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type PoolRewardEdge = {
-  __typename?: 'PoolRewardEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: PoolReward;
-};
-
 export type PoolRewardMetrics = {
   __typename?: 'PoolRewardMetrics';
   buckets: PoolRewardMetricsBuckets;
@@ -1957,8 +1920,6 @@ export type Query = {
   poolRewardMetricsForPassiveDelegation: PoolRewardMetrics;
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
-  /** @deprecated Use 'rewardMetricsForAccount' instead. This operation will be removed in the near future. */
-  rewardMetricsForBaker: RewardMetrics;
   search: SearchResult;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
@@ -1980,6 +1941,7 @@ export type QueryAccountByAddressArgs = {
 export type QueryAccountsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
+  filter?: InputMaybe<AccountFilterInput>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
   sort?: AccountSort;
@@ -2009,6 +1971,7 @@ export type QueryBakerMetricsArgs = {
 export type QueryBakersArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
+  filter?: InputMaybe<BakerFilterInput>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
   sort?: BakerSort;
@@ -2069,12 +2032,6 @@ export type QueryRewardMetricsArgs = {
 
 export type QueryRewardMetricsForAccountArgs = {
   accountId: Scalars['ID'];
-  period: MetricsPeriod;
-};
-
-
-export type QueryRewardMetricsForBakerArgs = {
-  bakerId: Scalars['Long'];
   period: MetricsPeriod;
 };
 

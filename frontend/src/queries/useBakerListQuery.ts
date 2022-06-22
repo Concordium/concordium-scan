@@ -1,5 +1,6 @@
+import { Ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
-import type { Baker, PageInfo } from '~/types/generated'
+import type { Baker, BakerSort, PageInfo } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerListResponse = {
@@ -9,9 +10,25 @@ type BakerListResponse = {
 	}
 }
 
+type BakerListVariables = Partial<QueryVariables> & {
+	sort: Ref<BakerSort>
+}
+
 const BakerQuery = gql<BakerListResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
-		bakers(after: $after, before: $before, first: $first, last: $last) {
+	query (
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+		$sort: BakerSort
+	) {
+		bakers(
+			after: $after
+			before: $before
+			first: $first
+			last: $last
+			sort: $sort
+		) {
 			nodes {
 				bakerId
 				account {
@@ -52,7 +69,7 @@ const BakerQuery = gql<BakerListResponse>`
 	}
 `
 
-export const useBakerListQuery = (variables: Partial<QueryVariables>) => {
+export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
 		query: BakerQuery,
 		requestPolicy: 'cache-first',

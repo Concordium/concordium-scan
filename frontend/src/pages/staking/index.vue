@@ -35,6 +35,11 @@
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
+
+		<header class="flex flex-row-reverse justify-items-end w-full mb-4">
+			<StakingSortSelect v-model="tableSort" />
+		</header>
+
 		<Table>
 			<TableHead>
 				<TableRow>
@@ -126,6 +131,24 @@
 									<span class="numerical text-theme-faded">
 										{{
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -322,6 +345,7 @@ import FillBarItem from '~~/src/components/atoms/FillBarItem.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import StakingSortSelect from '~/components/molecules/StakingSortSelect.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import TotalBakersChart from '~/components/molecules/ChartCards/TotalBakersChart.vue'
@@ -332,7 +356,7 @@ import { useBakerListQuery } from '~/queries/useBakerListQuery'
 import { useBakerMetricsQuery } from '~/queries/useBakerMetricsQuery'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { useRewardMetricsQuery } from '~/queries/useRewardMetricsQuery'
-import { MetricsPeriod } from '~/types/generated'
+import { BakerSort, MetricsPeriod } from '~/types/generated'
 import TableTh from '~~/src/components/Table/TableTh.vue'
 
 import { formatPercentage, calculatePercentage } from '~/utils/format'
@@ -344,9 +368,16 @@ import {
 const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
 
-const { data } = useBakerListQuery({ first, last, after, before })
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
+const tableSort = ref(BakerSort.TotalStakedAmountDesc)
 
+const { data } = useBakerListQuery({
+	first,
+	last,
+	after,
+	before,
+	sort: tableSort,
+})
 const { data: bakerMetricsData, fetching: bakerMetricsFetching } =
 	useBakerMetricsQuery(selectedMetricsPeriod)
 const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
