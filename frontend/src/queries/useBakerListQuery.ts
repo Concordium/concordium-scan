@@ -1,6 +1,11 @@
 import { Ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
-import type { Baker, BakerSort, PageInfo } from '~/types/generated'
+import type {
+	Baker,
+	BakerSort,
+	BakerPoolOpenStatus,
+	PageInfo,
+} from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
 
 type BakerListResponse = {
@@ -12,6 +17,9 @@ type BakerListResponse = {
 
 type BakerListVariables = Partial<QueryVariables> & {
 	sort: Ref<BakerSort>
+	filter: {
+		openStatusFilter: Ref<BakerPoolOpenStatus | undefined>
+	}
 }
 
 const BakerQuery = gql<BakerListResponse>`
@@ -21,6 +29,7 @@ const BakerQuery = gql<BakerListResponse>`
 		$first: Int
 		$last: Int
 		$sort: BakerSort
+		$filter: BakerFilterInput
 	) {
 		bakers(
 			after: $after
@@ -28,6 +37,7 @@ const BakerQuery = gql<BakerListResponse>`
 			first: $first
 			last: $last
 			sort: $sort
+			filter: $filter
 		) {
 			nodes {
 				bakerId

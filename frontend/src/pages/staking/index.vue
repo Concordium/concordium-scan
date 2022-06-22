@@ -36,8 +36,14 @@
 			</FtbCarousel>
 		</div>
 
-		<header class="flex flex-row-reverse justify-items-end w-full mb-4">
+		<header class="flex flex-row-reverse items-center gap-8 w-full mb-4">
 			<StakingSortSelect v-model="tableSort" />
+			<Toggle
+				:on-toggle="handleTogglePoolFilter"
+				:checked="openStatusFilter === BakerPoolOpenStatus.OpenForAll"
+			>
+				Show only open pools
+			</Toggle>
 		</header>
 
 		<Table>
@@ -131,26 +137,6 @@
 									<span class="numerical text-theme-faded">
 										{{
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 										}}%
 									</span>
@@ -340,6 +326,7 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import Badge from '~/components/Badge.vue'
 import Pagination from '~/components/Pagination.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import Toggle from '~/components/atoms/Toggle.vue'
 import FillBar from '~/components/atoms/FillBar.vue'
 import FillBarItem from '~~/src/components/atoms/FillBarItem.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
@@ -356,7 +343,11 @@ import { useBakerListQuery } from '~/queries/useBakerListQuery'
 import { useBakerMetricsQuery } from '~/queries/useBakerMetricsQuery'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
 import { useRewardMetricsQuery } from '~/queries/useRewardMetricsQuery'
-import { BakerSort, MetricsPeriod } from '~/types/generated'
+import {
+	BakerSort,
+	BakerPoolOpenStatus,
+	MetricsPeriod,
+} from '~/types/generated'
 import TableTh from '~~/src/components/Table/TableTh.vue'
 
 import { formatPercentage, calculatePercentage } from '~/utils/format'
@@ -370,6 +361,7 @@ const { first, last, after, before, goToPage } = usePagination()
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const tableSort = ref(BakerSort.TotalStakedAmountDesc)
+const openStatusFilter = ref<BakerPoolOpenStatus | undefined>(undefined)
 
 const { data } = useBakerListQuery({
 	first,
@@ -377,6 +369,9 @@ const { data } = useBakerListQuery({
 	after,
 	before,
 	sort: tableSort,
+	filter: {
+		openStatusFilter,
+	},
 })
 const { data: bakerMetricsData, fetching: bakerMetricsFetching } =
 	useBakerMetricsQuery(selectedMetricsPeriod)
@@ -398,6 +393,10 @@ const calculateDelegatedStakePercent = (
 	delegatedStake: number,
 	delegatedStakeCap: number
 ) => calculatePercentage(delegatedStakeCap - delegatedStake, delegatedStakeCap)
+
+const handleTogglePoolFilter = (checked: boolean) => {
+	openStatusFilter.value = checked ? BakerPoolOpenStatus.OpenForAll : undefined
+}
 </script>
 
 <style scoped>
