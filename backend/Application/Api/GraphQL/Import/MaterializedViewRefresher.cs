@@ -10,7 +10,7 @@ public class MaterializedViewRefresher
 {
     private readonly DatabaseSettings _dbSettings;
     private readonly IMetrics _metrics;
-    private long? _lastRefreshTime = null;
+    private long? _lastRefreshBakerStatsTime = null;
 
     public MaterializedViewRefresher(DatabaseSettings dbSettings, IMetrics metrics)
     {
@@ -18,18 +18,36 @@ public class MaterializedViewRefresher
         _metrics = metrics;
     }
 
-    public async Task RefreshAllIfNeeded()
+    public async Task RefreshAllIfNeeded(BlockWriteResult blockWriteResult)
+    {
+        await RefreshBakerStatsIfNeeded();
+        await RefreshPoolApysIfNeeded(blockWriteResult);
+    }
+
+    private async Task RefreshBakerStatsIfNeeded()
     {
         var currentTickCount = Environment.TickCount64;
-        if (!_lastRefreshTime.HasValue || currentTickCount > _lastRefreshTime.Value + 10_000)
+        if (!_lastRefreshBakerStatsTime.HasValue || currentTickCount > _lastRefreshBakerStatsTime.Value + 10_000)
         {
-            using var counter = _metrics.MeasureDuration(nameof(MaterializedViewRefresher), nameof(RefreshAllIfNeeded));
+            using var counter = _metrics.MeasureDuration(nameof(MaterializedViewRefresher), nameof(RefreshBakerStatsIfNeeded));
 
             await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
             await conn.OpenAsync();
             await conn.ExecuteAsync("refresh materialized view graphql_baker_statistics");
 
-            _lastRefreshTime = currentTickCount;
+            _lastRefreshBakerStatsTime = currentTickCount;
+        }
+    }
+
+    private async Task RefreshPoolApysIfNeeded(BlockWriteResult blockWriteResult)
+    {
+        if (blockWriteResult.PaydayStatus is FirstBlockAfterPayday)
+        {
+            using var counter = _metrics.MeasureDuration(nameof(MaterializedViewRefresher), nameof(RefreshPoolApysIfNeeded));
+
+            await using var conn = new NpgsqlConnection(_dbSettings.ConnectionString);
+            await conn.OpenAsync();
+            await conn.ExecuteAsync("refresh materialized view graphql_pool_mean_apys");
         }
     }
 }

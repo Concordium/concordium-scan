@@ -84,16 +84,16 @@ public class ImportWriteController : BackgroundService
                 waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var block = await WriteData(envelope.Payload);
-                await _materializedViewRefresher.RefreshAllIfNeeded();
+                var result = await WriteData(envelope.Payload);
+                await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
-                await _sender.SendAsync(nameof(Subscription.BlockAdded), block, stoppingToken);
+                await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
                 
-                _logger.Information("Block {blockhash} at block height {blockheight} written", block.BlockHash, block.BlockHeight);
+                _logger.Information("Block {blockhash} at block height {blockheight} written", result.Block.BlockHash, result.Block.BlockHeight);
                 
-                await _accountBalanceValidator.PerformValidations(block);
+                await _accountBalanceValidator.PerformValidations(result.Block);
                 
-                if (block.BlockHeight % 5000 == 0)
+                if (result.Block.BlockHeight % 5000 == 0)
                     _metricsListener.DumpCapturedMetrics();
                 
                 waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
@@ -117,13 +117,13 @@ public class ImportWriteController : BackgroundService
         _channel.SetInitialImportState(initialState);
     }
 
-    private async Task<Block> WriteData(BlockDataPayload payload)
+    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         
         var txScope = CreateTransactionScope();
 
-        Block block;
+        BlockWriteResult result;
         try
         {
             var importState = payload switch
@@ -135,7 +135,7 @@ public class ImportWriteController : BackgroundService
             if (payload is GenesisBlockDataPayload genesisData)
                 await HandleGenesisOnlyWrites(genesisData);
 
-            block = await HandleCommonWrites(payload, importState);
+            result = await HandleCommonWrites(payload, importState);
 
             importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
             await _importStateController.SaveChanges(importState);
@@ -149,7 +149,7 @@ public class ImportWriteController : BackgroundService
         }
 
         _importStateController.SavedChangesCommitted();
-        return block;
+        return result;
     }
 
     private async Task HandleGenesisOnlyWrites(GenesisBlockDataPayload payload)
@@ -157,7 +157,7 @@ public class ImportWriteController : BackgroundService
         await _identityProviderWriter.AddGenesisIdentityProviders(payload.GenesisIdentityProviders);
     }
 
-    private async Task<Block> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
+    private async Task<BlockWriteResult> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
         
@@ -193,7 +193,7 @@ public class ImportWriteController : BackgroundService
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
 
-        return block;
+        return new BlockWriteResult(block, importPaydayStatus);
     }
 
     private static TransactionScope CreateTransactionScope()
@@ -207,3 +207,7 @@ public class ImportWriteController : BackgroundService
             TransactionScopeAsyncFlowOption.Enabled);
     }
 }
+
+public record BlockWriteResult(
+    Block Block,
+    BlockImportPaydayStatus PaydayStatus);
