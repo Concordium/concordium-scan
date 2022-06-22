@@ -30,6 +30,13 @@ public class Baker
     public BakerStatisticsRow? Statistics { get; private set; }
     
     /// <summary>
+    /// This property is there for loading the pool apys row from the database. The data
+    /// is exposed elsewhere in the baker model to create a better and more meaningful model.
+    /// </summary>
+    [GraphQLIgnore] 
+    public PoolApys? PoolApys { get; set; }
+
+    /// <summary>
     /// DONT USE THIS PROPERTY!
     /// 
     /// EF-core 6 does not support inheritance hierarchies for owned entities.
