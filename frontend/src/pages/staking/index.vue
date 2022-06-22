@@ -44,6 +44,7 @@
 			>
 				Show only open pools
 			</Toggle>
+			<PassiveDelegationLink />
 		</header>
 
 		<Table>
@@ -328,10 +329,11 @@ import Pagination from '~/components/Pagination.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Toggle from '~/components/atoms/Toggle.vue'
 import FillBar from '~/components/atoms/FillBar.vue'
-import FillBarItem from '~~/src/components/atoms/FillBarItem.vue'
+import FillBarItem from '~/components/atoms/FillBarItem.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
 import StakingSortSelect from '~/components/molecules/StakingSortSelect.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
