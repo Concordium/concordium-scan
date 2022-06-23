@@ -44,7 +44,7 @@
 			</TableBody>
 		</Table>
 		<Pagination
-			v-if="pageInfo && totalCount > PAGE_SIZE"
+			v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
 			:page-info="pageInfo"
 			:go-to-page="goToPage"
 		/>

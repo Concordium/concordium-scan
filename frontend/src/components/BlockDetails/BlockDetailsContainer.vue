@@ -13,7 +13,7 @@
 <script lang="ts" setup>
 import type { Ref } from 'vue'
 import { useBlockQuery } from '~/queries/useBlockQuery'
-import { usePagination } from '~/composables/usePagination'
+import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import BlockDetailsContent from '~/components/BlockDetails/BlockDetailsContent.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
@@ -26,7 +26,7 @@ const {
 	after: afterTx,
 	before: beforeTx,
 	goToPage: goToPageTx,
-} = usePagination({ pageSize: 5 })
+} = usePagination({ pageSize: PAGE_SIZE_SMALL })
 
 const paginationVars = {
 	firstTx,
