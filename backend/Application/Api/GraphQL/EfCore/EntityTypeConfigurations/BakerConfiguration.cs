@@ -7,8 +7,7 @@ namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 
 public class BakerConfiguration : 
     IEntityTypeConfiguration<Baker>,
-    IEntityTypeConfiguration<BakerStatisticsRow>,
-    IEntityTypeConfiguration<PoolApys>
+    IEntityTypeConfiguration<BakerStatisticsRow>
 {
     public void Configure(EntityTypeBuilder<Baker> builder)
     {
@@ -73,25 +72,5 @@ public class BakerConfiguration :
         builder.Property(x => x.PoolTotalStakePercentage).HasColumnName("active_pool_total_stake_percentage");
         builder.Property(x => x.PoolRankByTotalStake).HasColumnName("active_baker_pool_rank_by_total_stake");
         builder.Property(x => x.ActiveBakerPoolCount).HasColumnName("active_baker_pool_count");
-    }
-
-    public void Configure(EntityTypeBuilder<PoolApys> builder)
-    {
-        builder.ToView("graphql_pool_mean_apys")
-            .HasKey(x => x.PoolId);
-        
-        builder.Property(x => x.PoolId).HasColumnName("pool_id");
-        builder.OwnsOne(x => x.Apy7Days, childBuilder =>
-        {
-            childBuilder.Property(x => x.TotalApy).HasColumnName("total_apy_geom_mean_7_days");
-            childBuilder.Property(x => x.BakerApy).HasColumnName("baker_apy_geom_mean_mean_7_days");
-            childBuilder.Property(x => x.DelegatorsApy).HasColumnName("delegators_apy_geom_mean_mean_7_days");
-        });
-        builder.OwnsOne(x => x.Apy30Days, childBuilder =>
-        {
-            childBuilder.Property(x => x.TotalApy).HasColumnName("total_apy_geom_mean_30_days");
-            childBuilder.Property(x => x.BakerApy).HasColumnName("baker_apy_geom_mean_30_days");
-            childBuilder.Property(x => x.DelegatorsApy).HasColumnName("delegators_apy_geom_mean_30_days");
-        });
     }
 }
