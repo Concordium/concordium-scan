@@ -1062,7 +1062,7 @@ type NewEncryptedAmount {
 
 type NodeStatus {
   peersList: [PeerReference!]!
-  nodeName: String!
+  nodeName: String
   nodeId: String!
   peerType: String!
   uptime: UnsignedLong!
@@ -1489,6 +1489,7 @@ type SearchResult {
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   bakers("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
+  nodeStatuses("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
 }
 
 type SerializationFailure {
@@ -1747,6 +1748,8 @@ enum BakerSort {
   TOTAL_STAKED_AMOUNT_DESC
   DELEGATOR_COUNT_ASC
   DELEGATOR_COUNT_DESC
+  BAKER_APY30_DAYS_DESC
+  DELEGATOR_APY30_DAYS_DESC
 }
 
 enum CredentialDeploymentTransactionType {

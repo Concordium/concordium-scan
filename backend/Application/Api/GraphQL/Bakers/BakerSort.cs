@@ -9,5 +9,7 @@ public enum BakerSort
     TotalStakedAmountAsc,
     TotalStakedAmountDesc,
     DelegatorCountAsc,
-    DelegatorCountDesc
+    DelegatorCountDesc,
+    BakerApy30DaysDesc,
+    DelegatorApy30DaysDesc
 }
