@@ -10,6 +10,7 @@
 							v-if="Number.isInteger(node.consensusBakerId)"
 							:id="node.consensusBakerId"
 						/>
+						<div v-else>-</div>
 					</template>
 				</DetailsCard>
 
@@ -48,8 +49,10 @@
 					>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking Committee Member</template>
-					<template #default>{{ node.bakingCommitteeMember }} </template>
+					<template #title>Baking Committee</template>
+					<template #default
+						>{{ translateBakingCommittee(node.bakingCommitteeMember) }}
+					</template>
 				</DetailsCard>
 			</div>
 
@@ -121,6 +124,7 @@
 <script lang="ts" setup>
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
+import { translateBakingCommittee } from '~/utils/translateBakingCommittee'
 import {
 	formatNumber,
 	formatUptime,
