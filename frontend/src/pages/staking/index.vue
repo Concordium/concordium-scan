@@ -7,12 +7,8 @@
 			>
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<FtbCarousel
-				:non-carousel-classes="
-					networkType === 'testnet' ? 'grid-cols-4' : 'grid-cols-3'
-				"
-			>
-				<CarouselSlide v-if="networkType === 'testnet'" class="w-full">
+			<FtbCarousel non-carousel-classes="grid-cols-4">
+				<CarouselSlide class="w-full">
 					<Payday />
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
@@ -119,9 +115,6 @@ const { data: rewardMetricsData, fetching: rewardMetricsFetching } =
 	useRewardMetricsQuery(selectedMetricsPeriod)
 const { data: blockMetricsData, fetching: blockMetricsFetching } =
 	useBlockMetricsQuery(selectedMetricsPeriod)
-
-// TODO: This needs to be deleted when paydayStatus hits mainnet
-const networkType = location.host.includes('testnet') ? 'testnet' : 'mainnet'
 
 const handleTogglePoolFilter = (checked: boolean) => {
 	openStatusFilter.value = checked ? BakerPoolOpenStatus.OpenForAll : undefined
