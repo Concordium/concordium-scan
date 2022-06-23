@@ -4,6 +4,7 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Data;
@@ -89,5 +90,12 @@ public class SearchResult
         }
 
         return Array.Empty<Baker>();
+    }
+    
+    [UsePaging]
+    public IEnumerable<NodeStatus> GetNodeStatuses([Service] NodeStatusSnapshot nodeSummarySnapshot)
+    {
+        return nodeSummarySnapshot.NodeStatuses
+            .Where(x => x.NodeName != null && x.NodeName.Contains(_queryString, StringComparison.InvariantCultureIgnoreCase));
     }
 }
