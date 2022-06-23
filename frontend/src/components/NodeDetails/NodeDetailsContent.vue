@@ -112,9 +112,20 @@
 				Peers
 				<span class="numerical text-theme-faded">({{ node.peersCount }})</span>
 				<template #content>
-					<div v-for="peer in node.peersList" :key="peer.nodeId">
-						<NodeLink v-if="peer.nodeStatus" :node="peer.nodeStatus" />
+					<div v-if="node.peersCount > 0">
+						<div v-for="peer in node.peersList" :key="peer.nodeId">
+							<NodeLink v-if="peer.nodeStatus" :node="peer.nodeStatus" />
+							<div v-else class="ml-6">
+								<span class="numerical">({{ peer.nodeId }})</span>
+								<Tooltip text="Status for this node is unavailable">
+									<WarningIcon
+										class="h-5 text-theme-white inline align-text-top ml-1"
+									/>
+								</Tooltip>
+							</div>
+						</div>
 					</div>
+					<div v-else class="p-4">No peers</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
@@ -140,6 +151,8 @@ import NodeLink from '~/components/molecules/NodeLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import DescriptionList from '~/components/atoms/DescriptionList.vue'
 import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import WarningIcon from '~/components/icons/WarningIcon.vue'
 const { NOW } = useDateNow()
 
 type Props = {
