@@ -52,6 +52,22 @@ describe('NetworkSelect', () => {
 
 			locationCleanup()
 		})
+
+		it("will preserve 'www' correctly if present in URL", () => {
+			const { locationAssignSpy, locationCleanup } = mockLocation({
+				host: 'www.ccdscan.io',
+			})
+
+			render({})
+
+			fireEvent.update(screen.getByRole('combobox'), 'testnet')
+
+			expect(locationAssignSpy).toHaveBeenCalledWith(
+				'https://www.testnet.ccdscan.io/'
+			)
+
+			locationCleanup()
+		})
 	})
 
 	describe('when user is on Testnet', () => {
@@ -77,6 +93,20 @@ describe('NetworkSelect', () => {
 			fireEvent.update(screen.getByRole('combobox'), 'mainnet')
 
 			expect(locationAssignSpy).toHaveBeenCalledWith(MAINNET_URL)
+
+			locationCleanup()
+		})
+
+		it("will preserve 'www' correctly if present in URL", () => {
+			const { locationAssignSpy, locationCleanup } = mockLocation({
+				host: 'www.testnet.ccdscan.io',
+			})
+
+			render({})
+
+			fireEvent.update(screen.getByRole('combobox'), 'mainnet')
+
+			expect(locationAssignSpy).toHaveBeenCalledWith('https://www.ccdscan.io/')
 
 			locationCleanup()
 		})

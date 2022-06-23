@@ -56,7 +56,12 @@ const handleOnChange = (event: Event) => {
 		)
 	} else {
 		location.assign(
-			location.protocol + '//testnet.' + location.host + location.pathname
+			location.host.includes('www')
+				? location.protocol +
+						'//' +
+						location.host.replace('www.', 'www.testnet.') +
+						location.pathname
+				: location.protocol + '//testnet.' + location.host + location.pathname
 		)
 	}
 }
