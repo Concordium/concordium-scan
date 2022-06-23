@@ -25,27 +25,29 @@
 						</Tooltip>
 					</template>
 					<template #secondary>
-						<div class="text-sm">
+						<div class="text-sm grid grid-cols-2 w-full sm:w-1/2 lg:w-full">
 							<Amount
 								:amount="baker.state.stakedAmount"
-								class="text-theme-faded"
+								class="text-theme-faded text-right"
 								data-testid="locked-amount"
 								:show-symbol="true"
 							/>
-							<Chip class="inline-block ml-4 px-0" variant="secondary">
-								Baker
-							</Chip>
-						</div>
-						<div class="text-sm">
+							<div>
+								<Chip class="inline-block ml-4 px-0" variant="secondary">
+									Baker
+								</Chip>
+							</div>
 							<Amount
 								:amount="baker.state.pool.delegatedStake"
-								class="text-theme-faded"
+								class="text-theme-faded text-right"
 								data-testid="locked-amount"
 								:show-symbol="true"
 							/>
-							<Chip class="inline-block ml-4 px-0" variant="secondary">
-								Delegated
-							</Chip>
+							<div>
+								<Chip class="inline-block ml-4 px-0" variant="secondary">
+									Delegated
+								</Chip>
+							</div>
 						</div>
 					</template>
 				</DetailsCard>
