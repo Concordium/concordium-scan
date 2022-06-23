@@ -24,12 +24,11 @@
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import type { TooltipItem } from 'chart.js'
 import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 import { convertMicroCcdToCcd } from '~/utils/format'
 type Props = {
-	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	blockMetricsData: BlockMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 const formatLabel = (c: TooltipItem<'line'>) => {

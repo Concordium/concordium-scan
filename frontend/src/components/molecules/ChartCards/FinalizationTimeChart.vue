@@ -18,12 +18,11 @@
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import { formatNumber } from '~/utils/format'
 import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 
 type Props = {
-	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	blockMetricsData: BlockMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 defineProps<Props>()

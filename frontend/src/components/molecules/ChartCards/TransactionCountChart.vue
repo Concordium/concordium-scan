@@ -16,19 +16,20 @@
 		<template #title>Transactions</template>
 		<template #icon><TransactionIcon /></template>
 		<template #value>{{
-			formatNumber(transactionMetricsData?.transactionMetrics?.transactionCount)
+			formatNumber(
+				transactionMetricsData?.transactionMetrics?.transactionCount || 0
+			)
 		}}</template>
 		<template #chip>sum</template>
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import { formatNumber } from '~/utils/format'
 import type { TransactionMetricsQueryResponse } from '~/queries/useTransactionMetrics'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 
 type Props = {
-	transactionMetricsData: Ref<TransactionMetricsQueryResponse | undefined>
+	transactionMetricsData: TransactionMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 defineProps<Props>()

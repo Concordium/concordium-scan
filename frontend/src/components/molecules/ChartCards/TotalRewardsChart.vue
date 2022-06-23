@@ -28,7 +28,7 @@ import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import type { RewardMetricsQueryResponse } from '~/queries/useRewardMetricsQuery'
 type Props = {
-	rewardMetricsData: Ref<RewardMetricsQueryResponse | undefined>
+	rewardMetricsData: RewardMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 const formatLabel = (c: TooltipItem<'bar'>) => {

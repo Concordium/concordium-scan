@@ -13,13 +13,12 @@
 		<template #title>Bakers</template>
 		<template #icon><TransactionIcon /></template>
 		<template #value>{{
-			formatNumber(bakerMetricsData?.bakerMetrics?.lastBakerCount)
+			formatNumber(bakerMetricsData?.bakerMetrics?.lastBakerCount || 0)
 		}}</template>
 		<template #chip>latest</template>
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import type { TooltipItem } from 'chart.js'
 import { formatNumber } from '~/utils/format'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
@@ -27,7 +26,7 @@ import type { BakerMetricsQueryResponse } from '~/queries/useBakerMetricsQuery'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 
 type Props = {
-	bakerMetricsData: Ref<BakerMetricsQueryResponse | undefined>
+	bakerMetricsData: BakerMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 const props = defineProps<Props>()
@@ -38,6 +37,9 @@ const formatLabel = (c: TooltipItem<'bar'>) => {
 	const removed =
 		props.bakerMetricsData?.bakerMetrics?.buckets?.y_BakersRemoved[c.parsed.x]
 	let label = c.parsed.y + ''
+
+	if (added === undefined || removed === undefined) return label
+
 	if (added > 0 && removed > 0) label += ` (${added} added, ${removed} removed)`
 	else if (added > 0) label += ` (${added} added)`
 	else if (removed > 0) label += ` (${removed} removed)`
