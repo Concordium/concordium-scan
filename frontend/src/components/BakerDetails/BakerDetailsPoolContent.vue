@@ -25,14 +25,14 @@
 						</Tooltip>
 					</template>
 					<template #secondary>
-						<div class="text-sm grid grid-cols-2 w-full sm:w-1/2 lg:w-full">
+						<div class="text-sm grid grid-cols-2">
 							<Amount
 								:amount="baker.state.stakedAmount"
-								class="text-theme-faded text-right"
+								class="text-theme-faded text-right whitespace-nowrap"
 								data-testid="locked-amount"
 								:show-symbol="true"
 							/>
-							<div>
+							<div class="lg:text-right">
 								<Chip class="inline-block ml-4 px-0" variant="secondary">
 									Baker
 								</Chip>
@@ -43,7 +43,7 @@
 								data-testid="locked-amount"
 								:show-symbol="true"
 							/>
-							<div>
+							<div class="lg:text-right">
 								<Chip class="inline-block ml-4 px-0" variant="secondary">
 									Delegated
 								</Chip>
