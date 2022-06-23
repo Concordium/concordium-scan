@@ -24,6 +24,10 @@ type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
 }
+type NodeDrawerItem = {
+	entityTypeName: 'node'
+	nodeId: string
+}
 type PassiveDelegationItem = {
 	entityTypeName: 'passiveDelegation'
 }
@@ -33,6 +37,7 @@ export type DrawerItem = (
 	| AccountDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
+	| NodeDrawerItem
 ) & {
 	scrollY?: number
 }
@@ -79,6 +84,12 @@ export const isItemOnTop = (
 	) {
 		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
 	}
+	if (
+		item.entityTypeName === 'node' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	) {
+		return !!(item.nodeId && item.nodeId === currentTopItem.value.nodeId)
+	}
 
 	if (
 		item.entityTypeName === 'passiveDelegation' &&
@@ -115,6 +126,8 @@ export const pushToRouter =
 				did:
 					drawerItem.entityTypeName === 'baker'
 						? drawerItem.bakerId
+						: drawerItem.entityTypeName === 'node'
+						? encodeURIComponent(drawerItem.nodeId)
 						: undefined,
 			},
 		})
@@ -159,6 +172,14 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'baker',
 					bakerId: parseInt(route.query.did.toString()),
+				},
+				false
+			)
+		} else if (route.query.dentity === 'node' && route.query.did) {
+			push(
+				{
+					entityTypeName: 'node',
+					nodeId: decodeURIComponent(route.query.did.toString()),
 				},
 				false
 			)

@@ -1,6 +1,7 @@
-import { formatDistance, parseISO } from 'date-fns'
+import { formatDistance, parseISO, subMilliseconds } from 'date-fns'
 
 import * as duration from 'duration-fns'
+import { UnwrapRef } from 'vue'
 
 /**
  * Converts an ISO 8601 duration (e.g. PT10M) to an object with the amount in years, days, months, hours, seconds, etc.
@@ -140,6 +141,20 @@ export const formatNumber = (num: number, decimalCount?: number): string =>
 				maximumFractionDigits: decimalCount,
 		  }).format(num)
 		: '-'
+/**
+ * Formats an uptime to relative time
+ * @param  {number} uptime - start time to calculate from
+ * @param {Date} now - time now
+ */
+export const formatUptime = (uptime: number, now: UnwrapRef<Date>) => {
+	const start = subMilliseconds(now, uptime)
+
+	try {
+		return formatDistance(start, now)
+	} catch {
+		return '-'
+	}
+}
 
 /**
  * Calculates a weight of total in percentage
@@ -182,4 +197,9 @@ export const formatPercentage = (num: number) => {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	}).format(num * 100)
+}
+
+export const formatBytesPerSecond = (bytes: number) => {
+	if (bytes > 1024) return (bytes / 1024).toFixed(2) + ' kB/s'
+	else return bytes + ' B/s'
 }

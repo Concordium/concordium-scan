@@ -26,7 +26,7 @@
 				<TableRow v-for="node in pagedData" :key="node.nodeId">
 					<TableTd>
 						<div class="whitespace-normal">
-							{{ node.nodeName }}
+							<NodeLink :node="node" />
 						</div>
 					</TableTd>
 					<TableTd>
@@ -37,7 +37,7 @@
 					</TableTd>
 
 					<TableTd v-if="breakpoint >= Breakpoint.SM">
-						{{ formatUptime(node.uptime) }}
+						{{ formatUptime(node.uptime, NOW) }}
 					</TableTd>
 
 					<TableTd
@@ -107,7 +107,6 @@
 </template>
 
 <script lang="ts" setup>
-import { formatDistance, subMilliseconds } from 'date-fns'
 import Table from '~/components/Table/Table.vue'
 import TableTd from '~/components/Table/TableTd.vue'
 import TableTh from '~/components/Table/TableTh.vue'
@@ -118,12 +117,13 @@ import LoadMore from '~/components/LoadMore.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
-import { formatNumber } from '~/utils/format'
+import { formatNumber, formatUptime } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import { usePagedData } from '~/composables/usePagedData'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useNodeQuery } from '~/queries/useNodeQuery'
 import type { NodeStatus } from '~/types/generated'
+import NodeLink from '~/components/molecules/NodeLink.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
@@ -136,16 +136,6 @@ const { data, error, componentState } = useNodeQuery({
 	after,
 	before,
 })
-
-const formatUptime = (uptime: number) => {
-	const start = subMilliseconds(NOW.value, uptime)
-
-	try {
-		return formatDistance(start, NOW.value)
-	} catch {
-		return '-'
-	}
-}
 
 watch(
 	() => data.value,

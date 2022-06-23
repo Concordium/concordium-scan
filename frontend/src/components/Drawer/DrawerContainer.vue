@@ -49,6 +49,10 @@
 								drawerItem && drawerItem.entityTypeName === 'passiveDelegation'
 							"
 						/>
+						<NodeDetailsContainer
+							v-else-if="drawerItem && drawerItem.entityTypeName === 'node'"
+							:node-internal-id="drawerItem.nodeId"
+						/>
 					</template>
 
 					<template #actions>
@@ -72,6 +76,7 @@ import TransactionDetailsContainer from '~/components/TransactionDetails/Transac
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'
 import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDelegationContainer.vue'
+import NodeDetailsContainer from '~/components/NodeDetails/NodeDetailsContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()
