@@ -36,6 +36,14 @@ const BakerQuery = gql<BakerResponse>`
 				__typename
 				... on ActiveBakerState {
 					stakedAmount
+					nodeStatus {
+						id
+						nodeId
+						nodeName
+						averagePing
+						uptime
+						clientVersion
+					}
 					restakeEarnings
 					pool {
 						openStatus

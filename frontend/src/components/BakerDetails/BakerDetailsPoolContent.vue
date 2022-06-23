@@ -162,6 +162,45 @@
 					{{ baker.state.pool.metadataUrl }}
 				</template>
 			</Accordion>
+			<Accordion v-if="baker.state.nodeStatus">
+				Node
+				<template #content>
+					<div class="commission-rates rounded-lg px-8 py-4">
+						<NodeLink :node="baker.state.nodeStatus" />
+						<span class="text-theme-faded numerical text-sm">
+							{{ baker.state.nodeStatus.nodeId }}
+						</span>
+						<div class="grid grid-cols-3 mt-8">
+							<DetailsCard>
+								<template #title>Uptime</template>
+								<template #default
+									>{{ formatUptime(baker.state.nodeStatus.uptime, NOW) }}
+								</template>
+							</DetailsCard>
+							<DetailsCard>
+								<template #title>Client version</template>
+								<template #default
+									>{{ baker.state.nodeStatus.clientVersion }}
+								</template>
+							</DetailsCard>
+
+							<DetailsCard>
+								<template #title>Average ping</template>
+								<template #default
+									>{{
+										baker.state.nodeStatus.averagePing
+											? `${formatNumber(
+													baker.state.nodeStatus.averagePing,
+													2
+											  )}ms`
+											: '-'
+									}}
+								</template>
+							</DetailsCard>
+						</div>
+					</div>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -182,17 +221,18 @@ import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import type { Baker } from '~/types/generated'
-import { formatPercentage } from '~/utils/format'
+import { formatPercentage, formatNumber, formatUptime } from '~/utils/format'
 import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import type { BakerWithAPYFilter } from '~/queries/useBakerQuery'
-
+import { useDateNow } from '~/composables/useDateNow'
+import NodeLink from '~/components/molecules/NodeLink.vue'
 type Props = {
 	baker: BakerWithAPYFilter
 }
 
 const props = defineProps<Props>()
-
+const { NOW } = useDateNow()
 const computedBadgeOptions = computed(() => composeBakerStatus(props.baker))
 </script>
 
