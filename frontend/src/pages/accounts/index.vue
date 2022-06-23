@@ -24,6 +24,11 @@
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
+
+		<header class="flex justify-end w-full mb-4 mt-8 lg:mt-0">
+			<AccountSortSelect v-model="sort" />
+		</header>
+
 		<Table>
 			<TableHead>
 				<TableRow>
@@ -65,16 +70,17 @@
 </template>
 <script lang="ts" setup>
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
-import { MetricsPeriod } from '~/types/generated'
+import { MetricsPeriod, type Account, AccountSort } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
-import type { Account } from '~/types/generated'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
+import AccountSortSelect from '~/components/molecules/AccountSortSelect.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'
 
+const sort = ref<AccountSort>(AccountSort.AmountDesc)
 const { NOW } = useDateNow()
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<Account>()
@@ -83,12 +89,20 @@ const { data } = useAccountsListQuery({
 	last,
 	after,
 	before,
+	sort,
 })
 
 watch(
 	() => data.value,
 	value => {
 		addPagedData(value?.accounts.nodes || [], value?.accounts.pageInfo)
+	}
+)
+
+watch(
+	() => sort.value,
+	() => {
+		pagedData.value = []
 	}
 )
 
