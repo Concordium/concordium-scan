@@ -92,6 +92,10 @@
 										{{
 											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
 
+
+
+
+
 										}}%
 									</span>
 								</div>
@@ -160,7 +164,9 @@
 										calculateDelegatedStakePercent(
 											baker.state.pool?.delegatedStake,
 											baker.state.pool?.delegatedStakeCap
-										) < 10
+										) < 10 ||
+										baker.state.pool?.delegatedStake ===
+											baker.state.pool?.delegatedStakeCap
 											? 'bar-warn'
 											: 'bar-green-wrapper',
 										,
