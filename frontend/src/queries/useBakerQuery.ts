@@ -3,7 +3,6 @@ import { useComponentState } from '~/composables/useComponentState'
 import type {
 	Baker,
 	BakerState,
-	BakerPool,
 	ActiveBakerState,
 	PoolApy,
 } from '~/types/generated'
@@ -101,11 +100,18 @@ export const useBakerQuery = (bakerId: number) => {
 		},
 	})
 
-	const componentState = useComponentState<BakerResponse | undefined>({
+	const dataRef = ref(data.value?.bakerByBakerId)
+
+	const componentState = useComponentState<BakerWithAPYFilter | undefined>({
 		fetching,
 		error,
-		data,
+		data: dataRef,
 	})
+
+	watch(
+		() => data.value,
+		value => (dataRef.value = value?.bakerByBakerId)
+	)
 
 	return { data, error, componentState }
 }
