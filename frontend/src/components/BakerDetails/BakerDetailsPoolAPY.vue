@@ -66,7 +66,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import { type PoolApy, ApyPeriod } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
 
-const selectedPeriod = ref<ApyPeriod>(ApyPeriod.Last7Days)
+const selectedPeriod = ref<ApyPeriod>(ApyPeriod.Last30Days)
 
 type Props = {
 	apy7days?: PoolApy
