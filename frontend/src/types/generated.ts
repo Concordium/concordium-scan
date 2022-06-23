@@ -581,10 +581,12 @@ export type BakerSetTransactionFeeCommission = {
 };
 
 export enum BakerSort {
+  BakerApy30DaysDesc = 'BAKER_APY30_DAYS_DESC',
   BakerIdAsc = 'BAKER_ID_ASC',
   BakerIdDesc = 'BAKER_ID_DESC',
   BakerStakedAmountAsc = 'BAKER_STAKED_AMOUNT_ASC',
   BakerStakedAmountDesc = 'BAKER_STAKED_AMOUNT_DESC',
+  DelegatorApy30DaysDesc = 'DELEGATOR_APY30_DAYS_DESC',
   DelegatorCountAsc = 'DELEGATOR_COUNT_ASC',
   DelegatorCountDesc = 'DELEGATOR_COUNT_DESC',
   TotalStakedAmountAsc = 'TOTAL_STAKED_AMOUNT_ASC',
@@ -1524,7 +1526,7 @@ export type NodeStatus = {
   genesisBlock: Scalars['String'];
   id: Scalars['ID'];
   nodeId: Scalars['String'];
-  nodeName: Scalars['String'];
+  nodeName?: Maybe<Scalars['String']>;
   packetsReceived: Scalars['UnsignedLong'];
   packetsSent: Scalars['UnsignedLong'];
   peerType: Scalars['String'];
@@ -2164,6 +2166,7 @@ export type SearchResult = {
   accounts?: Maybe<AccountsConnection>;
   bakers?: Maybe<BakersConnection>;
   blocks?: Maybe<BlocksConnection>;
+  nodeStatuses?: Maybe<NodeStatusesConnection>;
   transactions?: Maybe<TransactionsConnection>;
 };
 
@@ -2185,6 +2188,14 @@ export type SearchResultBakersArgs = {
 
 
 export type SearchResultBlocksArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultNodeStatusesArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

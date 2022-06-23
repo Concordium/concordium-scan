@@ -15,10 +15,24 @@
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.TotalStakedAmountAsc"
-				:value="BakerSort.TotalStakedAmountAsc"
+				:selected="refVal === BakerSort.DelegatorCountDesc"
+				:value="BakerSort.DelegatorCountDesc"
 			>
-				Lowest total stake
+				Most delegators
+			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.BakerApy30DaysDesc"
+				:value="BakerSort.BakerApy30DaysDesc"
+			>
+				Highest 30-day baker APY
+			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.BakerApy30DaysDesc"
+				:value="BakerSort.BakerApy30DaysDesc"
+			>
+				Highest 30-day delegators APY
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
@@ -33,20 +47,6 @@
 				:value="BakerSort.BakerIdAsc"
 			>
 				Lowest baker ID
-			</option>
-			<option
-				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.DelegatorCountDesc"
-				:value="BakerSort.DelegatorCountDesc"
-			>
-				Most delegators
-			</option>
-			<option
-				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.DelegatorCountAsc"
-				:value="BakerSort.DelegatorCountAsc"
-			>
-				Fewest delegators
 			</option>
 		</select>
 	</div>

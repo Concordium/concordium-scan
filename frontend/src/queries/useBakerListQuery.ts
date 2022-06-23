@@ -1,4 +1,4 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
 import type {
 	Baker,
@@ -57,10 +57,9 @@ const BakerQuery = gql<BakerListResponse>`
 							delegatorCount
 							delegatedStake
 							delegatedStakeCap
-							apy(period: LAST7_DAYS) {
+							apy(period: LAST30_DAYS) {
 								bakerApy
 								delegatorsApy
-								totalApy
 							}
 						}
 					}
@@ -82,7 +81,7 @@ const BakerQuery = gql<BakerListResponse>`
 export const useBakerListQuery = (variables: BakerListVariables) => {
 	const { data } = useQuery({
 		query: BakerQuery,
-		requestPolicy: 'cache-first',
+		requestPolicy: 'cache-and-network',
 		variables,
 	})
 

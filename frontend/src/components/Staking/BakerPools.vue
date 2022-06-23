@@ -5,25 +5,28 @@
 				<TableRow>
 					<TableTh width="20%">Baker ID</TableTh>
 					<TableTh
-						v-if="
-							(!hasPoolData && breakpoint >= Breakpoint.SM) ||
-							breakpoint >= Breakpoint.XL
-						"
+						v-if="!hasPoolData && breakpoint >= Breakpoint.SM"
 						width="20%"
 					>
 						Account
 					</TableTh>
 					<TableTh
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						align="right"
+					>
+						Baker APY <span class="text-theme-faded">(30 days)</span>
+					</TableTh>
+					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						APY <span class="text-theme-faded">(7 days)</span>
+						Delegators APY <span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh v-if="hasPoolData && breakpoint >= Breakpoint.MD">
 						Delegation pool status
 					</TableTh>
 					<TableTh
-						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						v-if="hasPoolData && breakpoint >= Breakpoint.XXL"
 						align="right"
 					>
 						Delegators
@@ -54,56 +57,40 @@
 						</Badge>
 					</TableTd>
 
-					<TableTd
-						v-if="
-							(!hasPoolData && breakpoint >= Breakpoint.SM) ||
-							breakpoint >= Breakpoint.XL
-						"
-					>
+					<TableTd v-if="!hasPoolData && breakpoint >= Breakpoint.SM">
 						<AccountLink :address="baker.account.address.asString" />
+					</TableTd>
+
+					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						align="right"
+					>
+						<span
+							v-if="
+								baker.state.__typename === 'ActiveBakerState' &&
+								Number.isFinite(baker.state.pool?.apy.bakerApy)
+							"
+							class="numerical"
+						>
+							{{ formatPercentage(baker.state.pool!.apy.bakerApy!) }}%
+						</span>
+						<span v-else>-</span>
 					</TableTd>
 
 					<TableTd
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						<Tooltip
+						<span
 							v-if="
 								baker.state.__typename === 'ActiveBakerState' &&
-								Number.isFinite(baker.state.pool?.apy.totalApy)
+								Number.isFinite(baker.state.pool?.apy.delegatorsApy)
 							"
+							class="numerical"
 						>
-							<template #content>
-								<div
-									v-if="Number.isFinite(baker.state.pool!.apy.bakerApy)"
-									class="grid grid-cols-2"
-								>
-									<span>Baker:</span>
-									<span class="numerical inline-block pl-1 text-theme-faded">
-										{{ formatPercentage(baker.state.pool!.apy.bakerApy!) }}%
-									</span>
-								</div>
-								<div
-									v-if="Number.isFinite(baker.state.pool!.apy.delegatorsApy)"
-									class="grid grid-cols-2"
-								>
-									<span>Delegators:</span>
-									<span class="numerical inline-block pl-1 text-theme-faded">
-										{{
-											formatPercentage(baker.state.pool!.apy.delegatorsApy!)
-
-
-
-
-
-										}}%
-									</span>
-								</div>
-							</template>
-							<span class="numerical">
-								{{ formatPercentage(baker.state.pool!.apy.totalApy!) }}%
-							</span>
-						</Tooltip>
+							{{ formatPercentage(baker.state.pool!.apy.delegatorsApy!) }}%
+						</span>
+						<span v-else>-</span>
 					</TableTd>
 
 					<TableTd v-if="hasPoolData && breakpoint >= Breakpoint.MD">
@@ -121,7 +108,7 @@
 					</TableTd>
 
 					<TableTd
-						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
+						v-if="hasPoolData && breakpoint >= Breakpoint.XXL"
 						align="right"
 					>
 						<span
