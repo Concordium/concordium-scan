@@ -40,6 +40,11 @@ public class BakerPool
     {
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
     }
+
+    public decimal? GetLotteryPower()
+    {
+        return PaydayStatus?.LotteryPower;
+    }
     
     public PoolApy GetApy(ApyPeriod period)
     {
