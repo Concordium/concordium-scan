@@ -29,8 +29,8 @@
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.BakerApy30DaysDesc"
-				:value="BakerSort.BakerApy30DaysDesc"
+				:selected="refVal === BakerSort.DelegatorApy30DaysDesc"
+				:value="BakerSort.DelegatorApy30DaysDesc"
 			>
 				Highest 30-day delegators APY
 			</option>
