@@ -29,15 +29,15 @@
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === AccountSort.AgeDesc"
-				:value="AccountSort.AgeDesc"
+				:selected="refVal === AccountSort.AgeAsc"
+				:value="AccountSort.AgeAsc"
 			>
 				Oldest account
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === AccountSort.AgeAsc"
-				:value="AccountSort.AgeAsc"
+				:selected="refVal === AccountSort.AgeDesc"
+				:value="AccountSort.AgeDesc"
 			>
 				Newest account
 			</option>
