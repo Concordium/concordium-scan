@@ -162,7 +162,10 @@
 								align="right"
 								class="numerical"
 							>
-								<Amount :amount="transaction.ccdCost" />
+								<Amount
+									:remove-top-padding="true"
+									:amount="transaction.ccdCost"
+								/>
 							</TableTd>
 						</TableRow>
 					</TransitionGroup>
@@ -263,7 +266,7 @@ onMounted(() => {
 	if (window) {
 		window.onblur = () => {
 			if (loopInterval) clearTimeout(loopInterval)
-			pausedSubscriptions.value = true
+			// pausedSubscriptions.value = true
 			pauseSubscription()
 		}
 		window.onfocus = () => {
