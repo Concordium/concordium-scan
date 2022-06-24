@@ -15,7 +15,10 @@
 			</TableHead>
 
 			<TableBody v-if="componentState === 'success'">
-				<TableRow v-for="account in pagedData" :key="account.address.asString">
+				<TableRow
+					v-for="account in data?.accounts.nodes"
+					:key="account.address.asString"
+				>
 					<TableTd>
 						<AccountLink :address="account.address.asString" />
 					</TableTd>
@@ -76,10 +79,10 @@
 			</TableBody>
 		</Table>
 
-		<LoadMore
+		<Pagination
 			v-if="data?.accounts.pageInfo"
 			:page-info="data?.accounts.pageInfo"
-			:on-load-more="loadMore"
+			:go-to-page="goToPage"
 		/>
 	</div>
 </template>
@@ -87,30 +90,23 @@
 import { useTopDelegatorsQuery } from '~/queries/useTopDelegatorsQuery'
 import { formatPercentage, calculatePercentage } from '~/utils/format'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
+import { usePagination } from '~/composables/usePagination'
 import Badge from '~/components/Badge.vue'
+import Pagination from '~/components/Pagination.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
-import type { Account } from '~/types/generated'
 
 const { breakpoint } = useBreakpoint()
-const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Account>()
+const { first, last, after, before, goToPage } = usePagination()
 const { data, error, componentState } = useTopDelegatorsQuery({
 	first,
 	last,
 	after,
 	before,
 })
-
-watch(
-	() => data.value,
-	value => {
-		addPagedData(value?.accounts.nodes || [], value?.accounts.pageInfo)
-	}
-)
 </script>
 
 <style scoped>

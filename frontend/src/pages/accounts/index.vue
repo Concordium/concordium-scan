@@ -46,7 +46,10 @@
 				</TableRow>
 			</TableHead>
 			<TableBody>
-				<TableRow v-for="account in pagedData" :key="account.address.asString">
+				<TableRow
+					v-for="account in data?.accounts.nodes"
+					:key="account.address.asString"
+				>
 					<TableTd>
 						<AccountLink :address="account.address.asString" />
 					</TableTd>
@@ -74,31 +77,33 @@
 			</TableBody>
 		</Table>
 
-		<LoadMore
+		<Pagination
 			v-if="data?.accounts.pageInfo"
 			:page-info="data?.accounts.pageInfo"
-			:on-load-more="loadMore"
+			:go-to-page="goToPage"
 		/>
 	</div>
 </template>
 <script lang="ts" setup>
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
-import { MetricsPeriod, type Account, AccountSort } from '~/types/generated'
+import { MetricsPeriod, AccountSort } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
+import { usePagination } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
 import AccountSortSelect from '~/components/molecules/AccountSortSelect.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'
+import Pagination from '~/components/Pagination.vue'
 
 const sort = ref<AccountSort>(AccountSort.AmountDesc)
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
-const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Account>()
+const { first, last, after, before, goToPage, resetPagination } =
+	usePagination()
 const { data } = useAccountsListQuery({
 	first,
 	last,
@@ -108,17 +113,8 @@ const { data } = useAccountsListQuery({
 })
 
 watch(
-	() => data.value,
-	value => {
-		addPagedData(value?.accounts.nodes || [], value?.accounts.pageInfo)
-	}
-)
-
-watch(
 	() => sort.value,
-	() => {
-		pagedData.value = []
-	}
+	() => resetPagination()
 )
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)

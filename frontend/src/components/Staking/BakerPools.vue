@@ -295,7 +295,8 @@ import {
 } from '~/utils/stakingAndDelegation'
 
 const { breakpoint } = useBreakpoint()
-const { first, last, after, before, goToPage } = usePagination()
+const { first, last, after, before, goToPage, resetPagination } =
+	usePagination()
 
 type Props = {
 	openStatusFilter: BakerPoolOpenStatus | undefined
@@ -328,6 +329,11 @@ const calculateDelegatedStakePercent = (
 	delegatedStake: number,
 	delegatedStakeCap: number
 ) => calculatePercentage(delegatedStakeCap - delegatedStake, delegatedStakeCap)
+
+watch(
+	() => [sort.value, openStatusFilter.value],
+	() => resetPagination()
+)
 </script>
 
 <style scoped>
