@@ -5,7 +5,7 @@
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<div class="flex flex-col">
 				<h3 class="w-full text-sm text-theme-faded">Node</h3>
-				<h1 class="inline-block text-2xl numerical">
+				<h1 class="inline-block text-2xl">
 					{{ node.nodeName }}
 				</h1>
 				<div class="flex items-center">{{ node.nodeId }}</div>
