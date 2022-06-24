@@ -168,10 +168,13 @@
 					{{ baker.state.pool.metadataUrl }}
 				</template>
 			</Accordion>
-			<Accordion v-if="baker.state.nodeStatus">
+			<Accordion>
 				Node
 				<template #content>
-					<div class="commission-rates rounded-lg px-8 py-4">
+					<div
+						v-if="baker.state.nodeStatus"
+						class="commission-rates rounded-lg px-8 py-4"
+					>
 						<NodeLink :node="baker.state.nodeStatus" />
 						<span class="text-theme-faded numerical text-sm">
 							{{ baker.state.nodeStatus.nodeId }}
@@ -205,6 +208,14 @@
 							</DetailsCard>
 						</div>
 					</div>
+					<div v-else>
+						<NotFound>
+							No node status
+							<template #secondary>
+								Status for this node is unavailable
+							</template>
+						</NotFound>
+					</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
@@ -233,6 +244,7 @@ import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import type { BakerWithAPYFilter } from '~/queries/useBakerQuery'
 import { useDateNow } from '~/composables/useDateNow'
 import NodeLink from '~/components/molecules/NodeLink.vue'
+import NotFound from '~/components/molecules/NotFound.vue'
 type Props = {
 	baker: BakerWithAPYFilter
 }
