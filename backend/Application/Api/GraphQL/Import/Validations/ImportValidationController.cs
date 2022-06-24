@@ -27,7 +27,7 @@ public class ImportValidationController
     {
         if (!_featureFlags.ConcordiumNodeImportValidationEnabled) return;
 
-        if (block.BlockHeight % 100 == 0)
+        if (block.BlockHeight % 10000 == 0)
         {
             foreach (var validator in _validators)
                 await validator.Validate(block);
