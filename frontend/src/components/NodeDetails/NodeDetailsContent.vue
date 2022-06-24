@@ -125,7 +125,12 @@
 							</div>
 						</div>
 					</div>
-					<div v-else class="p-4">No peers</div>
+					<div v-else>
+						<NotFound>
+							No peers
+							<template #secondary> This node has no peers </template>
+						</NotFound>
+					</div>
 				</template>
 			</Accordion>
 		</DrawerContent>
@@ -153,6 +158,7 @@ import DescriptionList from '~/components/atoms/DescriptionList.vue'
 import DescriptionListItem from '~/components/atoms/DescriptionListItem.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import WarningIcon from '~/components/icons/WarningIcon.vue'
+import NotFound from '~/components/molecules/NotFound.vue'
 const { NOW } = useDateNow()
 
 type Props = {
