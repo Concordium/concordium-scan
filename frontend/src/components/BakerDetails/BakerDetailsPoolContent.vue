@@ -8,7 +8,7 @@
 			/>
 
 			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-				<DetailsCard class="sm:col-span-2 lg:col-span-1">
+				<DetailsCard class="sm:col-span-2 lg:col-span-3">
 					<template #title>Total stake</template>
 					<template #default>
 						<Tooltip
@@ -56,6 +56,13 @@
 					</template>
 				</DetailsCard>
 
+				<DetailsCard>
+					<template #title>Account</template>
+					<template #default>
+						<AccountLink :address="baker.account.address.asString" />
+					</template>
+				</DetailsCard>
+
 				<DetailsCard v-if="computedBadgeOptions">
 					<template #title>Delegation pool status</template>
 					<template #default>
@@ -72,10 +79,13 @@
 					</template>
 				</DetailsCard>
 
-				<DetailsCard>
-					<template #title>Account</template>
+				<DetailsCard v-if="baker.state.pool.rankingByTotalStake">
+					<template #title>Baker rank</template>
 					<template #default>
-						<AccountLink :address="baker.account.address.asString" />
+						# {{ baker.state.pool.rankingByTotalStake.rank
+						}}<span class="text-theme-faded text-sm">
+							/{{ baker.state.pool.rankingByTotalStake.total }}
+						</span>
 					</template>
 				</DetailsCard>
 			</div>
@@ -88,12 +98,11 @@
 					:apy30days="baker.state.pool.apy30days"
 				/>
 
-				<DetailsCard v-if="baker.state.pool.rankingByTotalStake">
-					<template #title>Baker rank</template>
+				<DetailsCard v-if="baker.state.pool.lotteryPower">
+					<template #title>Lottery power</template>
 					<template #default>
-						# {{ baker.state.pool.rankingByTotalStake.rank
-						}}<span class="text-theme-faded text-sm">
-							/{{ baker.state.pool.rankingByTotalStake.total }}
+						<span class="numerical">
+							{{ formatPercentage(baker.state.pool.lotteryPower) }}%
 						</span>
 					</template>
 				</DetailsCard>

@@ -489,6 +489,7 @@ export type BakerPool = {
   delegatedStakeCap: Scalars['UnsignedLong'];
   delegatorCount: Scalars['Int'];
   delegators?: Maybe<DelegatorsConnection>;
+  lotteryPower?: Maybe<Scalars['Decimal']>;
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
   poolRewards?: Maybe<PaydayPoolRewardConnection>;

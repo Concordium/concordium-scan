@@ -50,6 +50,7 @@ const BakerQuery = gql<BakerResponse>`
 						delegatorCount
 						totalStake
 						delegatedStake
+						lotteryPower
 						metadataUrl
 						rankingByTotalStake {
 							rank
