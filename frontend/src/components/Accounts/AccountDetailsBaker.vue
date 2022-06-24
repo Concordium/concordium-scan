@@ -15,9 +15,7 @@
 			class="text-right mb-2"
 			aria-labelledby="bakeraccordion-stakedamount"
 		>
-			<span>
-				<Amount :show-symbol="true" :amount="baker.state.stakedAmount" />
-			</span>
+			<Amount :show-symbol="true" :amount="baker.state.stakedAmount" />
 		</dd>
 		<dt
 			v-if="baker.state.__typename === 'RemovedBakerState'"
