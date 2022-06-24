@@ -272,7 +272,11 @@ const gotoSearchResult = () => {
 			entityTypeName: 'baker',
 			bakerId: data.value.search.bakers.nodes[0].bakerId,
 		})
-
+	else if (data.value.search.nodeStatuses.nodes[0])
+		drawer.push({
+			entityTypeName: 'node',
+			nodeId: data.value.search.nodeStatuses.nodes[0].id,
+		})
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false
