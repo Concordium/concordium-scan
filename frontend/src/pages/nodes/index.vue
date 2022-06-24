@@ -25,7 +25,7 @@
 			<TableBody v-if="componentState === 'success'">
 				<TableRow v-for="node in data?.nodeStatuses.nodes" :key="node.nodeId">
 					<TableTd>
-						<div class="whitespace-normal">
+						<div class="whitespace-nowrap">
 							<NodeLink :node="node" />
 						</div>
 					</TableTd>
