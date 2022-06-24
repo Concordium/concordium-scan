@@ -35,6 +35,12 @@ const BakerDelegatorQuery = gql<BakerDelegatorsResponse>`
 									asString
 								}
 							}
+							pageInfo {
+								startCursor
+								endCursor
+								hasPreviousPage
+								hasNextPage
+							}
 						}
 					}
 				}

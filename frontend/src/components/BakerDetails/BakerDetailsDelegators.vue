@@ -27,7 +27,13 @@
 						<Amount :amount="delegator.stakedAmount" />
 					</TableTd>
 					<TableTd>
-						{{ delegator.restakeEarnings ? 'Yes' : 'No' }}
+						<Badge
+							:type="delegator.restakeEarnings ? 'success' : 'failure'"
+							class="badge"
+							variant="secondary"
+						>
+							{{ delegator?.restakeEarnings ? 'Yes' : 'No' }}
+						</Badge>
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -66,6 +72,7 @@
 import { ref } from 'vue'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
 import { useBakerDelegatorsQuery } from '~/queries/useBakerDelegatorsQuery'
+import Badge from '~/components/Badge.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
@@ -112,3 +119,17 @@ watch(
 				: undefined)
 )
 </script>
+
+<style scoped>
+/*
+  These styles could have been TW classes, but are not applied correctly
+  A more dynamic approach would be to have a size prop on the component
+*/
+.badge {
+	display: inline-block;
+	font-size: 0.75rem;
+	padding: 0.4rem 0.5rem 0.25rem;
+	margin: 0 1rem 0 0;
+	line-height: 1;
+}
+</style>
