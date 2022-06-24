@@ -14,6 +14,7 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
             { typeof(RootKeysRootUpdate), "rootKeysUpdate" },
             { typeof(Level1KeysRootUpdate), "level1KeysUpdate" },
             { typeof(Level2KeysRootUpdate), "level2KeysUpdate" },
+            { typeof(Level2KeysV1RootUpdate), "level2KeysUpdateV1" },
         };
     }
 
@@ -51,6 +52,12 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
             {
                 var content = JsonSerializer.Deserialize<AuthorizationsV0>(ref reader, options)!;
                 result = new Level2KeysRootUpdate(content);
+                break;
+            }
+            case "level2KeysUpdateV1":
+            {
+                var content = JsonSerializer.Deserialize<AuthorizationsV1>(ref reader, options)!;
+                result = new Level2KeysV1RootUpdate(content);
                 break;
             }
             default:
