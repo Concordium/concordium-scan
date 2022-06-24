@@ -48,6 +48,9 @@ const AccountsQuery = gql<AccountsListResponse>`
 						}
 					}
 				}
+				delegation {
+					stakedAmount
+				}
 			}
 			pageInfo {
 				startCursor

@@ -32,10 +32,17 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="10%">Address</TableTh>
-					<TableTh width="20%" class="text-right">Amount (Ͼ)</TableTh>
-					<TableTh width="20%">Transaction count</TableTh>
-					<TableTh width="20%">Account age</TableTh>
+					<TableTh>Address</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Account age</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.SM" align="right">{{
+						breakpoint >= Breakpoint.LG ? 'Transactions' : 'Txs'
+					}}</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.MD" align="right">
+						Delegated stake <span class="text-theme-faded">(Ͼ)</span>
+					</TableTh>
+					<TableTh align="right">
+						Balance <span class="text-theme-faded">(Ͼ)</span>
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -43,19 +50,25 @@
 					<TableTd>
 						<AccountLink :address="account.address.asString" />
 					</TableTd>
-					<TableTd class="text-right">
-						<Amount :amount="account.amount" />
+
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
+						<Tooltip :text="formatTimestamp(account.createdAt)">
+							{{ convertTimestampToRelative(account.createdAt, NOW) }}
+						</Tooltip>
 					</TableTd>
-					<TableTd>
+
+					<TableTd v-if="breakpoint >= Breakpoint.SM" align="right">
 						<span class="numerical">
 							{{ account.transactionCount }}
 						</span>
 					</TableTd>
 
-					<TableTd>
-						<Tooltip :text="formatTimestamp(account.createdAt)">
-							{{ convertTimestampToRelative(account.createdAt, NOW) }}
-						</Tooltip>
+					<TableTd v-if="breakpoint >= Breakpoint.MD" class="text-right">
+						<Amount :amount="account.delegation?.stakedAmount || 0" />
+					</TableTd>
+
+					<TableTd class="text-right">
+						<Amount :amount="account.amount" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -73,6 +86,7 @@ import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
 import { MetricsPeriod, type Account, AccountSort } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useDateNow } from '~/composables/useDateNow'
 import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
@@ -82,6 +96,7 @@ import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/Cu
 
 const sort = ref<AccountSort>(AccountSort.AmountDesc)
 const { NOW } = useDateNow()
+const { breakpoint } = useBreakpoint()
 const { pagedData, first, last, after, before, addPagedData, loadMore } =
 	usePagedData<Account>()
 const { data } = useAccountsListQuery({
