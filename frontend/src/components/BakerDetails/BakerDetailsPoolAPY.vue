@@ -2,7 +2,7 @@
 	<DetailsCard>
 		<template #title>APY period</template>
 		<template #default>
-			<div class="toggle rounded inline-block text-sm">
+			<div class="toggle rounded inline-block text-sm whitespace-nowrap">
 				<span
 					class="hover:text-theme-white"
 					:class="
