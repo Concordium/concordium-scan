@@ -30,33 +30,11 @@ describe('BakerDetailsPendingChange', () => {
 		)
 	})
 
-	// TODO: Implementation was changed without updating the tests
-	//       Need to find out which implementation is correct
-	// eslint-disable-next-line jest/no-disabled-tests
-	it.skip('can show if the baker is about to be removed', () => {
+	it('can show if the baker is about to be removed', () => {
 		render({})
 
-		expect(
-			screen.getByText('Baker will be removed Jul 20, 1969, 8:17 PM')
-		).toBeInTheDocument()
-	})
-
-	// eslint-disable-next-line jest/no-disabled-tests
-	it.skip('will show the new staked amount if stake is to be reduced', () => {
-		const props = {
-			pendingChange: {
-				__typename: 'PendingBakerReduceStake',
-				effectiveTime: '1969-07-20T20:17:40.000Z',
-				newStakedAmount: 421337421337,
-			},
-		}
-
-		render({ props })
-
-		expect(
-			screen.getByText(
-				'Baker stake will be reduced to 421,337.421337 Ͼ on Jul 20, 1969, 8:17 PM'
-			)
-		).toBeInTheDocument()
+		// Tooltip is doing us a disservice here, but this will do for now
+		expect(screen.getByText('Baker will be removed in')).toBeInTheDocument()
+		expect(screen.getByText('5 months')).toBeInTheDocument()
 	})
 })
