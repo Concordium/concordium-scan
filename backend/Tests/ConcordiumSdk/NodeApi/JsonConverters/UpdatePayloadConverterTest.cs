@@ -73,6 +73,29 @@ public class UpdatePayloadConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
 
+    /// <summary>
+    /// On Concordium node v4.2.2 we saw for the first time that updateType might be positioned AFTER the payload.
+    /// </summary>
+    [Fact]
+    public void RoundTrip_MicroGtuPerEuro_2()
+    {
+        var json = @"{
+            ""update"": {
+                ""denominator"": 152565117015,
+                ""numerator"": 7748486472230330368
+            },
+            ""updateType"": ""microGTUPerEuro""
+        }";
+        
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<MicroGtuPerEuroUpdatePayload>(deserialized);
+        typed.Content.Numerator.Should().Be(7748486472230330368);
+        typed.Content.Denominator.Should().Be(152565117015);
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
+    }
+
     [Fact]
     public void RoundTrip_FoundationAccount()
     {

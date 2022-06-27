@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using ConcordiumSdk.Types;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -34,22 +35,10 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
     public override UpdatePayload? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         EnsureTokenType(reader, JsonTokenType.StartObject);
+        var startDepth = reader.CurrentDepth;
 
-        reader.Read();
-        EnsureTokenType(reader, JsonTokenType.PropertyName);
-        if (reader.GetString() != "updateType")
-            throw new JsonException("First property must be updateType.");
-
-        reader.Read();
-        EnsureTokenType(reader, JsonTokenType.String);
-        var updateTypeString = reader.GetString()!;
-
-        reader.Read();
-        EnsureTokenType(reader, JsonTokenType.PropertyName);
-        if (reader.GetString() != "update")
-            throw new JsonException("Second property must be update.");
-
-        reader.Read();
+        var updateTypeString = reader.ReadString("updateType");
+        reader.ForwardReaderToPropertyValue("update");
         UpdatePayload result;
         
         switch (updateTypeString)
@@ -154,7 +143,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
                 throw new NotImplementedException($"Deserialization of update type '{updateTypeString}' is not implemented.");
         }
 
-        reader.Read();
+        reader.ForwardReaderToTokenTypeAtDepth(JsonTokenType.EndObject, startDepth);
         return result;
     }
 
