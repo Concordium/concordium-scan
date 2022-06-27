@@ -12,7 +12,7 @@ public class PassiveDelegationConfiguration : IEntityTypeConfiguration<PassiveDe
         builder.ToTable("graphql_passive_delegation");
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+        builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.DelegatorCount).HasColumnName("delegator_count");
         builder.Property(x => x.DelegatedStake).HasColumnName("delegated_stake");
         builder.Property(x => x.DelegatedStakePercentage).HasColumnName("delegated_stake_percentage");

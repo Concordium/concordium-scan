@@ -42,9 +42,21 @@ public class ActiveBakerState : BakerState
     [GraphQLDescription("The status of the bakers node. Will be null if no status for the node exists.")]
     public NodeStatus? GetNodeStatus([Service] NodeStatusSnapshot nodeSummarySnapshot)
     {
-        var status = nodeSummarySnapshot.NodeStatuses
-            .SingleOrDefault(x => x.ConsensusBakerId == (ulong)Owner.BakerId);
-        return status;
+        var statuses = nodeSummarySnapshot.NodeStatuses
+            .Where(x => x.ConsensusBakerId == (ulong)Owner.BakerId)
+            .ToArray();
+
+        if (statuses.Length == 0)
+            return null;
+        if (statuses.Length == 1)
+            return statuses[0];
+
+        /* Multiple nodes report as the given baker ID. For now, we will return null.
+         * Another approach that could be implemented at a later point would either be to 
+         * return a list of nodes, so that the UI could show users that multiple nodes report
+         * for this baker id -OR- have the result carry a result flag, that could indicate to
+         * users that multiple nodes report for this baker id. */
+        return null;
     }
 }
 
