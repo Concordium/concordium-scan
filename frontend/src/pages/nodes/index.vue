@@ -23,10 +23,10 @@
 				</TableRow>
 			</TableHead>
 			<TableBody v-if="componentState === 'success'">
-				<TableRow v-for="node in pagedData" :key="node.nodeId">
+				<TableRow v-for="node in data?.nodeStatuses.nodes" :key="node.nodeId">
 					<TableTd>
-						<div class="whitespace-normal">
-							{{ node.nodeName }}
+						<div class="whitespace-nowrap">
+							<NodeLink :node="node" />
 						</div>
 					</TableTd>
 					<TableTd>
@@ -37,7 +37,7 @@
 					</TableTd>
 
 					<TableTd v-if="breakpoint >= Breakpoint.SM">
-						{{ formatUptime(node.uptime) }}
+						{{ formatUptime(node.uptime, NOW) }}
 					</TableTd>
 
 					<TableTd
@@ -94,41 +94,39 @@
 			</TableBody>
 		</Table>
 
-		<LoadMore
+		<Pagination
 			v-if="
 				componentState === 'success' &&
 				(data?.nodeStatuses.pageInfo.hasNextPage ||
 					data?.nodeStatuses.pageInfo.hasPreviousPage)
 			"
 			:page-info="data?.nodeStatuses.pageInfo"
-			:on-load-more="loadMore"
+			:go-to-page="goToPage"
 		/>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { formatDistance, subMilliseconds } from 'date-fns'
 import Table from '~/components/Table/Table.vue'
 import TableTd from '~/components/Table/TableTd.vue'
 import TableTh from '~/components/Table/TableTh.vue'
 import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
-import LoadMore from '~/components/LoadMore.vue'
+import Pagination from '~/components/Pagination.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
-import { formatNumber } from '~/utils/format'
+import { formatNumber, formatUptime } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
-import { usePagedData } from '~/composables/usePagedData'
+import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useNodeQuery } from '~/queries/useNodeQuery'
-import type { NodeStatus } from '~/types/generated'
+import NodeLink from '~/components/molecules/NodeLink.vue'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
-const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<NodeStatus>()
+const { first, last, after, before, goToPage } = usePagination()
 
 const { data, error, componentState } = useNodeQuery({
 	first,
@@ -136,21 +134,4 @@ const { data, error, componentState } = useNodeQuery({
 	after,
 	before,
 })
-
-const formatUptime = (uptime: number) => {
-	const start = subMilliseconds(NOW.value, uptime)
-
-	try {
-		return formatDistance(start, NOW.value)
-	} catch {
-		return '-'
-	}
-}
-
-watch(
-	() => data.value,
-	value => {
-		addPagedData(value?.nodeStatuses.nodes || [], value?.nodeStatuses.pageInfo)
-	}
-)
 </script>

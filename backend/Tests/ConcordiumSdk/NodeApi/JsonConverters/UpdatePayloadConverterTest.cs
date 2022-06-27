@@ -183,6 +183,12 @@ public class UpdatePayloadConverterTest
     {
         // See skip reason!
     }
+    
+    [Fact(Skip = "No example of this update event was present on neither Mainnet nor Testnet at time of implementing serialization.")]
+    public void RoundTrip_Root_Level2KeysV1Update()
+    {
+        // See skip reason!
+    }
 
     [Fact(Skip = "No example of this update event was present on neither Mainnet nor Testnet at time of implementing serialization.")]
     public void RoundTrip_Level1_level1KeysUpdate()

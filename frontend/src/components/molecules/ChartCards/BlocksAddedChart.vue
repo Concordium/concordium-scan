@@ -12,19 +12,18 @@
 		<template #icon><BlockIcon></BlockIcon></template>
 		<template #title>Blocks added</template>
 		<template #value>{{
-			formatNumber(blockMetricsData?.blockMetrics?.blocksAdded)
+			formatNumber(blockMetricsData?.blockMetrics?.blocksAdded || 0)
 		}}</template>
 		<template #chip>sum</template>
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import BlockIcon from '~/components/icons/BlockIcon.vue'
 import { formatNumber } from '~/utils/format'
 import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 
 type Props = {
-	blockMetricsData: Ref<BlockMetricsQueryResponse | undefined>
+	blockMetricsData: BlockMetricsQueryResponse | undefined
 	isLoading?: boolean
 }
 defineProps<Props>()

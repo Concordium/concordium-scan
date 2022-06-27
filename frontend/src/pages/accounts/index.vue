@@ -24,72 +24,97 @@
 				</CarouselSlide>
 			</FtbCarousel>
 		</div>
+
+		<header class="flex justify-end w-full mb-4 mt-8 lg:mt-0">
+			<AccountSortSelect v-model="sort" />
+		</header>
+
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="10%">Address</TableTh>
-					<TableTh width="20%" class="text-right">Amount (Ͼ)</TableTh>
-					<TableTh width="20%">Transaction count</TableTh>
-					<TableTh width="20%">Account age</TableTh>
+					<TableTh>Address</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Account age</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.SM" align="right">{{
+						breakpoint >= Breakpoint.LG ? 'Transactions' : 'Txs'
+					}}</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.MD" align="right">
+						Delegated stake <span class="text-theme-faded">(Ͼ)</span>
+					</TableTh>
+					<TableTh align="right">
+						Balance <span class="text-theme-faded">(Ͼ)</span>
+					</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
-				<TableRow v-for="account in pagedData" :key="account.address.asString">
+				<TableRow
+					v-for="account in data?.accounts.nodes"
+					:key="account.address.asString"
+				>
 					<TableTd>
 						<AccountLink :address="account.address.asString" />
 					</TableTd>
-					<TableTd class="text-right">
-						<Amount :amount="account.amount" />
+
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
+						<Tooltip :text="formatTimestamp(account.createdAt)">
+							{{ convertTimestampToRelative(account.createdAt, NOW) }}
+						</Tooltip>
 					</TableTd>
-					<TableTd>
+
+					<TableTd v-if="breakpoint >= Breakpoint.SM" align="right">
 						<span class="numerical">
 							{{ account.transactionCount }}
 						</span>
 					</TableTd>
 
-					<TableTd>
-						<Tooltip :text="formatTimestamp(account.createdAt)">
-							{{ convertTimestampToRelative(account.createdAt, NOW) }}
-						</Tooltip>
+					<TableTd v-if="breakpoint >= Breakpoint.MD" class="text-right">
+						<Amount :amount="account.delegation?.stakedAmount || 0" />
+					</TableTd>
+
+					<TableTd class="text-right">
+						<Amount :amount="account.amount" />
 					</TableTd>
 				</TableRow>
 			</TableBody>
 		</Table>
 
-		<LoadMore
+		<Pagination
 			v-if="data?.accounts.pageInfo"
 			:page-info="data?.accounts.pageInfo"
-			:on-load-more="loadMore"
+			:go-to-page="goToPage"
 		/>
 	</div>
 </template>
 <script lang="ts" setup>
 import { useAccountsMetricsQuery } from '~/queries/useAccountsMetricsQuery'
-import { MetricsPeriod } from '~/types/generated'
+import { MetricsPeriod, AccountSort } from '~/types/generated'
 import { useAccountsListQuery } from '~/queries/useAccountListQuery'
-import type { Account } from '~/types/generated'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
+import { usePagination } from '~/composables/usePagination'
 import { useDateNow } from '~/composables/useDateNow'
 import Amount from '~/components/atoms/Amount.vue'
 import MetricCard from '~/components/atoms/MetricCard.vue'
+import AccountSortSelect from '~/components/molecules/AccountSortSelect.vue'
 import AccountsCreatedChart from '~/components/molecules/ChartCards/AccountsCreatedChart.vue'
 import CumulativeAccountsCreatedChart from '~/components/molecules/ChartCards/CumulativeAccountsCreatedChart.vue'
+import Pagination from '~/components/Pagination.vue'
 
+const sort = ref<AccountSort>(AccountSort.AmountDesc)
 const { NOW } = useDateNow()
-const { pagedData, first, last, after, before, addPagedData, loadMore } =
-	usePagedData<Account>()
+const { breakpoint } = useBreakpoint()
+const { first, last, after, before, goToPage, resetPagination } =
+	usePagination()
 const { data } = useAccountsListQuery({
 	first,
 	last,
 	after,
 	before,
+	sort,
 })
 
 watch(
-	() => data.value,
-	value => {
-		addPagedData(value?.accounts.nodes || [], value?.accounts.pageInfo)
-	}
+	() => sort.value,
+	() => resetPagination()
 )
 
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)

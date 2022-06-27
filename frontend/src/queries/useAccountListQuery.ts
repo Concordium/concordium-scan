@@ -1,13 +1,7 @@
-﻿import { useQuery, gql } from '@urql/vue'
-import type { Account } from '~/types/generated'
+﻿import type { Ref } from 'vue'
+import { useQuery, gql } from '@urql/vue'
+import type { Account, AccountSort, PageInfo } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'
-
-type PageInfo = {
-	hasNextPage: boolean
-	hasPreviousPage: boolean
-	startCursor?: string
-	endCursor?: string
-}
 
 type AccountsListResponse = {
 	accounts: {
@@ -16,9 +10,25 @@ type AccountsListResponse = {
 	}
 }
 
+type AccountListVariables = Partial<QueryVariables> & {
+	sort: Ref<AccountSort>
+}
+
 const AccountsQuery = gql<AccountsListResponse>`
-	query ($after: String, $before: String, $first: Int, $last: Int) {
-		accounts(after: $after, before: $before, first: $first, last: $last) {
+	query (
+		$after: String
+		$before: String
+		$first: Int
+		$last: Int
+		$sort: AccountSort
+	) {
+		accounts(
+			after: $after
+			before: $before
+			first: $first
+			last: $last
+			sort: $sort
+		) {
 			nodes {
 				id
 				transactionCount
@@ -38,6 +48,9 @@ const AccountsQuery = gql<AccountsListResponse>`
 						}
 					}
 				}
+				delegation {
+					stakedAmount
+				}
 			}
 			pageInfo {
 				startCursor
@@ -49,12 +62,12 @@ const AccountsQuery = gql<AccountsListResponse>`
 	}
 `
 
-export const useAccountsListQuery = (variables: Partial<QueryVariables>) => {
-	const { data, executeQuery } = useQuery({
+export const useAccountsListQuery = (variables: AccountListVariables) => {
+	const { data } = useQuery({
 		query: AccountsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
 	})
 
-	return { data, executeQuery }
+	return { data }
 }

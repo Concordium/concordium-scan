@@ -7,7 +7,7 @@
 		]"
 	>
 		<Button
-			class="mr-4"
+			class="mr-4 rounded-lg"
 			aria-label="Go to the first page"
 			:size="size"
 			:disabled="!props.pageInfo.hasPreviousPage"

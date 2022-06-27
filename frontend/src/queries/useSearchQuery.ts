@@ -6,12 +6,14 @@ import type {
 	Block,
 	Transaction,
 	Baker,
+	NodeStatus,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
 		blocks: { nodes: Block[]; pageInfo: PageInfo }
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
+		nodeStatuses: { nodes: NodeStatus[]; pageInfo: PageInfo }
 		bakers: {
 			nodes: Pick<Baker, 'id' | 'bakerId' | 'account'>[]
 			pageInfo: PageInfo
@@ -71,6 +73,19 @@ const SearchQuery = gql<SearchResponse>`
 							asString
 						}
 					}
+				}
+			}
+			nodeStatuses(first: 3) {
+				nodes {
+					id
+					nodeId
+					uptime
+					consensusBakerId
+					nodeName
+					clientVersion
+				}
+				pageInfo {
+					hasNextPage
 				}
 			}
 		}

@@ -42,11 +42,20 @@ export const usePagination = (
 		}
 	}
 
+	// Reset cursors and pagination when changing sorting/filter
+	const resetPagination = () => {
+		after.value = undefined
+		before.value = undefined
+		first.value = pageSize
+		last.value = undefined
+	}
+
 	return {
 		after,
 		before,
 		first,
 		last,
 		goToPage,
+		resetPagination,
 	}
 }

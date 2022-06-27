@@ -70,7 +70,6 @@ builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCach
 builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
-builder.Services.AddSingleton<ApyQuery>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddSingleton(databaseSettings);

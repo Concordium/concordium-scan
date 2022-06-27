@@ -41,9 +41,19 @@ public class BakerPool
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
     }
 
-    public async Task<PoolApy> GetApy([Service] ApyQuery query,  ApyPeriod period)
+    public decimal? GetLotteryPower()
     {
-        return await query.GetApy(new BakerPoolRewardTarget(Owner.Owner.BakerId), period);
+        return PaydayStatus?.LotteryPower;
+    }
+    
+    public PoolApy GetApy(ApyPeriod period)
+    {
+        return period switch
+        {
+            ApyPeriod.Last7Days => Owner.Owner.PoolApys?.Apy7Days ?? new PoolApy(null, null, null),
+            ApyPeriod.Last30Days => Owner.Owner.PoolApys?.Apy30Days ?? new PoolApy(null, null, null),
+            _ => throw new NotImplementedException()
+        };
     }
 
     [GraphQLDescription("Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.")]

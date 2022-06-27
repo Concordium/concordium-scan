@@ -46,6 +46,8 @@ public class BakersQuery
             BakerSort.TotalStakedAmountDesc => result.OrderBy(x => x.ActiveState.Pool.TotalStake == null).ThenByDescending(x => x.ActiveState.Pool.TotalStake),
             BakerSort.DelegatorCountAsc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount == null).ThenBy(x => x.ActiveState!.Pool!.DelegatorCount),
             BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount == null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
+            BakerSort.BakerApy30DaysDesc => result.OrderBy(x => x.RemovedState.RemovedAt != null).ThenBy(x => x.PoolApys.Apy30Days.BakerApy == null).ThenByDescending(x => x.PoolApys!.Apy30Days.BakerApy),
+            BakerSort.DelegatorApy30DaysDesc => result.OrderBy(x => x.RemovedState.RemovedAt != null).ThenBy(x => x.PoolApys.Apy30Days.DelegatorsApy == null).ThenByDescending(x => x.PoolApys!.Apy30Days.DelegatorsApy),
             _ => throw new NotImplementedException()
         };
 

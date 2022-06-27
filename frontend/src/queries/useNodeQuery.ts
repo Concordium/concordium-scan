@@ -14,6 +14,7 @@ const BakerQuery = gql<NodeResponse>`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
 		nodeStatuses(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
+				id
 				nodeId
 				nodeName
 				uptime

@@ -15,9 +15,7 @@
 			class="text-right mb-2"
 			aria-labelledby="bakeraccordion-stakedamount"
 		>
-			<span class="numerical">
-				{{ convertMicroCcdToCcd(baker.state.stakedAmount) }} Ͼ
-			</span>
+			<Amount :show-symbol="true" :amount="baker.state.stakedAmount" />
 		</dd>
 		<dt
 			v-if="baker.state.__typename === 'RemovedBakerState'"
@@ -40,6 +38,7 @@
 import { convertMicroCcdToCcd, formatTimestamp } from '~/utils/format'
 import type { Baker } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
+import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {
 	baker: Baker

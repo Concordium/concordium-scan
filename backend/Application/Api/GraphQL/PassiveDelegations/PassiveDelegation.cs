@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
@@ -12,7 +11,7 @@ namespace Application.Api.GraphQL.PassiveDelegations;
 public class PassiveDelegation
 {
     [GraphQLIgnore] 
-    public int Id { get; init; }
+    public long Id { get; init; }
     
     public int DelegatorCount { get; set; }
     
@@ -66,9 +65,20 @@ public class PassiveDelegation
             .OrderByDescending(x => x.Index);
     }
     
-    public async Task<double?> GetApy([Service] ApyQuery query,  ApyPeriod period)
+    public double? GetApy(ApyPeriod period)
     {
-        var result = await query.GetApy(new PassiveDelegationPoolRewardTarget(), period);
-        return result.DelegatorsApy;
+        return period switch
+        {
+            ApyPeriod.Last7Days => PoolApys?.Apy7Days.DelegatorsApy ?? null,
+            ApyPeriod.Last30Days => PoolApys?.Apy30Days.DelegatorsApy ?? null,
+            _ => throw new NotImplementedException()
+        };
     }
+    
+    /// <summary>
+    /// This property is there for loading the pool apys row from the database. The data
+    /// is exposed elsewhere in the model to create a better and more meaningful model.
+    /// </summary>
+    [GraphQLIgnore] 
+    public PoolApys? PoolApys { get; set; }
 }

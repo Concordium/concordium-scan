@@ -4,7 +4,7 @@ using HotChocolate.Types.Relay;
 namespace Application.Api.GraphQL.Network;
 
 public record NodeStatus(
-    string NodeName,
+    string? NodeName,
     string NodeId,
     string PeerType,
     ulong Uptime,

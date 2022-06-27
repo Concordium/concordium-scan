@@ -162,6 +162,26 @@
 							</div>
 						</div>
 					</SearchResultCategory>
+
+					<SearchResultCategory
+						v-if="resultCount.nodeStatuses"
+						title="Nodes"
+						:has-more-results="data.search.nodeStatuses.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="node in data.search.nodeStatuses.nodes"
+							:key="node.id"
+							class="grid grid-cols-2 gap-8"
+						>
+							<NodeLink :node="node" @blur="lostFocusOnSearch" />
+							<div>
+								<BakerLink
+									v-if="Number.isInteger(node.consensusBakerId)"
+									:id="node.consensusBakerId"
+								/>
+							</div>
+						</div>
+					</SearchResultCategory>
 				</div>
 			</div>
 		</div>
@@ -176,12 +196,17 @@ import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import SearchIcon from '~/components/icons/SearchIcon.vue'
-import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
+import {
+	formatTimestamp,
+	convertTimestampToRelative,
+	formatUptime,
+} from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
+import NodeLink from '~/components/molecules/NodeLink.vue'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
@@ -247,7 +272,11 @@ const gotoSearchResult = () => {
 			entityTypeName: 'baker',
 			bakerId: data.value.search.bakers.nodes[0].bakerId,
 		})
-
+	else if (data.value.search.nodeStatuses.nodes[0])
+		drawer.push({
+			entityTypeName: 'node',
+			nodeId: data.value.search.nodeStatuses.nodes[0].id,
+		})
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false
@@ -268,11 +297,13 @@ const resultCount = computed(() => ({
 	transactions: data.value?.search.transactions.nodes.length,
 	accounts: data.value?.search.accounts.nodes.length,
 	bakers: data.value?.search.bakers.nodes.length,
+	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
 	total:
 		(data.value?.search.blocks.nodes.length ?? 0) +
 		(data.value?.search.transactions.nodes.length ?? 0) +
 		(data.value?.search.accounts.nodes.length ?? 0) +
-		(data.value?.search.bakers.nodes.length ?? 0),
+		(data.value?.search.bakers.nodes.length ?? 0) +
+		(data.value?.search.nodeStatuses.nodes.length ?? 0),
 }))
 </script>
 

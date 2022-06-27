@@ -6,20 +6,28 @@
 		</template>
 		<template #secondary>
 			<div v-if="account.releaseSchedule.totalAmount" class="text-sm">
-				<Tooltip
-					:text="`${calculatePercentage(
-						account.releaseSchedule.totalAmount,
-						account.amount
-					)}% of account balance is locked`"
-					class="text-theme-white"
-				>
-					<Amount
-						:amount="account.releaseSchedule.totalAmount"
-						class="text-theme-faded"
-						data-testid="locked-amount"
-					/>
-				</Tooltip>
-				<Chip class="inline-block ml-4 px-0" variant="secondary">Locked</Chip>
+				<div class="text-sm">
+					<div class="whitespace-nowrap">
+						<Tooltip
+							:text="`${calculatePercentage(
+								account.releaseSchedule.totalAmount,
+								account.amount
+							)}% of account balance is locked`"
+							class="text-theme-white text-right whitespace-nowrap"
+						>
+							<Amount
+								:amount="account.releaseSchedule.totalAmount"
+								class="text-theme-faded w-36"
+								data-testid="locked-amount"
+							/>
+						</Tooltip>
+						<div class="inline">
+							<Chip class="inline-block ml-4 px-0" variant="secondary"
+								>Locked</Chip
+							>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div
@@ -29,22 +37,29 @@
 				"
 				class="text-sm"
 			>
-				<Tooltip
-					:text="`${calculatePercentage(
-						account.baker.state.stakedAmount,
-						account.amount
-					)}% of account balance is staked`"
-					class="text-theme-white"
-				>
-					<Amount
-						:amount="account.baker.state.stakedAmount"
-						class="text-theme-faded"
-						data-testid="staked-amount"
-					/>
-				</Tooltip>
-				<Chip class="inline-block ml-4 px-0 ml-2" variant="secondary">
-					Staked
-				</Chip>
+				<div class="text-sm">
+					<div class="whitespace-nowrap">
+						<Tooltip
+							:text="`${calculatePercentage(
+								account.baker.state.stakedAmount,
+								account.amount
+							)}% of account balance is staked`"
+							class="text-theme-white text-right inline-block"
+						>
+							<Amount
+								:amount="account.baker.state.stakedAmount"
+								class="text-theme-faded w-36"
+								data-testid="staked-amount"
+							/>
+						</Tooltip>
+
+						<div class="inline">
+							<Chip class="inline-block ml-4 px-0 ml-2" variant="secondary">
+								Staked
+							</Chip>
+						</div>
+					</div>
+				</div>
 			</div>
 			<div
 				v-if="
@@ -53,22 +68,28 @@
 				"
 				class="text-sm"
 			>
-				<Tooltip
-					:text="`${calculatePercentage(
-						account.delegation?.stakedAmount,
-						account.amount
-					)}% of account balance is staked`"
-					class="text-theme-white"
-				>
-					<Amount
-						:amount="account.delegation?.stakedAmount"
-						class="text-theme-faded"
-						data-testid="staked-amount"
-					/>
-				</Tooltip>
-				<Chip class="inline-block ml-4 px-0 ml-2" variant="secondary">
-					Staked
-				</Chip>
+				<div class="text-sm">
+					<div class="whitespace-nowrap">
+						<Tooltip
+							:text="`${calculatePercentage(
+								account.delegation?.stakedAmount,
+								account.amount
+							)}% of account balance is staked`"
+							class="text-theme-white text-right"
+						>
+							<Amount
+								:amount="account.delegation?.stakedAmount"
+								class="text-theme-faded w-36"
+								data-testid="staked-amount"
+							/>
+						</Tooltip>
+						<div class="inline">
+							<Chip class="inline-block ml-4 px-0 ml-2" variant="secondary">
+								Staked
+							</Chip>
+						</div>
+					</div>
+				</div>
 			</div>
 		</template>
 	</DetailsCard>

@@ -2,7 +2,7 @@
 	<DetailsCard>
 		<template #title>APY period</template>
 		<template #default>
-			<div class="toggle rounded inline-block text-sm">
+			<div class="toggle rounded inline-block text-sm whitespace-nowrap">
 				<span
 					class="hover:text-theme-white"
 					:class="
@@ -66,7 +66,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import { type PoolApy, ApyPeriod } from '~/types/generated'
 import { formatPercentage } from '~/utils/format'
 
-const selectedPeriod = ref<ApyPeriod>(ApyPeriod.Last7Days)
+const selectedPeriod = ref<ApyPeriod>(ApyPeriod.Last30Days)
 
 type Props = {
 	apy7days?: PoolApy

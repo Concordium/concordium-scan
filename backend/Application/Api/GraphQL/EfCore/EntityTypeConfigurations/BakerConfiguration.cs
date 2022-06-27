@@ -25,7 +25,7 @@ public class BakerConfiguration :
             activeBuilder.OwnsOne(x => x.Pool, poolBuilder =>
             {
                 poolBuilder.WithOwner(x => x.Owner);
-
+                
                 poolBuilder.Property(x => x.OpenStatus).HasColumnName("active_pool_open_status");
                 poolBuilder.Property(x => x.MetadataUrl).HasColumnName("active_pool_metadata_url");
                 poolBuilder.OwnsOne(x => x.CommissionRates, commissionRatesBuilder =>
@@ -55,6 +55,9 @@ public class BakerConfiguration :
 
         builder.HasOne(x => x.Statistics);
         builder.Navigation(x => x.Statistics).AutoInclude();
+
+        builder.HasOne(x => x.PoolApys).WithOne().HasForeignKey<PoolApys>(x => x.PoolId);
+        builder.Navigation(x => x.PoolApys).AutoInclude();
 
         builder.Ignore(x => x.BakerId);
         builder.Ignore(x => x.State);
