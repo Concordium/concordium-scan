@@ -80,6 +80,7 @@ public class PassiveDelegationImportHandler
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             var instance = new PassiveDelegation
             {
+                Id = -1,
                 DelegatorCount = 0,
                 DelegatedStakePercentage = 0m,
                 CurrentPaydayDelegatedStake = 0
