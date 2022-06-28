@@ -58,6 +58,7 @@ builder.Services.AddSingleton<MetricsListener>();
 builder.Services.AddSingleton<ImportChannel>();
 builder.Services.AddHostedService<ImportReadController>();
 builder.Services.AddHostedService<ImportWriteController>();
+builder.Services.AddHostedService<BlockAddedPublisher>();
 builder.Services.AddSingleton<IAccountLookup, AccountLookup>();
 builder.Services.AddSingleton<ImportValidationController>();
 builder.Services.AddControllers();
