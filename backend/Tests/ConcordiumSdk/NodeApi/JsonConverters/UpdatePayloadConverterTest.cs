@@ -188,7 +188,7 @@ public class UpdatePayloadConverterTest
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
     }
-    
+
     [Fact(Skip = "No example of this update event was present on neither Mainnet nor Testnet at time of implementing serialization.")]
     public void RoundTrip_Root_RootKeysUpdate()
     {
@@ -206,11 +206,134 @@ public class UpdatePayloadConverterTest
     {
         // See skip reason!
     }
-    
-    [Fact(Skip = "No example of this update event was present on neither Mainnet nor Testnet at time of implementing serialization.")]
+
+    [Fact]
     public void RoundTrip_Root_Level2KeysV1Update()
     {
-        // See skip reason!
+        var json = @"{
+                ""update"": {
+                    ""typeOfUpdate"": ""level2KeysUpdateV1"",
+                    ""updatePayload"": {
+                        ""addAnonymityRevoker"": {
+                            ""authorizedKeys"": [
+                                37,
+                                41
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""addIdentityProvider"": {
+                            ""authorizedKeys"": [
+                                42,
+                                46
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""cooldownParameters"": {
+                            ""authorizedKeys"": [
+                                50,
+                                51
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""electionDifficulty"": {
+                            ""authorizedKeys"": [
+                                9,
+                                10
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""emergency"": {
+                            ""authorizedKeys"": [
+                                0,
+                                1,
+                                4
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""euroPerEnergy"": {
+                            ""authorizedKeys"": [
+                                10
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""foundationAccount"": {
+                            ""authorizedKeys"": [
+                                12,
+                                15,
+                                16
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""keys"": [
+                            {
+                                ""schemeId"": ""Ed25519"",
+                                ""verifyKey"": ""7ba5381a0d0832810625a85c38c6205d582998c38791e95d1538713e04f62aa5""
+                            },
+                            {
+                                ""schemeId"": ""Ed25519"",
+                                ""verifyKey"": ""2fb339529cea84c2e0fb3879c292da6efa293073467ab7543974d4949dcaca25""
+                            }
+                        ],
+                        ""microGTUPerEuro"": {
+                            ""authorizedKeys"": [
+                                11
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""mintDistribution"": {
+                            ""authorizedKeys"": [
+                                17
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""paramGASRewards"": {
+                            ""authorizedKeys"": [
+                                27,
+                                30,
+                                31
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""poolParameters"": {
+                            ""authorizedKeys"": [
+                                32,
+                                36
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""protocol"": {
+                            ""authorizedKeys"": [
+                                5,
+                                7
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""timeParameters"": {
+                            ""authorizedKeys"": [
+                                47,
+                                48
+                            ],
+                            ""threshold"": 1
+                        },
+                        ""transactionFeeDistribution"": {
+                            ""authorizedKeys"": [
+                                22,
+                                23
+                            ],
+                            ""threshold"": 1
+                        }
+                    }
+                },
+                ""updateType"": ""root""
+            }";
+    
+        var deserialized = JsonSerializer.Deserialize<UpdatePayload>(json, _serializerOptions);
+        var typed = Assert.IsType<RootUpdatePayload>(deserialized);
+        var typedContent = Assert.IsType<Level2KeysV1RootUpdate>(typed.Content);
+        typedContent.Content.Should().NotBeNull();
+        
+        var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
+        JsonAssert.Equivalent(json, serialized);
     }
 
     [Fact(Skip = "No example of this update event was present on neither Mainnet nor Testnet at time of implementing serialization.")]
@@ -218,7 +341,7 @@ public class UpdatePayloadConverterTest
     {
         // See skip reason!
     }
-    
+
     [Fact]
     public void RoundTrip_Level1_level2KeysUpdate()
     {

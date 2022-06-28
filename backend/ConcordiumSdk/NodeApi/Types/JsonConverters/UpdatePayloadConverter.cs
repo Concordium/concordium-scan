@@ -20,6 +20,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             { typeof(EuroPerEnergyUpdatePayload), "euroPerEnergy" },
             { typeof(FoundationAccountUpdatePayload), "foundationAccount" },
             { typeof(GasRewardsUpdatePayload), "gASRewards" },
+            { typeof(RootUpdatePayload), "root" },
             { typeof(Level1UpdatePayload), "level1" },
             { typeof(MicroGtuPerEuroUpdatePayload), "microGTUPerEuro" },
             { typeof(MintDistributionV0UpdatePayload), "mintDistribution" },
@@ -83,6 +84,12 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             {
                 var content = JsonSerializer.Deserialize<GasRewards>(ref reader, options)!;
                 result = new GasRewardsUpdatePayload(content);
+                break;
+            }
+            case "root":
+            {
+                var content = JsonSerializer.Deserialize<RootUpdate>(ref reader, options)!;
+                result = new RootUpdatePayload(content);
                 break;
             }
             case "level1":
@@ -164,6 +171,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
             EuroPerEnergyUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             FoundationAccountUpdatePayload payload => (payload.Account, payload.Account.GetType()),
             GasRewardsUpdatePayload payload => (payload.Content, payload.Content.GetType()),
+            RootUpdatePayload payload => (payload.Content, typeof(RootUpdate)),
             Level1UpdatePayload payload => (payload.Content, typeof(Level1Update)),
             MicroGtuPerEuroUpdatePayload payload => (payload.Content, payload.Content.GetType()),
             MintDistributionV0UpdatePayload payload => (payload.Content, payload.Content.GetType()),
