@@ -81,6 +81,7 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
             RootKeysRootUpdate payload => payload.Content,
             Level1KeysRootUpdate payload => payload.Content,
             Level2KeysRootUpdate payload => payload.Content,
+            Level2KeysV1RootUpdate payload => payload.Content,
             _ => throw new NotImplementedException($"Serialization of type {value.GetType()} is not implemented.")
         };
         JsonSerializer.Serialize(writer, payloadValue, payloadValue.GetType(), options);
