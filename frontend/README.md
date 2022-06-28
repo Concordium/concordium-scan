@@ -1,6 +1,15 @@
-# Nuxt TypeScript starter template
+# CCDScan frontend
 
-A [Nuxt.js](https://github.com/nuxt/nuxt.js) + [@nuxt/typescript](https://github.com/nuxt/typescript) starter project template.
+The frontend of CCDScan is a server-side rendered single page app, which consumes data via [GraphQL](https://graphql.org/) from the backend.
+
+The frontend is built on some fundamental technologies:
+
+- **[Vue](https://vuejs.org/)**  
+  JavaScript framework for building user interfaces for the web. It is reactive, declarative and very approachable to build and extend.
+- **[Nuxt 3](https://v3.nuxtjs.org/)**  
+  Application framework built on top of Vue. Out of the box it gives us some things that Vue itself lacks, such as routing, and it comes with a build system supporting code splitting and ohter optimisations.
+- **[TypeScript](https://www.typescriptlang.org/)**  
+  A typed programming language, which compiles to JavaScript. This acts as an accelerator during development, and prevents most type errors at write-time and compile-time. [More on this in a later section](#typescript).
 
 ## Setup
 
