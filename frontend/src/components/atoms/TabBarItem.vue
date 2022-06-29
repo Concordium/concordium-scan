@@ -1,10 +1,9 @@
 <template>
 	<button
-		class="hover:text-theme-white"
 		:class="
 			selectedTab === tabId
 				? 'selected rounded px-2 py-1 inline-block'
-				: 'text-theme-faded px-2 py-1 cursor-pointer'
+				: 'px-2 py-1 cursor-pointer'
 		"
 		@click="() => handleOnClick(tabId)"
 	>

@@ -4,22 +4,20 @@
 		<template #default>
 			<div class="toggle rounded inline-block text-sm whitespace-nowrap">
 				<span
-					class="hover:text-theme-white"
 					:class="
 						selectedPeriod === ApyPeriod.Last7Days
 							? 'selected rounded px-2 py-1 inline-block'
-							: 'text-theme-faded px-2 py-1 cursor-pointer'
+							: 'px-2 py-1 cursor-pointer'
 					"
 					@click="() => handleTogglePeriod(ApyPeriod.Last7Days)"
 				>
 					7 days
 				</span>
 				<span
-					class="hover:text-theme-white"
 					:class="
 						selectedPeriod === ApyPeriod.Last30Days
 							? 'selected rounded px-2 py-1 inline-block'
-							: 'text-theme-faded px-2 py-1 cursor-pointer '
+							: 'px-2 py-1 cursor-pointer '
 					"
 					@click="() => handleTogglePeriod(ApyPeriod.Last30Days)"
 				>
