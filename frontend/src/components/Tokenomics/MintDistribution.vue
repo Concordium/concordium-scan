@@ -10,7 +10,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Finalisation reward account
+					Finalization reward account
 					<template #content>
 						<Amount :amount="event.finalizationReward" :show-symbol="true" />
 					</template>

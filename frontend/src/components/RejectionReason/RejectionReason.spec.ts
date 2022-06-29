@@ -14,7 +14,7 @@ describe('ShowMoreButton', () => {
 		expect(screen.getByText('Runtime failure')).toBeInTheDocument()
 	})
 
-	it('will render specialised component for more complex rejections', () => {
+	it('will render specialized component for more complex rejections', () => {
 		const props = {
 			reason: {
 				__typename: 'DuplicateCredIds',

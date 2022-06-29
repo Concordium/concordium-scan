@@ -85,7 +85,7 @@
 
 					<DescriptionListItem>
 						<span class="float-left inline-block pt-2"
-							>Finalisation rewards</span
+							>Finalization rewards</span
 						>
 						<template #content>
 							<BakerDetailsPoolAmounts :amounts="reward.finalizationReward" />

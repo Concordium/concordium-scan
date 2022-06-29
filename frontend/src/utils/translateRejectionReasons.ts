@@ -8,7 +8,7 @@ type TranslationMap = Partial<
 const translations: TranslationMap = {
 	ModuleNotWf: 'Error raised when validating WASM module',
 	RuntimeFailure: 'Runtime failure',
-	SerializationFailure: 'Serialisation failure',
+	SerializationFailure: 'Serialization failure',
 	OutOfEnergy: 'Not enough energy to process this transaction',
 	InvalidProof: 'Proof that the baker owns relevant private keys is not valid',
 	InsufficientBalanceForBakerStake:

@@ -167,7 +167,7 @@ describe('ChainUpdateEnqueued', () => {
 			screen.getByText('Chain update').nextElementSibling
 		).toHaveTextContent('10.01')
 		expect(
-			screen.getByText('Finalisation proof').nextElementSibling
+			screen.getByText('Finalization proof').nextElementSibling
 		).toHaveTextContent('20.22')
 	})
 
@@ -227,7 +227,7 @@ describe('ChainUpdateEnqueued', () => {
 			screen.getByText('Baking reward account').nextElementSibling
 		).toHaveTextContent('42.24')
 		expect(
-			screen.getByText('Finalisation reward account').nextElementSibling
+			screen.getByText('Finalization reward account').nextElementSibling
 		).toHaveTextContent('13.37%')
 		expect(
 			screen.getByText('Mint per slot').nextElementSibling

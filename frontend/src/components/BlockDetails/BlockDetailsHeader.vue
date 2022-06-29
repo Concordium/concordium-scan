@@ -16,7 +16,7 @@
 					tooltip-class="font-sans"
 				/>
 				<Badge :type="block.finalized ? 'success' : 'failure'">
-					{{ block?.finalized ? 'Finalised' : 'Rejected' }}
+					{{ block?.finalized ? 'Finalized' : 'Rejected' }}
 				</Badge>
 			</div>
 		</div>

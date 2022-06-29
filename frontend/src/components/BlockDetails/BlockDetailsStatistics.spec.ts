@@ -20,13 +20,13 @@ describe('BlockDetailsStatistics', () => {
 		expect(screen.getByRole('definition')).toHaveTextContent('8.0s')
 	})
 
-	it('will not show finalisation time if it is not available', () => {
+	it('will not show finalization time if it is not available', () => {
 		render({})
 
 		expect(screen.queryByText('Finalization time')).not.toBeInTheDocument()
 	})
 
-	it('will not show finalisation time when it is available', () => {
+	it('will not show finalization time when it is available', () => {
 		const props = {
 			blockStatistics: {
 				blockTime: 8,

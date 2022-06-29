@@ -29,7 +29,7 @@
 					</div>
 					<div v-if="reward.finalizationReward.totalAmount">
 						<span class="legend legend-pink"></span>
-						Finalisation reward:
+						Finalization reward:
 						<Amount
 							:amount="reward.finalizationReward.totalAmount"
 							class="pt-0 pl-2"

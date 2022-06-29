@@ -95,7 +95,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Finalisation proof
+					Finalization proof
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.finalizationProof }}
@@ -152,7 +152,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Finalisation reward account
+					Finalization reward account
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.finalizationReward }}%
@@ -261,7 +261,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Finalisation commission range
+					Finalization commission range
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.finalizationCommissionRange.min * 100 }}</span
@@ -302,7 +302,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Passive finalisation commission
+					Passive finalization commission
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveFinalizationCommission * 100
@@ -384,7 +384,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Finalisation reward account
+					Finalization reward account
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.finalizationReward }}%
