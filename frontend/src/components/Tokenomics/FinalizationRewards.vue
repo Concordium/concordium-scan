@@ -1,6 +1,6 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Finalisers</template>
+		<template #title>Finalizers</template>
 		<template #content>
 			<Table
 				v-for="finalizationRewards in data.nodes"
@@ -8,7 +8,7 @@
 			>
 				<TableHead>
 					<TableRow>
-						<TableTh>Finaliser</TableTh>
+						<TableTh>Finalizer</TableTh>
 						<TableTh align="right">Reward (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>

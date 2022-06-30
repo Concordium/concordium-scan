@@ -69,7 +69,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Finalisation commission</template>
+					<template #title>Finalization commission</template>
 					<template #default>
 						<span class="numerical">
 							{{

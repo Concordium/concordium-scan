@@ -7,7 +7,7 @@
 			]"
 		/>
 		<span v-if="showText && breakpoint >= Breakpoint.SM">
-			{{ finalized ? 'Finalised' : 'Pending' }}
+			{{ finalized ? 'Finalized' : 'Pending' }}
 		</span>
 	</div>
 </template>

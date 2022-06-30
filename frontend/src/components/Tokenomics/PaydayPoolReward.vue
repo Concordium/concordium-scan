@@ -7,7 +7,7 @@
 					<TableRow>
 						<TableTh>Pool</TableTh>
 						<TableTh align="right">Baker reward (Ͼ)</TableTh>
-						<TableTh align="right">Finalisation reward (Ͼ)</TableTh>
+						<TableTh align="right">Finalization reward (Ͼ)</TableTh>
 						<TableTh align="right">Transaction fees (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>

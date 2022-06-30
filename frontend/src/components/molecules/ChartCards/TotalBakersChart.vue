@@ -11,7 +11,7 @@
 	>
 		<template #topRight></template>
 		<template #title>Bakers</template>
-		<template #icon><TransactionIcon /></template>
+		<template #icon><BakerIcon /></template>
 		<template #value>{{
 			formatNumber(bakerMetricsData?.bakerMetrics?.lastBakerCount || 0)
 		}}</template>
@@ -21,7 +21,7 @@
 <script lang="ts" setup>
 import type { TooltipItem } from 'chart.js'
 import { formatNumber } from '~/utils/format'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
+import BakerIcon from '~/components/icons/BakerIcon.vue'
 import type { BakerMetricsQueryResponse } from '~/queries/useBakerMetricsQuery'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 

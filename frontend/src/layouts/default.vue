@@ -9,7 +9,7 @@
 			<GraphQLClient>
 				<DrawerContainer />
 				<div id="app">
-					<PageHeader />
+					<PageHeader :class="[isLoading ? 'pointer-events-none' : ' ']" />
 
 					<main class="p-4 pb-0 xl:container xl:mx-auto">
 						<slot />
@@ -41,14 +41,20 @@ useMeta({
 const { environment } = useRuntimeConfig()
 
 const route = useRoute()
-
 const {
 	updateByRouteData: drawerupdateByRouteData,
 	handleInitialLoad: drawerhandleInitialLoad,
 } = useDrawer()
 
+const isLoading = ref(false)
 drawerhandleInitialLoad(route)
 watch(route, to => {
+	isLoading.value = true
 	drawerupdateByRouteData(to)
+	setTimeout(() => {
+		// Forcing initial load of the route to be completed,
+		// before the user can navigate to the next route.
+		isLoading.value = false
+	}, 1)
 })
 </script>

@@ -8,7 +8,7 @@ import type {
 const translations = {
 	accountTransactionTypes: {
 		DEPLOY_MODULE: 'Deploy module',
-		INITIALIZE_SMART_CONTRACT_INSTANCE: 'Initialise Smart Contract',
+		INITIALIZE_SMART_CONTRACT_INSTANCE: 'Initialize Smart Contract',
 		UPDATE_SMART_CONTRACT_INSTANCE: 'Update Smart Contract',
 		SIMPLE_TRANSFER: 'Simple transfer',
 		ADD_BAKER: 'Add baker',
