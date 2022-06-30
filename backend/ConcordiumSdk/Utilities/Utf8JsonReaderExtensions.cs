@@ -58,5 +58,10 @@ public static class Utf8JsonReaderExtensions
         if (!success) 
             throw new InvalidOperationException($"Did not find token type '{tokenType}' at depth '{depth}' in this reader.");
     }
-
+    
+    public static void EnsureTokenType(this Utf8JsonReader reader, JsonTokenType expectedTokenType)
+    {
+        if (expectedTokenType != reader.TokenType)
+            throw new JsonException($"Expected current token type to be '{expectedTokenType}' but was '{reader.TokenType}'.");
+    }
 }

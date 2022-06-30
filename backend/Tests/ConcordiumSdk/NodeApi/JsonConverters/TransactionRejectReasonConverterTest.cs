@@ -55,11 +55,11 @@ public class TransactionRejectReasonConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
-    [Fact]
-    public void RoundTrip_InvalidInitMethod()
+    [Theory]
+    [InlineData("{\"tag\": \"InvalidInitMethod\", \"contents\": [\"6fd0437383e141ad1da64fc56372fff87e6e673910d9cd0604584e8af1c704ae\", \"init_INDBankU8\"]}")] // tag is first
+    [InlineData("{\"contents\": [\"6fd0437383e141ad1da64fc56372fff87e6e673910d9cd0604584e8af1c704ae\", \"init_INDBankU8\"], \"tag\": \"InvalidInitMethod\"}")] // tag is last
+    public void RoundTrip_InvalidInitMethod(string json)
     {
-        var json = "{\"tag\": \"InvalidInitMethod\", \"contents\": [\"6fd0437383e141ad1da64fc56372fff87e6e673910d9cd0604584e8af1c704ae\", \"init_INDBankU8\"]}";
-        
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
         var typed = Assert.IsType<InvalidInitMethod>(deserialized);
         typed.ModuleRef.Should().Be(new ModuleRef("6fd0437383e141ad1da64fc56372fff87e6e673910d9cd0604584e8af1c704ae"));
@@ -69,11 +69,11 @@ public class TransactionRejectReasonConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
-    [Fact]
-    public void RoundTrip_InvalidReceiveMethod()
+    [Theory]
+    [InlineData("{\"tag\": \"InvalidReceiveMethod\", \"contents\": [\"ab2a61d0c503bd632fba480aeed131b09a31c8bdbc06ee3db0dba26fe8b1a9c3\", \"inventory.create\"]}")] // tag is first
+    [InlineData("{\"contents\": [\"ab2a61d0c503bd632fba480aeed131b09a31c8bdbc06ee3db0dba26fe8b1a9c3\", \"inventory.create\"], \"tag\": \"InvalidReceiveMethod\"}")] // tag is last
+    public void RoundTrip_InvalidReceiveMethod(string json)
     {
-        var json = "{\"tag\": \"InvalidReceiveMethod\", \"contents\": [\"ab2a61d0c503bd632fba480aeed131b09a31c8bdbc06ee3db0dba26fe8b1a9c3\", \"inventory.create\"]}";
-        
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
         var typed = Assert.IsType<InvalidReceiveMethod>(deserialized);
         typed.ModuleRef.Should().Be(new ModuleRef("ab2a61d0c503bd632fba480aeed131b09a31c8bdbc06ee3db0dba26fe8b1a9c3"));
@@ -83,11 +83,11 @@ public class TransactionRejectReasonConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
-    [Fact]
-    public void RoundTrip_InvalidModuleReference()
+    [Theory]
+    [InlineData("{\"tag\": \"InvalidModuleReference\", \"contents\": \"bc4375aa41393348e84429c8d379d5972a5265ef054b2f23e852a09f8af29ba8\"}")]
+    [InlineData("{\"contents\": \"bc4375aa41393348e84429c8d379d5972a5265ef054b2f23e852a09f8af29ba8\", \"tag\": \"InvalidModuleReference\"}")]
+    public void RoundTrip_InvalidModuleReference(string json)
     {
-        var json = "{\"tag\": \"InvalidModuleReference\", \"contents\": \"bc4375aa41393348e84429c8d379d5972a5265ef054b2f23e852a09f8af29ba8\"}";
-        
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
         var typed = Assert.IsType<InvalidModuleReference>(deserialized);
         typed.Contents.Should().Be(new ModuleRef("bc4375aa41393348e84429c8d379d5972a5265ef054b2f23e852a09f8af29ba8"));
@@ -96,11 +96,11 @@ public class TransactionRejectReasonConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
-    [Fact]
-    public void RoundTrip_InvalidContractAddress()
+    [Theory]
+    [InlineData("{\"tag\": \"InvalidContractAddress\", \"contents\": {\"subindex\": 20, \"index\": 354}}")] // tag is first
+    [InlineData("{\"contents\": {\"subindex\": 20, \"index\": 354}, \"tag\": \"InvalidContractAddress\"}")] // tag is last
+    public void RoundTrip_InvalidContractAddress(string json)
     {
-        var json = "{\"tag\": \"InvalidContractAddress\", \"contents\": {\"subindex\": 20, \"index\": 354}}";
-        
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
         var typed = Assert.IsType<InvalidContractAddress>(deserialized);
         typed.Contents.Should().Be(new ContractAddress(354, 20));
@@ -121,11 +121,11 @@ public class TransactionRejectReasonConverterTest
         JsonAssert.Equivalent(json, serialized);
     }
     
-    [Fact]
-    public void RoundTrip_AmountTooLarge()
+    [Theory]
+    [InlineData("{\"tag\": \"AmountTooLarge\", \"contents\": [{\"address\": \"36Cas4nsMFefjtZZUZyxnUMD98rzgifzPPr84ymEc92kJuNE5n\", \"type\": \"AddressAccount\"}, \"2000000\"]}")]
+    [InlineData("{\"contents\": [{\"address\": \"36Cas4nsMFefjtZZUZyxnUMD98rzgifzPPr84ymEc92kJuNE5n\", \"type\": \"AddressAccount\"}, \"2000000\"], \"tag\": \"AmountTooLarge\"}")]
+    public void RoundTrip_AmountTooLarge(string json)
     {
-        var json = "{\"tag\": \"AmountTooLarge\", \"contents\": [{\"address\": \"36Cas4nsMFefjtZZUZyxnUMD98rzgifzPPr84ymEc92kJuNE5n\", \"type\": \"AddressAccount\"}, \"2000000\"]}";
-        
         var deserialized = JsonSerializer.Deserialize<TransactionRejectReason>(json, _serializerOptions);
         var typed = Assert.IsType<AmountTooLarge>(deserialized);
         typed.Address.Should().Be(new AccountAddress("36Cas4nsMFefjtZZUZyxnUMD98rzgifzPPr84ymEc92kJuNE5n"));
