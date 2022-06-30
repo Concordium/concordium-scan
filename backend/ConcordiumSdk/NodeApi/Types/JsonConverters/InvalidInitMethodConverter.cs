@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using ConcordiumSdk.Types;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -8,16 +9,23 @@ public class InvalidInitMethodConverter : JsonConverter<InvalidInitMethod>
 {
     public override InvalidInitMethod? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        reader.Read(); // --> tag property name
-        reader.Read(); // --> tag property value
-        reader.Read(); // --> contents property name
-        reader.Read(); // --> [
-        reader.Read(); // --> ModuleRef
+        reader.EnsureTokenType(JsonTokenType.StartObject);
+        
+        var startDepth = reader.CurrentDepth;
+        
+        reader.ForwardReaderToPropertyValue("contents");
+        reader.EnsureTokenType(JsonTokenType.StartArray);
+        reader.Read(); 
+
+        reader.EnsureTokenType(JsonTokenType.String);
         var moduleRefString = reader.GetString()!;
-        reader.Read(); // --> Init name
+        reader.Read(); 
+        
+        reader.EnsureTokenType(JsonTokenType.String);
         var initName = reader.GetString()!;
-        reader.Read(); // --> ]
-        reader.Read(); // --> end object
+        
+        reader.ForwardReaderToTokenTypeAtDepth(JsonTokenType.EndObject, startDepth);
+        
         return new InvalidInitMethod(new ModuleRef(moduleRefString), initName);
     }
 
