@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ConcordiumSdk.Types;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -83,27 +84,14 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
 
     public override TransactionType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        EnsureTokenType(reader, JsonTokenType.StartObject);
-
-        var typeString = "";
-        var contentsString = "";
+        reader.EnsureTokenType(JsonTokenType.StartObject);
+        var startDepth = reader.CurrentDepth;
         
-        reader.Read();
-        while (reader.TokenType != JsonTokenType.EndObject)
-        {
-            EnsureTokenType(reader, JsonTokenType.PropertyName);
-            var key = reader.GetString()!;
-            
-            reader.Read();
-            EnsureTokenType(reader, JsonTokenType.String, JsonTokenType.Null);
-            var value = reader.GetString();
-            
-            if (key == "type") typeString = value;
-            else if (key == "contents") contentsString = value;
-            
-            reader.Read();
-        }
-
+        var typeString = reader.ReadString("type");
+        var contentsString = reader.ReadString("contents");
+        
+        reader.ForwardReaderToTokenTypeAtDepth(JsonTokenType.EndObject, startDepth);
+        
         if (typeString == "accountTransaction")
             return TransactionType.Get(contentsString != null ? _mapStringToAccountTransactionType[contentsString] : null);
         if (typeString == "credentialDeploymentTransaction")
@@ -111,12 +99,6 @@ public class TransactionTypeConverter : JsonConverter<TransactionType>
         if (typeString == "updateTransaction")
             return TransactionType.Get(contentsString != null ? _mapStringToUpdateTransactionType[contentsString] : null);
         throw new NotImplementedException();
-    }
-
-    private static void EnsureTokenType(Utf8JsonReader reader, params JsonTokenType[] expectedTokenTypes)
-    {
-        if (!expectedTokenTypes.Contains(reader.TokenType))
-            throw new JsonException($"Must be {string.Join(" or ", expectedTokenTypes)}.");
     }
 
     public override void Write(Utf8JsonWriter writer, TransactionType value, JsonSerializerOptions options)

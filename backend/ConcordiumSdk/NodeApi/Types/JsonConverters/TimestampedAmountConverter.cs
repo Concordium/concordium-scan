@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using ConcordiumSdk.Types;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -8,18 +9,18 @@ public class TimestampedAmountConverter : JsonConverter<TimestampedAmount>
 {
     public override TimestampedAmount? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        EnsureTokenType(reader, JsonTokenType.StartArray);
+        reader.EnsureTokenType(JsonTokenType.StartArray);
         
         reader.Read();
-        EnsureTokenType(reader, JsonTokenType.Number);
+        reader.EnsureTokenType(JsonTokenType.Number);
         var epochMs = reader.GetInt64();
         
         reader.Read();
-        EnsureTokenType(reader, JsonTokenType.String);
+        reader.EnsureTokenType(JsonTokenType.String);
         var amountAsString = reader.GetString();
-        
+
         reader.Read();
-        EnsureTokenType(reader, JsonTokenType.EndArray);
+        reader.EnsureTokenType(JsonTokenType.EndArray);
 
         if (!UInt64.TryParse(amountAsString, out var amount))
             throw new JsonException("Could not read amount from JSON.");
@@ -34,11 +35,5 @@ public class TimestampedAmountConverter : JsonConverter<TimestampedAmount>
         writer.WriteNumberValue(value.Timestamp.ToUnixTimeMilliseconds());
         writer.WriteStringValue(value.Amount.MicroCcdValue.ToString());
         writer.WriteEndArray();
-    }
-    
-    private static void EnsureTokenType(Utf8JsonReader reader, JsonTokenType tokenType)
-    {
-        if (reader.TokenType != tokenType)
-            throw new JsonException($"Must be {tokenType}.");
     }
 }
