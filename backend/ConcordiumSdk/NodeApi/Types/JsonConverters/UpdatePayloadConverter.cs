@@ -35,7 +35,7 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
 
     public override UpdatePayload? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        EnsureTokenType(reader, JsonTokenType.StartObject);
+        reader.EnsureTokenType(JsonTokenType.StartObject);
         var startDepth = reader.CurrentDepth;
 
         var updateTypeString = reader.ReadString("updateType");
@@ -185,11 +185,5 @@ public class UpdatePayloadConverter : JsonConverter<UpdatePayload>
         };
         JsonSerializer.Serialize(writer, payloadValue, payloadType, options);
         writer.WriteEndObject();
-    }
-    
-    private static void EnsureTokenType(Utf8JsonReader reader, JsonTokenType expectedTokenType)
-    {
-        if (expectedTokenType != reader.TokenType)
-            throw new JsonException($"Must be {expectedTokenType}.");
     }
 }

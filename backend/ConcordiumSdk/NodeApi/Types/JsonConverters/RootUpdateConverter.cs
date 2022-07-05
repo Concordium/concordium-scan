@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using ConcordiumSdk.Utilities;
 
 namespace ConcordiumSdk.NodeApi.Types.JsonConverters;
 
@@ -20,19 +21,12 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
 
     public override RootUpdate? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        EnsureTokenType(reader, JsonTokenType.StartObject);
-
-        reader.Read();
-        EnsurePropertyName(reader, "typeOfUpdate");
-
-        reader.Read();
-        EnsureTokenType(reader, JsonTokenType.String);
-        var payloadTypeKey = reader.GetString()!;
+        reader.EnsureTokenType(JsonTokenType.StartObject);
+        var startDepth = reader.CurrentDepth;
         
-        reader.Read();
-        EnsurePropertyName(reader, "updatePayload");
-
-        reader.Read();
+        var payloadTypeKey = reader.ReadString("typeOfUpdate");
+        
+        reader.ForwardReaderToPropertyValue("updatePayload");
         RootUpdate? result;
         switch (payloadTypeKey)
         {
@@ -64,7 +58,7 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
                 throw new NotImplementedException($"Deserialization of update type '{payloadTypeKey}' is not implemented.");
         }
 
-        reader.Read();
+        reader.ForwardReaderToTokenTypeAtDepth(JsonTokenType.EndObject, startDepth);
         return result;
     }
 
@@ -86,18 +80,5 @@ public class RootUpdateConverter : JsonConverter<RootUpdate>
         };
         JsonSerializer.Serialize(writer, payloadValue, payloadValue.GetType(), options);
         writer.WriteEndObject();
-    }
-
-    private static void EnsurePropertyName(Utf8JsonReader reader, string expectedPropertyName)
-    {
-        EnsureTokenType(reader, JsonTokenType.PropertyName);
-        if (reader.GetString() != expectedPropertyName)
-            throw new JsonException($"Property must be {expectedPropertyName}.");
-    }
-
-    private static void EnsureTokenType(Utf8JsonReader reader, JsonTokenType expectedTokenType)
-    {
-        if (expectedTokenType != reader.TokenType)
-            throw new JsonException($"Must be {expectedTokenType}.");
     }
 }
