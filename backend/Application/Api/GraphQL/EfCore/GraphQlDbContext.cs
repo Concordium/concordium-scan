@@ -4,6 +4,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
+using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,8 @@ public class GraphQlDbContext : DbContext
     public DbSet<SpecialEvent> SpecialEvents { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }
     public DbSet<Account> Accounts { get; private set; }
+    public DbSet<AccountToken> AccountTokens { get; private set; }
+    public DbSet<Token> Tokens { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }
     public DbSet<AccountReleaseScheduleItem> AccountReleaseScheduleItems { get; private set; }

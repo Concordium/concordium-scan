@@ -35,6 +35,7 @@ export type Account = {
   id: Scalars['ID'];
   releaseSchedule: AccountReleaseSchedule;
   rewards?: Maybe<AccountRewardConnection>;
+  tokens: Array<AccountToken>;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<AccountTransactionRelationConnection>;
 };
@@ -225,6 +226,16 @@ export enum AccountStatementEntryType {
   TransferIn = 'TRANSFER_IN',
   TransferOut = 'TRANSFER_OUT'
 }
+
+export type AccountToken = {
+  __typename?: 'AccountToken';
+  accountId: Scalars['Long'];
+  balance: Scalars['Long'];
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  token: Token;
+  tokenId: Scalars['String'];
+};
 
 export type AccountTransaction = {
   __typename?: 'AccountTransaction';
@@ -2315,6 +2326,16 @@ export type TimestampedAmount = {
   __typename?: 'TimestampedAmount';
   amount: Scalars['UnsignedLong'];
   timestamp: Scalars['DateTime'];
+};
+
+export type Token = {
+  __typename?: 'Token';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  metadataUrl?: Maybe<Scalars['String']>;
+  tokenId: Scalars['String'];
+  tokens: Array<AccountToken>;
+  totalSupply: Scalars['Decimal'];
 };
 
 export type Transaction = {

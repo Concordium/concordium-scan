@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "graphql.vscode-graphql",
+        "mquandalle.graphql",
+        "kumar-harsh.graphql-for-vscode",
+        "formulahendry.dotnet",
+        "rahulsahay.csharp-aspnetcore",
+        "temilaj.asp-net-core-vs-code-extension-pack",
+        "ms-dotnettools.csharp",
+        "adrianwilczynski.add-reference",
+        "doggy8088.netcore-extension-pack"
+    ]
+}

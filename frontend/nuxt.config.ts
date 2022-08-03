@@ -27,6 +27,13 @@ const VARS: Record<Environment, Config> = {
 	},
 }
 
+const getConfig = (env: Environment): Config => {
+	return {
+		apiUrl: process.env.BACKEND_API_URL || VARS[env].apiUrl || '',
+		wsUrl: process.env.BACKEND_WS_URL || VARS[env].wsUrl || '',
+	}
+}
+
 export default defineNuxtConfig({
 	srcDir: 'src/',
 	components: [
@@ -39,9 +46,12 @@ export default defineNuxtConfig({
 		'~/components/BlockDetails',
 	],
 	publicRuntimeConfig: {
-		...VARS[ENVIRONMENT],
+		...getConfig(ENVIRONMENT),
 		environment: ENVIRONMENT,
-		includeDevTools: ENVIRONMENT === 'dev' || ENVIRONMENT === 'stagenet' || ENVIRONMENT === 'testnet',
+		includeDevTools:
+			ENVIRONMENT === 'dev' ||
+			ENVIRONMENT === 'stagenet' ||
+			ENVIRONMENT === 'testnet',
 	},
 	nitro: {
 		preset: 'firebase',

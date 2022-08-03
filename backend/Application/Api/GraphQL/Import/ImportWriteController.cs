@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Transactions;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
@@ -27,6 +28,7 @@ public class ImportWriteController : BackgroundService
     private readonly ChainParametersWriter _chainParametersWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountImportHandler _accountHandler;
+    private readonly EventLogHandler _eventLogHandler;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -63,6 +65,7 @@ public class ImportWriteController : BackgroundService
         _materializedViewRefresher = new MaterializedViewRefresher(dbSettings, metrics);
         _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
+        _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -179,6 +182,8 @@ public class ImportWriteController : BackgroundService
         var passiveDelegationUpdateResults = await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus, block);
         await _bakerHandler.ApplyChangesAfterBlocksAndTransactionsWritten(block, transactions, importPaydayStatus);
         _accountHandler.HandleAccountUpdates(payload, transactions, block);
+
+        _eventLogHandler.HandleLogs(transactions);
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
         var paydaySummary = await _paydayHandler.AddPaydaySummaryOnPayday(importPaydayStatus, block);
