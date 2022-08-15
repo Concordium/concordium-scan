@@ -21,7 +21,7 @@ public class BlockChangeCalculator
             .LastOrDefault(x => x.Timestamp <= blockSlotTime);
         
         return releaseScheduleItem != null
-            ? totalAmount.MicroCcdValue - releaseScheduleItem.Amount
+            ? releaseScheduleItem.Amount
             : null;
     }
 }
