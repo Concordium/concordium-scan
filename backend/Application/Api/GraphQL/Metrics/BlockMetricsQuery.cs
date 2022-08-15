@@ -25,6 +25,13 @@ public class BlockMetricsQuery
         await conn.OpenAsync();
 
         var queryParams = QueryParams.Create(period, _timeProvider);
+        var lastReleasedSql = @"SELECT time, total_microccd_released
+                FROM graphql_total_microccd_released
+                WHERE time <= @ToTime
+                ORDER BY time DESC
+                limit 1";
+
+        var lastReleasedData = await conn.QuerySingleAsync(lastReleasedSql, queryParams);
 
         var lastValuesSql = @"select block_height, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked, total_percentage_released, total_percentage_encrypted, total_percentage_staked
                     from metrics_blocks
@@ -35,7 +42,7 @@ public class BlockMetricsQuery
 
         var lastBlockHeight = (long)lastValuesData.block_height;
         var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
-        var lastTotalMicroCcdReleased = (long?)lastValuesData.total_microccd_released;
+        var lastTotalMicroCcdReleased = (long?)lastReleasedData.total_microccd_released;
         var lastTotalMicroCcdEncrypted = (long)lastValuesData.total_microccd_encrypted;
         var lastTotalMicroCcdStaked = (long)lastValuesData.total_microccd_staked;
         var lastTotalPercentageReleased = (double?)lastValuesData.total_percentage_released;
