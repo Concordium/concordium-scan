@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.EventLogs;
+using ConcordiumSdk.Types;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
+
 
 namespace Tests.Api.GraphQL.Import.EventLog
 {
@@ -80,9 +82,9 @@ namespace Tests.Api.GraphQL.Import.EventLog
         public void ShouldHandleAccountUpdates()
         {
             var updatesCount = writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = ACCOUNT_1_ADDR },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = ACCOUNT_1_ADDR },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = ACCOUNT_1_ADDR },
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = new AccountAddress(ACCOUNT_1_ADDR) },
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = new AccountAddress(ACCOUNT_1_ADDR) },
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = new AccountAddress(ACCOUNT_1_ADDR)},
             });
 
             updatesCount.Should().Be(3);

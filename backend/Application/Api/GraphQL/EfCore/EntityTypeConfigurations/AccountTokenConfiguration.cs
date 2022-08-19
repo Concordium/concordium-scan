@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations
 {
+    /// <summary>
+    /// Configuration of Account Token Persistence in Database.
+    /// </summary>
     public class AccountTokenConfiguration : IEntityTypeConfiguration<AccountToken>
     {
         public void Configure(EntityTypeBuilder<AccountToken> builder)

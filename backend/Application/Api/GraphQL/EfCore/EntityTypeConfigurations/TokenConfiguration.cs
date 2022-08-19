@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations
 {
+    /// <summary>
+    /// Configuration of CIS token persistence in Database
+    /// </summary>
     public class TokenConfiguration : IEntityTypeConfiguration<Token>
     {
         public void Configure(EntityTypeBuilder<Token> builder)

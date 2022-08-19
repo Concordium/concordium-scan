@@ -46,7 +46,7 @@ namespace Application.Database
             EnsureDatabase.For.PostgresqlDatabase(connectionString, _dbUpLogWrapper);
 
             var upgrader = GetUpgrader(connectionString, sqlScriptsFolder);
-            // EnsureExecutedScriptsStillExist(upgrader);
+            EnsureExecutedScriptsStillExist(upgrader);
             
             if (upgrader.IsUpgradeRequired())
             {

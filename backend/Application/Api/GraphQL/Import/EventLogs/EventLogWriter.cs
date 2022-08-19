@@ -8,6 +8,9 @@ using Npgsql;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
+    /// <summary>
+    /// Applies computed updates to the Database
+    /// </summary>
     public class EventLogWriter
     {
         private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
@@ -27,6 +30,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
         }
 
+        /// <summary>
+        /// Applies computed token updates to the database
+        /// </summary>
+        /// <param name="tokenUpdates">Computed Token Updates</param>
+        /// <returns>Total no of token updates applied to database</returns>
         public int ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates)
         {
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyTokenUpdates));
@@ -112,6 +120,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return cmd;
         }
 
+        /// <summary>
+        /// Applies computed Account Updates to the database
+        /// </summary>
+        /// <param name="accountUpdates"></param>
+        /// <returns>Total no of accounts updates applied to database</returns>
         public int ApplyAccountUpdates(IEnumerable<CisAccountUpdate> accountUpdates)
         {
             IEnumerable<string> accountBaseAddresses = accountUpdates.Select(u => u.Address.GetBaseAddress().AsString).Distinct();

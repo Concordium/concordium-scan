@@ -19,7 +19,15 @@ public class GraphQlDbContext : DbContext
     public DbSet<SpecialEvent> SpecialEvents { get; private set; }
     public DbSet<Transaction> Transactions { get; private set; }
     public DbSet<Account> Accounts { get; private set; }
+
+    /// <summary>
+    /// Mapping of Accounts to CIS Tokens.
+    /// </summary>
     public DbSet<AccountToken> AccountTokens { get; private set; }
+    
+    /// <summary>
+    /// Parsed CIS Tokens.
+    /// </summary>
     public DbSet<Token> Tokens { get; private set; }
     public DbSet<TransactionRelated<TransactionResultEvent>> TransactionResultEvents { get; private set; }
     public DbSet<AccountTransactionRelation> AccountTransactionRelations { get; private set; }

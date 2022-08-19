@@ -6,10 +6,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens
 {
+    /// <summary>
+    /// Represents CIS token in database
+    /// </summary>
     public class Token
     {
+        /// <summary>
+        /// Token Contract Index
+        /// </summary>
         public ulong ContractIndex { get; set; }
 
+        /// <summary>
+        /// Token contract Subindex
+        /// </summary>
         public ulong ContractSubIndex { get; set; }
 
         /// <summary>
@@ -17,10 +26,21 @@ namespace Application.Api.GraphQL.Tokens
         /// </summary>
         public string TokenId { get; set; }
 
+        /// <summary>
+        /// Token Metadata URL
+        /// </summary>
         public string? MetadataUrl { get; set; }
 
+        /// <summary>
+        /// Total supply of the token
+        /// </summary>
         public decimal TotalSupply { get; set; }
 
+        /// <summary>
+        /// Gets accounts with balances for this particular token
+        /// </summary>
+        /// <param name="dbContext">EF Core Database Context</param>
+        /// <returns><see cref="IQueryable<AccountToken>"/></returns>
         [UseDbContext(typeof(GraphQlDbContext))]
         public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
         {

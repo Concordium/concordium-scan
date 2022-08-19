@@ -1,4 +1,3 @@
-using System.Numerics;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
@@ -14,6 +13,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
             this.writer = logWriter;
         }
 
+        /// <summary>
+        /// Fetches log bytes from Transaction, parses them and persists them to the database.
+        /// </summary>
+        /// <param name="transactions">Pair of Database Persisted Transaction and on chain transaction</param>
         public void HandleLogs(TransactionPair[] transactions)
         {
             var events = transactions
@@ -72,6 +75,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
             }
         }
 
+        /// <summary>
+        /// Computes Token amount changes for an Account.
+        /// </summary>
+        /// <param name="log"></param>
+        /// <returns>Parsed <see cref="CisAccountUpdate"/></returns>
         private CisAccountUpdate[] GetAccountUpdates(CisEvent log)
         {
             switch (log)
@@ -138,6 +146,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
             }
         }
 
+        /// <summary>
+        /// Computes aggregate Token amount updates for any account.
+        /// </summary>
+        /// <param name="cisLog">CisEvent</param>
+        /// <returns>Parsed <see cref="CisEventTokenUpdate"/></returns>
         private CisEventTokenUpdate? GetTokenUpdates(CisEvent cisLog)
         {
             switch (cisLog)
@@ -172,6 +185,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
             }
         }
 
+        /// <summary>
+        /// Parses CIS event from input bytes. returns null if the bytes do not represent standard CIS event.
+        /// </summary>
+        /// <param name="txnId">Transaction Id</param>
+        /// <param name="address">CIS Contract Address</param>
+        /// <param name="bytes">Input bytes</param>
+        /// <returns></returns>
         private CisEvent? ParseCisEvent(
             long txnId,
             ConcordiumSdk.Types.ContractAddress address,
@@ -190,37 +210,5 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             return cisEvent;
         }
-    }
-
-    public class CisAccountUpdate
-    {
-        public ulong ContractIndex { get; set; }
-        public ulong ContractSubIndex { get; set; }
-        public string TokenId { get; set; }
-        public BigInteger AmountDelta { get; set; }
-        public AccountAddress Address { get; set; }
-    }
-
-    public abstract class CisEventTokenUpdate
-    {
-        public ulong ContractIndex { get; set; }
-        public ulong ContractSubIndex { get; set; }
-        public string TokenId { get; set; }
-    }
-
-    public class CisEventTokenAddedUpdate : CisEventTokenUpdate
-    {
-        public BigInteger AmountDelta { get; set; }
-    }
-
-    public class CisEventTokenMetadataUpdate : CisEventTokenUpdate
-    {
-        public string MetadataUrl { get; set; }
-        public string? HashHex { get; set; }
-    }
-
-    public class CisEventTokenAmountUpdate : CisEventTokenUpdate
-    {
-        public BigInteger AmountDelta { get; set; }
     }
 }

@@ -77,6 +77,11 @@ public class Account
             .SingleOrDefaultAsync(x => x.Id == Id);
     }
 
+    /// <summary>
+    /// Gets CIS tokens assigned to the current account.
+    /// </summary>
+    /// <param name="dbContext">Database Context</param>
+    /// <returns></returns>
     [UseDbContext(typeof(GraphQlDbContext))]
     public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
     {
