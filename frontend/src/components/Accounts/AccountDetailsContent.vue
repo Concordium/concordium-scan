@@ -153,6 +153,12 @@
 					/>
 				</template>
 			</Accordion>
+			<Accordion v-if="account.tokens">
+				Tokens
+				<template #content>
+					<AccountDetailsToken :tokens="account.tokens"></AccountDetailsToken>
+				</template>
+			</Accordion>
 		</DrawerContent>
 	</div>
 </template>
@@ -162,6 +168,7 @@ import AccountDetailsBaker from './AccountDetailsBaker.vue'
 import AccountDetailsHeader from './AccountDetailsHeader.vue'
 import AccountDetailsAmounts from './AccountDetailsAmounts.vue'
 import AccountDetailsTransactions from './AccountDetailsTransactions.vue'
+import AccountDetailsToken from './AccountDetailsToken.vue'
 import AccountDetailsReleaseScheduleTransactions from './AccountDetailsReleaseScheduleTransactions.vue'
 import AccountDetailsAccountStatement from './AccountDetailsAccountStatement.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'

@@ -1,4 +1,4 @@
-﻿schema {
+schema {
   query: Query
   subscription: Subscription
 }
@@ -17,6 +17,7 @@ type Account {
   accountStatement("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountStatementEntryConnection
   rewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountRewardConnection
   baker: Baker
+  tokens: [AccountToken!]!
   id: ID!
   address: AccountAddress!
   amount: UnsignedLong!
@@ -136,6 +137,15 @@ type AccountStatementEntryEdge {
   cursor: String!
   "The item at the end of the edge."
   node: AccountStatementEntry!
+}
+
+type AccountToken {
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  tokenId: String!
+  balance: Long!
+  token: Token!
+  accountId: Long!
 }
 
 type AccountTransaction {
@@ -1557,6 +1567,15 @@ type TimeParametersChainUpdatePayload {
 type TimestampedAmount {
   timestamp: DateTime!
   amount: UnsignedLong!
+}
+
+type Token {
+  tokens: [AccountToken!]!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  tokenId: String!
+  metadataUrl: String
+  totalSupply: Decimal!
 }
 
 type Transaction {

@@ -17,15 +17,15 @@ public class Account
     [GraphQLIgnore] // Base address is only used internally for handling alias account addresses
     public AccountAddress BaseAddress { get; set; }
 
-    [GraphQLName("address")] 
+    [GraphQLName("address")]
     public AccountAddress CanonicalAddress { get; set; }
 
     public ulong Amount { get; set; }
-    
+
     public int TransactionCount { get; set; }
-    
+
     public DateTimeOffset CreatedAt { get; init; }
-    
+
     public Delegation? Delegation { get; set; }
 
     [UseDbContext(typeof(GraphQlDbContext))]
@@ -35,10 +35,10 @@ public class Account
             .Where(x => x.AccountId == Id && x.Timestamp > DateTimeOffset.UtcNow)
             .OrderBy(x => x.Timestamp)
             .ToArrayAsync();
-        
+
         return new AccountReleaseSchedule(schedule);
     }
-    
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_transaction_relation_by_descending_index")]
     public IQueryable<AccountTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)
@@ -48,9 +48,9 @@ public class Account
             .Where(at => at.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-    
+
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_statement_entry_by_descending_index")] 
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_statement_entry_by_descending_index")]
     // TODO: Add a filter on entry type
     public IQueryable<AccountStatementEntry> GetAccountStatement([ScopedService] GraphQlDbContext dbContext)
     {
@@ -58,16 +58,16 @@ public class Account
             .Where(x => x.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-    
+
     [UseDbContext(typeof(GraphQlDbContext))]
-    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_reward_by_descending_index")] 
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_reward_by_descending_index")]
     public IQueryable<AccountReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.AccountRewards.AsNoTracking()
             .Where(x => x.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-    
+
     [UseDbContext(typeof(GraphQlDbContext))]
     public Task<Baker?> GetBaker([ScopedService] GraphQlDbContext dbContext)
     {
@@ -75,5 +75,19 @@ public class Account
         return dbContext.Bakers
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == Id);
+    }
+
+    /// <summary>
+    /// Gets CIS tokens assigned to the current account.
+    /// </summary>
+    /// <param name="dbContext">Database Context</param>
+    /// <returns></returns>
+    [UseDbContext(typeof(GraphQlDbContext))]
+    public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
+    {
+        return dbContext.AccountTokens
+            .Where(t => t.AccountId == this.Id && t.Balance != 0)
+            .Include(t => t.Token)
+            .AsNoTracking();
     }
 }

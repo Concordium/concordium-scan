@@ -202,6 +202,15 @@ delegation {
 		}
 	}
 }
+tokens {
+	balance
+	contractIndex
+	contractSubIndex
+	tokenId
+	token {
+		metadataUrl
+	}
+}
 createdAt
 __typename
 `
