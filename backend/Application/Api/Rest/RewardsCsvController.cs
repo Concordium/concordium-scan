@@ -33,8 +33,10 @@ public class RewardsCsvController : ControllerBase
             Amount = x.Amount,
         });
         var values = await scalarQuery.ToListAsync();
-        var csv = string.Join("", values.ConvertAll(v => $"\"{v.Timestamp}\",\"{v.RewardType}\",\"{v.Amount}\"\n"));
-        var result = new FileContentResult(Encoding.ASCII.GetBytes(csv), "text/csv")
+        // TODO Better to use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
+        var sb = new StringBuilder("timestamp,type,amount_uccd\n");
+        var csv = values.Aggregate(sb, (acc, v) => acc.Append($"{v.Timestamp},{v.RewardType},{v.Amount}\n"));
+        var result = new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
             FileDownloadName = $"rewards-{accountId}.csv",
         };
