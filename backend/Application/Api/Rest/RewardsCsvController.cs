@@ -34,8 +34,8 @@ public class CsvExportController : ControllerBase
         });
         var values = await scalarQuery.ToListAsync();
         // TODO Use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
-        var sb = new StringBuilder("timestamp,type,amount_uccd\n");
-        var csv = values.Aggregate(sb, (acc, v) => acc.Append($"{v.Timestamp.ToString("u")},{v.EntryType},{v.Amount}\n"));
+        var sb = new StringBuilder("Time,Amount (CCD),Label\n");
+        var csv = values.Aggregate(sb, (acc, v) => acc.Append($"{v.Timestamp.ToString("u")},{v.Amount/1e6},{v.EntryType}\n"));
         var result = new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
             FileDownloadName = $"statement-{accountId}.csv",
