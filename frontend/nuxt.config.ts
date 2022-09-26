@@ -54,7 +54,10 @@ export default defineNuxtConfig({
 			ENVIRONMENT === 'testnet',
 	},
 	nitro: {
-		preset: process.env.NITRO_PRESET || 'firebase', // workaround until whatever depends on Nitro has been upgraded to include  'https://github.com/unjs/nitro/commit/92d711fe936fda0ff877c23d8a0d73ed4ea4adc4'
+		// Workaround: Until whatever depends on Nitro has been upgraded to include 'https://github.com/unjs/nitro/commit/92d711fe936fda0ff877c23d8a0d73ed4ea4adc4', we do it manually.
+		// Workaround on workaround: Have to use empty string instead of "node-server" as otherwise we get error "Cannot resolve preset: node-server"
+		// (see 'https://forum.cleavr.io/t/cannot-resolve-node-server-preset/686').
+		preset: process.env.NITRO_PRESET === 'node-server' ? '' : 'firebase',
 	},
 	css: ['@/assets/css/styles.css'],
 	build: {
