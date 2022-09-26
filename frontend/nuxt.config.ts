@@ -54,7 +54,7 @@ export default defineNuxtConfig({
 			ENVIRONMENT === 'testnet',
 	},
 	nitro: {
-		preset: 'firebase',
+		preset: process.env.NITRO_PRESET || 'firebase', // workaround until whatever depends on Nitro has been upgraded to include  'https://github.com/unjs/nitro/commit/92d711fe936fda0ff877c23d8a0d73ed4ea4adc4'
 	},
 	css: ['@/assets/css/styles.css'],
 	build: {
