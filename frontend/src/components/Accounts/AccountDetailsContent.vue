@@ -153,7 +153,7 @@
 					/>
 				</template>
 			</Accordion>
-			<Accordion v-if="account.tokens">
+			<Accordion v-if="account.tokens && account.tokens.length">
 				Tokens
 				<template #content>
 					<AccountDetailsToken :tokens="account.tokens"></AccountDetailsToken>
