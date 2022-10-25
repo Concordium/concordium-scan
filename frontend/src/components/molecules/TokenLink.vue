@@ -14,6 +14,7 @@
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
+			v-if="props.url"
 			:text="props.url"
 			label="Click to copy token metadata url to clipboard"
 			class="h-5 inline align-baseline"
