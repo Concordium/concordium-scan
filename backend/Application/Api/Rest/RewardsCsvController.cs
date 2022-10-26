@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Text;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.AspNetCore.Mvc;
@@ -28,9 +27,9 @@ public class CsvExportController : ControllerBase
             .Where(x => x.AccountId == accountId);
 
         var scalarQuery = query.Select(x => new {
-            Timestamp = x.Timestamp,
-            EntryType = x.EntryType,
-            Amount = x.Amount,
+            x.Timestamp,
+            x.EntryType,
+            x.Amount,
         });
         var values = await scalarQuery.ToListAsync();
         // TODO Use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
