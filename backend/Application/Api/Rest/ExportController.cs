@@ -24,14 +24,14 @@ public class ExportController : ControllerBase
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         if (!ConcordiumSdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
-            throw new InvalidOperationException("Account does not exist!");
+            return NotFound("Account does not exist!");
 
         var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
         var account = dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
         if (account == null)
-            throw new InvalidOperationException("Account does not exist!");
+            return NotFound("Account does not exist!");
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
