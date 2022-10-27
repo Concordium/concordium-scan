@@ -134,7 +134,7 @@
 					:on-click="export_"
 				>
 					<span class="hidden md:inline">Export</span>
-					<DownloadIcon :class="buttonClasses" />
+					<DownloadIcon class="h-4 inline align-text-top" />
 				</Button>
 			</div>
 		</div>
@@ -172,8 +172,6 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
-
-const buttonClasses = 'h-4 inline align-text-top'
 
 const export_ = () => {
 	console.log('EXPORT')
