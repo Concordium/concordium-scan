@@ -24,14 +24,18 @@ public class ExportController : ControllerBase
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         if (!ConcordiumSdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
-            return NotFound("Account does not exist!");
+        {
+            return BadRequest("invalid account format");
+        }
 
         var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
         var account = dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
         if (account == null)
-            return NotFound("Account does not exist!");
+        {
+            return NotFound("account does not exist");
+        }
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
@@ -44,13 +48,16 @@ public class ExportController : ControllerBase
             x.Amount,
         });
         var values = await scalarQuery.ToListAsync();
-        // TODO Use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
-        var sb = new StringBuilder("Time,Amount (CCD),Label\n");
-        var csv = values.Aggregate(sb, (acc, v) => acc.Append($"{v.Timestamp.ToString("u")},{v.Amount / 1e6},{v.EntryType}\n"));
-        var result = new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
+        // Should use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
+        var csv = new StringBuilder("Time,Amount (CCD),Label\n");
+        foreach (var v in values)
+        {
+            csv.Append($"{v.Timestamp.ToString("u")},{v.Amount / 1e6},{v.EntryType}\n");
+        }
+
+        return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
             FileDownloadName = $"statement-{accountAddress}.csv",
         };
-        return result;
     }
 }
