@@ -3,7 +3,7 @@
 		class="flex bottom-0 pagination"
 		:class="[
 			position ? position : 'relative',
-			size === 'sm' ? 'justify-end' : 'justify-center mt-8 p-4',
+			'justify-center',
 		]"
 	>
 		<Button

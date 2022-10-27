@@ -7,9 +7,7 @@
 					<TableTh>Type</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XL">Reference</TableTh>
 					<TableTh align="right">Amount</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right"
-						>Balance</TableTh
-					>
+					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">Balance</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -122,11 +120,24 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination
-			v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
-			:page-info="pageInfo"
-			:go-to-page="goToPage"
-		/>
+		<div class="grid grid-cols-4 mt-8">
+			<div class="col-span-3">
+				<Pagination
+					v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
+					:page-info="pageInfo"
+					:go-to-page="goToPage"
+				/>
+			</div>
+			<div class="col-span-1 flex justify-end">
+				<Button
+					class="mr-4 rounded"
+					:on-click="export_"
+				>
+					<span class="hidden md:inline">Export</span>
+					<DownloadIcon :class="buttonClasses" />
+				</Button>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -139,6 +150,7 @@ import TransferIconIn from '~/components/icons/TransferIconIn.vue'
 import TransferIconOut from '~/components/icons/TransferIconOut.vue'
 import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
 import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
+import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateAccountStatementEntryType } from '~/utils/translateAccountStatementEntry'
@@ -160,4 +172,10 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
+
+const buttonClasses = 'h-4 inline align-text-top'
+
+const export_ = () => {
+	console.log('EXPORT')
+}
 </script>
