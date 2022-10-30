@@ -122,7 +122,8 @@
 						:account-statement-items="account.accountStatement.nodes"
 						:page-info="account.accountStatement.pageInfo"
 						:go-to-page="goToPageAccountStatement"
-					></AccountDetailsAccountStatement>
+						:export-url="exportUrl"
+					/>
 					<div v-else class="p-4">No entries</div>
 				</template>
 			</Accordion>
@@ -200,5 +201,8 @@ type Props = {
 	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const { apiUrl } = useRuntimeConfig()
+const exportUrl = `${apiUrl}/../rest/export/statement?accountAddress=${props.account.address.asString}`
 </script>

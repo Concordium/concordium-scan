@@ -129,13 +129,13 @@
 				/>
 			</div>
 			<div class="col-span-1 flex justify-end">
-				<Button
-					class="mr-4 rounded"
-					:on-click="export_"
+				<a
+					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
+					:href="exportUrl"
 				>
 					<span class="hidden md:inline">Export</span>
 					<DownloadIcon class="h-4 inline align-text-top" />
-				</Button>
+				</a>
 			</div>
 		</div>
 	</div>
@@ -170,10 +170,8 @@ type Props = {
 	accountStatementItems: AccountStatementEntry[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	exportUrl: string
 }
 defineProps<Props>()
 
-const export_ = () => {
-	console.log('EXPORT')
-}
 </script>
