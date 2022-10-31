@@ -1,7 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System.Globalization;
+using System.IO;
+using System.Threading.Tasks;
 using System.Text;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using CsvHelper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,18 +44,18 @@ public class ExportController : ControllerBase
             .AsNoTracking()
             .Where(x => x.AccountId == account.Id);
 
-        var scalarQuery = query.Select(x => new
+        var result = query.Select(x => new
         {
-            x.Timestamp,
-            x.EntryType,
-            x.Amount,
+            Time = x.Timestamp,
+            Amount = x.Amount / 1e6,
+            Label = x.EntryType,
         });
-        var values = await scalarQuery.ToListAsync();
-        // TODO Should use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
-        var csv = new StringBuilder("Time,Amount (CCD),Label\n");
-        foreach (var v in values)
+        var values = await result.ToListAsync();
+
+        await using var csv = new StringWriter();
+        await using (var writer = new CsvWriter(csv, CultureInfo.InvariantCulture))
         {
-            csv.Append($"{v.Timestamp.ToString("u")},{v.Amount / 1e6},{v.EntryType}\n");
+            await writer.WriteRecordsAsync(values);
         }
 
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
