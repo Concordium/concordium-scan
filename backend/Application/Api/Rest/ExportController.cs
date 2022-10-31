@@ -1,10 +1,7 @@
-﻿using System.Globalization;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Text;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using CsvHelper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,16 +43,15 @@ public class ExportController : ControllerBase
 
         var result = query.Select(x => new
         {
-            Time = x.Timestamp,
-            Amount = x.Amount / 1e6,
-            Label = x.EntryType,
+            x.Timestamp,
+            x.EntryType,
+            x.Amount,
         });
         var values = await result.ToListAsync();
-
-        await using var csv = new StringWriter();
-        await using (var writer = new CsvWriter(csv, CultureInfo.InvariantCulture))
+        var csv = new StringBuilder("Time,Amount (CCD),Label\n");
+        foreach (var v in values)
         {
-            await writer.WriteRecordsAsync(values);
+            csv.Append($"{v.Timestamp.ToString("u")},{v.Amount / 1e6},{v.EntryType}\n");
         }
 
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
