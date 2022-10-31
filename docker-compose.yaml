@@ -9,15 +9,15 @@ services:
     - ImportValidation__Enabled=false
     - ConcordiumNodeGrpc__AuthenticationToken=rpcadmin
     - ConcordiumNodeGrpc__Address=${NODE_GRPC_ADDRESS-http://172.17.0.1:10000}
-    - PostgresDatabase__ConnectionString=Host=timescaledb;Port=5432;Database=ccscan;User ID=postgres;Password=password;Include Error Detail=true;
-    - PostgresDatabase__ConnectionStringNodeCache=Host=timescaledb;Port=5432;Database=ccscan_node_cache;User ID=postgres;Password=password;Include Error Detail=true;
+    - PostgresDatabase__ConnectionString=Host=ccdscan_timescaledb;Port=5432;Database=ccscan;User ID=postgres;Password=password;Include Error Detail=true;
+    - PostgresDatabase__ConnectionStringNodeCache=Host=ccdscan_timescaledb;Port=5432;Database=ccscan_node_cache;User ID=postgres;Password=password;Include Error Detail=true;
     - FeatureFlags__ConcordiumNodeImportEnabled=true
     - FeatureFlags__MigrateDatabasesAtStartup=true
     - NodeCollectorService__Address=https://dashboard.${DOMAIN-testnet.concordium.com}/nodesSummary
     networks:
     - ccdscan
     depends_on:
-    - timescaledb
+    - ccdscan_timescaledb
     restart: unless-stopped  # it seems like startup sometimes fails because the DB isn't ready yet
   ccdscan_timescaledb:
     image: timescale/timescaledb:latest-pg14
