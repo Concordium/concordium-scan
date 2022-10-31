@@ -1,8 +1,7 @@
 version: "3"
 services:
-  ccdscan:
-    container_name: ccdscan
-    image: ${CCDSCAN_BACKEND_IMAGE-concordium/ccdscan:1.3.0-0}
+  ccdscan_backend:
+    image: ${CCDSCAN_BACKEND_IMAGE-concordium/ccdscan:test}
     build: ./backend
     ports:
     - 5000:5000
@@ -19,15 +18,15 @@ services:
     - ccdscan
     depends_on:
     - timescaledb
-  timescaledb:
-    container_name: timescaledb
+    restart: unless-stopped  # it seems like startup sometimes fails because the DB isn't ready yet
+  ccdscan_timescaledb:
     image: timescale/timescaledb:latest-pg14
     environment:
     - POSTGRES_PASSWORD=password
     networks:
     - ccdscan
     volumes:
-    - ccdscan:/home/postgres/pgdata/data
+    - ccdscan:/var/lib/postgresql/data
 volumes:
   ccdscan:
 networks:
