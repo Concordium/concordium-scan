@@ -2,14 +2,14 @@ version: "3"
 services:
   ccdscan:
     container_name: ccdscan
-    image: ${CCDSCAN_IMAGE-concordium/ccdscan:1.2.0-0}
-    build: .
+    image: ${CCDSCAN_BACKEND_IMAGE-concordium/ccdscan:1.3.0-0}
+    build: ./backend
     ports:
     - 5000:5000
     environment:
     - ImportValidation__Enabled=false
     - ConcordiumNodeGrpc__AuthenticationToken=rpcadmin
-    - ConcordiumNodeGrpc__Address=${NODE_ADDRESS-http://172.17.0.1:10000}
+    - ConcordiumNodeGrpc__Address=${NODE_GRPC_ADDRESS-http://172.17.0.1:10000}
     - PostgresDatabase__ConnectionString=Host=timescaledb;Port=5432;Database=ccscan;User ID=postgres;Password=password;Include Error Detail=true;
     - PostgresDatabase__ConnectionStringNodeCache=Host=timescaledb;Port=5432;Database=ccscan_node_cache;User ID=postgres;Password=password;Include Error Detail=true;
     - FeatureFlags__ConcordiumNodeImportEnabled=true
@@ -21,7 +21,7 @@ services:
     - timescaledb
   timescaledb:
     container_name: timescaledb
-    image: timescale/timescaledb:latest-pg13
+    image: timescale/timescaledb:latest-pg14
     environment:
     - POSTGRES_PASSWORD=password
     networks:
