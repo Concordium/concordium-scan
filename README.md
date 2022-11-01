@@ -11,14 +11,27 @@ It consists of two main parts:
 
 ## Docker Compose
 
-The project ships a Docker Compose spec for deploying a CCDScan Backend with a TimescaleDB instance.
+The project ships a Docker Compose spec for deploying a CCDScan Backend with a TimescaleDB (v14) instance.
 
-Parameters:
+*Parameters*
 
 - `CCDSCAN_BACKEND_IMAGE` (default `concordium/ccdscan:test`):
-  Image to use for the backend. The default value is not an existing public image, using it will make Compose build the image from local source.
+  Image to use for the backend. The default value is not an existing public image: Using it will make Compose build the image from local sources.
+  Note that to use an existing public image, the image must already have been pulled (using e.g. `docker-compose pull`) before running `up`.
+  Otherwise, Compose will proceed to build the image without first checking if the image can be pulled.
 - `CCDSCAN_NODE_GRPC_ADDRESS` (default: `http://172.17.0.1:10000`):
   URL of the gRPC (APIv1) interface of a Concordium Node. The default value is the default address of a Node running on the host.
 - `CCDSCAN_DOMAIN` (default: `testnet.concordium.com`):
   URL of the network's domain (`mainnet.concordium.software` for mainnet and `<network>.concordium.com` for the other official networks).
   Used as part of the URL for fetching data from the public network dashboard.
+
+*Example*
+
+Run backend from public image `concordium/ccdscan:1.3.0-0` against a local mainnet node:
+
+```shell
+export CCDSCAN_BACKEND_IMAGE=concordium/ccdscan:1.3.0-0
+export CCDSCAN_DOMAIN=mainnet.concordium.software
+docker-compose pull
+docker-compose up
+```
