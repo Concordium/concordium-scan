@@ -140,7 +140,7 @@
 			</Accordion>
 			<Accordion
 				v-if="
-					account.rewards?.nodes.length && account.rewards?.nodes.length > 0
+					account.rewards?.nodes?.length && account.rewards?.nodes.length > 0
 				"
 			>
 				Rewards
@@ -153,10 +153,20 @@
 					/>
 				</template>
 			</Accordion>
-			<Accordion v-if="account.tokens && account.tokens.length">
+			<Accordion
+				v-if="
+					account.tokens?.pageInfo.hasNextPage ||
+					account.tokens?.pageInfo.hasPreviousPage
+				"
+			>
 				Tokens
 				<template #content>
-					<AccountDetailsToken :tokens="account.tokens"></AccountDetailsToken>
+					<AccountDetailsToken
+						:account-tokens="account.tokens.nodes || []"
+						:page-info="account.tokens.pageInfo"
+						:go-to-page="goToPageAccountTokens"
+						:account-id="account.id"
+					/>
 				</template>
 			</Accordion>
 		</DrawerContent>
@@ -198,6 +208,7 @@ type Props = {
 		page: PageInfo
 	) => (target: PaginationTarget) => void
 	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageAccountTokens: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
 defineProps<Props>()

@@ -18,6 +18,7 @@ namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations
             builder.Property(t => t.TokenId).HasColumnName("token_id");
             builder.Property(t => t.ContractIndex).HasColumnName("contract_index");
             builder.Property(t => t.ContractSubIndex).HasColumnName("contract_sub_index");
+            builder.Property(x => x.Index).HasColumnName("index").ValueGeneratedOnAdd();
 
             builder.HasOne(t => t.Token)
                 .WithMany()
