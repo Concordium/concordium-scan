@@ -83,11 +83,13 @@ public class Account
     /// <param name="dbContext">Database Context</param>
     /// <returns></returns>
     [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_token_descending")]
     public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
     {
         return dbContext.AccountTokens
             .Where(t => t.AccountId == this.Id && t.Balance != 0)
-            .Include(t => t.Token)
+            .OrderByDescending(t => t.Index)
+            .Include(t=>t.Token)
             .AsNoTracking();
     }
 }

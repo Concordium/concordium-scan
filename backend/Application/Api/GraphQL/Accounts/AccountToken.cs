@@ -9,6 +9,12 @@ namespace Application.Api.GraphQL.Accounts
     /// </summary>
     public class AccountToken
     {
+
+        /// <summary>
+        /// Serially increasing Index for Account Token.
+        /// </summary>
+        public long Index { get; set; }
+
         /// <summary>
         /// CIS token Contract Index
         /// </summary>
@@ -28,7 +34,7 @@ namespace Application.Api.GraphQL.Accounts
         /// Token balance for this Account
         /// </summary>
         public long Balance { get; set; }
-        
+
         /// <summary>
         /// Related <see cref="Token"/>
         /// </summary>

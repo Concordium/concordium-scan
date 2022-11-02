@@ -47,6 +47,29 @@ const AccountQueryFragment = `
 			amount
 		}
 	}
+	tokens(
+		after: $afterAccountToken
+		before: $beforeAccountToken
+		first: $firstAccountToken
+		last: $lastAccountToken) {
+			pageInfo {
+				hasNextPage
+				hasPreviousPage
+				startCursor
+				endCursor
+				__typename
+			}
+			nodes {
+				index
+				balance
+				contractIndex
+				contractSubIndex
+				tokenId
+				token {
+					metadataUrl
+				}
+			}
+	}
 accountStatement(
 				after: $afterAccountStatement
 				before: $beforeAccountStatement
@@ -202,15 +225,6 @@ delegation {
 		}
 	}
 }
-tokens {
-	balance
-	contractIndex
-	contractSubIndex
-	tokenId
-	token {
-		metadataUrl
-	}
-}
 createdAt
 __typename
 `
@@ -234,6 +248,10 @@ const AccountQuery = gql<AccountByIdResponse>`
 		$beforeAccountReward: String
 		$firstAccountReward: Int
 		$lastAccountReward: Int
+		$afterAccountToken: String
+		$beforeAccountToken: String
+		$firstAccountToken: Int
+		$lastAccountToken: Int
 	) {
 		account(id: $id) {
 			${AccountQueryFragment}
@@ -260,6 +278,10 @@ const AccountQueryByAddress = gql<AccountByAddressResponse>`
 		$beforeAccountReward: String
 		$firstAccountReward: Int
 		$lastAccountReward: Int
+		$afterAccountToken: String
+		$beforeAccountToken: String
+		$firstAccountToken: Int
+		$lastAccountToken: Int
 	) {
 		accountByAddress(accountAddress: $address) {
 			${AccountQueryFragment}

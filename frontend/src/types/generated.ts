@@ -35,7 +35,7 @@ export type Account = {
   id: Scalars['ID'];
   releaseSchedule: AccountReleaseSchedule;
   rewards?: Maybe<AccountRewardConnection>;
-  tokens: Array<AccountToken>;
+  tokens?: Maybe<AccountTokenConnection>;
   transactionCount: Scalars['Int'];
   transactions?: Maybe<AccountTransactionRelationConnection>;
 };
@@ -50,6 +50,14 @@ export type AccountAccountStatementArgs = {
 
 
 export type AccountRewardsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type AccountTokensArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
@@ -233,8 +241,29 @@ export type AccountToken = {
   balance: Scalars['Long'];
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
+  index: Scalars['Long'];
   token: Token;
   tokenId: Scalars['String'];
+};
+
+/** A connection to a list of items. */
+export type AccountTokenConnection = {
+  __typename?: 'AccountTokenConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<AccountTokenEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<AccountToken>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type AccountTokenEdge = {
+  __typename?: 'AccountTokenEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: AccountToken;
 };
 
 export type AccountTransaction = {
