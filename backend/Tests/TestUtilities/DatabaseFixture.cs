@@ -9,8 +9,8 @@ public class DatabaseFixture
     private static readonly object LockObject = new();
     private static bool _databaseAlreadyMigrated;
 
-    public const string ConnectionString = "Host=localhost;Port=5432;Database=ccscan_unittest;User ID=postgres;Password=lingo-bingo;Include Error Detail=true;";
-    public const string ConnectionStringNodeCache = "Host=localhost;Port=5432;Database=ccscan_node_cache_unittest;User ID=postgres;Password=lingo-bingo;Include Error Detail=true;";
+    public const string ConnectionString = "Host=localhost;Port=5432;Database=ccscan_test;User ID=postgres;Password=password;Include Error Detail=true;";
+    public const string ConnectionStringNodeCache = "Host=localhost;Port=5432;Database=ccscan_node_cache_test;User ID=postgres;Password=password;Include Error Detail=true;";
     public DatabaseSettings DatabaseSettings => new()
     {
         ConnectionString = ConnectionString,

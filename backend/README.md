@@ -14,7 +14,7 @@ The following prerequisites must be met in order to run the test suite and/or ru
     * Install with this configuration *(If other configuration values are used, then configuration in code must be changed accordingly)*
         * Port: 5432
         * User: postgres
-        * Password: lingo-bingo
+        * Password: password
 
 * **Concordium Node**
     * During development the Concordium nodes in the development environment (in Azure) were used from local development setup
