@@ -122,7 +122,7 @@
 						:account-statement-items="account.accountStatement.nodes"
 						:page-info="account.accountStatement.pageInfo"
 						:go-to-page="goToPageAccountStatement"
-						:export-url="exportUrl"
+						:export-url="exportUrl(account.address.asString)"
 					/>
 					<div v-else class="p-4">No entries</div>
 				</template>
@@ -201,8 +201,13 @@ type Props = {
 	goToPageAccountRewards: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const { apiUrl } = useRuntimeConfig()
-const exportUrl = `${apiUrl}/../rest/export/statement?accountAddress=${props.account.address.asString}`
+
+function exportUrl(accountAddress) {
+	const url = new URL('../rest/export/statement', apiUrl) // path is relative to '<domain>/graphql'
+	url.searchParams.append('accountAddress', accountAddress)
+	return url.toString()
+}
 </script>
