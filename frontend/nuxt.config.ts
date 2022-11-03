@@ -54,7 +54,11 @@ export default defineNuxtConfig({
 			ENVIRONMENT === 'testnet',
 	},
 	nitro: {
-		preset: 'firebase',
+		// Workaround: Until whatever depends on Nitro has been upgraded to include 'https://github.com/unjs/nitro/commit/92d711fe936fda0ff877c23d8a0d73ed4ea4adc4',
+		// we manually let NITRO_PRESET take precedence.
+		// According to the docs ('https://v3.nuxtjs.org/getting-started/deployment/'), the preset for deploying to node.js is "node-server".
+		// But in the version of nuxt/nitro used atm, the correct value to use is "server" (renamed in 'https://github.com/unjs/nitro/commit/4e7ce01481e162cf7e950c27aa5e4b5d1e5bb245').
+		preset: process.env.NITRO_PRESET || 'firebase',
 	},
 	css: ['@/assets/css/styles.css'],
 	build: {
