@@ -7,7 +7,9 @@
 					<TableTh>Type</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.XL">Reference</TableTh>
 					<TableTh align="right">Amount</TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right">Balance</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.XXL" align="right"
+						>Balance</TableTh
+					>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -142,6 +144,7 @@
 </template>
 
 <script lang="ts" setup>
+import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import RewardIcon from '~/components/icons/RewardIcon.vue'
@@ -150,7 +153,6 @@ import TransferIconIn from '~/components/icons/TransferIconIn.vue'
 import TransferIconOut from '~/components/icons/TransferIconOut.vue'
 import EncryptedIcon from '~/components/icons/EncryptedIcon.vue'
 import DecryptedIcon from '~/components/icons/DecryptedIcon.vue'
-import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
 import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { translateAccountStatementEntryType } from '~/utils/translateAccountStatementEntry'
