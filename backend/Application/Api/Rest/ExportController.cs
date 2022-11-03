@@ -41,14 +41,13 @@ public class ExportController : ControllerBase
             .AsNoTracking()
             .Where(x => x.AccountId == account.Id);
 
-        var scalarQuery = query.Select(x => new
+        var result = query.Select(x => new
         {
             x.Timestamp,
             x.EntryType,
             x.Amount,
         });
-        var values = await scalarQuery.ToListAsync();
-        // TODO Should use something like 'CsvHelper' (see 'https://joshclose.github.io/CsvHelper/examples/writing/write-anonymous-type-objects/')?
+        var values = await result.ToListAsync();
         var csv = new StringBuilder("Time,Amount (CCD),Label\n");
         foreach (var v in values)
         {
