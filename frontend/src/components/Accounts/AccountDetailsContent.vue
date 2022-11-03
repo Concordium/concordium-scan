@@ -122,7 +122,8 @@
 						:account-statement-items="account.accountStatement.nodes"
 						:page-info="account.accountStatement.pageInfo"
 						:go-to-page="goToPageAccountStatement"
-					></AccountDetailsAccountStatement>
+						:export-url="exportUrl(account.address.asString)"
+					/>
 					<div v-else class="p-4">No entries</div>
 				</template>
 			</Accordion>
@@ -201,4 +202,13 @@ type Props = {
 }
 
 defineProps<Props>()
+
+const { apiUrl } = useRuntimeConfig()
+
+function exportUrl(accountAddress) {
+	const url = new URL(apiUrl)
+	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
+	url.searchParams.append('accountAddress', accountAddress)
+	return url.toString()
+}
 </script>

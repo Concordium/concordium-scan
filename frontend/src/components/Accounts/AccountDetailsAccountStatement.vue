@@ -122,15 +122,29 @@
 				</TableRow>
 			</TableBody>
 		</Table>
-		<Pagination
-			v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
-			:page-info="pageInfo"
-			:go-to-page="goToPage"
-		/>
+		<div class="grid grid-cols-4 mt-8">
+			<div class="col-span-3">
+				<Pagination
+					v-if="pageInfo && (pageInfo.hasNextPage || pageInfo.hasPreviousPage)"
+					:page-info="pageInfo"
+					:go-to-page="goToPage"
+				/>
+			</div>
+			<div class="col-span-1 flex justify-end">
+				<a
+					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
+					:href="exportUrl"
+				>
+					<span class="hidden md:inline">Export</span>
+					<DownloadIcon class="h-4 inline align-text-top" />
+				</a>
+			</div>
+		</div>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import RewardIcon from '~/components/icons/RewardIcon.vue'
@@ -158,6 +172,7 @@ type Props = {
 	accountStatementItems: AccountStatementEntry[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	exportUrl: string
 }
 defineProps<Props>()
 </script>

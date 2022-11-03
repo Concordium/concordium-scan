@@ -14,15 +14,15 @@ const VARS: Record<Environment, Config> = {
 		wsUrl: 'ws://localhost:5000/graphql',
 	},
 	stagenet: {
-		apiUrl: 'https://api-ccdscan.stagenet.concordium.com/graphql/',
+		apiUrl: 'https://api-ccdscan.stagenet.concordium.com/graphql',
 		wsUrl: 'wss://api-ccdscan.stagenet.concordium.com/graphql',
 	},
 	testnet: {
-		apiUrl: 'https://api-ccdscan.testnet.concordium.com/graphql/',
+		apiUrl: 'https://api-ccdscan.testnet.concordium.com/graphql',
 		wsUrl: 'wss://api-ccdscan.testnet.concordium.com/graphql',
 	},
 	mainnet: {
-		apiUrl: 'https://api-ccdscan.mainnet.concordium.software/graphql/',
+		apiUrl: 'https://api-ccdscan.mainnet.concordium.software/graphql',
 		wsUrl: 'wss://api-ccdscan.mainnet.concordium.software/graphql',
 	},
 }
