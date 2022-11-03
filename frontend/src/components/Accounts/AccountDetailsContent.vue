@@ -206,7 +206,8 @@ defineProps<Props>()
 const { apiUrl } = useRuntimeConfig()
 
 function exportUrl(accountAddress) {
-	const url = new URL('../rest/export/statement', apiUrl) // path is relative to '<domain>/graphql'
+	const url = new URL(apiUrl)
+	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
 	url.searchParams.append('accountAddress', accountAddress)
 	return url.toString()
 }
