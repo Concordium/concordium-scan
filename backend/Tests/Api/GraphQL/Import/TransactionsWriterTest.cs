@@ -622,7 +622,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
                     .WithEvents(new Upgraded(
                         new ContractAddress(1423, 1),
                         new ModuleRef("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"),
-                        new ModuleRef("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc")
+                        new ModuleRef("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                     ))
                     .Build())
                 .Build());
@@ -632,7 +632,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var result = await ReadSingleTransactionEventType<ContractUpgraded>();
         result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
         result.From.Should().Be("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc");
-        result.To.Should().Be("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc");
+        result.To.Should().Be("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     }
 
     [Fact]

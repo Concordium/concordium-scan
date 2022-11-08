@@ -407,14 +407,14 @@ public class TransactionResultEventConverterTest
 						""address"": { ""index"": 1039, ""subindex"": 0 },
 						""from"": ""73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"",
 						""tag"": ""Upgraded"",
-						""to"": ""73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc""
+						""to"": ""aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa""
 					}";
         
         var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(json, _serializerOptions);
         var typed = Assert.IsType<Upgraded>(deserialized);
         typed.Address.Should().Be(new ContractAddress(1039, 0));
         typed.From.Should().Be(new ModuleRef("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"));
-        typed.To.Should().Be(new ModuleRef("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"));
+        typed.To.Should().Be(new ModuleRef("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
         
         var serialized = JsonSerializer.Serialize(deserialized, _serializerOptions);
         JsonAssert.Equivalent(json, serialized);
