@@ -340,6 +340,12 @@ public record Resumed(
     ContractAddress Address,
     bool Success) : TransactionResultEvent;
 
+public record Upgraded(
+    ContractAddress Address,
+    ModuleRef From,
+    ModuleRef To
+) : TransactionResultEvent;
+
 public record BakerSetOpenStatus(
     ulong BakerId,
     AccountAddress Account,
