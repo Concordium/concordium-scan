@@ -62,11 +62,11 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
     private void SetPendingChange(Baker destination, AccountBaker source, BlockInfo blockInfo)
     {
         if (source.PendingChange == null) throw new ArgumentException("Pending change must not be null");
-        
+
         var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
         activeState.PendingChange = source.PendingChange switch
         {
-            AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
+            AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime),
             AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
         };
@@ -92,6 +92,11 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
     {
         var updatedBaker = await _writer.UpdateBaker(bakerRemoved, src => src.BakerId,
             (src, dst) => SetPendingChange(dst, src));
+        if (updatedBaker is null)
+        {
+            return null;
+        }
+        
         return ((ActiveBakerState)updatedBaker.State).PendingChange!;
     }
 
@@ -99,6 +104,12 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
     {
         var updatedBaker = await _writer.UpdateBaker(stakeDecreased, src => src.BakerId,
             (src, dst) => SetPendingChange(dst, src));
+
+        if (updatedBaker is null)
+        {
+            return null;
+        }
+
         return ((ActiveBakerState)updatedBaker.State).PendingChange!;
     }
 
@@ -123,7 +134,7 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
 
         activeState.PendingChange = source switch
         {
-            BakerRemoved => new PendingBakerRemoval(effectiveTime), 
+            BakerRemoved => new PendingBakerRemoval(effectiveTime),
             BakerStakeDecreased x => new PendingBakerReduceStake(effectiveTime, x.NewStake.MicroCcdValue),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.GetType().Name}'")
         };

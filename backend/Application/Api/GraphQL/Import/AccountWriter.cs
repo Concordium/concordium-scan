@@ -15,11 +15,13 @@ public class AccountWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
-    
+    private readonly ILogger _logger;
+
     public AccountWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
         _metrics = metrics;
+        _logger = Log.ForContext(GetType());
     }
 
     public async Task InsertAccounts(IEnumerable<Account> accounts)
@@ -34,7 +36,7 @@ public class AccountWriter
     public AccountUpdateResult[] UpdateAccounts(AccountUpdate[] accountUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
-        
+
         var sql = @"
             UPDATE graphql_accounts 
             SET ccd_amount = ccd_amount + @AmountAdjustment,
@@ -62,12 +64,12 @@ public class AccountWriter
 
         using var reader = batch.ExecuteReader();
         var returnedItems = IterateBatchDbDataReader(reader, row => new
-            {
-                AccountId = row.GetInt64(0),
-                CcdAmount = row.GetInt64(1),
-            })
+        {
+            AccountId = row.GetInt64(0),
+            CcdAmount = row.GetInt64(1),
+        })
             .ToArray();
-        
+
         connection.Close();
 
         return accountUpdates.Select(update =>
@@ -108,11 +110,11 @@ public class AccountWriter
 
         using var reader = batch.ExecuteReader();
         var returnedItems = IterateBatchDbDataReader(reader, row => new
-            {
-                AccountId = row.GetInt64(0),
-                Index = row.GetInt64(1),
-                TransactionId = row.GetInt64(2)
-            })
+        {
+            AccountId = row.GetInt64(0),
+            Index = row.GetInt64(1),
+            TransactionId = row.GetInt64(2)
+        })
             .ToArray();
 
         foreach (var item in items)
@@ -157,20 +159,29 @@ public class AccountWriter
     public async Task UpdateAccount<TSource>(TSource item, Func<TSource, ulong> delegatorIdSelector, Action<TSource, Account> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccount));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var delegatorId = (long)delegatorIdSelector(item);
 
-        var account = await context.Accounts.SingleAsync(x => x.Id == delegatorId);
-        updateAction(item, account);
-        
+        var account = await context.Accounts.SingleOrDefaultAsync(x => x.Id == delegatorId);
+
+        try
+        {
+            updateAction(item, account);
+        }
+        catch (System.Exception ex)
+        {
+            _logger.Error(ex.Message);
+            return;
+        }
+
         await context.SaveChangesAsync();
     }
-    
+
     public async Task UpdateAccountsWithPendingDelegationChange(DateTimeOffset effectiveTimeEqualOrBefore, Action<Account> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccountsWithPendingDelegationChange));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var sql = $"select * from graphql_accounts where delegation_pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
@@ -180,10 +191,10 @@ public class AccountWriter
 
         foreach (var account in accounts)
             updateAction(account);
-            
+
         await context.SaveChangesAsync();
     }
-    
+
     public async Task UpdateAccounts(Expression<Func<Account, bool>> whereClause, Action<Account> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccounts));
@@ -193,22 +204,22 @@ public class AccountWriter
         var accounts = await context.Accounts
             .Where(whereClause)
             .ToArrayAsync();
-        
+
         if (accounts.Length > 0)
         {
             foreach (var account in accounts)
                 updateAction(account);
-            
+
             await context.SaveChangesAsync();
         }
     }
-    
+
     public async Task UpdateDelegationStakeIfRestakingEarnings(AccountRewardSummary[] stakeUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateDelegationStakeIfRestakingEarnings));
 
         if (stakeUpdates.Length == 0) return;
-        
+
         var sql = @"
             update graphql_accounts 
             set delegation_staked_amount = delegation_staked_amount + @AddedStake 
@@ -232,7 +243,7 @@ public class AccountWriter
 
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
-        
+
         await conn.CloseAsync();
     }
 
