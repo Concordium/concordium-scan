@@ -17,6 +17,7 @@ public class TransactionResultEventConverter : JsonConverter<TransactionResultEv
             { "ModuleDeployed", typeof(ModuleDeployed) },
             { "ContractInitialized", typeof(ContractInitialized) },
             { "Updated", typeof(Updated) },
+            { "Upgraded", typeof(Upgraded) },
             { "Transferred", typeof(Transferred) },
             { "AccountCreated", typeof(AccountCreated) },
             { "CredentialDeployed", typeof(CredentialDeployed) },
