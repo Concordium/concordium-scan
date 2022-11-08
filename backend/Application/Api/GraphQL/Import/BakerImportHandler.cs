@@ -363,6 +363,10 @@ public class BakerImportHandler
                 {
                     UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
                 }
+                else 
+                {
+                    _logger.Error("Could not update pending changes on Baker: " + bakerRemoved.BakerId);
+                }
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
@@ -371,6 +375,10 @@ public class BakerImportHandler
                 if (pendingChange is not null)
                 {
                     UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+                }
+                else
+                {
+                    _logger.Error("Could not update pending changes on Baker: " + stakeDecreased.BakerId);
                 }
             }
 
