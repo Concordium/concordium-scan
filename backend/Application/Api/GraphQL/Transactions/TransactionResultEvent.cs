@@ -204,6 +204,11 @@ public record ContractResumed(
     ContractAddress ContractAddress,
     bool Success) : TransactionResultEvent;
 
+public record ContractUpgraded(
+    ContractAddress ContractAddress,
+    string From,
+    string To) : TransactionResultEvent;
+
 public record BakerSetOpenStatus(
     ulong BakerId,
     AccountAddress AccountAddress,
