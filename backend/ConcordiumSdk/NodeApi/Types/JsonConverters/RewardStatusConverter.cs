@@ -12,7 +12,7 @@ public class RewardStatusConverter : JsonConverter<RewardStatusBase>
         return protocolVersion switch
         {
             null or 1 or 2 or 3 => JsonSerializer.Deserialize<RewardStatusV0>(ref reader, options)!,
-            4 => JsonSerializer.Deserialize<RewardStatusV1>(ref reader, options)!,
+            4 or 5 => JsonSerializer.Deserialize<RewardStatusV1>(ref reader, options)!,
             _ => throw new NotImplementedException()
         };
     }

@@ -43,6 +43,7 @@ public class RewardsSummary
         var accountIdMap = accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
         
         var accountRewards = aggregatedRewards
+            .Where(x => accountIdMap.ContainsKey(x.BaseAddress) && accountIdMap[x.BaseAddress] is not null)
             .Select(x =>
             {
                 var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");

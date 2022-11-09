@@ -14,11 +14,13 @@ public class BakerWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
+    private readonly ILogger _logger;
 
     public BakerWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
         _dbContextFactory = dbContextFactory;
         _metrics = metrics;
+        _logger = Log.ForContext(GetType());
     }
 
     public async Task AddBakers(IEnumerable<Baker> bakers)
@@ -40,11 +42,31 @@ public class BakerWriter
         var baker = await context.Bakers.SingleOrDefaultAsync(x => x.Id == bakerId);
         if (baker == null)
         {
-            baker = createNew(item);
+            try
+            {
+                baker = createNew(item);
+            }
+            catch (System.Exception)
+            {
+                _logger.Error("Exception while trying to create new Baker: " + bakerId);
+                return null;
+            }
+
             context.Add(baker);
         }
         else
-            updateExisting(item, baker);
+        {
+            try
+            {
+                updateExisting(item, baker);
+            }
+            catch (System.Exception)
+            {
+                _logger.Error("Exception while trying to update Baker: " + bakerId);
+                return null;
+            }
+        }
+
         await context.SaveChangesAsync();
         return baker;
     }
@@ -60,7 +82,7 @@ public class BakerWriter
 
         foreach (var baker in context.Bakers.Where(whereClause))
             updateAction(baker);
-        
+
         await context.SaveChangesAsync();
 
     }
@@ -70,7 +92,7 @@ public class BakerWriter
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateBakersFromAccountBaker));
 
         var result = new List<Baker>();
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         foreach (var accountBaker in accountBakers)
         {
@@ -85,7 +107,7 @@ public class BakerWriter
     public async Task UpdateBakersWithPendingChange(DateTimeOffset effectiveTimeEqualOrBefore, Action<Baker> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateBakersWithPendingChange));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var sql = $"select * from graphql_bakers where active_pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
@@ -95,7 +117,7 @@ public class BakerWriter
 
         foreach (var baker in bakers)
             updateAction(baker);
-            
+
         await context.SaveChangesAsync();
     }
 
@@ -117,7 +139,7 @@ public class BakerWriter
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateStakeIfBakerActiveRestakingEarnings));
 
         if (stakeUpdates.Length == 0) return;
-        
+
         var sql = @"
             update graphql_bakers 
             set active_staked_amount = active_staked_amount + @AddedStake 
@@ -141,7 +163,7 @@ public class BakerWriter
 
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
-        
+
         await conn.CloseAsync();
     }
 
@@ -187,7 +209,7 @@ public class BakerWriter
                         active_pool_total_stake = new_values.delegated_stake + active_staked_amount
                     from new_values 
                     where new_values.baker_id = baker.id";
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
@@ -206,7 +228,7 @@ public class BakerWriter
             CapitalBound = capitalBound,
             LeverageFactor = leverageFactor
         };
-        
+
         var sql = @"update graphql_bakers 
                         set active_pool_delegated_stake_cap = 
                             greatest(
@@ -215,7 +237,7 @@ public class BakerWriter
                                     floor((@CapitalBound * (@TotalStaked - active_pool_delegated_stake) - active_staked_amount) / (1 - @CapitalBound)),
                                     (@LeverageFactor - 1.0) * active_staked_amount)) 
                         where active_pool_open_status is not null;";
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
@@ -254,7 +276,7 @@ public class BakerWriter
                    active_pool_payday_status_delegated_stake
             from graphql_bakers
             where active_pool_payday_status_baker_stake is not null;";
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
@@ -262,7 +284,7 @@ public class BakerWriter
         await conn.ExecuteAsync(sql);
         await conn.CloseAsync();
     }
-    
+
     public async Task UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(long payoutBlockId)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(CreateTemporaryBakerPoolPaydayStatuses));
@@ -271,10 +293,10 @@ public class BakerWriter
         {
             PayoutBlockId = payoutBlockId
         };
-        
+
         var sql = @"
             update graphql_pool_payday_stakes set payout_block_id = @PayoutBlockId where payout_block_id = -1;";
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
