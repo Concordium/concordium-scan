@@ -51,7 +51,12 @@ public class ExportController : ControllerBase
         var csv = new StringBuilder("Time,Amount (CCD),Label\n");
         foreach (var v in values)
         {
-            csv.Append($"{v.Timestamp.ToString("u")},{v.Amount / 1e6},{v.EntryType}\n");
+            csv.Append(v.Timestamp.ToString("u"));
+            csv.Append(',');
+            csv.Append(v.Amount / 1e6);
+            csv.Append(',');
+            csv.Append(v.EntryType);
+            csv.Append('\n');
         }
 
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
