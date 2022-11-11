@@ -19,7 +19,7 @@ public class ExportController : ControllerBase
 
     [HttpGet]
     [Route("rest/export/statement")]
-    public async Task<ActionResult> GetStatementExport(string accountAddress)
+    public async Task<ActionResult> GetStatementExport(string accountAddress, DateTime? fromTime, DateTime? toTime)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
@@ -34,12 +34,31 @@ public class ExportController : ControllerBase
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
         if (account == null)
         {
-            return NotFound("account does not exist");
+            return NotFound($"account '{accountAddress}' does not exist");
         }
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
             .Where(x => x.AccountId == account.Id);
+        if (fromTime.HasValue)
+        {
+            if (fromTime.Value.Kind != DateTimeKind.Utc)
+            {
+                return BadRequest("time zone missing on 'fromTime'");
+            }
+
+            DateTimeOffset t = fromTime.Value;
+            query = query.Where(e => e.Timestamp >= t);
+        }
+        if (toTime.HasValue)
+        {
+            if (toTime.Value.Kind != DateTimeKind.Utc)
+            {
+                return BadRequest("time zone missing on 'toTime'");
+            }
+            DateTimeOffset t = toTime.Value;
+            query = query.Where(e => e.Timestamp <= t);
+        }
 
         var result = query.Select(x => new
         {
@@ -49,9 +68,18 @@ public class ExportController : ControllerBase
         });
         var values = await result.ToListAsync();
         var csv = new StringBuilder("Time,Amount (CCD),Label\n");
+        DateTimeOffset? firstTime = null;
+        DateTimeOffset? lastTime = null;
         foreach (var v in values)
         {
-            csv.Append(v.Timestamp.ToString("u"));
+            var t = v.Timestamp;
+            
+            // Keep timestamps for result filename.
+            firstTime ??= t;
+            lastTime = t;
+            
+            // Append row onto result contents.
+            csv.Append(t.ToString("u"));
             csv.Append(',');
             csv.Append(v.Amount / 1e6);
             csv.Append(',');
@@ -61,7 +89,7 @@ public class ExportController : ControllerBase
 
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
-            FileDownloadName = $"statement-{accountAddress}.csv",
+            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}_{lastTime:yyyyMMddHHmmss}.csv",
         };
     }
 }
