@@ -25,7 +25,7 @@ public class ExportController : ControllerBase
 
         if (!ConcordiumSdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
         {
-            return BadRequest("invalid account format");
+            return BadRequest("Invalid account format.");
         }
 
         var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
@@ -34,7 +34,7 @@ public class ExportController : ControllerBase
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
         if (account == null)
         {
-            return NotFound($"account '{accountAddress}' does not exist");
+            return NotFound($"Account '{accountAddress}' does not exist.");
         }
 
         var query = dbContext.AccountStatementEntries
@@ -44,7 +44,7 @@ public class ExportController : ControllerBase
         {
             if (fromTime.Value.Kind != DateTimeKind.Utc)
             {
-                return BadRequest("time zone missing on 'fromTime'");
+                return BadRequest("Time zone missing on 'fromTime'.");
             }
 
             DateTimeOffset t = fromTime.Value;
@@ -54,12 +54,12 @@ public class ExportController : ControllerBase
         {
             if (toTime.Value.Kind != DateTimeKind.Utc)
             {
-                return BadRequest("time zone missing on 'toTime'");
+                return BadRequest("Time zone missing on 'toTime'.");
             }
             DateTimeOffset t = toTime.Value;
             query = query.Where(e => e.Timestamp <= t);
         }
-
+        
         var result = query.Select(x => new
         {
             x.Timestamp,
@@ -67,29 +67,30 @@ public class ExportController : ControllerBase
             x.Amount,
         });
         var values = await result.ToListAsync();
+        if (values.Count == 0)
+        {
+            return new ContentResult
+            {
+                Content = "Nothing to export.\n"
+            };
+        }
+        
         var csv = new StringBuilder("Time,Amount (CCD),Label\n");
-        DateTimeOffset? firstTime = null;
-        DateTimeOffset? lastTime = null;
         foreach (var v in values)
         {
-            var t = v.Timestamp;
-            
-            // Keep timestamps for result filename.
-            firstTime ??= t;
-            lastTime = t;
-            
-            // Append row onto result contents.
-            csv.Append(t.ToString("u"));
+            csv.Append(v.Timestamp.ToString("u"));
             csv.Append(',');
             csv.Append(v.Amount / 1e6);
             csv.Append(',');
             csv.Append(v.EntryType);
             csv.Append('\n');
         }
-
+        
+        var firstTime = values.First().Timestamp;
+        var lastTime = values.Last().Timestamp;
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
-            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}_{lastTime:yyyyMMddHHmmss}.csv",
+            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}-{lastTime:yyyyMMddHHmmss}.csv"
         };
     }
 }
