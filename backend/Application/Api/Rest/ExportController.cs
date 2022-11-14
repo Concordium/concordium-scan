@@ -69,10 +69,7 @@ public class ExportController : ControllerBase
         var values = await result.ToListAsync();
         if (values.Count == 0)
         {
-            return new ContentResult
-            {
-                Content = "Nothing to export.\n"
-            };
+            return new NoContentResult();
         }
         
         var csv = new StringBuilder("Time,Amount (CCD),Label\n");
