@@ -148,7 +148,6 @@ public class ImportWriteController : BackgroundService
             await _importStateController.SaveChanges(importState);
 
             txScope.Complete();
-            _importStateController.SavedChangesCommitted();
         }
         finally
         {
@@ -156,6 +155,7 @@ public class ImportWriteController : BackgroundService
                 txScope.Dispose(); // this is where the actual commit or rollback is performed
         }
 
+        _importStateController.SavedChangesCommitted();
         return result;
     }
 
