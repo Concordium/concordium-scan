@@ -92,7 +92,11 @@ public class ImportWriteController : BackgroundService
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
                 
-                _logger.Information("Block {blockhash} at block height {blockheight} written", result.Block.BlockHash, result.Block.BlockHeight);
+                _logger.Information(
+                    "Block {blockhash} at block height {blockheight} written, time: {blockTime}", 
+                    result.Block.BlockHash, 
+                    result.Block.BlockHeight,
+                    result.Block.BlockSlotTime.ToUniversalTime().ToString());
                 
                 await _accountBalanceValidator.PerformValidations(result.Block);
                 
