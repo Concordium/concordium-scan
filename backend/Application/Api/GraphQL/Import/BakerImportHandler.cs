@@ -202,13 +202,21 @@ public class BakerImportHandler
         var poolStatuses = await payload.ReadAllBakerPoolStatuses();
         foreach (var poolStatus in poolStatuses)
         {
-            await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+            try
             {
-                var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
+                await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+                            {
+                                var pool = dst.ActiveState?.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
 
-                var status = src.CurrentPaydayStatus;
-                ApplyPaydayStatus(pool, status);
-            });
+                                var status = src.CurrentPaydayStatus;
+                                ApplyPaydayStatus(pool, status);
+                            });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+                continue;
+            }
         }
     }
 
@@ -355,13 +363,27 @@ public class BakerImportHandler
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
             {
                 var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(bakerRemoved);
-                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+                if (pendingChange is not null)
+                {
+                    UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+                }
+                else 
+                {
+                    _logger.Error("Could not update pending changes on Baker: " + bakerRemoved.BakerId);
+                }
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
             {
                 var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(stakeDecreased);
-                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+                if (pendingChange is not null)
+                {
+                    UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
+                }
+                else
+                {
+                    _logger.Error("Could not update pending changes on Baker: " + stakeDecreased.BakerId);
+                }
             }
 
             if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
@@ -520,8 +542,8 @@ public class BakerImportHandler
     {
         private ulong _totalAmountStaked = 0;
         private int _bakersAdded = 0;
-        private readonly List<long> _bakersRemoved = new ();
-        private readonly List<long> _bakersClosedForAll = new ();
+        private readonly List<long> _bakersRemoved = new();
+        private readonly List<long> _bakersClosedForAll = new();
         private PaydayPoolStakeSnapshot? _paydayStakeSnapshot = null;
 
         public void SetTotalAmountStaked(ulong totalAmountStaked)
