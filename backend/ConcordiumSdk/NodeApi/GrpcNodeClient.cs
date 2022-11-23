@@ -33,14 +33,15 @@ public class GrpcNodeClient : INodeClient, IDisposable
             { "authentication", settings.AuthenticationToken }
         };
 
+        var address = settings.Address;
         var options = new GrpcChannelOptions
         {
-            Credentials = ChannelCredentials.Insecure,
+            Credentials = address.StartsWith("https:") ? ChannelCredentials.SecureSsl : ChannelCredentials.Insecure,
             HttpClient = httpClient,
             DisposeHttpClient = false,
             MaxReceiveMessageSize = 64 * 1024 * 1024, // 64 MB
         };
-        _grpcChannel = GrpcChannel.ForAddress(settings.Address, options);
+        _grpcChannel = GrpcChannel.ForAddress(address, options);
         _client = new P2P.P2PClient(_grpcChannel);
 
         _jsonSerializerOptions = GrpcNodeJsonSerializerOptionsFactory.Create();
