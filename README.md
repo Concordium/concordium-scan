@@ -30,10 +30,10 @@ The project ships a Docker Compose spec for deploying a CCDScan Backend with a T
 
 *Example*
 
-Run backend from public image `concordium/ccdscan:1.3.0-0` against a local mainnet node on port 5001:
+Run backend on port 5001 from public image `concordium/ccdscan:<tag>` against a local mainnet node:
 
 ```shell
-export CCDSCAN_BACKEND_IMAGE=concordium/ccdscan:1.3.0-0
+export CCDSCAN_BACKEND_IMAGE=concordium/ccdscan:<tag>
 export CCDSCAN_BACKEND_PORT=5001
 export CCDSCAN_DOMAIN=mainnet.concordium.software
 docker-compose pull
