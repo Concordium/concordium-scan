@@ -69,6 +69,9 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return JsonSerializer.Deserialize<BlockHash[]>(response.Value, _jsonSerializerOptions);
     }
 
+    /// <summary>
+    /// Get a list of all accounts that exist in the state at the end of the given block.
+    /// </summary>
     public async Task<ConcordiumSdk.Types.AccountAddress[]> GetAccountListAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash

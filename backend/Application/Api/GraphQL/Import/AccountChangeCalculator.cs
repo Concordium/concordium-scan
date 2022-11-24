@@ -75,7 +75,7 @@ public class AccountChangeCalculator
 
         return result;
     }
-
+    
     private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source)
     {
         if (source.Sender != null) yield return source.Sender;
@@ -99,9 +99,8 @@ public class AccountChangeCalculator
 
         var baseAddresses = aggregatedBalanceUpdates.Select(x => x.BaseAddress);
         var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(baseAddresses);
-
+        
         var amountAdjustmentResults = aggregatedBalanceUpdates
-            .Where(x => accountIdMap.ContainsKey(x.BaseAddress) && accountIdMap[x.BaseAddress] is not null)
             .Select(x =>
             {
                 var accountId = accountIdMap[x.BaseAddress] ?? throw new InvalidOperationException("Attempt at updating account that does not exist!");
@@ -152,18 +151,15 @@ public class AccountChangeCalculator
                 .Distinct();
             var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
-            toInsert = result
-            .Where(x => accountIdMap.ContainsKey(x.AccountBaseAddress) && accountIdMap[x.AccountBaseAddress].HasValue)
-            .Where(x => accountIdMap.ContainsKey(x.FromAccountBaseAddress) && accountIdMap[x.FromAccountBaseAddress].HasValue)
-            .Select(x => new AccountReleaseScheduleItem
-            {
-                AccountId = accountIdMap[x.AccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
-                TransactionId = x.TransactionId,
-                Index = x.ScheduleIndex,
-                Timestamp = x.Timestamp,
-                Amount = x.Amount,
-                FromAccountId = accountIdMap[x.FromAccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
-            })
+            toInsert = result.Select(x => new AccountReleaseScheduleItem
+                {
+                    AccountId = accountIdMap[x.AccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
+                    TransactionId = x.TransactionId,
+                    Index = x.ScheduleIndex,
+                    Timestamp = x.Timestamp,
+                    Amount = x.Amount,
+                    FromAccountId = accountIdMap[x.FromAccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
+                })
                 .ToArray();
         }
 
@@ -180,25 +176,23 @@ public class AccountChangeCalculator
             .Distinct();
         var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
-        var result = balanceUpdates
-        .Where(x => accountIdMap.ContainsKey(x.AccountAddress.GetBaseAddress().AsString) && accountIdMap[x.AccountAddress.GetBaseAddress().AsString] is not null)
-        .Select(x => new AccountStatementEntry
-        {
-            AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
-            Index = default, // Will be set by database
-            Timestamp = block.BlockSlotTime,
-            Amount = x.AmountAdjustment,
-            EntryType = Map(x.BalanceUpdateType),
-            BlockId = block.Id,
-            TransactionId = GetTransactionId(x, transactions)
-        })
-        .ToArray();
+        var result = balanceUpdates.Select(x => new AccountStatementEntry
+            {
+                AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
+                Index = default, // Will be set by database
+                Timestamp = block.BlockSlotTime,
+                Amount = x.AmountAdjustment,
+                EntryType = Map(x.BalanceUpdateType),
+                BlockId = block.Id,
+                TransactionId = GetTransactionId(x, transactions)
+            })
+            .ToArray();
 
         var accountUpdateResultsDictionary = accountUpdateResults.ToDictionary(x => x.AccountId);
         foreach (var accountGroup in result.GroupBy(x => x.AccountId))
         {
             var updateResult = accountUpdateResultsDictionary[accountGroup.Key];
-
+            
             var accountBalance = updateResult.AccountBalanceBeforeUpdate;
             foreach (var entry in accountGroup)
             {
@@ -209,14 +203,14 @@ public class AccountChangeCalculator
             if (accountBalance != updateResult.AccountBalanceAfterUpdate)
                 throw new InvalidOperationException("Did not end up with the expected result!");
         }
-
+        
         return result;
     }
 
     private long? GetTransactionId(AccountBalanceUpdate update, TransactionPair[] transactions)
     {
         if (update.TransactionHash == null) return null;
-
+        
         var transaction = transactions.Single(x => x.Source.Hash == update.TransactionHash!);
         return transaction.Target.Id;
     }
