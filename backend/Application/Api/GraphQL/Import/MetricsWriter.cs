@@ -216,14 +216,14 @@ public class MetricsWriter
             
             var bakerRewardsSummary = poolReward.Pool switch
             {
-                BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.SingleOrDefault(x => x.AccountId == baker.BakerId),
+                BakerPoolRewardTarget baker => rewardsSummary.AggregatedAccountRewards.Single(x => x.AccountId == baker.BakerId),
                 PassiveDelegationPoolRewardTarget => null,
                 _ => throw new NotImplementedException()
             };
             
             var stakeSnapshot = poolReward.Pool switch
             {
-                BakerPoolRewardTarget baker => paydayPoolStakeSnapshot.Items.SingleOrDefault(x => x.BakerId == baker.BakerId),
+                BakerPoolRewardTarget baker => paydayPoolStakeSnapshot.Items.Single(x => x.BakerId == baker.BakerId),
                 PassiveDelegationPoolRewardTarget => new PaydayPoolStakeSnapshotItem(-1, 0, paydayPassiveDelegationStakeSnapshot.DelegatedStake),
                 _ => throw new NotImplementedException()
             };
@@ -247,9 +247,9 @@ public class MetricsWriter
             var sumBaker = transactionFeesBaker + bakerRewardBaker + finalizationRewardBaker;
             var sumDelegators = transactionFeesDelegators + bakerRewardDelegators + finalizationRewardDelegators;
 
-            var totalApy = CalculateApy(sumTotal, stakeSnapshot?.BakerStake ?? 0 + stakeSnapshot?.DelegatedStake??0, paydaySummary.PaydayDurationSeconds);
-            var bakerApy = CalculateApy(sumBaker, stakeSnapshot?.BakerStake ?? 0, paydaySummary.PaydayDurationSeconds);
-            var delegatorsApy = CalculateApy(sumDelegators, stakeSnapshot?.DelegatedStake ?? 0 , paydaySummary.PaydayDurationSeconds);
+            var totalApy = CalculateApy(sumTotal, stakeSnapshot.BakerStake + stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds);
+            var bakerApy = CalculateApy(sumBaker, stakeSnapshot.BakerStake, paydaySummary.PaydayDurationSeconds);
+            var delegatorsApy = CalculateApy(sumDelegators, stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds);
             
             cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
             cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));

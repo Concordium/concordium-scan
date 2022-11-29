@@ -92,7 +92,11 @@ public class ImportWriteController : BackgroundService
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
                 
-                _logger.Information("Block {blockhash} at block height {blockheight} written", result.Block.BlockHash, result.Block.BlockHeight);
+                _logger.Information(
+                    "Block {blockhash} at block height {blockheight} written, time: {blockTime}", 
+                    result.Block.BlockHash, 
+                    result.Block.BlockHeight,
+                    result.Block.BlockSlotTime.ToUniversalTime().ToString());
                 
                 await _accountBalanceValidator.PerformValidations(result.Block);
                 
@@ -144,7 +148,6 @@ public class ImportWriteController : BackgroundService
             await _importStateController.SaveChanges(importState);
 
             txScope.Complete();
-            _importStateController.SavedChangesCommitted();
         }
         finally
         {
@@ -152,6 +155,7 @@ public class ImportWriteController : BackgroundService
                 txScope.Dispose(); // this is where the actual commit or rollback is performed
         }
 
+        _importStateController.SavedChangesCommitted();
         return result;
     }
 
