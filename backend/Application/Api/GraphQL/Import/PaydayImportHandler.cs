@@ -45,8 +45,15 @@ public class PaydayImportHandler
             }
             else if (status.NextPaydayTime != rewardStatus.NextPaydayTime)
             {
-                var duration = status.NextPaydayTime - status.PaydayStartTime;
-                var result = new FirstBlockAfterPayday(status.NextPaydayTime, Convert.ToInt64(duration.TotalSeconds));
+                var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
+
+                // Upon update to protocol 5 the time was shifted by ~5 secs on Testnet
+                // Duration should be adjusted
+                if(payload.BlockInfo.BlockHash.AsString == "d2d9f88cb953c3314dc1219120d140deaffc44c73ca335f6227b84c09ba7a9d4") {
+                    duration = 24 * 60 * 60;
+                }
+
+                var result = new FirstBlockAfterPayday(status.NextPaydayTime, duration);
                 
                 status.PaydayStartTime = status.NextPaydayTime;
                 status.NextPaydayTime = rewardStatus.NextPaydayTime;
