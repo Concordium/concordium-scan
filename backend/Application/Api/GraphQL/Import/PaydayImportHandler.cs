@@ -47,7 +47,7 @@ public class PaydayImportHandler
             {
                 var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
 
-                // Upon update to protocol 5 the time was shifted by ~5 secs on Testnet
+                // Upon update to protocol 5 the time was shifted by ~5 minutes (287 seconds) on Testnet
                 // Duration should be adjusted
                 if(payload.BlockInfo.BlockHash.AsString == "d2d9f88cb953c3314dc1219120d140deaffc44c73ca335f6227b84c09ba7a9d4") {
                     duration = 24 * 60 * 60;
