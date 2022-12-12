@@ -37,26 +37,28 @@ public class PaydayImportHandler
             {
                 status = new PaydayStatus
                 {
+                    ProtocolVersion = payload.BlockSummary.ProtocolVersion,
                     PaydayStartTime = payload.BlockInfo.BlockSlotTime, // Best guess at a start time for the first payday period!
                     NextPaydayTime = rewardStatus.NextPaydayTime
                 };
                 dbContext.PaydayStatuses.Add(status);
                 await dbContext.SaveChangesAsync();
             }
+            else if (status.ProtocolVersion != payload.BlockSummary.ProtocolVersion)
+            {
+                status.PaydayStartTime = payload.BlockInfo.BlockSlotTime;
+                status.NextPaydayTime = rewardStatus.NextPaydayTime;
+                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
+                await dbContext.SaveChangesAsync();
+            }
             else if (status.NextPaydayTime != rewardStatus.NextPaydayTime)
             {
                 var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
-
-                // Upon update to protocol 5 the time was shifted by ~5 minutes (287 seconds) on Testnet
-                // Duration should be adjusted
-                if(payload.BlockInfo.BlockHash.AsString == "d2d9f88cb953c3314dc1219120d140deaffc44c73ca335f6227b84c09ba7a9d4") {
-                    duration = 24 * 60 * 60;
-                }
-
                 var result = new FirstBlockAfterPayday(status.NextPaydayTime, duration);
                 
                 status.PaydayStartTime = status.NextPaydayTime;
                 status.NextPaydayTime = rewardStatus.NextPaydayTime;
+                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
                 await dbContext.SaveChangesAsync();
                 return result;
             }
