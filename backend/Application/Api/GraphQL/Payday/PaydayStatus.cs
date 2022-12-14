@@ -16,7 +16,10 @@ public class PaydayStatus
 
     [GraphQLIgnore]
     public DateTimeOffset PaydayStartTime { get; set; }
-    
+
+    [GraphQLIgnore]
+    public int? ProtocolVersion { get; set; }
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
     public IQueryable<PaydaySummary> GetPaydaySummaries([ScopedService] GraphQlDbContext dbContext)

@@ -29,6 +29,7 @@ public class PaydayStatusConfigurationTest : IClassFixture<DatabaseFixture>
         {
             PaydayStartTime = _anyDateTimeOffset,
             NextPaydayTime = _anyDateTimeOffset.AddHours(2),
+            ProtocolVersion = 4
         };
 
         await AddPaydayStatus(input);
@@ -38,6 +39,7 @@ public class PaydayStatusConfigurationTest : IClassFixture<DatabaseFixture>
         result.Should().NotBeNull();
         result!.PaydayStartTime.Should().Be(_anyDateTimeOffset);
         result.NextPaydayTime.Should().Be(_anyDateTimeOffset.AddHours(2));
+        result.ProtocolVersion.Should().Be(4);
     }
 
     private async Task AddPaydayStatus(PaydayStatus input)

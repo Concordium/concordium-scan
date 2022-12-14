@@ -190,6 +190,8 @@ public class MetricsWriter
         if (poolRewards.Length == 0) 
             return;
         
+        // Here payday summary cannot be null. 
+        // So pool rewards have length > 0 when there is payday summary
         if (paydaySummary == null) throw new ArgumentNullException(nameof(paydaySummary));
         if (paydayPoolStakeSnapshot == null) throw new ArgumentNullException(nameof(paydayPoolStakeSnapshot));
         if (paydayPassiveDelegationStakeSnapshot == null) throw new ArgumentNullException(nameof(paydayPassiveDelegationStakeSnapshot));
@@ -287,9 +289,11 @@ public class MetricsWriter
 
         if (stakedAmount == 0) return null;
         
-        const double secondsPerYear = 365 * 24 * 60 * 60;
-        var v1 = 1 + rewardAmount / (double)stakedAmount;
-        var v2 = secondsPerYear / paydayDurationSeconds;
-        return Math.Pow(v1, v2) - 1;
+        const double secondsPerYear = 31536000;
+        var rate = rewardAmount / (double)stakedAmount;
+        var compoundingPeriods = secondsPerYear / paydayDurationSeconds;
+        var apy = Math.Pow(1 + rate, compoundingPeriods) - 1;
+
+        return apy;
     }
 }

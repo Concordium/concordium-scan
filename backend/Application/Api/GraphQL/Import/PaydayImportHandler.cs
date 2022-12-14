@@ -37,19 +37,28 @@ public class PaydayImportHandler
             {
                 status = new PaydayStatus
                 {
+                    ProtocolVersion = payload.BlockSummary.ProtocolVersion,
                     PaydayStartTime = payload.BlockInfo.BlockSlotTime, // Best guess at a start time for the first payday period!
                     NextPaydayTime = rewardStatus.NextPaydayTime
                 };
                 dbContext.PaydayStatuses.Add(status);
                 await dbContext.SaveChangesAsync();
             }
+            else if (status.ProtocolVersion != payload.BlockSummary.ProtocolVersion)
+            {
+                status.PaydayStartTime = payload.BlockInfo.BlockSlotTime;
+                status.NextPaydayTime = rewardStatus.NextPaydayTime;
+                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
+                await dbContext.SaveChangesAsync();
+            }
             else if (status.NextPaydayTime != rewardStatus.NextPaydayTime)
             {
-                var duration = status.NextPaydayTime - status.PaydayStartTime;
-                var result = new FirstBlockAfterPayday(status.NextPaydayTime, Convert.ToInt64(duration.TotalSeconds));
+                var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
+                var result = new FirstBlockAfterPayday(status.NextPaydayTime, duration);
                 
                 status.PaydayStartTime = status.NextPaydayTime;
                 status.NextPaydayTime = rewardStatus.NextPaydayTime;
+                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
                 await dbContext.SaveChangesAsync();
                 return result;
             }
