@@ -1526,6 +1526,22 @@ export type NewEncryptedAmount = {
   newIndex: Scalars['UnsignedLong'];
 };
 
+export enum NodeSortDirection {
+  Asc = 'ASC',
+  Dsc = 'DSC'
+}
+
+export enum NodeSortField {
+  AveragePing = 'AVERAGE_PING',
+  BlocksReceivedCount = 'BLOCKS_RECEIVED_COUNT',
+  ClientVersion = 'CLIENT_VERSION',
+  ConsensusBakerId = 'CONSENSUS_BAKER_ID',
+  FinalizedBlockHeight = 'FINALIZED_BLOCK_HEIGHT',
+  NodeName = 'NODE_NAME',
+  PeersCount = 'PEERS_COUNT',
+  Uptime = 'UPTIME'
+}
+
 export type NodeStatus = {
   __typename?: 'NodeStatus';
   averageBytesPerSecondIn: Scalars['Float'];
@@ -2054,6 +2070,8 @@ export type QueryNodeStatusesArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+  sortDirection: NodeSortDirection;
+  sortField: NodeSortField;
 };
 
 
