@@ -7,6 +7,8 @@ namespace Application.Api.GraphQL.Network;
 [ExtendObjectType(typeof(Query))]
 public class NetworkQuery
 {
+    private const int MaxSemverLength = 1024;
+
     [UsePaging]
     public IEnumerable<NodeStatus> GetNodeStatuses(
         [Service] NodeStatusSnapshot nodeSummarySnapshot,
@@ -19,8 +21,8 @@ public class NetworkQuery
             NodeSortField.AveragePing => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.AveragePing) : statuses.OrderByDescending(s => s.AveragePing),
             NodeSortField.BlocksReceivedCount => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.BlocksReceivedCount) : statuses.OrderByDescending(s => s.BlocksReceivedCount),
             NodeSortField.ClientVersion => sortDirection == NodeSortDirection.ASC
-                ? statuses.OrderBy(s => s.ClientVersion, new ClientVersionComparer())
-                : statuses.OrderByDescending(s => s.ClientVersion, new ClientVersionComparer()),
+                ? statuses.OrderBy(s => Semver.SemVersion.Parse(s.ClientVersion, Semver.SemVersionStyles.Any, MaxSemverLength), Semver.SemVersion.SortOrderComparer)
+                : statuses.OrderByDescending(s => Semver.SemVersion.Parse(s.ClientVersion, Semver.SemVersionStyles.Any, MaxSemverLength), Semver.SemVersion.SortOrderComparer),
             NodeSortField.ConsensusBakerId => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.ConsensusBakerId) : statuses.OrderByDescending(s => s.ConsensusBakerId),
             NodeSortField.FinalizedBlockHeight => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.FinalizedBlockHeight) : statuses.OrderByDescending(s => s.FinalizedBlockHeight),
             NodeSortField.NodeName => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.NodeName) : statuses.OrderByDescending(s => s.NodeName),
