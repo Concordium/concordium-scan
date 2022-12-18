@@ -47,6 +47,7 @@ export default defineNuxtConfig({
 	],
 	publicRuntimeConfig: {
 		...getConfig(ENVIRONMENT),
+		version: process.env.npm_package_version,
 		environment: ENVIRONMENT,
 		includeDevTools:
 			ENVIRONMENT === 'dev' ||
