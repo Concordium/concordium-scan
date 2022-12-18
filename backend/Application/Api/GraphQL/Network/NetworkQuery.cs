@@ -25,7 +25,9 @@ public class NetworkQuery
                 : statuses.OrderByDescending(s => s.ClientVersion, new ClientVersionComparer()),
             NodeSortField.ConsensusBakerId => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.ConsensusBakerId) : statuses.OrderByDescending(s => s.ConsensusBakerId),
             NodeSortField.FinalizedBlockHeight => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.FinalizedBlockHeight) : statuses.OrderByDescending(s => s.FinalizedBlockHeight),
-            NodeSortField.NodeName => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.NodeName) : statuses.OrderByDescending(s => s.NodeName),
+            NodeSortField.NodeName => sortDirection == NodeSortDirection.ASC
+                ? statuses.OrderBy(s => s.NodeName, StringComparer.InvariantCultureIgnoreCase)
+                : statuses.OrderByDescending(s => s.NodeName, StringComparer.InvariantCultureIgnoreCase),
             NodeSortField.PeersCount => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.PeersCount) : statuses.OrderByDescending(s => s.PeersCount),
             NodeSortField.Uptime => sortDirection == NodeSortDirection.ASC ? statuses.OrderBy(s => s.Uptime) : statuses.OrderByDescending(s => s.Uptime),
             _ => throw new NotImplementedException()
