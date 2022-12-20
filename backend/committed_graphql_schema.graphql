@@ -1441,7 +1441,13 @@ type Query {
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
-  nodeStatuses("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
+  nodeStatuses("Returns the first _n_ elements from the list."
+    sortField: NodeSortField! 
+    sortDirection: NodeSortDirection! 
+    first: Int "Returns the elements in the list that come after the specified cursor." 
+    after: String "Returns the last _n_ elements from the list." 
+    last: Int "Returns the elements in the list that come before the specified cursor." 
+    before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
 }
 
@@ -1807,6 +1813,22 @@ enum MetricsPeriod {
   LAST7_DAYS
   LAST30_DAYS
   LAST_YEAR
+}
+
+enum NodeSortDirection {
+  ASC
+  DSC
+}
+
+enum NodeSortField {
+  NODE_NAME
+  CONSENSUS_BAKER_ID
+  UPTIME
+  CLIENT_VERSION
+  AVERAGE_PING
+  PEERS_COUNT
+  FINALIZED_BLOCK_HEIGHT
+  BLOCKS_RECEIVED_COUNT
 }
 
 enum RewardType {

@@ -2,6 +2,17 @@
 	<div>
 		<Title>CCDScan | Nodes</Title>
 
+		<header
+			class="flex flex-wrap justify-between gap-8 w-full mb-4 mt-8 lg:mt-0"
+		>
+			<div class="flex flex-wrap flex-grow justify-end items-center gap-8">
+				<NodesSortFieldSelect
+					v-model="tableSortField"
+					class="justify-self-start"
+				/>
+			</div>
+		</header>
+
 		<Table>
 			<TableHead>
 				<TableRow>
@@ -19,6 +30,9 @@
 					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" align="right">
 						Fin. length
+					</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG" align="right">
+						Rec. length
 					</TableTh>
 				</TableRow>
 			</TableHead>
@@ -73,6 +87,13 @@
 					>
 						{{ node.finalizedBlockHeight }}
 					</TableTd>
+					<TableTd
+						v-if="breakpoint >= Breakpoint.LG"
+						class="numerical"
+						align="right"
+					>
+						{{ node.blocksReceivedCount }}
+					</TableTd>
 				</TableRow>
 			</TableBody>
 
@@ -123,15 +144,23 @@ import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useNodeQuery } from '~/queries/useNodeQuery'
 import NodeLink from '~/components/molecules/NodeLink.vue'
+import NodesSortFieldSelect from '~/components/molecules/NodesSortFieldSelect.vue'
+import { NodeSortField, NodeSortDirection } from '~/types/generated'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
-const { first, last, after, before, goToPage } = usePagination()
-
-const { data, error, componentState } = useNodeQuery({
-	first,
-	last,
-	after,
-	before,
-})
+const { first, last, after, before, goToPage, resetPagination } =
+	usePagination()
+const tableSortField = ref<NodeSortField>(NodeSortField.NodeName)
+const tableSortDirection = ref<NodeSortDirection>(NodeSortDirection.Asc)
+const { data, error, componentState } = useNodeQuery(
+	tableSortField,
+	tableSortDirection,
+	{
+		first,
+		last,
+		after,
+		before,
+	}
+)
 </script>
