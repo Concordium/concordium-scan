@@ -6,6 +6,7 @@
 			<NuxtLink to="/" class="font-bold">
 				<LogoWithText class="w-32 hidden lg:block" />
 				<LogoNoText class="h-6 lg:hidden block align-middle" />
+				<Versions class="hidden lg:block" />
 			</NuxtLink>
 
 			<NetworkSelect class="hidden lg:block" />
@@ -23,4 +24,5 @@ import NetworkSelect from '~/components/molecules/NetworkSelect.vue'
 import LogoWithText from '~/components/icons/LogoWithText.vue'
 import LogoNoText from '~/components/icons/LogoNoText.vue'
 import Search from '~/components/Search/Search.vue'
+import Versions from '~/components/molecules/Versions.vue'
 </script>

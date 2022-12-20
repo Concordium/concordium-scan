@@ -38,6 +38,7 @@ public static class GraphQlConfiguration
         builder.AddGlobalObjectIdentification(false);
         
         builder.AddQueryType<Query>()
+            .AddType<VersionsQuery>()
             .AddType<BlocksQuery>()
             .AddType<TransactionsQuery>()
             .AddType<AccountsQuery>()
