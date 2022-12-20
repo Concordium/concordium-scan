@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<p class="header-version">
-			v{{ frontendVersion }}&nbsp;v{{ data?.versions.backendVersion }}
+			version {{ frontendVersion }}/{{ data?.versions.backendVersion }}
 		</p>
 	</div>
 </template>
