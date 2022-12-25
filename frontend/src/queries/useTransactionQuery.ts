@@ -106,6 +106,7 @@ __typename
 }
 ... on DataRegistered {
 	__typename
+	dataAsHex
 }
 ...on EncryptedAmountsRemoved {
 	accountAddress {

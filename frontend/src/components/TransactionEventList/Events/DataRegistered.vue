@@ -1,5 +1,5 @@
 <template>
-	<span>Data was registered</span>
+	<span>Data was registered "{{ event.dataAsHex }}"</span>
 </template>
 
 <script setup lang="ts">
