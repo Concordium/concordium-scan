@@ -104,6 +104,16 @@ export const convertTimestampToRelative = (
 		addSuffix,
 	})
 
+export const maxTimestamp = (timestamp1: string, timestamp2: string) => {
+	const t1 = parseISO(timestamp1)
+	const t2 = parseISO(timestamp2)
+	if (t1 > t2) {
+		return timestamp1
+	}
+
+	return timestamp2
+}
+
 /**
  * Converts microCCD to CCD with fixed decimals
  * @param {number} amount - Value in microCCD

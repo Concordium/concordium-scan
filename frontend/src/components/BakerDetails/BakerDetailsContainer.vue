@@ -11,11 +11,13 @@
 			data.bakerByBakerId.state.pool
 		"
 		:baker="data.bakerByBakerId"
+		:next-payday-time="data.paydayStatus.nextPaydayTime"
 	/>
 
 	<BakerDetailsContent
 		v-else-if="componentState === 'success' && data?.bakerByBakerId.id"
 		:baker="data.bakerByBakerId"
+		:next-pay-day-time="data.paydayStatus.nextPaydayTime"
 	/>
 </template>
 

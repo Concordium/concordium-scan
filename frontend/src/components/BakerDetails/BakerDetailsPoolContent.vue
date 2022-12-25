@@ -5,6 +5,7 @@
 			<BakerDetailsPendingChange
 				v-if="baker.state.pendingChange"
 				:pending-change="baker.state.pendingChange"
+				:next-pay-day-time="nextPaydayTime"
 			/>
 
 			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8">
@@ -256,6 +257,7 @@ import NodeLink from '~/components/molecules/NodeLink.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 type Props = {
 	baker: BakerWithAPYFilter
+	nextPaydayTime: string
 }
 
 const props = defineProps<Props>()

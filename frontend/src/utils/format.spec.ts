@@ -6,6 +6,7 @@ import {
 	formatTimestamp,
 	shortenHash,
 	formatSeconds,
+	maxTimestamp,
 } from './format'
 
 describe('format', () => {
@@ -65,6 +66,24 @@ describe('format', () => {
 			const result = convertTimestampToRelative(timestamp, undefined, true)
 
 			expect(result).toBe('about 2 years ago')
+		})
+	})
+
+	describe('maxTimestamp', () => {
+		it('should return greater timestamp', () => {
+			const timestamp1 = '2000-01-01T00:00:00.000Z'
+			const timestamp2 = '2000-01-02T00:00:00.000Z'
+
+			const result = maxTimestamp(timestamp1, timestamp2)
+			expect(result).toBe(timestamp2)
+		})
+
+		it('should return greater timestamp 2', () => {
+			const timestamp1 = '2000-01-01T00:00:00.001Z'
+			const timestamp2 = '2000-01-01T00:00:00.000Z'
+
+			const result = maxTimestamp(timestamp1, timestamp2)
+			expect(result).toBe(timestamp1)
 		})
 	})
 
