@@ -13,7 +13,7 @@
 				<Tooltip :text="pendingChange.effectiveTime">
 					{{
 						convertTimestampToRelative(
-							maxTimestamp(pendingChange.effectiveTime, nextPayDayTime),
+							tillNextPayday(pendingChange.effectiveTime, nextPayDayTime),
 							NOW
 						)
 					}}
@@ -28,7 +28,7 @@
 			<Tooltip :text="pendingChange.effectiveTime">
 				{{
 					convertTimestampToRelative(
-						maxTimestamp(pendingChange.effectiveTime, nextPayDayTime),
+						tillNextPayday(pendingChange.effectiveTime, nextPayDayTime),
 						NOW
 					)
 				}}
@@ -41,7 +41,7 @@
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import Alert from '~/components/molecules/Alert.vue'
-import { convertTimestampToRelative, maxTimestamp } from '~/utils/format'
+import { convertTimestampToRelative, tillNextPayday } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PendingBakerChange } from '~/types/generated'
 

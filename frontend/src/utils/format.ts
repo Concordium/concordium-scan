@@ -1,4 +1,4 @@
-import { formatDistance, parseISO, subMilliseconds } from 'date-fns'
+import { addDays, formatDistance, parseISO, subMilliseconds } from 'date-fns'
 
 import * as duration from 'duration-fns'
 import { UnwrapRef } from 'vue'
@@ -104,14 +104,24 @@ export const convertTimestampToRelative = (
 		addSuffix,
 	})
 
-export const maxTimestamp = (timestamp1: string, timestamp2: string) => {
-	const t1 = parseISO(timestamp1)
-	const t2 = parseISO(timestamp2)
-	if (t1 > t2) {
-		return timestamp1
-	}
+export const tillNextPayday = (timestamp: string, nextPaydayTime: string) => {
+	const time = parseISO(timestamp)
+	const paydayTime = parseISO(nextPaydayTime)
+	const nextDay = addDays(time, 1)
 
-	return timestamp2
+	const nextDayPayDayTime = new Date(
+		Date.UTC(
+			nextDay.getUTCFullYear(),
+			nextDay.getUTCMonth(),
+			nextDay.getUTCDate(),
+			paydayTime.getUTCHours(),
+			paydayTime.getUTCMinutes(),
+			paydayTime.getUTCSeconds(),
+			paydayTime.getUTCMilliseconds()
+		)
+	)
+
+	return nextDayPayDayTime.toISOString()
 }
 
 /**

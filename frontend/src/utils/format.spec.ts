@@ -1,4 +1,5 @@
 import {
+	tillNextPayday,
 	convertTimestampToRelative,
 	convertMicroCcdToCcd,
 	calculatePercentage,
@@ -6,7 +7,6 @@ import {
 	formatTimestamp,
 	shortenHash,
 	formatSeconds,
-	maxTimestamp,
 } from './format'
 
 describe('format', () => {
@@ -69,21 +69,13 @@ describe('format', () => {
 		})
 	})
 
-	describe('maxTimestamp', () => {
-		it('should return greater timestamp', () => {
-			const timestamp1 = '2000-01-01T00:00:00.000Z'
-			const timestamp2 = '2000-01-02T00:00:00.000Z'
+	describe('tillNextPayday', () => {
+		it('should return time till next pay day', () => {
+			const effectiveTime = '2022-12-11T19:33:26.500Z'
+			const paydayTime = '2022-11-28T11:05:19.500Z'
 
-			const result = maxTimestamp(timestamp1, timestamp2)
-			expect(result).toBe(timestamp2)
-		})
-
-		it('should return greater timestamp 2', () => {
-			const timestamp1 = '2000-01-01T00:00:00.001Z'
-			const timestamp2 = '2000-01-01T00:00:00.000Z'
-
-			const result = maxTimestamp(timestamp1, timestamp2)
-			expect(result).toBe(timestamp1)
+			const result = tillNextPayday(effectiveTime, paydayTime)
+			expect(result).toBe('2022-12-12T11:05:19.500Z')
 		})
 	})
 
