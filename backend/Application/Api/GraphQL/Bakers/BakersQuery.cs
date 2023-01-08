@@ -17,7 +17,7 @@ public class BakersQuery
             .AsNoTracking()
             .SingleOrDefault(baker => baker.Id == id);
     }
-         
+
     [UseDbContext(typeof(GraphQlDbContext))]
     public Baker? GetBakerByBakerId([ScopedService] GraphQlDbContext dbContext, long bakerId)
     {
@@ -25,17 +25,30 @@ public class BakersQuery
             .AsNoTracking()
             .SingleOrDefault(baker => baker.Id == bakerId);
     }
-         
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Baker> GetBakers([ScopedService] GraphQlDbContext dbContext, BakerSort sort = BakerSort.BakerIdAsc, BakerFilter? filter = null)
+    public IQueryable<Baker> GetBakers(
+        [ScopedService] GraphQlDbContext dbContext,
+        BakerSort sort = BakerSort.BakerIdAsc,
+        BakerFilter? filter = null)
     {
         var result = dbContext.Bakers
             .AsNoTracking();
 
         if (filter != null && filter.OpenStatusFilter != null)
             result = result.Where(x => x.ActiveState!.Pool!.OpenStatus == filter.OpenStatusFilter);
-        
+
+        if (filter != null
+            && filter.IncludeRemoved != null
+            && filter.IncludeRemoved == true)
+        {
+        }
+        else
+        {
+            result = result.Where(b => b.RemovedState == null);
+        }
+
         result = sort switch
         {
             BakerSort.BakerIdAsc => result.OrderBy(x => x.Id),

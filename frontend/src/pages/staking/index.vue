@@ -63,7 +63,13 @@
 				>
 					Show only open pools
 				</Toggle>
-
+				<Toggle
+					v-if="selectedTab === 'bakerPools'"
+					:on-toggle="handleToggleIncludeRemoveFilter"
+					:checked="includeRemoved === true"
+				>
+					Include Removed
+				</Toggle>
 				<StakingSortSelect
 					v-if="selectedTab === 'bakerPools'"
 					v-model="tableSort"
@@ -75,6 +81,7 @@
 		<BakerPools
 			v-if="selectedTab === 'bakerPools'"
 			:open-status-filter="openStatusFilter"
+			:include-removed="includeRemoved"
 			:sort="tableSort"
 		/>
 
@@ -107,6 +114,7 @@ import {
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const tableSort = ref<BakerSort>(BakerSort.TotalStakedAmountDesc)
 const openStatusFilter = ref<BakerPoolOpenStatus | undefined>(undefined)
+const includeRemoved = ref<boolean | undefined>(undefined)
 const selectedTab = ref('bakerPools')
 
 const { data: bakerMetricsData, fetching: bakerMetricsFetching } =
@@ -118,6 +126,10 @@ const { data: blockMetricsData, fetching: blockMetricsFetching } =
 
 const handleTogglePoolFilter = (checked: boolean) => {
 	openStatusFilter.value = checked ? BakerPoolOpenStatus.OpenForAll : undefined
+}
+
+const handleToggleIncludeRemoveFilter = (value: boolean) => {
+	includeRemoved.value = value ? true : undefined
 }
 
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)
