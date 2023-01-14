@@ -70,12 +70,28 @@ describe('format', () => {
 	})
 
 	describe('tillNextPayday', () => {
-		it('should return time till next pay day', () => {
+		it('should return time till next pay day when effective time is > payday time', () => {
 			const effectiveTime = '2022-12-11T19:33:26.500Z'
 			const paydayTime = '2022-11-28T11:05:19.500Z'
 
 			const result = tillNextPayday(effectiveTime, paydayTime)
 			expect(result).toBe('2022-12-12T11:05:19.500Z')
+		})
+
+		it('should return time till next pay day when next payday time is on same date before payday time', () => {
+			const effectiveTime = '2022-11-28T10:05:19.500Z'
+			const paydayTime = '2022-11-28T11:05:19.500Z'
+
+			const result = tillNextPayday(effectiveTime, paydayTime)
+			expect(result).toBe(paydayTime)
+		})
+
+		it('should return time till next pay day when payday is on same date after payday time', () => {
+			const effectiveTime = '2022-11-28T12:05:19.500Z'
+			const paydayTime = '2022-11-28T11:05:19.500Z'
+
+			const result = tillNextPayday(effectiveTime, paydayTime)
+			expect(result).toBe('2022-11-29T11:05:19.500Z')
 		})
 	})
 

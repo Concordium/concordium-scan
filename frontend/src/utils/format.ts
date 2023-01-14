@@ -1,4 +1,13 @@
-import { addDays, formatDistance, parseISO, subMilliseconds } from 'date-fns'
+import {
+	addDays,
+	differenceInHours,
+	formatDistance,
+	max,
+	min,
+	nextFriday,
+	parseISO,
+	subMilliseconds,
+} from 'date-fns'
 
 import * as duration from 'duration-fns'
 import { UnwrapRef } from 'vue'
@@ -104,10 +113,21 @@ export const convertTimestampToRelative = (
 		addSuffix,
 	})
 
+/**
+ * Calculates effective time of the event.
+ * When event effectively happens on the next payday after the event
+ * @param {string} timestamp Time of the event
+ * @param {string} nextPaydayTime Time of the next payday. This should be take from the most recent block ideally.
+ * @returns {string} Effective time of the event. Time when event will actually take place.
+ */
 export const tillNextPayday = (timestamp: string, nextPaydayTime: string) => {
 	const time = parseISO(timestamp)
 	const paydayTime = parseISO(nextPaydayTime)
 	const nextDay = addDays(time, 1)
+
+	if (time < paydayTime) {
+		return paydayTime.toISOString()
+	}
 
 	const nextDayPayDayTime = new Date(
 		Date.UTC(
