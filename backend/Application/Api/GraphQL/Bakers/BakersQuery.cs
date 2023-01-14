@@ -41,7 +41,7 @@ public class BakersQuery
 
         if (filter != null
             && filter.IncludeRemoved != null
-            && filter.IncludeRemoved == true)
+            && filter.IncludeRemoved)
         {
         }
         else
