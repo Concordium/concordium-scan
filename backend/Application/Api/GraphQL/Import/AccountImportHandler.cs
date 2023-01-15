@@ -32,7 +32,7 @@ public class AccountImportHandler
             _accountLookup.AddToCache(account.BaseAddress.AsString, account.Id);
     }
 
-    public void HandleAccountUpdates(BlockDataPayload payload, TransactionPair[] transactions, Block block)
+    public AccountBalanceUpdate[] HandleAccountUpdates(BlockDataPayload payload, TransactionPair[] transactions, Block block)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountImportHandler), nameof(HandleAccountUpdates));
 
@@ -50,5 +50,7 @@ public class AccountImportHandler
         var releaseScheduleItems = _changeCalculator.GetAccountReleaseScheduleItems(transactions);
         if (releaseScheduleItems.Length > 0)
             _writer.InsertAccountReleaseScheduleItems(releaseScheduleItems);
+
+        return balanceUpdates;
     }
 }
