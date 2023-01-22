@@ -2,6 +2,7 @@
 using System.Text;
 using ConcordiumSdk.Types;
 using FluentAssertions;
+using PeterO.Cbor;
 
 namespace Tests.ConcordiumSdk.Types;
 
@@ -10,14 +11,14 @@ public class MemoTest
     [Fact]
     public void CreateCborEncodedFromText()
     {
-        var result = Memo.CreateCborEncodedFromText("hello world");
-        result.AsHex.Should().Be("6b68656c6c6f20776f726c64");
+        var target = new Memo(CBORObject.FromObject("hello world").EncodeToBytes());
+        target.AsHex.Should().Be("6b68656c6c6f20776f726c64");
     }
     
     [Fact]
     public void TryCborDecodeToText_Success()
     {
-        var target = Memo.CreateCborEncodedFromText("hello world");
+        var target = new Memo(CBORObject.FromObject("hello world").EncodeToBytes());
         var result = target.TryCborDecodeToText(out var text);
         result.Should().BeTrue();
         text.Should().Be("hello world");
