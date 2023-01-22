@@ -300,6 +300,7 @@ const { first, last, after, before, goToPage, resetPagination } =
 
 type Props = {
 	openStatusFilter: BakerPoolOpenStatus | undefined
+	includeRemoved: boolean | undefined
 	sort: BakerSort
 }
 
@@ -307,6 +308,7 @@ const props = defineProps<Props>()
 
 const sort = toRef(props, 'sort')
 const openStatusFilter = toRef(props, 'openStatusFilter')
+const includeRemoved = toRef(props, 'includeRemoved')
 
 const { data } = useBakerListQuery({
 	first,
@@ -316,6 +318,7 @@ const { data } = useBakerListQuery({
 	sort,
 	filter: {
 		openStatusFilter,
+		includeRemoved,
 	},
 })
 
