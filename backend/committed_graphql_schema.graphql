@@ -230,7 +230,9 @@ type AccountsMetricsBuckets {
   y_AccountsCreated: [Int!]!
 }
 
+"Structure used to send messages to the Subscribers"
 type AccountsUpdatedSubscriptionItem {
+  "Account Address"
   address: String!
 }
 
