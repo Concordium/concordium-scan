@@ -194,15 +194,13 @@ public class ImportWriteController : BackgroundService
             .Distinct()
             .ToArray();
 
-        if (updatedAccountAddresses.Length > 0)
+        foreach (var accntAddress in updatedAccountAddresses)
         {
-            foreach (var accntAddress in updatedAccountAddresses)
-            {
-                await _sender.SendAsync(
-                    accntAddress.AsString,
-                    new AccountsUpdatedSubscriptionItem(accntAddress),
-                    stoppingToken);
-            }
+            await _sender.SendAsync(
+                accntAddress.AsString,
+                new AccountsUpdatedSubscriptionItem(accntAddress),
+                stoppingToken
+            );
         }
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
