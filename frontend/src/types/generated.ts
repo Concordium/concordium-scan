@@ -481,6 +481,7 @@ export type BakerDelegationTarget = {
 };
 
 export type BakerFilterInput = {
+  includeRemoved?: InputMaybe<Scalars['Boolean']>;
   openStatusFilter?: InputMaybe<BakerPoolOpenStatus>;
 };
 
@@ -1989,6 +1990,7 @@ export type Query = {
   transactionByTransactionHash?: Maybe<Transaction>;
   transactionMetrics?: Maybe<TransactionMetrics>;
   transactions?: Maybe<TransactionsConnection>;
+  versions: Versions;
 };
 
 
@@ -2527,6 +2529,11 @@ export enum UpdateTransactionType {
   UpdateTimeParameters = 'UPDATE_TIME_PARAMETERS',
   UpdateTransactionFeeDistribution = 'UPDATE_TRANSACTION_FEE_DISTRIBUTION'
 }
+
+export type Versions = {
+  __typename?: 'Versions';
+  backendVersion: Scalars['String'];
+};
 
 export type ZeroScheduledAmount = {
   __typename?: 'ZeroScheduledAmount';

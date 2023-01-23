@@ -10,6 +10,8 @@ using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
 
+namespace Tests.Api.GraphQL.Import;
+
 [Collection("Baker Import Handler")]
 public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
 {

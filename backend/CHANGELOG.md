@@ -7,3 +7,5 @@
 - Added query to fetch backend version.
 - Sorting on Nodes Page
 - Added Accounts Updated GraphQl subscription. Can be used to subscribe to updates of a specific Account. 
+- Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
+- Fixed Memo CBOR Decoding.
