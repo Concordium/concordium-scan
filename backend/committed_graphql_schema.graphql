@@ -1729,6 +1729,7 @@ input AccountFilterInput {
 
 input BakerFilterInput {
   openStatusFilter: BakerPoolOpenStatus
+  includeRemoved: Boolean
 }
 
 enum AccountSort {
