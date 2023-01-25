@@ -1972,6 +1972,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  latestChainParameters?: Maybe<ChainParameters>;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   passiveDelegation?: Maybe<PassiveDelegation>;

@@ -1441,6 +1441,7 @@ type Query {
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
+  latestChainParameters: ChainParameters
   nodeStatuses("Returns the first _n_ elements from the list."
     sortField: NodeSortField! 
     sortDirection: NodeSortDirection! 

@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.ChainParametersGraphql;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Pagination;
@@ -52,6 +53,7 @@ public static class GraphQlConfiguration
             .AddType<PoolRewardMetricsQuery>()
             .AddType<PassiveDelegationQuery>()
             .AddType<PaydayQuery>()
+            .AddType<ChainParametersQuery>()
             .AddType<NetworkQuery>();
         
         builder.AddSubscriptionType<Subscription>();

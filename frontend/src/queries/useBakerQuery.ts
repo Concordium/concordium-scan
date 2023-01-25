@@ -21,12 +21,22 @@ type BakerResponse = {
 	paydayStatus: {
 		nextPaydayTime: string
 	}
+	latestChainParameters: {
+		rewardPeriodLength?: number
+	}
 }
 
 const BakerQuery = gql<BakerResponse>`
 	query ($bakerId: Long!) {
 		paydayStatus {
 			nextPaydayTime
+		}
+
+		latestChainParameters {
+			__typename
+			... on ChainParametersV1 {
+				rewardPeriodLength
+			}
 		}
 
 		bakerByBakerId(bakerId: $bakerId) {

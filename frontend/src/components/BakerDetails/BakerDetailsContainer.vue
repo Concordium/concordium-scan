@@ -12,12 +12,14 @@
 		"
 		:baker="data.bakerByBakerId"
 		:next-payday-time="data.paydayStatus.nextPaydayTime"
+		:payday-duration-hrs="data.latestChainParameters.rewardPeriodLength"
 	/>
 
 	<BakerDetailsContent
 		v-else-if="componentState === 'success' && data?.bakerByBakerId.id"
 		:baker="data.bakerByBakerId"
 		:next-pay-day-time="data.paydayStatus.nextPaydayTime"
+		:payday-duration-hrs="data.latestChainParameters.rewardPeriodLength"
 	/>
 </template>
 

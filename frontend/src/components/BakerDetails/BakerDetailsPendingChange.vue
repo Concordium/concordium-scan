@@ -13,7 +13,11 @@
 				<Tooltip :text="pendingChange.effectiveTime">
 					{{
 						convertTimestampToRelative(
-							tillNextPayday(pendingChange.effectiveTime, nextPayDayTime),
+							tillNextPayday(
+								pendingChange.effectiveTime,
+								nextPayDayTime,
+								paydayDurationHrs ?? 0
+							),
 							NOW
 						)
 					}}
@@ -28,7 +32,11 @@
 			<Tooltip :text="pendingChange.effectiveTime">
 				{{
 					convertTimestampToRelative(
-						tillNextPayday(pendingChange.effectiveTime, nextPayDayTime),
+						tillNextPayday(
+							pendingChange.effectiveTime,
+							nextPayDayTime,
+							paydayDurationHrs ?? 0
+						),
 						NOW
 					)
 				}}
@@ -50,6 +58,7 @@ const { NOW } = useDateNow()
 type Props = {
 	pendingChange: PendingBakerChange
 	nextPayDayTime: string
+	paydayDurationHrs?: number
 }
 
 defineProps<Props>()
