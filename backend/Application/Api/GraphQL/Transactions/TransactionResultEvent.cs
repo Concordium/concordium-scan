@@ -127,8 +127,13 @@ public record CredentialsUpdated(
 /// Data was registered on the chain.
 /// </summary>
 /// <param name="DataAsHex">The data that was registered.</param>
-public record DataRegistered(
-    string DataAsHex) : TransactionResultEvent;
+public record DataRegistered(string DataAsHex) : TransactionResultEvent
+{
+    public DecodedText GetDecoded()
+    {
+        return DecodedText.CreateFromHex(DataAsHex);
+    }
+}
 
 /// <summary>
 /// Event generated when one or more encrypted amounts are consumed from the account
@@ -168,9 +173,9 @@ public record NewEncryptedAmount(
 
 public record TransferMemo(string RawHex) : TransactionResultEvent
 {
-    public DecodedTransferMemo GetDecoded()
+    public DecodedText GetDecoded()
     {
-        return DecodedTransferMemo.CreateFromHex(RawHex);
+        return DecodedText.CreateFromHex(RawHex);
     }
 }
 

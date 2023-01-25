@@ -32,25 +32,6 @@ public class Memo
         return new Memo(encodedBytes);
     }
 
-    public bool TryCborDecodeToText(out string? decodedText)
-    {
-        var encoder = new CborReader(_bytes);
-        try
-        {
-            var textRead = encoder.ReadTextString();
-            if (encoder.BytesRemaining == 0)
-            {
-                decodedText = textRead;
-                return true;
-            }
-        }
-        catch (CborContentException) { }
-        catch (InvalidOperationException) { }
-
-        decodedText = null;
-        return false;
-    }
-
     public byte[] AsBytes => _bytes;
 
     public string AsHex => Convert.ToHexString(_bytes).ToLowerInvariant();

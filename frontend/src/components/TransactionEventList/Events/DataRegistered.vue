@@ -1,5 +1,5 @@
 <template>
-	<span>Data was registered "{{ event.dataAsHex }}"</span>
+	<span>Data was registered "{{ event.decoded.text }}"</span>
 </template>
 
 <script setup lang="ts">
