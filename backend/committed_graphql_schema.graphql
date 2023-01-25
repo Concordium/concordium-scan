@@ -747,10 +747,11 @@ type CredentialsUpdated {
 }
 
 type DataRegistered {
+  decoded: DecodedText!
   dataAsHex: String!
 }
 
-type DecodedTransferMemo {
+type DecodedText {
   text: String!
   decodeType: TextDecodeType!
 }
@@ -1668,7 +1669,7 @@ type TransactionsEdge {
 }
 
 type TransferMemo {
-  decoded: DecodedTransferMemo!
+  decoded: DecodedText!
   rawHex: String!
 }
 
