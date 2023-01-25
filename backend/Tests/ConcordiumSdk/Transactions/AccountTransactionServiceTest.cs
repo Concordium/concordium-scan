@@ -3,6 +3,7 @@ using ConcordiumSdk.ExportedMobileWalletFile;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.Transactions;
 using ConcordiumSdk.Types;
+using PeterO.Cbor;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
 
@@ -80,7 +81,7 @@ public class AccountTransactionServiceTest : IDisposable
     {
         var toAddress = new AccountAddress("3uHj5LudVeJMZ7xAm3E4bbFwN61N4ijb9KtnAuARkhoAMLiNYa");
         var amount = CcdAmount.FromCcd(2);
-        var memo = Memo.CreateCborEncodedFromText("Lorem ipsum dolor sit amet.");
+        var memo = new Memo(CBORObject.FromObject("Lorem ipsum dolor sit amet.").EncodeToBytes());
         var payload = new SimpleTransferWithMemoPayload(amount, toAddress, memo);
 
         var txHash = await _target.SendAccountTransactionAsync(_senderAddress, payload, _signer);

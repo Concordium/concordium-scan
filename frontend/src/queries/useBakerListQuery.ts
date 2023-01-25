@@ -19,6 +19,7 @@ type BakerListVariables = Partial<QueryVariables> & {
 	sort: Ref<BakerSort>
 	filter: {
 		openStatusFilter: Ref<BakerPoolOpenStatus | undefined>
+		includeRemoved: Ref<boolean | undefined>
 	}
 }
 

@@ -1,6 +1,8 @@
 using Application.Api.GraphQL.Network;
 using FluentAssertions;
 
+namespace Tests.Api.GraphQL.Network;
+
 public class ClientVersionComparerTest
 {
     [Theory]
