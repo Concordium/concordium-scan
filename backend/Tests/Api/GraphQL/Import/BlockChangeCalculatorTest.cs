@@ -30,12 +30,12 @@ public class BlockChangeCalculatorTest
     {
         _initialTokenReleaseScheduleRepositoryStub.SetMainnetSchedule(
             new TimestampedAmount(new DateTimeOffset(2022, 6, 2, 0, 0, 0, TimeSpan.Zero), 1000),
-            new TimestampedAmount(new DateTimeOffset(2022, 6, 3, 0, 0, 0, TimeSpan.Zero), 100),
-            new TimestampedAmount(new DateTimeOffset(2022, 6, 4, 0, 0, 0, TimeSpan.Zero), 10),
-            new TimestampedAmount(new DateTimeOffset(2022, 6, 5, 0, 0, 0, TimeSpan.Zero), 0));
+            new TimestampedAmount(new DateTimeOffset(2022, 6, 3, 0, 0, 0, TimeSpan.Zero), 1900),
+            new TimestampedAmount(new DateTimeOffset(2022, 6, 4, 0, 0, 0, TimeSpan.Zero), 1990),
+            new TimestampedAmount(new DateTimeOffset(2022, 6, 5, 0, 0, 0, TimeSpan.Zero), 2000));
 
         var slotTime = DateTimeOffset.ParseExact(slotTimeString, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-        var result = _target.CalculateTotalAmountReleased(CcdAmount.FromMicroCcd(2000), slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.AsString);
+        var result = _target.CalculateTotalAmountReleased(slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.AsString);
         result.Should().Be(expectedResult);
     }
 }

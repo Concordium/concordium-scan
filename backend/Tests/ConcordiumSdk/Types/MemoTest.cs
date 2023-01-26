@@ -25,11 +25,11 @@ public class MemoTest
     }
     
     [Theory]
-    [MemberData(nameof(FullByteRangeExcept), parameters: new [] {107})] // 107 is a valid header byte that lets the string be successfully decoded.
+    [MemberData(nameof(FullByteRangeExcept), parameters: new int[] { 107, 75 })] // 107, 75 is a valid header byte that lets the string be successfully decoded.
     public void TryCborDecodeToText_Failure(byte startByte)
     {
         var utf8EncodedBytes = Encoding.UTF8.GetBytes("hello world");
-        var bytes = new [] {startByte}.Concat(utf8EncodedBytes).ToArray();
+        var bytes = new[] { startByte }.Concat(utf8EncodedBytes).ToArray();
         var target = new Memo(bytes);
         var result = target.TryCborDecodeToText(out var text);
         result.Should().BeFalse();

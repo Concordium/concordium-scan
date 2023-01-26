@@ -185,7 +185,7 @@ public class BlockWriter
     {
         return new BalanceStatistics(
             rewardStatus.TotalAmount.MicroCcdValue,
-            _changeCalculator.CalculateTotalAmountReleased(rewardStatus.TotalAmount, blockSlotTime, importState.GenesisBlockHash),
+            _changeCalculator.CalculateTotalAmountReleased(blockSlotTime, importState.GenesisBlockHash),
             rewardStatus.TotalEncryptedAmount.MicroCcdValue, 
             0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
             bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked,

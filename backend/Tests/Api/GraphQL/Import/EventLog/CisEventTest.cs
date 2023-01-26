@@ -30,7 +30,7 @@ namespace Tests.Api.GraphQL.Import.EventLog
             var mintEvent = cisEvent as CisMintEvent;
             mintEvent.ToAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
             mintEvent.ToAddress.As<CisEventAddressAccount>()
-                .Address.Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
+                .Address.AsString.Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
             mintEvent.TokenAmount.Should().Be(new BigInteger(1));
         }
 
@@ -51,11 +51,11 @@ namespace Tests.Api.GraphQL.Import.EventLog
             var transferEvent = cisEvent as CisTransferEvent;
             transferEvent.FromAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
             transferEvent.FromAddress.As<CisEventAddressAccount>()
-                .Address.Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
+                .Address.AsString.Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
             transferEvent.TokenAmount.Should().Be(new BigInteger(1));
             transferEvent.ToAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
             transferEvent.ToAddress.As<CisEventAddressAccount>()
-                .Address.Should().Be("47da8rxVf4vFuF21hFypBJ3eGibxGSuricuAHnUpVbZjLeB4ML");
+                .Address.AsString.Should().Be("47da8rxVf4vFuF21hFypBJ3eGibxGSuricuAHnUpVbZjLeB4ML");
         }
 
         [Fact]
