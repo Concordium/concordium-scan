@@ -1,6 +1,5 @@
 using System.Formats.Cbor;
 using System.Linq;
-using PeterO.Cbor;
 
 namespace ConcordiumSdk.Types;
 
@@ -25,18 +24,12 @@ public class Memo
         return new Memo(bytes);
     }
 
-    public bool TryCborDecodeToText(out string? decodedText)
+    public static Memo CreateCborEncodedFromText(string text)
     {
-        try
-        {
-            decodedText = CBORObject.DecodeFromBytes(_bytes).ToJSONString().Trim('"');
-            return true;
-        }
-        catch (CBORException) { }
-        catch (ArgumentNullException) { }
-
-        decodedText = null;
-        return false;
+        var encoder = new CborWriter();
+        encoder.WriteTextString(text);
+        var encodedBytes = encoder.Encode();
+        return new Memo(encodedBytes);
     }
 
     public byte[] AsBytes => _bytes;

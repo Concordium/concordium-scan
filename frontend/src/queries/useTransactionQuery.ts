@@ -106,6 +106,10 @@ __typename
 }
 ... on DataRegistered {
 	__typename
+	decoded {
+		text
+		decodeType
+	}
 }
 ...on EncryptedAmountsRemoved {
 	accountAddress {
