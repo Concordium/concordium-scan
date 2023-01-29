@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.Contracts;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
@@ -42,6 +43,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
     public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
+    public DbSet<Contract> SmartContractView { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

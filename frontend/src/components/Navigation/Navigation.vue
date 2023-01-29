@@ -29,6 +29,10 @@ const routes: Route[] = [
 		path: '/accounts',
 	},
 	{
+		title: 'Contracts',
+		path: '/contracts',
+	},
+	{
 		title: 'Staking',
 		path: '/staking',
 	},

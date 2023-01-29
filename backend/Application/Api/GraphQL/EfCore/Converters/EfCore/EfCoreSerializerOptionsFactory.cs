@@ -16,7 +16,7 @@ public static class EfCoreJsonSerializerOptionsFactory
                 new TransactionResultEventConverter(),
                 new AddressConverter(),
                 new Json.AccountAddressConverter(),
-                new ContractAddressConverter(),
+                new Json.ContractAddressConverter(),
                 new ChainUpdatePayloadConverter(),
                 new PendingBakerChangeConverter(),
                 new PendingDelegationChangeConverter(),

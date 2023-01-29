@@ -8,6 +8,23 @@ public class ContractAddress : Address
         SubIndex = subIndex;
     }
 
+    public ContractAddress(string contractAddress)
+    {
+        if (string.IsNullOrWhiteSpace(contractAddress))
+        {
+            throw new ArgumentNullException(nameof(contractAddress));
+        }
+
+        var value = contractAddress.Trim('>', '<', ' ').Split(",");
+        if (value.Length != 2)
+        {
+            throw new ArgumentException("string content is not a contract address.", nameof(contractAddress));
+        }
+
+        Index = ulong.Parse(value[0]);
+        SubIndex = ulong.Parse(value[1]);
+    }
+
     public ulong Index { get; }
 
     public ulong SubIndex { get; }

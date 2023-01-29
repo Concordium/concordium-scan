@@ -964,6 +964,19 @@ export type CommissionRates = {
   transactionCommission: Scalars['Decimal'];
 };
 
+export type Contract = {
+  __typename?: 'Contract';
+  balance: Scalars['Long'];
+  contractAddress: ContractAddress;
+  createdTime: Scalars['DateTime'];
+  firstTransactionId: Scalars['Long'];
+  id: Scalars['ID'];
+  lastTransactionId: Scalars['Long'];
+  moduleRef: Scalars['String'];
+  owner: AccountAddress;
+  transactionsCount: Scalars['Int'];
+};
+
 export type ContractAddress = {
   __typename?: 'ContractAddress';
   asString: Scalars['String'];
@@ -1021,6 +1034,33 @@ export type ContractUpdatedEventsAsHexArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+export type ContractUpgraded = {
+  __typename?: 'ContractUpgraded';
+  contractAddress: ContractAddress;
+  from: Scalars['String'];
+  to: Scalars['String'];
+};
+
+/** A connection to a list of items. */
+export type ContractsConnection = {
+  __typename?: 'ContractsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Contract>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ContractsEdge = {
+  __typename?: 'ContractsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Contract;
 };
 
 export type CooldownParametersChainUpdatePayload = {
@@ -1213,7 +1253,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: ExchangeRate;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
 
 /** A connection to a list of items. */
 export type EventsConnection = {
@@ -1973,6 +2013,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  contracts?: Maybe<ContractsConnection>;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   passiveDelegation?: Maybe<PassiveDelegation>;
@@ -2056,6 +2097,14 @@ export type QueryBlockMetricsArgs = {
 
 
 export type QueryBlocksArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryContractsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

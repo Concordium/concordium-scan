@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.Contracts;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Pagination;
@@ -42,6 +43,7 @@ public static class GraphQlConfiguration
             .AddType<BlocksQuery>()
             .AddType<TransactionsQuery>()
             .AddType<AccountsQuery>()
+            .AddType<ContractsQuery>()
             .AddType<BakersQuery>()
             .AddType<SearchQuery>()
             .AddType<AccountsMetricsQuery>()
