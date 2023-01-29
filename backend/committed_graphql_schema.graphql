@@ -717,6 +717,12 @@ type ContractUpdated {
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
+type ContractUpgraded {
+  contractAddress: ContractAddress!
+  from: String!
+  to: String!
+}
+
 type CooldownParametersChainUpdatePayload {
   poolOwnerCooldown: UnsignedLong!
   delegatorCooldown: UnsignedLong!
@@ -747,10 +753,11 @@ type CredentialsUpdated {
 }
 
 type DataRegistered {
+  decoded: DecodedText!
   dataAsHex: String!
 }
 
-type DecodedTransferMemo {
+type DecodedText {
   text: String!
   decodeType: TextDecodeType!
 }
@@ -1441,14 +1448,7 @@ type Query {
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
-  latestChainParameters: ChainParameters
-  nodeStatuses("Returns the first _n_ elements from the list."
-    sortField: NodeSortField! 
-    sortDirection: NodeSortDirection! 
-    first: Int "Returns the elements in the list that come after the specified cursor." 
-    after: String "Returns the last _n_ elements from the list." 
-    last: Int "Returns the elements in the list that come before the specified cursor." 
-    before: String): NodeStatusesConnection
+  nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
 }
 
@@ -1669,7 +1669,7 @@ type TransactionsEdge {
 }
 
 type TransferMemo {
-  decoded: DecodedTransferMemo!
+  decoded: DecodedText!
   rawHex: String!
 }
 
@@ -1708,7 +1708,7 @@ union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainU
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
-union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | ContractInterrupted | ContractResumed | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
+union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | ContractInterrupted | ContractResumed | ContractUpgraded | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
 
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 

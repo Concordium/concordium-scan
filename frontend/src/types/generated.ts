@@ -1067,10 +1067,11 @@ export type CredentialsUpdated = {
 export type DataRegistered = {
   __typename?: 'DataRegistered';
   dataAsHex: Scalars['String'];
+  decoded: DecodedText;
 };
 
-export type DecodedTransferMemo = {
-  __typename?: 'DecodedTransferMemo';
+export type DecodedText = {
+  __typename?: 'DecodedText';
   decodeType: TextDecodeType;
   text: Scalars['String'];
 };
@@ -2468,7 +2469,7 @@ export type TransactionsEdge = {
 
 export type TransferMemo = {
   __typename?: 'TransferMemo';
-  decoded: DecodedTransferMemo;
+  decoded: DecodedText;
   rawHex: Scalars['String'];
 };
 

@@ -27,7 +27,7 @@ namespace Tests.Api.GraphQL.Import.EventLog
         {
             _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
             _accountLookup = new AccountLookupStub();
-            _accountLookup.AddToCache(ACCOUNT_1_ADDR, ACCOUNT_1_ID);
+            _accountLookup.AddToCache(new AccountAddress(ACCOUNT_1_ADDR).GetBaseAddress().AsString, ACCOUNT_1_ID);
 
             writer = new EventLogWriter(_dbContextFactory, _accountLookup, new NullMetrics());
 
