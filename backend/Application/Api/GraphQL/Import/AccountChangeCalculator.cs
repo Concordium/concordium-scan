@@ -16,14 +16,22 @@ public class AccountChangeCalculator
         _metrics = metrics;
     }
 
-    public IEnumerable<Account> GetAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
+    /// <summary>
+    /// This Method should only be used to Map Newly Created Accounts.
+    /// Since Balance of the Account is not taken into consideration
+    /// </summary>
+    /// <param name="createdAccounts">Created Account</param>
+    /// <param name="blockSlotTime">Block Slot Time</param>
+    /// <returns></returns>
+    public IEnumerable<Account> MapCreatedAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
     {
         return createdAccounts.Select(x => new Account
         {
             Id = (long)x.AccountIndex,
             CanonicalAddress = new AccountAddress(x.AccountAddress.AsString),
             BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().AsString),
-            Amount = x.AccountAmount.MicroCcdValue,
+            //Newly Created Account should not have balance. Balance will be later computer through transactions
+            Amount = 0, 
             CreatedAt = blockSlotTime
         });
     }
