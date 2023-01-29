@@ -8,3 +8,4 @@
 - Sorting on Nodes Page
 - Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
 - Fixed Memo CBOR Decoding.
+- Adds Listing of Contracts Via View
