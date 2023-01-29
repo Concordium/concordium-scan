@@ -7,3 +7,5 @@
 - Added query to fetch backend version.
 - Sorting on Nodes Page
 - Fixed Issue 5 by considering 0 balance for Newly created accounts.
+- Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
+- Fixed Memo CBOR Decoding.

@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using Application.Api.GraphQL.Transactions;
 using ConcordiumSdk.Types;
 using FluentAssertions;
+using PeterO.Cbor;
 
 namespace Tests.ConcordiumSdk.Types;
 
@@ -10,29 +12,28 @@ public class MemoTest
     [Fact]
     public void CreateCborEncodedFromText()
     {
-        var result = Memo.CreateCborEncodedFromText("hello world");
-        result.AsHex.Should().Be("6b68656c6c6f20776f726c64");
+        var target = new Memo(CBORObject.FromObject("hello world").EncodeToBytes());
+        target.AsHex.Should().Be("6b68656c6c6f20776f726c64");
     }
     
     [Fact]
     public void TryCborDecodeToText_Success()
     {
         var target = Memo.CreateCborEncodedFromText("hello world");
-        var result = target.TryCborDecodeToText(out var text);
-        result.Should().BeTrue();
-        text.Should().Be("hello world");
+        var decodedText = DecodedText.CreateFromHex(target.AsHex);
+        decodedText.Text.Should().Be("hello world");
+        decodedText.DecodeType.Should().Be(TextDecodeType.Cbor);
     }
     
     [Theory]
-    [MemberData(nameof(FullByteRangeExcept), parameters: new [] {107})] // 107 is a valid header byte that lets the string be successfully decoded.
+    [MemberData(nameof(FullByteRangeExcept), parameters: new int[] { 107, 75 })] // 107, 75 is a valid header byte that lets the string be successfully decoded.
     public void TryCborDecodeToText_Failure(byte startByte)
     {
         var utf8EncodedBytes = Encoding.UTF8.GetBytes("hello world");
-        var bytes = new [] {startByte}.Concat(utf8EncodedBytes).ToArray();
+        var bytes = new[] { startByte }.Concat(utf8EncodedBytes).ToArray();
         var target = new Memo(bytes);
-        var result = target.TryCborDecodeToText(out var text);
-        result.Should().BeFalse();
-        text.Should().BeNull();
+        var decodedText = DecodedText.CreateFromHex(target.AsHex);
+        decodedText.DecodeType.Should().Be(TextDecodeType.Hex);
     }
 
     private static IEnumerable<object[]> FullByteRangeExcept(int[] except)

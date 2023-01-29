@@ -122,15 +122,15 @@ public class CcdAmountTest
     }
 
     [Theory]
-    [InlineData(1, "0,000001")]
-    [InlineData(20, "0,00002")]
-    [InlineData(23, "0,000023")]
-    [InlineData(624, "0,000624")]
-    [InlineData(9183, "0,009183")]
-    [InlineData(43891, "0,043891")]
-    [InlineData(123877, "0,123877")]
+    [InlineData(1, "0.000001")]
+    [InlineData(20, "0.00002")]
+    [InlineData(23, "0.000023")]
+    [InlineData(624, "0.000624")]
+    [InlineData(9183, "0.009183")]
+    [InlineData(43891, "0.043891")]
+    [InlineData(123877, "0.123877")]
     [InlineData(1000000, "1")]
-    [InlineData(1000001, "1,000001")]
+    [InlineData(1000001, "1.000001")]
     [InlineData(3000000, "3")]
     [InlineData(10000000, "10")]
     public void FormattedCcd(ulong microCcd, string expectedResult)
