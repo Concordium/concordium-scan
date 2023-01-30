@@ -87,7 +87,7 @@ public class ImportWriteController : BackgroundService
                 waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var result = await WriteData(envelope.Payload, _channel.IsCatchingUp());
+                var result = await WriteData(envelope.Payload);
                 await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
@@ -124,7 +124,7 @@ public class ImportWriteController : BackgroundService
         _channel.SetInitialImportState(initialState);
     }
 
-    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, bool isCatchingUp)
+    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         

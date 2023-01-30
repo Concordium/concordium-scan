@@ -35,11 +35,6 @@ public class ImportChannel
     {
         return _importStateTaskCompletionSource.Task;
     }
-
-    public bool IsCatchingUp()
-    {
-        return _channel.Reader.Count > 0;
-    }
 }
 
 public record InitialImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHash);
