@@ -1,4 +1,11 @@
-﻿CREATE OR REPLACE VIEW graphql_contracts_view 
+﻿ALTER TABLE graphql_transaction_events
+	ALTER COLUMN event SET DATA type jsonb;
+CREATE INDEX event_tag on graphql_transaction_events (((event->>'tag')::INTEGER));
+CREATE INDEX event_contract_init_contract_address ON graphql_transaction_events (((event->'data'->>'ContractAddress'))) WHERE (event->>'tag')::INTEGER = 16;
+CREATE INDEX event_contract_upgrade_contract_address ON graphql_transaction_events (((event->'data'->>'ContractAddress'))) WHERE (event->>'tag')::INTEGER = 36;
+CREATE INDEX event_contract_update_contract_address ON graphql_transaction_events (((event->'data'->>'ContractAddress'))) WHERE (event->>'tag')::INTEGER = 18;
+CREATE INDEX event_contract_transfer_from_contract_address ON graphql_transaction_events (((event->'data'->'From'->>'data'))) WHERE (event->>'tag')::Integer = 1 AND (event->'data'->'From'->>'tag')::Integer = 2;
+CREATE OR REPLACE VIEW graphql_contracts_view 
 AS
 	WITH contract_init_events AS (
 	SELECT
@@ -98,6 +105,4 @@ AS
 		JOIN graphql_blocks ON graphql_transactions.block_id = graphql_blocks.id
 		ORDER BY first_transaction_id
 	)
-	SELECT *
-	FROM contracts
-;
+SELECT * FROM contracts;
