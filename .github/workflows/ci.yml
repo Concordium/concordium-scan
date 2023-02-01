@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore ./backend/CcScan.Backend.sln
+    
+    - name: Build
+      run: dotnet build ./backend/CcScan.Backend.sln -c Release --no-restore

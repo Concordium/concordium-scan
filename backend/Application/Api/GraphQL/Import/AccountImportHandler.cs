@@ -25,7 +25,7 @@ public class AccountImportHandler
     {
         if (createdAccounts.Length == 0) return;
         
-        var accounts = _changeCalculator.GetAccounts(createdAccounts, blockSlotTime).ToArray();
+        var accounts = _changeCalculator.MapCreatedAccounts(createdAccounts, blockSlotTime).ToArray();
         await _writer.InsertAccounts(accounts);
 
         foreach (var account in accounts)
