@@ -12,6 +12,8 @@ const defaultProps = {
 		__typename: 'PendingBakerRemoval',
 		effectiveTime: '1969-07-20T20:17:40.000Z',
 	},
+	nextPayDayTime: '1969-07-20T20:17:40.000Z',
+	paydayDurationMs: 24 * 3600000,
 }
 
 const { render } = setupComponent(BakerDetailsPendingChange, {

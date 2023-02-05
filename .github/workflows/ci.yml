@@ -24,3 +24,6 @@ jobs:
     
     - name: Build
       run: dotnet build ./backend/CcScan.Backend.sln -c Release --no-restore
+
+    - name: Frontend Test
+      run: yarn --cwd "frontend" install && yarn --cwd "frontend" run test

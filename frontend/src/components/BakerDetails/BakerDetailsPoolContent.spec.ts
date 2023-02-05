@@ -75,6 +75,8 @@ const defaultProps = {
 			},
 		},
 	},
+	nextPaydayTime: '1969-07-20T20:17:40.000Z',
+	paydayDurationMs: 24 * 3600000,
 }
 
 const { render } = setupComponent(BakerDetailsPoolContent, {
