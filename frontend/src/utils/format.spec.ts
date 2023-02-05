@@ -70,11 +70,13 @@ describe('format', () => {
 	})
 
 	describe('tillNextPayday', () => {
+		const msInHour = 3600000
+
 		it('should return time till next pay day when effective time is > payday time', () => {
 			const effectiveTime = '2022-12-11T19:33:26.500Z'
 			const paydayTime = '2022-11-28T11:05:19.500Z'
 
-			const result = tillNextPayday(effectiveTime, paydayTime, 24)
+			const result = tillNextPayday(effectiveTime, paydayTime, 24 * msInHour)
 			expect(result).toBe('2022-12-12T11:05:19.500Z')
 		})
 
@@ -82,7 +84,7 @@ describe('format', () => {
 			const effectiveTime = '2022-12-11T19:33:26.500Z'
 			const paydayTime = '2022-11-28T11:05:19.500Z'
 
-			const result = tillNextPayday(effectiveTime, paydayTime, 25)
+			const result = tillNextPayday(effectiveTime, paydayTime, 25 * msInHour)
 			expect(result).toBe('2022-12-12T00:05:19.500Z')
 		})
 
@@ -90,7 +92,7 @@ describe('format', () => {
 			const effectiveTime = '2022-11-28T10:05:19.500Z'
 			const paydayTime = '2022-11-28T11:05:19.500Z'
 
-			const result = tillNextPayday(effectiveTime, paydayTime, 24)
+			const result = tillNextPayday(effectiveTime, paydayTime, 24 * msInHour)
 			expect(result).toBe(paydayTime)
 		})
 
@@ -98,7 +100,7 @@ describe('format', () => {
 			const effectiveTime = '2022-11-28T12:05:19.500Z'
 			const paydayTime = '2022-11-28T11:05:19.500Z'
 
-			const result = tillNextPayday(effectiveTime, paydayTime, 24)
+			const result = tillNextPayday(effectiveTime, paydayTime, 24 * msInHour)
 			expect(result).toBe('2022-11-29T11:05:19.500Z')
 		})
 	})

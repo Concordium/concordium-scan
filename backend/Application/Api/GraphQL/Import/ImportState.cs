@@ -1,9 +1,11 @@
 ﻿using Application.Import;
+using HotChocolate;
 
 namespace Application.Api.GraphQL.Import;
 
 public class ImportState
 {
+    [GraphQLIgnore]
     public int Id { get; private set; }
     public string GenesisBlockHash { get; set; }
     public long MaxImportedBlockHeight { get; set; }
@@ -12,13 +14,16 @@ public class ImportState
     public DateTimeOffset LastBlockSlotTime { get; set; }
     public long MaxBlockHeightWithUpdatedFinalizationTime { get; set; }
     public DateTimeOffset? NextPendingBakerChangeTime { get; set; }
+    
+    [GraphQLIgnore]
     public ChainParameters? LatestWrittenChainParameters { get; set; }
     public int LastGenesisIndex { get; set; }
     public int TotalBakerCount { get; set; }
     public bool MigrationToBakerPoolsCompleted { get; set; }
     public bool PassiveDelegationAdded { get; set; }
+    public int EpochDuration { get; set; }
 
-    public static ImportState CreateGenesisState(GenesisBlockDataPayload payload)
+    public static ImportState CreateGenesisState(GenesisBlockDataPayload payload, int epochDuration)
     {
         return new ImportState
         {
@@ -33,7 +38,8 @@ public class ImportState
             LastGenesisIndex = 0,
             TotalBakerCount = 0,
             MigrationToBakerPoolsCompleted = false,
-            PassiveDelegationAdded = false
+            PassiveDelegationAdded = false,
+            EpochDuration = epochDuration
         };
     }
 
@@ -52,5 +58,6 @@ public class ImportState
         TotalBakerCount = source.TotalBakerCount;
         MigrationToBakerPoolsCompleted = source.MigrationToBakerPoolsCompleted;
         PassiveDelegationAdded = source.PassiveDelegationAdded;
+        EpochDuration = source.EpochDuration;
     }
 }

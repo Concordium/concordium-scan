@@ -22,7 +22,10 @@ type BakerResponse = {
 		nextPaydayTime: string
 	}
 	latestChainParameters: {
-		rewardPeriodLength?: number
+		rewardPeriodLength: number
+	}
+	importState: {
+		epochDuration: number
 	}
 }
 
@@ -37,6 +40,10 @@ const BakerQuery = gql<BakerResponse>`
 			... on ChainParametersV1 {
 				rewardPeriodLength
 			}
+		}
+
+		importState {
+			epochDuration
 		}
 
 		bakerByBakerId(bakerId: $bakerId) {

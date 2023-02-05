@@ -12,14 +12,20 @@
 		"
 		:baker="data.bakerByBakerId"
 		:next-payday-time="data.paydayStatus.nextPaydayTime"
-		:payday-duration-hrs="data.latestChainParameters.rewardPeriodLength"
+		:payday-duration-ms="
+			data.latestChainParameters.rewardPeriodLength *
+			data.importState.epochDuration
+		"
 	/>
 
 	<BakerDetailsContent
 		v-else-if="componentState === 'success' && data?.bakerByBakerId.id"
 		:baker="data.bakerByBakerId"
 		:next-pay-day-time="data.paydayStatus.nextPaydayTime"
-		:payday-duration-hrs="data.latestChainParameters.rewardPeriodLength"
+		:payday-duration-ms="
+			data.latestChainParameters.rewardPeriodLength *
+			data.importState.epochDuration
+		"
 	/>
 </template>
 

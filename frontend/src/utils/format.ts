@@ -1,4 +1,10 @@
-import { addHours, formatDistance, parseISO, subMilliseconds } from 'date-fns'
+import {
+	addHours,
+	addMilliseconds,
+	formatDistance,
+	parseISO,
+	subMilliseconds,
+} from 'date-fns'
 
 import * as duration from 'duration-fns'
 import { UnwrapRef } from 'vue'
@@ -114,7 +120,7 @@ export const convertTimestampToRelative = (
 export const tillNextPayday = (
 	timestamp: string,
 	nextPaydayTime: string,
-	paydayDurationHrs: number
+	paydayDurationMs: number
 ) => {
 	const time = parseISO(timestamp)
 	const paydayTime = parseISO(nextPaydayTime)
@@ -122,11 +128,11 @@ export const tillNextPayday = (
 		return paydayTime.toISOString()
 	}
 
-	const diffHrs = (time.getTime() - paydayTime.getTime()) / (1000 * 60 * 60)
-	const diffPayDays = Math.ceil(diffHrs / paydayDurationHrs)
-	const nextDayPayDayTime = addHours(
+	const diffMs = time.getTime() - paydayTime.getTime()
+	const diffPayDays = Math.ceil(diffMs / paydayDurationMs)
+	const nextDayPayDayTime = addMilliseconds(
 		paydayTime,
-		diffPayDays * paydayDurationHrs
+		diffPayDays * paydayDurationMs
 	)
 
 	return nextDayPayDayTime.toISOString()

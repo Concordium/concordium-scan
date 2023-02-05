@@ -16,7 +16,7 @@
 							tillNextPayday(
 								pendingChange.effectiveTime,
 								nextPayDayTime,
-								paydayDurationHrs ?? 0
+								paydayDurationMs
 							),
 							NOW
 						)
@@ -35,7 +35,7 @@
 						tillNextPayday(
 							pendingChange.effectiveTime,
 							nextPayDayTime,
-							paydayDurationHrs ?? 0
+							paydayDurationMs
 						),
 						NOW
 					)
@@ -58,7 +58,7 @@ const { NOW } = useDateNow()
 type Props = {
 	pendingChange: PendingBakerChange
 	nextPayDayTime: string
-	paydayDurationHrs?: number
+	paydayDurationMs: number
 }
 
 defineProps<Props>()

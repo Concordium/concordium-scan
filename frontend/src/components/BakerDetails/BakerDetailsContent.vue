@@ -9,7 +9,7 @@
 				"
 				:pending-change="baker.state.pendingChange"
 				:next-pay-day-time="nextPayDayTime"
-				:payday-duration-hrs="paydayDurationHrs"
+				:payday-duration-ms="paydayDurationMs"
 			/>
 
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
@@ -81,7 +81,7 @@ const { NOW } = useDateNow()
 type Props = {
 	baker: Baker
 	nextPayDayTime: string
-	paydayDurationHrs?: number
+	paydayDurationMs: number
 }
 
 const props = defineProps<Props>()
