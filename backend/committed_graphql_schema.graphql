@@ -960,6 +960,21 @@ type GasRewardsChainUpdatePayload {
   chainUpdate: Decimal!
 }
 
+type ImportState {
+  genesisBlockHash: String!
+  maxImportedBlockHeight: Long!
+  cumulativeAccountsCreated: Long!
+  cumulativeTransactionCount: Long!
+  lastBlockSlotTime: DateTime!
+  maxBlockHeightWithUpdatedFinalizationTime: Long!
+  nextPendingBakerChangeTime: DateTime
+  lastGenesisIndex: Int!
+  totalBakerCount: Int!
+  migrationToBakerPoolsCompleted: Boolean!
+  passiveDelegationAdded: Boolean!
+  epochDuration: Int!
+}
+
 type InsufficientBalanceForBakerStake {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1448,6 +1463,8 @@ type Query {
   poolRewardMetricsForBakerPool(bakerId: ID! period: MetricsPeriod!): PoolRewardMetrics!
   passiveDelegation: PassiveDelegation
   paydayStatus: PaydayStatus
+  latestChainParameters: ChainParameters
+  importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
 }

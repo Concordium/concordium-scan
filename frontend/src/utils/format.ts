@@ -1,4 +1,10 @@
-import { formatDistance, parseISO, subMilliseconds } from 'date-fns'
+import {
+	addHours,
+	addMilliseconds,
+	formatDistance,
+	parseISO,
+	subMilliseconds,
+} from 'date-fns'
 
 import * as duration from 'duration-fns'
 import { UnwrapRef } from 'vue'
@@ -103,6 +109,34 @@ export const convertTimestampToRelative = (
 	formatDistance(parseISO(timestamp), compareDate, {
 		addSuffix,
 	})
+
+/**
+ * Calculates effective time of the event.
+ * When event effectively happens on the next payday after the event
+ * @param {string} timestamp Time of the event
+ * @param {string} nextPaydayTime Time of the next payday. This should be take from the most recent block ideally.
+ * @returns {string} Effective time of the event. Time when event will actually take place.
+ */
+export const tillNextPayday = (
+	timestamp: string,
+	nextPaydayTime: string,
+	paydayDurationMs: number
+) => {
+	const time = parseISO(timestamp)
+	const paydayTime = parseISO(nextPaydayTime)
+	if (time < paydayTime) {
+		return paydayTime.toISOString()
+	}
+
+	const diffMs = time.getTime() - paydayTime.getTime()
+	const diffPayDays = Math.ceil(diffMs / paydayDurationMs)
+	const nextDayPayDayTime = addMilliseconds(
+		paydayTime,
+		diffPayDays * paydayDurationMs
+	)
+
+	return nextDayPayDayTime.toISOString()
+}
 
 /**
  * Converts microCCD to CCD with fixed decimals

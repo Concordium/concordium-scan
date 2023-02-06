@@ -9,6 +9,7 @@ using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
+using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
@@ -87,7 +88,7 @@ public class ImportWriteController : BackgroundService
                 waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var result = await WriteData(envelope.Payload);
+                var result = await WriteData(envelope.Payload, envelope.ConsensusStatus);
                 await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
@@ -124,7 +125,7 @@ public class ImportWriteController : BackgroundService
         _channel.SetInitialImportState(initialState);
     }
 
-    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload)
+    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusStatus consensusStatus)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         
@@ -135,7 +136,10 @@ public class ImportWriteController : BackgroundService
         {
             var importState = payload switch
             {
-                GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(genesisPayload),
+                GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(
+                    genesisPayload, 
+                    consensusStatus.EpochDuration
+                ),
                 _ => await _importStateController.GetState()
             };
 
@@ -145,6 +149,7 @@ public class ImportWriteController : BackgroundService
             result = await HandleCommonWrites(payload, importState);
 
             importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
+            importState.EpochDuration = consensusStatus.EpochDuration;
             await _importStateController.SaveChanges(importState);
 
             txScope.Complete();
