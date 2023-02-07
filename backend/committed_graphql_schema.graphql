@@ -685,8 +685,6 @@ type Contract {
   contractAddress: ContractAddress!
   moduleRef: String!
   balance: Long!
-  firstTransactionId: Long!
-  lastTransactionId: Long!
   transactionsCount: Int!
   owner: AccountAddress!
   createdTime: DateTime!

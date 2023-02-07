@@ -969,9 +969,7 @@ export type Contract = {
   balance: Scalars['Long'];
   contractAddress: ContractAddress;
   createdTime: Scalars['DateTime'];
-  firstTransactionId: Scalars['Long'];
   id: Scalars['ID'];
-  lastTransactionId: Scalars['Long'];
   moduleRef: Scalars['String'];
   owner: AccountAddress;
   transactionsCount: Scalars['Int'];
