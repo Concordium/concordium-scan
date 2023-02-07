@@ -17,7 +17,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
         /// <param name="transactions">Pair of Database Persisted Transaction and on chain transaction</param>
-        public void HandleLogs(TransactionPair[] transactions)
+        public List<CisAccountUpdate> HandleLogs(TransactionPair[] transactions)
         {
             var events = transactions
                 .Where(t => t.Source.Type.Kind == ConcordiumSdk.Types.BlockItemKind.AccountTransactionKind)
@@ -62,7 +62,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 .Where(u => u.TokenUpdate != null)
                 .Select(u => u.TokenUpdate)
                 .Cast<CisEventTokenUpdate>();
-            var accountUpdates = updates.SelectMany(a => a.AccountUpdates);
+            var accountUpdates = updates.SelectMany(a => a.AccountUpdates).ToList();
 
             if (tokenUpdates.Count() > 0)
             {
@@ -73,6 +73,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
             {
                 writer.ApplyAccountUpdates(accountUpdates);
             }
+
+            return accountUpdates;
         }
 
         /// <summary>

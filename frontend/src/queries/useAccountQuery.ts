@@ -320,7 +320,7 @@ export const useAccountQuery = ({
 	const query = id?.value ? AccountQuery : AccountQueryByAddress
 	const identifier = id?.value ? { id: id.value } : { address: address?.value }
 
-	const { data, fetching, error } = useQuery({
+	const { data, fetching, error, executeQuery } = useQuery({
 		query,
 		requestPolicy: 'cache-first',
 		variables: {
@@ -342,5 +342,5 @@ export const useAccountQuery = ({
 		value => (dataRef.value = getData(value))
 	)
 
-	return { data: dataRef, error, componentState }
+	return { data: dataRef, error, componentState, executeQuery }
 }

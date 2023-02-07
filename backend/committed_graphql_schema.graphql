@@ -230,6 +230,12 @@ type AccountsMetricsBuckets {
   y_AccountsCreated: [Int!]!
 }
 
+"Structure used to send messages to the Subscribers"
+type AccountsUpdatedSubscriptionItem {
+  "Account Address"
+  address: String!
+}
+
 type ActiveBakerState {
   "The status of the bakers node. Will be null if no status for the node exists."
   nodeStatus: NodeStatus
@@ -1596,6 +1602,7 @@ type StringEdge {
 }
 
 type Subscription {
+  accountsUpdated(accountAddress: String!): AccountsUpdatedSubscriptionItem!
   blockAdded: Block!
 }
 
