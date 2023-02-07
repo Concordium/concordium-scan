@@ -8,6 +8,10 @@ public class ContractAddress : Address
         SubIndex = subIndex;
     }
 
+    /// <summary>
+    /// Parses the input string Contract Address in the format <Index, Subindex>
+    /// </summary>
+    /// <param name="contractAddress">Input string serialized contract address in the format <index, subindex></param>
     public ContractAddress(string contractAddress)
     {
         if (string.IsNullOrWhiteSpace(contractAddress))
