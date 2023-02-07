@@ -11,7 +11,16 @@
 				<Amount :amount="pendingChange.newStakedAmount" :show-symbol="true" />
 				in
 				<Tooltip :text="pendingChange.effectiveTime">
-					{{ convertTimestampToRelative(pendingChange.effectiveTime, NOW) }}
+					{{
+						convertTimestampToRelative(
+							tillNextPayday(
+								pendingChange.effectiveTime,
+								nextPayDayTime,
+								paydayDurationMs
+							),
+							NOW
+						)
+					}}
 				</Tooltip>
 			</span>
 		</template>
@@ -21,7 +30,16 @@
 		>
 			Baker will be removed in
 			<Tooltip :text="pendingChange.effectiveTime">
-				{{ convertTimestampToRelative(pendingChange.effectiveTime, NOW) }}
+				{{
+					convertTimestampToRelative(
+						tillNextPayday(
+							pendingChange.effectiveTime,
+							nextPayDayTime,
+							paydayDurationMs
+						),
+						NOW
+					)
+				}}
 			</Tooltip>
 		</template>
 	</Alert>
@@ -31,7 +49,7 @@
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import Alert from '~/components/molecules/Alert.vue'
-import { convertTimestampToRelative } from '~/utils/format'
+import { convertTimestampToRelative, tillNextPayday } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PendingBakerChange } from '~/types/generated'
 
@@ -39,6 +57,8 @@ const { NOW } = useDateNow()
 
 type Props = {
 	pendingChange: PendingBakerChange
+	nextPayDayTime: string
+	paydayDurationMs: number
 }
 
 defineProps<Props>()

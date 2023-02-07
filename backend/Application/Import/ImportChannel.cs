@@ -39,7 +39,7 @@ public class ImportChannel
 
 public record InitialImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHash);
 
-public record BlockDataEnvelope(BlockDataPayload Payload);
+public record BlockDataEnvelope(BlockDataPayload Payload, ConsensusStatus ConsensusStatus);
 
 public record BlockDataPayload
 {

@@ -1028,6 +1028,13 @@ export type ContractUpdatedEventsAsHexArgs = {
   last?: InputMaybe<Scalars['Int']>;
 };
 
+export type ContractUpgraded = {
+  __typename?: 'ContractUpgraded';
+  contractAddress: ContractAddress;
+  from: Scalars['String'];
+  to: Scalars['String'];
+};
+
 export type CooldownParametersChainUpdatePayload = {
   __typename?: 'CooldownParametersChainUpdatePayload';
   delegatorCooldown: Scalars['UnsignedLong'];
@@ -1218,7 +1225,7 @@ export type EuroPerEnergyChainUpdatePayload = {
   exchangeRate: ExchangeRate;
 };
 
-export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
+export type Event = AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | BakerSetMetadataUrl | BakerSetOpenStatus | BakerSetRestakeEarnings | BakerSetTransactionFeeCommission | BakerStakeDecreased | BakerStakeIncreased | ChainUpdateEnqueued | ContractInitialized | ContractInterrupted | ContractModuleDeployed | ContractResumed | ContractUpdated | ContractUpgraded | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | DelegationAdded | DelegationRemoved | DelegationSetDelegationTarget | DelegationSetRestakeEarnings | DelegationStakeDecreased | DelegationStakeIncreased | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | Transferred | TransferredWithSchedule;
 
 /** A connection to a list of items. */
 export type EventsConnection = {
@@ -1336,6 +1343,22 @@ export type GasRewardsChainUpdatePayload = {
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
   finalizationProof: Scalars['Decimal'];
+};
+
+export type ImportState = {
+  __typename?: 'ImportState';
+  cumulativeAccountsCreated: Scalars['Long'];
+  cumulativeTransactionCount: Scalars['Long'];
+  epochDuration: Scalars['Int'];
+  genesisBlockHash: Scalars['String'];
+  lastBlockSlotTime: Scalars['DateTime'];
+  lastGenesisIndex: Scalars['Int'];
+  maxBlockHeightWithUpdatedFinalizationTime: Scalars['Long'];
+  maxImportedBlockHeight: Scalars['Long'];
+  migrationToBakerPoolsCompleted: Scalars['Boolean'];
+  nextPendingBakerChangeTime?: Maybe<Scalars['DateTime']>;
+  passiveDelegationAdded: Scalars['Boolean'];
+  totalBakerCount: Scalars['Int'];
 };
 
 export type InsufficientBalanceForBakerStake = {
@@ -1978,6 +2001,8 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  importState?: Maybe<ImportState>;
+  latestChainParameters?: Maybe<ChainParameters>;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   passiveDelegation?: Maybe<PassiveDelegation>;

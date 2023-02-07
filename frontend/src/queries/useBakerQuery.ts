@@ -18,10 +18,34 @@ export type BakerWithAPYFilter = Baker & {
 
 type BakerResponse = {
 	bakerByBakerId: BakerWithAPYFilter
+	paydayStatus: {
+		nextPaydayTime: string
+	}
+	latestChainParameters: {
+		rewardPeriodLength: number
+	}
+	importState: {
+		epochDuration: number
+	}
 }
 
 const BakerQuery = gql<BakerResponse>`
 	query ($bakerId: Long!) {
+		paydayStatus {
+			nextPaydayTime
+		}
+
+		latestChainParameters {
+			__typename
+			... on ChainParametersV1 {
+				rewardPeriodLength
+			}
+		}
+
+		importState {
+			epochDuration
+		}
+
 		bakerByBakerId(bakerId: $bakerId) {
 			id
 			bakerId
