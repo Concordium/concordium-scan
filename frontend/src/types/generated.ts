@@ -1373,6 +1373,22 @@ export type GasRewardsChainUpdatePayload = {
   finalizationProof: Scalars['Decimal'];
 };
 
+export type ImportState = {
+  __typename?: 'ImportState';
+  cumulativeAccountsCreated: Scalars['Long'];
+  cumulativeTransactionCount: Scalars['Long'];
+  epochDuration: Scalars['Int'];
+  genesisBlockHash: Scalars['String'];
+  lastBlockSlotTime: Scalars['DateTime'];
+  lastGenesisIndex: Scalars['Int'];
+  maxBlockHeightWithUpdatedFinalizationTime: Scalars['Long'];
+  maxImportedBlockHeight: Scalars['Long'];
+  migrationToBakerPoolsCompleted: Scalars['Boolean'];
+  nextPendingBakerChangeTime?: Maybe<Scalars['DateTime']>;
+  passiveDelegationAdded: Scalars['Boolean'];
+  totalBakerCount: Scalars['Int'];
+};
+
 export type InsufficientBalanceForBakerStake = {
   __typename?: 'InsufficientBalanceForBakerStake';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -2014,6 +2030,8 @@ export type Query = {
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
   contracts?: Maybe<ContractsConnection>;
+  importState?: Maybe<ImportState>;
+  latestChainParameters?: Maybe<ChainParameters>;
   nodeStatus?: Maybe<NodeStatus>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   passiveDelegation?: Maybe<PassiveDelegation>;

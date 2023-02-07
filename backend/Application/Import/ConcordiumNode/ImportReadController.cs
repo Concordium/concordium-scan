@@ -63,7 +63,7 @@ public class ImportReadController : BackgroundService
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
                 var startBlockHeight = importedMaxBlockHeight.HasValue ? importedMaxBlockHeight.Value + 1 : 0;
-                await ImportBatch(startBlockHeight, consensusStatus.LastFinalizedBlockHeight, stoppingToken);
+                await ImportBatch(startBlockHeight, consensusStatus, stoppingToken);
                 importedMaxBlockHeight = consensusStatus.LastFinalizedBlockHeight;
             }
 
@@ -80,17 +80,17 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private async Task ImportBatch(long startBlockHeight, long endBlockHeight, CancellationToken stoppingToken)
+    private async Task ImportBatch(long startBlockHeight, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
     {
-        for (var blockHeight = startBlockHeight; blockHeight <= endBlockHeight; blockHeight++)
+        for (var blockHeight = startBlockHeight; blockHeight <= consensusStatus.LastFinalizedBlockHeight; blockHeight++)
         {
             stoppingToken.ThrowIfCancellationRequested();
-            var readFromNodeTask = ReadBlockDataPayload(blockHeight, stoppingToken);
+            var readFromNodeTask = ReadBlockDataPayload(blockHeight, consensusStatus, stoppingToken);
             await _channel.Writer.WriteAsync(readFromNodeTask, stoppingToken);
         }
     }
 
-    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, CancellationToken stoppingToken)
+    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
     {
         var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
         if (blocksAtHeight.Length != 1)
@@ -122,7 +122,7 @@ public class ImportReadController : BackgroundService
             payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
-        return new BlockDataEnvelope(payload);
+        return new BlockDataEnvelope(payload, consensusStatus);
     }
 
     private async Task<PoolStatusPassiveDelegation> GetPassiveDelegationPoolStatusAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)

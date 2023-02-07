@@ -24,6 +24,7 @@ public class ImportStateConfiguration : IEntityTypeConfiguration<ImportState>
         builder.Property(x => x.TotalBakerCount).HasColumnName("total_baker_count");
         builder.Property(x => x.MigrationToBakerPoolsCompleted).HasColumnName("migration_to_baker_pools_completed");
         builder.Property(x => x.PassiveDelegationAdded).HasColumnName("passive_delegation_added");
+        builder.Property(x => x.EpochDuration).HasColumnName("epoch_duration");
         
         builder.Ignore(x => x.LatestWrittenChainParameters);
     }
