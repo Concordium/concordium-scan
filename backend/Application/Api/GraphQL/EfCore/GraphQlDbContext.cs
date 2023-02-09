@@ -44,6 +44,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
     public DbSet<Contract> SmartContractView { get; private set; }
+    public DbSet<ContractTransactionRelation> SmartContractTransactions { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

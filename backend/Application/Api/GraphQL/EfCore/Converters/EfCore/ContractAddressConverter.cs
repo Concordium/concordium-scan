@@ -17,6 +17,6 @@ public class ContractAddressConverter : ValueConverter<ContractAddress, string>
 
     private static string ConvertToString(ContractAddress value)
     {
-        return value.AsString;
+        return $"{value.Index},{value.SubIndex}";
     }
 }

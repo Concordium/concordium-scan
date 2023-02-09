@@ -19,7 +19,9 @@ type TxDrawerItem = {
 type AccountDrawerItem = {
 	entityTypeName: 'account'
 } & ({ id: string; address?: string } | { address: string; id?: string })
-
+type ContractDrawerItem = {
+	entityTypeName: 'contract'
+} & { address: string }
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
@@ -38,6 +40,7 @@ export type DrawerItem = (
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
+	| ContractDrawerItem
 ) & {
 	scrollY?: number
 }
@@ -79,6 +82,12 @@ export const isItemOnTop = (
 		)
 
 	if (
+		item.entityTypeName === 'contract' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(item.address && item.address === currentTopItem.value.address)
+
+	if (
 		item.entityTypeName === 'baker' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	) {
@@ -115,7 +124,8 @@ export const pushToRouter =
 				dcount: resetList ? state.value.items.length : 1,
 				dentity: drawerItem.entityTypeName,
 				daddress:
-					drawerItem.entityTypeName === 'account'
+					drawerItem.entityTypeName === 'account' ||
+					drawerItem.entityTypeName === 'contract'
 						? drawerItem.address
 						: undefined,
 				dhash:
@@ -147,6 +157,14 @@ export const useDrawer = () => {
 			push(
 				{
 					entityTypeName: 'account',
+					address: route.query.daddress as string,
+				},
+				false
+			)
+		} else if (route.query.dentity === 'contract' && route.query.daddress) {
+			push(
+				{
+					entityTypeName: 'contract',
 					address: route.query.daddress as string,
 				},
 				false

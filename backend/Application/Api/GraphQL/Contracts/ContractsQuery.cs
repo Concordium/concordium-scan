@@ -15,5 +15,15 @@ namespace Application.Api.GraphQL.Contracts
         {
             return dbContext.SmartContractView.AsNoTracking();
         }
+
+        [UseDbContext(typeof(GraphQlDbContext))]
+        public Contract? GetContract([ScopedService] GraphQlDbContext dbContext, string address)
+        {
+            var contractAddress = new ContractAddress(address);
+
+            return dbContext.SmartContractView
+                .AsNoTracking()
+                .SingleOrDefault(contract => contract.ContractAddress == contractAddress);
+        }
     }
 }

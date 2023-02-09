@@ -972,7 +972,16 @@ export type Contract = {
   id: Scalars['ID'];
   moduleRef: Scalars['String'];
   owner: AccountAddress;
+  transactions?: Maybe<ContractTransactionRelationConnection>;
   transactionsCount: Scalars['Int'];
+};
+
+
+export type ContractTransactionsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type ContractAddress = {
@@ -1014,6 +1023,31 @@ export type ContractResumed = {
   __typename?: 'ContractResumed';
   contractAddress: ContractAddress;
   success: Scalars['Boolean'];
+};
+
+export type ContractTransactionRelation = {
+  __typename?: 'ContractTransactionRelation';
+  transaction: Transaction;
+};
+
+/** A connection to a list of items. */
+export type ContractTransactionRelationConnection = {
+  __typename?: 'ContractTransactionRelationConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractTransactionRelationEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ContractTransactionRelation>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ContractTransactionRelationEdge = {
+  __typename?: 'ContractTransactionRelationEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ContractTransactionRelation;
 };
 
 export type ContractUpdated = {
@@ -2027,6 +2061,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  contract?: Maybe<Contract>;
   contracts?: Maybe<ContractsConnection>;
   importState?: Maybe<ImportState>;
   latestChainParameters?: Maybe<ChainParameters>;
@@ -2117,6 +2152,11 @@ export type QueryBlocksArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryContractArgs = {
+  address: Scalars['String'];
 };
 
 

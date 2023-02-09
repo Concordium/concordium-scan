@@ -9,7 +9,7 @@ type ContractListResponse = {
 	}
 }
 
-const Query = gql<ContractListResponse>`
+const Query = gql`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
 		contracts(after: $after, before: $before, first: $first, last: $last) {
 			nodes {
@@ -37,7 +37,7 @@ const Query = gql<ContractListResponse>`
 type Variables = Partial<QueryVariables>
 
 export const useContractsListQuery = (variables: Variables) => {
-	const { data } = useQuery({
+	const { data } = useQuery<ContractListResponse>({
 		query: Query,
 		requestPolicy: 'cache-and-network',
 		variables,

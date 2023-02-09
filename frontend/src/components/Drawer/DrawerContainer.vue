@@ -40,6 +40,11 @@
 							:id="drawerItem.id"
 							:address="drawerItem.address"
 						/>
+						<ContractDetailsContainer
+							v-else-if="drawerItem && drawerItem.entityTypeName === 'contract'"
+							:id="drawerItem.address"
+							:address="drawerItem.address"
+						/>
 						<BakerDetailsContainer
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'baker'"
 							:baker-id="drawerItem.bakerId"
@@ -72,6 +77,7 @@
 import { useDrawer } from '~/composables/useDrawer'
 import Drawer from '~/components/Drawer/Drawer.vue'
 import AccountDetailsContainer from '~/components/Accounts/AccountDetailsContainer.vue'
+import ContractDetailsContainer from '~/components/Contracts/ContractDetailsContainer.vue'
 import TransactionDetailsContainer from '~/components/TransactionDetails/TransactionDetailsContainer.vue'
 import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContainer.vue'
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'

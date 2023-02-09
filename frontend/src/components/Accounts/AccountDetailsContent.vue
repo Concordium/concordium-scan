@@ -216,7 +216,7 @@ defineProps<Props>()
 
 const { apiUrl } = useRuntimeConfig()
 
-function exportUrl(accountAddress) {
+function exportUrl(accountAddress: string) {
 	const url = new URL(apiUrl)
 	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
 	url.searchParams.append('accountAddress', accountAddress)
