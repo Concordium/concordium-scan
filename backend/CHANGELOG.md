@@ -11,3 +11,4 @@
 - Fixed Memo CBOR Decoding.
 - Adds Listing of Contracts Via View
 - Adds Detail of Contracts Via View
+- Adds Contract Searching Via View
