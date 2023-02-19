@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.Contracts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Transactions;
@@ -16,6 +17,7 @@ public class SearchResult
 {
     private static readonly Regex HashRegex = new("^[a-fA-F0-9]{1,64}$");
     private static readonly Regex AccountAddressRegex = new("^[a-zA-Z0-9]{1,64}$");
+    private static readonly Regex ContractAddressRegex = new("^([0-9]{1,20}),?([0-9]{1,20})?$");
     private readonly string _queryString;
     private readonly long? _queryNumeric;
 
@@ -91,7 +93,29 @@ public class SearchResult
 
         return Array.Empty<Baker>();
     }
-    
+
+    [UseDbContext(typeof(GraphQlDbContext))]
+    [UsePaging]
+    public IEnumerable<Contract> GetContracts([ScopedService] GraphQlDbContext dbContext)
+    {
+        if (string.IsNullOrEmpty(_queryString) || !ContractAddressRegex.IsMatch(_queryString))
+            return new List<Contract>().AsQueryable();
+
+        var parts = _queryString.Trim().Split(",");
+        var index = ulong.Parse(parts.First());
+        var result = dbContext.SmartContractView
+            .AsNoTracking()
+            .Where(c => c.ContractAddress == new ContractAddress(index, 0))
+            .FirstOrDefault();
+
+        if (result != null)
+        {
+            return new[] { result };
+        }
+
+        return new Contract[0];
+    }
+
     [UsePaging]
     public IEnumerable<NodeStatus> GetNodeStatuses([Service] NodeStatusSnapshot nodeSummarySnapshot)
     {

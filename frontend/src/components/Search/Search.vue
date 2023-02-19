@@ -143,6 +143,35 @@
 					</SearchResultCategory>
 
 					<SearchResultCategory
+						v-if="resultCount.contracts"
+						title="Contracts"
+						:has-more-results="!!data.search.contracts.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="contract in data.search.contracts.nodes"
+							:key="contract.id"
+							class="grid grid-cols-4 gap-8"
+						>
+							<ContractLink
+								:address="contract.contractAddress.asString"
+								:hide-tooltip="true"
+								@blur="lostFocusOnSearch"
+							/>
+							<div>
+								<AccountLink :address="contract.owner.asString" />
+							</div>
+							<div>
+								Age
+								<Tooltip :text="formatTimestamp(contract.createdTime)">
+									{{
+										convertTimestampToRelative(contract.createdTime || '', NOW)
+									}}
+								</Tooltip>
+							</div>
+						</div>
+					</SearchResultCategory>
+
+					<SearchResultCategory
 						v-if="resultCount.bakers"
 						title="Bakers"
 						:has-more-results="data.search.bakers.pageInfo.hasNextPage"
@@ -207,6 +236,7 @@ import AccountLink from '~/components/molecules/AccountLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
 import NodeLink from '~/components/molecules/NodeLink.vue'
+import ContractLink from '~/components/molecules/ContractLink.vue'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
@@ -272,6 +302,11 @@ const gotoSearchResult = () => {
 			entityTypeName: 'baker',
 			bakerId: data.value.search.bakers.nodes[0].bakerId,
 		})
+	else if (data.value.search.contracts.nodes[0])
+		drawer.push({
+			entityTypeName: 'contract',
+			address: data.value.search.contracts.nodes[0].contractAddress.asString,
+		})
 	else if (data.value.search.nodeStatuses.nodes[0])
 		drawer.push({
 			entityTypeName: 'node',
@@ -298,11 +333,13 @@ const resultCount = computed(() => ({
 	accounts: data.value?.search.accounts.nodes.length,
 	bakers: data.value?.search.bakers.nodes.length,
 	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
+	contracts: data.value?.search.contracts.nodes.length,
 	total:
 		(data.value?.search.blocks.nodes.length ?? 0) +
 		(data.value?.search.transactions.nodes.length ?? 0) +
 		(data.value?.search.accounts.nodes.length ?? 0) +
 		(data.value?.search.bakers.nodes.length ?? 0) +
+		(data.value?.search.contracts.nodes.length ?? 0) +
 		(data.value?.search.nodeStatuses.nodes.length ?? 0),
 }))
 </script>

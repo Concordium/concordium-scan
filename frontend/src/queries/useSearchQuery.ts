@@ -7,6 +7,7 @@ import type {
 	Transaction,
 	Baker,
 	NodeStatus,
+	Contract,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
@@ -18,6 +19,7 @@ type SearchResponse = {
 			nodes: Pick<Baker, 'id' | 'bakerId' | 'account'>[]
 			pageInfo: PageInfo
 		}
+		contracts: { nodes: Contract[]; pageInfo: PageInfo }
 	}
 }
 
@@ -73,6 +75,22 @@ const SearchQuery = gql<SearchResponse>`
 							asString
 						}
 					}
+				}
+			}
+			contracts(first: 3) {
+				pageInfo {
+					hasNextPage
+				}
+				nodes {
+					contractAddress {
+						asString
+					}
+					moduleRef
+					balance
+					owner {
+						asString
+					}
+					createdTime
 				}
 			}
 			nodeStatuses(first: 3) {
