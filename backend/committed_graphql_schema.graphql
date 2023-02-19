@@ -681,6 +681,7 @@ type CommissionRates {
 }
 
 type Contract {
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractTransactionRelationConnection
   id: ID!
   contractAddress: ContractAddress!
   moduleRef: String!
@@ -716,6 +717,28 @@ type ContractModuleDeployed {
 type ContractResumed {
   contractAddress: ContractAddress!
   success: Boolean!
+}
+
+type ContractTransactionRelation {
+  transaction: Transaction!
+}
+
+"A connection to a list of items."
+type ContractTransactionRelationConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [ContractTransactionRelationEdge!]
+  "A flattened list of the nodes."
+  nodes: [ContractTransactionRelation!]
+}
+
+"An edge in a connection."
+type ContractTransactionRelationEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: ContractTransactionRelation!
 }
 
 type ContractUpdated {
@@ -1478,6 +1501,7 @@ type Query {
   accountByAddress(accountAddress: String!): Account
   accounts(sort: AccountSort! = AGE_DESC filter: AccountFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
+  contract(address: String!): Contract
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
   bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
