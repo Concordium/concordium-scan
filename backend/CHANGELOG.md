@@ -10,3 +10,5 @@
 - Fixed Issue 5 by considering 0 balance for Newly created accounts.
 - Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
 - Fixed Memo CBOR Decoding.
+- Changed the header from "Total circulating supply of CCD" to "Total unlocked CCD"
+- Added New API endpoint to get "unlocked CCD"

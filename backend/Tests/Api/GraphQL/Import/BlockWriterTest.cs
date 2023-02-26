@@ -312,6 +312,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         var rewardStatus = _rewardStatusBuilder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState);
+        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, new ulong[0]);
     }
 }

@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Import.Validations;
+using Application.Common;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Database;
@@ -30,6 +31,7 @@ public class ImportWriteController : BackgroundService
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountImportHandler _accountHandler;
     private readonly EventLogHandler _eventLogHandler;
+    private readonly NonCirculatingAccounts _nonCirculatingAccounts;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -41,9 +43,17 @@ public class ImportWriteController : BackgroundService
     private readonly PassiveDelegationImportHandler _passiveDelegationHandler;
     private readonly PaydayImportHandler _paydayHandler;
 
-    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
-        IFeatureFlags featureFlags, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
-        IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
+    public ImportWriteController(
+        IDbContextFactory<GraphQlDbContext> dbContextFactory,
+        DatabaseSettings dbSettings,
+        IFeatureFlags featureFlags,
+        ITopicEventSender sender,
+        ImportChannel channel,
+        ImportValidationController accountBalanceValidator,
+        IAccountLookup accountLookup,
+        IMetrics metrics,
+        MetricsListener metricsListener,
+        NonCirculatingAccounts nonCirculatingAccounts)
     {
         _featureFlags = featureFlags;
         _accountLookup = accountLookup;
@@ -67,6 +77,7 @@ public class ImportWriteController : BackgroundService
         _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
         _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
+        _nonCirculatingAccounts = nonCirculatingAccounts;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -184,7 +195,24 @@ public class ImportWriteController : BackgroundService
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters.Current, bakerUpdateResults, rewardsSummary, importPaydayStatus);
         await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters.Current);
 
-        var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Current.Id, bakerUpdateResults, delegationUpdateResults, importState);
+        var nonCirculatingAccountIds = _accountLookup
+            .GetAccountIdsFromBaseAddresses(_nonCirculatingAccounts.accounts.Select(a => a.AsString))
+            .AsEnumerable()
+            .Select(kvp => kvp.Value)
+            .Where(id => id.HasValue)
+            .Select(id => (ulong)id.Value)
+            .ToArray();
+
+        var block = await _blockWriter.AddBlock(
+            payload.BlockInfo, 
+            payload.BlockSummary, 
+            payload.RewardStatus, 
+            chainParameters.Current.Id, 
+            bakerUpdateResults, 
+            delegationUpdateResults, 
+            importState,
+            nonCirculatingAccountIds);
+
         var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 

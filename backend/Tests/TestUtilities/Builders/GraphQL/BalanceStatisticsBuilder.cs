@@ -13,9 +13,18 @@ public class BalanceStatisticsBuilder
 
     public BalanceStatistics Build()
     {
-        return new BalanceStatistics(_totalAmount, _totalAmountReleased, _totalAmountEncrypted, 
-            0, _totalAmountStaked, _totalAmountStakedByBakers, 
-            _totalAmountStakedByDelegation, 0, 0, 0);
+        return new BalanceStatistics(
+            _totalAmount, 
+            _totalAmountReleased,
+            0,
+            _totalAmountEncrypted, 
+            0, 
+            _totalAmountStaked, 
+            _totalAmountStakedByBakers, 
+            _totalAmountStakedByDelegation, 
+            0, 
+            0, 
+            0);
     }
 
     public BalanceStatisticsBuilder WithTotalAmount(ulong value)

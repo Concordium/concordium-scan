@@ -26,7 +26,16 @@ public class BlockMetricsQuery
 
         var queryParams = QueryParams.Create(period, _timeProvider);
 
-        var lastValuesSql = @"select block_height, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked, total_percentage_released, total_percentage_encrypted, total_percentage_staked
+        var lastValuesSql = @"select 
+                        block_height, 
+                        total_microccd, 
+                        total_microccd_released, 
+                        total_microccd_unlocked, 
+                        total_microccd_encrypted, 
+                        total_microccd_staked, 
+                        total_percentage_released, 
+                        total_percentage_encrypted, 
+                        total_percentage_staked
                     from metrics_blocks
                     where time <= @ToTime
                     order by time desc
@@ -36,6 +45,7 @@ public class BlockMetricsQuery
         var lastBlockHeight = (long)lastValuesData.block_height;
         var lastTotalMicroCcd = (long)lastValuesData.total_microccd;
         var lastTotalMicroCcdReleased = (long?)lastValuesData.total_microccd_released;
+        var lastTotalMicroCcdUnlocked = (long?)lastValuesData.total_microccd_unlocked;
         var lastTotalMicroCcdEncrypted = (long)lastValuesData.total_microccd_encrypted;
         var lastTotalMicroCcdStaked = (long)lastValuesData.total_microccd_staked;
         var lastTotalPercentageReleased = (double?)lastValuesData.total_percentage_released;
@@ -127,9 +137,21 @@ public class BlockMetricsQuery
             bucketData.Select(row => (long)row.max_total_microccd_staked).ToArray(),
             bucketData.Select(row => (long)row.last_total_microccd_staked).ToArray());
         
-        var result = new BlockMetrics(lastBlockHeight, totalBlockCount, avgBlockTime, avgFinalizationTime, 
-            lastTotalMicroCcd, lastTotalMicroCcdReleased, lastTotalMicroCcdEncrypted, lastTotalMicroCcdStaked, 
-            lastTotalPercentageReleased, lastTotalPercentageEncrypted, lastTotalPercentageStaked, buckets);
+        var result = new BlockMetrics(
+            lastBlockHeight, 
+            totalBlockCount, 
+            avgBlockTime, 
+            avgFinalizationTime, 
+            lastTotalMicroCcd, 
+            lastTotalMicroCcdReleased, 
+            lastTotalMicroCcdUnlocked, 
+            lastTotalMicroCcdEncrypted, 
+            lastTotalMicroCcdStaked, 
+            lastTotalPercentageReleased, 
+            lastTotalPercentageEncrypted, 
+            lastTotalPercentageStaked, 
+            buckets);
+        
         return result;
     }
 

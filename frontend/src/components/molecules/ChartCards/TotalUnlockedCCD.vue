@@ -1,9 +1,9 @@
 <template>
-	<KPICardContent v-if="Number.isInteger(lastTotalMicroCcdReleased)">
-		<template #title>Total circulating supply of CCD</template>
+	<KPICardContent v-if="Number.isInteger(lastTotalMicroCcdUnlocked)">
+		<template #title>Total unlocked CCD</template>
 		<template #icon>Ͼ</template>
 		<template #value>
-			{{ convertMicroCcdToCcd(lastTotalMicroCcdReleased, false) }}
+			{{ convertMicroCcdToCcd(lastTotalMicroCcdUnlocked, true) }}
 		</template>
 		<template #chip>latest</template>
 	</KPICardContent>
@@ -14,7 +14,7 @@ import KPICardContent from '~/components/molecules/KPICardContent.vue'
 import type { BlockMetrics } from '~/types/generated'
 
 type Props = {
-	lastTotalMicroCcdReleased?: BlockMetrics['lastTotalMicroCcdReleased']
+	lastTotalMicroCcdUnlocked?: BlockMetrics['lastTotalMicroCcdUnlocked']
 }
 
 defineProps<Props>()

@@ -491,8 +491,10 @@ type BakingRewardsSpecialEvent {
 type BalanceStatistics {
   "The total CCD in existence"
   totalAmount: UnsignedLong!
-  "The total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  "The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts"
   totalAmountReleased: UnsignedLong
+  "The total CCD Unlocked according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  totalAmountUnlocked: UnsignedLong
   "The total CCD in encrypted balances"
   totalAmountEncrypted: UnsignedLong!
   "The total CCD locked in release schedules (from transfers with schedule)"
@@ -552,8 +554,10 @@ type BlockMetrics {
   avgFinalizationTime: Float
   "The current total amount of CCD in existence."
   lastTotalMicroCcd: Long!
-  "The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  "The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts"
   lastTotalMicroCcdReleased: Long
+  "The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
+  lastTotalMicroCcdUnlocked: Long
   "The current total amount of CCD in encrypted balances."
   lastTotalMicroCcdEncrypted: Long!
   "The current total amount of CCD staked."

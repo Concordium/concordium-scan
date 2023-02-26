@@ -15,6 +15,11 @@
 								blockMetricsData?.blockMetrics.lastTotalMicroCcd
 							"
 						/>
+						<TotalUnlockedCCD
+							:last-total-micro-ccd-unlocked="
+								blockMetricsData?.blockMetrics.lastTotalMicroCcdUnlocked
+							"
+						/>
 						<TotalCirculatingCCD
 							:last-total-micro-ccd-released="
 								blockMetricsData?.blockMetrics.lastTotalMicroCcdReleased
@@ -199,6 +204,7 @@ import BlockFinalized from '~/components/molecules/BlockFinalized.vue'
 import TransactionResult from '~/components/molecules/TransactionResult.vue'
 import TotalCCD from '~/components/molecules/ChartCards/TotalCCD.vue'
 import TotalCirculatingCCD from '~/components/molecules/ChartCards/TotalCirculatingCCD.vue'
+import TotalUnlockedCCD from '~~/src/components/molecules/ChartCards/TotalUnlockedCCD.vue'
 import BlocksAddedChart from '~/components/molecules/ChartCards/BlocksAddedChart.vue'
 import BlockTimeChart from '~/components/molecules/ChartCards/BlockTimeChart.vue'
 import TransactionCountChart from '~/components/molecules/ChartCards/TransactionCountChart.vue'
