@@ -175,8 +175,11 @@ public class ImportWriteController : BackgroundService
         
         var importPaydayStatus = await _paydayHandler.UpdatePaydayStatus(payload);
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
-        await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        
+        await _accountHandler.AddNewAccounts(
+            payload.AccountInfos.CreatedAccounts, 
+            payload.BlockInfo.BlockSlotTime,
+            payload.BlockInfo.BlockHeight);
+
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
 
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
