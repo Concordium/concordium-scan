@@ -12,3 +12,4 @@
 - Fixed Memo CBOR Decoding.
 - Changed the header from "Total circulating supply of CCD" to "Total unlocked CCD"
 - Added New API endpoint to get "unlocked CCD"
+- Fixed Issue 55 by setting account balance to actual queried balance in case of genesis block.
