@@ -10,3 +10,4 @@
 - Fixed Issue 5 by considering 0 balance for Newly created accounts.
 - Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
 - Fixed Memo CBOR Decoding.
+- Fixed Issue 55 by setting account balance to actual queried balance in case of genesis block.

@@ -21,11 +21,14 @@ public class AccountImportHandler
         _writer = accountWriter;
     }
 
-    public async Task AddNewAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
+    public async Task AddNewAccounts(
+        AccountInfo[] createdAccounts, 
+        DateTimeOffset blockSlotTime, 
+        int blockHeight)
     {
         if (createdAccounts.Length == 0) return;
         
-        var accounts = _changeCalculator.MapCreatedAccounts(createdAccounts, blockSlotTime).ToArray();
+        var accounts = _changeCalculator.MapCreatedAccounts(createdAccounts, blockSlotTime, blockHeight).ToArray();
         await _writer.InsertAccounts(accounts);
 
         foreach (var account in accounts)
