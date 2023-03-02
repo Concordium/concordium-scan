@@ -30,6 +30,8 @@ type Props = {
 	text?: string
 	textClass?: string
 	position?: Position
+	x?: string
+	y?: string
 	onMouseEnter?: () => void
 	onMouseLeave?: () => void
 }
@@ -45,7 +47,7 @@ const {
 	tooltipTransformYFrom,
 	tooltipTransformYTo,
 	calculateCoordinates,
-} = useTooltip(props.position)
+} = useTooltip(props.position, props.x, props.y)
 
 const handleOnMouseEnter = (event: MouseEvent) => {
 	calculateCoordinates(event)
