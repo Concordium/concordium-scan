@@ -7,7 +7,7 @@
 		</template>
 		<template #chip>
 			<Tooltip
-				text="Latest : Total unlocked CCD"
+				text="Total number of unlocked CCD (Follows the release schedule in place from the genesis block)"
 				position="bottom"
 				x="50%"
 				y="50%"

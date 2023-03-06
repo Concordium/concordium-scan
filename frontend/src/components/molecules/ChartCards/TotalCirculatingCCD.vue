@@ -7,7 +7,7 @@
 		</template>
 		<template #chip>
 			<Tooltip
-				text="Latest : Total CCD in circulation (Total supply - Foundation coins)"
+				text="Total CCD in circulation (Total supply minus Foundation/Team coins)"
 				position="top"
 				x="50%"
 				y="50%"

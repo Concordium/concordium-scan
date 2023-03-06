@@ -7,7 +7,7 @@
 		</template>
 		<template #chip>
 			<Tooltip
-				text="Latest : Total CCD in existence"
+				text="Total number of CCD in existence"
 				position="bottom"
 				x="50%"
 				y="50%"
