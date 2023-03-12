@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
@@ -54,6 +51,8 @@ namespace Tests.Api.GraphQL.Import
             var block = new Block()
             {
                 BlockSlotTime = slotTime,
+                // Signifies Non Genesis Block
+                BlockHeight = 1
             };
             var blockDataPayload = new BlockDataPayload(
             new BlockInfo() { BlockSlotTime = block.BlockSlotTime },
@@ -105,12 +104,74 @@ namespace Tests.Api.GraphQL.Import
             });
             _accountLookup.AddToCache(senderAccount.GetBaseAddress().AsString, (long?)senderAccountId);
 
-            await _accountImportHandler.AddNewAccounts(blockDataPayload.AccountInfos.CreatedAccounts, block.BlockSlotTime);
+            await _accountImportHandler.AddNewAccounts(blockDataPayload.AccountInfos.CreatedAccounts, block.BlockSlotTime, block.BlockHeight);
             var transactions = await _transactionWriter.AddTransactions(blockDataPayload.BlockSummary, block.Id, block.BlockSlotTime);
             _accountImportHandler.HandleAccountUpdates(blockDataPayload, transactions, block);
 
             var statementEntry = _dbContextFactory.CreateDbContext().AccountStatementEntries.Where(e => e.AccountId == (long)receiverAccountId).Single();
             statementEntry.AccountBalance.Should().Be(CcdAmount.FromCcd(1).MicroCcdValue);
+        }
+
+        [Fact]
+        public async Task GenesisBlock_AccountCreation_BalanceTest()
+        {
+            var senderAccount = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+            ulong senderAccountId = 1;
+            var receiverAccount = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+            ulong receiverAccountId = 2;
+            var slotTime = DateTimeOffset.UtcNow;
+            var block = new Block()
+            {
+                BlockSlotTime = slotTime,
+                // Signifies Genesis Block
+                BlockHeight = 0
+            };
+            var blockDataPayload = new BlockDataPayload(
+            new BlockInfo() { BlockSlotTime = block.BlockSlotTime },
+            new BlockSummaryV1()
+            {
+                ProtocolVersion = 4,
+                TransactionSummaries = new TransactionSummary[0],
+                SpecialEvents = new SpecialEvent[0]
+            },
+            // Signifies that the Account Has been created in this block
+            new AccountInfosRetrieved(new AccountInfo[] {
+                new AccountInfo()
+                {
+                    AccountNonce = new Nonce(1),
+                    AccountAmount = CcdAmount.FromCcd(1),
+                    AccountAddress = receiverAccount,
+                    AccountIndex = receiverAccountId
+                }
+            }, new AccountInfo[0]),
+            null,
+            () => Task.FromResult(new BakerPoolStatus[0]),
+            () => Task.FromResult<PoolStatusPassiveDelegation>(null)
+            );
+
+            // Sender Account Should already be present in the database
+            await _accountWriter.InsertAccounts(new List<Account> {
+                new Account() {
+                    Amount = CcdAmount.FromCcd(2).MicroCcdValue,
+                    BaseAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.GetBaseAddress().AsString),
+                    CanonicalAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.AsString),
+                    CreatedAt = slotTime.AddSeconds(-10),
+                    TransactionCount = 0,
+                    Id = (long)senderAccountId
+                }
+            });
+            _accountLookup.AddToCache(senderAccount.GetBaseAddress().AsString, (long?)senderAccountId);
+
+            await _accountImportHandler.AddNewAccounts(blockDataPayload.AccountInfos.CreatedAccounts, block.BlockSlotTime, block.BlockHeight);
+            var transactions = await _transactionWriter.AddTransactions(blockDataPayload.BlockSummary, block.Id, block.BlockSlotTime);
+            _accountImportHandler.HandleAccountUpdates(blockDataPayload, transactions, block);
+
+            var statementEntry = _dbContextFactory.CreateDbContext()
+                .AccountStatementEntries
+                .Where(e => e.AccountId == (long)receiverAccountId)
+                .Count()
+                .Should()
+                .Be(0);
         }
     }
 }
