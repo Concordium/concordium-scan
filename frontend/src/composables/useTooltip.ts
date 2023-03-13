@@ -6,7 +6,11 @@ export type Position = 'top' | 'bottom'
  * Hook to control tooltip position values
  * Returns CSS values for triangle position, tooltip position and animation
  */
-export const useTooltip = (position: Position = 'top') => {
+export const useTooltip = (
+	position: Position = 'top',
+	xOverride?: string,
+	yOverride?: string
+) => {
 	const TOOLTIP_OFFSET = 10
 
 	// Drawing of the triangle
@@ -35,12 +39,13 @@ export const useTooltip = (position: Position = 'top') => {
 
 		const { x, y } = target.getBoundingClientRect()
 
-		tooltipX.value = x + 0.5 * target.offsetWidth + 'px'
+		tooltipX.value = xOverride || x + 0.5 * target.offsetWidth + 'px'
 
 		tooltipY.value =
-			position === 'top'
+			yOverride ||
+			(position === 'top'
 				? y - 0.5 * target.offsetHeight + TOOLTIP_OFFSET + 'px'
-				: y + 0.5 * target.offsetHeight - TOOLTIP_OFFSET + 'px'
+				: y + 0.5 * target.offsetHeight - TOOLTIP_OFFSET + 'px')
 	}
 
 	return {

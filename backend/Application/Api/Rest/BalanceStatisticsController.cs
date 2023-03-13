@@ -18,7 +18,7 @@ public class BalanceStatisticsController : ControllerBase
 
     [HttpGet]
     [Route("rest/balance-statistics/latest")]
-    public async Task<ActionResult> GetLatest(string field)
+    public async Task<ActionResult> GetLatest(string field, string? unit = "microccd")
     {
         if (field == null) throw new ArgumentNullException(nameof(field));
         
@@ -31,7 +31,7 @@ public class BalanceStatisticsController : ControllerBase
         var scalarQuery = field.ToLowerInvariant() switch
         {
             "totalamount" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmount),
-            "totalamountreleased" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
+            "totalamountcirculating" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
             "totalamoununlocked" => query.Select(x => x.BalanceStatistics.TotalAmountUnlocked),
             "totalamountnotreleased" => query.Select(x => x.BalanceStatistics.TotalAmount - x.BalanceStatistics.TotalAmountReleased),
             "totalamountstaked" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountStaked),
@@ -39,12 +39,23 @@ public class BalanceStatisticsController : ControllerBase
             "totalamountlockedinreleaseschedules" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountLockedInReleaseSchedules),
             _ => throw new ArgumentOutOfRangeException(nameof(field), field, "Supported values for field are: ")
         };
-        var value = await scalarQuery.FirstAsync();    
+
+        var value = await scalarQuery.FirstAsync();
+        var retValue = "";
+        if (!String.IsNullOrWhiteSpace(unit) && value.HasValue)
+        {
+            retValue = unit.ToLowerInvariant() switch
+            {
+                "ccd" => retValue = ((decimal)value / 10_00_000).ToString(CultureInfo.InvariantCulture),
+                "microccd" => ((decimal)value).ToString(CultureInfo.InvariantCulture),
+                _ => ((decimal)value).ToString(CultureInfo.InvariantCulture)
+            };
+        }
 
         var result = new ContentResult
         {
             ContentType = "text/plain",
-            Content = value.HasValue ? value.Value.ToString(CultureInfo.InvariantCulture) : "",
+            Content = retValue,
             StatusCode = 200
         };
         return result;
