@@ -76,5 +76,22 @@ namespace Tests.Api.GraphQL.Import.EventLog
             metadataEvent.HashHex.Should().BeNull();
             metadataEvent.MetadataUrl.Should().Be("https://ipfs.io/ipfs/QmV5REE3HJRLTHdmqG18Wc5PBF3Nc9W5dQL4Rp7MxBsx8q?filename=nft.jpg");
         }
+
+
+        [Fact]
+        public void ShouldParseEvent()
+        {
+            var contractAddess = new ContractAddress(1, 0);
+            CisEvent cisEvent;
+            byte[] eventBytes = Convert.FromHexString(
+                    "fd0080a094a58d1d00f761affb26ea6bbd14e4c50e51984d6d059156fa86658126c5ca0b747d60ba00"
+            );
+
+            CisEvent.TryParse(eventBytes, contractAddess, out cisEvent);
+
+            cisEvent.Should().NotBeNull();
+            cisEvent.Type.Should().Be(CisEventType.Burn);
+            cisEvent.As<CisBurnEvent>().TokenAmount.Should().Be(new BigInteger(1000000000000L));
+        }
     }
 }
