@@ -6,7 +6,9 @@
 - Handling of block `1385825` on testnet. Which changes the NextPaydayTime by just 287 seconds.
 - Added query to fetch backend version.
 - Sorting on Nodes Page
+- Added Accounts Updated GraphQl subscription. Can be used to subscribe to updates of a specific Account. 
 - Fixed Issue 5 by considering 0 balance for Newly created accounts.
 - Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
 - Fixed Memo CBOR Decoding.
 - Adds Listing of Contracts Via View
+- Fixed Issue 55 by setting account balance to actual queried balance in case of genesis block.

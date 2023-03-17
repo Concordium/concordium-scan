@@ -361,6 +361,11 @@ export type AccountsMetricsBuckets = {
   y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
 };
 
+export type AccountsUpdatedSubscriptionItem = {
+  __typename?: 'AccountsUpdatedSubscriptionItem';
+  address: Scalars['String'];
+};
+
 export type ActiveBakerState = {
   __typename?: 'ActiveBakerState';
   /** The status of the bakers node. Will be null if no status for the node exists. */
@@ -2410,7 +2415,13 @@ export type StringEdge = {
 
 export type Subscription = {
   __typename?: 'Subscription';
+  accountsUpdated: AccountsUpdatedSubscriptionItem;
   blockAdded: Block;
+};
+
+
+export type SubscriptionAccountsUpdatedArgs = {
+  accountAddress: Scalars['String'];
 };
 
 export type Success = {

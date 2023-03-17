@@ -23,7 +23,10 @@ public class AccountChangeCalculator
     /// <param name="createdAccounts">Created Account</param>
     /// <param name="blockSlotTime">Block Slot Time</param>
     /// <returns></returns>
-    public IEnumerable<Account> MapCreatedAccounts(AccountInfo[] createdAccounts, DateTimeOffset blockSlotTime)
+    public IEnumerable<Account> MapCreatedAccounts(
+        AccountInfo[] createdAccounts, 
+        DateTimeOffset blockSlotTime, 
+        int blockHeight)
     {
         return createdAccounts.Select(x => new Account
         {
@@ -31,7 +34,7 @@ public class AccountChangeCalculator
             CanonicalAddress = new AccountAddress(x.AccountAddress.AsString),
             BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().AsString),
             //Newly Created Account should not have balance. Balance will be later computer through transactions
-            Amount = 0, 
+            Amount = blockHeight == 0 ? x.AccountAmount.MicroCcdValue : 0, 
             CreatedAt = blockSlotTime
         });
     }

@@ -22,6 +22,8 @@ import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import AccountDetailsContent from '~/components/Accounts/AccountDetailsContent.vue'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
+import { type Subscription } from '~/types/generated'
+import { useAccountsUpdatedSubscription } from '~/subscriptions/useAccountsUpdatedSubscription'
 
 type Props = {
 	id?: string
@@ -94,9 +96,33 @@ const transactionVariables = {
 	beforeAccountToken,
 }
 
-const { data, error, componentState } = useAccountQuery({
+const { data, error, componentState, executeQuery } = useAccountQuery({
 	id: refId as Ref<string>,
 	address: refAddress as Ref<string>,
 	transactionVariables,
+})
+
+const subscriptionHandler = (_prevData: void, newData: Subscription) => {
+	if (
+		newData.accountsUpdated.address === props.address &&
+		componentState.value !== 'loading'
+	) {
+		executeQuery({
+			address: refAddress as Ref<string>,
+			transactionVariables,
+			requestPolicy: 'network-only',
+		})
+	}
+}
+
+const { pause: pauseSubscription, resume: resumeSubscription } =
+	useAccountsUpdatedSubscription(subscriptionHandler, {
+		accountAddress: props.address || '',
+	})
+onMounted(() => {
+	resumeSubscription()
+})
+onUnmounted(() => {
+	pauseSubscription()
 })
 </script>
