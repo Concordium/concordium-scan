@@ -35,7 +35,7 @@ public class BlockChangeCalculatorTest
             new TimestampedAmount(new DateTimeOffset(2022, 6, 5, 0, 0, 0, TimeSpan.Zero), 2000));
 
         var slotTime = DateTimeOffset.ParseExact(slotTimeString, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-        var result = _target.CalculateTotalAmountReleased(slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.AsString);
+        var result = _target.CalculateTotalAmountUnlocked(slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.AsString);
         result.Should().Be(expectedResult);
     }
 }

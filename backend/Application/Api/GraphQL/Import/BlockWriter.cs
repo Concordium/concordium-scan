@@ -31,20 +31,37 @@ public class BlockWriter
         _metrics = metrics;
     }
 
-    public async Task<Block> AddBlock(BlockInfo blockInfo, BlockSummaryBase blockSummary, RewardStatusBase rewardStatus,
-        int chainParametersId, BakerUpdateResults bakerUpdateResults, DelegationUpdateResults delegationUpdateResults,
-        ImportState importState)
+    public async Task<Block> AddBlock(
+        BlockInfo blockInfo,
+        BlockSummaryBase blockSummary,
+        RewardStatusBase rewardStatus,
+        int chainParametersId,
+        BakerUpdateResults bakerUpdateResults,
+        DelegationUpdateResults delegationUpdateResults,
+        ImportState importState,
+        ulong[] nonCirculatingAccountIds)
     {
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddBlock));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var blockTime = GetBlockTime(blockInfo, importState.LastBlockSlotTime);
         importState.LastBlockSlotTime = blockInfo.BlockSlotTime;
 
-        var block = MapBlock(blockInfo, blockSummary, rewardStatus, blockTime, chainParametersId, bakerUpdateResults, delegationUpdateResults, importState);
+        ulong nonCirculatingAccountsBalance = await getNonCirculatingBalance(nonCirculatingAccountIds);
+
+        var block = MapBlock(
+            blockInfo,
+            blockSummary,
+            rewardStatus,
+            blockTime,
+            chainParametersId,
+            bakerUpdateResults,
+            delegationUpdateResults,
+            importState,
+            nonCirculatingAccountsBalance);
         context.Blocks.Add(block);
-        
+
         await context.SaveChangesAsync(); // assign ID to block!
 
         var finalizationData = blockSummary.FinalizationData;
@@ -57,7 +74,25 @@ public class BlockWriter
         }
 
         await context.SaveChangesAsync();
-        return block; 
+        return block;
+    }
+
+    private async Task<ulong> getNonCirculatingBalance(ulong[] nonCirculatingAccountIds)
+    {
+
+        ulong nonCirculatingAccountsBalance = 0;
+        if (nonCirculatingAccountIds.Length > 0)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            using var cmd = (Npgsql.NpgsqlCommand)context.Database.GetDbConnection().CreateCommand();
+            await cmd.Connection.OpenAsync();
+            cmd.CommandText = @"SELECT COALESCE(SUM(ccd_amount)::bigint, 0::bigint) FROM graphql_accounts WHERE id = ANY(@AccountIds::bigint[])";
+            cmd.Parameters.AddWithValue("AccountIds", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Bigint, nonCirculatingAccountIds);
+            nonCirculatingAccountsBalance = (ulong)(long)cmd.ExecuteScalar();
+            await cmd.Connection.CloseAsync();
+        }
+
+        return nonCirculatingAccountsBalance;
     }
 
     public async Task<Blocks.SpecialEvent[]> AddSpecialEvents(Block block, BlockSummaryBase blockSummary)
@@ -150,9 +185,16 @@ public class BlockWriter
         }
     }
 
-    private Block MapBlock(BlockInfo blockInfo, BlockSummaryBase blockSummary, RewardStatusBase rewardStatus,
-        double blockTime, int chainParametersId, BakerUpdateResults bakerUpdateResults, 
-        DelegationUpdateResults delegationUpdateResults, ImportState importState)
+    private Block MapBlock(
+        BlockInfo blockInfo,
+        BlockSummaryBase blockSummary,
+        RewardStatusBase rewardStatus,
+        double blockTime,
+        int chainParametersId,
+        BakerUpdateResults bakerUpdateResults,
+        DelegationUpdateResults delegationUpdateResults,
+        ImportState importState,
+        ulong nonCirculatingAccountsBalance)
     {
         var block = new Block
         {
@@ -163,7 +205,13 @@ public class BlockWriter
             Finalized = blockInfo.Finalized,
             TransactionCount = blockInfo.TransactionCount,
             FinalizationSummary = MapFinalizationSummary(blockSummary.FinalizationData),
-            BalanceStatistics = MapBalanceStatistics(rewardStatus, blockInfo.BlockSlotTime, bakerUpdateResults, delegationUpdateResults, importState),
+            BalanceStatistics = MapBalanceStatistics(
+                rewardStatus, 
+                blockInfo.BlockSlotTime, 
+                bakerUpdateResults, 
+                delegationUpdateResults, 
+                importState, 
+                nonCirculatingAccountsBalance),
             BlockStatistics = new BlockStatistics
             {
                 BlockTime = blockTime, 
@@ -180,13 +228,22 @@ public class BlockWriter
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
-    private BalanceStatistics MapBalanceStatistics(RewardStatusBase rewardStatus, DateTimeOffset blockSlotTime,
-        BakerUpdateResults bakerUpdateResults, DelegationUpdateResults delegationUpdateResults, ImportState importState)
+    private BalanceStatistics MapBalanceStatistics(
+        RewardStatusBase rewardStatus, 
+        DateTimeOffset blockSlotTime,
+        BakerUpdateResults bakerUpdateResults, 
+        DelegationUpdateResults delegationUpdateResults, 
+        ImportState importState, 
+        ulong nonCirculatingAccountsBalance)
     {
+        var totalCcdSupply = rewardStatus.TotalAmount.MicroCcdValue;
+        var totalCirculatingCcdSupply = totalCcdSupply - nonCirculatingAccountsBalance;
+
         return new BalanceStatistics(
-            rewardStatus.TotalAmount.MicroCcdValue,
-            _changeCalculator.CalculateTotalAmountReleased(blockSlotTime, importState.GenesisBlockHash),
-            rewardStatus.TotalEncryptedAmount.MicroCcdValue, 
+            totalCcdSupply,
+            totalCirculatingCcdSupply,
+            _changeCalculator.CalculateTotalAmountUnlocked(blockSlotTime, importState.GenesisBlockHash),
+            rewardStatus.TotalEncryptedAmount.MicroCcdValue,
             0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
             bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked,
             bakerUpdateResults.TotalAmountStaked,

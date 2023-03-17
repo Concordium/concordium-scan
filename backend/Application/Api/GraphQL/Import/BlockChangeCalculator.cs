@@ -11,7 +11,7 @@ public class BlockChangeCalculator
         _repository = repository;
     }
 
-    public ulong? CalculateTotalAmountReleased(DateTimeOffset blockSlotTime, string genesisBlockHash)
+    public ulong? CalculateTotalAmountUnlocked(DateTimeOffset blockSlotTime, string genesisBlockHash)
     {
         var isMainnet = ConcordiumNetworkId.Mainnet.GenesisBlockHash == new BlockHash(genesisBlockHash);
         if (!isMainnet) 
