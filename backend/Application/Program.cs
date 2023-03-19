@@ -70,7 +70,10 @@ builder.Services.AddSingleton<ImportValidationController>();
 builder.Services.AddControllers();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
-    options.UseNpgsql(databaseSettings.ConnectionString);
+    options.UseNpgsql(
+        databaseSettings.ConnectionString,
+        configBuilder => configBuilder.CommandTimeout((int?)databaseSettings.QueryTimeout.TotalSeconds)
+    );
 });
 builder.Services.AddSingleton<NodeCache>();
 builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());

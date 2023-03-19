@@ -97,7 +97,9 @@ namespace Application.Database
                 .WithScriptsEmbeddedInAssembly(_sqlScriptsAssembly, scriptPath => scriptPath.EndsWith(".sql") && scriptPath.Contains($".{sqlScriptsFolder}."))
                 .LogTo(_dbUpLogWrapper)
                 .WithTransaction()
+                .WithExecutionTimeout(_settings.MigrationTimeout)
                 .Build();
+                
             return upgrader;
         }
 
