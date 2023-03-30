@@ -33,7 +33,7 @@ namespace Application.Api.GraphQL.Accounts
         /// <summary>
         /// Token balance for this Account
         /// </summary>
-        public long Balance { get; set; }
+        public double Balance { get; set; }
 
         /// <summary>
         /// Related <see cref="Token"/>
