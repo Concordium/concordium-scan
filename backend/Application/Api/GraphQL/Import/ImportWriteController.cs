@@ -40,10 +40,19 @@ public class ImportWriteController : BackgroundService
     private readonly DelegationImportHandler _delegationHandler;
     private readonly PassiveDelegationImportHandler _passiveDelegationHandler;
     private readonly PaydayImportHandler _paydayHandler;
+    private readonly ModuleSchemaWriter _moduleSchemaWriter;
 
-    public ImportWriteController(IDbContextFactory<GraphQlDbContext> dbContextFactory, DatabaseSettings dbSettings, 
-        IFeatureFlags featureFlags, ITopicEventSender sender, ImportChannel channel, ImportValidationController accountBalanceValidator,
-        IAccountLookup accountLookup, IMetrics metrics, MetricsListener metricsListener)
+    public ImportWriteController(
+        IDbContextFactory<GraphQlDbContext> dbContextFactory, 
+        DatabaseSettings dbSettings,
+        IFeatureFlags featureFlags, 
+        ITopicEventSender sender, 
+        ImportChannel channel, 
+        ImportValidationController accountBalanceValidator,
+        IAccountLookup accountLookup, 
+        IMetrics metrics, 
+        MetricsListener metricsListener, 
+        Modules.SmartContractModuleSerDe smartContractModuleSerDe)
     {
         _featureFlags = featureFlags;
         _accountLookup = accountLookup;
@@ -55,7 +64,7 @@ public class ImportWriteController : BackgroundService
         _blockWriter = new BlockWriter(dbContextFactory, metrics);
         _identityProviderWriter = new IdentityProviderWriter(dbContextFactory, metrics);
         _chainParametersWriter = new ChainParametersWriter(dbContextFactory, metrics);
-        _transactionWriter = new TransactionWriter(dbContextFactory, metrics);
+        _transactionWriter = new TransactionWriter(dbContextFactory, metrics, smartContractModuleSerDe);
         var accountWriter = new AccountWriter(dbContextFactory, metrics);
         _accountHandler = new AccountImportHandler(accountLookup, metrics, accountWriter);
         _bakerHandler = new BakerImportHandler(dbContextFactory, metrics);
@@ -67,6 +76,7 @@ public class ImportWriteController : BackgroundService
         _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
         _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
+        _moduleSchemaWriter = new ModuleSchemaWriter(dbContextFactory);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -176,7 +186,7 @@ public class ImportWriteController : BackgroundService
         var importPaydayStatus = await _paydayHandler.UpdatePaydayStatus(payload);
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
         await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
-        
+        await _moduleSchemaWriter.AddModuleSchemas(payload.ModuleSchemas);
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
 
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);

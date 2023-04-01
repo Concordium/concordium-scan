@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
+using Application.Import.ConcordiumNode.Types.Modules;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -106,7 +106,11 @@ public class ImportReadController : BackgroundService
         var rewardStatus = await rewardStatusTask;
 
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
-        
+        var moduleSchemas = await GetWithGrpcRetryAsync(
+            () => GetModuleSchemasAsync(blockInfo, blockSummary, stoppingToken),
+            nameof(GetModuleSchemasAsync),
+            stoppingToken);
+
         // Dont proactively read pool statuses for each block, we will let the write controller decide if they must be read!
         var bakerPoolStatusesFunc = () => GetWithGrpcRetryAsync(() => GetAllBakerPoolStatusesAsync(blockInfo, blockSummary, stoppingToken), nameof(GetAllBakerPoolStatusesAsync), stoppingToken);
         var passiveDelegationPoolStatusFunc = () => GetWithGrpcRetryAsync(() => GetPassiveDelegationPoolStatusAsync(blockInfo, blockSummary, stoppingToken), nameof(GetPassiveDelegationPoolStatusAsync), stoppingToken);
@@ -115,11 +119,26 @@ public class ImportReadController : BackgroundService
         if (blockInfo.BlockHeight == 0)
         {
             var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
-            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, genesisIdentityProviders, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new GenesisBlockDataPayload(
+                blockInfo,
+                blockSummary,
+                accountInfos,
+                rewardStatus,
+                genesisIdentityProviders,
+                bakerPoolStatusesFunc,
+                passiveDelegationPoolStatusFunc,
+                moduleSchemas);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new BlockDataPayload(
+                blockInfo,
+                blockSummary,
+                accountInfos,
+                rewardStatus,
+                bakerPoolStatusesFunc,
+                passiveDelegationPoolStatusFunc,
+                moduleSchemas);
         }
 
         return new BlockDataEnvelope(payload, consensusStatus);
@@ -183,6 +202,33 @@ public class ImportReadController : BackgroundService
             var accountsCreated = await Task.WhenAll(accountsCreatedTasks);
             var bakersWithNewPendingChanges = await Task.WhenAll(bakersWithNewPendingChangesTask);
             return new AccountInfosRetrieved(accountsCreated, bakersWithNewPendingChanges);
+        }
+    }
+
+    private async Task<ModuleSchema[]> GetModuleSchemasAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    {
+        var moduleSourcesDic = blockSummary.TransactionSummaries
+                .Select(x => x.Result)
+                .OfType<TransactionSuccessResult>()
+                .SelectMany(x => GetModuleRefToRetrieve(x.Events))
+                .ToDictionary(x => x, x => _client.GetModuleSource(blockInfo.BlockHash, x))
+                ;
+
+        IEnumerable<ModuleSchema> schemas = moduleSourcesDic
+            .Select(moduleSource => new ModuleSource(moduleSource.Key, moduleSource.Value.Result))
+            .Select(moduleSchema => moduleSchema.GetSchema())
+            .Where(moduleSchema => moduleSchema != null)
+            .Select(moduleSchema => moduleSchema as ModuleSchema);
+
+        return schemas.ToArray();
+    }
+
+    private IEnumerable<string> GetModuleRefToRetrieve(TransactionResultEvent[] txEvents)
+    {
+        foreach (var txEvent in txEvents)
+        {
+            if (txEvent is ModuleDeployed moduleDeployed)
+                yield return moduleDeployed.Contents.AsString;
         }
     }
 

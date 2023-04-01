@@ -1,5 +1,6 @@
 ﻿using System.Threading.Channels;
 using System.Threading.Tasks;
+using Application.Import.ConcordiumNode.Types.Modules;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -51,7 +52,8 @@ public record BlockDataPayload
         AccountInfosRetrieved accountInfos,
         RewardStatusBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
-        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc)
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc,
+        ModuleSchema[] moduleSchemas)
     {
         BlockInfo = blockInfo;
         BlockSummary = blockSummary;
@@ -59,12 +61,14 @@ public record BlockDataPayload
         RewardStatus = rewardStatus;
         _readAllBakerPoolStatusesFunc = readAllBakerPoolStatusesFunc;
         _passiveDelegationPoolStatusFunc = passiveDelegationPoolStatusFunc;
+        ModuleSchemas = moduleSchemas;
     }
 
     public BlockInfo BlockInfo { get; }
     public BlockSummaryBase BlockSummary { get; }
     public AccountInfosRetrieved AccountInfos { get; }
     public RewardStatusBase RewardStatus { get; }
+    public ModuleSchema[] ModuleSchemas { get; }
 
     public async Task<BakerPoolStatus[]> ReadAllBakerPoolStatuses()
     {
@@ -85,8 +89,16 @@ public record GenesisBlockDataPayload : BlockDataPayload
         RewardStatusBase rewardStatus,
         IdentityProviderInfo[] genesisIdentityProviders,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
-        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc) 
-        : base(blockInfo, blockSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
+        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc,
+        ModuleSchema[] moduleSchemas)
+        : base(
+            blockInfo,
+            blockSummary,
+            accountInfos,
+            rewardStatus,
+            readAllBakerPoolStatusesFunc,
+            passiveDelegationPoolStatusFunc,
+            moduleSchemas)
     {
         GenesisIdentityProviders = genesisIdentityProviders;
     }

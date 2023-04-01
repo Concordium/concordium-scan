@@ -134,6 +134,18 @@ public class GrpcNodeClient : INodeClient, IDisposable
         return result;
     }
 
+    public async Task<byte[]> GetModuleSource(BlockHash blockHash, string moduleRef, CancellationToken cancellationToken = default)
+    {
+        var request = new GetModuleSourceRequest
+        {
+            BlockHash = blockHash.AsString,
+            ModuleRef = moduleRef
+        };
+        var moduleSource = await _client.GetModuleSourceAsync(request, CreateCallOptions(cancellationToken));
+
+        return moduleSource.ToByteArray();
+    }
+
     public async Task<RewardStatusBase> GetRewardStatusAsync(BlockHash blockHash, CancellationToken cancellationToken = default)
     {
         var request = new Concordium.BlockHash
