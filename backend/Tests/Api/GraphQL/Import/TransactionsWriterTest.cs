@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Import.Modules;
 using Application.Api.GraphQL.Transactions;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -93,13 +94,15 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly TransactionWriter _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
+    private readonly SmartContractModuleSerDe _smartContractModuleSerDe;
     private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly DateTimeOffset _anyBlockSlotTime = new DateTimeOffset(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public TransactionsWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
-        _target = new TransactionWriter(_dbContextFactory, new NullMetrics());
+        _smartContractModuleSerDe = new SmartContractModuleSerDe();
+        _target = new TransactionWriter(_dbContextFactory, new NullMetrics(),_smartContractModuleSerDe);
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_transactions");

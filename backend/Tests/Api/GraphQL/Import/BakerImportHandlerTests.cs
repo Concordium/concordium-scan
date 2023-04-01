@@ -1,5 +1,6 @@
 using Application.Api.GraphQL.Import;
 using Application.Import;
+using Application.Import.ConcordiumNode.Types.Modules;
 using ConcordiumSdk.NodeApi;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
@@ -82,7 +83,8 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
                     CcdAmount.Zero,
                     CcdAmount.Zero,
                     CcdAmount.Zero
-                ))
+                )),
+                new ModuleSchema[0]
         ),
         new RewardsSummary(new AccountRewardSummary[0]),
         new ChainParametersState(new ChainParametersV1Builder().Build()),
