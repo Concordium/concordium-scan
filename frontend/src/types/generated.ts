@@ -10,6 +10,7 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+  BigInteger: any;
   /** The `Byte` scalar type represents non-fractional whole numeric values. Byte can represent values between 0 and 255. */
   Byte: any;
   /** The `DateTime` scalar represents an ISO-8601 compliant date time type. */
@@ -238,7 +239,7 @@ export enum AccountStatementEntryType {
 export type AccountToken = {
   __typename?: 'AccountToken';
   accountId: Scalars['Long'];
-  balance: Scalars['Float'];
+  balance: Scalars['BigInteger'];
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
   index: Scalars['Long'];
@@ -2426,8 +2427,7 @@ export type Token = {
   contractSubIndex: Scalars['UnsignedLong'];
   metadataUrl?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
-  tokens: Array<AccountToken>;
-  totalSupply: Scalars['Decimal'];
+  totalSupply: Scalars['BigInteger'];
 };
 
 export type Transaction = {

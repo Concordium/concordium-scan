@@ -1,7 +1,9 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Numerics;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.ChainParametersGraphql;
+using Application.Api.GraphQL.Extensions.ScalarTypes;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Network;
@@ -61,6 +63,7 @@ public static class GraphQlConfiguration
         builder.AddSubscriptionType<Subscription>();
         
         builder.BindClrType<ulong, UnsignedLongType>();
+        builder.BindClrType<BigInteger, BigIntegerScalarType>();
 
         // Bind all concrete types of GraphQL unions and interfaces
         AddAllTypesDerivedFrom<ChainParameters>(builder);
