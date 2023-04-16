@@ -1,7 +1,6 @@
 using System.Net.Http;
 using Application;
 using Application.Api.GraphQL;
-using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
@@ -49,6 +48,13 @@ builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
 logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
 logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportEnabled), featureFlags.ConcordiumNodeImportEnabled);
 logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportValidationEnabled), featureFlags.ConcordiumNodeImportValidationEnabled);
+
+var nonCirculatingAccounts = builder
+    .Configuration
+    .GetSection("NonCirculatingAccounts")
+    .Get<List<string>>()
+    .Select(str => new ConcordiumSdk.Types.AccountAddress(str).GetBaseAddress());
+builder.Services.AddSingleton<NonCirculatingAccounts>(new NonCirculatingAccounts(nonCirculatingAccounts));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddCors();

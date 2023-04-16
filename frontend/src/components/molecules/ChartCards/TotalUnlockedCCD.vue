@@ -1,14 +1,14 @@
 <template>
-	<KPICardContent v-if="Number.isInteger(lastTotalMicroCcdReleased)">
-		<template #title>Total circulating supply of CCD</template>
+	<KPICardContent v-if="Number.isInteger(lastTotalMicroCcdUnlocked)">
+		<template #title>Total unlocked CCD</template>
 		<template #icon>Ͼ</template>
 		<template #value>
-			{{ convertMicroCcdToCcd(lastTotalMicroCcdReleased, true) }}
+			{{ convertMicroCcdToCcd(lastTotalMicroCcdUnlocked, true) }}
 		</template>
 		<template #chip>
 			<Tooltip
-				text="Total CCD in circulation (Total supply minus Foundation/Team coins)"
-				position="top"
+				text="Total number of unlocked CCD (Follows the release schedule in place from the genesis block)"
+				position="bottom"
 				x="50%"
 				y="50%"
 				tooltip-position="absolute"
@@ -26,7 +26,7 @@ import type { BlockMetrics } from '~/types/generated'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
-	lastTotalMicroCcdReleased?: BlockMetrics['lastTotalMicroCcdReleased']
+	lastTotalMicroCcdUnlocked?: BlockMetrics['lastTotalMicroCcdUnlocked']
 }
 
 defineProps<Props>()
