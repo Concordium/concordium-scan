@@ -12,3 +12,4 @@
 - Adds Listing of Contracts Via View
 - Adds Detail of Contracts Via View
 - Adds Contract Searching Via View
+- Adds support Deserialization of Invocation Params for Smart Contracts If the schema is embedded in the Module
