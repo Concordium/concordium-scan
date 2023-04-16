@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
-using Application.Api.GraphQL.Import.Modules;
 using Application.Import;
 using Application.Import.ConcordiumNode.Types.Modules;
 using ConcordiumSdk.NodeApi;
@@ -27,7 +23,6 @@ namespace Tests.Api.GraphQL.Import
         private readonly AccountWriter _accountWriter;
         private readonly AccountLookupStub _accountLookup;
         private readonly AccountImportHandler _accountImportHandler;
-        private readonly SmartContractModuleSerDe _smartContractModuleSerDe;
         private readonly TransactionWriter _transactionWriter;
 
         public AccountImportHandlerTest(DatabaseFixture dbFixture)
@@ -37,8 +32,7 @@ namespace Tests.Api.GraphQL.Import
             _accountWriter = new AccountWriter(_dbContextFactory, _metrics);
             _accountLookup = new AccountLookupStub();
             _accountImportHandler = new AccountImportHandler(_accountLookup, _metrics, _accountWriter);
-            _smartContractModuleSerDe = new SmartContractModuleSerDe();
-            _transactionWriter = new TransactionWriter(_dbContextFactory, _metrics, _smartContractModuleSerDe);
+            _transactionWriter = new TransactionWriter(_dbContextFactory, _metrics, new SmartContractModuleSerDeStub());
 
             using var connection = dbFixture.GetOpenConnection();
             connection.Execute("TRUNCATE TABLE graphql_accounts");

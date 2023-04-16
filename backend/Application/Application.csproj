@@ -7,6 +7,10 @@
         <Version>1.0.1</Version>
     </PropertyGroup>
 
+    <Target Name="BuildNative" BeforeTargets="PrepareForBuild">
+       <Exec Command="cargo build --manifest-path ../Native/Cargo.toml --release"/>
+    </Target>
+
     <ItemGroup>
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="dbup-postgresql" Version="4.5.0" />
@@ -20,7 +24,8 @@
       <PackageReference Include="Polly" Version="7.2.3" />
       <PackageReference Include="Semver" Version="2.2.0" />
       <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
-      <PackageReference Include="PeterO.Cbor" Version="4.5.2"/>
+      <PackageReference Include="PeterO.Cbor" Version="4.5.2" />
+      <PackageReference Include="System.Net.Http.Json" Version="6.0.1" />
       <PackageReference Include="WebAssembly" Version="1.2.1" />
     </ItemGroup>
 
@@ -31,5 +36,10 @@
 
     <ItemGroup>
       <Folder Include="Api\GraphQL\EfCore\Converters" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="../Native/target/release/libconcordium_scan_native.so">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>

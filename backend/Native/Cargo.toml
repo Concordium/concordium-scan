@@ -1,0 +1,17 @@
+[package]
+name = "concordium_scan_native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name="concordium_scan_native"
+crate-type = ["dylib"]
+
+[dependencies]
+interoptopus = "0.14.15"
+interoptopus_backend_csharp = "0.14.17"
+anyhow = "1.0"
+hex = "0.4"
+
+[dependencies.concordium_base]
+path = "../deps/concordium-base/rust-src/concordium_base"

@@ -93,6 +93,9 @@ __typename
 		index
 		subIndex
 	}
+	receiveName
+	messageAsJson
+	messageAsHex
 }
 ... on CredentialKeysUpdated {
 	credId

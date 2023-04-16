@@ -10,6 +10,18 @@
 		/>
 		updated smart contract instance
 		<Contract :address="event.contractAddress" />
+		<div>
+			<span class="text-theme-faded"
+				>Recieve Method: {{ event.receiveName }}</span
+			>
+		</div>
+		<div v-if="event.messageAsJson">
+			<span class="text-theme-faded">Parameters JSON:</span>
+			<pre class="text-theme-faded" style="margin-bottom: -1em"
+				>{{ JSON.stringify(JSON.parse(event.messageAsJson), null, 2) }}
+		</pre
+			>
+		</div>
 	</span>
 </template>
 

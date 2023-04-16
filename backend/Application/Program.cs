@@ -1,9 +1,11 @@
+using System.IO;
 using System.Net.Http;
 using Application;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Import.Modules;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Api.GraphQL.ImportNodeStatus;
 using Application.Api.GraphQL.Network;
@@ -23,6 +25,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 if (args.Any())
 {
@@ -33,7 +36,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.With<SourceClassNameEnricher>()    
+    .Enrich.With<SourceClassNameEnricher>()
     .CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
@@ -80,6 +83,8 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
+builder.Services.AddSingleton<JsonSerializer>((serviceProvider) => JsonSerializer.Create());
+builder.Services.AddSingleton<SmartContractModuleSerDe>();
 builder.Host.UseSystemd();
 var app = builder.Build();
 

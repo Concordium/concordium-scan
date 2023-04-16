@@ -95,6 +95,7 @@ public record ContractUpdated(
     Address Instigator,
     ulong Amount,
     string MessageAsHex,
+    string? MessageAsJson,
     string ReceiveName,
     [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent;

@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import.Modules;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using ConcordiumSdk.NodeApi.Types;
@@ -23,7 +24,6 @@ using CredentialHolderDidNotSign = Application.Api.GraphQL.Transactions.Credenti
 using CredentialKeysUpdated = Application.Api.GraphQL.Transactions.CredentialKeysUpdated;
 using CredentialsUpdated = Application.Api.GraphQL.Transactions.CredentialsUpdated;
 using DataRegistered = Application.Api.GraphQL.Transactions.DataRegistered;
-using DelegationTarget = Application.Api.GraphQL.DelegationTarget;
 using DuplicateAggregationKey = Application.Api.GraphQL.Transactions.DuplicateAggregationKey;
 using DuplicateCredIds = Application.Api.GraphQL.Transactions.DuplicateCredIds;
 using EncryptedAmountSelfTransfer = Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer;
@@ -76,17 +76,22 @@ public class TransactionWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
+    private readonly ISmartContractModuleSerDe _smartContractModuleSerDe;
 
-    public TransactionWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
+    public TransactionWriter(
+        IDbContextFactory<GraphQlDbContext> dbContextFactory,
+        IMetrics metrics,
+        ISmartContractModuleSerDe smartContractModuleSerDe)
     {
         _dbContextFactory = dbContextFactory;
         _metrics = metrics;
+        _smartContractModuleSerDe = smartContractModuleSerDe;
     }
 
     public async Task<TransactionPair[]> AddTransactions(BlockSummaryBase blockSummary, long blockId, DateTimeOffset blockSlotTime)
     {
         if (blockSummary.TransactionSummaries.Length == 0) return Array.Empty<TransactionPair>();
-        
+
         using var counter = _metrics.MeasureDuration(nameof(TransactionWriter), nameof(AddTransactions));
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
@@ -153,7 +158,14 @@ public class TransactionWriter
                 ConcordiumSdk.NodeApi.Types.CredentialsUpdated x => new CredentialsUpdated(MapAccountAddress(x.Account), x.NewCredIds, x.RemovedCredIds, x.NewThreshold),
                 ConcordiumSdk.NodeApi.Types.ContractInitialized x => new ContractInitialized(x.Ref.AsString, MapContractAddress(x.Address), x.Amount.MicroCcdValue, x.InitName, x.Events.Select(data => data.AsHexString).ToArray()),
                 ConcordiumSdk.NodeApi.Types.ModuleDeployed x => new ContractModuleDeployed(x.Contents.AsString),
-                ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.MicroCcdValue, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
+                ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(
+                    MapContractAddress(x.Address),
+                    MapAddress(x.Instigator),
+                    x.Amount.MicroCcdValue,
+                    x.Message.AsHexString,
+                    TryDeserializeMessage(x.Message.AsHexString, x.ReceiveName, MapContractAddress(x.Address)),
+                    x.ReceiveName,
+                    x.Events.Select(data => data.AsHexString).ToArray()),
                 ConcordiumSdk.NodeApi.Types.Interrupted x => new ContractInterrupted(MapContractAddress(x.Address), x.Events.Select(data => data.AsHexString).ToArray()),
                 ConcordiumSdk.NodeApi.Types.Resumed x => new ContractResumed(MapContractAddress(x.Address), x.Success),
                 ConcordiumSdk.NodeApi.Types.Upgraded x => new ContractUpgraded(MapContractAddress(x.Address), x.From.AsString, x.To.AsString),
@@ -175,6 +187,33 @@ public class TransactionWriter
                 _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
             }
         };
+    }
+
+    private string? TryDeserializeMessage(string messageAsHex, string receiveName, ContractAddress contractAddress)
+    {
+        if (String.IsNullOrWhiteSpace(messageAsHex))
+        {
+            return null;
+        }
+
+        using var dbContext = _dbContextFactory.CreateDbContext();
+
+        var moduleRef = dbContext.SmartContractView.Where(c => c.ContractAddress == contractAddress).Select(c => c.ModuleRef).FirstOrDefault();
+        if (moduleRef == null)
+        {
+            return null;
+        }
+
+        var moduleSchema = dbContext.SmartContractModuleSchemas
+            .Where(m => m.ModuleRef == moduleRef && m.SchemaHex != null)
+            .SingleOrDefault();
+
+        if (moduleSchema == null)
+        {
+            return null;
+        }
+
+        return _smartContractModuleSerDe.DeserializeReceiveMessage(messageAsHex, receiveName, moduleSchema);
     }
 
     private DelegationTarget MapDelegationTarget(ConcordiumSdk.NodeApi.Types.DelegationTarget src)
@@ -205,8 +244,8 @@ public class TransactionWriter
         {
             ProtocolUpdatePayload x => new ProtocolChainUpdatePayload(x.Content.Message, x.Content.SpecificationURL, x.Content.SpecificationHash, x.Content.SpecificationAuxiliaryData.AsHexString),
             ElectionDifficultyUpdatePayload x => new ElectionDifficultyChainUpdatePayload(x.ElectionDifficulty),
-            EuroPerEnergyUpdatePayload x => new EuroPerEnergyChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
-            MicroGtuPerEuroUpdatePayload x => new MicroCcdPerEuroChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
+            EuroPerEnergyUpdatePayload x => new EuroPerEnergyChainUpdatePayload(new ExchangeRate { Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
+            MicroGtuPerEuroUpdatePayload x => new MicroCcdPerEuroChainUpdatePayload(new ExchangeRate { Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
             FoundationAccountUpdatePayload x => new FoundationAccountChainUpdatePayload(new AccountAddress(x.Account.AsString)),
             MintDistributionV0UpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
             TransactionFeeDistributionUpdatePayload x => new TransactionFeeDistributionChainUpdatePayload(x.Content.Baker, x.Content.GasAccount),
@@ -256,7 +295,7 @@ public class TransactionWriter
 
     private static CommissionRange MapCommissionRange(InclusiveRange<decimal> src)
     {
-        return new () { Min = src.Min, Max = src.Max};
+        return new() { Min = src.Min, Max = src.Max };
     }
 
     private TransactionRejectReason? MapRejectReason(TransactionRejectResult? value)

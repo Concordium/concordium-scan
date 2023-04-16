@@ -1057,6 +1057,7 @@ export type ContractUpdated = {
   eventsAsHex?: Maybe<StringConnection>;
   instigator: Address;
   messageAsHex: Scalars['String'];
+  messageAsJson?: Maybe<Scalars['String']>;
   receiveName: Scalars['String'];
 };
 
