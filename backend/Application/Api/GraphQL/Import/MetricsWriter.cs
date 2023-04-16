@@ -45,6 +45,7 @@ public class MetricsWriter
             BlockTimeSecs = block.BlockStatistics.BlockTime,
             TotalMicroCcd = (long)stats.TotalAmount,
             TotalMicroCcdReleased = (long?)stats.TotalAmountReleased,
+            TotalMicroCcdUnlocked = (long?)stats.TotalAmountUnlocked,
             TotalMicroCcdEncrypted = (long)stats.TotalAmountEncrypted,
             TotalMicroCcdStaked = (long)stats.TotalAmountStaked,
             TotalPercentageReleased = totalPercentageReleased, 
@@ -52,8 +53,31 @@ public class MetricsWriter
             TotalPercentageStaked = totalPercentageStaked
         };
 
-        var sql = @"insert into metrics_blocks (time, block_height, block_time_secs, total_microccd, total_microccd_released, total_microccd_encrypted, total_microccd_staked, total_percentage_released, total_percentage_encrypted, total_percentage_staked) 
-                    values (@Time, @BlockHeight, @BlockTimeSecs, @TotalMicroCcd, @TotalMicroCcdReleased, @TotalMicroCcdEncrypted, @TotalMicroCcdStaked, @TotalPercentageReleased, @TotalPercentageEncrypted, @TotalPercentageStaked)";
+        var sql = @"insert into metrics_blocks (
+                time, 
+                block_height, 
+                block_time_secs, 
+                total_microccd, 
+                total_microccd_released,
+                total_microccd_unlocked,
+                total_microccd_encrypted, 
+                total_microccd_staked, 
+                total_percentage_released, 
+                total_percentage_encrypted, 
+                total_percentage_staked
+            ) values (
+                @Time, 
+                @BlockHeight, 
+                @BlockTimeSecs, 
+                @TotalMicroCcd, 
+                @TotalMicroCcdReleased,
+                @TotalMicroCcdUnlocked,
+                @TotalMicroCcdEncrypted, 
+                @TotalMicroCcdStaked, 
+                @TotalPercentageReleased, 
+                @TotalPercentageEncrypted, 
+                @TotalPercentageStaked
+            )";
         await conn.ExecuteAsync(sql, blockParam);
     }
 

@@ -32,7 +32,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             while (true)
             {
                 var bt = st.ReadByte();
-                value += (bt & 0x7f) << shift;
+                value += new BigInteger(bt & 0x7f) << shift;
 
                 if (bt < 128)
                     break;

@@ -6,6 +6,7 @@
 - Handling of block `1385825` on testnet. Which changes the NextPaydayTime by just 287 seconds.
 - Added query to fetch backend version.
 - Sorting on Nodes Page
+- Added Accounts Updated GraphQl subscription. Can be used to subscribe to updates of a specific Account. 
 - Fixed Issue 5 by considering 0 balance for Newly created accounts.
 - Added boolean filters on Bakers Query to enable filtering on Baker Removed State.
 - Fixed Memo CBOR Decoding.
@@ -13,3 +14,6 @@
 - Adds Detail of Contracts Via View
 - Adds Contract Searching Via View
 - Adds support Deserialization of Invocation Params for Smart Contracts If the schema is embedded in the Module
+- Changed the header from "Total circulating supply of CCD" to "Total unlocked CCD"
+- Added New API endpoint to get "unlocked CCD"
+- Fixed Issue 55 by setting account balance to actual queried balance in case of genesis block.

@@ -361,6 +361,13 @@ export type AccountsMetricsBuckets = {
   y_LastCumulativeAccountsCreated: Array<Scalars['Long']>;
 };
 
+/** Structure used to send messages to the Subscribers */
+export type AccountsUpdatedSubscriptionItem = {
+  __typename?: 'AccountsUpdatedSubscriptionItem';
+  /** Account Address */
+  address: Scalars['String'];
+};
+
 export type ActiveBakerState = {
   __typename?: 'ActiveBakerState';
   /** The status of the bakers node. Will be null if no status for the node exists. */
@@ -737,10 +744,12 @@ export type BalanceStatistics = {
   totalAmountEncrypted: Scalars['UnsignedLong'];
   /** The total CCD locked in release schedules (from transfers with schedule) */
   totalAmountLockedInReleaseSchedules: Scalars['UnsignedLong'];
-  /** The total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  /** The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts */
   totalAmountReleased?: Maybe<Scalars['UnsignedLong']>;
   /** The total CCD staked */
   totalAmountStaked: Scalars['UnsignedLong'];
+  /** The total CCD Unlocked according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  totalAmountUnlocked?: Maybe<Scalars['UnsignedLong']>;
 };
 
 export type Block = {
@@ -811,10 +820,12 @@ export type BlockMetrics = {
   lastTotalMicroCcd: Scalars['Long'];
   /** The current total amount of CCD in encrypted balances. */
   lastTotalMicroCcdEncrypted: Scalars['Long'];
-  /** The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  /** The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts */
   lastTotalMicroCcdReleased?: Maybe<Scalars['Long']>;
   /** The current total amount of CCD staked. */
   lastTotalMicroCcdStaked: Scalars['Long'];
+  /** The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
+  lastTotalMicroCcdUnlocked?: Maybe<Scalars['Long']>;
   /** The current percentage of CCD encrypted (of total CCD in existence) */
   lastTotalPercentageEncrypted: Scalars['Float'];
   /** The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule. */
@@ -2460,7 +2471,13 @@ export type StringEdge = {
 
 export type Subscription = {
   __typename?: 'Subscription';
+  accountsUpdated: AccountsUpdatedSubscriptionItem;
   blockAdded: Block;
+};
+
+
+export type SubscriptionAccountsUpdatedArgs = {
+  accountAddress: Scalars['String'];
 };
 
 export type Success = {

@@ -156,8 +156,7 @@
 			</Accordion>
 			<Accordion
 				v-if="
-					account.tokens?.pageInfo.hasNextPage ||
-					account.tokens?.pageInfo.hasPreviousPage
+					account.tokens?.nodes?.length && account.tokens?.nodes?.length > 0
 				"
 			>
 				Tokens

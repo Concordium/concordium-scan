@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Import.Validations;
+using Application.Common;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Database;
@@ -30,6 +31,7 @@ public class ImportWriteController : BackgroundService
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountImportHandler _accountHandler;
     private readonly EventLogHandler _eventLogHandler;
+    private readonly NonCirculatingAccounts _nonCirculatingAccounts;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -51,7 +53,8 @@ public class ImportWriteController : BackgroundService
         ImportValidationController accountBalanceValidator,
         IAccountLookup accountLookup, 
         IMetrics metrics, 
-        MetricsListener metricsListener, 
+        MetricsListener metricsListener,
+        NonCirculatingAccounts nonCirculatingAccounts, 
         Modules.SmartContractModuleSerDe smartContractModuleSerDe)
     {
         _featureFlags = featureFlags;
@@ -77,6 +80,7 @@ public class ImportWriteController : BackgroundService
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
         _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
         _moduleSchemaWriter = new ModuleSchemaWriter(dbContextFactory);
+        _nonCirculatingAccounts = nonCirculatingAccounts;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -98,7 +102,7 @@ public class ImportWriteController : BackgroundService
                 waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var result = await WriteData(envelope.Payload, envelope.ConsensusStatus);
+                var result = await WriteData(envelope.Payload, envelope.ConsensusStatus, stoppingToken);
                 await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
@@ -135,7 +139,7 @@ public class ImportWriteController : BackgroundService
         _channel.SetInitialImportState(initialState);
     }
 
-    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusStatus consensusStatus)
+    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         
@@ -156,7 +160,7 @@ public class ImportWriteController : BackgroundService
             if (payload is GenesisBlockDataPayload genesisData)
                 await HandleGenesisOnlyWrites(genesisData);
 
-            result = await HandleCommonWrites(payload, importState);
+            result = await HandleCommonWrites(payload, importState, stoppingToken);
 
             importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
             importState.EpochDuration = consensusStatus.EpochDuration;
@@ -179,14 +183,18 @@ public class ImportWriteController : BackgroundService
         await _identityProviderWriter.AddGenesisIdentityProviders(payload.GenesisIdentityProviders);
     }
 
-    private async Task<BlockWriteResult> HandleCommonWrites(BlockDataPayload payload, ImportState importState)
+    private async Task<BlockWriteResult> HandleCommonWrites(BlockDataPayload payload, ImportState importState, CancellationToken stoppingToken)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
         
         var importPaydayStatus = await _paydayHandler.UpdatePaydayStatus(payload);
         await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
-        await _accountHandler.AddNewAccounts(payload.AccountInfos.CreatedAccounts, payload.BlockInfo.BlockSlotTime);
+        await _accountHandler.AddNewAccounts(
+            payload.AccountInfos.CreatedAccounts, 
+            payload.BlockInfo.BlockSlotTime,
+            payload.BlockInfo.BlockHeight);
         await _moduleSchemaWriter.AddModuleSchemas(payload.ModuleSchemas);
+
         var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
 
         var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
@@ -194,15 +202,46 @@ public class ImportWriteController : BackgroundService
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters.Current, bakerUpdateResults, rewardsSummary, importPaydayStatus);
         await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters.Current);
 
-        var block = await _blockWriter.AddBlock(payload.BlockInfo, payload.BlockSummary, payload.RewardStatus, chainParameters.Current.Id, bakerUpdateResults, delegationUpdateResults, importState);
+        var nonCirculatingAccountIds = _accountLookup
+            .GetAccountIdsFromBaseAddresses(_nonCirculatingAccounts.accounts.Select(a => a.AsString))
+            .AsEnumerable()
+            .Select(kvp => kvp.Value)
+            .Where(id => id.HasValue)
+            .Select(id => (ulong)id.Value)
+            .ToArray();
+
+        var block = await _blockWriter.AddBlock(
+            payload.BlockInfo, 
+            payload.BlockSummary, 
+            payload.RewardStatus, 
+            chainParameters.Current.Id, 
+            bakerUpdateResults, 
+            delegationUpdateResults, 
+            importState,
+            nonCirculatingAccountIds);
+
         var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
         var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
 
         var passiveDelegationUpdateResults = await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus, block);
         await _bakerHandler.ApplyChangesAfterBlocksAndTransactionsWritten(block, transactions, importPaydayStatus);
-        _accountHandler.HandleAccountUpdates(payload, transactions, block);
+        var accountBalanceUpdates = _accountHandler.HandleAccountUpdates(payload, transactions, block);
+        var accountTokenUpdates = _eventLogHandler.HandleLogs(transactions);
 
-        _eventLogHandler.HandleLogs(transactions);
+        var updatedAccountAddresses = accountTokenUpdates
+            .Select(u => u.Address)
+            .Concat(accountBalanceUpdates.Select(a => a.AccountAddress))
+            .Distinct()
+            .ToArray();
+
+        foreach (var accntAddress in updatedAccountAddresses)
+        {
+            await _sender.SendAsync(
+                accntAddress.AsString,
+                new AccountsUpdatedSubscriptionItem(accntAddress),
+                stoppingToken
+            );
+        }
 
         await _blockWriter.UpdateTotalAmountLockedInReleaseSchedules(block);
         var paydaySummary = await _paydayHandler.AddPaydaySummaryOnPayday(importPaydayStatus, block);

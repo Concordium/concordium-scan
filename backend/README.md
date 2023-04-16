@@ -33,7 +33,7 @@ The configuration file ``appsettings.Development.json`` contains the configurati
 * **PostgresDatabase -> ConnectionString**: The connection string to the main database for the backend
 * **PostgresDatabase -> ConnectionStringNodeCache**: The connection string to the Concordium Node cache
 * **ConcordiumNodeGrpc**: The configuration values that determine which Concordium Node is used when importing data
-
+* **NonCirculatingAccounts**: The foundation accounts which do not circulate the CCDs. This is primarily used in the calculation of Total Unlocked CCDs.  
 
 # Run the tests locally
 Once the prerequisites are met you can run the backend test suite either from within the IDE or via a shell by issuing the "dotnet test" command in the backend root directory.
