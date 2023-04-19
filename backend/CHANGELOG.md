@@ -13,3 +13,7 @@
 - Changed the header from "Total circulating supply of CCD" to "Total unlocked CCD"
 - Added New API endpoint to get "unlocked CCD"
 - Fixed Issue 55 by setting account balance to actual queried balance in case of genesis block.
+- Issue 62 : Fixed display of tokens using numeric display style and metadata dependent decimals
+- Issue 22 :  Account sidebar will always load account from backend and not use local cache
+- Issue 61 :  Changed token supply to BigInteger from double causing the issue of overflow
+- Issue 7 : Baker sidebar now shows actual removal time in popup and not effective time
