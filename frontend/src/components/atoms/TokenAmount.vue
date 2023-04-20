@@ -4,7 +4,7 @@
 		:class="removeTopPadding ? '' : 'pt-1'"
 		data-testid="amount"
 	>
-		{{ symbol }}
+		<span :title="symbol">{{ shortenString(symbol, 10, '..') }}&nbsp;</span>
 		<span class="numerical"> {{ amounts[0] }}</span>
 		<span v-if="amounts[1]" class="numerical text-sm opacity-50"
 			>.{{ amounts[1] }}</span
@@ -14,6 +14,7 @@
 
 <script lang="ts" setup>
 import { computed, type ComputedRef } from 'vue'
+import { shortenString } from '~~/src/utils/format'
 
 const defaultFractionDigits = 0
 

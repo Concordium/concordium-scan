@@ -17,10 +17,7 @@
 						{{ token.contractIndex }} / {{ token.contractSubIndex }}
 					</TableTd>
 					<TableTd>
-						<TokenLink
-							:token-id="token.tokenId"
-							:url="token.token.metadataUrl"
-						/>
+						<TokenLink :data="token.tokenId" :url="token.token.metadataUrl" />
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<TokenAmount
@@ -40,6 +37,7 @@ import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import TokenAmount from '~/components/atoms/TokenAmount.vue'
+import { fetchMetadata } from '~~/src/utils/tokenUtils'
 
 const { breakpoint } = useBreakpoint()
 
@@ -57,8 +55,7 @@ watchEffect(() => {
 		.filter(t => t.token.metadataUrl)
 		.forEach(async t => {
 			try {
-				const response = await fetch(t.token.metadataUrl as string)
-				const json = await response.json()
+				const json = await fetchMetadata(t.token.metadataUrl as string)
 				t.metadata = json
 			} catch {}
 		})

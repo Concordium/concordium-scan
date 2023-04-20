@@ -46,6 +46,7 @@ public static class GraphQlConfiguration
             .AddType<BlocksQuery>()
             .AddType<TransactionsQuery>()
             .AddType<AccountsQuery>()
+            .AddType<TokensQuery>()
             .AddType<BakersQuery>()
             .AddType<SearchQuery>()
             .AddType<AccountsMetricsQuery>()

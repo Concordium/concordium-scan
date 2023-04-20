@@ -1459,6 +1459,7 @@ type Query {
   account(id: ID!): Account
   accountByAddress(accountAddress: String!): Account
   accounts(sort: AccountSort! = AGE_DESC filter: AccountFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
+  tokens("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TokensConnection
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
   bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
@@ -1625,11 +1626,30 @@ type TimestampedAmount {
 }
 
 type Token {
+  accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
   totalSupply: BigInteger!
+}
+
+"A connection to a list of items."
+type TokensConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [TokensEdge!]
+  "A flattened list of the nodes."
+  nodes: [Token!]
+}
+
+"An edge in a connection."
+type TokensEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Token!
 }
 
 type Transaction {

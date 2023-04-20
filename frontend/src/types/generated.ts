@@ -2019,6 +2019,7 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  tokens?: Maybe<TokensConnection>;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
   transactionMetrics?: Maybe<TransactionMetrics>;
@@ -2139,6 +2140,14 @@ export type QueryRewardMetricsForAccountArgs = {
 
 export type QuerySearchArgs = {
   query: Scalars['String'];
+};
+
+
+export type QueryTokensArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -2423,11 +2432,40 @@ export type TimestampedAmount = {
 
 export type Token = {
   __typename?: 'Token';
+  accounts?: Maybe<AccountsConnection>;
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
   metadataUrl?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
   totalSupply: Scalars['BigInteger'];
+};
+
+
+export type TokenAccountsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+/** A connection to a list of items. */
+export type TokensConnection = {
+  __typename?: 'TokensConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<TokensEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Token>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type TokensEdge = {
+  __typename?: 'TokensEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Token;
 };
 
 export type Transaction = {

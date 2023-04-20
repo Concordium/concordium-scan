@@ -211,8 +211,8 @@ export const calculatePercentage = (amount: number, total: number) =>
  * shortenHash(b4da55)
  */
 export const shortenHash = (hash?: string) => (hash ? hash.substring(0, 6) : '')
-export const shortenTokenId = (tokenId?: string) =>
-	tokenId ? tokenId.substring(0, 10) : ''
+export const shortenString = (data?: string, length = 10, suffix = '') =>
+	data ? data.substring(0, length) + (data.length > length ? suffix : '') : ''
 
 /**
  * Formats seconds to exactly one decimal

@@ -1,7 +1,9 @@
+using System.Numerics;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
+using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens
@@ -34,7 +36,7 @@ namespace Application.Api.GraphQL.Tokens
         /// <summary>
         /// Total supply of the token
         /// </summary>
-        public decimal TotalSupply { get; set; }
+        public BigInteger TotalSupply { get; set; }
 
         /// <summary>
         /// Gets accounts with balances for this particular token
@@ -42,12 +44,15 @@ namespace Application.Api.GraphQL.Tokens
         /// <param name="dbContext">EF Core Database Context</param>
         /// <returns><see cref="IQueryable<AccountToken>"/></returns>
         [UseDbContext(typeof(GraphQlDbContext))]
-        public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
+        [UsePaging]
+        public IQueryable<AccountToken> GetAccounts([ScopedService] GraphQlDbContext dbContext)
         {
-            return dbContext.AccountTokens.AsNoTracking().Where(t =>
+            return dbContext.AccountTokens.Where(t =>
                 t.ContractIndex == this.ContractIndex
                 && t.ContractSubIndex == this.ContractSubIndex
-                && t.TokenId == this.TokenId);
+                && t.TokenId == this.TokenId
+                && t.Balance > 0)
+            .AsNoTracking();
         }
     }
 }
