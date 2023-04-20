@@ -1,7 +1,7 @@
 {
 	"name": "ccscan-frontend",
-	"description": "A boilerplate to start a Nuxt+TS project quickly",
-	"version": "0.1.0",
+	"description": "CCDScan frontend",
+	"version": "0.1.1",
 	"engine": "16",
 	"type": "module",
 	"private": true,
