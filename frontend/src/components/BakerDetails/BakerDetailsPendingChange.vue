@@ -10,17 +10,8 @@
 				Baker stake will be reduced to
 				<Amount :amount="pendingChange.newStakedAmount" :show-symbol="true" />
 				in
-				<Tooltip :text="pendingChange.effectiveTime">
-					{{
-						convertTimestampToRelative(
-							tillNextPayday(
-								pendingChange.effectiveTime,
-								nextPayDayTime,
-								paydayDurationMs
-							),
-							NOW
-						)
-					}}
+				<Tooltip :text="actualTime">
+					{{ convertTimestampToRelative(actualTime, NOW) }}
 				</Tooltip>
 			</span>
 		</template>
@@ -29,17 +20,8 @@
 			#secondary
 		>
 			Baker will be removed in
-			<Tooltip :text="pendingChange.effectiveTime">
-				{{
-					convertTimestampToRelative(
-						tillNextPayday(
-							pendingChange.effectiveTime,
-							nextPayDayTime,
-							paydayDurationMs
-						),
-						NOW
-					)
-				}}
+			<Tooltip :text="actualTime">
+				{{ convertTimestampToRelative(actualTime, NOW) }}
 			</Tooltip>
 		</template>
 	</Alert>
@@ -61,5 +43,10 @@ type Props = {
 	paydayDurationMs: number
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+const actualTime = tillNextPayday(
+	props.pendingChange.effectiveTime,
+	props.nextPayDayTime,
+	props.paydayDurationMs
+)
 </script>

@@ -322,7 +322,7 @@ export const useAccountQuery = ({
 
 	const { data, fetching, error, executeQuery } = useQuery({
 		query,
-		requestPolicy: 'cache-first',
+		requestPolicy: 'network-only',
 		variables: {
 			...identifier,
 			...transactionVariables,

@@ -1,6 +1,5 @@
+using System.Numerics;
 using Application.Api.GraphQL.Tokens;
-using HotChocolate;
-using HotChocolate.Types.Relay;
 
 namespace Application.Api.GraphQL.Accounts
 {
@@ -33,7 +32,7 @@ namespace Application.Api.GraphQL.Accounts
         /// <summary>
         /// Token balance for this Account
         /// </summary>
-        public long Balance { get; set; }
+        public BigInteger Balance { get; set; }
 
         /// <summary>
         /// Related <see cref="Token"/>

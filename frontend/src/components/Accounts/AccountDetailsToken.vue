@@ -22,8 +22,12 @@
 							:url="token.token.metadataUrl"
 						/>
 					</TableTd>
-					<TableTd>
-						{{ token.balance }}
+					<TableTd align="right" class="numerical">
+						<TokenAmount
+							:symbol="token.metadata?.symbol"
+							:amount="token.balance"
+							:fraction-digits="token.metadata?.decimals || 0"
+						/>
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -35,14 +39,28 @@
 import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
+import TokenAmount from '~/components/atoms/TokenAmount.vue'
 
 const { breakpoint } = useBreakpoint()
 
 type Props = {
-	accountTokens: AccountToken[]
+	accountTokens: (AccountToken & {
+		metadata?: { decimals?: number; symbol?: string; name?: string }
+	})[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 	accountId: Account['id']
 }
 const props = defineProps<Props>()
+watchEffect(() => {
+	props.accountTokens
+		.filter(t => t.token.metadataUrl)
+		.forEach(async t => {
+			try {
+				const response = await fetch(t.token.metadataUrl as string)
+				const json = await response.json()
+				t.metadata = json
+			} catch {}
+		})
+})
 </script>
