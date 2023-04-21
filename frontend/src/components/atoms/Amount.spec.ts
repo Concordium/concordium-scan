@@ -20,4 +20,10 @@ describe('Amount', () => {
 
 		expect(screen.getByTestId('amount')).toHaveTextContent('Ͼ 1,337.421337')
 	})
+
+	it('should render negative amounts', () => {
+		const props = { amount: -1457511 }
+		render({ props })
+		expect(screen.getByTestId('amount')).toHaveTextContent('-1.457511')
+	})
 })
