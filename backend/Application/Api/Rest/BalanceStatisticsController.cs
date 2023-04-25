@@ -32,6 +32,7 @@ public class BalanceStatisticsController : ControllerBase
         {
             "totalamount" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmount),
             "totalamountcirculating" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
+            "totalamountreleased" => query.Select(x => x.BalanceStatistics.TotalAmountReleased),
             "totalamoununlocked" => query.Select(x => x.BalanceStatistics.TotalAmountUnlocked),
             "totalamountnotreleased" => query.Select(x => x.BalanceStatistics.TotalAmount - x.BalanceStatistics.TotalAmountReleased),
             "totalamountstaked" => query.Select(x => (ulong?)x.BalanceStatistics.TotalAmountStaked),
