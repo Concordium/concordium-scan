@@ -26,7 +26,8 @@ const props = defineProps<Props>()
 const symbol = computed(() => (props.showSymbol ? 'Ͼ' : undefined))
 
 const amounts: ComputedRef<[number, string]> = computed(() => {
-	const ccdAmount = props.amount / 1_000_000
+	const sign = Math.sign(props.amount)
+	const ccdAmount = (sign * props.amount) / 1_000_000
 	const unit = Math.floor(ccdAmount)
 
 	const subUnit = new Intl.NumberFormat(undefined, {
@@ -36,6 +37,6 @@ const amounts: ComputedRef<[number, string]> = computed(() => {
 		.format(ccdAmount - unit)
 		.slice(1)
 
-	return [unit, subUnit]
+	return [sign * unit, subUnit]
 })
 </script>
