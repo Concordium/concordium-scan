@@ -47,7 +47,9 @@ public class BalanceStatisticsController : ControllerBase
         {
             retValue = unit.ToLowerInvariant() switch
             {
-                "ccd" => retValue = ((decimal)value / 10_00_000).ToString(CultureInfo.InvariantCulture),
+                "ccd" => retValue = (Decimal.Floor(
+                    Decimal.Divide(Convert.ToDecimal(value), 1_000_000m)
+                )).ToString(CultureInfo.InvariantCulture),
                 "microccd" => ((decimal)value).ToString(CultureInfo.InvariantCulture),
                 _ => ((decimal)value).ToString(CultureInfo.InvariantCulture)
             };
