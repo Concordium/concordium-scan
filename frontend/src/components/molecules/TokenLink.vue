@@ -1,31 +1,28 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
 		<TransactionIcon class="h-4 w-4 align-text-top" />
-		<span v-if="props.url">
+		<span>
 			<LinkButton
 				class="numerical px-2"
 				@blur="emitBlur"
-				@click="() => handleOnClick(props.url)"
+				@click="() => handleOnClick()"
 			>
-				<div v-if="props.hideTooltip" text-class="text-theme-body">
-					{{ shortenString(props.data, props.length, props.suffix) }}
+				<div v-if="!props.tokenId">
+					<span class="text-theme-body text-sm">-</span>
 				</div>
-				<Tooltip v-else :text="props.data" text-class="text-theme-body">
-					{{ shortenString(props.data, props.length, props.suffix) }}
+				<div v-else-if="props.hideTooltip" text-class="text-theme-body">
+					{{ shortenString(props.tokenId, props.length, props.suffix) }}
+				</div>
+				<Tooltip v-else :text="props.tokenId" text-class="text-theme-body">
+					{{ shortenString(props.tokenId, props.length, props.suffix) }}
 				</Tooltip>
 			</LinkButton>
 			<TextCopy
-				v-if="props.url"
-				:text="props.url"
-				label="Click to copy token metadata url to clipboard"
+				:text="`${props.contractIndex}/${props.contractSubIndex}/${props.tokenId}`"
+				label="Click to copy index/subindex/token id to clipboard"
 				class="h-5 inline align-baseline"
 				tooltip-class="font-sans"
 			/>
-		</span>
-		<span v-else>
-			<LinkButton class="numerical px-2">
-				{{ shortenString(props.data, props.length, props.suffix) }}
-			</LinkButton>
 		</span>
 	</div>
 </template>
@@ -33,20 +30,29 @@
 import { shortenString } from '~/utils/format'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
+import { useDrawer } from '~/composables/useDrawer'
+
 type Props = {
-	url?: string
-	data?: string
+	tokenId: string
+	contractIndex: number
+	contractSubIndex: number
 	hideTooltip?: boolean
 	suffix?: string
 	length?: number
 }
 const props = defineProps<Props>()
+const drawer = useDrawer()
 const emit = defineEmits(['blur'])
 const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
 }
 
-const handleOnClick = (url: string | undefined) => {
-	url && window.open(url, '_blank')
+const handleOnClick = () => {
+	drawer.push({
+		entityTypeName: 'token',
+		tokenId: props.tokenId,
+		contractIndex: props.contractIndex,
+		contractSubIndex: props.contractSubIndex,
+	})
 }
 </script>

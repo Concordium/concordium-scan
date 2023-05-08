@@ -1,7 +1,7 @@
 using System.Data.Common;
 using System.Numerics;
-using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Tokens;
 using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -54,13 +54,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
                     case CisEventTokenAmountUpdate e:
                         batch.BatchCommands.Add(CreateTokenAmountUpdateCmd(cmd, e));
                         break;
-                    case CisEventTokenAddedUpdate e:
-                        batch.BatchCommands.Add(CreateTokenAddedCmd(cmd, e));
-                        break;
                     case CisEventTokenMetadataUpdate e:
                         batch.BatchCommands.Add(CreateTokenMetadataUpdatedCmd(cmd, e));
                         break;
-                    default: continue;
+                    default: 
+                        continue;
                 }
             }
 
@@ -74,11 +72,19 @@ namespace Application.Api.GraphQL.Import.EventLogs
         private DbBatchCommand CreateTokenAmountUpdateCmd(DbBatchCommand cmd, CisEventTokenAmountUpdate e)
         {
             cmd.CommandText = @"
-                UPDATE graphql_tokens 
-                SET total_supply = total_supply + @AmountDelta 
-                WHERE contract_index = @ContractIndex
-                    AND contract_sub_index = @ContractSubIndex 
-                    AND token_id = @TokenId";
+            INSERT INTO graphql_tokens
+                (contract_index, contract_sub_index, token_id, total_supply)
+            VALUES 
+                (@ContractIndex, @ContractSubIndex, @TokenId, @AmountDelta)
+            ON CONFLICT ON CONSTRAINT graphql_tokens_pkey
+            DO UPDATE 
+                SET 
+                    total_supply = graphql_tokens.total_supply + @AmountDelta
+                WHERE
+                    graphql_tokens.contract_index = @ContractIndex AND
+                    graphql_tokens.contract_sub_index = @ContractSubIndex AND
+                    graphql_tokens.token_id = @TokenId
+            ";
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<string>("TokenId", e.TokenId));
@@ -87,30 +93,21 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return cmd;
         }
 
-        private DbBatchCommand CreateTokenAddedCmd(DbBatchCommand cmd, CisEventTokenAddedUpdate e)
-        {
-            cmd.CommandText = @"
-                INSERT INTO graphql_tokens(contract_index, contract_sub_index, token_id, total_supply)
-                VALUES (@ContractIndex, @ContractSubIndex, @TokenId, @TotalSupply)
-                ON CONFLICT ON CONSTRAINT graphql_tokens_pkey
-                DO NOTHING";
-
-            cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
-            cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
-            cmd.Parameters.Add(new NpgsqlParameter<string>("TokenId", e.TokenId));
-            cmd.Parameters.Add(new NpgsqlParameter<BigInteger>("TotalSupply", e.AmountDelta));
-
-            return cmd;
-        }
-
         private DbBatchCommand CreateTokenMetadataUpdatedCmd(DbBatchCommand cmd, CisEventTokenMetadataUpdate e)
         {
             cmd.CommandText = @"
-                UPDATE graphql_tokens 
-                SET metadata_url = @MetadataUrl 
-                WHERE contract_index = @ContractIndex 
-                    AND contract_sub_index = @ContractSubIndex 
-                    AND token_id = @TokenId";
+            INSERT INTO graphql_tokens
+                (contract_index, contract_sub_index, token_id, total_supply, metadata_url)
+            VALUES 
+                (@ContractIndex, @ContractSubIndex, @TokenId, 0, @MetadataUrl)
+            ON CONFLICT ON CONSTRAINT graphql_tokens_pkey 
+            DO UPDATE 
+                SET 
+                    metadata_url = @MetadataUrl
+                WHERE
+                    graphql_tokens.contract_index = @ContractIndex AND
+                    graphql_tokens.contract_sub_index = @ContractSubIndex AND
+                    graphql_tokens.token_id = @TokenId";
 
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
@@ -169,6 +166,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
             connection.Close();
 
             return updates;
+        }
+
+        public void ApplyTokenTransactions(List<TokenTransaction> tokenTransactions)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            context.TokenTransactions.AddRange(tokenTransactions);
+            context.SaveChanges();
         }
     }
 }

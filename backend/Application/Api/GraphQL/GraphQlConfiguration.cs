@@ -11,6 +11,7 @@ using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
+using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Execution.Configuration;
@@ -34,6 +35,8 @@ public static class GraphQlConfiguration
             .AddCursorPagingProvider<PaydayPoolRewardByDescendingIndexCursorPagingProvider>(providerName:"payday_pool_reward_by_descending_index")
             .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(providerName:"account_reward_by_descending_index")
             .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName:"account_token_descending")
+            .AddCursorPagingProvider<TokenAccountsDescendingPagingProvider>(providerName:"token_account_descending")
+            .AddCursorPagingProvider<TokenTransactionsDescendingPagingProvider>(providerName:"token_transaction_descending")
             .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"baker_transaction_relation_by_descending_index");
     }
 
@@ -69,6 +72,7 @@ public static class GraphQlConfiguration
         // Bind all concrete types of GraphQL unions and interfaces
         AddAllTypesDerivedFrom<ChainParameters>(builder);
         AddAllTypesDerivedFrom<SpecialEvent>(builder);
+        AddAllTypesDerivedFrom<CisEventData>(builder);
         AddAllTypesDerivedFrom<TransactionResult>(builder);
         AddAllTypesDerivedFrom<TransactionTypeUnion>(builder);
         AddAllTypesDerivedFrom<Address>(builder);

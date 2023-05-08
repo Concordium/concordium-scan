@@ -1,3 +1,4 @@
+using Application.Api.GraphQL.Tokens;
 using ConcordiumSdk.NodeApi.Types;
 using ConcordiumSdk.Types;
 
@@ -55,7 +56,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
             var updates = cisEvents.Select(e => new
             {
                 TokenUpdate = GetTokenUpdates(e),
-                AccountUpdates = GetAccountUpdates(e)
+                AccountUpdates = GetAccountUpdates(e),
+                transactions = GetTransaction(e),
             });
 
             IEnumerable<CisEventTokenUpdate> tokenUpdates = updates
@@ -63,6 +65,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 .Select(u => u.TokenUpdate)
                 .Cast<CisEventTokenUpdate>();
             var accountUpdates = updates.SelectMany(a => a.AccountUpdates).ToList();
+            var tokenTransactions = updates.Select(u => u.transactions).Where(t => t != null).ToList();
 
             if (tokenUpdates.Count() > 0)
             {
@@ -74,7 +77,66 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 writer.ApplyAccountUpdates(accountUpdates);
             }
 
+            if (tokenTransactions.Count() > 0)
+            {
+                writer.ApplyTokenTransactions(tokenTransactions);
+            }
+
             return accountUpdates;
+        }
+
+        private TokenTransaction? GetTransaction(CisEvent log)
+        {
+            switch (log)
+            {
+                case CisBurnEvent e:
+                    return new TokenTransaction(
+                        e.ContractIndex,
+                        e.ContractSubIndex,
+                        e.TokenId,
+                        e.TransactionId,
+                        new CisEventDataBurn
+                        {
+                            Amount = e.TokenAmount.ToString(),
+                            From = Address.from(e.FromAddress),
+                        });
+                case CisMintEvent e:
+                    return new TokenTransaction(
+                        e.ContractIndex,
+                        e.ContractSubIndex,
+                        e.TokenId,
+                        e.TransactionId,
+                        new CisEventDataMint
+                        {
+                            Amount = e.TokenAmount.ToString(),
+                            To = Address.from(e.ToAddress),
+                        });
+                case CisTransferEvent e:
+                    return new TokenTransaction(
+                        e.ContractIndex,
+                        e.ContractSubIndex,
+                        e.TokenId,
+                        e.TransactionId,
+                        new CisEventDataTransfer
+                        {
+                            Amount = e.TokenAmount.ToString(),
+                            From = Address.from(e.FromAddress),
+                            To = Address.from(e.ToAddress),
+                        });
+                case CisTokenMetadataEvent e:
+                    return new TokenTransaction(
+                        e.ContractIndex,
+                        e.ContractSubIndex,
+                        e.TokenId,
+                        e.TransactionId,
+                        new CisEventDataMetadataUpdate
+                        {
+                            MetadataUrl = e.MetadataUrl,
+                            MetadataHashHex = e.HashHex,
+                        });
+                default:
+                    return null;
+            }
         }
 
         /// <summary>
@@ -163,15 +225,17 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         ContractIndex = log.ContractIndex,
                         ContractSubIndex = log.ContractSubIndex,
                         TokenId = log.TokenId,
-                        AmountDelta = log.TokenAmount * -1
+                        AmountDelta = log.TokenAmount * -1,
+                        TransactionId = log.TransactionId,
                     };
                 case CisMintEvent log:
-                    return new CisEventTokenAddedUpdate()
+                     return new CisEventTokenAmountUpdate()
                     {
                         ContractIndex = log.ContractIndex,
                         ContractSubIndex = log.ContractSubIndex,
                         TokenId = log.TokenId,
-                        AmountDelta = log.TokenAmount
+                        AmountDelta = log.TokenAmount,
+                        TransactionId = log.TransactionId,
                     };
                 case CisTokenMetadataEvent log:
                     return new CisEventTokenMetadataUpdate()
@@ -180,7 +244,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         ContractSubIndex = log.ContractSubIndex,
                         TokenId = log.TokenId,
                         MetadataUrl = log.MetadataUrl,
-                        HashHex = log.HashHex
+                        HashHex = log.HashHex,
+                        TransactionId = log.TransactionId,
                     };
                 default:
                     return null;
@@ -205,7 +270,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             }
 
             CisEvent cisEvent;
-            if (!CisEvent.TryParse(bytes, address, out cisEvent))
+            if (!CisEvent.TryParse(bytes, address, txnId, out cisEvent))
             {
                 return null;
             }

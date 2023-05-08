@@ -1,6 +1,7 @@
 using System.Numerics;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -44,15 +45,41 @@ namespace Application.Api.GraphQL.Tokens
         /// <param name="dbContext">EF Core Database Context</param>
         /// <returns><see cref="IQueryable<AccountToken>"/></returns>
         [UseDbContext(typeof(GraphQlDbContext))]
-        [UsePaging]
+        [UsePaging(InferConnectionNameFromField = false, ProviderName = "token_account_descending")]
         public IQueryable<AccountToken> GetAccounts([ScopedService] GraphQlDbContext dbContext)
         {
             return dbContext.AccountTokens.Where(t =>
                 t.ContractIndex == this.ContractIndex
                 && t.ContractSubIndex == this.ContractSubIndex
                 && t.TokenId == this.TokenId
-                && t.Balance > 0)
+                && t.Balance != 0)
+            .OrderByDescending(t => t.AccountId)
             .AsNoTracking();
+        }
+
+        [UseDbContext(typeof(GraphQlDbContext))]
+        [UsePaging(InferConnectionNameFromField = false, ProviderName = "token_transaction_descending")]
+        public IQueryable<TokenTransaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+        {
+            return dbContext.TokenTransactions.Where(t =>
+                t.ContractIndex == this.ContractIndex
+                && t.ContractSubIndex == this.ContractSubIndex
+                && t.TokenId == this.TokenId)
+            .OrderByDescending(t => t.TransactionId)
+            .AsNoTracking();
+        }
+
+        [UseDbContext(typeof(GraphQlDbContext))]
+        public Transaction GetCreateTransaction([ScopedService] GraphQlDbContext dbContext)
+        {
+            var firstTxnId = dbContext.TokenTransactions
+            .Where(t =>
+                t.ContractIndex == this.ContractIndex
+                && t.ContractSubIndex == this.ContractSubIndex
+                && t.TokenId == this.TokenId)
+            .Min(t => t.TransactionId);
+
+            return dbContext.Transactions.AsNoTracking().Where(t => t.Id == firstTxnId).Single();
         }
     }
 }

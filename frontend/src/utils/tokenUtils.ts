@@ -12,9 +12,9 @@ export async function fetchMetadata(metadataUrl?: string) {
 			redirect: 'error',
 			keepalive: false,
 			method: 'GET',
-			headers: new Headers({
-				'Content-Type': 'application/json',
-			}),
+			// headers: new Headers({
+			// 	'Content-Type': 'application/json',
+			// }),
 		})
 
 		return response.json()

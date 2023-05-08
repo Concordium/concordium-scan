@@ -37,7 +37,7 @@ const routes: Route[] = [
 		path: '/nodes',
 	},
 	{
-		title: 'Tokens',
+		title: 'CIS2 Tokens',
 		path: '/tokens',
 	},
 ]

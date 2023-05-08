@@ -24,7 +24,7 @@ public class GraphQlDbContext : DbContext
     /// Mapping of Accounts to CIS Tokens.
     /// </summary>
     public DbSet<AccountToken> AccountTokens { get; private set; }
-    
+
     /// <summary>
     /// Parsed CIS Tokens.
     /// </summary>
@@ -42,6 +42,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
     public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
+    public DbSet<TokenTransaction> TokenTransactions { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

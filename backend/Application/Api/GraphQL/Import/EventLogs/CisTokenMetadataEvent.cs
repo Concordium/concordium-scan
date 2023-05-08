@@ -15,7 +15,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public string MetadataUrl { get; set; }
         public string? HashHex { get; set; }
 
-        public static CisTokenMetadataEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st)
+        public static CisTokenMetadataEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {
             return new CisTokenMetadataEvent()
             {
@@ -23,7 +23,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 ContractSubIndex = address.SubIndex,
                 TokenId = CommonParsers.ParseTokenId(st),
                 MetadataUrl = CommonParsers.ParseMetadataUrl(st),
-                HashHex = (st.ReadByte() == 1) ? Convert.ToHexString(st.ReadBytes(32)) : null
+                HashHex = (st.ReadByte() == 1) ? Convert.ToHexString(st.ReadBytes(32)) : null,
+                TransactionId = txnId,
             };
         }
 

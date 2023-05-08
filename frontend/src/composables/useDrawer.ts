@@ -20,6 +20,13 @@ type AccountDrawerItem = {
 	entityTypeName: 'account'
 } & ({ id: string; address?: string } | { address: string; id?: string })
 
+type TokenDrawerItem = {
+	entityTypeName: 'token'
+	tokenId: string
+	contractIndex: number
+	contractSubIndex: number
+}
+
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
@@ -35,6 +42,7 @@ export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
 	| AccountDrawerItem
+	| TokenDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
@@ -110,27 +118,64 @@ export const isItemOnTop = (
 export const pushToRouter =
 	(drawerItem: DrawerItem, resetList = true) =>
 	(router: Router, state: Ref<DrawerList>) => {
-		router.push({
-			query: {
-				dcount: resetList ? state.value.items.length : 1,
-				dentity: drawerItem.entityTypeName,
-				daddress:
-					drawerItem.entityTypeName === 'account'
-						? drawerItem.address
-						: undefined,
-				dhash:
-					drawerItem.entityTypeName === 'block' ||
-					drawerItem.entityTypeName === 'transaction'
-						? drawerItem.hash
-						: undefined,
-				did:
-					drawerItem.entityTypeName === 'baker'
-						? drawerItem.bakerId
-						: drawerItem.entityTypeName === 'node'
-						? encodeURIComponent(drawerItem.nodeId)
-						: undefined,
-			},
-		})
+		switch (drawerItem.entityTypeName) {
+			case 'block':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						dhash: drawerItem.hash ?? undefined,
+					},
+				})
+				break
+			case 'transaction':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						dhash: drawerItem.hash ?? undefined,
+					},
+				})
+				break
+			case 'account':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						daddress: drawerItem.address ?? undefined,
+					},
+				})
+				break
+			case 'baker':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						did: drawerItem.bakerId ?? undefined,
+					},
+				})
+				break
+			case 'node':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						did: drawerItem.nodeId && encodeURIComponent(drawerItem.nodeId),
+					},
+				})
+				break
+			case 'token':
+				router.push({
+					query: {
+						dcount: resetList ? state.value.items.length : 1,
+						dentity: drawerItem.entityTypeName,
+						did: drawerItem.tokenId,
+						dContractIndex: drawerItem.contractIndex,
+						dContractSubIndex: drawerItem.contractSubIndex,
+					},
+				})
+				break
+		}
 	}
 
 export const useDrawer = () => {
@@ -148,6 +193,21 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'account',
 					address: route.query.daddress as string,
+				},
+				false
+			)
+		} else if (
+			route.query.dentity === 'token' &&
+			route.query.did &&
+			route.query.dContractIndex &&
+			route.query.dContractSubIndex
+		) {
+			push(
+				{
+					entityTypeName: 'token',
+					tokenId: route.query.did as string,
+					contractIndex: Number(route.query.dContractIndex),
+					contractSubIndex: Number(route.query.dContractSubIndex),
 				},
 				false
 			)

@@ -140,6 +140,7 @@ type AccountStatementEntryEdge {
 }
 
 type AccountToken {
+  account: Account
   index: Long!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
@@ -677,6 +678,27 @@ type ChainUpdateEnqueued {
   effectiveTime: DateTime!
   effectiveImmediately: Boolean!
   payload: ChainUpdatePayload!
+}
+
+type CisEventDataBurn {
+  amount: String!
+  from: Address!
+}
+
+type CisEventDataMetadataUpdate {
+  metadataUrl: String!
+  metadataHashHex: String
+}
+
+type CisEventDataMint {
+  amount: String!
+  to: Address!
+}
+
+type CisEventDataTransfer {
+  amount: String!
+  from: Address!
+  to: Address!
 }
 
 type CommissionRange {
@@ -1460,6 +1482,7 @@ type Query {
   accountByAddress(accountAddress: String!): Account
   accounts(sort: AccountSort! = AGE_DESC filter: AccountFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
   tokens("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TokensConnection
+  token(contractIndex: UnsignedLong! contractSubIndex: UnsignedLong! tokenId: String!): Token!
   baker(id: ID!): Baker
   bakerByBakerId(bakerId: Long!): Baker
   bakers(sort: BakerSort! = BAKER_ID_ASC filter: BakerFilterInput "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakersConnection
@@ -1626,12 +1649,42 @@ type TimestampedAmount {
 }
 
 type Token {
-  accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection
+  accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountTokenConnection
+  transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TokenTransactionConnection
+  createTransaction: Transaction!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
   totalSupply: BigInteger!
+}
+
+type TokenTransaction {
+  transaction: Transaction
+  id: ID!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  tokenId: String!
+  transactionId: Long!
+  data: CisEvent!
+}
+
+"A connection to a list of items."
+type TokenTransactionConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [TokenTransactionEdge!]
+  "A flattened list of the nodes."
+  nodes: [TokenTransaction!]
+}
+
+"An edge in a connection."
+type TokenTransactionEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: TokenTransaction!
 }
 
 "A connection to a list of items."
@@ -1752,6 +1805,8 @@ union BakerState = ActiveBakerState | RemovedBakerState
 union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+
+union CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 

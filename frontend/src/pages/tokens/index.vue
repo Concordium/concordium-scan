@@ -19,16 +19,20 @@
 					:key="token.contractIndex + token.tokenId"
 				>
 					<TableTd>
-						<TokenLink :data="token.tokenId" :url="token.metadataUrl" />
+						<TokenLink
+							:token-id="token.tokenId"
+							:contract-index="token.contractIndex"
+							:contract-sub-index="token.contractSubIndex"
+						/>
 					</TableTd>
 					<TableTd>
 						{{ token.contractIndex }} / {{ token.contractSubIndex }}
 					</TableTd>
 
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
-						<TokenLink
-							:data="token.metadataUrl"
-							:url="token.metadataUrl"
+						<TokenMetadataLink
+							:data="token.metadataUrl as string"
+							:url="token.metadataUrl as string"
 							:length="25"
 							:suffix="'...'"
 						/>
@@ -61,8 +65,11 @@ import { usePagination } from '~/composables/usePagination'
 import Pagination from '~/components/Pagination.vue'
 import { useTokensListQuery } from '~/queries/useTokensListQuery'
 import { Token } from '~/types/generated'
-import TokenAmount from '~~/src/components/atoms/TokenAmount.vue'
+import TokenAmount from '~/components/atoms/TokenAmount.vue'
 import { fetchMetadata } from '~/utils/tokenUtils'
+import TokenMetadataLink from '~/components/molecules/TokenMetadataLink.vue'
+import TokenLink from '~/components/molecules/TokenLink.vue'
+import { TokenMetadata } from '~/types/tokens'
 
 const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
@@ -73,7 +80,7 @@ const { data } = useTokensListQuery({
 	before,
 })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const tokens: ComputedRef<(Token & { metadata?: any })[]> = computed(
+const tokens: ComputedRef<(Token & { metadata?: TokenMetadata })[]> = computed(
 	() => data.value?.tokens.nodes || []
 )
 watchEffect(() => {

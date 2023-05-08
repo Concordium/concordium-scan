@@ -238,6 +238,7 @@ export enum AccountStatementEntryType {
 
 export type AccountToken = {
   __typename?: 'AccountToken';
+  account?: Maybe<Account>;
   accountId: Scalars['Long'];
   balance: Scalars['BigInteger'];
   contractIndex: Scalars['UnsignedLong'];
@@ -962,6 +963,33 @@ export type ChainUpdateEnqueued = {
 };
 
 export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload;
+
+export type CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer;
+
+export type CisEventDataBurn = {
+  __typename?: 'CisEventDataBurn';
+  amount: Scalars['String'];
+  from: Address;
+};
+
+export type CisEventDataMetadataUpdate = {
+  __typename?: 'CisEventDataMetadataUpdate';
+  metadataHashHex?: Maybe<Scalars['String']>;
+  metadataUrl: Scalars['String'];
+};
+
+export type CisEventDataMint = {
+  __typename?: 'CisEventDataMint';
+  amount: Scalars['String'];
+  to: Address;
+};
+
+export type CisEventDataTransfer = {
+  __typename?: 'CisEventDataTransfer';
+  amount: Scalars['String'];
+  from: Address;
+  to: Address;
+};
 
 export type CommissionRange = {
   __typename?: 'CommissionRange';
@@ -2019,6 +2047,7 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  token: Token;
   tokens?: Maybe<TokensConnection>;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
@@ -2140,6 +2169,13 @@ export type QueryRewardMetricsForAccountArgs = {
 
 export type QuerySearchArgs = {
   query: Scalars['String'];
+};
+
+
+export type QueryTokenArgs = {
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  tokenId: Scalars['String'];
 };
 
 
@@ -2432,12 +2468,14 @@ export type TimestampedAmount = {
 
 export type Token = {
   __typename?: 'Token';
-  accounts?: Maybe<AccountsConnection>;
+  accounts?: Maybe<AccountTokenConnection>;
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
+  createTransaction: Transaction;
   metadataUrl?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
   totalSupply: Scalars['BigInteger'];
+  transactions?: Maybe<TokenTransactionConnection>;
 };
 
 
@@ -2446,6 +2484,45 @@ export type TokenAccountsArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type TokenTransactionsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+export type TokenTransaction = {
+  __typename?: 'TokenTransaction';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  data: CisEvent;
+  id: Scalars['ID'];
+  tokenId: Scalars['String'];
+  transaction?: Maybe<Transaction>;
+  transactionId: Scalars['Long'];
+};
+
+/** A connection to a list of items. */
+export type TokenTransactionConnection = {
+  __typename?: 'TokenTransactionConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<TokenTransactionEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<TokenTransaction>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type TokenTransactionEdge = {
+  __typename?: 'TokenTransactionEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: TokenTransaction;
 };
 
 /** A connection to a list of items. */

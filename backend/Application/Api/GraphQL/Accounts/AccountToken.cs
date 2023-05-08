@@ -1,5 +1,9 @@
 using System.Numerics;
+using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Tokens;
+using HotChocolate;
+using HotChocolate.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Accounts
 {
@@ -43,5 +47,11 @@ namespace Application.Api.GraphQL.Accounts
         /// Id of the Account in <see cref="Account"/>
         /// </summary>
         public long AccountId { get; set; }
+
+        [UseDbContext(typeof(GraphQlDbContext))]
+        public Account? GetAccount([ScopedService] GraphQlDbContext dbContext)
+        {
+            return dbContext.Accounts.AsNoTracking().Where(t => t.Id == this.AccountId).SingleOrDefault();
+        }
     }
 }

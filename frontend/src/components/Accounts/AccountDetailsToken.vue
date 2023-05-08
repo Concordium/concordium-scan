@@ -17,7 +17,12 @@
 						{{ token.contractIndex }} / {{ token.contractSubIndex }}
 					</TableTd>
 					<TableTd>
-						<TokenLink :data="token.tokenId" :url="token.token.metadataUrl" />
+						<TokenLink
+							:token-id="token.tokenId"
+							:contract-index="token.contractIndex"
+							:contract-sub-index="token.contractSubIndex"
+							:url="token.token.metadataUrl as string"
+						/>
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<TokenAmount
@@ -38,6 +43,7 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import TokenAmount from '~/components/atoms/TokenAmount.vue'
 import { fetchMetadata } from '~~/src/utils/tokenUtils'
+import TokenLink from '~/components/molecules/TokenLink.vue'
 
 const { breakpoint } = useBreakpoint()
 

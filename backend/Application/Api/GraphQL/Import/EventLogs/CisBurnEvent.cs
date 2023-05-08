@@ -15,13 +15,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Amount of token burned.
         /// </summary>
-        public BigInteger TokenAmount { get; init; }
+        public BigInteger TokenAmount { get; set; }
 
         /// <summary>
         /// Account/Contract address from which the token was burned.  
         /// </summary>
         /// <value></value>
-        public BaseAddress FromAddress { get; init; }
+        public BaseAddress FromAddress { get; set; }
 
         /// <summary>
         /// Parses the event from bytes.
@@ -29,7 +29,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <param name="address">Contract Address emitting the event</param>
         /// <param name="st">Binary Reader</param>
         /// <returns>Parsed <see cref="CisBurnEvent"/></returns>
-        public static CisBurnEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st)
+        public static CisBurnEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {
             return new CisBurnEvent
             {
@@ -39,6 +39,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 TokenId = CommonParsers.ParseTokenId(st),
                 TokenAmount = CommonParsers.ParseTokenAmount(st),
                 FromAddress = CommonParsers.ParseAddress(st),
+                TransactionId = txnId,
             };
         }
     }

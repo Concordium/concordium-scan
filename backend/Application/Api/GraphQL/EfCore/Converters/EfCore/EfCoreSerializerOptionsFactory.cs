@@ -14,6 +14,7 @@ public static class EfCoreJsonSerializerOptionsFactory
             {
                 new TransactionRejectReasonConverter(),
                 new TransactionResultEventConverter(),
+                new TokenTransactionDataConverter(),
                 new AddressConverter(),
                 new Json.AccountAddressConverter(),
                 new ContractAddressConverter(),
