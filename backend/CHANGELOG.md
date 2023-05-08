@@ -17,4 +17,6 @@
 - Issue 22 :  Account sidebar will always load account from backend and not use local cache
 - Issue 61 :  Changed token supply to BigInteger from double causing the issue of overflow
 - Issue 7 : Baker sidebar now shows actual removal time in popup and not effective time
-- Added CIS2 Tokens List Page
+- Issue 75 : Added Total Amount Released rest API endpoint
+- Issue 69 : Amount component now handles negative values properly
+- Added CIS2 Tokens List & Details Page
