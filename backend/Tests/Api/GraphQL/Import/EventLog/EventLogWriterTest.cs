@@ -40,8 +40,8 @@ namespace Tests.Api.GraphQL.Import.EventLog
         public void ShouldHandleTokenUpdates()
         {
             var updatesCount = writer.ApplyTokenUpdates(new List<CisEventTokenUpdate>() {
-                new CisEventTokenAddedUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 0, ContractIndex = 1, ContractSubIndex = 0 },
-                new CisEventTokenAddedUpdate() { TokenId = TOKEN_2_ID, AmountDelta = 2, ContractIndex = 2, ContractSubIndex = 0 },
+                new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 0, ContractIndex = 1, ContractSubIndex = 0 },
+                new CisEventTokenAmountUpdate() { TokenId = TOKEN_2_ID, AmountDelta = 2, ContractIndex = 2, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 1, ContractIndex= 1, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_2_ID, AmountDelta = -1, ContractIndex= 2, ContractSubIndex = 0 },
                 new CisEventTokenMetadataUpdate() {
