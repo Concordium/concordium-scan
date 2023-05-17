@@ -5,7 +5,7 @@
 				<TableRow>
 					<TableTh v-if="breakpoint >= Breakpoint.LG">Index</TableTh>
 					<TableTh>Token Id</TableTh>
-					<TableTh>Balance</TableTh>
+					<TableTh align="right">Balance</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
