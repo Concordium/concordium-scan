@@ -1,6 +1,5 @@
-﻿using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -8,7 +7,7 @@ public class BlockInfoBuilder
 {
     private int _blockHeight = 1;
     private DateTimeOffset _blockSlotTime = new(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero);
-    private BlockHash _blockHash = new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc");
+    private BlockHash _blockHash = BlockHash.From("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc");
     private int? _blockBaker = 5;
     private bool _finalized = true;
     private int _transactionCount = 2;
@@ -24,8 +23,8 @@ public class BlockInfoBuilder
         return new BlockInfo
         {
             BlockHash = _blockHash,    
-            BlockParent = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
-            BlockLastFinalized = new BlockHash("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
+            BlockParent = BlockHash.From("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
+            BlockLastFinalized = BlockHash.From("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
             BlockHeight = _blockHeight,
             GenesisIndex = 0,
             EraBlockHeight = 1,    

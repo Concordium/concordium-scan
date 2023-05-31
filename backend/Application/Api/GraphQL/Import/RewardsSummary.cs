@@ -1,6 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Bakers;
-using ConcordiumSdk.NodeApi.Types;
+﻿using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -20,7 +19,7 @@ public class RewardsSummary
         var aggregatedRewards = rewards
             .Select(x => new
             {
-                BaseAddress = x.AccountAddress.GetBaseAddress().AsString,
+                BaseAddress = x.AccountAddress.GetBaseAddress().ToString(),
                 Amount = x.AmountAdjustment,
                 x.BalanceUpdateType
             })

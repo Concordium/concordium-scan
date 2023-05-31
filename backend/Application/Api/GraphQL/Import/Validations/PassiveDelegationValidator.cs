@@ -2,8 +2,8 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +11,11 @@ namespace Application.Api.GraphQL.Import.Validations;
 
 public class PassiveDelegationValidator : IImportValidator
 {
-    private readonly GrpcNodeClient _nodeClient;
+    private readonly ConcordiumClient _nodeClient;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ILogger _logger;
 
-    public PassiveDelegationValidator(GrpcNodeClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public PassiveDelegationValidator(ConcordiumClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _nodeClient = nodeClient;
         _dbContextFactory = dbContextFactory;
@@ -24,14 +24,15 @@ public class PassiveDelegationValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
-        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
-        if (nodeSwVersion.Major >= 4)
-        {
+        // TODO - doesn't exist but is it needed?
+        // var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
+        // if (nodeSwVersion.Major >= 4)
+        // {
             var target = await ReadPassiveDelegation();
 
             await ValidateDatabaseConsistent(target);
             await ValidateAgainstNodeData(target, block);
-        }
+        // }
     }
 
     private async Task ValidateAgainstNodeData(PassiveDelegation? passiveDelegation, Block block)
@@ -42,11 +43,11 @@ public class PassiveDelegationValidator : IImportValidator
             CurrentPaydayDelegatedStake = passiveDelegation?.CurrentPaydayDelegatedStake
         };
 
-        var nodePoolStatus = await _nodeClient.GetPoolStatusForPassiveDelegation(new BlockHash(block.BlockHash));
+        var nodePoolStatus = await _nodeClient.GetPoolStatusForPassiveDelegation(BlockHash.From(block.BlockHash));
         var actualValue = new
         {
-            DelegatedStake = nodePoolStatus?.DelegatedCapital.MicroCcdValue,
-            CurrentPaydayDelegatedStake = nodePoolStatus?.CurrentPaydayDelegatedCapital.MicroCcdValue
+            DelegatedStake = nodePoolStatus?.DelegatedCapital.Value,
+            CurrentPaydayDelegatedStake = nodePoolStatus?.CurrentPaydayDelegatedCapital.Value
         };
 
         var equal = expectedValue.Equals(actualValue);

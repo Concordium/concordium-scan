@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -14,13 +14,13 @@ namespace Application.Import.ConcordiumNode;
 
 public class ImportReadController : BackgroundService
 {
-    private readonly GrpcNodeClient _client;
+    private readonly ConcordiumClient _client;
     private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
     private readonly IMetrics _metrics;
 
-    public ImportReadController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
+    public ImportReadController(ConcordiumClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
     {
         _client = client;
         _featureFlags = featureFlags;
@@ -93,13 +93,13 @@ public class ImportReadController : BackgroundService
     private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
     {
         var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
-        if (blocksAtHeight.Length != 1)
+        if (blocksAtHeight.Count != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
         var blockHash = blocksAtHeight.Single();
 
-        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
-        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash, stoppingToken), nameof(_client.GetBlockSummaryAsync), stoppingToken);
-        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash, stoppingToken), nameof(_client.GetRewardStatusAsync), stoppingToken);
+        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash), nameof(_client.GetBlockInfoAsync), stoppingToken);
+        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash), nameof(_client.GetBlockSummaryAsync), stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash), nameof(_client.GetRewardStatusAsync), stoppingToken);
 
         var blockInfo = await blockInfoTask;
         var blockSummary = await blockSummaryTask;
@@ -114,7 +114,7 @@ public class ImportReadController : BackgroundService
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
+            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash).AsTask(), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
             payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, genesisIdentityProviders, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
@@ -130,7 +130,7 @@ public class ImportReadController : BackgroundService
         if (!(blockSummary.ProtocolVersion >= 4))
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
 
-        var poolStatus = await _client.GetPoolStatusForPassiveDelegation(blockInfo.BlockHash, stoppingToken);
+        var poolStatus = await _client.GetPoolStatusForPassiveDelegation(blockInfo.BlockHash);
         if (poolStatus == null) throw new InvalidOperationException("Did not expect pool status for passive delegation to be null");
         return poolStatus;
     }
@@ -141,10 +141,10 @@ public class ImportReadController : BackgroundService
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
 
         var result = new List<BakerPoolStatus>();
-        var bakerIds = await _client.GetBakerListAsync(blockInfo.BlockHash, stoppingToken);
-        foreach (var bakerId in bakerIds)
+        var bakerIds = _client.GetBakerListAsync(blockInfo.BlockHash);
+        await foreach (var bakerId in bakerIds)
         {
-            var bakerPoolStatus = await _client.GetPoolStatusForBaker(bakerId, blockInfo.BlockHash, stoppingToken);
+            var bakerPoolStatus = await _client.GetPoolStatusForBakerAsync(bakerId, blockInfo.BlockHash);
             if (bakerPoolStatus == null) throw new InvalidOperationException("Did not expect baker pool status to be null");
             result.Add(bakerPoolStatus);
         }
@@ -155,10 +155,9 @@ public class ImportReadController : BackgroundService
     {
         if (blockInfo.BlockHeight == 0)
         {
-            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash, stoppingToken);
+            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash).ToListAsync();
             var accountInfoTasks = accountList
-                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash, stoppingToken))
-                .ToArray();
+                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash));
 
             var accountsCreated = await Task.WhenAll(accountInfoTasks);
             return new AccountInfosRetrieved(accountsCreated, Array.Empty<AccountInfo>());
@@ -174,10 +173,10 @@ public class ImportReadController : BackgroundService
                 return new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
             
             var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreated))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
+                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash))
                 .ToArray();
             var bakersWithNewPendingChangesTask = accountsToRead.Where(x => x.Reason == typeof(AccountBakerPendingChange))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
+                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash))
                 .ToArray();
             
             var accountsCreated = await Task.WhenAll(accountsCreatedTasks);
@@ -212,20 +211,20 @@ public class ImportReadController : BackgroundService
             if (databaseNetworkId != null)
                 _logger.Information(
                     "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
-                    importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
+                    importedGenesisBlockHash.ToString(), databaseNetworkId.NetworkName);
             else
                 _logger.Information(
                     "Database contains genesis block hash '{genesisBlockHash}' which is not one of the known Concordium networks.",
-                    importedGenesisBlockHash.AsString);
+                    importedGenesisBlockHash.ToString());
 
             var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
             var nodeNetworkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(consensusStatus.GenesisBlock);
             if (nodeNetworkId != null)
                 _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
-                    consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
+                    consensusStatus.GenesisBlock.ToString(), nodeNetworkId.NetworkName);
             else
                 _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' which is not one of the known Concordium networks.", 
-                    consensusStatus.GenesisBlock.AsString);
+                    consensusStatus.GenesisBlock.ToString());
 
             if (consensusStatus.GenesisBlock != importedGenesisBlockHash)
                 throw new InvalidOperationException("Genesis block hash of Concordium Node and Database are not identical.");

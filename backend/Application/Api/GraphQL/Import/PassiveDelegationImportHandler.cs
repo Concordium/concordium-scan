@@ -31,7 +31,7 @@ public class PassiveDelegationImportHandler
                 .DelegatorCountDelta ?? 0;
 
             var delegatedStake = await GetTotalStakedToPassiveDelegation();
-            var delegatedStakePercentage = Math.Round((decimal)delegatedStake / payload.RewardStatus.TotalAmount.MicroCcdValue, 10);
+            var delegatedStakePercentage = Math.Round((decimal)delegatedStake / payload.RewardStatus.TotalAmount.Value, 10);
 
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
             var instance = await dbContext.PassiveDelegations.SingleAsync();
@@ -53,7 +53,7 @@ public class PassiveDelegationImportHandler
                 result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
 
                 var status = await payload.ReadPassiveDelegationPoolStatus();
-                instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.MicroCcdValue;
+                instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.Value;
             }
             
             await dbContext.SaveChangesAsync();

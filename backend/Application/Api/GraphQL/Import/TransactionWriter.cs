@@ -1,36 +1,55 @@
 ﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using AccountCreated = Application.Api.GraphQL.Transactions.AccountCreated;
 using AlreadyABaker = Application.Api.GraphQL.Transactions.AlreadyABaker;
+using AlreadyADelegator = Application.NodeApi.AlreadyADelegator;
 using AmountAddedByDecryption = Application.Api.GraphQL.Transactions.AmountAddedByDecryption;
 using AmountTooLarge = Application.Api.GraphQL.Transactions.AmountTooLarge;
 using BakerAdded = Application.Api.GraphQL.Transactions.BakerAdded;
 using BakerInCooldown = Application.Api.GraphQL.Transactions.BakerInCooldown;
 using BakerKeysUpdated = Application.Api.GraphQL.Transactions.BakerKeysUpdated;
 using BakerRemoved = Application.Api.GraphQL.Transactions.BakerRemoved;
+using BakerSetBakingRewardCommission = Concordium.Sdk.Types.New.BakerSetBakingRewardCommission;
+using BakerSetFinalizationRewardCommission = Concordium.Sdk.Types.New.BakerSetFinalizationRewardCommission;
+using BakerSetMetadataURL = Concordium.Sdk.Types.New.BakerSetMetadataURL;
+using BakerSetOpenStatus = Concordium.Sdk.Types.New.BakerSetOpenStatus;
 using BakerSetRestakeEarnings = Application.Api.GraphQL.Transactions.BakerSetRestakeEarnings;
+using BakerSetTransactionFeeCommission = Concordium.Sdk.Types.New.BakerSetTransactionFeeCommission;
 using BakerStakeDecreased = Application.Api.GraphQL.Transactions.BakerStakeDecreased;
 using BakerStakeIncreased = Application.Api.GraphQL.Transactions.BakerStakeIncreased;
+using BakingRewardCommissionNotInRange = Application.NodeApi.BakingRewardCommissionNotInRange;
 using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
 using CredentialDeployed = Application.Api.GraphQL.Transactions.CredentialDeployed;
 using CredentialHolderDidNotSign = Application.Api.GraphQL.Transactions.CredentialHolderDidNotSign;
 using CredentialKeysUpdated = Application.Api.GraphQL.Transactions.CredentialKeysUpdated;
 using CredentialsUpdated = Application.Api.GraphQL.Transactions.CredentialsUpdated;
 using DataRegistered = Application.Api.GraphQL.Transactions.DataRegistered;
-using DelegationTarget = Application.Api.GraphQL.DelegationTarget;
+using DelegationAdded = Concordium.Sdk.Types.New.DelegationAdded;
+using DelegationRemoved = Concordium.Sdk.Types.New.DelegationRemoved;
+using DelegationSetDelegationTarget = Concordium.Sdk.Types.New.DelegationSetDelegationTarget;
+using DelegationSetRestakeEarnings = Concordium.Sdk.Types.New.DelegationSetRestakeEarnings;
+using DelegationStakeDecreased = Concordium.Sdk.Types.New.DelegationStakeDecreased;
+using DelegationStakeIncreased = Concordium.Sdk.Types.New.DelegationStakeIncreased;
+using DelegationTargetNotABaker = Application.NodeApi.DelegationTargetNotABaker;
+using DelegatorInCooldown = Application.NodeApi.DelegatorInCooldown;
 using DuplicateAggregationKey = Application.Api.GraphQL.Transactions.DuplicateAggregationKey;
 using DuplicateCredIds = Application.Api.GraphQL.Transactions.DuplicateCredIds;
 using EncryptedAmountSelfTransfer = Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer;
 using EncryptedAmountsRemoved = Application.Api.GraphQL.Transactions.EncryptedAmountsRemoved;
 using EncryptedSelfAmountAdded = Application.Api.GraphQL.Transactions.EncryptedSelfAmountAdded;
+using FinalizationRewardCommissionNotInRange = Application.NodeApi.FinalizationRewardCommissionNotInRange;
 using FirstScheduledReleaseExpired = Application.Api.GraphQL.Transactions.FirstScheduledReleaseExpired;
 using InsufficientBalanceForBakerStake = Application.Api.GraphQL.Transactions.InsufficientBalanceForBakerStake;
+using InsufficientBalanceForDelegationStake = Application.NodeApi.InsufficientBalanceForDelegationStake;
+using InsufficientDelegationStake = Application.NodeApi.InsufficientDelegationStake;
 using InvalidAccountReference = Application.Api.GraphQL.Transactions.InvalidAccountReference;
 using InvalidAccountThreshold = Application.Api.GraphQL.Transactions.InvalidAccountThreshold;
 using InvalidContractAddress = Application.Api.GraphQL.Transactions.InvalidContractAddress;
@@ -44,6 +63,8 @@ using InvalidProof = Application.Api.GraphQL.Transactions.InvalidProof;
 using InvalidReceiveMethod = Application.Api.GraphQL.Transactions.InvalidReceiveMethod;
 using InvalidTransferToPublicProof = Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof;
 using KeyIndexAlreadyInUse = Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse;
+using MissingBakerAddParameters = Application.NodeApi.MissingBakerAddParameters;
+using MissingDelegationAddParameters = Application.NodeApi.MissingDelegationAddParameters;
 using ModuleHashAlreadyExists = Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists;
 using ModuleNotWf = Application.Api.GraphQL.Transactions.ModuleNotWf;
 using NewEncryptedAmount = Application.Api.GraphQL.Transactions.NewEncryptedAmount;
@@ -52,17 +73,22 @@ using NonExistentCredIds = Application.Api.GraphQL.Transactions.NonExistentCredI
 using NonExistentRewardAccount = Application.Api.GraphQL.Transactions.NonExistentRewardAccount;
 using NonIncreasingSchedule = Application.Api.GraphQL.Transactions.NonIncreasingSchedule;
 using NotABaker = Application.Api.GraphQL.Transactions.NotABaker;
+using NotADelegator = Application.NodeApi.NotADelegator;
 using NotAllowedMultipleCredentials = Application.Api.GraphQL.Transactions.NotAllowedMultipleCredentials;
 using NotAllowedToHandleEncrypted = Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted;
 using NotAllowedToReceiveEncrypted = Application.Api.GraphQL.Transactions.NotAllowedToReceiveEncrypted;
 using OutOfEnergy = Application.Api.GraphQL.Transactions.OutOfEnergy;
+using PoolClosed = Application.NodeApi.PoolClosed;
+using PoolWouldBecomeOverDelegated = Application.NodeApi.PoolWouldBecomeOverDelegated;
 using RejectedInit = Application.Api.GraphQL.Transactions.RejectedInit;
 using RejectedReceive = Application.Api.GraphQL.Transactions.RejectedReceive;
 using RemoveFirstCredential = Application.Api.GraphQL.Transactions.RemoveFirstCredential;
 using RuntimeFailure = Application.Api.GraphQL.Transactions.RuntimeFailure;
 using ScheduledSelfTransfer = Application.Api.GraphQL.Transactions.ScheduledSelfTransfer;
 using SerializationFailure = Application.Api.GraphQL.Transactions.SerializationFailure;
+using StakeOverMaximumThresholdForPool = Application.NodeApi.StakeOverMaximumThresholdForPool;
 using StakeUnderMinimumThresholdForBaking = Application.Api.GraphQL.Transactions.StakeUnderMinimumThresholdForBaking;
+using TransactionFeeCommissionNotInRange = Application.NodeApi.TransactionFeeCommissionNotInRange;
 using TransactionRejectReason = Application.Api.GraphQL.Transactions.TransactionRejectReason;
 using TransactionResultEvent = Application.Api.GraphQL.Transactions.TransactionResultEvent;
 using TransferMemo = Application.Api.GraphQL.Transactions.TransferMemo;
@@ -118,17 +144,17 @@ public class TransactionWriter
         {
             BlockId = blockId,
             TransactionIndex = value.Index,
-            TransactionHash = value.Hash.AsString,
+            TransactionHash = value.Hash.ToString(),
             TransactionType = TransactionTypeUnion.CreateFrom(value.Type),
-            SenderAccountAddress = value.Sender != null ? MapAccountAddress(value.Sender) : null,
-            CcdCost = value.Cost.MicroCcdValue,
+            SenderAccountAddress = value.Sender != null ? MapAccountAddress(value.Sender.Value) : null,
+            CcdCost = value.Cost.Value,
             EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
             RejectReason = MapRejectReason(value.Result as TransactionRejectResult),
         };
     }
 
     private TransactionRelated<TransactionResultEvent> MapTransactionEvent(Transaction owner, int index,
-        ConcordiumSdk.NodeApi.Types.TransactionResultEvent value, DateTimeOffset blockSlotTime)
+        Concordium.Sdk.Types.New.TransactionResultEvent value, DateTimeOffset blockSlotTime)
     {
         return new TransactionRelated<TransactionResultEvent>
         {
@@ -136,53 +162,53 @@ public class TransactionWriter
             Index = index,
             Entity = value switch
             {
-                ConcordiumSdk.NodeApi.Types.Transferred x => new Transferred(x.Amount.MicroCcdValue, MapAddress(x.From), MapAddress(x.To)),
-                ConcordiumSdk.NodeApi.Types.AccountCreated x => new AccountCreated(MapAccountAddress(x.Contents)),
-                ConcordiumSdk.NodeApi.Types.CredentialDeployed x => new CredentialDeployed(x.RegId, MapAccountAddress(x.Account)),
-                ConcordiumSdk.NodeApi.Types.BakerAdded x => new BakerAdded(x.Stake.MicroCcdValue, x.RestakeEarnings, x.BakerId, MapAccountAddress(x.Account), x.SignKey, x.ElectionKey, x.AggregationKey),
-                ConcordiumSdk.NodeApi.Types.BakerKeysUpdated x => new BakerKeysUpdated(x.BakerId, MapAccountAddress(x.Account), x.SignKey, x.ElectionKey, x.AggregationKey),
-                ConcordiumSdk.NodeApi.Types.BakerRemoved x => new BakerRemoved(x.BakerId, MapAccountAddress(x.Account)),
-                ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings x => new BakerSetRestakeEarnings(x.BakerId, MapAccountAddress(x.Account), x.RestakeEarnings),
-                ConcordiumSdk.NodeApi.Types.BakerStakeDecreased x => new BakerStakeDecreased(x.BakerId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
-                ConcordiumSdk.NodeApi.Types.BakerStakeIncreased x => new BakerStakeIncreased(x.BakerId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
-                ConcordiumSdk.NodeApi.Types.AmountAddedByDecryption x => new AmountAddedByDecryption(x.Amount.MicroCcdValue, MapAccountAddress(x.Account)),
-                ConcordiumSdk.NodeApi.Types.EncryptedAmountsRemoved x => new EncryptedAmountsRemoved(MapAccountAddress(x.Account), x.NewAmount, x.InputAmount, x.UpToIndex),
-                ConcordiumSdk.NodeApi.Types.EncryptedSelfAmountAdded x => new EncryptedSelfAmountAdded(MapAccountAddress(x.Account), x.NewAmount, x.Amount.MicroCcdValue),
-                ConcordiumSdk.NodeApi.Types.NewEncryptedAmount x => new NewEncryptedAmount(MapAccountAddress(x.Account), x.NewIndex, x.EncryptedAmount),
-                ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated x => new CredentialKeysUpdated(x.CredId),
-                ConcordiumSdk.NodeApi.Types.CredentialsUpdated x => new CredentialsUpdated(MapAccountAddress(x.Account), x.NewCredIds, x.RemovedCredIds, x.NewThreshold),
-                ConcordiumSdk.NodeApi.Types.ContractInitialized x => new ContractInitialized(x.Ref.AsString, MapContractAddress(x.Address), x.Amount.MicroCcdValue, x.InitName, x.Events.Select(data => data.AsHexString).ToArray()),
-                ConcordiumSdk.NodeApi.Types.ModuleDeployed x => new ContractModuleDeployed(x.Contents.AsString),
-                ConcordiumSdk.NodeApi.Types.Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.MicroCcdValue, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
-                ConcordiumSdk.NodeApi.Types.Interrupted x => new ContractInterrupted(MapContractAddress(x.Address), x.Events.Select(data => data.AsHexString).ToArray()),
-                ConcordiumSdk.NodeApi.Types.Resumed x => new ContractResumed(MapContractAddress(x.Address), x.Success),
-                ConcordiumSdk.NodeApi.Types.Upgraded x => new ContractUpgraded(MapContractAddress(x.Address), x.From.AsString, x.To.AsString),
-                ConcordiumSdk.NodeApi.Types.TransferredWithSchedule x => new TransferredWithSchedule(MapAccountAddress(x.From), MapAccountAddress(x.To), x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.MicroCcdValue)).ToArray()),
-                ConcordiumSdk.NodeApi.Types.DataRegistered x => new DataRegistered(x.Data.AsHex),
-                ConcordiumSdk.NodeApi.Types.TransferMemo x => new TransferMemo(x.Memo.AsHex),
-                ConcordiumSdk.NodeApi.Types.UpdateEnqueued x => MapChainUpdateEnqueued(x, blockSlotTime),
-                ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus x => new Transactions.BakerSetOpenStatus(x.BakerId, MapAccountAddress(x.Account), x.OpenStatus.MapToGraphQlEnum()),
-                ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL x => new Transactions.BakerSetMetadataURL(x.BakerId, MapAccountAddress(x.Account), x.MetadataURL),
-                ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission x => new Transactions.BakerSetTransactionFeeCommission(x.BakerId, MapAccountAddress(x.Account), x.TransactionFeeCommission),
-                ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission x => new Transactions.BakerSetBakingRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.BakingRewardCommission),
-                ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission x => new Transactions.BakerSetFinalizationRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.FinalizationRewardCommission),
-                ConcordiumSdk.NodeApi.Types.DelegationAdded x => new Transactions.DelegationAdded(x.DelegatorId, MapAccountAddress(x.Account)),
-                ConcordiumSdk.NodeApi.Types.DelegationRemoved x => new Transactions.DelegationRemoved(x.DelegatorId, MapAccountAddress(x.Account)),
-                ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased x => new Transactions.DelegationStakeIncreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
-                ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased x => new Transactions.DelegationStakeDecreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.MicroCcdValue),
-                ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings x => new Transactions.DelegationSetRestakeEarnings(x.DelegatorId, MapAccountAddress(x.Account), x.RestakeEarnings),
-                ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget x => new Transactions.DelegationSetDelegationTarget(x.DelegatorId, MapAccountAddress(x.Account), MapDelegationTarget(x.DelegationTarget)),
+                Concordium.Sdk.Types.New.Transferred x => new Transferred(x.Amount.Value, MapAddress(x.From), MapAddress(x.To)),
+                Concordium.Sdk.Types.New.AccountCreated x => new AccountCreated(MapAccountAddress(x.Contents)),
+                Concordium.Sdk.Types.New.CredentialDeployed x => new CredentialDeployed(x.RegId, MapAccountAddress(x.Account)),
+                Concordium.Sdk.Types.New.BakerAdded x => new BakerAdded(x.Stake.Value, x.RestakeEarnings, x.BakerId, MapAccountAddress(x.Account), x.SignKey, x.ElectionKey, x.AggregationKey),
+                Concordium.Sdk.Types.New.BakerKeysUpdated x => new BakerKeysUpdated(x.BakerId, MapAccountAddress(x.Account), x.SignKey, x.ElectionKey, x.AggregationKey),
+                Concordium.Sdk.Types.New.BakerRemoved x => new BakerRemoved(x.BakerId, MapAccountAddress(x.Account)),
+                Concordium.Sdk.Types.New.BakerSetRestakeEarnings x => new BakerSetRestakeEarnings(x.BakerId, MapAccountAddress(x.Account), x.RestakeEarnings),
+                Concordium.Sdk.Types.New.BakerStakeDecreased x => new BakerStakeDecreased(x.BakerId, MapAccountAddress(x.Account), x.NewStake.Value),
+                Concordium.Sdk.Types.New.BakerStakeIncreased x => new BakerStakeIncreased(x.BakerId, MapAccountAddress(x.Account), x.NewStake.Value),
+                Concordium.Sdk.Types.New.AmountAddedByDecryption x => new AmountAddedByDecryption(x.Amount.Value, MapAccountAddress(x.Account)),
+                Concordium.Sdk.Types.New.EncryptedAmountsRemoved x => new EncryptedAmountsRemoved(MapAccountAddress(x.Account), x.NewAmount, x.InputAmount, x.UpToIndex),
+                Concordium.Sdk.Types.New.EncryptedSelfAmountAdded x => new EncryptedSelfAmountAdded(MapAccountAddress(x.Account), x.NewAmount, x.Amount.Value),
+                Concordium.Sdk.Types.New.NewEncryptedAmount x => new NewEncryptedAmount(MapAccountAddress(x.Account), x.NewIndex, x.EncryptedAmount),
+                Concordium.Sdk.Types.New.CredentialKeysUpdated x => new CredentialKeysUpdated(x.CredId),
+                Concordium.Sdk.Types.New.CredentialsUpdated x => new CredentialsUpdated(MapAccountAddress(x.Account), x.NewCredIds, x.RemovedCredIds, x.NewThreshold),
+                Concordium.Sdk.Types.New.ContractInitialized x => new ContractInitialized(x.Ref.ToString(), MapContractAddress(x.Address), x.Amount.Value, x.InitName, x.Events.Select(data => data.AsHexString).ToArray()),
+                ModuleDeployed x => new ContractModuleDeployed(x.Contents.ToString()),
+                Updated x => new ContractUpdated(MapContractAddress(x.Address), MapAddress(x.Instigator), x.Amount.Value, x.Message.AsHexString, x.ReceiveName, x.Events.Select(data => data.AsHexString).ToArray()),
+                Interrupted x => new ContractInterrupted(MapContractAddress(x.Address), x.Events.Select(data => data.AsHexString).ToArray()),
+                Resumed x => new ContractResumed(MapContractAddress(x.Address), x.Success),
+                Upgraded x => new ContractUpgraded(MapContractAddress(x.Address), x.From.ToString(), x.To.ToString()),
+                Concordium.Sdk.Types.New.TransferredWithSchedule x => new TransferredWithSchedule(MapAccountAddress(x.From), MapAccountAddress(x.To), x.Amount.Select(amount => new TimestampedAmount(amount.Timestamp, amount.Amount.Value)).ToArray()),
+                Concordium.Sdk.Types.New.DataRegistered x => new DataRegistered(x.Data.AsHex),
+                Concordium.Sdk.Types.New.TransferMemo x => new TransferMemo(x.Memo.AsHex),
+                UpdateEnqueued x => MapChainUpdateEnqueued(x, blockSlotTime),
+                BakerSetOpenStatus x => new Transactions.BakerSetOpenStatus(x.BakerId, MapAccountAddress(x.Account), x.OpenStatus.MapToGraphQlEnum()),
+                BakerSetMetadataURL x => new Transactions.BakerSetMetadataURL(x.BakerId, MapAccountAddress(x.Account), x.MetadataURL),
+                BakerSetTransactionFeeCommission x => new Transactions.BakerSetTransactionFeeCommission(x.BakerId, MapAccountAddress(x.Account), x.TransactionFeeCommission),
+                BakerSetBakingRewardCommission x => new Transactions.BakerSetBakingRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.BakingRewardCommission),
+                BakerSetFinalizationRewardCommission x => new Transactions.BakerSetFinalizationRewardCommission(x.BakerId, MapAccountAddress(x.Account), x.FinalizationRewardCommission),
+                DelegationAdded x => new Transactions.DelegationAdded(x.DelegatorId, MapAccountAddress(x.Account)),
+                DelegationRemoved x => new Transactions.DelegationRemoved(x.DelegatorId, MapAccountAddress(x.Account)),
+                DelegationStakeIncreased x => new Transactions.DelegationStakeIncreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.Value),
+                DelegationStakeDecreased x => new Transactions.DelegationStakeDecreased(x.DelegatorId, MapAccountAddress(x.Account), x.NewStake.Value),
+                DelegationSetRestakeEarnings x => new Transactions.DelegationSetRestakeEarnings(x.DelegatorId, MapAccountAddress(x.Account), x.RestakeEarnings),
+                DelegationSetDelegationTarget x => new Transactions.DelegationSetDelegationTarget(x.DelegatorId, MapAccountAddress(x.Account), MapDelegationTarget(x.DelegationTarget)),
                 _ => throw new NotSupportedException($"Cannot map transaction event '{value.GetType()}'")
             }
         };
     }
 
-    private DelegationTarget MapDelegationTarget(ConcordiumSdk.NodeApi.Types.DelegationTarget src)
+    private DelegationTarget MapDelegationTarget(Concordium.Sdk.Types.New.DelegationTarget src)
     {
         return src switch
         {
-            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
+            Concordium.Sdk.Types.New.PassiveDelegationTarget => new PassiveDelegationTarget(),
+            Concordium.Sdk.Types.New.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
             _ => throw new NotImplementedException()
         };
     }
@@ -194,9 +220,9 @@ public class TransactionWriter
         return new ChainUpdateEnqueued(effectiveTime, isEffectiveImmediately, MapUpdatePayload(value.Payload));
     }
 
-    private static AccountAddress MapAccountAddress(ConcordiumSdk.Types.AccountAddress value)
+    private static AccountAddress MapAccountAddress(Concordium.Sdk.Types.AccountAddress value)
     {
-        return new AccountAddress(value.AsString);
+        return new AccountAddress(value.ToString());
     }
 
     private ChainUpdatePayload MapUpdatePayload(UpdatePayload value)
@@ -207,11 +233,11 @@ public class TransactionWriter
             ElectionDifficultyUpdatePayload x => new ElectionDifficultyChainUpdatePayload(x.ElectionDifficulty),
             EuroPerEnergyUpdatePayload x => new EuroPerEnergyChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
             MicroGtuPerEuroUpdatePayload x => new MicroCcdPerEuroChainUpdatePayload(new ExchangeRate {Denominator = x.Content.Denominator, Numerator = x.Content.Numerator }),
-            FoundationAccountUpdatePayload x => new FoundationAccountChainUpdatePayload(new AccountAddress(x.Account.AsString)),
+            FoundationAccountUpdatePayload x => new FoundationAccountChainUpdatePayload(new AccountAddress(x.Account.ToString())),
             MintDistributionV0UpdatePayload x => new MintDistributionChainUpdatePayload(x.Content.MintPerSlot, x.Content.BakingReward, x.Content.FinalizationReward),
             TransactionFeeDistributionUpdatePayload x => new TransactionFeeDistributionChainUpdatePayload(x.Content.Baker, x.Content.GasAccount),
             GasRewardsUpdatePayload x => new GasRewardsChainUpdatePayload(x.Content.Baker, x.Content.FinalizationProof, x.Content.AccountCreation, x.Content.ChainUpdate),
-            BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Content.MinimumThresholdForBaking.MicroCcdValue),
+            BakerStakeThresholdUpdatePayload x => new BakerStakeThresholdChainUpdatePayload(x.Content.MinimumThresholdForBaking.Value),
             RootUpdatePayload x => new RootKeysChainUpdatePayload(),
             Level1UpdatePayload x => new Level1KeysChainUpdatePayload(),
             AddAnonymityRevokerUpdatePayload x => new AddAnonymityRevokerChainUpdatePayload((int)x.Content.ArIdentity, x.Content.ArDescription.Name, x.Content.ArDescription.Url, x.Content.ArDescription.Description),
@@ -231,7 +257,7 @@ public class TransactionWriter
             MapCommissionRange(x.Content.FinalizationCommissionRange),
             MapCommissionRange(x.Content.BakingCommissionRange),
             MapCommissionRange(x.Content.TransactionCommissionRange),
-            x.Content.MinimumEquityCapital.MicroCcdValue, x.Content.CapitalBound,
+            x.Content.MinimumEquityCapital.Value, x.Content.CapitalBound,
             new LeverageFactor
             {
                 Numerator = x.Content.LeverageBound.Numerator,
@@ -239,17 +265,17 @@ public class TransactionWriter
             });
     }
 
-    private Address MapAddress(ConcordiumSdk.Types.Address value)
+    private Address MapAddress(IAddress value)
     {
         return value switch
         {
-            ConcordiumSdk.Types.AccountAddress x => new AccountAddress(x.AsString),
-            ConcordiumSdk.Types.ContractAddress x => MapContractAddress(x),
+            Concordium.Sdk.Types.AccountAddress x => new AccountAddress(x.ToString()),
+            Concordium.Sdk.Types.ContractAddress x => MapContractAddress(x),
             _ => throw new NotSupportedException("Cannot map this address type")
         };
     }
 
-    private static ContractAddress MapContractAddress(ConcordiumSdk.Types.ContractAddress value)
+    private static ContractAddress MapContractAddress(Concordium.Sdk.Types.ContractAddress value)
     {
         return new ContractAddress(value.Index, value.SubIndex);
     }
@@ -265,61 +291,61 @@ public class TransactionWriter
 
         return value.Reason switch
         {
-            ConcordiumSdk.NodeApi.Types.ModuleNotWf => new ModuleNotWf(),
-            ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists x => new ModuleHashAlreadyExists(x.Contents.AsString),
-            ConcordiumSdk.NodeApi.Types.InvalidAccountReference x => new InvalidAccountReference(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.InvalidInitMethod x => new InvalidInitMethod(x.ModuleRef.AsString, x.InitName),
-            ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod x => new InvalidReceiveMethod(x.ModuleRef.AsString, x.ReceiveName),
-            ConcordiumSdk.NodeApi.Types.InvalidModuleReference x => new InvalidModuleReference(x.Contents.AsString),
-            ConcordiumSdk.NodeApi.Types.InvalidContractAddress x => new InvalidContractAddress(MapContractAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.RuntimeFailure => new RuntimeFailure(),
-            ConcordiumSdk.NodeApi.Types.AmountTooLarge x => new AmountTooLarge(MapAddress(x.Address), x.Amount.MicroCcdValue),
-            ConcordiumSdk.NodeApi.Types.SerializationFailure => new SerializationFailure(),
-            ConcordiumSdk.NodeApi.Types.OutOfEnergy => new OutOfEnergy(),
-            ConcordiumSdk.NodeApi.Types.RejectedInit x => new RejectedInit(x.RejectReason),
-            ConcordiumSdk.NodeApi.Types.RejectedReceive x => new RejectedReceive(x.RejectReason, MapContractAddress(x.ContractAddress), x.ReceiveName, x.Parameter.AsHexString),
-            ConcordiumSdk.NodeApi.Types.NonExistentRewardAccount x => new NonExistentRewardAccount(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.InvalidProof => new InvalidProof(),
-            ConcordiumSdk.NodeApi.Types.AlreadyABaker x => new AlreadyABaker(x.Contents),
-            ConcordiumSdk.NodeApi.Types.NotABaker x => new NotABaker(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.InsufficientBalanceForBakerStake => new InsufficientBalanceForBakerStake(),
-            ConcordiumSdk.NodeApi.Types.StakeUnderMinimumThresholdForBaking => new StakeUnderMinimumThresholdForBaking(),
-            ConcordiumSdk.NodeApi.Types.BakerInCooldown => new BakerInCooldown(),
-            ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey x => new DuplicateAggregationKey(x.Contents),
-            ConcordiumSdk.NodeApi.Types.NonExistentCredentialId => new NonExistentCredentialId(),
-            ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse => new KeyIndexAlreadyInUse(),
-            ConcordiumSdk.NodeApi.Types.InvalidAccountThreshold => new InvalidAccountThreshold(),
-            ConcordiumSdk.NodeApi.Types.InvalidCredentialKeySignThreshold => new InvalidCredentialKeySignThreshold(),
-            ConcordiumSdk.NodeApi.Types.InvalidEncryptedAmountTransferProof => new InvalidEncryptedAmountTransferProof(),
-            ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof => new InvalidTransferToPublicProof(),
-            ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer x => new EncryptedAmountSelfTransfer(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.InvalidIndexOnEncryptedTransfer => new InvalidIndexOnEncryptedTransfer(),
-            ConcordiumSdk.NodeApi.Types.ZeroScheduledAmount => new ZeroScheduledAmount(),
-            ConcordiumSdk.NodeApi.Types.NonIncreasingSchedule => new NonIncreasingSchedule(),
-            ConcordiumSdk.NodeApi.Types.FirstScheduledReleaseExpired => new FirstScheduledReleaseExpired(),
-            ConcordiumSdk.NodeApi.Types.ScheduledSelfTransfer x => new ScheduledSelfTransfer(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.InvalidCredentials => new InvalidCredentials(),
-            ConcordiumSdk.NodeApi.Types.DuplicateCredIds x => new DuplicateCredIds(x.Contents),
-            ConcordiumSdk.NodeApi.Types.NonExistentCredIds x => new NonExistentCredIds(x.Contents),
-            ConcordiumSdk.NodeApi.Types.RemoveFirstCredential => new RemoveFirstCredential(),
-            ConcordiumSdk.NodeApi.Types.CredentialHolderDidNotSign => new CredentialHolderDidNotSign(),
-            ConcordiumSdk.NodeApi.Types.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
-            ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
-            ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
-            ConcordiumSdk.NodeApi.Types.MissingBakerAddParameters => new Transactions.MissingBakerAddParameters(),
-            ConcordiumSdk.NodeApi.Types.FinalizationRewardCommissionNotInRange => new Transactions.FinalizationRewardCommissionNotInRange(),
-            ConcordiumSdk.NodeApi.Types.BakingRewardCommissionNotInRange => new Transactions.BakingRewardCommissionNotInRange(),
-            ConcordiumSdk.NodeApi.Types.TransactionFeeCommissionNotInRange => new Transactions.TransactionFeeCommissionNotInRange(),
-            ConcordiumSdk.NodeApi.Types.AlreadyADelegator => new Transactions.AlreadyADelegator(),
-            ConcordiumSdk.NodeApi.Types.InsufficientBalanceForDelegationStake => new Transactions.InsufficientBalanceForDelegationStake(),
-            ConcordiumSdk.NodeApi.Types.MissingDelegationAddParameters => new Transactions.MissingDelegationAddParameters(),
-            ConcordiumSdk.NodeApi.Types.InsufficientDelegationStake => new Transactions.InsufficientDelegationStake(),
-            ConcordiumSdk.NodeApi.Types.DelegatorInCooldown => new Transactions.DelegatorInCooldown(),
-            ConcordiumSdk.NodeApi.Types.NotADelegator x => new Transactions.NotADelegator(MapAccountAddress(x.Contents)),
-            ConcordiumSdk.NodeApi.Types.DelegationTargetNotABaker x => new Transactions.DelegationTargetNotABaker(x.Contents),
-            ConcordiumSdk.NodeApi.Types.StakeOverMaximumThresholdForPool => new Transactions.StakeOverMaximumThresholdForPool(),
-            ConcordiumSdk.NodeApi.Types.PoolWouldBecomeOverDelegated => new Transactions.PoolWouldBecomeOverDelegated(),
-            ConcordiumSdk.NodeApi.Types.PoolClosed => new Transactions.PoolClosed(),
+            NodeApi.ModuleNotWf => new ModuleNotWf(),
+            NodeApi.ModuleHashAlreadyExists x => new ModuleHashAlreadyExists(x.Contents.ToString()),
+            NodeApi.InvalidAccountReference x => new InvalidAccountReference(MapAccountAddress(x.Contents)),
+            NodeApi.InvalidInitMethod x => new InvalidInitMethod(x.ModuleRef.ToString(), x.InitName),
+            NodeApi.InvalidReceiveMethod x => new InvalidReceiveMethod(x.ModuleRef.ToString(), x.ReceiveName),
+            NodeApi.InvalidModuleReference x => new InvalidModuleReference(x.Contents.ToString()),
+            NodeApi.InvalidContractAddress x => new InvalidContractAddress(MapContractAddress(x.Contents)),
+            NodeApi.RuntimeFailure => new RuntimeFailure(),
+            NodeApi.AmountTooLarge x => new AmountTooLarge(MapAddress(x.Address), x.Amount.Value),
+            NodeApi.SerializationFailure => new SerializationFailure(),
+            NodeApi.OutOfEnergy => new OutOfEnergy(),
+            NodeApi.RejectedInit x => new RejectedInit(x.RejectReason),
+            NodeApi.RejectedReceive x => new RejectedReceive(x.RejectReason, MapContractAddress(x.ContractAddress), x.ReceiveName, x.Parameter.AsHexString),
+            NodeApi.NonExistentRewardAccount x => new NonExistentRewardAccount(MapAccountAddress(x.Contents)),
+            NodeApi.InvalidProof => new InvalidProof(),
+            NodeApi.AlreadyABaker x => new AlreadyABaker(x.Contents),
+            NodeApi.NotABaker x => new NotABaker(MapAccountAddress(x.Contents)),
+            NodeApi.InsufficientBalanceForBakerStake => new InsufficientBalanceForBakerStake(),
+            NodeApi.StakeUnderMinimumThresholdForBaking => new StakeUnderMinimumThresholdForBaking(),
+            NodeApi.BakerInCooldown => new BakerInCooldown(),
+            NodeApi.DuplicateAggregationKey x => new DuplicateAggregationKey(x.Contents),
+            NodeApi.NonExistentCredentialId => new NonExistentCredentialId(),
+            NodeApi.KeyIndexAlreadyInUse => new KeyIndexAlreadyInUse(),
+            NodeApi.InvalidAccountThreshold => new InvalidAccountThreshold(),
+            NodeApi.InvalidCredentialKeySignThreshold => new InvalidCredentialKeySignThreshold(),
+            NodeApi.InvalidEncryptedAmountTransferProof => new InvalidEncryptedAmountTransferProof(),
+            NodeApi.InvalidTransferToPublicProof => new InvalidTransferToPublicProof(),
+            NodeApi.EncryptedAmountSelfTransfer x => new EncryptedAmountSelfTransfer(MapAccountAddress(x.Contents)),
+            NodeApi.InvalidIndexOnEncryptedTransfer => new InvalidIndexOnEncryptedTransfer(),
+            NodeApi.ZeroScheduledAmount => new ZeroScheduledAmount(),
+            NodeApi.NonIncreasingSchedule => new NonIncreasingSchedule(),
+            NodeApi.FirstScheduledReleaseExpired => new FirstScheduledReleaseExpired(),
+            NodeApi.ScheduledSelfTransfer x => new ScheduledSelfTransfer(MapAccountAddress(x.Contents)),
+            NodeApi.InvalidCredentials => new InvalidCredentials(),
+            NodeApi.DuplicateCredIds x => new DuplicateCredIds(x.Contents),
+            NodeApi.NonExistentCredIds x => new NonExistentCredIds(x.Contents),
+            NodeApi.RemoveFirstCredential => new RemoveFirstCredential(),
+            NodeApi.CredentialHolderDidNotSign => new CredentialHolderDidNotSign(),
+            NodeApi.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
+            NodeApi.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
+            NodeApi.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
+            MissingBakerAddParameters => new Transactions.MissingBakerAddParameters(),
+            FinalizationRewardCommissionNotInRange => new Transactions.FinalizationRewardCommissionNotInRange(),
+            BakingRewardCommissionNotInRange => new Transactions.BakingRewardCommissionNotInRange(),
+            TransactionFeeCommissionNotInRange => new Transactions.TransactionFeeCommissionNotInRange(),
+            AlreadyADelegator => new Transactions.AlreadyADelegator(),
+            InsufficientBalanceForDelegationStake => new Transactions.InsufficientBalanceForDelegationStake(),
+            MissingDelegationAddParameters => new Transactions.MissingDelegationAddParameters(),
+            InsufficientDelegationStake => new Transactions.InsufficientDelegationStake(),
+            DelegatorInCooldown => new Transactions.DelegatorInCooldown(),
+            NotADelegator x => new Transactions.NotADelegator(MapAccountAddress(x.Contents)),
+            DelegationTargetNotABaker x => new Transactions.DelegationTargetNotABaker(x.Contents),
+            StakeOverMaximumThresholdForPool => new Transactions.StakeOverMaximumThresholdForPool(),
+            PoolWouldBecomeOverDelegated => new Transactions.PoolWouldBecomeOverDelegated(),
+            PoolClosed => new Transactions.PoolClosed(),
             _ => throw new NotImplementedException("Reject reason not mapped!")
         };
     }

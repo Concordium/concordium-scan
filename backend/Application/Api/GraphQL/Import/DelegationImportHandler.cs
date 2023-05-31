@@ -1,7 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Import;
-using ConcordiumSdk.NodeApi.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -38,12 +39,12 @@ public class DelegationImportHandler
                 .ToArray();
 
             var txEvents = allTransactionEvents.Where(x => x
-                is ConcordiumSdk.NodeApi.Types.DelegationAdded
-                or ConcordiumSdk.NodeApi.Types.DelegationRemoved
-                or ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased
-                or ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased
-                or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings
-                or ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget);
+                is DelegationAdded
+                or DelegationRemoved
+                or DelegationStakeIncreased
+                or DelegationStakeDecreased
+                or DelegationSetRestakeEarnings
+                or DelegationSetDelegationTarget);
 
             await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1, resultBuilder);
             await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
@@ -92,7 +93,7 @@ public class DelegationImportHandler
     {
         foreach (var txEvent in txEvents)
         {
-            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationAdded added)
+            if (txEvent is DelegationAdded added)
             {
                 await _writer.UpdateAccount(added,
                     src => src.DelegatorId,
@@ -103,7 +104,7 @@ public class DelegationImportHandler
                         resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
                     });
             }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationRemoved removed)
+            else if (txEvent is DelegationRemoved removed)
             {
                 await _writer.UpdateAccount(removed,
                     src => src.DelegatorId,
@@ -114,7 +115,7 @@ public class DelegationImportHandler
                         dst.Delegation.PendingChange = new PendingDelegationRemoval(effectiveTime);
                     });
             }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased stakeDecreased)
+            else if (txEvent is DelegationStakeDecreased stakeDecreased)
             {
                 await _writer.UpdateAccount(stakeDecreased,
                     src => src.DelegatorId,
@@ -122,20 +123,20 @@ public class DelegationImportHandler
                     {
                         if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
                         var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(chainParameters.DelegatorCooldown);
-                        dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, stakeDecreased.NewStake.MicroCcdValue);
+                        dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, stakeDecreased.NewStake.Value);
                     });
             }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased stakeIncreased)
+            else if (txEvent is DelegationStakeIncreased stakeIncreased)
             {
                 await _writer.UpdateAccount(stakeIncreased,
                     src => src.DelegatorId,
                     (src, dst) =>
                     {
                         if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                        dst.Delegation.StakedAmount = src.NewStake.MicroCcdValue;
+                        dst.Delegation.StakedAmount = src.NewStake.Value;
                     });
             }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings setRestakeEarnings)
+            else if (txEvent is DelegationSetRestakeEarnings setRestakeEarnings)
             {
                 await _writer.UpdateAccount(setRestakeEarnings,
                     src => src.DelegatorId,
@@ -145,7 +146,7 @@ public class DelegationImportHandler
                         dst.Delegation.RestakeEarnings = src.RestakeEarnings;
                     });
             }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget setDelegationTarget)
+            else if (txEvent is DelegationSetDelegationTarget setDelegationTarget)
             {
                 await _writer.UpdateAccount(setDelegationTarget,
                     src => src.DelegatorId,
@@ -161,12 +162,12 @@ public class DelegationImportHandler
         }
     }
 
-    private DelegationTarget Map(ConcordiumSdk.NodeApi.Types.DelegationTarget source)
+    private DelegationTarget Map(Concordium.Sdk.Types.New.DelegationTarget source)
     {
         return source switch
         {
-            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
+            Concordium.Sdk.Types.New.PassiveDelegationTarget => new PassiveDelegationTarget(),
+            Concordium.Sdk.Types.New.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
             _ => throw new NotImplementedException()
         };
     }

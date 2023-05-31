@@ -29,7 +29,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <param name="address">Contract Address emitting the event</param>
         /// <param name="st">Binary Reader</param>
         /// <returns>Parsed <see cref="CisBurnEvent"/></returns>
-        public static CisBurnEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st)
+        public static CisBurnEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
         {
             return new CisBurnEvent
             {

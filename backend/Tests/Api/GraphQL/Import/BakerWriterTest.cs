@@ -1,7 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

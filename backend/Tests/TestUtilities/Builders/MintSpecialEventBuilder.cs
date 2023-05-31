@@ -1,5 +1,5 @@
-﻿using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Application.NodeApi;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -8,7 +8,7 @@ public class MintSpecialEventBuilder
     private CcdAmount _bakingReward = CcdAmount.FromMicroCcd(54518);
     private CcdAmount _finalizationReward = CcdAmount.FromMicroCcd(77841);
     private CcdAmount _platformDevelopmentCharge = CcdAmount.FromMicroCcd(12566);
-    private AccountAddress _foundationAccount = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    private AccountAddress _foundationAccount = AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
 
     public MintSpecialEvent Build()
     {

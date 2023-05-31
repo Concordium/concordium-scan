@@ -1,6 +1,6 @@
 ﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +41,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task GetOrCreateChainParameters_DatabaseEmpty()
     {
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
 
         var returnedResult = await WriteV0Data();
         
@@ -62,7 +62,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsIdentical()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         await WriteV0Data();
         
         // act
@@ -79,7 +79,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
     
         // act
@@ -99,7 +99,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical_ChangedBlockSummaryVersion()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
     
         // act
@@ -117,11 +117,11 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical_FoundationAccountChanged()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
     
         // act
-        await CreateAccount(24, new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
+        await CreateAccount(24, AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
         _chainParametersV0Builder.WithFoundationAccountIndex(24);
             
         var returnedResult = await WriteV0Data();
@@ -162,8 +162,8 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     {
         var account = new AccountBuilder()
             .WithId(accountId)
-            .WithCanonicalAddress(canonicalAccountAddress.AsString)
-            .WithBaseAddress(canonicalAccountAddress.GetBaseAddress().AsString)
+            .WithCanonicalAddress(canonicalAccountAddress.ToString())
+            .WithBaseAddress(canonicalAccountAddress.GetBaseAddress().ToString())
             .Build();
 
         await using var dbContext = _dbContextFactory.CreateDbContext();

@@ -1,11 +1,11 @@
-﻿using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 
 namespace Tests.TestUtilities.Builders;
 
 public class FinalizationDataBuilder
 {
-    private BlockHash _finalizationBlockPointer = new("3ecb4365b81501ea41d9a07229629e6214d5043c4e5fe870f75c6808a7c2d13d");
+    private BlockHash _finalizationBlockPointer = BlockHash.From("3ecb4365b81501ea41d9a07229629e6214d5043c4e5fe870f75c6808a7c2d13d");
     private long _finalizationDelay = 22;
     private long _finalizationIndex = 11;
     private FinalizationSummaryParty[] _finalizers = {

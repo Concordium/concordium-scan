@@ -1,6 +1,6 @@
 ﻿using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +39,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     public async Task BasicBlockInformation_AllValuesNonNull()
     {
         _blockInfoBuilder
-            .WithBlockHash(new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
+            .WithBlockHash(BlockHash.From("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
             .WithBlockHeight(42)
             .WithBlockSlotTime(new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero))
             .WithBlockBaker(150)
@@ -86,7 +86,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     {
         _blockSummaryBuilder
             .WithFinalizationData(new FinalizationDataBuilder()
-                .WithFinalizationBlockPointer(new BlockHash("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e"))
+                .WithFinalizationBlockPointer(BlockHash.From("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e"))
                 .WithFinalizationIndex(42)
                 .WithFinalizationDelay(11)
                 .WithFinalizers(

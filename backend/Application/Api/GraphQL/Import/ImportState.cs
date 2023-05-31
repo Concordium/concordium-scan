@@ -27,7 +27,7 @@ public class ImportState
     {
         return new ImportState
         {
-            GenesisBlockHash = payload.BlockInfo.BlockHash.AsString,
+            GenesisBlockHash = payload.BlockInfo.BlockHash.ToString(),
             MaxImportedBlockHeight = 0,
             CumulativeAccountsCreated = 0,
             CumulativeTransactionCount = 0,

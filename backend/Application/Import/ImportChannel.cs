@@ -1,8 +1,8 @@
 ﻿using System.Threading.Channels;
 using System.Threading.Tasks;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 
 namespace Application.Import;
 

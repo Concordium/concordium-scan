@@ -1,4 +1,6 @@
-﻿using ConcordiumSdk.Types;
+﻿using Application.NodeApi;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using HotChocolate;
 using HotChocolate.Types;
 

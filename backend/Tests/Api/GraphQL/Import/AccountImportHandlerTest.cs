@@ -3,15 +3,14 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Import;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
-using AccountAddress = ConcordiumSdk.Types.AccountAddress;
-using SpecialEvent = ConcordiumSdk.NodeApi.Types.SpecialEvent;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using SpecialEvent = Application.Api.GraphQL.Blocks.SpecialEvent;
 
 namespace Tests.Api.GraphQL.Import
 {
@@ -43,9 +42,9 @@ namespace Tests.Api.GraphQL.Import
         [Fact]
         public async Task SameBlock_AccountCreation_InwardsTransferTest()
         {
-            var senderAccount = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+            var senderAccount = Concordium.Sdk.Types.AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
             ulong senderAccountId = 1;
-            var receiverAccount = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+            var receiverAccount = Concordium.Sdk.Types.AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
             ulong receiverAccountId = 2;
             var slotTime = DateTimeOffset.UtcNow;
             var block = new Block()
@@ -62,7 +61,7 @@ namespace Tests.Api.GraphQL.Import
                 TransactionSummaries = new TransactionSummary[] {
                     new TransactionSummary(
                         senderAccount,
-                        new TransactionHash("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"),
+                        TransactionHash.From("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"),
                         CcdAmount.Zero,
                         0,
                         TransactionType.Get(AccountTransactionType.SimpleTransfer),
@@ -74,7 +73,7 @@ namespace Tests.Api.GraphQL.Import
                         },
                         0),
                 },
-                SpecialEvents = new SpecialEvent[0]
+                SpecialEvents = new Concordium.Sdk.Types.New.SpecialEvent[0]
             },
             // Signifies that the Account Has been created in this block
             new AccountInfosRetrieved(new AccountInfo[] {
@@ -94,30 +93,30 @@ namespace Tests.Api.GraphQL.Import
             // Sender Account Should already be present in the database
             await _accountWriter.InsertAccounts(new List<Account> {
                 new Account() {
-                    Amount = CcdAmount.FromCcd(2).MicroCcdValue,
-                    BaseAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.GetBaseAddress().AsString),
-                    CanonicalAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.AsString),
+                    Amount = CcdAmount.FromCcd(2).Value,
+                    BaseAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.GetBaseAddress().ToString()),
+                    CanonicalAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.ToString()),
                     CreatedAt = slotTime.AddSeconds(-10),
                     TransactionCount = 0,
                     Id = (long)senderAccountId
                 }
             });
-            _accountLookup.AddToCache(senderAccount.GetBaseAddress().AsString, (long?)senderAccountId);
+            _accountLookup.AddToCache(senderAccount.GetBaseAddress().ToString(), (long?)senderAccountId);
 
             await _accountImportHandler.AddNewAccounts(blockDataPayload.AccountInfos.CreatedAccounts, block.BlockSlotTime, block.BlockHeight);
             var transactions = await _transactionWriter.AddTransactions(blockDataPayload.BlockSummary, block.Id, block.BlockSlotTime);
             _accountImportHandler.HandleAccountUpdates(blockDataPayload, transactions, block);
 
             var statementEntry = _dbContextFactory.CreateDbContext().AccountStatementEntries.Where(e => e.AccountId == (long)receiverAccountId).Single();
-            statementEntry.AccountBalance.Should().Be(CcdAmount.FromCcd(1).MicroCcdValue);
+            statementEntry.AccountBalance.Should().Be(CcdAmount.FromCcd(1).Value);
         }
 
         [Fact]
         public async Task GenesisBlock_AccountCreation_BalanceTest()
         {
-            var senderAccount = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+            var senderAccount = Concordium.Sdk.Types.AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
             ulong senderAccountId = 1;
-            var receiverAccount = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+            var receiverAccount = Concordium.Sdk.Types.AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
             ulong receiverAccountId = 2;
             var slotTime = DateTimeOffset.UtcNow;
             var block = new Block()
@@ -132,7 +131,7 @@ namespace Tests.Api.GraphQL.Import
             {
                 ProtocolVersion = 4,
                 TransactionSummaries = new TransactionSummary[0],
-                SpecialEvents = new SpecialEvent[0]
+                SpecialEvents = new Concordium.Sdk.Types.New.SpecialEvent[0]
             },
             // Signifies that the Account Has been created in this block
             new AccountInfosRetrieved(new AccountInfo[] {
@@ -152,15 +151,15 @@ namespace Tests.Api.GraphQL.Import
             // Sender Account Should already be present in the database
             await _accountWriter.InsertAccounts(new List<Account> {
                 new Account() {
-                    Amount = CcdAmount.FromCcd(2).MicroCcdValue,
-                    BaseAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.GetBaseAddress().AsString),
-                    CanonicalAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.AsString),
+                    Amount = CcdAmount.FromCcd(2).Value,
+                    BaseAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.GetBaseAddress().ToString()),
+                    CanonicalAddress = new Application.Api.GraphQL.Accounts.AccountAddress(senderAccount.ToString()),
                     CreatedAt = slotTime.AddSeconds(-10),
                     TransactionCount = 0,
                     Id = (long)senderAccountId
                 }
             });
-            _accountLookup.AddToCache(senderAccount.GetBaseAddress().AsString, (long?)senderAccountId);
+            _accountLookup.AddToCache(senderAccount.GetBaseAddress().ToString(), (long?)senderAccountId);
 
             await _accountImportHandler.AddNewAccounts(blockDataPayload.AccountInfos.CreatedAccounts, block.BlockSlotTime, block.BlockHeight);
             var transactions = await _transactionWriter.AddTransactions(blockDataPayload.BlockSummary, block.Id, block.BlockSlotTime);

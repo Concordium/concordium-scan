@@ -2,19 +2,21 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 using Dapper;
+// using Dapper;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
-using BakingRewardsSpecialEvent = ConcordiumSdk.NodeApi.Types.BakingRewardsSpecialEvent;
-using BlockAccrueRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.BlockAccrueRewardSpecialEvent;
-using FinalizationRewardsSpecialEvent = ConcordiumSdk.NodeApi.Types.FinalizationRewardsSpecialEvent;
+using BakingRewardsSpecialEvent = Application.NodeApi.BakingRewardsSpecialEvent;
+using BlockAccrueRewardSpecialEvent = Application.NodeApi.BlockAccrueRewardSpecialEvent;
+using FinalizationRewardsSpecialEvent = Application.NodeApi.FinalizationRewardsSpecialEvent;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
-using MintSpecialEvent = ConcordiumSdk.NodeApi.Types.MintSpecialEvent;
-using PaydayAccountRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayAccountRewardSpecialEvent;
-using PaydayFoundationRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayFoundationRewardSpecialEvent;
-using PaydayPoolRewardSpecialEvent = ConcordiumSdk.NodeApi.Types.PaydayPoolRewardSpecialEvent;
-using SpecialEvent = ConcordiumSdk.NodeApi.Types.SpecialEvent;
+using MintSpecialEvent = Application.NodeApi.MintSpecialEvent;
+using PaydayAccountRewardSpecialEvent = Application.NodeApi.PaydayAccountRewardSpecialEvent;
+using PaydayFoundationRewardSpecialEvent = Application.NodeApi.PaydayFoundationRewardSpecialEvent;
+using PaydayPoolRewardSpecialEvent = Application.NodeApi.PaydayPoolRewardSpecialEvent;
+using SpecialEvent = Concordium.Sdk.Types.New.SpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -116,68 +118,68 @@ public class BlockWriter
                 MintSpecialEvent x => new Blocks.MintSpecialEvent
                 {
                     BlockId = blockId,
-                    BakingReward = x.MintBakingReward.MicroCcdValue,
-                    FinalizationReward = x.MintFinalizationReward.MicroCcdValue,
-                    PlatformDevelopmentCharge = x.MintPlatformDevelopmentCharge.MicroCcdValue,
-                    FoundationAccountAddress  = new AccountAddress(x.FoundationAccount.AsString)
+                    BakingReward = x.MintBakingReward.Value,
+                    FinalizationReward = x.MintFinalizationReward.Value,
+                    PlatformDevelopmentCharge = x.MintPlatformDevelopmentCharge.Value,
+                    FoundationAccountAddress  = new AccountAddress(x.FoundationAccount.ToString())
                 },
                 FinalizationRewardsSpecialEvent x => new Blocks.FinalizationRewardsSpecialEvent
                 {
                     BlockId = blockId,
-                    Remainder = x.Remainder.MicroCcdValue, 
-                    AccountAddresses = x.FinalizationRewards.Select(reward => new AccountAddress(reward.Address.AsString)).ToArray(), 
-                    Amounts = x.FinalizationRewards.Select(reward => reward.Amount.MicroCcdValue).ToArray() 
+                    Remainder = x.Remainder.Value, 
+                    AccountAddresses = x.FinalizationRewards.Select(reward => new AccountAddress(reward.Address.ToString())).ToArray(), 
+                    Amounts = x.FinalizationRewards.Select(reward => reward.Amount.Value).ToArray() 
                 },
                 BlockRewardSpecialEvent x => new Blocks.BlockRewardsSpecialEvent
                 {
                     BlockId = blockId,
-                    TransactionFees = x.TransactionFees.MicroCcdValue,
-                    OldGasAccount = x.OldGasAccount.MicroCcdValue,
-                    NewGasAccount = x.NewGasAccount.MicroCcdValue,
-                    BakerReward = x.BakerReward.MicroCcdValue,
-                    FoundationCharge = x.FoundationCharge.MicroCcdValue,
-                    BakerAccountAddress = new AccountAddress(x.Baker.AsString),
-                    FoundationAccountAddress = new AccountAddress(x.FoundationAccount.AsString)
+                    TransactionFees = x.TransactionFees.Value,
+                    OldGasAccount = x.OldGasAccount.Value,
+                    NewGasAccount = x.NewGasAccount.Value,
+                    BakerReward = x.BakerReward.Value,
+                    FoundationCharge = x.FoundationCharge.Value,
+                    BakerAccountAddress = new AccountAddress(x.Baker.ToString()),
+                    FoundationAccountAddress = new AccountAddress(x.FoundationAccount.ToString())
                 },
                 BakingRewardsSpecialEvent x => new Blocks.BakingRewardsSpecialEvent
                 {
                     BlockId = blockId,
-                    Remainder = x.Remainder.MicroCcdValue, 
-                    AccountAddresses = x.BakerRewards.Select(reward => new AccountAddress(reward.Address.AsString)).ToArray(), 
-                    Amounts = x.BakerRewards.Select(reward => reward.Amount.MicroCcdValue).ToArray() 
+                    Remainder = x.Remainder.Value, 
+                    AccountAddresses = x.BakerRewards.Select(reward => new AccountAddress(reward.Address.ToString())).ToArray(), 
+                    Amounts = x.BakerRewards.Select(reward => reward.Amount.Value).ToArray() 
                 },
                 PaydayAccountRewardSpecialEvent x => new Blocks.PaydayAccountRewardSpecialEvent
                 {
                     BlockId = blockId,
-                    Account = new AccountAddress(x.Account.AsString),
-                    TransactionFees = x.TransactionFees.MicroCcdValue,
-                    BakerReward = x.BakerReward.MicroCcdValue,
-                    FinalizationReward = x.FinalizationReward.MicroCcdValue
+                    Account = new AccountAddress(x.Account.ToString()),
+                    TransactionFees = x.TransactionFees.Value,
+                    BakerReward = x.BakerReward.Value,
+                    FinalizationReward = x.FinalizationReward.Value
                 },
                 BlockAccrueRewardSpecialEvent x => new Blocks.BlockAccrueRewardSpecialEvent
                 {
                     BlockId = blockId,
-                    TransactionFees = x.TransactionFees.MicroCcdValue,
-                    OldGasAccount = x.OldGasAccount.MicroCcdValue,
-                    NewGasAccount = x.NewGasAccount.MicroCcdValue,
-                    BakerReward = x.BakerReward.MicroCcdValue,
-                    PassiveReward = x.PassiveReward.MicroCcdValue,
-                    FoundationCharge = x.FoundationCharge.MicroCcdValue,
+                    TransactionFees = x.TransactionFees.Value,
+                    OldGasAccount = x.OldGasAccount.Value,
+                    NewGasAccount = x.NewGasAccount.Value,
+                    BakerReward = x.BakerReward.Value,
+                    PassiveReward = x.PassiveReward.Value,
+                    FoundationCharge = x.FoundationCharge.Value,
                     BakerId = x.BakerId
                 },
                 PaydayFoundationRewardSpecialEvent x => new Blocks.PaydayFoundationRewardSpecialEvent
                 {
                     BlockId = blockId,
-                    FoundationAccount = new AccountAddress(x.FoundationAccount.AsString),
-                    DevelopmentCharge = x.DevelopmentCharge.MicroCcdValue,
+                    FoundationAccount = new AccountAddress(x.FoundationAccount.ToString()),
+                    DevelopmentCharge = x.DevelopmentCharge.Value,
                 },
                 PaydayPoolRewardSpecialEvent x => new Blocks.PaydayPoolRewardSpecialEvent
                 {
                     BlockId = blockId,
                     Pool = x.PoolOwner.HasValue ? new BakerPoolRewardTarget((long)x.PoolOwner.Value) : new PassiveDelegationPoolRewardTarget(),
-                    TransactionFees = x.TransactionFees.MicroCcdValue,
-                    BakerReward = x.BakerReward.MicroCcdValue,
-                    FinalizationReward = x.FinalizationReward.MicroCcdValue
+                    TransactionFees = x.TransactionFees.Value,
+                    BakerReward = x.BakerReward.Value,
+                    FinalizationReward = x.FinalizationReward.Value
                 },
                 _ => throw new NotImplementedException()
             };
@@ -198,7 +200,7 @@ public class BlockWriter
     {
         var block = new Block
         {
-            BlockHash = blockInfo.BlockHash.AsString,
+            BlockHash = blockInfo.BlockHash.ToString(),
             BlockHeight = blockInfo.BlockHeight,
             BlockSlotTime = blockInfo.BlockSlotTime,
             BakerId = blockInfo.BlockBaker,
@@ -236,21 +238,21 @@ public class BlockWriter
         ImportState importState, 
         ulong nonCirculatingAccountsBalance)
     {
-        var totalCcdSupply = rewardStatus.TotalAmount.MicroCcdValue;
+        var totalCcdSupply = rewardStatus.TotalAmount.Value;
         var totalCirculatingCcdSupply = totalCcdSupply - nonCirculatingAccountsBalance;
 
         return new BalanceStatistics(
             totalCcdSupply,
             totalCirculatingCcdSupply,
             _changeCalculator.CalculateTotalAmountUnlocked(blockSlotTime, importState.GenesisBlockHash),
-            rewardStatus.TotalEncryptedAmount.MicroCcdValue,
+            rewardStatus.TotalEncryptedAmount.Value,
             0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
             bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked,
             bakerUpdateResults.TotalAmountStaked,
             delegationUpdateResults.TotalAmountStaked,
-            rewardStatus.BakingRewardAccount.MicroCcdValue, 
-            rewardStatus.FinalizationRewardAccount.MicroCcdValue, 
-            rewardStatus.GasAccount.MicroCcdValue);
+            rewardStatus.BakingRewardAccount.Value, 
+            rewardStatus.FinalizationRewardAccount.Value, 
+            rewardStatus.GasAccount.Value);
     }
 
     private FinalizationSummary? MapFinalizationSummary(FinalizationData? data)
@@ -258,13 +260,13 @@ public class BlockWriter
         if (data == null) return null;
         return new FinalizationSummary
         {
-            FinalizedBlockHash = data.FinalizationBlockPointer.AsString,
+            FinalizedBlockHash = data.FinalizationBlockPointer.ToString(),
             FinalizationIndex = data.FinalizationIndex,
             FinalizationDelay = data.FinalizationDelay,
         };
     }
 
-    private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, ConcordiumSdk.NodeApi.Types.FinalizationSummaryParty value)
+    private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, Concordium.Sdk.Types.New.FinalizationSummaryParty value)
     {
         return new BlockRelated<FinalizationSummaryParty>
         {

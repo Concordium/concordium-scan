@@ -1,7 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -67,7 +68,7 @@ public class PreProtocol4Strategy : IPendingBakerChangeStrategy
         activeState.PendingChange = source.PendingChange switch
         {
             AccountBakerRemovePendingV1 x => new PendingBakerRemoval(x.EffectiveTime), 
-            AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.MicroCcdValue),
+            AccountBakerReduceStakePendingV1 x => new PendingBakerReduceStake(x.EffectiveTime, x.NewStake.Value),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.PendingChange.GetType().Name}'")
         };
     }
@@ -124,7 +125,7 @@ public class PostProtocol4Strategy : IPendingBakerChangeStrategy
         activeState.PendingChange = source switch
         {
             BakerRemoved => new PendingBakerRemoval(effectiveTime), 
-            BakerStakeDecreased x => new PendingBakerReduceStake(effectiveTime, x.NewStake.MicroCcdValue),
+            BakerStakeDecreased x => new PendingBakerReduceStake(effectiveTime, x.NewStake.Value),
             _ => throw new NotImplementedException($"Mapping not implemented for '{source.GetType().Name}'")
         };
     }

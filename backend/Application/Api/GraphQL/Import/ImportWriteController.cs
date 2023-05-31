@@ -10,8 +10,8 @@ using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -131,7 +131,7 @@ public class ImportWriteController : BackgroundService
         _logger.Information("Initial import state read");
 
         var initialState = state != null
-            ? new InitialImportState(state.MaxImportedBlockHeight, new BlockHash(state.GenesisBlockHash))
+            ? new InitialImportState(state.MaxImportedBlockHeight, BlockHash.From(state.GenesisBlockHash))
             : new InitialImportState(null, null);
         _channel.SetInitialImportState(initialState);
     }
@@ -199,7 +199,7 @@ public class ImportWriteController : BackgroundService
         await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters.Current);
 
         var nonCirculatingAccountIds = _accountLookup
-            .GetAccountIdsFromBaseAddresses(_nonCirculatingAccounts.accounts.Select(a => a.AsString))
+            .GetAccountIdsFromBaseAddresses(_nonCirculatingAccounts.accounts.Select(a => a.ToString()))
             .AsEnumerable()
             .Select(kvp => kvp.Value)
             .Where(id => id.HasValue)
@@ -233,7 +233,7 @@ public class ImportWriteController : BackgroundService
         foreach (var accntAddress in updatedAccountAddresses)
         {
             await _sender.SendAsync(
-                accntAddress.AsString,
+                accntAddress.ToString(),
                 new AccountsUpdatedSubscriptionItem(accntAddress),
                 stoppingToken
             );

@@ -1,6 +1,5 @@
 ﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.PassiveDelegations;
 using Dapper;
 using FluentAssertions;

@@ -1,6 +1,5 @@
 using System.Data.Common;
 using System.Numerics;
-using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;
@@ -127,7 +126,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns>Total no of accounts updates applied to database</returns>
         public int ApplyAccountUpdates(IEnumerable<CisAccountUpdate> accountUpdates)
         {
-            IEnumerable<string> accountBaseAddresses = accountUpdates.Select(u => u.Address.GetBaseAddress().AsString).Distinct();
+            IEnumerable<string> accountBaseAddresses = accountUpdates.Select(u => u.Address.GetBaseAddress().ToString()).Distinct();
             var accountsMap = this._accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyTokenUpdates));
 
@@ -143,7 +142,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                     continue;
                 }
 
-                var accountBaseAddress = accountUpdate.Address.GetBaseAddress().AsString;
+                var accountBaseAddress = accountUpdate.Address.GetBaseAddress().ToString();
                 if (accountsMap[accountBaseAddress] is null 
                     || !accountsMap[accountBaseAddress].HasValue)
                 {

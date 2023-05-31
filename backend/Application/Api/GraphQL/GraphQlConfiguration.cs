@@ -12,6 +12,7 @@ using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
 using Application.Api.GraphQL.Transactions;
+using Application.Api.GraphQL.Versions;
 using HotChocolate;
 using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;

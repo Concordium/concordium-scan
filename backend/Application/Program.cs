@@ -14,7 +14,8 @@ using Application.Database;
 using Application.Import;
 using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
-using ConcordiumSdk.NodeApi;
+using Application.NodeApi;
+using Concordium.Sdk.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +54,7 @@ var nonCirculatingAccounts = builder
     .Configuration
     .GetSection("NonCirculatingAccounts")
     .Get<List<string>>()
-    .Select(str => new ConcordiumSdk.Types.AccountAddress(str).GetBaseAddress());
+    .Select(str => Concordium.Sdk.Types.AccountAddress.From(str).GetBaseAddress());
 builder.Services.AddSingleton<NonCirculatingAccounts>(new NonCirculatingAccounts(nonCirculatingAccounts));
 
 builder.Services.AddMemoryCache();
@@ -75,7 +76,7 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 builder.Services.AddSingleton<NodeCache>();
 builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());
-builder.Services.AddSingleton<GrpcNodeClient>();
+builder.Services.AddSingleton<ConcordiumClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 builder.Services.AddSingleton(new HttpClient());
@@ -99,12 +100,13 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
-        .UseWebSockets()
+        // .UseWebSockets()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
             policy.AllowAnyHeader();
         })
+        .UseWebSockets()
         .UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();

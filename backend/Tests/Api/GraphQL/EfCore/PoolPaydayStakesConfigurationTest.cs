@@ -1,9 +1,7 @@
 ﻿using Application.Api.GraphQL.Import;
 using Dapper;
 using FluentAssertions;
-using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
-using NBitcoin.Scripting;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
 

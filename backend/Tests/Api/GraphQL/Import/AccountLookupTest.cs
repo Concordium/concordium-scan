@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -109,7 +109,7 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
     {
         var account = new AccountBuilder()
             .WithId(accountId)
-            .WithCanonicalAddress(new AccountAddress(baseAddress).CreateAliasAddress(100, 200, 1).AsString) // Random alias 
+            .WithCanonicalAddress(AccountAddress.From(baseAddress).CreateAliasAddress(100, 200, 1).ToString()) // Random alias 
             .WithBaseAddress(baseAddress)
             .Build();
 

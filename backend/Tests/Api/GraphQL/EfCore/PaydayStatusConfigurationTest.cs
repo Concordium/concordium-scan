@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Payday;
+﻿using Application.Api.GraphQL.Payday;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

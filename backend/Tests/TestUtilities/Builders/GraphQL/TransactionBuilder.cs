@@ -1,11 +1,10 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Transactions;
-using ConcordiumSdk.Types;
+﻿using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
-public class TransactionBuilder
+public class @TransactionBuilder
 {
     private long _id = 1;
     private string _transactionHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b";

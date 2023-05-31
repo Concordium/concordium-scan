@@ -1,8 +1,7 @@
 using Application.Api.GraphQL.Import;
 using Application.Import;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
@@ -33,7 +32,7 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TestFirstBlockAfterPaydayBakerAddition()
     {
-        var address = new AccountAddress("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
+        var address = AccountAddress.From("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
         var result = await _target.HandleBakerUpdates(new BlockDataPayload(
             new BlockInfo() {
             },
@@ -43,7 +42,7 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
                 TransactionSummaries = new TransactionSummary[] {
                     new TransactionSummary(
                         address,
-                        new TransactionHash("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"),
+                        TransactionHash.From("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"),
                         CcdAmount.Zero, 0,
                         TransactionType.Get(AccountTransactionType.ConfigureBaker),
                         new TransactionSuccessResult() {

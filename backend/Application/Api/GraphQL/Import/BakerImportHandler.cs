@@ -4,9 +4,9 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Application.Import;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using CommissionRates = Application.Api.GraphQL.Bakers.CommissionRates;
@@ -151,7 +151,7 @@ public class BakerImportHandler
             },
             PaydayStatus = new CurrentPaydayStatus()
             {
-                BakerStake = accountBaker.StakedAmount.MicroCcdValue,
+                BakerStake = accountBaker.StakedAmount.Value,
                 DelegatedStake = 0
             }
         };
@@ -173,16 +173,16 @@ public class BakerImportHandler
             .ToArray();
 
         var txEvents = allTransactionEvents.Where(x => x
-            is ConcordiumSdk.NodeApi.Types.BakerAdded
-            or ConcordiumSdk.NodeApi.Types.BakerRemoved
-            or ConcordiumSdk.NodeApi.Types.BakerStakeIncreased
-            or ConcordiumSdk.NodeApi.Types.BakerStakeDecreased
-            or ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings
-            or ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus
-            or ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL
-            or ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission
-            or ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission
-            or ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission);
+            is BakerAdded
+            or BakerRemoved
+            or BakerStakeIncreased
+            or BakerStakeDecreased
+            or BakerSetRestakeEarnings
+            or BakerSetOpenStatus
+            or BakerSetMetadataURL
+            or BakerSetTransactionFeeCommission
+            or BakerSetFinalizationRewardCommission
+            or BakerSetBakingRewardCommission);
 
         await UpdateBakersFromTransactionEvents(txEvents, pendingChangeStrategy, importState, resultBuilder);
 
@@ -218,9 +218,9 @@ public class BakerImportHandler
         {
             if (pool.PaydayStatus == null) 
                 pool.PaydayStatus = new CurrentPaydayStatus();
-            pool.PaydayStatus.BakerStake = source.BakerEquityCapital.MicroCcdValue;
-            pool.PaydayStatus.DelegatedStake = source.DelegatedCapital.MicroCcdValue;
-            pool.PaydayStatus.EffectiveStake = source.EffectiveStake.MicroCcdValue;
+            pool.PaydayStatus.BakerStake = source.BakerEquityCapital.Value;
+            pool.PaydayStatus.DelegatedStake = source.DelegatedCapital.Value;
+            pool.PaydayStatus.EffectiveStake = source.EffectiveStake.Value;
             pool.PaydayStatus.LotteryPower = source.LotteryPower;
         }
         else
@@ -254,10 +254,10 @@ public class BakerImportHandler
                         FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission,
                         BakingCommission = source.PoolInfo.CommissionRates.BakingCommission
                     },
-                    DelegatedStake = source.DelegatedCapital.MicroCcdValue,
+                    DelegatedStake = source.DelegatedCapital.Value,
                     DelegatorCount = 0,
-                    DelegatedStakeCap = source.DelegatedCapitalCap.MicroCcdValue,
-                    TotalStake = source.BakerEquityCapital.MicroCcdValue + source.DelegatedCapital.MicroCcdValue
+                    DelegatedStakeCap = source.DelegatedCapitalCap.Value,
+                    TotalStake = source.BakerEquityCapital.Value + source.DelegatedCapital.Value
                 };
                 ApplyPaydayStatus(pool, source.CurrentPaydayStatus);
                 
@@ -313,7 +313,7 @@ public class BakerImportHandler
 
             importState.LastGenesisIndex = blockInfo.GenesisIndex;
 
-            var networkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(new BlockHash(importState.GenesisBlockHash));
+            var networkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(Concordium.Sdk.Types.BlockHash.From(importState.GenesisBlockHash));
             var isMainnet = networkId == ConcordiumNetworkId.Mainnet;
             if (isMainnet && blockInfo.GenesisIndex == 2 && blockInfo.BlockHeight == 1848787)
             {
@@ -337,7 +337,7 @@ public class BakerImportHandler
     {
         foreach (var txEvent in transactionEvents)
         {
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerAdded bakerAdded)
+            if (txEvent is BakerAdded bakerAdded)
             {
                 var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool() : null;
                 
@@ -346,36 +346,36 @@ public class BakerImportHandler
                     src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings, pool),
                     (src, dst) =>
                     {
-                        dst.State = new ActiveBakerState(src.Stake.MicroCcdValue, src.RestakeEarnings, pool, null);
+                        dst.State = new ActiveBakerState(src.Stake.Value, src.RestakeEarnings, pool, null);
                     });
 
                 resultBuilder.IncrementBakersAdded();
             }
 
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerRemoved bakerRemoved)
+            if (txEvent is BakerRemoved bakerRemoved)
             {
                 var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(bakerRemoved);
                 UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
             }
 
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeDecreased stakeDecreased)
+            if (txEvent is BakerStakeDecreased stakeDecreased)
             {
                 var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(stakeDecreased);
                 UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
             }
 
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerStakeIncreased stakeIncreased)
+            if (txEvent is BakerStakeIncreased stakeIncreased)
             {
                 await _writer.UpdateBaker(stakeIncreased,
                     src => src.BakerId,
                     (src, dst) =>
                     {
                         var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
-                        activeState.StakedAmount = src.NewStake.MicroCcdValue;
+                        activeState.StakedAmount = src.NewStake.Value;
                     });
             }
 
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings restakeEarnings)
+            if (txEvent is BakerSetRestakeEarnings restakeEarnings)
             {
                 await _writer.UpdateBaker(restakeEarnings,
                     src => src.BakerId,
@@ -386,7 +386,7 @@ public class BakerImportHandler
                     });
             }
             
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus openStatus)
+            if (txEvent is BakerSetOpenStatus openStatus)
             {
                 await _writer.UpdateBaker(openStatus,
                     src => src.BakerId,
@@ -396,11 +396,11 @@ public class BakerImportHandler
                         pool.OpenStatus = src.OpenStatus.MapToGraphQlEnum();
                     });
 
-                if (openStatus.OpenStatus == ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForAll)
+                if (openStatus.OpenStatus == Concordium.Sdk.Types.New.BakerPoolOpenStatus.ClosedForAll)
                     resultBuilder.AddBakerClosedForAll((long)openStatus.BakerId);
             }
             
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL metadataUrl)
+            if (txEvent is BakerSetMetadataURL metadataUrl)
             {
                 await _writer.UpdateBaker(metadataUrl,
                     src => src.BakerId,
@@ -411,7 +411,7 @@ public class BakerImportHandler
                     });
             }
             
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission transactionFeeCommission)
+            if (txEvent is BakerSetTransactionFeeCommission transactionFeeCommission)
             {
                 await _writer.UpdateBaker(transactionFeeCommission,
                     src => src.BakerId,
@@ -422,7 +422,7 @@ public class BakerImportHandler
                     });
             }
             
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission finalizationRewardCommission)
+            if (txEvent is BakerSetFinalizationRewardCommission finalizationRewardCommission)
             {
                 await _writer.UpdateBaker(finalizationRewardCommission,
                     src => src.BakerId,
@@ -433,7 +433,7 @@ public class BakerImportHandler
                     });
             }
             
-            if (txEvent is ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission bakingRewardCommission)
+            if (txEvent is BakerSetBakingRewardCommission bakingRewardCommission)
             {
                 await _writer.UpdateBaker(bakingRewardCommission,
                     src => src.BakerId,
@@ -489,7 +489,7 @@ public class BakerImportHandler
         return new Baker
         {
             Id = (long)bakerId,
-            State = new ActiveBakerState(stakedAmount.MicroCcdValue, restakeEarnings, pool, null)
+            State = new ActiveBakerState(stakedAmount.Value, restakeEarnings, pool, null)
         };
     }
 

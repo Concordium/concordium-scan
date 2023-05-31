@@ -1,5 +1,5 @@
-﻿using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Application.NodeApi;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -10,12 +10,12 @@ public class BakingRewardsSpecialEventBuilder
         new()
         {
             Amount = CcdAmount.FromMicroCcd(122211),
-            Address = new AccountAddress("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi")
+            Address = AccountAddress.From("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi")
         },
         new()
         {
             Amount = CcdAmount.FromMicroCcd(324111123),
-            Address = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")
+            Address = AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")
         }
     };
 

@@ -1,5 +1,6 @@
 using System.IO;
 using System.Numerics;
+using Concordium.Sdk.Types;
 using NBitcoin.DataEncoders;
 
 namespace Application.Api.GraphQL.Import.EventLogs
@@ -57,7 +58,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 case (int)CisEventAddressType.AccountAddress:
                     return new CisEventAddressAccount()
                     {
-                        Address = new ConcordiumSdk.Types.AccountAddress(st.ReadBytes(32))
+                        Address = AccountAddress.From(st.ReadBytes(32))
                     };
                 case (int)CisEventAddressType.ContractAddress:
                     return new CisEventAddressContract()

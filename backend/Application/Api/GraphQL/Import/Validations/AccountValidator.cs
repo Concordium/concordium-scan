@@ -4,22 +4,21 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
-using AccountAddress = ConcordiumSdk.Types.AccountAddress;
 
 namespace Application.Api.GraphQL.Import.Validations;
 
 public class AccountValidator : IImportValidator
 {
-    private readonly GrpcNodeClient _nodeClient;
+    private readonly ConcordiumClient _nodeClient;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ILogger _logger;
 
-    public AccountValidator(GrpcNodeClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public AccountValidator(ConcordiumClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _nodeClient = nodeClient;
         _dbContextFactory = dbContextFactory;
@@ -38,12 +37,12 @@ public class AccountValidator : IImportValidator
 
     private async Task InternalValidate(Block block, SingleAccountValidationInfo? singleAccountValidationInfo = null)
     {
-        var blockHash = new BlockHash(block.BlockHash);
+        var blockHash = BlockHash.From(block.BlockHash);
         var blockHeight = (ulong)block.BlockHeight;
 
-        var accountAddresses = singleAccountValidationInfo == null 
-            ? await _nodeClient.GetAccountListAsync(blockHash) 
-            : new [] { new AccountAddress(singleAccountValidationInfo.CanonicalAccountAddress) };
+        var accountAddresses = singleAccountValidationInfo == null
+            ? await _nodeClient.GetAccountListAsync(blockHash).ToArrayAsync()
+            : new [] { Concordium.Sdk.Types.AccountAddress.From(singleAccountValidationInfo.CanonicalAccountAddress) };
 
         var nodeAccountInfos = new List<AccountInfo>();
         var nodeAccountBakers = new List<AccountBaker>();
@@ -75,11 +74,11 @@ public class AccountValidator : IImportValidator
     {
         var mappedNodeAccounts = nodeAccountInfos.Select(x => new
             {
-                AccountAddress = x.AccountAddress.AsString,
-                AccountBalance = x.AccountAmount.MicroCcdValue,
+                AccountAddress = x.AccountAddress.ToString(),
+                AccountBalance = x.AccountAmount.Value,
                 Delegation = x.AccountDelegation == null ? null : new
                 {
-                    StakedAmount = x.AccountDelegation.StakedAmount.MicroCcdValue,
+                    StakedAmount = x.AccountDelegation.StakedAmount.Value,
                     RestakeEarnings = x.AccountDelegation.RestakeEarnings,
                     PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange),
                     Delegation = Format(x.AccountDelegation.DelegationTarget)
@@ -153,12 +152,12 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private string Format(ConcordiumSdk.NodeApi.Types.DelegationTarget value)
+    private string Format(Concordium.Sdk.Types.New.DelegationTarget value)
     {
         return value switch
         {
-            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => "passive",
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => $"baker {x.BakerId}",
+            Concordium.Sdk.Types.New.PassiveDelegationTarget => "passive",
+            Concordium.Sdk.Types.New.BakerDelegationTarget x => $"baker {x.BakerId}",
             _ => throw new NotImplementedException()
         };
     }
@@ -168,7 +167,7 @@ public class AccountValidator : IImportValidator
         return pendingChange switch
         {
             AccountDelegationRemovePending x => $"Remove@{x.EffectiveTime:O}",
-            AccountDelegationReduceStakePending x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStake.MicroCcdValue}",
+            AccountDelegationReduceStakePending x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStake.Value}",
             _ => throw new NotImplementedException()
         };
     }
@@ -186,20 +185,20 @@ public class AccountValidator : IImportValidator
     private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
     {
         var blockHeight = (ulong)block.BlockHeight;
-        var blockHash = new BlockHash(block.BlockHash);
+        var blockHash = BlockHash.From(block.BlockHash);
 
         var poolStatuses = new List<BakerPoolStatus>();
 
         var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
         if (nodeSwVersion.Major >= 4)
         {
-            foreach (var chunk in Chunk(nodeAccountBakers.ToArray(), 10))
-            {
-                var chunkResult = await Task.WhenAll(chunk
-                    .Select(x => _nodeClient.GetPoolStatusForBaker(x.BakerId, blockHash)));
-
-                poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
-            }
+        foreach (var chunk in Chunk(nodeAccountBakers, 10))
+        {
+            var chunkResult = await Task.WhenAll(chunk
+                .Select(x => _nodeClient.GetPoolStatusForBakerAsync(x.BakerId, blockHash)));
+        
+            poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
+        }
         }
 
         var nodeBakers = nodeAccountBakers
@@ -212,7 +211,7 @@ public class AccountValidator : IImportValidator
                 return new
                 {
                     Id = x.BakerId,
-                    StakedAmount = x.StakedAmount.MicroCcdValue,
+                    StakedAmount = x.StakedAmount.Value,
                     RestakeEarnings = x.RestakeEarnings,
                     Pool = x.BakerPoolInfo == null ? null : new
                         {
@@ -221,13 +220,13 @@ public class AccountValidator : IImportValidator
                             TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
                             FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
                             BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
-                            DelegatedStake = bakerPoolStatus.DelegatedCapital.MicroCcdValue,
-                            DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap.MicroCcdValue,
+                            DelegatedStake = bakerPoolStatus.DelegatedCapital.Value,
+                            DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap.Value,
                             PaydayStatus = bakerPoolStatus.CurrentPaydayStatus == null ? null : new
                             {
-                                BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.MicroCcdValue,
-                                DelegatedStake = bakerPoolStatus.CurrentPaydayStatus.DelegatedCapital.MicroCcdValue,
-                                EffectiveStake = bakerPoolStatus.CurrentPaydayStatus.EffectiveStake.MicroCcdValue,
+                                BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.Value,
+                                DelegatedStake = bakerPoolStatus.CurrentPaydayStatus.DelegatedCapital.Value,
+                                EffectiveStake = bakerPoolStatus.CurrentPaydayStatus.EffectiveStake.Value,
                                 LotteryPower = bakerPoolStatus.CurrentPaydayStatus.LotteryPower
                             }
                         }
@@ -350,10 +349,10 @@ public class AccountValidator : IImportValidator
         await conn.CloseAsync();
     }
 
-    private IEnumerable<IEnumerable<T>> Chunk<T>(T[] list, int batchSize)
+    private IEnumerable<IEnumerable<T>> Chunk<T>(IReadOnlyCollection<T> list, int batchSize)
     {
-        int total = 0;
-        while (total < list.Length)
+        var total = 0;
+        while (total < list.Count)
         {
             yield return list.Skip(total).Take(batchSize);
             total += batchSize;

@@ -1,6 +1,5 @@
-﻿using System.Text.Json;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -9,8 +8,8 @@ public class TransactionSummaryBuilder
     private TransactionType _type = TransactionType.Get(AccountTransactionType.SimpleTransfer);
     private int _index = 0;
     private TransactionResult _result = new TransactionSuccessResultBuilder().Build();
-    private AccountAddress? _sender = new("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-    private TransactionHash _transactionHash = new("42B83D2BE10B86BD6DF5C102C4451439422471BC4443984912A832052FF7485B");
+    private AccountAddress? _sender = AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+    private TransactionHash _transactionHash = TransactionHash.From("42B83D2BE10B86BD6DF5C102C4451439422471BC4443984912A832052FF7485B");
     private CcdAmount _cost = CcdAmount.FromCcd(10);
     private int _energyCost = 100;
 

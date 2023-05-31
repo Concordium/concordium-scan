@@ -2,7 +2,8 @@
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -84,7 +85,7 @@ public class ChainParametersWriter
         };
     }
 
-    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParametersV0 input, AccountAddress foundationAccountAddress, int id = default)
+    private ChainParameters MapChainParameters(Concordium.Sdk.Types.New.ChainParametersV0 input, AccountAddress foundationAccountAddress, int id = default)
     {
         var mintDistribution = input.RewardParameters.MintDistribution;
         var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
@@ -123,11 +124,11 @@ public class ChainParametersWriter
             RewardParameters = rewardParameters,
             FoundationAccountId = (long)input.FoundationAccountIndex,
             FoundationAccountAddress = foundationAccountAddress,
-            MinimumThresholdForBaking = input.MinimumThresholdForBaking.MicroCcdValue
+            MinimumThresholdForBaking = input.MinimumThresholdForBaking.Value
         };
     }
     
-    private ChainParameters MapChainParameters(ConcordiumSdk.NodeApi.Types.ChainParametersV1 input, AccountAddress foundationAccountAddress, int id = default)
+    private ChainParameters MapChainParameters(Concordium.Sdk.Types.New.ChainParametersV1 input, AccountAddress foundationAccountAddress, int id = default)
     {
         var mintDistribution = input.RewardParameters.MintDistribution;
         var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
@@ -174,7 +175,7 @@ public class ChainParametersWriter
             FinalizationCommissionRange = MapCommissionRange(input.FinalizationCommissionRange),
             BakingCommissionRange = MapCommissionRange(input.BakingCommissionRange),
             TransactionCommissionRange = MapCommissionRange(input.TransactionCommissionRange),
-            MinimumEquityCapital = input.MinimumEquityCapital.MicroCcdValue,
+            MinimumEquityCapital = input.MinimumEquityCapital.Value,
             CapitalBound = input.CapitalBound,
             LeverageBound = new()
             {
@@ -189,7 +190,7 @@ public class ChainParametersWriter
         return new () { Min = src.Min, Max = src.Max};
     }
 
-    private static ExchangeRate MapExchangeRate(ConcordiumSdk.NodeApi.Types.ExchangeRate input)
+    private static ExchangeRate MapExchangeRate(Concordium.Sdk.Types.New.ExchangeRate input)
     {
         return new ExchangeRate
         {

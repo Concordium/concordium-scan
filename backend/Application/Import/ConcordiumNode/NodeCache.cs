@@ -3,7 +3,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Database;
-using ConcordiumSdk.NodeApi;
+using Application.NodeApi;
 using Microsoft.Extensions.Hosting;
 
 namespace Application.Import.ConcordiumNode;

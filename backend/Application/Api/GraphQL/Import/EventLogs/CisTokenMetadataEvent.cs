@@ -15,7 +15,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public string MetadataUrl { get; set; }
         public string? HashHex { get; set; }
 
-        public static CisTokenMetadataEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st)
+        public static CisTokenMetadataEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
         {
             return new CisTokenMetadataEvent()
             {

@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
 using FluentAssertions;
 using Tests.TestUtilities.Stubs;
 
@@ -35,7 +35,7 @@ public class BlockChangeCalculatorTest
             new TimestampedAmount(new DateTimeOffset(2022, 6, 5, 0, 0, 0, TimeSpan.Zero), 2000));
 
         var slotTime = DateTimeOffset.ParseExact(slotTimeString, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal);
-        var result = _target.CalculateTotalAmountUnlocked(slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.AsString);
+        var result = _target.CalculateTotalAmountUnlocked(slotTime, ConcordiumNetworkId.Mainnet.GenesisBlockHash.ToString());
         result.Should().Be(expectedResult);
     }
 }

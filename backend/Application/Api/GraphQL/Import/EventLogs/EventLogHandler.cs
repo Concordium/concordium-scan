@@ -1,5 +1,5 @@
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -20,7 +20,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public List<CisAccountUpdate> HandleLogs(TransactionPair[] transactions)
         {
             var events = transactions
-                .Where(t => t.Source.Type.Kind == ConcordiumSdk.Types.BlockItemKind.AccountTransactionKind)
+                .Where(t => t.Source.Type.Kind == BlockItemKind.AccountTransactionKind)
                 .Where(t => t.Source.Result is TransactionSuccessResult && t != null)
                 .Select(t => new { Id = t.Target.Id, Result = t.Source.Result as TransactionSuccessResult })
                 .SelectMany(t => t.Result?.Events?.Select(e => new { TxnId = t.Id, Event = e }))
@@ -38,7 +38,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                             return new
                             {
                                 e.TxnId,
-                                Address = new ConcordiumSdk.Types.ContractAddress(0, 0),
+                                Address = Concordium.Sdk.Types.ContractAddress.From(0, 0),
                                 Events = new BinaryData[0]
                             };
                     }
@@ -196,7 +196,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns></returns>
         private CisEvent? ParseCisEvent(
             long txnId,
-            ConcordiumSdk.Types.ContractAddress address,
+            Concordium.Sdk.Types.ContractAddress address,
             byte[] bytes)
         {
             if (!CisEvent.IsCisEvent(bytes))

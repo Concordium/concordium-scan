@@ -9,6 +9,10 @@
         <EmbeddedResource Include="SqlScriptsNodeCache/*.sql" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+    </ItemGroup>
+
     <!--
     Hack to ensure that an added or removed .sql file triggers a compile (otherwise, only modified files are considered when MSBuild creates
     its compile cache).

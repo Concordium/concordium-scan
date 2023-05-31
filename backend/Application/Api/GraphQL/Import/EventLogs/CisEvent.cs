@@ -1,6 +1,4 @@
 using System.IO;
-using System.Numerics;
-using NBitcoin.DataEncoders;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -48,7 +46,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <param name="address">Contract Address emitting the event.</param>
         /// <param name="cisEvent">Parsed Cis Event.</param>
         /// <returns></returns>
-        public static bool TryParse(byte[] eventBytes, ConcordiumSdk.Types.ContractAddress address, out CisEvent cisEvent)
+        public static bool TryParse(byte[] eventBytes, Concordium.Sdk.Types.ContractAddress address, out CisEvent cisEvent)
         {
             if (!IsCisEvent(eventBytes))
             {
@@ -92,7 +90,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <param name="address">Contract emitting the event.</param>
         /// <param name="eventBytes">Event Bytes</param>
         /// <returns>Parsed <see cref="CisEvent"/></returns>
-        private static CisEvent Parse(ConcordiumSdk.Types.ContractAddress address, byte[] eventBytes)
+        private static CisEvent Parse(Concordium.Sdk.Types.ContractAddress address, byte[] eventBytes)
         {
             var st = new BinaryReader(new MemoryStream(eventBytes));
             var eventType = st.ReadByte();

@@ -1,12 +1,12 @@
-﻿using System.Data;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
-using ConcordiumSdk.NodeApi.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using Npgsql;
 using PaydayPoolRewardSpecialEvent = Application.Api.GraphQL.Blocks.PaydayPoolRewardSpecialEvent;
@@ -100,7 +100,7 @@ public class MetricsWriter
             CumulativeTransactionCount = cumulativeTransactionCount + ix + 1,
             Time = blockInfo.BlockSlotTime,
             TransactionType = TransactionTypeUnion.CreateFrom(txs.Type).ToCompactString(),
-            MicroCcdCost = Convert.ToInt64(txs.Cost.MicroCcdValue),
+            MicroCcdCost = Convert.ToInt64(txs.Cost.Value),
             Success = txs.Result is TransactionSuccessResult
         }).ToArray();
         

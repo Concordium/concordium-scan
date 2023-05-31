@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;

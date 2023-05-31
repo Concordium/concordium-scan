@@ -1,90 +1,77 @@
 ﻿using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Grpc.V2;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
-using AccountAddress = ConcordiumSdk.Types.AccountAddress;
-using AccountCreated = ConcordiumSdk.NodeApi.Types.AccountCreated;
-using AlreadyABaker = ConcordiumSdk.NodeApi.Types.AlreadyABaker;
-using AmountAddedByDecryption = ConcordiumSdk.NodeApi.Types.AmountAddedByDecryption;
-using AmountTooLarge = ConcordiumSdk.NodeApi.Types.AmountTooLarge;
-using BakerAdded = ConcordiumSdk.NodeApi.Types.BakerAdded;
-using BakerInCooldown = ConcordiumSdk.NodeApi.Types.BakerInCooldown;
-using BakerKeysUpdated = ConcordiumSdk.NodeApi.Types.BakerKeysUpdated;
-using BakerRemoved = ConcordiumSdk.NodeApi.Types.BakerRemoved;
-using BakerSetBakingRewardCommission = ConcordiumSdk.NodeApi.Types.BakerSetBakingRewardCommission;
-using BakerSetFinalizationRewardCommission = ConcordiumSdk.NodeApi.Types.BakerSetFinalizationRewardCommission;
-using BakerSetMetadataURL = ConcordiumSdk.NodeApi.Types.BakerSetMetadataURL;
-using BakerSetOpenStatus = ConcordiumSdk.NodeApi.Types.BakerSetOpenStatus;
-using BakerSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.BakerSetRestakeEarnings;
-using BakerSetTransactionFeeCommission = ConcordiumSdk.NodeApi.Types.BakerSetTransactionFeeCommission;
-using BakerStakeDecreased = ConcordiumSdk.NodeApi.Types.BakerStakeDecreased;
-using BakerStakeIncreased = ConcordiumSdk.NodeApi.Types.BakerStakeIncreased;
-using ContractAddress = ConcordiumSdk.Types.ContractAddress;
-using ContractInitialized = ConcordiumSdk.NodeApi.Types.ContractInitialized;
-using CredentialDeployed = ConcordiumSdk.NodeApi.Types.CredentialDeployed;
-using CredentialHolderDidNotSign = ConcordiumSdk.NodeApi.Types.CredentialHolderDidNotSign;
-using CredentialKeysUpdated = ConcordiumSdk.NodeApi.Types.CredentialKeysUpdated;
-using CredentialsUpdated = ConcordiumSdk.NodeApi.Types.CredentialsUpdated;
-using DataRegistered = ConcordiumSdk.NodeApi.Types.DataRegistered;
-using DelegationAdded = ConcordiumSdk.NodeApi.Types.DelegationAdded;
-using DelegationRemoved = ConcordiumSdk.NodeApi.Types.DelegationRemoved;
-using DelegationSetDelegationTarget = ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget;
-using DelegationSetRestakeEarnings = ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings;
-using DelegationStakeDecreased = ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased;
-using DelegationStakeIncreased = ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased;
-using DuplicateAggregationKey = ConcordiumSdk.NodeApi.Types.DuplicateAggregationKey;
-using DuplicateCredIds = ConcordiumSdk.NodeApi.Types.DuplicateCredIds;
-using EncryptedAmountSelfTransfer = ConcordiumSdk.NodeApi.Types.EncryptedAmountSelfTransfer;
-using EncryptedAmountsRemoved = ConcordiumSdk.NodeApi.Types.EncryptedAmountsRemoved;
-using EncryptedSelfAmountAdded = ConcordiumSdk.NodeApi.Types.EncryptedSelfAmountAdded;
-using ExchangeRate = ConcordiumSdk.NodeApi.Types.ExchangeRate;
-using FirstScheduledReleaseExpired = ConcordiumSdk.NodeApi.Types.FirstScheduledReleaseExpired;
-using InsufficientBalanceForBakerStake = ConcordiumSdk.NodeApi.Types.InsufficientBalanceForBakerStake;
-using InvalidAccountReference = ConcordiumSdk.NodeApi.Types.InvalidAccountReference;
-using InvalidAccountThreshold = ConcordiumSdk.NodeApi.Types.InvalidAccountThreshold;
-using InvalidContractAddress = ConcordiumSdk.NodeApi.Types.InvalidContractAddress;
-using InvalidCredentialKeySignThreshold = ConcordiumSdk.NodeApi.Types.InvalidCredentialKeySignThreshold;
-using InvalidCredentials = ConcordiumSdk.NodeApi.Types.InvalidCredentials;
-using InvalidEncryptedAmountTransferProof = ConcordiumSdk.NodeApi.Types.InvalidEncryptedAmountTransferProof;
-using InvalidIndexOnEncryptedTransfer = ConcordiumSdk.NodeApi.Types.InvalidIndexOnEncryptedTransfer;
-using InvalidInitMethod = ConcordiumSdk.NodeApi.Types.InvalidInitMethod;
-using InvalidModuleReference = ConcordiumSdk.NodeApi.Types.InvalidModuleReference;
-using InvalidProof = ConcordiumSdk.NodeApi.Types.InvalidProof;
-using InvalidReceiveMethod = ConcordiumSdk.NodeApi.Types.InvalidReceiveMethod;
-using InvalidTransferToPublicProof = ConcordiumSdk.NodeApi.Types.InvalidTransferToPublicProof;
-using KeyIndexAlreadyInUse = ConcordiumSdk.NodeApi.Types.KeyIndexAlreadyInUse;
-using ModuleHashAlreadyExists = ConcordiumSdk.NodeApi.Types.ModuleHashAlreadyExists;
-using ModuleNotWf = ConcordiumSdk.NodeApi.Types.ModuleNotWf;
-using NewEncryptedAmount = ConcordiumSdk.NodeApi.Types.NewEncryptedAmount;
-using NonExistentCredentialId = ConcordiumSdk.NodeApi.Types.NonExistentCredentialId;
-using NonExistentCredIds = ConcordiumSdk.NodeApi.Types.NonExistentCredIds;
-using NonExistentRewardAccount = ConcordiumSdk.NodeApi.Types.NonExistentRewardAccount;
-using NonIncreasingSchedule = ConcordiumSdk.NodeApi.Types.NonIncreasingSchedule;
-using NotABaker = ConcordiumSdk.NodeApi.Types.NotABaker;
-using NotAllowedMultipleCredentials = ConcordiumSdk.NodeApi.Types.NotAllowedMultipleCredentials;
-using NotAllowedToHandleEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToHandleEncrypted;
-using NotAllowedToReceiveEncrypted = ConcordiumSdk.NodeApi.Types.NotAllowedToReceiveEncrypted;
-using OutOfEnergy = ConcordiumSdk.NodeApi.Types.OutOfEnergy;
-using PassiveDelegationTarget = ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget;
-using RejectedInit = ConcordiumSdk.NodeApi.Types.RejectedInit;
-using RejectedReceive = ConcordiumSdk.NodeApi.Types.RejectedReceive;
-using RemoveFirstCredential = ConcordiumSdk.NodeApi.Types.RemoveFirstCredential;
-using RuntimeFailure = ConcordiumSdk.NodeApi.Types.RuntimeFailure;
-using ScheduledSelfTransfer = ConcordiumSdk.NodeApi.Types.ScheduledSelfTransfer;
-using SerializationFailure = ConcordiumSdk.NodeApi.Types.SerializationFailure;
-using StakeUnderMinimumThresholdForBaking = ConcordiumSdk.NodeApi.Types.StakeUnderMinimumThresholdForBaking;
-using TimestampedAmount = ConcordiumSdk.NodeApi.Types.TimestampedAmount;
-using TransactionRejectReason = ConcordiumSdk.NodeApi.Types.TransactionRejectReason;
-using TransferMemo = ConcordiumSdk.NodeApi.Types.TransferMemo;
-using Transferred = ConcordiumSdk.NodeApi.Types.Transferred;
-using TransferredWithSchedule = ConcordiumSdk.NodeApi.Types.TransferredWithSchedule;
-using ZeroScheduledAmount = ConcordiumSdk.NodeApi.Types.ZeroScheduledAmount;
+using AccountAddress = Concordium.Sdk.Types.AccountAddress;
+using AccountTransaction = Application.Api.GraphQL.Transactions.AccountTransaction;
+using AlreadyABaker = Application.Api.GraphQL.Transactions.AlreadyABaker;
+using AmountTooLarge = Application.Api.GraphQL.Transactions.AmountTooLarge;
+using BakerInCooldown = Application.Api.GraphQL.Transactions.BakerInCooldown;
+using BakerSetBakingRewardCommission = Application.Api.GraphQL.Transactions.BakerSetBakingRewardCommission;
+using BakerSetFinalizationRewardCommission = Application.Api.GraphQL.Transactions.BakerSetFinalizationRewardCommission;
+using BakerSetMetadataURL = Application.Api.GraphQL.Transactions.BakerSetMetadataURL;
+using BakerSetOpenStatus = Application.Api.GraphQL.Transactions.BakerSetOpenStatus;
+using BakerSetTransactionFeeCommission = Application.Api.GraphQL.Transactions.BakerSetTransactionFeeCommission;
+using ContractAddress = Concordium.Sdk.Types.ContractAddress;
+using CredentialHolderDidNotSign = Application.Api.GraphQL.Transactions.CredentialHolderDidNotSign;
+using DataRegistered = Application.Api.GraphQL.Transactions.DataRegistered;
+using DelegationAdded = Application.Api.GraphQL.Transactions.DelegationAdded;
+using DelegationRemoved = Application.Api.GraphQL.Transactions.DelegationRemoved;
+using DelegationSetDelegationTarget = Application.Api.GraphQL.Transactions.DelegationSetDelegationTarget;
+using DelegationSetRestakeEarnings = Application.Api.GraphQL.Transactions.DelegationSetRestakeEarnings;
+using DelegationStakeDecreased = Application.Api.GraphQL.Transactions.DelegationStakeDecreased;
+using DelegationStakeIncreased = Application.Api.GraphQL.Transactions.DelegationStakeIncreased;
+using DuplicateAggregationKey = Application.Api.GraphQL.Transactions.DuplicateAggregationKey;
+using DuplicateCredIds = Application.Api.GraphQL.Transactions.DuplicateCredIds;
+using EncryptedAmountSelfTransfer = Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer;
+using ExchangeRate = Concordium.Sdk.Types.New.ExchangeRate;
+using FirstScheduledReleaseExpired = Application.Api.GraphQL.Transactions.FirstScheduledReleaseExpired;
+using InsufficientBalanceForBakerStake = Application.Api.GraphQL.Transactions.InsufficientBalanceForBakerStake;
+using InvalidAccountReference = Application.Api.GraphQL.Transactions.InvalidAccountReference;
+using InvalidAccountThreshold = Application.Api.GraphQL.Transactions.InvalidAccountThreshold;
+using InvalidContractAddress = Application.Api.GraphQL.Transactions.InvalidContractAddress;
+using InvalidCredentialKeySignThreshold = Application.Api.GraphQL.Transactions.InvalidCredentialKeySignThreshold;
+using InvalidCredentials = Application.Api.GraphQL.Transactions.InvalidCredentials;
+using InvalidEncryptedAmountTransferProof = Application.Api.GraphQL.Transactions.InvalidEncryptedAmountTransferProof;
+using InvalidIndexOnEncryptedTransfer = Application.Api.GraphQL.Transactions.InvalidIndexOnEncryptedTransfer;
+using InvalidInitMethod = Application.Api.GraphQL.Transactions.InvalidInitMethod;
+using InvalidModuleReference = Application.Api.GraphQL.Transactions.InvalidModuleReference;
+using InvalidProof = Application.Api.GraphQL.Transactions.InvalidProof;
+using InvalidReceiveMethod = Application.Api.GraphQL.Transactions.InvalidReceiveMethod;
+using InvalidTransferToPublicProof = Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof;
+using KeyIndexAlreadyInUse = Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse;
+using LeverageFactor = Concordium.Sdk.Types.New.LeverageFactor;
+using Memo = Concordium.Sdk.Types.New.Memo;
+using ModuleHashAlreadyExists = Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists;
+using ModuleNotWf = Application.Api.GraphQL.Transactions.ModuleNotWf;
+using NonExistentCredentialId = Application.Api.GraphQL.Transactions.NonExistentCredentialId;
+using NonExistentCredIds = Application.Api.GraphQL.Transactions.NonExistentCredIds;
+using NonIncreasingSchedule = Application.Api.GraphQL.Transactions.NonIncreasingSchedule;
+using NotABaker = Application.Api.GraphQL.Transactions.NotABaker;
+using NotAllowedMultipleCredentials = Application.Api.GraphQL.Transactions.NotAllowedMultipleCredentials;
+using NotAllowedToHandleEncrypted = Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted;
+using NotAllowedToReceiveEncrypted = Application.Api.GraphQL.Transactions.NotAllowedToReceiveEncrypted;
+using OutOfEnergy = Application.Api.GraphQL.Transactions.OutOfEnergy;
+using RegisteredData = Concordium.Sdk.Types.New.RegisteredData;
+using RejectedInit = Application.Api.GraphQL.Transactions.RejectedInit;
+using RejectedReceive = Application.Api.GraphQL.Transactions.RejectedReceive;
+using RemoveFirstCredential = Application.Api.GraphQL.Transactions.RemoveFirstCredential;
+using RuntimeFailure = Application.Api.GraphQL.Transactions.RuntimeFailure;
+using ScheduledSelfTransfer = Application.Api.GraphQL.Transactions.ScheduledSelfTransfer;
+using SerializationFailure = Application.Api.GraphQL.Transactions.SerializationFailure;
+using StakeUnderMinimumThresholdForBaking = Application.Api.GraphQL.Transactions.StakeUnderMinimumThresholdForBaking;
+using TransactionHash = Concordium.Sdk.Types.TransactionHash;
+using TransactionType = Concordium.Sdk.Types.New.TransactionType;
+using TransferMemo = Application.Api.GraphQL.Transactions.TransferMemo;
+using TransferredWithSchedule = Application.Api.GraphQL.Transactions.TransferredWithSchedule;
+using ZeroScheduledAmount = Application.Api.GraphQL.Transactions.ZeroScheduledAmount;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -112,8 +99,8 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithIndex(0)
-                .WithSender(new("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"))
-                .WithTransactionHash(new("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"))
+                .WithSender(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"))
+                .WithTransactionHash(TransactionHash.From("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"))
                 .WithCost(CcdAmount.FromMicroCcd(45872))
                 .WithEnergyCost(399)
                 .Build());
@@ -212,8 +199,8 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(
-                        new CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")),
-                        new AccountCreated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                        new Concordium.Sdk.Types.New.CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")),
+                        new Concordium.Sdk.Types.New.AccountCreated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -238,7 +225,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Transferred(CcdAmount.FromMicroCcd(458382), new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new ContractAddress(234, 32)))
+                    .WithEvents(new Concordium.Sdk.Types.New.Transferred(CcdAmount.FromMicroCcd(458382), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), ContractAddress.From(234, 32)))
                     .Build())
                 .Build());
         
@@ -256,7 +243,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new AccountCreated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.New.AccountCreated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -272,7 +259,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.New.CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -289,7 +276,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerAdded(CcdAmount.FromMicroCcd(12551), true, 17, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerAdded(CcdAmount.FromMicroCcd(12551), true, 17, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
                     .Build())
                 .Build());
         
@@ -311,7 +298,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerKeysUpdated(19, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerKeysUpdated(19, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
                     .Build())
                 .Build());
         
@@ -331,7 +318,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerRemoved(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
                     .Build())
                 .Build());
         
@@ -348,7 +335,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetRestakeEarnings(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetRestakeEarnings(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
                     .Build())
                 .Build());
         
@@ -366,7 +353,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerStakeDecreased(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerStakeDecreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
                     .Build())
                 .Build());
         
@@ -384,7 +371,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerStakeIncreased(23, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerStakeIncreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
                     .Build())
                 .Build());
         
@@ -402,7 +389,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new AmountAddedByDecryption(CcdAmount.FromMicroCcd(2362462), new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.New.AmountAddedByDecryption(CcdAmount.FromMicroCcd(2362462), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -419,7 +406,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new EncryptedAmountsRemoved(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074", 789))
+                    .WithEvents(new Concordium.Sdk.Types.New.EncryptedAmountsRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074", 789))
                     .Build())
                 .Build());
         
@@ -438,7 +425,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new EncryptedSelfAmountAdded(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", CcdAmount.FromMicroCcd(23446)))
+                    .WithEvents(new Concordium.Sdk.Types.New.EncryptedSelfAmountAdded(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", CcdAmount.FromMicroCcd(23446)))
                     .Build())
                 .Build());
         
@@ -456,7 +443,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new NewEncryptedAmount(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 155, "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2"))
+                    .WithEvents(new Concordium.Sdk.Types.New.NewEncryptedAmount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 155, "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2"))
                     .Build())
                 .Build());
         
@@ -474,7 +461,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
+                    .WithEvents(new Concordium.Sdk.Types.New.CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
                     .Build())
                 .Build());
         
@@ -490,7 +477,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new CredentialsUpdated(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
+                    .WithEvents(new Concordium.Sdk.Types.New.CredentialsUpdated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
                     .Build())
                 .Build());
         
@@ -509,7 +496,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new ContractInitialized(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), new ContractAddress(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
+                    .WithEvents(new Concordium.Sdk.Types.New.ContractInitialized(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), ContractAddress.From(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
                     .Build())
                 .Build());
         
@@ -529,7 +516,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new ModuleDeployed(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb")))
+                    .WithEvents(new ModuleDeployed(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb")))
                     .Build())
                 .Build());
         
@@ -546,8 +533,8 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new Updated(
-                        new ContractAddress(1423, 1),
-                        new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
+                        ContractAddress.From(1423, 1),
+                        AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
                         CcdAmount.FromMicroCcd(15674371),
                         BinaryData.FromHexString("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"), 
                         "inventory.transfer", 
@@ -577,7 +564,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new Interrupted(
-                        new ContractAddress(1423, 1),
+                        ContractAddress.From(1423, 1),
                         new []
                         {
                             BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
@@ -600,7 +587,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new Resumed(
-                        new ContractAddress(1423, 1),
+                        ContractAddress.From(1423, 1),
                         true))
                     .Build())
                 .Build());
@@ -620,9 +607,9 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
                     .WithEvents(new Upgraded(
-                        new ContractAddress(1423, 1),
-                        new ModuleRef("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"),
-                        new ModuleRef("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                        ContractAddress.From(1423, 1),
+                        new ModuleReference("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"),
+                        new ModuleReference("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
                     ))
                     .Build())
                 .Build());
@@ -643,9 +630,9 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new TransferredWithSchedule(
-                        new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 
-                        new AccountAddress("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"), 
+                    .WithEvents(new Concordium.Sdk.Types.New.TransferredWithSchedule(
+                        AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 
+                        AccountAddress.From("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"), 
                         new []
                         {
                             new TimestampedAmount(baseTimestamp.AddHours(10), CcdAmount.FromMicroCcd(1000)),
@@ -672,7 +659,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
+                    .WithEvents(new Concordium.Sdk.Types.New.DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
                     .Build())
                 .Build());
         
@@ -688,7 +675,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
+                    .WithEvents(new Concordium.Sdk.Types.New.TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
                     .Build())
                 .Build());
         
@@ -842,7 +829,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetOpenStatus(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetOpenStatus(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
                     .Build())
                 .Build());
         
@@ -860,7 +847,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetTransactionFeeCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetTransactionFeeCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
@@ -878,7 +865,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetMetadataURL(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetMetadataURL(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
                     .Build())
                 .Build());
         
@@ -896,7 +883,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetBakingRewardCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetBakingRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
@@ -914,7 +901,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new BakerSetFinalizationRewardCommission(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetFinalizationRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
@@ -932,7 +919,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationAdded(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationAdded(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -949,7 +936,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationRemoved(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationRemoved(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -966,7 +953,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationStakeIncreased(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationStakeIncreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
                     .Build())
                 .Build());
         
@@ -984,7 +971,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationStakeDecreased(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationStakeDecreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
                     .Build())
                 .Build());
         
@@ -1002,7 +989,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationSetRestakeEarnings(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationSetRestakeEarnings(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
                     .Build())
                 .Build());
         
@@ -1020,7 +1007,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new DelegationSetDelegationTarget(42, new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
+                    .WithEvents(new Concordium.Sdk.Types.New.DelegationSetDelegationTarget(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
                     .Build())
                 .Build());
         
@@ -1035,7 +1022,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ModuleNotWf()
     {
-        var inputReason = new ModuleNotWf();
+        var inputReason = new Application.NodeApi.ModuleNotWf();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleNotWf>();
@@ -1045,7 +1032,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ModuleHashAlreadyExists()
     {
-        var inputReason = new ModuleHashAlreadyExists(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
+        var inputReason = new Application.NodeApi.ModuleHashAlreadyExists(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists>();
@@ -1055,7 +1042,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidAccountReference()
     {
-        var inputReason = new InvalidAccountReference(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.InvalidAccountReference(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountReference>();
@@ -1065,7 +1052,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidInitMethod()
     {
-        var inputReason = new InvalidInitMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.init");
+        var inputReason = new Application.NodeApi.InvalidInitMethod(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.init");
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidInitMethod>();
@@ -1076,7 +1063,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidReceiveMethod()
     {
-        var inputReason = new InvalidReceiveMethod(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.receive");
+        var inputReason = new Application.NodeApi.InvalidReceiveMethod(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.receive");
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidReceiveMethod>();
@@ -1087,7 +1074,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidModuleReference()
     {
-        var inputReason = new InvalidModuleReference(new ModuleRef("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
+        var inputReason = new Application.NodeApi.InvalidModuleReference(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidModuleReference>();
@@ -1097,7 +1084,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidContractAddress()
     {
-        var inputReason = new InvalidContractAddress(new ContractAddress(187, 22));
+        var inputReason = new Application.NodeApi.InvalidContractAddress(ContractAddress.From(187, 22));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidContractAddress>();
@@ -1107,7 +1094,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_RuntimeFailure()
     {
-        var inputReason = new RuntimeFailure();
+        var inputReason = new Application.NodeApi.RuntimeFailure();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RuntimeFailure>();
@@ -1117,7 +1104,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AmountTooLarge()
     {
-        var inputReason = new AmountTooLarge(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34656));
+        var inputReason = new Application.NodeApi.AmountTooLarge(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34656));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AmountTooLarge>();
@@ -1128,7 +1115,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_SerializationFailure()
     {
-        var inputReason = new SerializationFailure();
+        var inputReason = new Application.NodeApi.SerializationFailure();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.SerializationFailure>();
@@ -1138,7 +1125,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_OutOfEnergy()
     {
-        var inputReason = new OutOfEnergy();
+        var inputReason = new Application.NodeApi.OutOfEnergy();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.OutOfEnergy>();
@@ -1148,7 +1135,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_RejectedInit()
     {
-        var inputReason = new RejectedInit(-48518);
+        var inputReason = new Application.NodeApi.RejectedInit(-48518);
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RejectedInit>();
@@ -1158,9 +1145,9 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_RejectedReceive()
     {
-        var inputReason = new RejectedReceive(
+        var inputReason = new Application.NodeApi.RejectedReceive(
             -48518,
-            new ContractAddress(187, 22),
+            ContractAddress.From(187, 22),
             "trader.dostuff",
             BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00"));
         
@@ -1176,7 +1163,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NonExistentRewardAccount()
     {
-        var inputReason = new NonExistentRewardAccount(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.NonExistentRewardAccount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         
         await WriteSingleRejectedTransaction(inputReason);
         
@@ -1187,7 +1174,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidProof()
     {
-        var inputReason = new InvalidProof();
+        var inputReason = new Application.NodeApi.InvalidProof();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidProof>();
@@ -1197,7 +1184,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AlreadyABaker()
     {
-        var inputReason = new AlreadyABaker(45);
+        var inputReason = new Application.NodeApi.AlreadyABaker(45);
         
         await WriteSingleRejectedTransaction(inputReason);
         
@@ -1208,7 +1195,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotABaker()
     {
-        var inputReason = new NotABaker(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.NotABaker(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         
         await WriteSingleRejectedTransaction(inputReason);
         
@@ -1219,7 +1206,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InsufficientBalanceForBakerStake()
     {
-        var inputReason = new InsufficientBalanceForBakerStake();
+        var inputReason = new Application.NodeApi.InsufficientBalanceForBakerStake();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForBakerStake>();
@@ -1229,7 +1216,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_StakeUnderMinimumThresholdForBaking()
     {
-        var inputReason = new StakeUnderMinimumThresholdForBaking();
+        var inputReason = new Application.NodeApi.StakeUnderMinimumThresholdForBaking();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeUnderMinimumThresholdForBaking>();
@@ -1239,7 +1226,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_BakerInCooldown()
     {
-        var inputReason = new BakerInCooldown();
+        var inputReason = new Application.NodeApi.BakerInCooldown();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakerInCooldown>();
@@ -1249,7 +1236,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DuplicateAggregationKey()
     {
-        var inputReason = new DuplicateAggregationKey("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
+        var inputReason = new Application.NodeApi.DuplicateAggregationKey("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateAggregationKey>();
@@ -1259,7 +1246,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NonExistentCredentialId()
     {
-        var inputReason = new NonExistentCredentialId();
+        var inputReason = new Application.NodeApi.NonExistentCredentialId();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredentialId>();
@@ -1269,7 +1256,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_KeyIndexAlreadyInUse()
     {
-        var inputReason = new KeyIndexAlreadyInUse();
+        var inputReason = new Application.NodeApi.KeyIndexAlreadyInUse();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse>();
@@ -1279,7 +1266,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidAccountThreshold()
     {
-        var inputReason = new InvalidAccountThreshold();
+        var inputReason = new Application.NodeApi.InvalidAccountThreshold();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountThreshold>();
@@ -1289,7 +1276,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidCredentialKeySignThreshold()
     {
-        var inputReason = new InvalidCredentialKeySignThreshold();
+        var inputReason = new Application.NodeApi.InvalidCredentialKeySignThreshold();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentialKeySignThreshold>();
@@ -1299,7 +1286,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidEncryptedAmountTransferProof()
     {
-        var inputReason = new InvalidEncryptedAmountTransferProof();
+        var inputReason = new Application.NodeApi.InvalidEncryptedAmountTransferProof();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidEncryptedAmountTransferProof>();
@@ -1309,7 +1296,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidTransferToPublicProof()
     {
-        var inputReason = new InvalidTransferToPublicProof();
+        var inputReason = new Application.NodeApi.InvalidTransferToPublicProof();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof>();
@@ -1319,7 +1306,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_EncryptedAmountSelfTransfer()
     {
-        var inputReason = new EncryptedAmountSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.EncryptedAmountSelfTransfer(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer>();
@@ -1329,7 +1316,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidIndexOnEncryptedTransfer()
     {
-        var inputReason = new InvalidIndexOnEncryptedTransfer();
+        var inputReason = new Application.NodeApi.InvalidIndexOnEncryptedTransfer();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidIndexOnEncryptedTransfer>();
@@ -1339,7 +1326,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ZeroScheduledAmount()
     {
-        var inputReason = new ZeroScheduledAmount();
+        var inputReason = new Application.NodeApi.ZeroScheduledAmount();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ZeroScheduledAmount>();
@@ -1349,7 +1336,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NonIncreasingSchedule()
     {
-        var inputReason = new NonIncreasingSchedule();
+        var inputReason = new Application.NodeApi.NonIncreasingSchedule();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonIncreasingSchedule>();
@@ -1359,7 +1346,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_FirstScheduledReleaseExpired()
     {
-        var inputReason = new FirstScheduledReleaseExpired();
+        var inputReason = new Application.NodeApi.FirstScheduledReleaseExpired();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FirstScheduledReleaseExpired>();
@@ -1369,7 +1356,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ScheduledSelfTransfer()
     {
-        var inputReason = new ScheduledSelfTransfer(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.ScheduledSelfTransfer(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ScheduledSelfTransfer>();
@@ -1379,7 +1366,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidCredentials()
     {
-        var inputReason = new InvalidCredentials();
+        var inputReason = new Application.NodeApi.InvalidCredentials();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentials>();
@@ -1389,7 +1376,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DuplicateCredIds()
     {
-        var inputReason = new DuplicateCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        var inputReason = new Application.NodeApi.DuplicateCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateCredIds>();
@@ -1399,7 +1386,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NonExistentCredIds()
     {
-        var inputReason = new NonExistentCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        var inputReason = new Application.NodeApi.NonExistentCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredIds>();
@@ -1409,7 +1396,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_RemoveFirstCredential()
     {
-        var inputReason = new RemoveFirstCredential();
+        var inputReason = new Application.NodeApi.RemoveFirstCredential();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RemoveFirstCredential>();
@@ -1419,7 +1406,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_CredentialHolderDidNotSign()
     {
-        var inputReason = new CredentialHolderDidNotSign();
+        var inputReason = new Application.NodeApi.CredentialHolderDidNotSign();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.CredentialHolderDidNotSign>();
@@ -1429,7 +1416,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedMultipleCredentials()
     {
-        var inputReason = new NotAllowedMultipleCredentials();
+        var inputReason = new Application.NodeApi.NotAllowedMultipleCredentials();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedMultipleCredentials>();
@@ -1439,7 +1426,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedToReceiveEncrypted()
     {
-        var inputReason = new NotAllowedToReceiveEncrypted();
+        var inputReason = new Application.NodeApi.NotAllowedToReceiveEncrypted();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToReceiveEncrypted>();
@@ -1449,7 +1436,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedToHandleEncrypted()
     {
-        var inputReason = new NotAllowedToHandleEncrypted();
+        var inputReason = new Application.NodeApi.NotAllowedToHandleEncrypted();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted>();
@@ -1459,7 +1446,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_MissingBakerAddParameters()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.MissingBakerAddParameters();
+        var inputReason = new Application.NodeApi.MissingBakerAddParameters();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingBakerAddParameters>();
@@ -1469,7 +1456,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_FinalizationRewardCommissionNotInRange()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.FinalizationRewardCommissionNotInRange();
+        var inputReason = new Application.NodeApi.FinalizationRewardCommissionNotInRange();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FinalizationRewardCommissionNotInRange>();
@@ -1479,7 +1466,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_BakingRewardCommissionNotInRange()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.BakingRewardCommissionNotInRange();
+        var inputReason = new Application.NodeApi.BakingRewardCommissionNotInRange();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakingRewardCommissionNotInRange>();
@@ -1489,7 +1476,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_TransactionFeeCommissionNotInRange()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.TransactionFeeCommissionNotInRange();
+        var inputReason = new Application.NodeApi.TransactionFeeCommissionNotInRange();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.TransactionFeeCommissionNotInRange>();
@@ -1499,7 +1486,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AlreadyADelegator()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.AlreadyADelegator();
+        var inputReason = new Application.NodeApi.AlreadyADelegator();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AlreadyADelegator>();
@@ -1509,7 +1496,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InsufficientBalanceForDelegationStake()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.InsufficientBalanceForDelegationStake();
+        var inputReason = new Application.NodeApi.InsufficientBalanceForDelegationStake();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForDelegationStake>();
@@ -1519,7 +1506,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_MissingDelegationAddParameters()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.MissingDelegationAddParameters();
+        var inputReason = new Application.NodeApi.MissingDelegationAddParameters();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingDelegationAddParameters>();
@@ -1529,7 +1516,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InsufficientDelegationStake()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.InsufficientDelegationStake();
+        var inputReason = new Application.NodeApi.InsufficientDelegationStake();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientDelegationStake>();
@@ -1539,7 +1526,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DelegatorInCooldown()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.DelegatorInCooldown();
+        var inputReason = new Application.NodeApi.DelegatorInCooldown();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegatorInCooldown>();
@@ -1549,7 +1536,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotADelegator()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.NotADelegator(new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        var inputReason = new Application.NodeApi.NotADelegator(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotADelegator>();
@@ -1560,7 +1547,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DelegationTargetNotABaker()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.DelegationTargetNotABaker(42UL);
+        var inputReason = new Application.NodeApi.DelegationTargetNotABaker(42UL);
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegationTargetNotABaker>();
@@ -1571,7 +1558,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_StakeOverMaximumThresholdForPool()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.StakeOverMaximumThresholdForPool();
+        var inputReason = new Application.NodeApi.StakeOverMaximumThresholdForPool();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeOverMaximumThresholdForPool>();
@@ -1581,7 +1568,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_PoolWouldBecomeOverDelegated()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.PoolWouldBecomeOverDelegated();
+        var inputReason = new Application.NodeApi.PoolWouldBecomeOverDelegated();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolWouldBecomeOverDelegated>();
@@ -1591,7 +1578,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_PoolClosed()
     {
-        var inputReason = new global::ConcordiumSdk.NodeApi.Types.PoolClosed();
+        var inputReason = new Application.NodeApi.PoolClosed();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolClosed>();
@@ -1611,7 +1598,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         return result.Entity.Should().BeOfType<T>().Subject;
     }
     
-    private async Task WriteSingleRejectedTransaction(TransactionRejectReason rejectReason)
+    private async Task WriteSingleRejectedTransaction(Application.NodeApi.TransactionRejectReason rejectReason)
     {
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
