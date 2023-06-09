@@ -5,7 +5,6 @@ services:
     image: timescale-restore:1
     environment:
     - POSTGRES_PASSWORD=password
-    - POSTGRES_MAX_PREPARED_TRANSACTIONS=150
     - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
     ports:
     - 15432:5432    
