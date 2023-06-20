@@ -1,0 +1,19 @@
+version: "3"
+services:
+  timescaledb:
+    platform: linux/amd64  
+    image: timescale-restore:1
+    environment:
+    - POSTGRES_PASSWORD=password
+    - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+    ports:
+    - 15432:5432    
+    networks:
+    - ccdscan
+    volumes:
+    - ./init/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf
+    - ./init/pg_hba.conf:/etc/pg_hba.conf
+    - ./init/postgresql.conf:/etc/postgresql.conf
+    - ./init/restore.sh:/etc/restore.sh
+networks:
+  ccdscan:
