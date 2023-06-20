@@ -1,8 +1,9 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
-using Application.NodeApi;
-using Concordium.Sdk.Types.New;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.Views;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Import;
 

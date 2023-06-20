@@ -5,7 +5,6 @@ using Application.Common.FeatureFlags;
 using Application.NodeApi;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -58,7 +57,7 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), nameof(_client.GetConsensusStatusAsync), stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusInfoAsync(stoppingToken), nameof(_client.GetConsensusInfoAsync), stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {

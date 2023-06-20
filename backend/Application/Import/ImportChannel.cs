@@ -1,8 +1,6 @@
 ﻿using System.Threading.Channels;
 using System.Threading.Tasks;
-using Application.NodeApi;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 
 namespace Application.Import;
 
@@ -49,7 +47,7 @@ public record BlockDataPayload
     public BlockDataPayload(BlockInfo blockInfo,
         BlockSummaryBase blockSummary,
         AccountInfosRetrieved accountInfos,
-        RewardStatusBase rewardStatus,
+        RewardOverviewBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
         Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc)
     {

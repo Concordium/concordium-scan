@@ -6,7 +6,6 @@ using Application.Common.Diagnostics;
 using Application.Import;
 using Application.NodeApi;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using CommissionRates = Application.Api.GraphQL.Bakers.CommissionRates;

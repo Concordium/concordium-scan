@@ -3,7 +3,6 @@ using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Common;
 using Application.Database;
 using Dapper;
-using HotChocolate;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 using Npgsql;

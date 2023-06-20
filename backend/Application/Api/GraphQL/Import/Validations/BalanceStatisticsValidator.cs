@@ -3,7 +3,6 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;

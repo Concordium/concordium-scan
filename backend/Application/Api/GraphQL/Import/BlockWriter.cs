@@ -3,7 +3,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Application.NodeApi;
-using Concordium.Sdk.Types.New;
+using Concordium.Sdk.Types;
 using Dapper;
 // using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -11,12 +11,12 @@ using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using BakingRewardsSpecialEvent = Application.NodeApi.BakingRewardsSpecialEvent;
 using BlockAccrueRewardSpecialEvent = Application.NodeApi.BlockAccrueRewardSpecialEvent;
 using FinalizationRewardsSpecialEvent = Application.NodeApi.FinalizationRewardsSpecialEvent;
+using FinalizationSummary = Application.Api.GraphQL.Blocks.FinalizationSummary;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
 using MintSpecialEvent = Application.NodeApi.MintSpecialEvent;
 using PaydayAccountRewardSpecialEvent = Application.NodeApi.PaydayAccountRewardSpecialEvent;
 using PaydayFoundationRewardSpecialEvent = Application.NodeApi.PaydayFoundationRewardSpecialEvent;
 using PaydayPoolRewardSpecialEvent = Application.NodeApi.PaydayPoolRewardSpecialEvent;
-using SpecialEvent = Concordium.Sdk.Types.New.SpecialEvent;
 
 namespace Application.Api.GraphQL.Import;
 

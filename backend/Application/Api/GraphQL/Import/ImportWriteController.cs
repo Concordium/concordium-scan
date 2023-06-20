@@ -11,7 +11,6 @@ using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;

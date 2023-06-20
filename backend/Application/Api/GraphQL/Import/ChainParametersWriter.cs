@@ -2,8 +2,6 @@
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using Application.NodeApi;
-using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;

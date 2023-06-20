@@ -4,8 +4,6 @@ using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Payday;
 using Application.Common.Diagnostics;
 using Application.Import;
-using Application.NodeApi;
-using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;

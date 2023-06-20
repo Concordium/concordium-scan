@@ -4,7 +4,6 @@ using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
-using Npgsql;
 
 namespace Application.Database
 {

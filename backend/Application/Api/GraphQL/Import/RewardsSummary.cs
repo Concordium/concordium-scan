@@ -1,7 +1,4 @@
-﻿using Application.NodeApi;
-using Concordium.Sdk.Types.New;
-
-namespace Application.Api.GraphQL.Import;
+﻿namespace Application.Api.GraphQL.Import;
 
 public class RewardsSummary
 {

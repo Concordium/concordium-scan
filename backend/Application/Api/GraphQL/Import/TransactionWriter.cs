@@ -1,11 +1,9 @@
 ﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.NodeApi;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using AccountCreated = Application.Api.GraphQL.Transactions.AccountCreated;

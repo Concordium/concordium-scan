@@ -1,5 +1,4 @@
 ﻿using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 
 namespace Application.NodeApi;
 

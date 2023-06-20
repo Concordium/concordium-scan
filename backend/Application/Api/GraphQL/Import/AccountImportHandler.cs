@@ -2,8 +2,8 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
 using Application.Import;
-using Application.NodeApi;
-using Concordium.Sdk.Types.New;
+using Concordium.Sdk.Types;
+using Concordium.Sdk.Types.Views;
 
 namespace Application.Api.GraphQL.Import;
 

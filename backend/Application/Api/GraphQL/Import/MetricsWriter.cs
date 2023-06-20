@@ -5,8 +5,6 @@ using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
-using Application.NodeApi;
-using Concordium.Sdk.Types.New;
 using Dapper;
 using Npgsql;
 using PaydayPoolRewardSpecialEvent = Application.Api.GraphQL.Blocks.PaydayPoolRewardSpecialEvent;

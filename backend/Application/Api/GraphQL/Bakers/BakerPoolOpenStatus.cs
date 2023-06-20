@@ -18,13 +18,13 @@ public enum BakerPoolOpenStatus
 
 public static class BakerPoolOpenStatusExtensions
 {
-    public static BakerPoolOpenStatus MapToGraphQlEnum(this Concordium.Sdk.Types.New.BakerPoolOpenStatus src)
+    public static BakerPoolOpenStatus MapToGraphQlEnum(this Concordium.Sdk.Types.BakerPoolOpenStatus src)
     {
         return src switch
         {
-            Concordium.Sdk.Types.New.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
-            Concordium.Sdk.Types.New.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
-            Concordium.Sdk.Types.New.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
             _ => throw new NotImplementedException()
         };
     }

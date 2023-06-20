@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using Concordium.Sdk.Types.New;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
