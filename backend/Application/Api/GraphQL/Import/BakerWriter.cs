@@ -206,14 +206,17 @@ public class BakerWriter
             CapitalBound = capitalBound,
             LeverageFactor = leverageFactor
         };
+
+        var activePoolDelegatedStakeCap = capitalBound == 1 ? 
+            @"(@LeverageFactor - 1.0) * active_staked_amount)" : 
+            @"least(
+                floor((@CapitalBound * (@TotalStaked - active_pool_delegated_stake) - active_staked_amount) / (1 - @CapitalBound)),
+                (@LeverageFactor - 1.0) * active_staked_amount)";
         
-        var sql = @"update graphql_bakers 
+        var sql = $@"update graphql_bakers 
                         set active_pool_delegated_stake_cap = 
                             greatest(
-                                0, 
-                                least(
-                                    floor((@CapitalBound * (@TotalStaked - active_pool_delegated_stake) - active_staked_amount) / (1 - @CapitalBound)),
-                                    (@LeverageFactor - 1.0) * active_staked_amount)) 
+                                0,{activePoolDelegatedStakeCap}) 
                         where active_pool_open_status is not null;";
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
