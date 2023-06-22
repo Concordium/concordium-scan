@@ -208,7 +208,7 @@ public class BakerWriter
         };
 
         var activePoolDelegatedStakeCap = capitalBound == 1 ? 
-            @"(@LeverageFactor - 1.0) * active_staked_amount)" : 
+            @"(@LeverageFactor - 1.0) * active_staked_amount" : 
             @"least(
                 floor((@CapitalBound * (@TotalStaked - active_pool_delegated_stake) - active_staked_amount) / (1 - @CapitalBound)),
                 (@LeverageFactor - 1.0) * active_staked_amount)";
