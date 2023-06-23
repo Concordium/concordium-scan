@@ -60,4 +60,11 @@ public class ImportState
         PassiveDelegationAdded = source.PassiveDelegationAdded;
         EpochDuration = source.EpochDuration;
     }
+    
+    internal void UpdateNextPendingBakerChangeTimeIfLower(DateTimeOffset pendingChangeTime)
+    {
+        if (!NextPendingBakerChangeTime.HasValue ||
+            NextPendingBakerChangeTime.Value > pendingChangeTime)
+            NextPendingBakerChangeTime = pendingChangeTime;
+    }
 }

@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Application.Database;
+using Concordium.Sdk.Types;
 using Dapper;
 using Npgsql;
 using PaydayPoolRewardSpecialEvent = Application.Api.GraphQL.Blocks.PaydayPoolRewardSpecialEvent;
@@ -84,7 +85,7 @@ public class MetricsWriter
         return Math.Round(numerator * 1.0 / denominator, 10);
     }
 
-    public async Task AddTransactionMetrics(BlockInfo blockInfo, BlockSummaryBase blockSummary, ImportState importState)
+    public async Task AddTransactionMetrics(BlockInfo blockInfo, IList<BlockItemSummary> blockItemSummaries, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(AddTransactionMetrics));
 
@@ -92,7 +93,7 @@ public class MetricsWriter
         conn.Open();
 
         var cumulativeTransactionCount = importState.CumulativeTransactionCount;
-
+        
         var transactionParams = blockSummary.TransactionSummaries.Select((txs, ix) => new
         {
             CumulativeTransactionCount = cumulativeTransactionCount + ix + 1,
@@ -101,7 +102,7 @@ public class MetricsWriter
             MicroCcdCost = Convert.ToInt64(txs.Cost.Value),
             Success = txs.Result is TransactionSuccessResult
         }).ToArray();
-        
+
         var sql = "insert into metrics_transactions (time, cumulative_transaction_count, transaction_type, micro_ccd_cost, success) values (@Time, @CumulativeTransactionCount, @TransactionType, @MicroCcdCost, @Success)";
         await conn.ExecuteAsync(sql, transactionParams);
 

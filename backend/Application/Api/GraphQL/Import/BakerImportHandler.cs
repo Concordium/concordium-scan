@@ -30,7 +30,7 @@ public class BakerImportHandler
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
 
-        IPendingBakerChangeStrategy pendingChangeStrategy = payload.BlockSummary.ProtocolVersion >= 4 
+        IBakerChangeStrategy changeStrategy = (int)payload.BlockInfo.ProtocolVersion >= 4 
             ? new PostProtocol4Strategy(payload.BlockInfo, (ChainParametersV1)chainParameters.Current, importPaydayStatus, _writer) 
             : new PreProtocol4Strategy(payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, _writer);
 
@@ -45,7 +45,7 @@ public class BakerImportHandler
         if (payload is GenesisBlockDataPayload)
             await AddGenesisBakers(payload, resultBuilder, importState);
         else
-            await ApplyBakerChanges(payload, rewardsSummary, chainParameters, pendingChangeStrategy, importState, resultBuilder, importPaydayStatus is FirstBlockAfterPayday);
+            await ApplyBakerChanges(payload, rewardsSummary, chainParameters, changeStrategy, importState, resultBuilder, importPaydayStatus is FirstBlockAfterPayday);
         
         var totalAmountStaked = await _writer.GetTotalAmountStaked();
         resultBuilder.SetTotalAmountStaked(totalAmountStaked);
@@ -157,33 +157,29 @@ public class BakerImportHandler
     }
 
     private async Task ApplyBakerChanges(BlockDataPayload payload, RewardsSummary rewardsSummary,
-        ChainParametersState chainParameters, IPendingBakerChangeStrategy pendingChangeStrategy,
+        ChainParametersState chainParameters, IBakerChangeStrategy bakerChangeStrategy,
         ImportState importState, BakerUpdateResultsBuilder resultBuilder, bool isFirstBlockAfterPayday)
     {
         await MaybeMigrateToBakerPools(payload, importState);
         await MaybeApplyCommissionRangeChanges(chainParameters);
         await WorkAroundConcordiumNodeBug225(payload.BlockInfo, importState);
         
-        await UpdateBakersWithPendingChangesDue(pendingChangeStrategy, importState, resultBuilder);
+        await UpdateBakersWithPendingChangesDue(bakerChangeStrategy, importState, resultBuilder);
 
-        var allTransactionEvents = payload.BlockSummary.TransactionSummaries
-            .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
-            .SelectMany(x => x.Events)
-            .ToArray();
-
-        var txEvents = allTransactionEvents.Where(x => x
-            is BakerAdded
-            or BakerRemoved
-            or BakerStakeIncreased
-            or BakerStakeDecreased
-            or BakerSetRestakeEarnings
-            or BakerSetOpenStatus
-            or BakerSetMetadataURL
-            or BakerSetTransactionFeeCommission
-            or BakerSetFinalizationRewardCommission
-            or BakerSetBakingRewardCommission);
-
-        await UpdateBakersFromTransactionEvents(txEvents, pendingChangeStrategy, importState, resultBuilder);
+        var txEvents = payload.BlockItemSummaries
+            .Where(b => b.IsSuccess())
+            .Select(b => b.Details)
+            .OfType<AccountTransactionDetails>()
+            .Where(x => x.Effects
+                is BakerAdded
+                or BakerRemoved
+                or BakerStakeUpdated
+                or BakerRestakeEarningsUpdated
+                or BakerConfigured
+                or BakerKeysUpdated
+            );
+        
+        await bakerChangeStrategy.UpdateBakersFromTransactionEvents(txEvents, importState, resultBuilder);
 
         // This should happen after the bakers from current block has been added to the database
         if (isFirstBlockAfterPayday)
@@ -330,134 +326,12 @@ public class BakerImportHandler
         }
     }
 
-    private async Task UpdateBakersFromTransactionEvents(IEnumerable<TransactionResultEvent> transactionEvents,
-        IPendingBakerChangeStrategy pendingChangeStrategy, ImportState importState,
-        BakerUpdateResultsBuilder resultBuilder)
-    {
-        foreach (var txEvent in transactionEvents)
-        {
-            if (txEvent is BakerAdded bakerAdded)
-            {
-                var pool = importState.MigrationToBakerPoolsCompleted ? CreateDefaultBakerPool() : null;
-                
-                await _writer.AddOrUpdateBaker(bakerAdded,
-                    src => src.BakerId,
-                    src => CreateNewBaker(src.BakerId, src.Stake, src.RestakeEarnings, pool),
-                    (src, dst) =>
-                    {
-                        dst.State = new ActiveBakerState(src.Stake.Value, src.RestakeEarnings, pool, null);
-                    });
-
-                resultBuilder.IncrementBakersAdded();
-            }
-
-            if (txEvent is BakerRemoved bakerRemoved)
-            {
-                var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(bakerRemoved);
-                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
-            }
-
-            if (txEvent is BakerStakeDecreased stakeDecreased)
-            {
-                var pendingChange = await pendingChangeStrategy.SetPendingChangeOnBaker(stakeDecreased);
-                UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime, importState);
-            }
-
-            if (txEvent is BakerStakeIncreased stakeIncreased)
-            {
-                await _writer.UpdateBaker(stakeIncreased,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
-                        activeState.StakedAmount = src.NewStake.Value;
-                    });
-            }
-
-            if (txEvent is BakerSetRestakeEarnings restakeEarnings)
-            {
-                await _writer.UpdateBaker(restakeEarnings,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
-                        activeState.RestakeEarnings = src.RestakeEarnings;
-                    });
-            }
-            
-            if (txEvent is BakerSetOpenStatus openStatus)
-            {
-                await _writer.UpdateBaker(openStatus,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var pool = GetPool(dst);
-                        pool.OpenStatus = src.OpenStatus.MapToGraphQlEnum();
-                    });
-
-                if (openStatus.OpenStatus == Concordium.Sdk.Types.New.BakerPoolOpenStatus.ClosedForAll)
-                    resultBuilder.AddBakerClosedForAll((long)openStatus.BakerId);
-            }
-            
-            if (txEvent is BakerSetMetadataURL metadataUrl)
-            {
-                await _writer.UpdateBaker(metadataUrl,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var pool = GetPool(dst);
-                        pool.MetadataUrl = src.MetadataURL;
-                    });
-            }
-            
-            if (txEvent is BakerSetTransactionFeeCommission transactionFeeCommission)
-            {
-                await _writer.UpdateBaker(transactionFeeCommission,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var pool = GetPool(dst);
-                        pool.CommissionRates.TransactionCommission = src.TransactionFeeCommission;
-                    });
-            }
-            
-            if (txEvent is BakerSetFinalizationRewardCommission finalizationRewardCommission)
-            {
-                await _writer.UpdateBaker(finalizationRewardCommission,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var pool = GetPool(dst);
-                        pool.CommissionRates.FinalizationCommission = src.FinalizationRewardCommission;
-                    });
-            }
-            
-            if (txEvent is BakerSetBakingRewardCommission bakingRewardCommission)
-            {
-                await _writer.UpdateBaker(bakingRewardCommission,
-                    src => src.BakerId,
-                    (src, dst) =>
-                    {
-                        var pool = GetPool(dst);
-                        pool.CommissionRates.BakingCommission = src.BakingRewardCommission;
-                    });
-            }
-        }
-    }
-
-    private void UpdateNextPendingBakerChangeTimeIfLower(DateTimeOffset pendingChangeTime, ImportState importState)
-    {
-        if (!importState.NextPendingBakerChangeTime.HasValue ||
-            importState.NextPendingBakerChangeTime.Value > pendingChangeTime)
-            importState.NextPendingBakerChangeTime = pendingChangeTime;
-    }
-
-    private async Task UpdateBakersWithPendingChangesDue(IPendingBakerChangeStrategy pendingChangeStrategy, 
+    private async Task UpdateBakersWithPendingChangesDue(IBakerChangeStrategy bakerChangeStrategy, 
         ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
-        if (pendingChangeStrategy.MustApplyPendingChangesDue(importState.NextPendingBakerChangeTime))
+        if (bakerChangeStrategy.MustApplyPendingChangesDue(importState.NextPendingBakerChangeTime))
         {
-            var effectiveTime = pendingChangeStrategy.GetEffectiveTime();
+            var effectiveTime = bakerChangeStrategy.GetEffectiveTime();
             await _writer.UpdateBakersWithPendingChange(effectiveTime, baker => ApplyPendingChange(baker, resultBuilder));
 
             importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
@@ -483,39 +357,7 @@ public class BakerImportHandler
         else throw new NotImplementedException("Applying this pending change is not implemented!");
     }
 
-    private static Baker CreateNewBaker(ulong bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool)
-    {
-        return new Baker
-        {
-            Id = (long)bakerId,
-            State = new ActiveBakerState(stakedAmount.Value, restakeEarnings, pool, null)
-        };
-    }
-
-    private BakerPool CreateDefaultBakerPool(BakerPoolOpenStatus openStatus = BakerPoolOpenStatus.ClosedForAll,
-        decimal transactionCommission = 0.0m, decimal finalizationCommission = 0.0m, decimal bakingCommission = 0.0m)
-    {
-        return new BakerPool
-        {
-            OpenStatus = openStatus,
-            MetadataUrl = "",
-            CommissionRates = new CommissionRates
-            {
-                TransactionCommission = transactionCommission,
-                FinalizationCommission = finalizationCommission,
-                BakingCommission = bakingCommission
-            },
-            PaydayStatus = null,
-        };
-    }
-
-    private static BakerPool GetPool(Baker dst)
-    {
-        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set open status for a baker that is not active!");
-        return activeState.Pool ?? throw new InvalidOperationException("Cannot set open status for a baker where pool is null!");
-    }
-
-    private class BakerUpdateResultsBuilder
+    public class BakerUpdateResultsBuilder
     {
         private ulong _totalAmountStaked = 0;
         private int _bakersAdded = 0;

@@ -35,24 +35,31 @@ public class ImportChannel
     }
 }
 
-public record InitialImportState(long? MaxBlockHeight, BlockHash? GenesisBlockHash);
+public record InitialImportState(ulong? MaxBlockHeight, BlockHash? GenesisBlockHash);
 
-public record BlockDataEnvelope(BlockDataPayload Payload, ConsensusStatus ConsensusStatus);
+public record BlockDataEnvelope(BlockDataPayload Payload, ConsensusInfo ConsensusInfo);
 
 public record BlockDataPayload
 {
     private readonly Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc;
-    private readonly Func<Task<PoolStatusPassiveDelegation>> _passiveDelegationPoolStatusFunc;
+    private readonly Func<Task<PassiveDelegationStatus>> _passiveDelegationPoolStatusFunc;
 
-    public BlockDataPayload(BlockInfo blockInfo,
-        BlockSummaryBase blockSummary,
+    public BlockDataPayload(
+        BlockInfo blockInfo,
+        IList<BlockItemSummary> blockItemSummaries,
+        IChainParameters chainParameters,
+        IList<ISpecialEvent> specialEvents,
+        // BlockSummaryBase blockSummary,
         AccountInfosRetrieved accountInfos,
         RewardOverviewBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
-        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc)
+        Func<Task<PassiveDelegationStatus>> passiveDelegationPoolStatusFunc)
     {
         BlockInfo = blockInfo;
-        BlockSummary = blockSummary;
+        BlockItemSummaries = blockItemSummaries;
+        ChainParameters = chainParameters;
+        SpecialEvents = specialEvents;
+        // BlockSummary = blockSummary;
         AccountInfos = accountInfos;
         RewardStatus = rewardStatus;
         _readAllBakerPoolStatusesFunc = readAllBakerPoolStatusesFunc;
@@ -60,16 +67,22 @@ public record BlockDataPayload
     }
 
     public BlockInfo BlockInfo { get; }
-    public BlockSummaryBase BlockSummary { get; }
+
+    public IList<BlockItemSummary> BlockItemSummaries { get; }
+
+    public IChainParameters ChainParameters { get; }
+
+    public IList<ISpecialEvent> SpecialEvents { get; }
+    // public BlockSummaryBase BlockSummary { get; }
     public AccountInfosRetrieved AccountInfos { get; }
-    public RewardStatusBase RewardStatus { get; }
+    public RewardOverviewBase RewardStatus { get; }
 
     public async Task<BakerPoolStatus[]> ReadAllBakerPoolStatuses()
     {
         return await _readAllBakerPoolStatusesFunc();
     }
 
-    public async Task<PoolStatusPassiveDelegation> ReadPassiveDelegationPoolStatus()
+    public async Task<PassiveDelegationStatus> ReadPassiveDelegationPoolStatus()
     {
         return await _passiveDelegationPoolStatusFunc();
     }
@@ -77,19 +90,22 @@ public record BlockDataPayload
 
 public record GenesisBlockDataPayload : BlockDataPayload
 {
-    public GenesisBlockDataPayload(BlockInfo blockInfo,
-        BlockSummaryBase blockSummary,
+    public GenesisBlockDataPayload(
+        IList<IpInfo> genesisIdentityProviders,
+        BlockInfo blockInfo,
+        IList<BlockItemSummary> blockItemSummaries,
+        IChainParameters chainParameters,
+        IList<ISpecialEvent> specialEvents,
         AccountInfosRetrieved accountInfos,
-        RewardStatusBase rewardStatus,
-        IdentityProviderInfo[] genesisIdentityProviders,
+        RewardOverviewBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
-        Func<Task<PoolStatusPassiveDelegation>> passiveDelegationPoolStatusFunc) 
-        : base(blockInfo, blockSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
+        Func<Task<PassiveDelegationStatus>> passiveDelegationPoolStatusFunc) 
+        : base(blockInfo, blockItemSummaries, chainParameters, specialEvents, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
     {
         GenesisIdentityProviders = genesisIdentityProviders;
     }
 
-    public IdentityProviderInfo[] GenesisIdentityProviders { get; init; }
+    public IList<IpInfo> GenesisIdentityProviders { get; init; }
 }
 
 public record AccountInfosRetrieved(

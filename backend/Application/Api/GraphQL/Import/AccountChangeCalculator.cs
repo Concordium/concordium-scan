@@ -24,15 +24,16 @@ public class AccountChangeCalculator
     /// </summary>
     /// <param name="createdAccounts">Created Account</param>
     /// <param name="blockSlotTime">Block Slot Time</param>
+    /// <param name="blockHeight">Block height from genesis</param>
     /// <returns></returns>
     public IEnumerable<Account> MapCreatedAccounts(
         AccountInfo[] createdAccounts, 
         DateTimeOffset blockSlotTime, 
-        int blockHeight)
+        ulong blockHeight)
     {
         return createdAccounts.Select(x => new Account
         {
-            Id = (long)x.AccountIndex,
+            Id = (long)x.AccountIndex.Index,
             CanonicalAddress = new AccountAddress(x.AccountAddress.ToString()),
             BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().ToString()),
             //Newly Created Account should not have balance. Balance will be later computer through transactions

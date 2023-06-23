@@ -1,5 +1,8 @@
 ﻿namespace Application.Api.GraphQL.Bakers;
 
+/// <summary>
+/// The status of whether a baking pool allows delegators to join.
+/// </summary>
 public enum BakerPoolOpenStatus 
 {
     /// <summary>

@@ -34,4 +34,9 @@ public class AccountAddress : Address
     }
     
     public static explicit operator string(AccountAddress obj) => obj.AsString;
+
+    internal static AccountAddress From(Concordium.Sdk.Types.AccountAddress accountAddress)
+    {
+        return new AccountAddress(accountAddress.ToString());
+    }
 }

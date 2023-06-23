@@ -25,7 +25,7 @@ public class AccountImportHandler
     public async Task AddNewAccounts(
         AccountInfo[] createdAccounts, 
         DateTimeOffset blockSlotTime, 
-        int blockHeight)
+        ulong blockHeight)
     {
         if (createdAccounts.Length == 0) return;
         

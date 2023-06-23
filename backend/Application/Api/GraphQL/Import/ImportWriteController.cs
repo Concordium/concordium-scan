@@ -98,7 +98,7 @@ public class ImportWriteController : BackgroundService
                 waitCounter.Dispose();
                 stoppingToken.ThrowIfCancellationRequested();
                 
-                var result = await WriteData(envelope.Payload, envelope.ConsensusStatus, stoppingToken);
+                var result = await WriteData(envelope.Payload, envelope.ConsensusInfo, stoppingToken);
                 await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
                 await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
@@ -130,12 +130,12 @@ public class ImportWriteController : BackgroundService
         _logger.Information("Initial import state read");
 
         var initialState = state != null
-            ? new InitialImportState(state.MaxImportedBlockHeight, BlockHash.From(state.GenesisBlockHash))
+            ? new InitialImportState((ulong)state.MaxImportedBlockHeight, BlockHash.From(state.GenesisBlockHash))
             : new InitialImportState(null, null);
         _channel.SetInitialImportState(initialState);
     }
 
-    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
+    private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusInfo consensusStatus, CancellationToken stoppingToken)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
         
@@ -148,7 +148,7 @@ public class ImportWriteController : BackgroundService
             {
                 GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(
                     genesisPayload, 
-                    consensusStatus.EpochDuration
+                    (int)consensusStatus.EpochDuration.TotalMilliseconds
                 ),
                 _ => await _importStateController.GetState()
             };
@@ -158,8 +158,8 @@ public class ImportWriteController : BackgroundService
 
             result = await HandleCommonWrites(payload, importState, stoppingToken);
 
-            importState.MaxImportedBlockHeight = payload.BlockInfo.BlockHeight;
-            importState.EpochDuration = consensusStatus.EpochDuration;
+            importState.MaxImportedBlockHeight = (long)payload.BlockInfo.BlockHeight;
+            importState.EpochDuration = (int)consensusStatus.EpochDuration.TotalMilliseconds;
             await _importStateController.SaveChanges(importState);
 
             txScope.Complete();
@@ -184,15 +184,15 @@ public class ImportWriteController : BackgroundService
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(HandleCommonWrites));
         
         var importPaydayStatus = await _paydayHandler.UpdatePaydayStatus(payload);
-        await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockSummary.TransactionSummaries);
+        await _identityProviderWriter.AddOrUpdateIdentityProviders(payload.BlockItemSummaries);
         await _accountHandler.AddNewAccounts(
             payload.AccountInfos.CreatedAccounts, 
             payload.BlockInfo.BlockSlotTime,
             payload.BlockInfo.BlockHeight);
 
-        var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.BlockSummary, importState);
+        var chainParameters = await _chainParametersWriter.GetOrCreateChainParameters(payload.ChainParameters, importState);
 
-        var rewardsSummary = RewardsSummary.Create(payload.BlockSummary, _accountLookup);
+        var rewardsSummary = RewardsSummary.Create(payload.SpecialEvents, _accountLookup);
         var bakerUpdateResults = await _bakerHandler.HandleBakerUpdates(payload, rewardsSummary, chainParameters, importPaydayStatus, importState);
         var delegationUpdateResults = await _delegationHandler.HandleDelegationUpdates(payload, chainParameters.Current, bakerUpdateResults, rewardsSummary, importPaydayStatus);
         await _bakerHandler.ApplyDelegationUpdates(payload, delegationUpdateResults, bakerUpdateResults, chainParameters.Current);
@@ -242,7 +242,7 @@ public class ImportWriteController : BackgroundService
         var paydaySummary = await _paydayHandler.AddPaydaySummaryOnPayday(importPaydayStatus, block);
         
         await _metricsWriter.AddBlockMetrics(block);
-        await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockSummary, importState);
+        await _metricsWriter.AddTransactionMetrics(payload.BlockInfo, payload.BlockItemSummaries, importState);
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
         _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);

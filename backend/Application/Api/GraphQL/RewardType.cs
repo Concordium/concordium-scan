@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL;
+﻿using Concordium.Sdk.Types.Views;
+
+namespace Application.Api.GraphQL;
 
 public enum RewardType
 {

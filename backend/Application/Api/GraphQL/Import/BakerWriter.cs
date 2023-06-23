@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
+using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -48,6 +49,7 @@ public class BakerWriter
         return baker;
     }
 
+    // TODO: remove this function which gets the baker id and just accept it as a parameter
     public Task<Baker> UpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Action<TSource, Baker> updateExisting)
     {
         return AddOrUpdateBaker(item, bakerIdSelector, _ => throw new InvalidOperationException("Baker did not exist in database"), updateExisting);
@@ -73,7 +75,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         foreach (var accountBaker in accountBakers)
         {
-            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerId);
+            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerId.Id.Index);
             updateAction(baker, accountBaker);
             result.Add(baker);
         }

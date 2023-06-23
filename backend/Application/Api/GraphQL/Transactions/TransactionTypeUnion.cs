@@ -7,13 +7,13 @@ namespace Application.Api.GraphQL.Transactions;
 [UnionType("TransactionType")]
 public abstract class TransactionTypeUnion
 {
-    public static TransactionTypeUnion CreateFrom(TransactionType value)
+    public static TransactionTypeUnion CreateFrom(IBlockItemSummaryDetails value)
     {
         return value switch
         {
-            TransactionType<AccountTransactionType> x => new AccountTransaction { AccountTransactionType = x.Type },
-            TransactionType<CredentialDeploymentTransactionType> x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.Type },
-            TransactionType<UpdateTransactionType> x => new UpdateTransaction { UpdateTransactionType = x.Type },
+            AccountTransactionDetails x => new AccountTransaction { AccountTransactionType = TransactionTypeFactory.From(x.Effects) },
+            AccountCreationDetails x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.CredentialType },
+            UpdateDetails x => new UpdateTransaction { UpdateTransactionType = UpdatePayloadFactory.From(x.Payload) },
             _ => throw new NotSupportedException($"Cannot map this transaction type")
         };
     }
@@ -35,25 +35,26 @@ public abstract class TransactionTypeUnion
         var split = value.Split(".");
         return split[0] switch
         {
-            "0" => split.Length == 2 ? new AccountTransaction { AccountTransactionType = (AccountTransactionType)int.Parse(split[1])} : new AccountTransaction(),
-            "1" => split.Length == 2 ? new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = (CredentialDeploymentTransactionType)int.Parse(split[1])} : new CredentialDeploymentTransaction(),
-            "2" => split.Length == 2 ? new UpdateTransaction { UpdateTransactionType = (UpdateTransactionType)int.Parse(split[1])} : new UpdateTransaction(),
+            "0" => split.Length == 2 ? new AccountTransaction { AccountTransactionType = (TransactionType)int.Parse(split[1])} : new AccountTransaction(),
+            "1" => split.Length == 2 ? new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = (CredentialType)int.Parse(split[1])} : new CredentialDeploymentTransaction(),
+            "2" => split.Length == 2 ? new UpdateTransaction { UpdateTransactionType = (UpdateType)int.Parse(split[1])} : new UpdateTransaction(),
             _ => throw new NotSupportedException($"Transaction type value '{value}' is not supported.")
         };
     }
 }
 
+// TODO: Follow up why these are nullable
 public class AccountTransaction : TransactionTypeUnion
 {
-    public AccountTransactionType? AccountTransactionType { get; set; }
+    public TransactionType? AccountTransactionType { get; init; }
 }
 
 public class CredentialDeploymentTransaction : TransactionTypeUnion
 {
-    public CredentialDeploymentTransactionType? CredentialDeploymentTransactionType { get; set; }
+    public CredentialType? CredentialDeploymentTransactionType { get; init; }
 }
 
 public class UpdateTransaction : TransactionTypeUnion
 {
-    public UpdateTransactionType? UpdateTransactionType { get; set; }
+    public UpdateType? UpdateTransactionType { get; init; }
 }

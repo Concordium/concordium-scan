@@ -17,10 +17,7 @@ public abstract class ChainParameters
     public ExchangeRate MicroCcdPerEuro { get; init; }
 
     public int AccountCreationLimit { get; init; }
-    
-    [GraphQLIgnore]
-    public long FoundationAccountId { get; init; }
-    
+
     public AccountAddress FoundationAccountAddress { get; init; }
     
     public override bool Equals(object? obj)
@@ -34,7 +31,6 @@ public abstract class ChainParameters
                EuroPerEnergy.Equals(other.EuroPerEnergy) &&
                MicroCcdPerEuro.Equals(other.MicroCcdPerEuro) &&
                AccountCreationLimit == other.AccountCreationLimit &&
-               FoundationAccountId == other.FoundationAccountId &&
                FoundationAccountAddress == other.FoundationAccountAddress;
     }
 

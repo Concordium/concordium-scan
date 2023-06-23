@@ -88,4 +88,20 @@ public class BakerPool
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
     }
+    
+    internal static BakerPool CreateDefaultBakerPool()
+    {
+        return new BakerPool
+        {
+            OpenStatus = BakerPoolOpenStatus.ClosedForAll,
+            MetadataUrl = "",
+            CommissionRates = new CommissionRates
+            {
+                TransactionCommission = 0.0m,
+                FinalizationCommission = 0.0m,
+                BakingCommission = 0.0m
+            },
+            PaydayStatus = null,
+        };
+    }
 }

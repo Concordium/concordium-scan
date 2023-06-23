@@ -1,8 +1,9 @@
 ﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
+using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -10,7 +11,6 @@ public class ChainParametersWriter
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IMetrics _metrics;
-    private Account? _lastReadFoundationAccount;
 
     public ChainParametersWriter(IDbContextFactory<GraphQlDbContext> dbContextFactory, IMetrics metrics)
     {
@@ -18,7 +18,7 @@ public class ChainParametersWriter
         _metrics = metrics;
     }
 
-    public async Task<ChainParametersState> GetOrCreateChainParameters(BlockSummaryBase blockSummary, ImportState importState)
+    public async Task<ChainParametersState> GetOrCreateChainParameters(IChainParameters chainParameters, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(ChainParametersWriter), nameof(GetOrCreateChainParameters));
 
@@ -31,15 +31,14 @@ public class ChainParametersWriter
                 .FirstOrDefaultAsync();
 
         var lastWritten = importState.LatestWrittenChainParameters;
-        var foundationAccountAddress = await GetFoundationAccountAddress(blockSummary, context);
         if (lastWritten != null)
         {
-            var mappedWithLatestId = MapChainParameters(blockSummary, foundationAccountAddress, lastWritten.Id);
+            var mappedWithLatestId = MapChainParameters(chainParameters, lastWritten.Id);
             if (lastWritten.Equals(mappedWithLatestId))
                 return new ChainParametersState(lastWritten);
         }
 
-        var mapped = MapChainParameters(blockSummary, foundationAccountAddress);
+        var mapped = MapChainParameters(chainParameters);
         context.ChainParameters.Add(mapped);
         await context.SaveChangesAsync();
 
@@ -50,145 +49,120 @@ public class ChainParametersWriter
             : new ChainParametersChangedState(mapped, lastWritten);
     }
 
-    private async Task<AccountAddress> GetFoundationAccountAddress(BlockSummaryBase blockSummary, GraphQlDbContext dbContext)
+    private static ChainParameters MapChainParameters(IChainParameters chainParameters, int id = default)
     {
-        var currentFoundationAccountId = blockSummary switch
+        return chainParameters switch
         {
-            BlockSummaryV0 v0 => (long)v0.Updates.ChainParameters.FoundationAccountIndex,
-            BlockSummaryV1 v1 => (long)v1.Updates.ChainParameters.FoundationAccountIndex,
-            _ => throw new NotImplementedException()
-        };
-
-        if (_lastReadFoundationAccount != null && currentFoundationAccountId == _lastReadFoundationAccount.Id)
-            return _lastReadFoundationAccount.CanonicalAddress;
-
-        _lastReadFoundationAccount = await dbContext.Accounts
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == currentFoundationAccountId);
-
-        if (_lastReadFoundationAccount == null)
-            throw new InvalidOperationException(
-                "Could not find the account in the database which was identified as foundation account in chain parameters.");
-
-        return _lastReadFoundationAccount.CanonicalAddress;
-    }
-
-    private ChainParameters MapChainParameters(BlockSummaryBase blockSummary, AccountAddress foundationAccountAddress, int id = default)
-    {
-        return blockSummary switch
-        {
-            BlockSummaryV0 x => MapChainParameters(x.Updates.ChainParameters, foundationAccountAddress, id),
-            BlockSummaryV1 x => MapChainParameters(x.Updates.ChainParameters, foundationAccountAddress, id),
+            Concordium.Sdk.Types.ChainParametersV0 chainParametersV0 => MapChainParameters(chainParametersV0, id),
+            Concordium.Sdk.Types.ChainParametersV1 chainParametersV1 => MapChainParameters(chainParametersV1, id),
             _ => throw new NotImplementedException()
         };
     }
 
-    private ChainParameters MapChainParameters(Concordium.Sdk.Types.New.ChainParametersV0 input, AccountAddress foundationAccountAddress, int id = default)
+    private static ChainParameters MapChainParameters(Concordium.Sdk.Types.ChainParametersV0 input, int id = default)
     {
-        var mintDistribution = input.RewardParameters.MintDistribution;
-        var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
-        var gasRewards = input.RewardParameters.GASRewards;
+        var mintDistribution = input.MintDistribution;
+        var transactionFeeDistribution = input.TransactionFeeDistribution;
+        var gasRewards = input.GasRewards;
 
         var rewardParameters = new RewardParametersV0
         {
             MintDistribution = new MintDistributionV0
             {
-                MintPerSlot = mintDistribution.MintPerSlot,
-                BakingReward = mintDistribution.BakingReward,
-                FinalizationReward = mintDistribution.FinalizationReward
+                MintPerSlot = mintDistribution.MintPerSlot.GetValue(),
+                BakingReward = mintDistribution.BakingReward.AsDecimal(),
+                FinalizationReward = mintDistribution.FinalizationReward.AsDecimal()
             },
             TransactionFeeDistribution = new TransactionFeeDistribution
             {
-                Baker = transactionFeeDistribution.Baker,
-                GasAccount = transactionFeeDistribution.GasAccount
+                Baker = transactionFeeDistribution.Baker.AsDecimal(),
+                GasAccount = transactionFeeDistribution.GasAccount.AsDecimal()
             },
             GasRewards = new GasRewards
             {
-                Baker = gasRewards.Baker,
-                FinalizationProof = gasRewards.FinalizationProof,
-                AccountCreation = gasRewards.AccountCreation,
-                ChainUpdate = gasRewards.ChainUpdate
+                Baker = gasRewards.Baker.AsDecimal(),
+                FinalizationProof = gasRewards.FinalizationProof.AsDecimal(),
+                AccountCreation = gasRewards.AccountCreation.AsDecimal(),
+                ChainUpdate = gasRewards.ChainUpdate.AsDecimal()
             }
         };
 
         return new ChainParametersV0
         {
             Id = id,
-            ElectionDifficulty = input.ElectionDifficulty,
+            ElectionDifficulty = input.ElectionDifficulty.AsDecimal(),
             EuroPerEnergy = MapExchangeRate(input.EuroPerEnergy),
-            MicroCcdPerEuro = MapExchangeRate(input.MicroGTUPerEuro),
-            BakerCooldownEpochs = input.BakerCooldownEpochs,
-            AccountCreationLimit = input.AccountCreationLimit,
+            MicroCcdPerEuro = MapExchangeRate(input.MicroCcdPerEuro),
+            BakerCooldownEpochs = input.BakerCooldownEpochs.Count,
+            AccountCreationLimit = (int)input.AccountCreationLimit.Limit,
             RewardParameters = rewardParameters,
-            FoundationAccountId = (long)input.FoundationAccountIndex,
-            FoundationAccountAddress = foundationAccountAddress,
+            FoundationAccountAddress = AccountAddress.From(input.FoundationAccount),
             MinimumThresholdForBaking = input.MinimumThresholdForBaking.Value
         };
     }
     
-    private ChainParameters MapChainParameters(Concordium.Sdk.Types.New.ChainParametersV1 input, AccountAddress foundationAccountAddress, int id = default)
+    private static ChainParameters MapChainParameters(Concordium.Sdk.Types.ChainParametersV1 input, int id = default)
     {
-        var mintDistribution = input.RewardParameters.MintDistribution;
-        var transactionFeeDistribution = input.RewardParameters.TransactionFeeDistribution;
-        var gasRewards = input.RewardParameters.GASRewards;
+        var mintDistribution = input.MintDistribution;
+        var transactionFeeDistribution = input.TransactionFeeDistribution;
+        var gasRewards = input.GasRewards;
 
         var rewardParameters = new RewardParametersV1
         {
             MintDistribution = new MintDistributionV1
             {
-                BakingReward = mintDistribution.BakingReward,
-                FinalizationReward = mintDistribution.FinalizationReward
+                BakingReward = mintDistribution.BakingReward.AsDecimal(),
+                FinalizationReward = mintDistribution.FinalizationReward.AsDecimal()
             },
             TransactionFeeDistribution = new TransactionFeeDistribution
             {
-                Baker = transactionFeeDistribution.Baker,
-                GasAccount = transactionFeeDistribution.GasAccount
+                Baker = transactionFeeDistribution.Baker.AsDecimal(),
+                GasAccount = transactionFeeDistribution.GasAccount.AsDecimal()
             },
             GasRewards = new GasRewards
             {
-                Baker = gasRewards.Baker,
-                FinalizationProof = gasRewards.FinalizationProof,
-                AccountCreation = gasRewards.AccountCreation,
-                ChainUpdate = gasRewards.ChainUpdate
+                Baker = gasRewards.Baker.AsDecimal(),
+                FinalizationProof = gasRewards.FinalizationProof.AsDecimal(),
+                AccountCreation = gasRewards.AccountCreation.AsDecimal(),
+                ChainUpdate = gasRewards.ChainUpdate.AsDecimal()
             }
         };
 
         return new ChainParametersV1
         {
             Id = id,
-            ElectionDifficulty = input.ElectionDifficulty,
+            ElectionDifficulty = input.ElectionDifficulty.AsDecimal(),
             EuroPerEnergy = MapExchangeRate(input.EuroPerEnergy),
-            MicroCcdPerEuro = MapExchangeRate(input.MicroGTUPerEuro),
-            PoolOwnerCooldown = input.PoolOwnerCooldown,
-            DelegatorCooldown = input.DelegatorCooldown,
-            RewardPeriodLength = input.RewardPeriodLength,
-            MintPerPayday = input.MintPerPayday,
-            AccountCreationLimit = input.AccountCreationLimit,
+            MicroCcdPerEuro = MapExchangeRate(input.MicroCcdPerEuro),
+            PoolOwnerCooldown = (ulong)input.CooldownParameters.PoolOwnerCooldown.TotalSeconds,
+            DelegatorCooldown = (ulong)input.CooldownParameters.DelegatorCooldown.TotalSeconds,
+            RewardPeriodLength = input.TimeParameters.RewardPeriodLength.RewardPeriodEpochs.Count,
+            MintPerPayday = input.TimeParameters.MintPrPayDay.GetValue(),
+            AccountCreationLimit = (int)input.AccountCreationLimit.Limit,
             RewardParameters = rewardParameters,
-            FoundationAccountId = (long)input.FoundationAccountIndex,
-            FoundationAccountAddress = foundationAccountAddress,
-            PassiveFinalizationCommission = input.PassiveFinalizationCommission,
-            PassiveBakingCommission = input.PassiveBakingCommission,
-            PassiveTransactionCommission = input.PassiveTransactionCommission,
-            FinalizationCommissionRange = MapCommissionRange(input.FinalizationCommissionRange),
-            BakingCommissionRange = MapCommissionRange(input.BakingCommissionRange),
-            TransactionCommissionRange = MapCommissionRange(input.TransactionCommissionRange),
-            MinimumEquityCapital = input.MinimumEquityCapital.Value,
-            CapitalBound = input.CapitalBound,
-            LeverageBound = new()
+            FoundationAccountAddress = AccountAddress.From(input.FoundationAccount),
+            PassiveFinalizationCommission = input.PoolParameters.PassiveFinalizationCommission.AsDecimal(),
+            PassiveBakingCommission = input.PoolParameters.PassiveBakingCommission.AsDecimal(),
+            PassiveTransactionCommission = input.PoolParameters.PassiveTransactionCommission.AsDecimal(),
+            FinalizationCommissionRange = MapCommissionRange(input.PoolParameters.CommissionBounds.Finalization),
+            BakingCommissionRange = MapCommissionRange(input.PoolParameters.CommissionBounds.Baking),
+            TransactionCommissionRange = MapCommissionRange(input.PoolParameters.CommissionBounds.Transaction),
+            MinimumEquityCapital = input.PoolParameters.MinimumEquityCapital.Value,
+            CapitalBound = input.PoolParameters.CapitalBound.Bound.AsDecimal(),
+            LeverageBound = new LeverageFactor
             {
-                Numerator = input.LeverageBound.Numerator,
-                Denominator = input.LeverageBound.Denominator
+                Numerator = input.PoolParameters.LeverageBound.Numerator,
+                Denominator = input.PoolParameters.LeverageBound.Denominator
             }
         };
     }
 
-    private static CommissionRange MapCommissionRange(InclusiveRange<decimal> src)
+    private static CommissionRange MapCommissionRange(InclusiveRange<AmountFraction> src)
     {
-        return new () { Min = src.Min, Max = src.Max};
+        return new () { Min = src.Min.AsDecimal(), Max = src.Max.AsDecimal()};
     }
 
-    private static ExchangeRate MapExchangeRate(Concordium.Sdk.Types.New.ExchangeRate input)
+    private static ExchangeRate MapExchangeRate(Concordium.Sdk.Types.ExchangeRate input)
     {
         return new ExchangeRate
         {

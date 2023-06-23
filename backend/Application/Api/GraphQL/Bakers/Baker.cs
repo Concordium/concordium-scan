@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -81,5 +82,20 @@ public class Baker
             .AsNoTracking()
             .Where(x => x.BakerId == Id)
             .OrderByDescending(x => x.Index);
+    }
+    
+    internal static Baker CreateNewBaker(BakerId bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool)
+    {
+        return new Baker
+        {
+            Id = (long)bakerId.Id.Index,
+            State = new ActiveBakerState(stakedAmount.Value, restakeEarnings, pool, null)
+        };
+    }
+    
+    internal BakerPool GetPool()
+    {
+        var activeState = State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set open status for a baker that is not active!");
+        return activeState.Pool ?? throw new InvalidOperationException("Cannot set open status for a baker where pool is null!");
     }
 }
