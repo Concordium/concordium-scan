@@ -100,18 +100,20 @@ public class ImportReadController : BackgroundService
         var blockHashInput = new Given(blockHash);
 
         var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
-        // var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash), nameof(_client.GetBlockSummaryAsync), stoppingToken);
         var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetTokenomicsInfoAsync(blockHashInput), nameof(_client.GetTokenomicsInfoAsync), stoppingToken);
         var blockItemSummariesTask = GetWithGrpcRetryAsync(() => _client.GetBlockTransactionEvents(blockHashInput).ToListAsync(stoppingToken).AsTask(), nameof(_client.GetBlockTransactionEvents), stoppingToken);
         var chainParametersTask = GetWithGrpcRetryAsync(() => _client.GetBlockChainParametersAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockChainParametersAsync), stoppingToken);
         var specialEventsTask = GetWithGrpcRetryAsync(() => _client.GetBlockSpecialEvents(blockHashInput, stoppingToken).ToListAsync(stoppingToken).AsTask(), nameof(_client.GetBlockSpecialEvents), stoppingToken);
+        var finalizationSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockFinalizationSummaryAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockFinalizationSummaryAsync), stoppingToken);
+        
 
-        await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask);
+        await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask, finalizationSummaryTask);
         var blockInfo = await blockInfoTask;
         var rewardStatus = await rewardStatusTask;
         var blockItemSummaries = await blockItemSummariesTask;
         var chainParameters = await chainParametersTask;
         var specialEvents = await specialEventsTask;
+        var finalizationSummary = await finalizationSummaryTask;
         
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockHashInput, blockItemSummaries, blockInfo, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
         
@@ -124,11 +126,11 @@ public class ImportReadController : BackgroundService
         {
             var response = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHashInput), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
             var genesisIdentityProviders = await response.Response.ToListAsync(stoppingToken);
-            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
         return new BlockDataEnvelope(payload, consensusStatus);

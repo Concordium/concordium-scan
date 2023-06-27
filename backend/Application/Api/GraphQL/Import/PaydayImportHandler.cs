@@ -4,6 +4,7 @@ using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Payday;
 using Application.Common.Diagnostics;
 using Application.Import;
+using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -21,46 +22,47 @@ public class PaydayImportHandler
 
     public async Task<BlockImportPaydayStatus> UpdatePaydayStatus(BlockDataPayload payload)
     {
-        if (payload.BlockSummary.ProtocolVersion >= 4)
+        if (payload.BlockInfo.ProtocolVersion.AsInt() < 4) return new NotFirstBlockAfterPayday();
+        
+        using var counter = _metrics.MeasureDuration(nameof(PaydayImportHandler), nameof(UpdatePaydayStatus));
+
+        if (payload.RewardStatus is not RewardOverviewV1 rewardOverviewV1)
         {
-            using var counter = _metrics.MeasureDuration(nameof(PaydayImportHandler), nameof(UpdatePaydayStatus));
+            throw new InvalidOperationException("Expected reward status to be V1");
+        }
 
-            var rewardStatus = payload.RewardStatus as RewardStatusV1;
-            if (rewardStatus == null) throw new InvalidOperationException("Expected reward status to be V1");
-
-            // TODO: Optimize performance by keeping the latest read payday status in (transient) import state
-            //       Re-attach to context before update!
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var status = await dbContext.PaydayStatuses.SingleOrDefaultAsync();
-            if (status == null)
+        // TODO: Optimize performance by keeping the latest read payday status in (transient) import state
+        //       Re-attach to context before update!
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var status = await dbContext.PaydayStatuses.SingleOrDefaultAsync();
+        if (status == null)
+        {
+            status = new PaydayStatus
             {
-                status = new PaydayStatus
-                {
-                    ProtocolVersion = payload.BlockSummary.ProtocolVersion,
-                    PaydayStartTime = payload.BlockInfo.BlockSlotTime, // Best guess at a start time for the first payday period!
-                    NextPaydayTime = rewardStatus.NextPaydayTime
-                };
-                dbContext.PaydayStatuses.Add(status);
-                await dbContext.SaveChangesAsync();
-            }
-            else if (status.ProtocolVersion != payload.BlockSummary.ProtocolVersion)
-            {
-                status.PaydayStartTime = payload.BlockInfo.BlockSlotTime;
-                status.NextPaydayTime = rewardStatus.NextPaydayTime;
-                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
-                await dbContext.SaveChangesAsync();
-            }
-            else if (status.NextPaydayTime != rewardStatus.NextPaydayTime)
-            {
-                var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
-                var result = new FirstBlockAfterPayday(status.NextPaydayTime, duration);
+                ProtocolVersion = payload.BlockInfo.ProtocolVersion.AsInt(),
+                PaydayStartTime = payload.BlockInfo.BlockSlotTime, // Best guess at a start time for the first payday period!
+                NextPaydayTime = rewardOverviewV1.NextPaydayTime
+            };
+            dbContext.PaydayStatuses.Add(status);
+            await dbContext.SaveChangesAsync();
+        }
+        else if (status.ProtocolVersion != payload.BlockInfo.ProtocolVersion.AsInt())
+        {
+            status.ProtocolVersion = payload.BlockInfo.ProtocolVersion.AsInt();
+            status.PaydayStartTime = payload.BlockInfo.BlockSlotTime;
+            status.NextPaydayTime = rewardOverviewV1.NextPaydayTime;
+            await dbContext.SaveChangesAsync();
+        }
+        else if (status.NextPaydayTime != rewardOverviewV1.NextPaydayTime)
+        {
+            var duration = Convert.ToInt64((status.NextPaydayTime - status.PaydayStartTime).TotalSeconds);
+            var result = new FirstBlockAfterPayday(status.NextPaydayTime, duration);
                 
-                status.PaydayStartTime = status.NextPaydayTime;
-                status.NextPaydayTime = rewardStatus.NextPaydayTime;
-                status.ProtocolVersion = payload.BlockSummary.ProtocolVersion;
-                await dbContext.SaveChangesAsync();
-                return result;
-            }
+            status.PaydayStartTime = status.NextPaydayTime;
+            status.NextPaydayTime = rewardOverviewV1.NextPaydayTime;
+            status.ProtocolVersion = payload.BlockInfo.ProtocolVersion.AsInt();
+            await dbContext.SaveChangesAsync();
+            return result;
         }
 
         return new NotFirstBlockAfterPayday();

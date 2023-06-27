@@ -153,9 +153,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // TODO: verify as above removal
         var result = await conn.QuerySingleAsync<long?>("select sum(active_staked_amount) from graphql_bakers");
-        await conn.CloseAsync();
 
         return result.HasValue ? (ulong)result.Value : 0;
     }
@@ -192,9 +191,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // TODO: verify removal
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
 
     public async Task UpdateDelegatedStakeCap(ulong totalStakedAmount, decimal capitalBound, decimal leverageFactor)
@@ -220,9 +218,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // TODO: verify removal
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 
     public async Task<PaydayPoolStakeSnapshot> GetPaydayPoolStakeSnapshot()
@@ -236,9 +233,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // TODO: open and close has been removed since it is redundant. Verify
         var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
-        await conn.CloseAsync();
 
         return new PaydayPoolStakeSnapshot(items.ToArray());
     }
@@ -259,9 +255,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // TODO: verify removal
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
     
     public async Task UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(long payoutBlockId)
@@ -279,8 +274,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
+        // Verify removal
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 }

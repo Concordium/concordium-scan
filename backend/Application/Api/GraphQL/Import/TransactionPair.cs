@@ -1,7 +1,8 @@
 ﻿using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
 public record TransactionPair (
-    TransactionSummary Source,
+    BlockItemSummary Source,
     Transaction Target);

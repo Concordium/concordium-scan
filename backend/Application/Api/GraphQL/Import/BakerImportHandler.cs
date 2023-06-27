@@ -7,7 +7,6 @@ using Application.Import;
 using Application.NodeApi;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
-using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using CommissionRates = Application.Api.GraphQL.Bakers.CommissionRates;
 
 namespace Application.Api.GraphQL.Import;
@@ -83,7 +82,7 @@ public class BakerImportHandler
     public async Task ApplyDelegationUpdates(BlockDataPayload payload, DelegationUpdateResults delegationUpdateResults,
         BakerUpdateResults bakerUpdateResults, ChainParameters chainParameters)
     {
-        if (payload.BlockSummary.ProtocolVersion >= 4) // TODO: Could be optimized by only invoking on payday block (?)
+        if (payload.BlockInfo.ProtocolVersion.AsInt() >= 4) // TODO: Could be optimized by only invoking on payday block (?)
             await _writer.UpdateDelegatedStake(); 
 
         foreach (var delegatorCountDelta in delegationUpdateResults.DelegatorCountDeltas)
@@ -97,7 +96,7 @@ public class BakerImportHandler
                 });
         }
         
-        if (payload.BlockSummary.ProtocolVersion >= 4)
+        if (payload.BlockInfo.ProtocolVersion.AsInt() >= 4)
         {
             var chainParametersV1 = (ChainParametersV1)chainParameters;
             var capitalBound = chainParametersV1.CapitalBound;
@@ -110,11 +109,12 @@ public class BakerImportHandler
     
     private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder, ImportState importState)
     {
-        var mapBakerPool = payload.BlockSummary.ProtocolVersion >= 4;
+        var mapBakerPool = payload.BlockInfo.ProtocolVersion.AsInt() >= 4;
         
         var genesisBakers = payload.AccountInfos.CreatedAccounts
-            .Where(x => x.AccountBaker != null)
-            .Select(x => x.AccountBaker!)
+            .Where(a => a.AccountStakingInfo != null)
+            .Select(a => a.AccountStakingInfo!)
+            .OfType<AccountBaker>()
             .Select(x => CreateGenesisBaker(x, mapBakerPool))
             .ToArray();
 
@@ -130,7 +130,7 @@ public class BakerImportHandler
     {
         var pool = mapBakerPool ? MapBakerPool(src) : null;
         
-        return CreateNewBaker(src.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
+        return Baker.CreateNewBaker(src.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
     }
 
     private static BakerPool MapBakerPool(AccountBaker accountBaker)
@@ -144,9 +144,9 @@ public class BakerImportHandler
             MetadataUrl = poolInfo.MetadataUrl,
             CommissionRates = new CommissionRates
             {
-                TransactionCommission = poolInfo.CommissionRates.TransactionCommission,
-                FinalizationCommission = poolInfo.CommissionRates.FinalizationCommission,
-                BakingCommission = poolInfo.CommissionRates.BakingCommission
+                TransactionCommission = poolInfo.CommissionRates.TransactionCommission.AsDecimal(),
+                FinalizationCommission = poolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
+                BakingCommission = poolInfo.CommissionRates.BakingCommission.AsDecimal()
             },
             PaydayStatus = new CurrentPaydayStatus()
             {
@@ -225,7 +225,7 @@ public class BakerImportHandler
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
     {
         // Migrate to baker pool first time a block with protocol version 4 (or greater) is encountered.
-        if (importState.MigrationToBakerPoolsCompleted || !payload.BlockSummary.ProtocolVersion.HasValue || payload.BlockSummary.ProtocolVersion.Value < 4)
+        if (importState.MigrationToBakerPoolsCompleted || payload.BlockInfo.ProtocolVersion.AsInt() < 4)
             return;
         
         _logger.Information("Migrating all bakers to baker pools (protocol v4 update)...");
@@ -245,9 +245,9 @@ public class BakerImportHandler
                     MetadataUrl = source.PoolInfo.MetadataUrl,
                     CommissionRates = new CommissionRates
                     {
-                        TransactionCommission = source.PoolInfo.CommissionRates.TransactionCommission,
-                        FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission,
-                        BakingCommission = source.PoolInfo.CommissionRates.BakingCommission
+                        TransactionCommission = source.PoolInfo.CommissionRates.TransactionCommission.AsDecimal(),
+                        FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
+                        BakingCommission = source.PoolInfo.CommissionRates.BakingCommission.AsDecimal()
                     },
                     DelegatedStake = source.DelegatedCapital.Value,
                     DelegatorCount = 0,
@@ -306,7 +306,7 @@ public class BakerImportHandler
             // protocol update occurs (causing a new era to start and thus resetting epoch to zero)
             // Only baker 1900 on mainnet is affected by this bug (after the testnet reset in June 2022).
 
-            importState.LastGenesisIndex = blockInfo.GenesisIndex;
+            importState.LastGenesisIndex = (int)blockInfo.GenesisIndex;
 
             var networkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(Concordium.Sdk.Types.BlockHash.From(importState.GenesisBlockHash));
             var isMainnet = networkId == ConcordiumNetworkId.Mainnet;

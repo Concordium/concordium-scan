@@ -1,10 +1,11 @@
-﻿using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Blocks;
+﻿using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Transactions;
 
@@ -55,5 +56,23 @@ public class Transaction : IBlockOrTransactionUnion
         return dbContext.Blocks
             .AsNoTracking()
             .Single(block => block.Id == BlockId);
+    }
+    
+    internal static Transaction MapTransaction(BlockItemSummary value, long blockId)
+    {
+        return new Transaction
+        {
+            BlockId = blockId,
+            TransactionIndex = (int)value.Index,
+            TransactionHash = value.TransactionHash.ToString(),
+            TransactionType = TransactionTypeUnion.CreateFrom(value.Details),
+            SenderAccountAddress =  value.TryGetSenderAccount(out var sender) ?
+                AccountAddress.From(sender!) : null,
+            CcdCost = value.TryGetCost(out var cost) ?
+                cost!.Value.Value : 0UL,
+            EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
+            RejectReason = value.TryGetRejectedAccountTransaction(out var rejectReason) ?
+                TransactionRejectReason.MapRejectReason(rejectReason!) : null,
+        };
     }
 }

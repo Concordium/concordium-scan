@@ -23,12 +23,11 @@ public class ChainParametersWriter
         using var counter = _metrics.MeasureDuration(nameof(ChainParametersWriter), nameof(GetOrCreateChainParameters));
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
-
-        if (importState.LatestWrittenChainParameters == null)
-            importState.LatestWrittenChainParameters = await context.ChainParameters
-                .AsNoTracking()
-                .OrderByDescending(x => x.Id)
-                .FirstOrDefaultAsync();
+        
+        importState.LatestWrittenChainParameters ??= await context.ChainParameters
+            .AsNoTracking()
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync();
 
         var lastWritten = importState.LatestWrittenChainParameters;
         if (lastWritten != null)

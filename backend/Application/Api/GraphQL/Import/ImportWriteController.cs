@@ -207,7 +207,7 @@ public class ImportWriteController : BackgroundService
 
         var block = await _blockWriter.AddBlock(
             payload.BlockInfo, 
-            payload.BlockSummary, 
+            payload.FinalizationSummary, 
             payload.RewardStatus, 
             chainParameters.Current.Id, 
             bakerUpdateResults, 
@@ -215,8 +215,8 @@ public class ImportWriteController : BackgroundService
             importState,
             nonCirculatingAccountIds);
 
-        var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.BlockSummary);
-        var transactions = await _transactionWriter.AddTransactions(payload.BlockSummary, block.Id, block.BlockSlotTime);
+        var specialEvents = await _blockWriter.AddSpecialEvents(block, payload.SpecialEvents);
+        var transactions = await _transactionWriter.AddTransactions(payload.BlockItemSummaries, block.Id, block.BlockSlotTime);
 
         var passiveDelegationUpdateResults = await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus, block);
         await _bakerHandler.ApplyChangesAfterBlocksAndTransactionsWritten(block, transactions, importPaydayStatus);

@@ -28,4 +28,14 @@ public class ExchangeRate
     {
         return !Equals(left, right);
     }
+
+    internal static ExchangeRate From(Concordium.Sdk.Types.ExchangeRate exchangeRate)
+    {
+        return new ExchangeRate
+        {
+            Numerator = exchangeRate.Numerator,
+            Denominator = exchangeRate.Denominator,
+
+        };
+    }
 }

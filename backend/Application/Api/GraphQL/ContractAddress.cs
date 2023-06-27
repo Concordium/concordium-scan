@@ -36,4 +36,9 @@ public class ContractAddress : Address
     {
         return !Equals(left, right);
     }
+
+    internal static ContractAddress From(Concordium.Sdk.Types.ContractAddress contractAddress)
+    {
+        return new ContractAddress(contractAddress.Index, contractAddress.SubIndex);
+    }
 }
