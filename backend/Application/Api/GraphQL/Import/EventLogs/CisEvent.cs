@@ -7,6 +7,14 @@ namespace Application.Api.GraphQL.Import.EventLogs
     /// </summary>
     public abstract class CisEvent
     {
+        private static readonly List<int> AllowedEventTypes = new List<int> {
+            (int)CisEventType.Burn,
+            (int)CisEventType.Mint,
+            (int)CisEventType.TokenMetadata,
+            (int)CisEventType.Transfer,
+            (int)CisEventType.UpdateOperator
+        };
+        
         private const int MAX_7_BIT_VALUE = 128;
 
         /// <summary>
@@ -73,15 +81,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns></returns>
         public static bool IsCisEvent(byte[] eventBytes)
         {
-            var allowedEventTypes = new List<int> {
-                (int)CisEventType.Burn,
-                (int)CisEventType.Mint,
-                (int)CisEventType.TokenMetadata,
-                (int)CisEventType.Transfer,
-                (int)CisEventType.UpdateOperator
-            };
-
-            return allowedEventTypes.Contains((int)eventBytes.FirstOrDefault());
+            return AllowedEventTypes.Contains((int)eventBytes.FirstOrDefault());
         }
 
         /// <summary>

@@ -38,9 +38,10 @@ public class AccountValidator : IImportValidator
     {
         var blockHash = BlockHash.From(block.BlockHash);
         var blockHeight = (ulong)block.BlockHeight;
+        var given = new Given(blockHash);
 
         var accountAddresses = singleAccountValidationInfo == null
-            ? await _nodeClient.GetAccountListAsync(blockHash).ToArrayAsync()
+            ? await _nodeClient.GetAccountListAsync(given).ToArrayAsync()
             : new [] { Concordium.Sdk.Types.AccountAddress.From(singleAccountValidationInfo.CanonicalAccountAddress) };
 
         var nodeAccountInfos = new List<AccountInfo>();
@@ -49,7 +50,7 @@ public class AccountValidator : IImportValidator
         foreach (var chunk in Chunk(accountAddresses, 10))
         {
             var accountInfoResults = await Task.WhenAll(chunk
-                .Select(x => _nodeClient.GetAccountInfoAsync(x, blockHash)));
+                .Select(x => _nodeClient.GetAccountInfoAsync(x, given)));
             
             var accountInfos = accountInfoResults
                 .Where(x => x != null)
@@ -59,14 +60,25 @@ public class AccountValidator : IImportValidator
             nodeAccountInfos.AddRange(accountInfos);
 
             nodeAccountBakers.AddRange(accountInfos
-                .Where(x => x.AccountBaker != null)
-                .Select(x => x.AccountBaker!)
-                .Select(x => x));
+                .Select(ai => ai.AccountStakingInfo as AccountBaker)
+                .Where(ab => ab is not null)
+                .Select(x => x!));
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext, singleAccountValidationInfo);
         await ValidateBakers(nodeAccountBakers, block, dbContext, singleAccountValidationInfo);
+    }
+
+    private bool TryGetAccountDelegation(IAccountStakingInfo? info, out AccountDelegation? delegation)
+    {
+        delegation = null;
+        if (info is not AccountDelegation accountDelegation)
+        {
+            return false;
+        }
+        delegation = accountDelegation;
+        return true;
     }
 
     private async Task ValidateAccounts(List<AccountInfo> nodeAccountInfos, ulong blockHeight, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
@@ -75,13 +87,13 @@ public class AccountValidator : IImportValidator
             {
                 AccountAddress = x.AccountAddress.ToString(),
                 AccountBalance = x.AccountAmount.Value,
-                Delegation = x.AccountDelegation == null ? null : new
+                Delegation = TryGetAccountDelegation(x.AccountStakingInfo, out var delegation) ? new
                 {
-                    StakedAmount = x.AccountDelegation.StakedAmount.Value,
-                    RestakeEarnings = x.AccountDelegation.RestakeEarnings,
-                    PendingChange = x.AccountDelegation.PendingChange == null ? null : Format(x.AccountDelegation.PendingChange),
-                    Delegation = Format(x.AccountDelegation.DelegationTarget)
-                }
+                    StakedAmount = delegation!.StakedAmount.Value,
+                    RestakeEarnings = delegation.RestakeEarnings,
+                    PendingChange = delegation.PendingChange == null ? null : Format(delegation.PendingChange),
+                    Delegation = Format(delegation.DelegationTarget)
+                } : null
             })
             .OrderBy(x => x.AccountAddress)
             .ToArray();
@@ -141,7 +153,7 @@ public class AccountValidator : IImportValidator
         }
     }
 
-    private string Format(DelegationTarget value)
+    private static string Format(DelegationTarget value)
     {
         return value switch
         {
@@ -151,17 +163,17 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private string Format(Concordium.Sdk.Types.New.DelegationTarget value)
+    private static string Format(Concordium.Sdk.Types.DelegationTarget value)
     {
         return value switch
         {
-            Concordium.Sdk.Types.New.PassiveDelegationTarget => "passive",
-            Concordium.Sdk.Types.New.BakerDelegationTarget x => $"baker {x.BakerId}",
+            Concordium.Sdk.Types.PassiveDelegationTarget => "passive",
+            Concordium.Sdk.Types.BakerDelegationTarget x => $"baker {x.BakerId}",
             _ => throw new NotImplementedException()
         };
     }
 
-    private string Format(AccountDelegationPendingChange pendingChange)
+    private static string Format(AccountDelegationPendingChange pendingChange)
     {
         return pendingChange switch
         {
@@ -171,7 +183,7 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private string Format(PendingDelegationChange pendingChange)
+    private static string Format(PendingDelegationChange pendingChange)
     {
         return pendingChange switch
         {
@@ -185,6 +197,7 @@ public class AccountValidator : IImportValidator
     {
         var blockHeight = (ulong)block.BlockHeight;
         var blockHash = BlockHash.From(block.BlockHash);
+        var given = new Given(blockHash);
 
         var poolStatuses = new List<BakerPoolStatus>();
 
@@ -194,7 +207,7 @@ public class AccountValidator : IImportValidator
         foreach (var chunk in Chunk(nodeAccountBakers, 10))
         {
             var chunkResult = await Task.WhenAll(chunk
-                .Select(x => _nodeClient.GetPoolStatusForBakerAsync(x.BakerId, blockHash)));
+                .Select(x => _nodeClient.GetPoolInfoAsync(x.BakerId, given)));
         
             poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
         }
@@ -209,19 +222,19 @@ public class AccountValidator : IImportValidator
                 
                 return new
                 {
-                    Id = x.BakerId,
+                    Id = x.BakerId.Id.Index,
                     StakedAmount = x.StakedAmount.Value,
                     RestakeEarnings = x.RestakeEarnings,
                     Pool = x.BakerPoolInfo == null ? null : new
                         {
                             OpenStatus = x.BakerPoolInfo.OpenStatus.MapToGraphQlEnum(),
                             MetadataUrl = x.BakerPoolInfo.MetadataUrl,
-                            TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission,
-                            FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission,
-                            BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission,
+                            TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission.AsDecimal(),
+                            FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
+                            BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission.AsDecimal(),
                             DelegatedStake = bakerPoolStatus.DelegatedCapital.Value,
                             DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap.Value,
-                            PaydayStatus = bakerPoolStatus.CurrentPaydayStatus == null ? null : new
+                            PaydayStatus = bakerPoolStatus?.CurrentPaydayStatus == null ? null : new
                             {
                                 BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.Value,
                                 DelegatedStake = bakerPoolStatus.CurrentPaydayStatus.DelegatedCapital.Value,

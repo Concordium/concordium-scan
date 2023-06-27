@@ -26,7 +26,6 @@ public class ChainParametersConfiguration : IEntityTypeConfiguration<ChainParame
             microCcdPerEnergyBuilder.Property(x => x.Denominator).HasColumnName("micro_ccd_per_euro_denominator");
         });
         builder.Property(x => x.AccountCreationLimit).HasColumnName("credentials_per_block_limit");
-        builder.Property(x => x.FoundationAccountId).HasColumnName("foundation_account_id");
         builder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
 
         builder
@@ -101,7 +100,6 @@ public class ChainParametersConfiguration : IEntityTypeConfiguration<ChainParame
                 gasRewardsBuilder.Property(x => x.ChainUpdate).HasColumnName("gas_chain_update");
             });
         });
-        builder.Property(x => x.FoundationAccountId).HasColumnName("foundation_account_id");
         builder.Property(x => x.FoundationAccountAddress).HasColumnName("foundation_account_address").HasConversion<AccountAddressConverter>();
         builder.Property(x => x.PassiveFinalizationCommission).HasColumnName("passive_finalization_commission");
         builder.Property(x => x.PassiveBakingCommission).HasColumnName("passive_baking_commission");

@@ -94,19 +94,19 @@ public class MetricsWriter
 
         var cumulativeTransactionCount = importState.CumulativeTransactionCount;
         
-        var transactionParams = blockSummary.TransactionSummaries.Select((txs, ix) => new
+        var transactionParams = blockItemSummaries.Select((txs, ix) => new
         {
             CumulativeTransactionCount = cumulativeTransactionCount + ix + 1,
             Time = blockInfo.BlockSlotTime,
-            TransactionType = TransactionTypeUnion.CreateFrom(txs.Type).ToCompactString(),
-            MicroCcdCost = Convert.ToInt64(txs.Cost.Value),
-            Success = txs.Result is TransactionSuccessResult
+            TransactionType = TransactionTypeUnion.CreateFrom(txs.Details).ToCompactString(),
+            MicroCcdCost = Convert.ToInt64(txs.GetCost()),
+            Success = txs.IsSuccess()
         }).ToArray();
 
         var sql = "insert into metrics_transactions (time, cumulative_transaction_count, transaction_type, micro_ccd_cost, success) values (@Time, @CumulativeTransactionCount, @TransactionType, @MicroCcdCost, @Success)";
         await conn.ExecuteAsync(sql, transactionParams);
 
-        var newValue = cumulativeTransactionCount + blockSummary.TransactionSummaries.Length;
+        var newValue = cumulativeTransactionCount + blockItemSummaries.Count;
         importState.CumulativeTransactionCount = newValue;
     }
 

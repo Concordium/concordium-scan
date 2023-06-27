@@ -3,7 +3,6 @@ using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
 using Application.Import;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.Views;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -43,8 +42,12 @@ public class AccountImportHandler
         var transactionRelations = _changeCalculator.GetAccountTransactionRelations(transactions);
         if (transactionRelations.Length > 0)
             _writer.InsertAccountTransactionRelation(transactionRelations);
+
+        var balanceUpdates = 
+            AccountBalanceUpdateWithTransaction.From(payload.BlockItemSummaries)
+            .Concat(AccountBalanceUpdate.From(payload.SpecialEvents))
+            .ToArray();
         
-        var balanceUpdates = payload.BlockSummary.GetAccountBalanceUpdates().ToArray();
         var accountUpdates = _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
         var updateResults = _writer.UpdateAccounts(accountUpdates);
 

@@ -1,4 +1,4 @@
-﻿using Concordium.Sdk.Types.Views;
+﻿using Application.Api.GraphQL.Import;
 
 namespace Application.Api.GraphQL;
 

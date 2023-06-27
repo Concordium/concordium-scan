@@ -24,15 +24,14 @@ public class PassiveDelegationValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
-        // TODO - doesn't exist but is it needed?
-        // var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
-        // if (nodeSwVersion.Major >= 4)
-        // {
+        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
+        if (nodeSwVersion.Major >= 4)
+        {
             var target = await ReadPassiveDelegation();
 
             await ValidateDatabaseConsistent(target);
             await ValidateAgainstNodeData(target, block);
-        // }
+        }
     }
 
     private async Task ValidateAgainstNodeData(PassiveDelegation? passiveDelegation, Block block)
@@ -43,7 +42,7 @@ public class PassiveDelegationValidator : IImportValidator
             CurrentPaydayDelegatedStake = passiveDelegation?.CurrentPaydayDelegatedStake
         };
 
-        var nodePoolStatus = await _nodeClient.GetPoolStatusForPassiveDelegation(BlockHash.From(block.BlockHash));
+        var nodePoolStatus = await _nodeClient.GetPassiveDelegationInfoAsync(block.Into());
         var actualValue = new
         {
             DelegatedStake = nodePoolStatus?.DelegatedCapital.Value,

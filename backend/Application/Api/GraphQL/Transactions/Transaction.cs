@@ -68,8 +68,7 @@ public class Transaction : IBlockOrTransactionUnion
             TransactionType = TransactionTypeUnion.CreateFrom(value.Details),
             SenderAccountAddress =  value.TryGetSenderAccount(out var sender) ?
                 AccountAddress.From(sender!) : null,
-            CcdCost = value.TryGetCost(out var cost) ?
-                cost!.Value.Value : 0UL,
+            CcdCost = value.GetCost().Value,
             EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
             RejectReason = value.TryGetRejectedAccountTransaction(out var rejectReason) ?
                 TransactionRejectReason.MapRejectReason(rejectReason!) : null,

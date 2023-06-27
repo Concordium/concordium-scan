@@ -62,19 +62,11 @@ public class BakerImportHandler
         var items = transactions
             .Select(tx =>
             {
-                var bakerIds = tx.Source.Result.GetBakerIds().Distinct().ToArray();
-                if (bakerIds.Length == 0)
-                    return null;
-                if (bakerIds.Length == 1)
-                    return new BakerTransactionRelation
-                    {
-                        BakerId = (long)bakerIds.Single(),
-                        TransactionId = tx.Target.Id
-                    };
-                throw new InvalidOperationException("Did not expect multiple baker id's from one transaction");
+                var mapped = BakerTransactionRelation.TryFrom(tx, out var relation);
+                return (mapped, relation);
             })
-            .Where(x => x != null)
-            .Select(x => x!);
+            .Where(x => x.mapped)
+            .Select(x => x.relation!);
 
         await _writer.AddBakerTransactionRelations(items);
     }
@@ -197,7 +189,7 @@ public class BakerImportHandler
         var poolStatuses = await payload.ReadAllBakerPoolStatuses();
         foreach (var poolStatus in poolStatuses)
         {
-            await _writer.UpdateBaker(poolStatus, src => src.BakerId, (src, dst) =>
+            await _writer.UpdateBaker(poolStatus, src => src.BakerId.Id.Index, (src, dst) =>
             {
                 var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
 
@@ -232,7 +224,7 @@ public class BakerImportHandler
 
         var bakerPoolStatuses = await payload.ReadAllBakerPoolStatuses();
         var bakerPoolStatusesDict = bakerPoolStatuses
-            .ToDictionary(x => (long)x.BakerId);
+            .ToDictionary(x => (long)x.BakerId.Id.Index);
         
         await _writer.UpdateBakers(
             baker =>

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -83,6 +84,11 @@ public class Block : IBlockOrTransactionUnion
         return dbContext.ChainParameters
             .AsNoTracking()
             .SingleAsync(x => x.Id == ChainParametersId);
+    }
+
+    internal IBlockHashInput Into()
+    {
+        return new Given(Concordium.Sdk.Types.BlockHash.From(BlockHash));
     }
 }
 

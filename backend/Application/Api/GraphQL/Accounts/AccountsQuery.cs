@@ -24,7 +24,7 @@ public class AccountsQuery
         if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed)) 
             return null;
         
-        var baseAddress = new AccountAddress(parsed!.Value.GetBaseAddress().ToString());
+        var baseAddress = AccountAddress.From(parsed!);
         return dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
