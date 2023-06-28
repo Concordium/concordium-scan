@@ -5,7 +5,6 @@ using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
-using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using FinalizationSummary = Application.Api.GraphQL.Blocks.FinalizationSummary;
 using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
 
@@ -43,16 +42,22 @@ public class BlockWriter
 
         var nonCirculatingAccountsBalance = await GetNonCirculatingBalance(nonCirculatingAccountIds);
 
-        var block = MapBlock(
+        var calculateTotalAmountUnlocked = _changeCalculator.CalculateTotalAmountUnlocked(blockInfo.BlockSlotTime, importState.GenesisBlockHash);
+        var balanceStatistics = BalanceStatistics.MapBalanceStatistics(
+            rewardStatus, 
+            blockInfo.BlockSlotTime, 
+            bakerUpdateResults, 
+            delegationUpdateResults, 
+            importState, 
+            nonCirculatingAccountsBalance, calculateTotalAmountUnlocked);
+        FinalizationSummary.TryMapFinalizationSummary(finalizationSummary, out var possibleFinalizationSummary);
+
+        var block = Block.MapBlock(
             blockInfo,
-            finalizationSummary,
-            rewardStatus,
             blockTime,
             chainParametersId,
-            bakerUpdateResults,
-            delegationUpdateResults,
-            importState,
-            nonCirculatingAccountsBalance);
+            balanceStatistics,
+            possibleFinalizationSummary);
         context.Blocks.Add(block);
 
         await context.SaveChangesAsync(); // assign ID to block!
@@ -92,192 +97,17 @@ public class BlockWriter
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(AddSpecialEvents));
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
-        var specialEventsMapped = MapSpecialEvents(block.Id, specialEvents).ToArray();
+        var specialEventsMapped = SpecialEvent.MapSpecialEvents(block.Id, specialEvents).ToArray();
         context.SpecialEvents.AddRange(specialEventsMapped);
         
         await context.SaveChangesAsync();
         return specialEventsMapped;
-    }
-    
-    private static IEnumerable<Blocks.SpecialEvent> MapSpecialEvents(long blockId, IList<ISpecialEvent> inputs)
-    {
-        foreach (var input in inputs)
-        {
-            switch (input)
-            {
-                case BakingRewards bakingRewards:
-                    var bakingRewardsAccountAmounts = bakingRewards.Rewards
-                        .Select(kv => (AccountAddress: kv.Key, Amount: kv.Value))
-                        .ToList();
-                    yield return new Blocks.BakingRewardsSpecialEvent
-                    {
-                        BlockId = blockId,
-                        Remainder = bakingRewards.Remainder.Value, 
-                        AccountAddresses = bakingRewardsAccountAmounts
-                            .Select(reward => new AccountAddress(reward.AccountAddress.ToString())).ToArray(),
-                        Amounts = bakingRewardsAccountAmounts.Select(reward => reward.Amount.Value).ToArray()
-                    };
-                    break;
-                case BlockAccrueReward blockAccrueReward:
-                    yield return new Blocks.BlockAccrueRewardSpecialEvent
-                    {
-                        BlockId = blockId,
-                        TransactionFees = blockAccrueReward.TransactionFees.Value,
-                        OldGasAccount = blockAccrueReward.OldGasAccount.Value,
-                        NewGasAccount = blockAccrueReward.NewGasAccount.Value,
-                        BakerReward = blockAccrueReward.BakerReward.Value,
-                        PassiveReward = blockAccrueReward.PassiveReward.Value,
-                        FoundationCharge = blockAccrueReward.FoundationCharge.Value,
-                        BakerId = blockAccrueReward.BakerId.Id.Index
-                    };
-                    break;
-                case BlockReward blockReward:
-                    yield return new Blocks.BlockRewardsSpecialEvent
-                    {
-                        BlockId = blockId,
-                        TransactionFees = blockReward.TransactionFees.Value,
-                        OldGasAccount = blockReward.OldGasAccount.Value,
-                        NewGasAccount = blockReward.NewGasAccount.Value,
-                        BakerReward = blockReward.BakerReward.Value,
-                        FoundationCharge = blockReward.FoundationCharge.Value,
-                        BakerAccountAddress = new AccountAddress(blockReward.Baker.ToString()),
-                        FoundationAccountAddress = new AccountAddress(blockReward.FoundationAccount.ToString())
-                    };
-                    break;
-                case FinalizationRewards finalizationRewards:
-                    var accountAmounts = finalizationRewards.Rewards
-                        .Select(kv => (AccountAddress: kv.Key, Amount: kv.Value))
-                        .ToList();
-                    yield return new Blocks.FinalizationRewardsSpecialEvent
-                    {
-                        BlockId = blockId,
-                        Remainder = finalizationRewards.Remainder.Value,
-                        AccountAddresses = accountAmounts
-                            .Select(reward => new AccountAddress(reward.AccountAddress.ToString())).ToArray(),
-                        Amounts = accountAmounts.Select(reward => reward.Amount.Value).ToArray()
-                    };
-                    break;
-                case Mint mint:
-                    yield return new Blocks.MintSpecialEvent
-                    {
-                        BlockId = blockId,
-                        BakingReward = mint.MintBakingReward.Value,
-                        FinalizationReward = mint.MintFinalizationReward.Value,
-                        PlatformDevelopmentCharge = mint.MintPlatformDevelopmentCharge.Value,
-                        FoundationAccountAddress = new AccountAddress(mint.FoundationAccount.ToString())
-                    };
-                    break;
-                case PaydayAccountReward paydayAccountReward:
-                    yield return new Blocks.PaydayAccountRewardSpecialEvent
-                    {
-                        BlockId = blockId,
-                        Account = new AccountAddress(paydayAccountReward.Account.ToString()),
-                        TransactionFees = paydayAccountReward.TransactionFees.Value,
-                        BakerReward = paydayAccountReward.BakerReward.Value,
-                        FinalizationReward = paydayAccountReward.FinalizationReward.Value
-                    };
-                    break;
-                case PaydayFoundationReward paydayFoundationReward:
-                    yield return new Blocks.PaydayFoundationRewardSpecialEvent
-                    {
-                        BlockId = blockId,
-                        FoundationAccount = new AccountAddress(paydayFoundationReward.FoundationAccount.ToString()),
-                        DevelopmentCharge = paydayFoundationReward.DevelopmentCharge.Value,
-                    };
-                    break;
-                case PaydayPoolReward paydayPoolReward:
-                    yield return new Blocks.PaydayPoolRewardSpecialEvent
-                    {
-                        BlockId = blockId,
-                        Pool = paydayPoolReward.PoolOwner.HasValue
-                            ? new BakerPoolRewardTarget((long)paydayPoolReward.PoolOwner.Value)
-                            : new PassiveDelegationPoolRewardTarget(),
-                        TransactionFees = paydayPoolReward.TransactionFees.Value,
-                        BakerReward = paydayPoolReward.BakerReward.Value,
-                        FinalizationReward = paydayPoolReward.FinalizationReward.Value
-                    };
-                    break;
-            }
-        }
-    }
-
-    private Block MapBlock(
-        BlockInfo blockInfo,
-        Concordium.Sdk.Types.FinalizationSummary? finalizationSummary,
-        RewardOverviewBase rewardStatus,
-        double blockTime,
-        int chainParametersId,
-        BakerUpdateResults bakerUpdateResults,
-        DelegationUpdateResults delegationUpdateResults,
-        ImportState importState,
-        ulong nonCirculatingAccountsBalance)
-    {
-        var block = new Block
-        {
-            BlockHash = blockInfo.BlockHash.ToString(),
-            BlockHeight = (int)blockInfo.BlockHeight,
-            BlockSlotTime = blockInfo.BlockSlotTime,
-            BakerId = blockInfo.BlockBaker != null ? (int)blockInfo.BlockBaker!.Value.Id.Index : null,
-            Finalized = blockInfo.Finalized,
-            TransactionCount = (int)blockInfo.TransactionCount,
-            FinalizationSummary = MapFinalizationSummary(finalizationSummary),
-            BalanceStatistics = MapBalanceStatistics(
-                rewardStatus, 
-                blockInfo.BlockSlotTime, 
-                bakerUpdateResults, 
-                delegationUpdateResults, 
-                importState, 
-                nonCirculatingAccountsBalance),
-            BlockStatistics = new BlockStatistics
-            {
-                BlockTime = blockTime, 
-                FinalizationTime = null // Updated when the block with proof of finalization for this block is imported
-            },
-            ChainParametersId = chainParametersId
-        };
-        return block;
     }
 
     private double GetBlockTime(BlockInfo blockInfo, DateTimeOffset previousBlockSlotTime)
     {
         var blockTime = blockInfo.BlockSlotTime - previousBlockSlotTime;
         return Math.Round(blockTime.TotalSeconds, 1);
-    }
-
-    private BalanceStatistics MapBalanceStatistics(
-        RewardOverviewBase rewardStatus, 
-        DateTimeOffset blockSlotTime,
-        BakerUpdateResults bakerUpdateResults, 
-        DelegationUpdateResults delegationUpdateResults, 
-        ImportState importState, 
-        ulong nonCirculatingAccountsBalance)
-    {
-        var totalCcdSupply = rewardStatus.TotalAmount.Value;
-        var totalCirculatingCcdSupply = totalCcdSupply - nonCirculatingAccountsBalance;
-
-        return new BalanceStatistics(
-            totalCcdSupply,
-            totalCirculatingCcdSupply,
-            _changeCalculator.CalculateTotalAmountUnlocked(blockSlotTime, importState.GenesisBlockHash),
-            rewardStatus.TotalEncryptedAmount.Value,
-            0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
-            bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked,
-            bakerUpdateResults.TotalAmountStaked,
-            delegationUpdateResults.TotalAmountStaked,
-            rewardStatus.BakingRewardAccount.Value, 
-            rewardStatus.FinalizationRewardAccount.Value, 
-            rewardStatus.GasAccount.Value);
-    }
-
-    private FinalizationSummary? MapFinalizationSummary(Concordium.Sdk.Types.FinalizationSummary? data)
-    {
-        if (data == null) return null;
-        return new FinalizationSummary
-        {
-            FinalizedBlockHash = data.BlockPointer.ToString(),
-            FinalizationIndex = (long)data.Index,
-            FinalizationDelay = (long)data.Delay,
-        };
     }
 
     private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, Concordium.Sdk.Types.FinalizationSummaryParty value)

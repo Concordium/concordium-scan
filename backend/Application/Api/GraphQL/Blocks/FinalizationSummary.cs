@@ -28,4 +28,22 @@ public class FinalizationSummary
             .OrderBy(x => x.Index)
             .Select(x => x.Entity);
     }
+    
+    internal static bool TryMapFinalizationSummary(
+        Concordium.Sdk.Types.FinalizationSummary? data,
+        out FinalizationSummary? finalizationSummary)
+    {
+        if (data == null)
+        {
+            finalizationSummary = null;
+            return false;
+        };
+        finalizationSummary = new FinalizationSummary
+        {
+            FinalizedBlockHash = data.BlockPointer.ToString(),
+            FinalizationIndex = (long)data.Index,
+            FinalizationDelay = (long)data.Delay,
+        };
+        return true;
+    }
 }

@@ -28,7 +28,7 @@ public class ExportController : ControllerBase
             return BadRequest("Invalid account format.");
         }
 
-        var baseAddress = new AccountAddress(parsed!.Value.GetBaseAddress().ToString());
+        var baseAddress = new AccountAddress(parsed!.GetBaseAddress().ToString());
         var account = dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);

@@ -63,7 +63,7 @@ public class SearchResult
         if (Concordium.Sdk.Types.AccountAddress.TryParse(_queryString, out var parsed))
         {
             // Valid (full) address given, search by base address to allow searching by an alias address
-            var baseAddress = new AccountAddress(parsed!.Value.GetBaseAddress().ToString());
+            var baseAddress = new AccountAddress(parsed!.GetBaseAddress().ToString());
             return dbContext.Accounts
                 .AsNoTracking()
                 .Where(account => account.BaseAddress == baseAddress);

@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
 using HotChocolate;
@@ -89,6 +90,33 @@ public class Block : IBlockOrTransactionUnion
     internal IBlockHashInput Into()
     {
         return new Given(Concordium.Sdk.Types.BlockHash.From(BlockHash));
+    }
+    
+    internal static Block MapBlock(
+        BlockInfo blockInfo,
+        double blockTime,
+        int chainParametersId,
+        BalanceStatistics balanceStatistics, 
+        FinalizationSummary? finalizationSummary)
+    {
+        var block = new Block
+        {
+            BlockHash = blockInfo.BlockHash.ToString(),
+            BlockHeight = (int)blockInfo.BlockHeight,
+            BlockSlotTime = blockInfo.BlockSlotTime,
+            BakerId = blockInfo.BlockBaker != null ? (int)blockInfo.BlockBaker!.Value.Id.Index : null,
+            Finalized = blockInfo.Finalized,
+            TransactionCount = (int)blockInfo.TransactionCount,
+            FinalizationSummary = finalizationSummary,
+            BalanceStatistics = balanceStatistics,
+            BlockStatistics = new BlockStatistics
+            {
+                BlockTime = blockTime, 
+                FinalizationTime = null // Updated when the block with proof of finalization for this block is imported
+            },
+            ChainParametersId = chainParametersId
+        };
+        return block;
     }
 }
 
