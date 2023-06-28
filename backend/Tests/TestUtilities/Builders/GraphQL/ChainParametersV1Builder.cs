@@ -14,7 +14,6 @@ public class ChainParametersV1Builder
     private decimal _mintPerPayday = 0.02m;
     private ushort _accountCreationLimit = 7;
     private RewardParametersV1 _rewardParameters = new RewardParametersV1Builder().Build();
-    private long _foundationAccountIndex = 1;
     private AccountAddress _foundationAccountAddress = new("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
     private decimal _passiveFinalizationCommission = 0.01m;
     private decimal _passiveBakingCommission = 0.01m;
@@ -39,7 +38,6 @@ public class ChainParametersV1Builder
             MintPerPayday = _mintPerPayday,
             AccountCreationLimit = _accountCreationLimit,
             RewardParameters = _rewardParameters,
-            FoundationAccountId = _foundationAccountIndex,
             FoundationAccountAddress = _foundationAccountAddress,
             PassiveFinalizationCommission = _passiveFinalizationCommission,
             PassiveBakingCommission = _passiveBakingCommission,
@@ -107,12 +105,6 @@ public class ChainParametersV1Builder
         return this;
     }
 
-    public ChainParametersV1Builder WithFoundationAccountIndex(long value)
-    {
-        _foundationAccountIndex = value;
-        return this;
-    }
-    
     public ChainParametersV1Builder WithFoundationAccountAddress(AccountAddress value)
     {
         _foundationAccountAddress = value;

@@ -113,7 +113,7 @@ public record MintDistributionChainUpdatePayload(
     internal static MintDistributionChainUpdatePayload From(MintDistributionCpv0Update mintDistributionCpv0Update)
     {
         return new MintDistributionChainUpdatePayload(
-            mintDistributionCpv0Update.MintDistribution.MintPerSlot.GetValue(),
+            mintDistributionCpv0Update.MintDistribution.MintPerSlot.AsDecimal(),
             mintDistributionCpv0Update.MintDistribution.BakingReward.AsDecimal(),
             mintDistributionCpv0Update.MintDistribution.FinalizationReward.AsDecimal()
         );
@@ -267,7 +267,7 @@ public record TimeParametersChainUpdatePayload(
     {
         return new TimeParametersChainUpdatePayload(
             timeParametersCpv1Update.TimeParameters.RewardPeriodLength.RewardPeriodEpochs.Count,
-            timeParametersCpv1Update.TimeParameters.MintPrPayDay.GetValue()
+            timeParametersCpv1Update.TimeParameters.MintPrPayDay.AsDecimal()
             );
     }
 }

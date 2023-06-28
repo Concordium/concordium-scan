@@ -1,7 +1,6 @@
 using Application.Api.GraphQL.Import;
 using Application.Import;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;

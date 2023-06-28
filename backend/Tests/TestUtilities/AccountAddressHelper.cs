@@ -9,6 +9,13 @@ public static class AccountAddressHelper
     private static readonly AccountAddress TemplateAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
     private static UInt32 _nextUniqueValue = 0;
 
+    public static AccountAddress CreateOneFilledWith(byte fill)
+    {
+        Span<byte> array = stackalloc byte[32];
+        array.Fill(fill);
+        return AccountAddress.From(array.ToArray());
+    }
+
     public static string GetBaseAddress(string address)
     {
         return AccountAddress.From(address).GetBaseAddress().ToString();

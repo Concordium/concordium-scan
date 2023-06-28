@@ -1,5 +1,5 @@
-﻿using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
+﻿using Application.Api.GraphQL.Import;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 

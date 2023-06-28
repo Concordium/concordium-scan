@@ -1,5 +1,4 @@
-﻿using Application.NodeApi;
-using Concordium.Sdk.Types;
+﻿using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -13,18 +12,18 @@ public class BlockRewardSpecialEventBuilder
     private AccountAddress _baker = AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     private AccountAddress _foundationAccount = AccountAddress.From("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi");
 
-    public BlockRewardSpecialEvent Build()
+    public BlockReward Build()
     {
-        return new BlockRewardSpecialEvent()
-        {
-            BakerReward = _bakerReward,
-            FoundationCharge = _foundationCharge,
-            TransactionFees = _transactionFees,
-            NewGasAccount = _newGasAccount,
-            OldGasAccount = _oldGasAccount,
-            Baker = _baker,
-            FoundationAccount = _foundationAccount
-        };
+        return new BlockReward
+        (
+            BakerReward: _bakerReward,
+            FoundationCharge: _foundationCharge,
+            TransactionFees: _transactionFees,
+            NewGasAccount: _newGasAccount,
+            OldGasAccount: _oldGasAccount,
+            Baker: _baker,
+            FoundationAccount: _foundationAccount
+        );
     }
 
     public BlockRewardSpecialEventBuilder WithBakerReward(CcdAmount value)

@@ -1,5 +1,4 @@
-﻿using Application.NodeApi;
-using Concordium.Sdk.Types;
+﻿using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 

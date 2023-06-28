@@ -2,8 +2,8 @@
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using FluentAssertions;
+using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
@@ -222,23 +222,23 @@ public class AccountChangeCalculatorTest
     }
     
     
+    
     [Fact] 
     public void GetAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
     {
-        var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        var canonicalAddress = AccountAddressHelper.CreateOneFilledWith(1);
+        var to = AccountAddressHelper.CreateOneFilledWith(1);
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 13);
 
+        var accountTransactionDetails = AccountTransactionDetailsBuilder.Create(new AccountTransfer(CcdAmount.Zero, to, null))
+            .WithSender(canonicalAddress)
+            .Build();
+        var blockItemSummary = BlockItemSummaryBuilder.Create(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(null)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(
-                        new Concordium.Sdk.Types.New.AccountCreated(canonicalAddress),
-                        new Concordium.Sdk.Types.New.CredentialDeployed("1234", canonicalAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-
+        
         var result = _target.GetAccountTransactionRelations(new[] { input });
 
         result.Length.Should().Be(1);

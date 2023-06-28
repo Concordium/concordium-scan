@@ -1,6 +1,4 @@
-﻿using Concordium.Sdk.Types.New;
-
-namespace Tests.TestUtilities.Builders;
+﻿namespace Tests.TestUtilities.Builders;
 
 public class BlockSummaryV0Builder
 {

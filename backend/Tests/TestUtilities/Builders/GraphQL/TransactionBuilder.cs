@@ -20,7 +20,7 @@ public class @TransactionBuilder
             SenderAccountAddress = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
             CcdCost = 241,
             EnergyCost = 422,
-            TransactionType = new AccountTransaction { AccountTransactionType = AccountTransactionType.SimpleTransfer },
+            TransactionType = new AccountTransaction { AccountTransactionType = TransactionType.Transfer },
             RejectReason = null
         };
     }

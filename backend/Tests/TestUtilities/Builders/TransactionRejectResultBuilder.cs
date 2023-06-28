@@ -1,6 +1,4 @@
-﻿using Application.NodeApi;
-
-namespace Tests.TestUtilities.Builders;
+﻿namespace Tests.TestUtilities.Builders;
 
 public class TransactionRejectResultBuilder
 {

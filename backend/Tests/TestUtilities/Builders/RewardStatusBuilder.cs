@@ -1,5 +1,4 @@
 ﻿using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 
 namespace Tests.TestUtilities.Builders;
 
@@ -11,10 +10,15 @@ public class RewardStatusBuilder
     private CcdAmount _finalizationRewardAccount = CcdAmount.Zero;
     private CcdAmount _gasAccount = CcdAmount.Zero;
 
-    public RewardStatusV0 Build()
+    public RewardOverviewV0 Build()
     {
-        return new RewardStatusV0(_totalAmount, _totalEncryptedAmount, _bakingRewardAccount, 
-            _finalizationRewardAccount, _gasAccount);
+        return new RewardOverviewV0(
+            ProtocolVersion.P3,
+            _totalAmount,
+            _totalEncryptedAmount,
+            _bakingRewardAccount, 
+            _finalizationRewardAccount,
+            _gasAccount);
     }
 
     public RewardStatusBuilder WithTotalAmount(CcdAmount value)

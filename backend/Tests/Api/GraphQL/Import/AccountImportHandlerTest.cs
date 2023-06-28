@@ -4,13 +4,10 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Import;
 using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
-using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
-using SpecialEvent = Application.Api.GraphQL.Blocks.SpecialEvent;
 
 namespace Tests.Api.GraphQL.Import
 {

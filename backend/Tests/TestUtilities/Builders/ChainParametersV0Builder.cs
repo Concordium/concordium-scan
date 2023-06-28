@@ -1,26 +1,55 @@
 ﻿using Concordium.Sdk.Types;
-using Concordium.Sdk.Types.New;
+using Tests.TestUtilities.Stubs;
+using ExchangeRate = Concordium.Sdk.Types.ExchangeRate;
+using GasRewards = Concordium.Sdk.Types.GasRewards;
+using TransactionFeeDistribution = Concordium.Sdk.Types.TransactionFeeDistribution;
 
 namespace Tests.TestUtilities.Builders;
 
 public class ChainParametersV0Builder
 {
-    private decimal _electionDifficulty = 0.5m;
+    private AmountFraction _electionDifficulty = AmountFraction.From(0.5m);
     private ExchangeRate _euroPerEnergy = new ExchangeRate(1, 3);
-    private ExchangeRate _microGtuPerEuro = new ExchangeRate(2, 5);
-    private ulong _bakerCooldownEpochs = 12;
-    private ushort _credentialsPerBlockLimit = 7;
-    private RewardParametersV0 _rewardParameters = new RewardParametersV0Builder().Build();
-    private ulong _foundationAccountIndex = 1;
+    private ExchangeRate _microCcdPerEuro = new ExchangeRate(2, 5);
+    private Epoch _bakerCooldownEpochs = new Epoch(12);
+    private CredentialsPerBlockLimit _credentialsPerBlockLimit = new CredentialsPerBlockLimit(7);
+    private MintDistributionCpv0 _mintDistribution = new(
+        MintRate.From(0.2m),
+        AmountFraction.From(0.3m),
+        AmountFraction.From(0.4m));
+    private TransactionFeeDistribution _transactionFeeDistribution = new (
+        AmountFraction.From(0.5m),
+        AmountFraction.From(0.6m));
+    private GasRewards _gasRewards = new(
+        AmountFraction.From(0.21m),
+        AmountFraction.From(0.22m),
+        AmountFraction.From(0.23m),
+        AmountFraction.From(0.24m));
+    private AccountAddress _foundationAccount = AccountAddress.From(new byte[32]);
     private CcdAmount _minimumThresholdForBaking = CcdAmount.FromCcd(15000);
-
-    public ChainParametersV0 Build()
+    private readonly RootKeys _rootKeys = SimpleStubs.RootKeysStub();
+    private readonly Level1Keys _higherLevelKeys = SimpleStubs.Level1KeysStub();
+    private readonly AuthorizationsV0 _authorizationsV0 = SimpleStubs.AuthorizationsV0Stub();
+    
+    public Concordium.Sdk.Types.ChainParametersV0 Build()
     {
-        return new ChainParametersV0(_electionDifficulty, _euroPerEnergy, _microGtuPerEuro, _bakerCooldownEpochs,
-            _credentialsPerBlockLimit, _rewardParameters, _foundationAccountIndex, _minimumThresholdForBaking);
+        return new Concordium.Sdk.Types.ChainParametersV0(
+            _electionDifficulty,
+            _euroPerEnergy, 
+            _microCcdPerEuro, 
+            _bakerCooldownEpochs,
+            _credentialsPerBlockLimit,
+            _mintDistribution,
+            _transactionFeeDistribution,
+            _gasRewards,
+            _foundationAccount,
+            _minimumThresholdForBaking,
+            SimpleStubs.RootKeysStub(),
+            SimpleStubs.Level1KeysStub(),
+            SimpleStubs.AuthorizationsV0Stub());
     }
 
-    public ChainParametersV0Builder WithElectionDifficulty(decimal value)
+    public ChainParametersV0Builder WithElectionDifficulty(AmountFraction value)
     {
         _electionDifficulty = value;
         return this;
@@ -32,33 +61,45 @@ public class ChainParametersV0Builder
         return this;
     }
 
-    public ChainParametersV0Builder WithMicroGtuPerEuro(ulong numerator, ulong denominator)
+    public ChainParametersV0Builder WithMicroCcdPerEuro(ulong numerator, ulong denominator)
     {
-        _microGtuPerEuro = new ExchangeRate(numerator, denominator);
+        _microCcdPerEuro = new ExchangeRate(numerator, denominator);
         return this;
     }
 
-    public ChainParametersV0Builder WithBakerCooldownEpochs(ulong value)
+    public ChainParametersV0Builder WithBakerCooldownEpochs(Epoch value)
     {
         _bakerCooldownEpochs = value;
         return this;
     }
 
-    public ChainParametersV0Builder WithCredentialsPerBlockLimit(ushort value)
+    public ChainParametersV0Builder WithCredentialsPerBlockLimit(CredentialsPerBlockLimit value)
     {
         _credentialsPerBlockLimit = value;
         return this;
     }
-    
-    public ChainParametersV0Builder WithRewardParameters(RewardParametersV0 value)
+
+    public ChainParametersV0Builder WithMintDistributionCpv0(MintDistributionCpv0 mintDistributionCpv0)
     {
-        _rewardParameters = value;
+        _mintDistribution = mintDistributionCpv0;
+        return this;
+    }
+    
+    public ChainParametersV0Builder WithTransactionFeeDistribution(TransactionFeeDistribution transactionFeeDistribution)
+    {
+        _transactionFeeDistribution = transactionFeeDistribution;
+        return this;
+    }
+    
+    public ChainParametersV0Builder WithGasRewards(GasRewards gasRewards)
+    {
+        _gasRewards = gasRewards;
         return this;
     }
 
-    public ChainParametersV0Builder WithFoundationAccountIndex(ulong value)
+    public ChainParametersV0Builder WithFoundationAccount(AccountAddress accountAddress)
     {
-        _foundationAccountIndex = value;
+        _foundationAccount = accountAddress;
         return this;
     }
     

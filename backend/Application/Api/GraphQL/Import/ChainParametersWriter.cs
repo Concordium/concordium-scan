@@ -68,7 +68,7 @@ public class ChainParametersWriter
         {
             MintDistribution = new MintDistributionV0
             {
-                MintPerSlot = mintDistribution.MintPerSlot.GetValue(),
+                MintPerSlot = mintDistribution.MintPerSlot.AsDecimal(),
                 BakingReward = mintDistribution.BakingReward.AsDecimal(),
                 FinalizationReward = mintDistribution.FinalizationReward.AsDecimal()
             },
@@ -136,7 +136,7 @@ public class ChainParametersWriter
             PoolOwnerCooldown = (ulong)input.CooldownParameters.PoolOwnerCooldown.TotalSeconds,
             DelegatorCooldown = (ulong)input.CooldownParameters.DelegatorCooldown.TotalSeconds,
             RewardPeriodLength = input.TimeParameters.RewardPeriodLength.RewardPeriodEpochs.Count,
-            MintPerPayday = input.TimeParameters.MintPrPayDay.GetValue(),
+            MintPerPayday = input.TimeParameters.MintPrPayDay.AsDecimal(),
             AccountCreationLimit = (int)input.AccountCreationLimit.Limit,
             RewardParameters = rewardParameters,
             FoundationAccountAddress = AccountAddress.From(input.FoundationAccount),

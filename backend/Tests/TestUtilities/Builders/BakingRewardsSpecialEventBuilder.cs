@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Blocks;
 using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
