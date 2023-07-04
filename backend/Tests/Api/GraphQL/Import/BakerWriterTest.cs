@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -122,10 +123,13 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var input = new[]
         {
             new AccountBaker
-            {
-                BakerId = 11,
-                PendingChange = new AccountBakerRemovePendingV0(12)
-            }
+            (
+                BakerId: new BakerId(new AccountIndex(11)),
+                PendingChange: new AccountBakerRemovePending(_anyDateTimeOffset),
+                RestakeEarnings: false,
+                StakedAmount: CcdAmount.Zero, 
+                null
+            )
         };
         
         var returned = await _target.UpdateBakersFromAccountBaker(input, (dst, src) =>

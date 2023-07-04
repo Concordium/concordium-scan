@@ -19,7 +19,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly BlockWriter _target;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
     private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
-    private readonly RewardStatusBuilder _rewardStatusBuilder = new();
+    private readonly RewardOverviewV0Builder _rewardOverviewV0Builder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new();
     private readonly DelegationUpdateResultsBuilder _delegationUpdateResultsBuilder = new();
@@ -137,7 +137,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task BalanceStatistics_FromRewardStatus()
     {
-        _rewardStatusBuilder
+        _rewardOverviewV0Builder
             .WithTotalAmount(CcdAmount.FromMicroCcd(421500))
             .WithTotalEncryptedAmount(CcdAmount.FromMicroCcd(161))
             .WithBakingRewardAccount(CcdAmount.FromMicroCcd(77551))
@@ -309,7 +309,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     {
         var blockInfo = _blockInfoBuilder.Build();
         var blockSummary = _blockSummaryBuilder.Build();
-        var rewardStatus = _rewardStatusBuilder.Build();
+        var rewardStatus = _rewardOverviewV0Builder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
         await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, new ulong[0]);

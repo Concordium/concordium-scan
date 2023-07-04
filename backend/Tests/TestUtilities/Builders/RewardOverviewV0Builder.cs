@@ -2,7 +2,7 @@
 
 namespace Tests.TestUtilities.Builders;
 
-public class RewardStatusBuilder
+public class RewardOverviewV0Builder
 {
     private CcdAmount _totalAmount = CcdAmount.Zero;
     private CcdAmount _totalEncryptedAmount = CcdAmount.Zero;
@@ -21,31 +21,31 @@ public class RewardStatusBuilder
             _gasAccount);
     }
 
-    public RewardStatusBuilder WithTotalAmount(CcdAmount value)
+    public RewardOverviewV0Builder WithTotalAmount(CcdAmount value)
     {
         _totalAmount = value;
         return this;
     }
 
-    public RewardStatusBuilder WithTotalEncryptedAmount(CcdAmount value)
+    public RewardOverviewV0Builder WithTotalEncryptedAmount(CcdAmount value)
     {
         _totalEncryptedAmount = value;
         return this;
     }
 
-    public RewardStatusBuilder WithBakingRewardAccount(CcdAmount value)
+    public RewardOverviewV0Builder WithBakingRewardAccount(CcdAmount value)
     {
         _bakingRewardAccount = value;
         return this;
     }
 
-    public RewardStatusBuilder WithFinalizationRewardAccount(CcdAmount value)
+    public RewardOverviewV0Builder WithFinalizationRewardAccount(CcdAmount value)
     {
         _finalizationRewardAccount = value;
         return this;
     }
 
-    public RewardStatusBuilder WithGasAccount(CcdAmount value)
+    public RewardOverviewV0Builder WithGasAccount(CcdAmount value)
     {
         _gasAccount = value;
         return this;

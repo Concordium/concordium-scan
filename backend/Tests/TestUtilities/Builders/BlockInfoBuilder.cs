@@ -10,6 +10,7 @@ public class BlockInfoBuilder
     private BakerId? _blockBaker = new BakerId(new AccountIndex(1));
     private bool _finalized = true;
     private uint _transactionCount = 2;
+    private ProtocolVersion _protocolVersion = ProtocolVersion.P4;
 
     public BlockInfoBuilder WithBlockHeight(ulong value)
     {
@@ -37,8 +38,14 @@ public class BlockInfoBuilder
             TransactionEnergyCost: new EnergyAmount(4),
             TransactionSize: 42,
             BlockStateHash: new StateHash("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"),
-            ProtocolVersion: ProtocolVersion.P4
+            ProtocolVersion: _protocolVersion
         );
+    }
+
+    public BlockInfoBuilder WithProtocolVersion(ProtocolVersion version)
+    {
+        _protocolVersion = version;
+        return this;
     }
 
     public BlockInfoBuilder WithBlockSlotTime(DateTimeOffset value)

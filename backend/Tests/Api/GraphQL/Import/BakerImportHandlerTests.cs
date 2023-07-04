@@ -1,12 +1,24 @@
+using System.Collections.Generic;
 using Application.Api.GraphQL.Import;
-using Application.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
+using AccountAddress = Concordium.Sdk.Types.AccountAddress;
+using AccountIndex = Concordium.Sdk.Types.AccountIndex;
+using BakerId = Concordium.Sdk.Types.BakerId;
+using BakerKeysEvent = Concordium.Sdk.Types.BakerKeysEvent;
+using BakerPoolInfo = Concordium.Sdk.Types.BakerPoolInfo;
+using BlockItemSummary = Concordium.Sdk.Types.BlockItemSummary;
+using ChainParametersV1Builder = Tests.TestUtilities.Builders.GraphQL.ChainParametersV1Builder;
+using CommissionRates = Concordium.Sdk.Types.CommissionRates;
+using MintRate = Concordium.Sdk.Types.MintRate;
+using ProtocolVersion = Concordium.Sdk.Types.ProtocolVersion;
+using TransactionHash = Concordium.Sdk.Types.TransactionHash;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -32,59 +44,81 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
     public async Task TestFirstBlockAfterPaydayBakerAddition()
     {
         var address = AccountAddress.From("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
-        var result = await _target.HandleBakerUpdates(new BlockDataPayload(
-            new BlockInfo() {
-            },
-            new BlockSummaryV1()
-            {
-                ProtocolVersion = 4,
-                TransactionSummaries = new TransactionSummary[] {
-                    new TransactionSummary(
-                        address,
-                        TransactionHash.From("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"),
-                        CcdAmount.Zero, 0,
-                        TransactionType.Get(AccountTransactionType.ConfigureBaker),
-                        new TransactionSuccessResult() {
-                            Events = new TransactionResultEvent[] {
-                                new BakerAdded(CcdAmount.Zero, true, 1, address, "", "", "")
-                                }
-                        },
-                        0),
-                }
-            },
-            new AccountInfosRetrieved(new AccountInfo[0], new AccountInfo[0]),
-            new RewardStatusV1(
-                new CcdAmount(),
-                new CcdAmount(),
-                new CcdAmount(),
-                new CcdAmount(),
-                new CcdAmount(),
-                new CcdAmount(),
-                DateTimeOffset.Now,
-                10,
-                new CcdAmount()
-                ),
-                () => Task<BakerPoolStatus[]>.FromResult(new BakerPoolStatus[1] {
-                    new BakerPoolStatus(
-                        1,
-                        address,
-                        CcdAmount.Zero,
-                        CcdAmount.Zero,
-                        CcdAmount.Zero,
-                        new BakerPoolInfo(new CommissionRates(0, 0, 0), BakerPoolOpenStatus.OpenForAll, ""),null, CcdAmount.Zero
-                        )
-                }),
-                () => Task.FromResult(new PoolStatusPassiveDelegation(
-                    CcdAmount.Zero,
-                    new CommissionRates(0, 0, 0),
-                    CcdAmount.Zero,
-                    CcdAmount.Zero,
-                    CcdAmount.Zero
-                ))
-        ),
-        new RewardsSummary(new AccountRewardSummary[0]),
-        new ChainParametersState(new ChainParametersV1Builder().Build()),
-        new FirstBlockAfterPayday(DateTimeOffset.Now, 900),
+        const ProtocolVersion protocolVersion = ProtocolVersion.P4;
+        var bakerId = new BakerId(new AccountIndex(1));
+
+        var bakerConfigured = new BakerConfigured(new List<IBakerEvent>{new BakerAddedEvent(
+            new BakerKeysEvent(
+                bakerId,
+                address,
+                Array.Empty<byte>(),
+                Array.Empty<byte>(),
+                Array.Empty<byte>()
+            ),
+            CcdAmount.Zero,
+            true
+        )});
+
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerConfigured)
+            .WithSender(address)
+            .WithCost(CcdAmount.Zero)
+            .Build();
+        
+        var blockInfo = new BlockInfoBuilder()
+            .WithProtocolVersion(protocolVersion)
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .WithTransactionHash(TransactionHash.From("d71b02cf129cf5f308131823945bdef23474edaea669acb08667e194d4b713ab"))
+            .WithEnergyAmount(new EnergyAmount(0))
+            .WithIndex(0)
+            .Build();
+
+        var rewardOverviewV1 = new RewardOverviewV1Builder()
+            .WithProtocolVersion(protocolVersion)
+            .WithNextPaydayTime(DateTimeOffset.Now)
+            .WithNextPaydayMintRate(MintRate.From(10))
+            .Build();
+
+        var allBakerStatusesFunc = () => Task.FromResult(new[]
+        {
+            new BakerPoolStatus(
+                bakerId,
+                address,
+                CcdAmount.Zero,
+                CcdAmount.Zero,
+                CcdAmount.Zero,
+                new BakerPoolInfo(
+                    new CommissionRates(AmountFraction.From(0), AmountFraction.From(0), AmountFraction.From(0)),
+                    BakerPoolOpenStatus.OpenForAll,
+                    ""),
+                null,
+                CcdAmount.Zero
+            )
+        });
+
+        var passiveDelegationPoolStatusFunc = () => Task.FromResult(
+            new PassiveDelegationStatus(
+                CcdAmount.Zero,
+                new CommissionRates(AmountFraction.From(0), AmountFraction.From(0), AmountFraction.From(0)),
+                CcdAmount.Zero, 
+                CcdAmount.Zero, 
+                CcdAmount.Zero
+        ));
+
+        var blockDataPayload = new BlockDataPayloadBuilder()
+            .WithBlockItemSummaries(new List<BlockItemSummary>{blockItemSummary})
+            .WithBlockInfo(blockInfo)
+            .WithRewardStatus(rewardOverviewV1)
+            .WithAllBakerStatusesFunc(allBakerStatusesFunc)
+            .WithPassiveDelegationPoolStatusFunc(passiveDelegationPoolStatusFunc)
+            .Build();
+        
+        var result = await _target.HandleBakerUpdates(
+            blockDataPayload,
+            new RewardsSummary(Array.Empty<AccountRewardSummary>()),
+            new ChainParametersState(new ChainParametersV1Builder().Build()),
+            new FirstBlockAfterPayday(DateTimeOffset.Now, 900),
         new ImportStateBuilder().Build()
         );
 

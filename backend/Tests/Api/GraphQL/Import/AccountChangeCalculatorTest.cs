@@ -365,21 +365,22 @@ public class AccountChangeCalculatorTest
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
-        var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.TransferredWithSchedule(
-                        fromAliasAddress, 
-                        toAliasAddress,
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
-            new Transaction { Id = 42 });
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(toAliasAddress,
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(fromAliasAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        var input = new TransactionPair(
+            blockItemSummary,
+            new Transaction { Id = 42 });
+
         var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
@@ -392,21 +393,22 @@ public class AccountChangeCalculatorTest
     {
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
-        var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.TransferredWithSchedule(
-                        AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"), 
-                        AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
-            new Transaction { Id = 42 });
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        var input = new TransactionPair(
+            blockItemSummary,
+            new Transaction { Id = 42 });
+
         // We do not ever expect a scheduled transfer to complete successfully if either sender or receiver does not exist!
         Assert.ThrowsAny<Exception>(() => _target.GetAccountReleaseScheduleItems(new []{ input }));
     }
