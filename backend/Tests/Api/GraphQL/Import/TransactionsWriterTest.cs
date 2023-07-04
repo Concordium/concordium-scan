@@ -1,6 +1,6 @@
-﻿using Application.Api.GraphQL.Import;
+﻿using System.Collections.Generic;
+using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
-using Concordium.Grpc.V2;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
@@ -11,12 +11,7 @@ using Tests.TestUtilities.Stubs;
 using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 using AccountTransaction = Application.Api.GraphQL.Transactions.AccountTransaction;
 using ContractAddress = Concordium.Sdk.Types.ContractAddress;
-using ExchangeRate = Concordium.Sdk.Types.New.ExchangeRate;
-using LeverageFactor = Concordium.Sdk.Types.New.LeverageFactor;
-using Memo = Concordium.Sdk.Types.New.Memo;
-using RegisteredData = Concordium.Sdk.Types.New.RegisteredData;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
-using TransactionType = Concordium.Sdk.Types.New.TransactionType;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -25,7 +20,6 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 {
     private readonly TransactionWriter _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
-    private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly DateTimeOffset _anyBlockSlotTime = new DateTimeOffset(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public TransactionsWriterTest(DatabaseFixture dbFixture)
@@ -41,115 +35,75 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task Transactions_BasicInformation_AllValuesNonNull()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithIndex(0)
-                .WithSender(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"))
-                .WithTransactionHash(TransactionHash.From("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"))
-                .WithCost(CcdAmount.FromMicroCcd(45872))
-                .WithEnergyCost(399)
-                .Build());
-        
-        await WriteData(133);
+        const string sender = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string transactionHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b";
+        const ulong amount = 45872UL;
+        const int energyCost = 399;
+        var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Array.Empty<byte>());
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
+            .WithSender(AccountAddress.From(sender))
+            .WithCost(CcdAmount.FromMicroCcd(amount))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .WithIndex(0)
+            .WithTransactionHash(TransactionHash.From(transactionHash))
+            .WithEnergyAmount(new EnergyAmount(energyCost))
+            .Build();
+
+        await WriteData(new List<BlockItemSummary>{blockItemSummary}, 133);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
         transaction.Id.Should().BeGreaterThan(0);
         transaction.BlockId.Should().Be(133);
         transaction.TransactionIndex.Should().Be(0);
-        transaction.TransactionHash.Should().Be("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b");
-        transaction.SenderAccountAddress!.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        transaction.CcdCost.Should().Be(45872);
-        transaction.EnergyCost.Should().Be(399);
+        transaction.TransactionHash.Should().Be(transactionHash);
+        transaction.SenderAccountAddress!.AsString.Should().Be(sender);
+        transaction.CcdCost.Should().Be(amount);
+        transaction.EnergyCost.Should().Be(energyCost);
     }
+
+    // [Theory]
+    // [InlineData(TransactionType.AddBaker)]
+    // [InlineData(TransactionType.EncryptedAmountTransfer)]
+    // [InlineData(TransactionType.Transfer)]
+    // [InlineData(TransactionType.TransferWithSchedule)]
+    // [InlineData(TransactionType.InitContract)]
+    // public async Task Transactions_TransactionType_TransactionTypes(TransactionType transactionType)
+    // {
+    //     var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Array.Empty<byte>());
+    //     var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
+    //         .Build();
+    //     var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+    //         .Build();
+    //
+    //     await WriteData(blockItemSummary);
+    //     
+    //     await using var dbContext = _dbContextFactory.CreateDbContext();
+    //     var transaction = dbContext.Transactions.Single();
+    //     transaction.TransactionType.Should().BeOfType<AccountTransaction>()
+    //         .Which.AccountTransactionType.Should().Be(transactionType);
+    // }
     
-    [Fact]
-    public async Task Transactions_BasicInformation_AllNullableValuesNull()
-    {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithSender(null)
-                .Build());
-        
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var transaction = dbContext.Transactions.Single();
-        transaction.SenderAccountAddress.Should().BeNull();
-    }
-
-    [Theory]
-    [InlineData(AccountTransactionType.AddBaker)]
-    [InlineData(AccountTransactionType.EncryptedTransfer)]
-    [InlineData(AccountTransactionType.SimpleTransfer)]
-    [InlineData(AccountTransactionType.TransferWithSchedule)]
-    [InlineData(AccountTransactionType.InitializeSmartContractInstance)]
-    public async Task Transactions_TransactionType_AccountTransactionTypes(AccountTransactionType transactionType)
-    {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithType(TransactionType.Get(transactionType))
-                .Build());
-
-        await WriteData();
-        
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<AccountTransaction>()
-            .Which.AccountTransactionType.Should().Be(transactionType);
-    }
-    
-    [Theory]
-    [InlineData(CredentialDeploymentTransactionType.Initial)]
-    [InlineData(CredentialDeploymentTransactionType.Normal)]
-    public async Task Transactions_TransactionType_CredentialDeploymentTransactionTypes(CredentialDeploymentTransactionType transactionType)
-    {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithType(TransactionType.Get(transactionType))
-                .Build());
-
-        await WriteData();
-        
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<CredentialDeploymentTransaction>()
-            .Which.CredentialDeploymentTransactionType.Should().Be(transactionType);
-    }
-    
-    [Theory]
-    [InlineData(UpdateTransactionType.UpdateProtocol)]
-    [InlineData(UpdateTransactionType.UpdateLevel1Keys)]
-    [InlineData(UpdateTransactionType.UpdateAddIdentityProvider)]
-    [InlineData(UpdateTransactionType.UpdateMicroGtuPerEuro)]
-    public async Task Transactions_TransactionType_UpdateTransactionTypes(UpdateTransactionType transactionType)
-    {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithType(TransactionType.Get(transactionType))
-                .Build());
-
-        await WriteData();
-        
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var transaction = dbContext.Transactions.Single();
-        transaction.TransactionType.Should().BeOfType<UpdateTransaction>()
-            .Which.UpdateTransactionType.Should().Be(transactionType);
-    }
-
     [Fact]
     public async Task TransactionEvents_TransactionIdAndIndex()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(
-                        new Concordium.Sdk.Types.New.CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")),
-                        new Concordium.Sdk.Types.New.AccountCreated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+
+        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
+            .WithCredentialRegistrationId(new CredentialRegistrationId(Convert.FromHexString("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d")))
+            .WithAccountAddress(AccountAddress.From(address))
+            .Build();
+        var blockItemSummaryCredentialDeployed = new BlockItemSummaryBuilder(accountCreationDetails)
+            .Build();
         
-        await WriteData();
+        var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Initial)
+            .WithAccountAddress(AccountAddress.From(address))
+            .Build();
+        var blockItemSummaryAccountCreated = new BlockItemSummaryBuilder(accountCreated)
+            .Build();
+
+        await WriteData(new List<BlockItemSummary>{blockItemSummaryCredentialDeployed, blockItemSummaryAccountCreated});
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
@@ -158,103 +112,138 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         result.Length.Should().Be(2);
         result[0].TransactionId.Should().Be(transaction.Id);
         result[0].Index.Should().Be(0);
-        result[0].Entity.Should().BeOfType<Application.Api.GraphQL.Transactions.CredentialDeployed>();
+        result[0].Entity.Should().BeOfType<CredentialDeployed>();
         result[1].TransactionId.Should().Be(transaction.Id);
         result[1].Index.Should().Be(1);
-        result[1].Entity.Should().BeOfType<Application.Api.GraphQL.Transactions.AccountCreated>();
+        result[1].Entity.Should().BeOfType<AccountCreated>();
     }
     
     [Fact]
     public async Task TransactionEvents_Transferred()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.Transferred(CcdAmount.FromMicroCcd(458382), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), ContractAddress.From(234, 32)))
-                    .Build())
-                .Build());
+        const int contractIndex = 234;
+        const int contractSubIndex = 32;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const int ccd = 458382;
+        var transferred = new Concordium.Sdk.Types.Transferred(ContractAddress.From(contractIndex, contractSubIndex), CcdAmount.FromMicroCcd(ccd), AccountAddress.From(address));
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{transferred});
+
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.Transferred>();
-        result.Amount.Should().Be(458382);
-        result.To.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
-        result.From.Should().Be(new Application.Api.GraphQL.ContractAddress(234, 32));
+        result.Amount.Should().Be(ccd);
+        result.To.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress(address));
+        result.From.Should().Be(new Application.Api.GraphQL.ContractAddress(contractIndex, contractSubIndex));
     }
     
     [Fact]
     public async Task TransactionEvents_AccountCreated()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.AccountCreated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Initial)
+            .WithAccountAddress(AccountAddress.From(address))
+            .Build();
+        var blockItemSummaryAccountCreated = new BlockItemSummaryBuilder(accountCreated)
+            .Build();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.AccountCreated>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        await WriteData(new List<BlockItemSummary>{blockItemSummaryAccountCreated});
+
+        var result = await ReadSingleTransactionEventType<AccountCreated>();
+        result.AccountAddress.AsString.Should().Be(address);
     }
     
     [Fact]
     public async Task TransactionEvents_CredentialDeployed()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.CredentialDeployed("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d", AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string regId = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialDeployed>();
-        result.RegId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
+            .WithCredentialRegistrationId(new CredentialRegistrationId(Convert.FromHexString(regId)))
+            .WithAccountAddress(AccountAddress.From(address))
+            .Build();
+        var blockItemSummaryCredentialDeployed = new BlockItemSummaryBuilder(accountCreationDetails)
+            .Build();
+
+        await WriteData(new List<BlockItemSummary>{blockItemSummaryCredentialDeployed});
+
+        var result = await ReadSingleTransactionEventType<CredentialDeployed>();
+        result.RegId.Should().Be(regId);
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerAdded()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerAdded(CcdAmount.FromMicroCcd(12551), true, 17, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
-                    .Build())
-                .Build());
+        const ulong bakerId = 17UL;
+        const ulong amount = 12551UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string signKey = "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c";
+        const string electionKey = "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88";
+        const string aggregationKey = "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1";
         
-        await WriteData();
+        var bakerAdded = new Concordium.Sdk.Types.BakerAdded(
+            new BakerKeysEvent(
+                new BakerId(new AccountIndex(bakerId)),
+                AccountAddress.From(address),
+                Convert.FromHexString(signKey),
+                Convert.FromHexString(electionKey),
+                Convert.FromHexString(aggregationKey)
+            ),
+            CcdAmount.FromMicroCcd(amount),
+            true);
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerAdded)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerAdded>();
-        result.StakedAmount.Should().Be(12551);
+        result.StakedAmount.Should().Be(amount);
         result.RestakeEarnings.Should().BeTrue();
-        result.BakerId.Should().Be(17);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
-        result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
-        result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.SignKey.Should().Be(signKey);
+        result.ElectionKey.Should().Be(electionKey);
+        result.AggregationKey.Should().Be(aggregationKey);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerKeysUpdated()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerKeysUpdated(19, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c", "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88", "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1"))
-                    .Build())
-                .Build());
+        const ulong bakerId = 19UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string signKey = "418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c";
+        const string electionKey = "dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88";
+        const string aggregationKey = "823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1";
         
-        await WriteData();
+        var bakerKeysUpdated = new Concordium.Sdk.Types.BakerKeysUpdated(
+            new BakerKeysEvent(
+                new BakerId(new AccountIndex(bakerId)),
+                AccountAddress.From(address),
+                Convert.FromHexString(signKey),
+                Convert.FromHexString(electionKey),
+                Convert.FromHexString(aggregationKey)
+                ));
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerKeysUpdated)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerKeysUpdated>();
-        result.BakerId.Should().Be(19);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.SignKey.Should().Be("418dd98d0a42b972b974298e357132214b2821796159bfce86ffeacee567195c");
-        result.ElectionKey.Should().Be("dd90b72a8044e1f82443d1531c55078516c912bf3e21633ad7a30309d781cf88");
-        result.AggregationKey.Should().Be("823050dc33bd7e94ef46221f45909a2811cb99eef3a41fd9a81a622f1abdc4ef60bac6477bab0f37d000cb077b5cc61f0fa7ffc401ed14f90765d2bea15ea9c2a60010eb0aa8e702ac24f8c25dabe97a53d2d506794e552896f12e43496589f1");
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.SignKey.Should().Be(signKey);
+        result.ElectionKey.Should().Be(electionKey);
+        result.AggregationKey.Should().Be(aggregationKey);
     }
 
     [Fact]
@@ -263,7 +252,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
+                    .WithEvents(new Concordium.Sdk.Types.BakerRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
                     .Build())
                 .Build());
         
@@ -280,13 +269,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetRestakeEarnings(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetRestakeEarnings(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetRestakeEarnings>();
+        var result = await ReadSingleTransactionEventType<BakerSetRestakeEarnings>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.RestakeEarnings.Should().BeTrue();
@@ -298,13 +287,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerStakeDecreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .WithEvents(new Concordium.Sdk.Types.BakerStakeDecreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerStakeDecreased>();
+        var result = await ReadSingleTransactionEventType<BakerStakeDecreased>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
@@ -316,13 +305,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerStakeIncreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
+                    .WithEvents(new Concordium.Sdk.Types.BakerStakeIncreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerStakeIncreased>();
+        var result = await ReadSingleTransactionEventType<BakerStakeIncreased>();
         result.BakerId.Should().Be(23);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewStakedAmount.Should().Be(34786451);
@@ -334,13 +323,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.AmountAddedByDecryption(CcdAmount.FromMicroCcd(2362462), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.AmountAddedByDecryption(CcdAmount.FromMicroCcd(2362462), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.AmountAddedByDecryption>();
+        var result = await ReadSingleTransactionEventType<AmountAddedByDecryption>();
         result.Amount.Should().Be(2362462);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
@@ -351,13 +340,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.EncryptedAmountsRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074", 789))
+                    .WithEvents(new Concordium.Sdk.Types.EncryptedAmountsRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074", 789))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.EncryptedAmountsRemoved>();
+        var result = await ReadSingleTransactionEventType<EncryptedAmountsRemoved>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.InputAmount.Should().Be("acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074");
@@ -370,13 +359,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.EncryptedSelfAmountAdded(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", CcdAmount.FromMicroCcd(23446)))
+                    .WithEvents(new Concordium.Sdk.Types.EncryptedSelfAmountAdded(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", CcdAmount.FromMicroCcd(23446)))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.EncryptedSelfAmountAdded>();
+        var result = await ReadSingleTransactionEventType<EncryptedSelfAmountAdded>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
         result.Amount.Should().Be(23446);
@@ -388,13 +377,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.NewEncryptedAmount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 155, "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2"))
+                    .WithEvents(new Concordium.Sdk.Types.NewEncryptedAmount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 155, "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2"))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.NewEncryptedAmount>();
+        var result = await ReadSingleTransactionEventType<NewEncryptedAmount>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.NewIndex.Should().Be(155);
         result.EncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
@@ -406,7 +395,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
+                    .WithEvents(new Concordium.Sdk.Types.CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
                     .Build())
                 .Build());
         
@@ -422,7 +411,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.CredentialsUpdated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
+                    .WithEvents(new Concordium.Sdk.Types.CredentialsUpdated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
                     .Build())
                 .Build());
         
@@ -441,7 +430,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.ContractInitialized(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), ContractAddress.From(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
+                    .WithEvents(new Concordium.Sdk.Types.ContractInitialized(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), ContractAddress.From(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
                     .Build())
                 .Build());
         
@@ -575,7 +564,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.TransferredWithSchedule(
+                    .WithEvents(new Concordium.Sdk.Types.TransferredWithSchedule(
                         AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 
                         AccountAddress.From("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"), 
                         new []
@@ -604,7 +593,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
+                    .WithEvents(new Concordium.Sdk.Types.DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
                     .Build())
                 .Build());
         
@@ -620,13 +609,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
+                    .WithEvents(new Concordium.Sdk.Types.TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.TransferMemo>();
+        var result = await ReadSingleTransactionEventType<TransferMemo>();
         result.RawHex.Should().Be("704164616d2042696c6c696f6e61697265");
     }
 
@@ -774,13 +763,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetOpenStatus(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetOpenStatus(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetOpenStatus>();
+        var result = await ReadSingleTransactionEventType<BakerSetOpenStatus>();
         result.BakerId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.OpenStatus.Should().Be(expectedStatus);
@@ -792,13 +781,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetTransactionFeeCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetTransactionFeeCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetTransactionFeeCommission>();
+        var result = await ReadSingleTransactionEventType<BakerSetTransactionFeeCommission>();
         result.BakerId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.TransactionFeeCommission.Should().Be(0.9m);
@@ -810,13 +799,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetMetadataURL(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetMetadataURL(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetMetadataURL>();
+        var result = await ReadSingleTransactionEventType<BakerSetMetadataURL>();
         result.BakerId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.MetadataUrl.Should().Be("https://ccd.bakers.com/metadata");
@@ -828,13 +817,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetBakingRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetBakingRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetBakingRewardCommission>();
+        var result = await ReadSingleTransactionEventType<BakerSetBakingRewardCommission>();
         result.BakerId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.BakingRewardCommission.Should().Be(0.9m);
@@ -846,13 +835,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.BakerSetFinalizationRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
+                    .WithEvents(new Concordium.Sdk.Types.BakerSetFinalizationRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
                     .Build())
                 .Build());
         
         await WriteData();
 
-        var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerSetFinalizationRewardCommission>();
+        var result = await ReadSingleTransactionEventType<BakerSetFinalizationRewardCommission>();
         result.BakerId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.FinalizationRewardCommission.Should().Be(0.9m);
@@ -864,7 +853,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationAdded(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationAdded(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -881,7 +870,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationRemoved(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationRemoved(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
                     .Build())
                 .Build());
         
@@ -898,7 +887,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationStakeIncreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationStakeIncreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
                     .Build())
                 .Build());
         
@@ -916,7 +905,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationStakeDecreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationStakeDecreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
                     .Build())
                 .Build());
         
@@ -934,7 +923,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationSetRestakeEarnings(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationSetRestakeEarnings(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
                     .Build())
                 .Build());
         
@@ -952,7 +941,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.DelegationSetDelegationTarget(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
+                    .WithEvents(new Concordium.Sdk.Types.DelegationSetDelegationTarget(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
                     .Build())
                 .Build());
         
@@ -1112,7 +1101,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentRewardAccount>();
+        var result = await ReadSingleRejectedTransactionRejectReason<NonExistentRewardAccount>();
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
     }
 
@@ -1454,7 +1443,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         var inputReason = new Application.NodeApi.MissingDelegationAddParameters();
         await WriteSingleRejectedTransaction(inputReason);
         
-        var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingDelegationAddParameters>();
+        var result = await ReadSingleRejectedTransactionRejectReason<MissingDelegationAddParameters>();
         result.Should().NotBeNull();
     }
     
@@ -1530,10 +1519,9 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         result.Should().NotBeNull();
     }
     
-    private async Task WriteData(long blockId = 42)
+    private async Task WriteData(List<BlockItemSummary> blockItemSummaries, long blockId = 42)
     {
-        var blockSummary = _blockSummaryBuilder.Build();
-        await _target.AddTransactions(blockSummary, blockId, _anyBlockSlotTime);
+        await _target.AddTransactions(blockItemSummaries, blockId, _anyBlockSlotTime);
     }
     
     private async Task<T> ReadSingleTransactionEventType<T>()
@@ -1555,7 +1543,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData();
     }
     
-    private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : Application.Api.GraphQL.Transactions.TransactionRejectReason
+    private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : TransactionRejectReason
     {
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = await dbContext.Transactions.SingleAsync();

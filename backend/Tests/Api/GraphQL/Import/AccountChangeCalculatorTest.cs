@@ -253,15 +253,18 @@ public class AccountChangeCalculatorTest
         var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 15);
 
+        var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Array.Empty<byte>());
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
+            .WithSender(canonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+
         var input1 = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
         var input2 = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 43 });
 
         var result = _target.GetAccountTransactionRelations(new[] { input1, input2 });

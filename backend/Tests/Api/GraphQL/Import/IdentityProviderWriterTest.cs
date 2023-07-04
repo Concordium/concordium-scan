@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.Import;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
@@ -26,7 +27,7 @@ public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>
     public async Task AddOrUpdate_AddSingle()
     {
         var input = new IdentityProviderInfoBuilder()
-            .WithIpIdentity(42)
+            .WithIpIdentity(new IpIdentity(42))
             .WithName("Foo bar")
             .WithUrl("http://example.com")
             .WithDescription("Lorem ipsum")
@@ -46,7 +47,7 @@ public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>
     public async Task AddOrUpdate_UpdateSingle()
     {
         var builder = new IdentityProviderInfoBuilder()
-            .WithIpIdentity(42)
+            .WithIpIdentity(new IpIdentity(42))
             .WithName("Foo bar")
             .WithUrl("http://example.com")
             .WithDescription("Lorem ipsum");
@@ -75,7 +76,7 @@ public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>
     public async Task AddOrUpdate_AddSingleWithIpIdentityZero()
     {
         var input = new IdentityProviderInfoBuilder()
-            .WithIpIdentity(0)
+            .WithIpIdentity(new IpIdentity(0))
             .Build();
 
         await _target.AddOrUpdate(new[] { input });

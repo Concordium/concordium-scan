@@ -60,7 +60,7 @@ public class BlockInfoBuilder
         return this;
     }
 
-    public BlockInfoBuilder WithBlockBaker(BakerId value)
+    public BlockInfoBuilder WithBlockBaker(BakerId? value)
     {
         _blockBaker = value;
         return this;

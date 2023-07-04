@@ -18,7 +18,6 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockWriter _target;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
-    private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
     private readonly RewardOverviewV0Builder _rewardOverviewV0Builder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new();
@@ -42,7 +41,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
             .WithBlockHash(BlockHash.From("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
             .WithBlockHeight(42)
             .WithBlockSlotTime(new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero))
-            .WithBlockBaker(150)
+            .WithBlockBaker(new BakerId(new AccountIndex(150)))
             .WithFinalized(true)
             .WithTransactionCount(221);
         
