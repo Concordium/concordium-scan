@@ -9,7 +9,7 @@ public class AccountTransactionEffectsBuilder
 
 public class AccountCreationDetailsBuilder
 {
-    private CredentialType _credentialType;
+    private readonly CredentialType _credentialType;
     private AccountAddress _accountAddress = AccountAddress.From(new byte[32]);
     private CredentialRegistrationId _credentialRegistrationId = new(
         Array.Empty<byte>());
@@ -23,7 +23,7 @@ public class AccountCreationDetailsBuilder
     {
         _credentialType = credentialType;
     }
-
+    
     public AccountCreationDetailsBuilder WithAccountAddress(AccountAddress accountAddress)
     {
         _accountAddress = accountAddress;
@@ -43,14 +43,9 @@ public class AccountTransactionDetailsBuilder
     private AccountAddress _sender = AccountAddress.From(new byte[32]);
     private IAccountTransactionEffects _accountTransactionEffects;
 
-    private AccountTransactionDetailsBuilder(IAccountTransactionEffects accountTransactionEffects)
+    public AccountTransactionDetailsBuilder(IAccountTransactionEffects accountTransactionEffects)
     {
         this._accountTransactionEffects = accountTransactionEffects;
-    }
-
-    public static AccountTransactionDetailsBuilder Create(IAccountTransactionEffects accountTransactionEffects)
-    {
-        return new AccountTransactionDetailsBuilder(accountTransactionEffects);
     }
 
     public AccountTransactionDetails Build()
@@ -84,16 +79,11 @@ public class BlockItemSummaryBuilder
     private TransactionHash _transactionHash = TransactionHash.From("42B83D2BE10B86BD6DF5C102C4451439422471BC4443984912A832052FF7485B");
     private readonly IBlockItemSummaryDetails _details;
 
-    private BlockItemSummaryBuilder(IBlockItemSummaryDetails details)
+    public BlockItemSummaryBuilder(IBlockItemSummaryDetails details)
     {
         _details = details;
     }
 
-    public static BlockItemSummaryBuilder Create(IBlockItemSummaryDetails details)
-    {
-        return new BlockItemSummaryBuilder(details);
-    }
-    
     public BlockItemSummary Build()
     {
         return new BlockItemSummary(

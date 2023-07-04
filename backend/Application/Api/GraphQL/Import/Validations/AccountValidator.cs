@@ -41,7 +41,7 @@ public class AccountValidator : IImportValidator
         var given = new Given(blockHash);
 
         var accountAddresses = singleAccountValidationInfo == null
-            ? await _nodeClient.GetAccountListAsync(given).ToArrayAsync()
+            ? await (await _nodeClient.GetAccountListAsync(given)).Response.ToArrayAsync()
             : new [] { Concordium.Sdk.Types.AccountAddress.From(singleAccountValidationInfo.CanonicalAccountAddress) };
 
         var nodeAccountInfos = new List<AccountInfo>();
@@ -53,8 +53,8 @@ public class AccountValidator : IImportValidator
                 .Select(x => _nodeClient.GetAccountInfoAsync(x, given)));
             
             var accountInfos = accountInfoResults
-                .Where(x => x != null)
-                .Select(x => x!)
+                .Where(x => x.Response != null)
+                .Select(x => x.Response!)
                 .ToArray();
 
             nodeAccountInfos.AddRange(accountInfos);
@@ -204,13 +204,16 @@ public class AccountValidator : IImportValidator
         var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
         if (nodeSwVersion.Major >= 4)
         {
-        foreach (var chunk in Chunk(nodeAccountBakers, 10))
-        {
-            var chunkResult = await Task.WhenAll(chunk
-                .Select(x => _nodeClient.GetPoolInfoAsync(x.BakerId, given)));
-        
-            poolStatuses.AddRange(chunkResult.Where(x => x != null)!);
-        }
+            foreach (var chunk in Chunk(nodeAccountBakers, 10))
+            {
+                var chunkResult = await Task.WhenAll(chunk
+                    .Select(x => _nodeClient.GetPoolInfoAsync(x.BakerId, given)));
+            
+                poolStatuses.AddRange(chunkResult
+                    .Where(x => x.Response != null)
+                    .Select(x => x.Response!)
+                );
+            }
         }
 
         var nodeBakers = nodeAccountBakers

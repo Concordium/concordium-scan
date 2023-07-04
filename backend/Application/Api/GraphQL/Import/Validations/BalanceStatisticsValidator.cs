@@ -23,7 +23,7 @@ public class BalanceStatisticsValidator : IImportValidator
     public async Task Validate(Block block)
     {
         var nodeData = await _grpcNodeClient.GetTokenomicsInfoAsync(new Given(BlockHash.From(block.BlockHash)));
-        if (nodeData is RewardOverviewV1 rv1)
+        if (nodeData.Response is RewardOverviewV1 rv1)
         {
             var mappedNode = new
             {

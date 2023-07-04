@@ -91,7 +91,7 @@ public class ImportReadController : BackgroundService
 
     private async Task<BlockDataEnvelope> ReadBlockDataPayload(ulong blockHeight, ConsensusInfo consensusStatus, CancellationToken stoppingToken)
     {
-        var absoluteBlockHeight = new Absolute(blockHeight);
+        var absoluteBlockHeight = new AbsoluteHeight(blockHeight);
         
         var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync(absoluteBlockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
         if (blocksAtHeight.Count != 1)
@@ -100,21 +100,29 @@ public class ImportReadController : BackgroundService
         var blockHashInput = new Given(blockHash);
 
         var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
-        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetTokenomicsInfoAsync(blockHashInput), nameof(_client.GetTokenomicsInfoAsync), stoppingToken);
-        var blockItemSummariesTask = GetWithGrpcRetryAsync(() => _client.GetBlockTransactionEvents(blockHashInput).ToListAsync(stoppingToken).AsTask(), nameof(_client.GetBlockTransactionEvents), stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetTokenomicsInfoAsync(blockHashInput, stoppingToken), nameof(_client.GetTokenomicsInfoAsync), stoppingToken);
+        var blockItemSummariesTask = GetWithGrpcRetryAsync(async () =>
+        {
+            var response = await _client.GetBlockTransactionEvents(blockHashInput, stoppingToken);
+            return await response.Response.ToListAsync(stoppingToken);
+        }, nameof(_client.GetBlockTransactionEvents), stoppingToken);
         var chainParametersTask = GetWithGrpcRetryAsync(() => _client.GetBlockChainParametersAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockChainParametersAsync), stoppingToken);
-        var specialEventsTask = GetWithGrpcRetryAsync(() => _client.GetBlockSpecialEvents(blockHashInput, stoppingToken).ToListAsync(stoppingToken).AsTask(), nameof(_client.GetBlockSpecialEvents), stoppingToken);
+        var specialEventsTask = GetWithGrpcRetryAsync(async () =>
+        {
+            var response = await _client.GetBlockSpecialEvents(blockHashInput, stoppingToken);
+            return await response.Response.ToListAsync(stoppingToken);
+        }, nameof(_client.GetBlockSpecialEvents), stoppingToken);
         var finalizationSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockFinalizationSummaryAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockFinalizationSummaryAsync), stoppingToken);
         
 
         await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask, finalizationSummaryTask);
-        var blockInfo = await blockInfoTask;
-        var rewardStatus = await rewardStatusTask;
+        var (_, blockInfo) = await blockInfoTask;
+        var (_, rewardStatus) = await rewardStatusTask;
         var blockItemSummaries = await blockItemSummariesTask;
-        var chainParameters = await chainParametersTask;
+        var (_, chainParameters) = await chainParametersTask;
         var specialEvents = await specialEventsTask;
-        var finalizationSummary = await finalizationSummaryTask;
-        
+        var (_, finalizationSummary) = await finalizationSummaryTask;
+
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockHashInput, blockItemSummaries, blockInfo, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
         
         // Dont proactively read pool statuses for each block, we will let the write controller decide if they must be read!
@@ -124,13 +132,13 @@ public class ImportReadController : BackgroundService
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var response = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHashInput), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
+            var response = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHashInput, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
             var genesisIdentityProviders = await response.Response.ToListAsync(stoppingToken);
-            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters.Response, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
         return new BlockDataEnvelope(payload, consensusStatus);
@@ -141,7 +149,7 @@ public class ImportReadController : BackgroundService
         if ((int)protocolVersion < 4)
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
         
-        var poolStatus = await _client.GetPassiveDelegationInfoAsync(blockHash);
+        var (_, poolStatus) = await _client.GetPassiveDelegationInfoAsync(blockHash, stoppingToken);
         if (poolStatus == null) throw new InvalidOperationException("Did not expect pool status for passive delegation to be null");
         return poolStatus!;
     }
@@ -152,10 +160,10 @@ public class ImportReadController : BackgroundService
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
         
         var result = new List<BakerPoolStatus>();
-        var bakerIds = await _client.GetBakerListAsync(blockHash);
-        await foreach (var bakerId in bakerIds.Response.WithCancellation(stoppingToken))
+        var (_, bakerIds) = await _client.GetBakerListAsync(blockHash, stoppingToken);
+        await foreach (var bakerId in bakerIds.WithCancellation(stoppingToken))
         {
-            var bakerPoolStatus = await _client.GetPoolInfoAsync(bakerId, blockHash);
+            var (_, bakerPoolStatus) = await _client.GetPoolInfoAsync(bakerId, blockHash, stoppingToken);
             if (bakerPoolStatus == null) throw new InvalidOperationException("Did not expect baker pool status to be null");
             result.Add(bakerPoolStatus);
         }
@@ -166,9 +174,13 @@ public class ImportReadController : BackgroundService
     {
         if (blockInfo.BlockHeight == 0)
         {
-            var accountList = await _client.GetAccountListAsync(blockHash).ToListAsync(stoppingToken);
+            var accountList = await (await _client.GetAccountListAsync(blockHash, stoppingToken)).Response.ToListAsync(stoppingToken);
             var accountInfoTasks = accountList
-                .Select(x => _client.GetAccountInfoAsync(x, blockHash));
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x, blockHash, stoppingToken);
+                    return response.Response;
+                });
 
             var accountsCreated = await Task.WhenAll(accountInfoTasks);
             return new AccountInfosRetrieved(accountsCreated, Array.Empty<AccountInfo>());
@@ -185,10 +197,18 @@ public class ImportReadController : BackgroundService
                 return new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
             
             var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreationDetails))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockHash))
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x.Address, blockHash, stoppingToken);
+                    return response.Response;
+                })
                 .ToArray();
             var bakersWithNewPendingChangesTask = accountsToRead.Where(x => x.Reason == typeof(AccountBakerPendingChange))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockHash))
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x.Address, blockHash, stoppingToken);
+                    return response.Response;
+                })
                 .ToArray();
             
             var accountsCreated = await Task.WhenAll(accountsCreatedTasks);

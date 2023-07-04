@@ -45,8 +45,8 @@ public class PassiveDelegationValidator : IImportValidator
         var nodePoolStatus = await _nodeClient.GetPassiveDelegationInfoAsync(block.Into());
         var actualValue = new
         {
-            DelegatedStake = nodePoolStatus?.DelegatedCapital.Value,
-            CurrentPaydayDelegatedStake = nodePoolStatus?.CurrentPaydayDelegatedCapital.Value
+            DelegatedStake = nodePoolStatus?.Response.DelegatedCapital.Value,
+            CurrentPaydayDelegatedStake = nodePoolStatus?.Response.CurrentPaydayDelegatedCapital.Value
         };
 
         var equal = expectedValue.Equals(actualValue);

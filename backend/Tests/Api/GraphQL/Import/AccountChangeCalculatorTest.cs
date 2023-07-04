@@ -1,4 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Collections.Generic;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
@@ -230,10 +231,10 @@ public class AccountChangeCalculatorTest
         var to = AccountAddressHelper.CreateOneFilledWith(1);
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 13);
 
-        var accountTransactionDetails = AccountTransactionDetailsBuilder.Create(new AccountTransfer(CcdAmount.Zero, to, null))
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(new AccountTransfer(CcdAmount.Zero, to, null))
             .WithSender(canonicalAddress)
             .Build();
-        var blockItemSummary = BlockItemSummaryBuilder.Create(accountTransactionDetails)
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
             .Build();
         var input = new TransactionPair(
             blockItemSummary,
@@ -281,15 +282,13 @@ public class AccountChangeCalculatorTest
         var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), null);
 
+        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
+            .WithAccountAddress(canonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountCreationDetails).Build();
+
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(null)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(
-                        new Concordium.Sdk.Types.New.AccountCreated(canonicalAddress),
-                        new Concordium.Sdk.Types.New.CredentialDeployed("1234", canonicalAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
 
         var returnedResult = _target.GetAccountTransactionRelations(new[] { input });
@@ -304,15 +303,15 @@ public class AccountChangeCalculatorTest
         
         _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 15);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(new AccountTransfer(CcdAmount.FromCcd(10), canonicalAddress, null))
+            .WithSender(aliasAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.Transferred(CcdAmount.FromCcd(10), canonicalAddress, aliasAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-
+        
         var result = _target.GetAccountTransactionRelations(new[] { input });
         result.Length.Should().Be(1);
         result[0].AccountId.Should().Be(15);
@@ -329,22 +328,23 @@ public class AccountChangeCalculatorTest
         _accountLookupStub.AddToCache(fromCanonicalAddress.GetBaseAddress().ToString(), 14);
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
+
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(toCanonicalAddress,
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(fromCanonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.New.TransferredWithSchedule(
-                        fromCanonicalAddress, 
-                        toCanonicalAddress,
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-        
+
         var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
