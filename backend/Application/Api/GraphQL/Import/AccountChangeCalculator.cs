@@ -51,7 +51,7 @@ public class AccountChangeCalculator
             .Select(x => new
             {
                 TransactionId = x.Target.Id,
-                DistinctAccountBaseAddresses = x.Source.AllAffectedAddressesIncludedCreated()
+                DistinctAccountBaseAddresses = x.Source.AffectedAndCreatedAddresses()
                     .Select(address => address.GetBaseAddress())
                     .Distinct()
             })

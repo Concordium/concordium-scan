@@ -102,9 +102,7 @@ public abstract record TransactionResultEvent
                         yield return EncryptedSelfAmountAdded.From(transferredToEncrypted);
                         break;
                     case TransferredToPublic transferredToPublic:
-                        yield return AmountAddedByDecryption.From(
-                            accountTransactionDetails.Sender,
-                            transferredToPublic);
+                        yield return AmountAddedByDecryption.From(transferredToPublic);
                         break;
                     case Concordium.Sdk.Types.TransferredWithSchedule transferredWithSchedule:
                         yield return TransferredWithSchedule.From(
@@ -286,12 +284,11 @@ public record AmountAddedByDecryption(
     AccountAddress AccountAddress) : TransactionResultEvent
 {
     internal static AmountAddedByDecryption From(
-        Concordium.Sdk.Types.AccountAddress sender,
         TransferredToPublic blockItemSummaryDetails)
     {
         return new AmountAddedByDecryption(
             blockItemSummaryDetails.Amount.Value,
-            AccountAddress.From(sender)
+            AccountAddress.From(blockItemSummaryDetails.Removed.Account)
         );
     }
 }
@@ -496,7 +493,7 @@ public record ContractInitialized(
             contract.Data.ModuleReference.ToString(),
             ContractAddress.From(contract.Data.ContractAddress),
             contract.Data.Amount.Value,
-            contract.Data.InitName.Contract,
+            contract.Data.InitName.Name,
             contract.Data.Events.Select(d => d.ToHex()).ToArray()
         );
     }

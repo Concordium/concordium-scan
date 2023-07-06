@@ -7,6 +7,7 @@ using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Baker = Application.Api.GraphQL.Bakers.Baker;
 
 namespace Application.Api.GraphQL.Import;
 

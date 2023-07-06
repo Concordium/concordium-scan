@@ -33,4 +33,8 @@
     <ItemGroup>
       <Folder Include="Api\GraphQL\EfCore\Converters" />
     </ItemGroup>
+    
+    <ItemGroup>
+        <InternalsVisibleTo Include="Tests"/>
+    </ItemGroup>
 </Project>

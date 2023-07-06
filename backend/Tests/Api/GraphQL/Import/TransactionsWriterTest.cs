@@ -12,6 +12,7 @@ using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 using AccountTransaction = Application.Api.GraphQL.Transactions.AccountTransaction;
 using ContractAddress = Concordium.Sdk.Types.ContractAddress;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
+using TransferredWithSchedule = Concordium.Sdk.Types.TransferredWithSchedule;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -249,34 +250,38 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_BakerRemoved()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 21))
-                    .Build())
-                .Build());
+        const ulong bakerId = 21UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var bakerRemoved = new Concordium.Sdk.Types.BakerRemoved(new BakerId(new AccountIndex(21)));
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerRemoved)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.BakerRemoved>();
-        result.BakerId.Should().Be(21);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerSetRestakeEarnings()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetRestakeEarnings(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
-                    .Build())
-                .Build());
+        const ulong bakerId = 23UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var bakerRestakeEarningsUpdated = new BakerRestakeEarningsUpdated(new BakerId(new AccountIndex(bakerId)), true);
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerRestakeEarningsUpdated)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<BakerSetRestakeEarnings>();
-        result.BakerId.Should().Be(23);
+        result.BakerId.Should().Be(bakerId);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
         result.RestakeEarnings.Should().BeTrue();
     }
@@ -284,252 +289,415 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_BakerStakeDecreased()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerStakeDecreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
-                    .Build())
-                .Build());
+        const ulong bakerId = 23UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong amount = 34786451;
+        var bakerConfigured = new BakerConfigured(new List<IBakerEvent>{new BakerStakeDecreasedEvent(new BakerId(new AccountIndex(bakerId)), CcdAmount.FromMicroCcd(amount))});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerConfigured)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<BakerStakeDecreased>();
-        result.BakerId.Should().Be(23);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewStakedAmount.Should().Be(34786451);
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewStakedAmount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerStakeIncreased()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerStakeIncreased(23, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34786451)))
-                    .Build())
-                .Build());
+        const ulong bakerId = 23UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong amount = 34786451;
+        var bakerConfigured = new BakerConfigured(new List<IBakerEvent>{new BakerStakeIncreasedEvent(new BakerId(new AccountIndex(bakerId)), CcdAmount.FromMicroCcd(amount))});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(bakerConfigured)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<BakerStakeIncreased>();
-        result.BakerId.Should().Be(23);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewStakedAmount.Should().Be(34786451);
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewStakedAmount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_AmountAddedByDecryption()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.AmountAddedByDecryption(CcdAmount.FromMicroCcd(2362462), AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong amount = 2362462;
+        var transferredToPublic = new TransferredToPublic(
+            new EncryptedAmountRemovedEvent(AccountAddress.From(address), Array.Empty<byte>(), Array.Empty<byte>(), 0),
+            CcdAmount.FromMicroCcd(amount));
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredToPublic)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         var result = await ReadSingleTransactionEventType<AmountAddedByDecryption>();
-        result.Amount.Should().Be(2362462);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.Amount.Should().Be(amount);
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionEvents_EncryptedAmountsRemoved()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.EncryptedAmountsRemoved(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074", 789))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string newAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
+        const string inputAmount = "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074";
+        const ulong upToIndex = 789UL;
         
-        await WriteData();
+        const ulong newIndex = 155UL;
+        const string encryptedAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
 
-        var result = await ReadSingleTransactionEventType<EncryptedAmountsRemoved>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
-        result.InputAmount.Should().Be("acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074");
-        result.UpToIndex.Should().Be(789);
+        var encryptedAmountTransferred = new EncryptedAmountTransferred(
+            new EncryptedAmountRemovedEvent(
+                AccountAddress.From(address),
+                Convert.FromHexString(newAmount),
+                Convert.FromHexString(inputAmount),
+                upToIndex
+            ),
+            new NewEncryptedAmountEvent(
+                AccountAddress.From(address),
+                newIndex,
+                Convert.FromHexString(encryptedAmount)
+                ), null
+        );
+        
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(encryptedAmountTransferred)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext
+            .TransactionResultEvents
+            .Take(2)
+            .ToListAsync();
+        var encryptedAmountsRemoveds = result
+            .Where(r => r.Entity is EncryptedAmountsRemoved)
+            .Select(r => r.Entity as EncryptedAmountsRemoved)
+            .Single(r => r is not null);
+        encryptedAmountsRemoveds.Should().NotBeNull();
+        
+        encryptedAmountsRemoveds!.AccountAddress.AsString.Should().Be(address);
+        encryptedAmountsRemoveds!.NewEncryptedAmount.Should().Be(newAmount);
+        encryptedAmountsRemoveds!.InputAmount.Should().Be(inputAmount);
+        encryptedAmountsRemoveds!.UpToIndex.Should().Be(upToIndex);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_NewEncryptedAmount()
+    {
+                // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string newAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
+        const string inputAmount = "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074";
+        const ulong upToIndex = 789UL;
+        
+        const ulong newIndex = 155UL;
+        const string encryptedAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
+
+        var encryptedAmountTransferred = new EncryptedAmountTransferred(
+            new EncryptedAmountRemovedEvent(
+                AccountAddress.From(address),
+                Convert.FromHexString(newAmount),
+                Convert.FromHexString(inputAmount),
+                upToIndex
+            ),
+            new NewEncryptedAmountEvent(
+                AccountAddress.From(address),
+                newIndex,
+                Convert.FromHexString(encryptedAmount)
+                ), null
+        );
+        
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(encryptedAmountTransferred)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var result = await dbContext
+            .TransactionResultEvents
+            .Take(2)
+            .ToListAsync();
+        var newEncryptedAmount = result
+            .Where(r => r.Entity is NewEncryptedAmount)
+            .Select(r => r.Entity as NewEncryptedAmount)
+            .Single(r => r is not null);
+        newEncryptedAmount.Should().NotBeNull();
+        
+        newEncryptedAmount!.AccountAddress.AsString.Should().Be(address);
+        newEncryptedAmount!.NewIndex.Should().Be(newIndex);
+        newEncryptedAmount!.EncryptedAmount.Should().Be(encryptedAmount);
     }
 
     [Fact]
     public async Task TransactionEvents_EncryptedSelfAmountAdded()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.EncryptedSelfAmountAdded(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2", CcdAmount.FromMicroCcd(23446)))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        // Assert
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string newAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
+        const int amount = 23446;
 
+        var transferredToEncrypted = new TransferredToEncrypted(new EncryptedSelfAmountAddedEvent(
+            AccountAddress.From(address),
+            Convert.FromHexString(newAmount),
+            CcdAmount.FromMicroCcd(amount)
+        ));
+        
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredToEncrypted)
+            .WithSender(AccountAddress.From(address))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<EncryptedSelfAmountAdded>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewEncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
-        result.Amount.Should().Be(23446);
-    }
-
-    [Fact]
-    public async Task TransactionEvents_NewEncryptedAmount()
-    {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.NewEncryptedAmount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 155, "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2"))
-                    .Build())
-                .Build());
-        
-        await WriteData();
-
-        var result = await ReadSingleTransactionEventType<NewEncryptedAmount>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewIndex.Should().Be(155);
-        result.EncryptedAmount.Should().Be("8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2");
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewEncryptedAmount.Should().Be(newAmount);
+        result.Amount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_CredentialKeysUpdated()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.CredentialKeysUpdated("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"))
-                    .Build())
-                .Build());
+        // Arrange
+        const string credId = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
+        var credentialKeysUpdated = new Concordium.Sdk.Types.CredentialKeysUpdated(new CredentialRegistrationId(Convert.FromHexString(credId)));
         
-        await WriteData();
-
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(credentialKeysUpdated)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialKeysUpdated>();
-        result.CredId.Should().Be("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
+        result.CredId.Should().Be(credId);
     }
 
     [Fact]
     public async Task TransactionEvents_CredentialsUpdated()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.CredentialsUpdated(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new []{"b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d"}, new string[0], 123))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string newCredIds = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
+        const byte newThreshold = 123;
         
-        await WriteData();
+        var credentialsUpdated = new Concordium.Sdk.Types.CredentialsUpdated(
+            new List<CredentialRegistrationId>{new(Convert.FromHexString(newCredIds))},
+            new List<CredentialRegistrationId>(),
+            new AccountThreshold(newThreshold));
 
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(credentialsUpdated)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.CredentialsUpdated>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewCredIds.Should().Equal("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d");
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewCredIds.Should().Equal(newCredIds);
         result.RemovedCredIds.Should().BeEmpty();
-        result.NewThreshold.Should().Be(123);
+        result.NewThreshold.Should().Be(newThreshold);
     }
 
     [Fact]
     public async Task TransactionEvents_ContractInitialized()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.ContractInitialized(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), ContractAddress.From(1423, 1), CcdAmount.FromMicroCcd(5345462), "init_CIS1-singleNFT", new []{ BinaryData.FromHexString("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4"), BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00")}))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        // Arrange
+        const string moduleReference = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const ulong amount = 5345462UL;
+        const string initName = "init_CIS1-singleNFT";
+        var _ = ContractName.TryParse(initName, out var output);
+        const string firstEvent = "fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4";
+        const string secondEvent = "fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00";
 
+        var contractInitialized = new Concordium.Sdk.Types.ContractInitialized(
+            new ContractInitializedEvent(
+                ContractVersion.V1,
+                new ModuleReference(moduleReference),
+                ContractAddress.From(index, subIndex),
+                CcdAmount.FromMicroCcd(amount),
+                output.ContractName!,
+                new List<ContractEvent>
+                {
+                    new(Convert.FromHexString(firstEvent)),
+                    new(Convert.FromHexString(secondEvent))
+                }));
+        
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractInitialized)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.ContractInitialized>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
-        result.Amount.Should().Be(5345462);
-        result.InitName.Should().Be("init_CIS1-singleNFT");
-        result.EventsAsHex.Should().Equal("fe00010000000000000000736e8b0e5f740321883ee1cf6a75e2d9ba31d3c33cfaf265807b352db91a53c4", "fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00");
+        result.ModuleRef.Should().Be(moduleReference);
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
+        result.Amount.Should().Be(amount);
+        result.InitName.Should().Be(initName);
+        result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
     }
 
     [Fact]
     public async Task TransactionEvents_ContractModuleDeployed()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new ModuleDeployed(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb")))
-                    .Build())
-                .Build());
+        // Arrange
+        const string moduleReference = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        var moduleDeployed = new ModuleDeployed(new ModuleReference(moduleReference));
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(moduleDeployed)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         
-        await WriteData();
-
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<ContractModuleDeployed>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.ModuleRef.Should().Be(moduleReference);
     }
 
     [Fact]
     public async Task TransactionEvents_ContractUpdated()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Updated(
-                        ContractAddress.From(1423, 1),
-                        AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
-                        CcdAmount.FromMicroCcd(15674371),
-                        BinaryData.FromHexString("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"), 
-                        "inventory.transfer", 
-                        new []
-                        {
-                            BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
-                            BinaryData.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32")
-                        }))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        // Arrange
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string parameterHex = "080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string name = "inventory.transfer";
+        var _ = ReceiveName.TryParse(name, out var output);
+        const ulong amount = 15674371UL;
+        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
 
+        var updated = new Updated(
+            ContractVersion.V1,
+            ContractAddress.From(index, subIndex),
+            AccountAddress.From(address),
+                CcdAmount.FromMicroCcd(amount),
+            new Parameter(Convert.FromHexString(parameterHex)), 
+            output.ReceiveName!,
+                new List<ContractEvent>
+                {
+                    new(Convert.FromHexString(firstEvent)),
+                    new(Convert.FromHexString(secondEvent))
+                });
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{updated});
+
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<ContractUpdated>();
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
-        result.Instigator.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
-        result.Amount.Should().Be(15674371);
-        result.MessageAsHex.Should().Be("080000d671a4d50101c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
-        result.ReceiveName.Should().Be("inventory.transfer");
-        result.EventsAsHex.Should().Equal("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32", "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
+        result.Instigator.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress(address));
+        result.Amount.Should().Be(amount);
+        result.MessageAsHex.Should().Be(parameterHex);
+        result.ReceiveName.Should().Be(name);
+        result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
     }
 
     [Fact]
     public async Task TransactionEvents_ContractInterrupted()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Interrupted(
-                        ContractAddress.From(1423, 1),
-                        new []
-                        {
-                            BinaryData.FromHexString("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32"),
-                            BinaryData.FromHexString("01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32")
-                        }))
-                    .Build())
-                .Build());
+        // Arrange
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
         
-        await WriteData();
+        var interrupted = new Interrupted(
+            ContractAddress.From(index, subIndex),
+            new List<ContractEvent>
+            {
+                new(Convert.FromHexString(firstEvent)),
+                new(Convert.FromHexString(secondEvent))
+            });
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{interrupted});
 
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<ContractInterrupted>();
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
-        result.EventsAsHex.Should().Equal("05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32", "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32");
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
+        result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
     }
 
     [Fact]
     public async Task TransactionEvents_ContractResumed()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Resumed(
-                        ContractAddress.From(1423, 1),
-                        true))
-                    .Build())
-                .Build());
+        // Arrange
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
         
-        await WriteData();
+        var resumed = new Resumed(
+            ContractAddress.From(index, subIndex),
+            true);
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{resumed});
 
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ContractResumed>();
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
         result.Success.Should().BeTrue();
     }
 
@@ -537,95 +705,130 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_ContractUpgraded()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Upgraded(
-                        ContractAddress.From(1423, 1),
-                        new ModuleReference("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc"),
-                        new ModuleReference("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-                    ))
-                    .Build())
-                .Build());
+        // Arrange
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const string from = "73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc";
+        const string to = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         
-        await WriteData();
+        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        
+        var upgraded = new Upgraded(
+            ContractAddress.From(index, subIndex),
+            new ModuleReference(from),
+            new ModuleReference(to));
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{upgraded});
 
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ContractUpgraded>();
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(1423, 1));
-        result.From.Should().Be("73ba390d9ce2bb1bf54f124bb00e9dee0d6dc40d6de0f5ba06e1d1f095e4afcc");
-        result.To.Should().Be("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
+        result.From.Should().Be(from);
+        result.To.Should().Be(to);
     }
 
     [Fact]
     public async Task TransactionEvents_TransferredWithSchedule()
     {
+        // Arrange        
+        const string to = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const string from = "3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH";
         var baseTimestamp = new DateTimeOffset(2010, 10, 01, 12, 0, 0, TimeSpan.Zero);
+        var tupleOne = (baseTimestamp.AddHours(10), CcdAmount.FromMicroCcd(1000));
+        var tupleSecond = (baseTimestamp.AddHours(20), CcdAmount.FromMicroCcd(3333));
+        var tupleThird = (baseTimestamp.AddHours(30), CcdAmount.FromMicroCcd(2111));
         
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.TransferredWithSchedule(
-                        AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 
-                        AccountAddress.From("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH"), 
-                        new []
-                        {
-                            new TimestampedAmount(baseTimestamp.AddHours(10), CcdAmount.FromMicroCcd(1000)),
-                            new TimestampedAmount(baseTimestamp.AddHours(20), CcdAmount.FromMicroCcd(3333)),
-                            new TimestampedAmount(baseTimestamp.AddHours(30), CcdAmount.FromMicroCcd(2111)),
-                        }))
-                    .Build())
-                .Build());
+        var valueTuples = new List<(DateTimeOffset, CcdAmount)> { tupleOne, tupleSecond, tupleThird };
+        var transferredWithSchedule = new TransferredWithSchedule(AccountAddress.From(to), valueTuples, null);
         
-        await WriteData();
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(AccountAddress.From(from))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.TransferredWithSchedule>();
-        result.FromAccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.ToAccountAddress.AsString.Should().Be("3rAsvTuH2gQawenRgwJQzrk9t4Kd2Y1uZYinLqJRDAHZKJKEeH");
+        result.FromAccountAddress.AsString.Should().Be(to);
+        result.ToAccountAddress.AsString.Should().Be(from);
         result.AmountsSchedule.Should().Equal(
-            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(10), 1000),
-            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(20), 3333),
-            new Application.Api.GraphQL.TimestampedAmount(baseTimestamp.AddHours(30), 2111));
+            new Application.Api.GraphQL.TimestampedAmount(tupleOne.Item1, tupleOne.Item2.Value),
+            new Application.Api.GraphQL.TimestampedAmount(tupleSecond.Item1, tupleSecond.Item2.Value),
+            new Application.Api.GraphQL.TimestampedAmount(tupleThird.Item1, tupleThird.Item2.Value));
     }
     
     [Fact]
     public async Task TransactionEvents_DataRegistered()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DataRegistered(RegisteredData.FromHexString("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863")))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        // Arrange
+        const string data = "784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863";
 
+        var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Convert.FromHexString(data));
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DataRegistered>();
-        result.DataAsHex.Should().Be("784747502d3030323a32636565666132633339396239353639343138353532363032623063383965376665313935303465336438623030333035336339616435623361303365353863");
+        result.DataAsHex.Should().Be(data);
     }
 
     [Fact]
     public async Task TransactionEvents_TransferMemo()
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.TransferMemo(Memo.CreateFromHex("704164616d2042696c6c696f6e61697265")))
-                    .Build())
-                .Build());
+        // Arrange
+        const string data = "704164616d2042696c6c696f6e61697265";
+        var address = AccountAddressHelper.CreateOneFilledWith(1);
+        var transfer = new AccountTransfer(CcdAmount.Zero, address, OnChainData.FromHex(data));
         
-        await WriteData();
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transfer)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
+        // Assert
         var result = await ReadSingleTransactionEventType<TransferMemo>();
-        result.RawHex.Should().Be("704164616d2042696c6c696f6e61697265");
+        result.RawHex.Should().Be(data);
     }
 
     [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_MicroGtuPerEuroPayload() 
     {
+        new MicroCcdPerEuroUpdate(
+            new ExchangeRate(1,2)
+            )
+            
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transfer)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
         _blockSummaryBuilder
             .WithTransactionSummaries(new TransactionSummaryBuilder()
                 .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new MicroGtuPerEuroUpdatePayload(new ExchangeRate(1, 2))))
+                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), 
+                        new MicroGtuPerEuroUpdatePayload(new ExchangeRate(1, 2))))
                     .Build())
                 .Build());
         

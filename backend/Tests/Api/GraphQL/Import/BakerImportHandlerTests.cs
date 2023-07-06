@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Application.Api.GraphQL.Extensions;
 using Application.Api.GraphQL.Import;
 using Concordium.Sdk.Types;
 using Dapper;
@@ -46,6 +47,7 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
         var address = AccountAddress.From("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
         const ProtocolVersion protocolVersion = ProtocolVersion.P4;
         var bakerId = new BakerId(new AccountIndex(1));
+        var _ = MintRateExtensions.TryParse(10, out var mintRate);
 
         var bakerConfigured = new BakerConfigured(new List<IBakerEvent>{new BakerAddedEvent(
             new BakerKeysEvent(
@@ -77,7 +79,7 @@ public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
         var rewardOverviewV1 = new RewardOverviewV1Builder()
             .WithProtocolVersion(protocolVersion)
             .WithNextPaydayTime(DateTimeOffset.Now)
-            .WithNextPaydayMintRate(MintRate.From(10))
+            .WithNextPaydayMintRate(mintRate!.Value)
             .Build();
 
         var allBakerStatusesFunc = () => Task.FromResult(new[]

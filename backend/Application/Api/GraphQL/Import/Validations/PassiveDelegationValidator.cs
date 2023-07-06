@@ -24,8 +24,8 @@ public class PassiveDelegationValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
-        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
-        if (nodeSwVersion.Major >= 4)
+        var nodeInfo = await _nodeClient.GetNodeInfoAsync();
+        if (nodeInfo.Version.Major >= 4)
         {
             var target = await ReadPassiveDelegation();
 

@@ -173,12 +173,12 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private static string Format(AccountDelegationPendingChange pendingChange)
+    private static string Format(IAccountDelegationPendingChange pendingChange)
     {
         return pendingChange switch
         {
-            AccountDelegationRemovePending x => $"Remove@{x.EffectiveTime:O}",
-            AccountDelegationReduceStakePending x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStake.Value}",
+            RemoveStakePending x => $"Remove@{x.EffectiveTime:O}",
+            ReduceStakePending x => $"ReduceStake@{x.EffectiveTime:O}->{x.NewStake.Value}",
             _ => throw new NotImplementedException()
         };
     }
@@ -201,8 +201,8 @@ public class AccountValidator : IImportValidator
 
         var poolStatuses = new List<BakerPoolStatus>();
 
-        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
-        if (nodeSwVersion.Major >= 4)
+        var nodeInfo = await _nodeClient.GetNodeInfoAsync();
+        if (nodeInfo.Version.Major >= 4)
         {
             foreach (var chunk in Chunk(nodeAccountBakers, 10))
             {

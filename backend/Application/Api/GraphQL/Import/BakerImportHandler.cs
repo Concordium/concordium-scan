@@ -7,6 +7,7 @@ using Application.Import;
 using Application.NodeApi;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
+using Baker = Application.Api.GraphQL.Bakers.Baker;
 using CommissionRates = Application.Api.GraphQL.Bakers.CommissionRates;
 
 namespace Application.Api.GraphQL.Import;

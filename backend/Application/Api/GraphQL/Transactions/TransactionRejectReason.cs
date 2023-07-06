@@ -24,7 +24,7 @@ public abstract record TransactionRejectReason
             Concordium.Sdk.Types.InvalidAccountReference x => new InvalidAccountReference(
                 AccountAddress.From(x.AccountAddress)),
             Concordium.Sdk.Types.InvalidInitMethod x => new InvalidInitMethod(x.ModuleReference.ToString(),
-                x.InitName.Name),
+                x.ContractName.Name),
             Concordium.Sdk.Types.InvalidReceiveMethod x => new InvalidReceiveMethod(x.ModuleReference.ToString(),
                 x.ReceiveName.Receive),
             Concordium.Sdk.Types.InvalidModuleReference x => new InvalidModuleReference(x.ModuleReference.ToString()),

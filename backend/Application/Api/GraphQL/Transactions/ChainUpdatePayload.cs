@@ -1,4 +1,5 @@
-﻿using Concordium.Sdk.Types;
+﻿using Application.Api.GraphQL.Extensions;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
