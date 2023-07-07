@@ -1,1 +1,13 @@
+# Local volume data
+data/
+
+# Configuration with access keys used for locally restoring database
 pgbackrest.conf
+
+# Timescale using helm with restore process.
+# Values file contains access keys.
+timescale-helm/values.yaml
+*/charts/*.tgz
+
+# Mac users
+.DS_Store
