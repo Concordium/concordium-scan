@@ -35,6 +35,6 @@
     </ItemGroup>
     
     <ItemGroup>
-        <InternalsVisibleTo Include="Tests"/>
+        <InternalsVisibleTo Include="Tests" />
     </ItemGroup>
 </Project>

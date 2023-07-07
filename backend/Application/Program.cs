@@ -11,6 +11,7 @@ using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
+using Application.Extensions;
 using Application.Import;
 using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
@@ -73,15 +74,15 @@ builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
+builder.Services.AddSingleton(databaseSettings);
 builder.Services.AddSingleton<NodeCache>();
 builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<ConcordiumClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
-builder.Services.AddSingleton(new HttpClient());
-builder.Services.AddSingleton(databaseSettings);
-builder.Services.AddSingleton(builder.Configuration.GetSection("ConcordiumNodeGrpc").Get<GrpcNodeClientSettings>());
+builder.Services.AddConcordiumClient(builder.Configuration);
+builder.Services.AddHttpClient<NodeCollectorClient>();
 builder.Services.AddSingleton<NodeCollectorClient>();
 builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
