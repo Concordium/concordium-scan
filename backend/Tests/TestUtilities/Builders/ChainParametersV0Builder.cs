@@ -1,4 +1,6 @@
-﻿using Concordium.Sdk.Types;
+﻿using Application.Api.GraphQL.Extensions;
+using Concordium.Sdk.Types;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Tests.TestUtilities.Stubs;
 using ExchangeRate = Concordium.Sdk.Types.ExchangeRate;
 using GasRewards = Concordium.Sdk.Types.GasRewards;
@@ -13,10 +15,7 @@ public class ChainParametersV0Builder
     private ExchangeRate _microCcdPerEuro = new ExchangeRate(2, 5);
     private Epoch _bakerCooldownEpochs = new Epoch(12);
     private CredentialsPerBlockLimit _credentialsPerBlockLimit = new CredentialsPerBlockLimit(7);
-    private MintDistributionCpv0 _mintDistribution = new(
-        MintRate.From(0.2m),
-        AmountFraction.From(0.3m),
-        AmountFraction.From(0.4m));
+    private MintDistributionCpv0 _mintDistribution;
     private TransactionFeeDistribution _transactionFeeDistribution = new (
         AmountFraction.From(0.5m),
         AmountFraction.From(0.6m));
@@ -30,6 +29,15 @@ public class ChainParametersV0Builder
     private readonly RootKeys _rootKeys = SimpleStubs.RootKeysStub();
     private readonly Level1Keys _higherLevelKeys = SimpleStubs.Level1KeysStub();
     private readonly AuthorizationsV0 _authorizationsV0 = SimpleStubs.AuthorizationsV0Stub();
+
+    public ChainParametersV0Builder()
+    {
+        var _ = MintRateExtensions.TryParse(0.2m, out var mintPerSlot);
+        _mintDistribution = new MintDistributionCpv0(
+             mintPerSlot!.Value,
+            AmountFraction.From(0.3m),
+            AmountFraction.From(0.4m));
+    }
     
     public Concordium.Sdk.Types.ChainParametersV0 Build()
     {

@@ -1,4 +1,5 @@
-﻿using Concordium.Sdk.Types;
+﻿using Application.Api.GraphQL.Extensions;
+using Concordium.Sdk.Types;
 using Tests.TestUtilities.Stubs;
 using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 using AmountFraction = Concordium.Sdk.Types.AmountFraction;
@@ -25,10 +26,7 @@ public class ChainParametersV1Builder
     private CooldownParameters _cooldownParameters = new CooldownParameters(
         TimeSpan.FromSeconds(12),
         TimeSpan.FromSeconds(13));
-    private TimeParameters _timeParameters = new TimeParameters(
-        new RewardPeriodLength(new Epoch(4)),
-        MintRate.From(0.25m)
-        );
+    private TimeParameters _timeParameters;
     private CredentialsPerBlockLimit _accountCreationLimit = new CredentialsPerBlockLimit(7);
     private MintDistributionCpv1 _mintDistributionCpv1 = new MintDistributionCpv1(
         AmountFraction.From(0.3m),
@@ -56,6 +54,15 @@ public class ChainParametersV1Builder
         new CapitalBound(AmountFraction.From(0.25m)),
         new LeverageFactor(3, 1)
     );
+
+    public ChainParametersV1Builder()
+    {
+        var _ = MintRateExtensions.TryParse(0.25m, out var mintPrPayDay);
+        _timeParameters = new TimeParameters(
+            new RewardPeriodLength(new Epoch(4)),
+            mintPrPayDay!.Value
+        );
+    }
     
     public ChainParametersV1 Build()
     {

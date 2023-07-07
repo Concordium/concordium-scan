@@ -2,9 +2,26 @@ using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
-public class AccountTransactionEffectsBuilder
+public class UpdateDetailsBuilder
 {
-    
+    private readonly IUpdatePayload _payload;
+    private DateTimeOffset _effectiveTime = DateTimeOffset.MinValue;
+
+    public UpdateDetailsBuilder(IUpdatePayload payload)
+    {
+        _payload = payload;
+    }
+
+    public UpdateDetails Build() =>
+        new(
+            _effectiveTime, _payload
+        );
+
+    public UpdateDetailsBuilder WithEffectiveTime(DateTimeOffset effectiveTime)
+    {
+        _effectiveTime = effectiveTime;
+        return this;
+    }
 }
 
 public class AccountCreationDetailsBuilder
@@ -13,17 +30,17 @@ public class AccountCreationDetailsBuilder
     private AccountAddress _accountAddress = AccountAddress.From(new byte[32]);
     private CredentialRegistrationId _credentialRegistrationId = new(
         Array.Empty<byte>());
-
-    public AccountCreationDetails Build()
-    {
-        return new AccountCreationDetails(_credentialType, _accountAddress, _credentialRegistrationId);
-    }
-
+    
     public AccountCreationDetailsBuilder(CredentialType credentialType)
     {
         _credentialType = credentialType;
     }
     
+    public AccountCreationDetails Build()
+    {
+        return new AccountCreationDetails(_credentialType, _accountAddress, _credentialRegistrationId);
+    }
+
     public AccountCreationDetailsBuilder WithAccountAddress(AccountAddress accountAddress)
     {
         _accountAddress = accountAddress;

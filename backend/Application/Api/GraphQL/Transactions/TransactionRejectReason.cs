@@ -15,7 +15,7 @@ public abstract record TransactionRejectReason
         return false;
     }
 
-    internal static TransactionRejectReason MapRejectReason(Concordium.Sdk.Types.IRejectReason rejectReason)
+    internal static TransactionRejectReason MapRejectReason(IRejectReason rejectReason)
     {
         return rejectReason switch
         {
@@ -37,7 +37,6 @@ public abstract record TransactionRejectReason
             Concordium.Sdk.Types.RejectedInit x => new RejectedInit(x.RejectReason),
             Concordium.Sdk.Types.RejectedReceive x => new RejectedReceive(x.RejectReason,
                 ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString()),
-            // Concordium.Sdk.Types.NonExistentRewardAccount x => new NonExistentRewardAccount(MapAccountAddress(x.Contents)), TODO: Missing
             Concordium.Sdk.Types.InvalidProof => new InvalidProof(),
             Concordium.Sdk.Types.AlreadyABaker x => new AlreadyABaker(x.BakerId.Id.Index),
             Concordium.Sdk.Types.NotABaker x => new NotABaker(AccountAddress.From(x.AccountAddress)),
@@ -65,20 +64,20 @@ public abstract record TransactionRejectReason
             Concordium.Sdk.Types.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
             Concordium.Sdk.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
             Concordium.Sdk.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
-            Concordium.Sdk.Types.MissingBakerAddParameters => new Transactions.MissingBakerAddParameters(),
-            Concordium.Sdk.Types.FinalizationRewardCommissionNotInRange => new Transactions.FinalizationRewardCommissionNotInRange(),
-            Concordium.Sdk.Types.BakingRewardCommissionNotInRange => new Transactions.BakingRewardCommissionNotInRange(),
-            Concordium.Sdk.Types.TransactionFeeCommissionNotInRange => new Transactions.TransactionFeeCommissionNotInRange(),
-            Concordium.Sdk.Types.AlreadyADelegator => new Transactions.AlreadyADelegator(),
-            Concordium.Sdk.Types.InsufficientBalanceForDelegationStake => new Transactions.InsufficientBalanceForDelegationStake(),
-            Concordium.Sdk.Types.MissingDelegationAddParameter => new Transactions.MissingDelegationAddParameters(),
-            Concordium.Sdk.Types.InsufficientDelegationStake => new Transactions.InsufficientDelegationStake(),
-            Concordium.Sdk.Types.DelegatorInCooldown => new Transactions.DelegatorInCooldown(),
-            Concordium.Sdk.Types.NotADelegator x => new Transactions.NotADelegator(AccountAddress.From(x.AccountAddress)),
-            Concordium.Sdk.Types.DelegationTargetNotABaker x => new Transactions.DelegationTargetNotABaker(x.BakerId.Id.Index),
-            Concordium.Sdk.Types.StakeOverMaximumThresholdForPool => new Transactions.StakeOverMaximumThresholdForPool(),
-            Concordium.Sdk.Types.PoolWouldBecomeOverDelegated => new Transactions.PoolWouldBecomeOverDelegated(),
-            Concordium.Sdk.Types.PoolClosed => new Transactions.PoolClosed(),
+            Concordium.Sdk.Types.MissingBakerAddParameters => new MissingBakerAddParameters(),
+            Concordium.Sdk.Types.FinalizationRewardCommissionNotInRange => new FinalizationRewardCommissionNotInRange(),
+            Concordium.Sdk.Types.BakingRewardCommissionNotInRange => new BakingRewardCommissionNotInRange(),
+            Concordium.Sdk.Types.TransactionFeeCommissionNotInRange => new TransactionFeeCommissionNotInRange(),
+            Concordium.Sdk.Types.AlreadyADelegator => new AlreadyADelegator(),
+            Concordium.Sdk.Types.InsufficientBalanceForDelegationStake => new InsufficientBalanceForDelegationStake(),
+            Concordium.Sdk.Types.MissingDelegationAddParameters => new MissingDelegationAddParameters(),
+            Concordium.Sdk.Types.InsufficientDelegationStake => new InsufficientDelegationStake(),
+            Concordium.Sdk.Types.DelegatorInCooldown => new DelegatorInCooldown(),
+            Concordium.Sdk.Types.NotADelegator x => new NotADelegator(AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.DelegationTargetNotABaker x => new DelegationTargetNotABaker(x.BakerId.Id.Index),
+            Concordium.Sdk.Types.StakeOverMaximumThresholdForPool => new StakeOverMaximumThresholdForPool(),
+            Concordium.Sdk.Types.PoolWouldBecomeOverDelegated => new PoolWouldBecomeOverDelegated(),
+            Concordium.Sdk.Types.PoolClosed => new PoolClosed(),
             _ => throw new NotImplementedException("Reject reason not mapped!")
         };
     }
@@ -166,6 +165,7 @@ public record RejectedReceive(
 /// <summary>
 /// Reward account desired by the baker does not exist.
 /// </summary>
+[Obsolete("Not present in gRPC v2")]
 public record NonExistentRewardAccount(
     AccountAddress AccountAddress) : TransactionRejectReason;
 

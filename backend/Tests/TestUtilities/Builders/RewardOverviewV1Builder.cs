@@ -1,3 +1,4 @@
+using Application.Api.GraphQL.Extensions;
 using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
@@ -12,11 +13,14 @@ public class RewardOverviewV1Builder
     private readonly CcdAmount _gasAccount = CcdAmount.Zero;
     private readonly CcdAmount _foundationTransactionRewards = CcdAmount.Zero;
     private DateTimeOffset _nextPaydayTime = DateTimeOffset.MinValue;
-    private MintRate _nextPaydayMintRate = MintRate.From(1);
+    private MintRate _nextPaydayMintRate;
     private readonly CcdAmount _totalStakedCapital = CcdAmount.Zero;
 
     public RewardOverviewV1Builder()
-    {}
+    {
+        var _ = MintRateExtensions.TryParse(1, out var nextPaydayMintRate);
+        _nextPaydayMintRate = nextPaydayMintRate!.Value;
+    }
 
     public RewardOverviewV1 Build()
     {

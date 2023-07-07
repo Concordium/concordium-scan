@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Application.Api.GraphQL.Extensions;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
@@ -10,9 +11,69 @@ using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
 using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 using AccountTransaction = Application.Api.GraphQL.Transactions.AccountTransaction;
+using AlreadyABaker = Concordium.Sdk.Types.AlreadyABaker;
+using AlreadyADelegator = Concordium.Sdk.Types.AlreadyADelegator;
+using AmountTooLarge = Concordium.Sdk.Types.AmountTooLarge;
+using BakerInCooldown = Concordium.Sdk.Types.BakerInCooldown;
+using BakingRewardCommissionNotInRange = Concordium.Sdk.Types.BakingRewardCommissionNotInRange;
 using ContractAddress = Concordium.Sdk.Types.ContractAddress;
+using CredentialHolderDidNotSign = Concordium.Sdk.Types.CredentialHolderDidNotSign;
+using DelegationAdded = Concordium.Sdk.Types.DelegationAdded;
+using DelegationRemoved = Concordium.Sdk.Types.DelegationRemoved;
+using DelegationSetDelegationTarget = Concordium.Sdk.Types.DelegationSetDelegationTarget;
+using DelegationSetRestakeEarnings = Concordium.Sdk.Types.DelegationSetRestakeEarnings;
+using DelegationStakeDecreased = Concordium.Sdk.Types.DelegationStakeDecreased;
+using DelegationStakeIncreased = Concordium.Sdk.Types.DelegationStakeIncreased;
+using DelegationTargetNotABaker = Concordium.Sdk.Types.DelegationTargetNotABaker;
+using DelegatorInCooldown = Concordium.Sdk.Types.DelegatorInCooldown;
+using DuplicateAggregationKey = Concordium.Sdk.Types.DuplicateAggregationKey;
+using DuplicateCredIds = Concordium.Sdk.Types.DuplicateCredIds;
+using EncryptedAmountSelfTransfer = Concordium.Sdk.Types.EncryptedAmountSelfTransfer;
+using FinalizationRewardCommissionNotInRange = Concordium.Sdk.Types.FinalizationRewardCommissionNotInRange;
+using FirstScheduledReleaseExpired = Concordium.Sdk.Types.FirstScheduledReleaseExpired;
+using InsufficientBalanceForBakerStake = Concordium.Sdk.Types.InsufficientBalanceForBakerStake;
+using InsufficientBalanceForDelegationStake = Concordium.Sdk.Types.InsufficientBalanceForDelegationStake;
+using InsufficientDelegationStake = Concordium.Sdk.Types.InsufficientDelegationStake;
+using InvalidAccountReference = Concordium.Sdk.Types.InvalidAccountReference;
+using InvalidAccountThreshold = Concordium.Sdk.Types.InvalidAccountThreshold;
+using InvalidContractAddress = Concordium.Sdk.Types.InvalidContractAddress;
+using InvalidCredentialKeySignThreshold = Concordium.Sdk.Types.InvalidCredentialKeySignThreshold;
+using InvalidCredentials = Concordium.Sdk.Types.InvalidCredentials;
+using InvalidEncryptedAmountTransferProof = Concordium.Sdk.Types.InvalidEncryptedAmountTransferProof;
+using InvalidIndexOnEncryptedTransfer = Concordium.Sdk.Types.InvalidIndexOnEncryptedTransfer;
+using InvalidInitMethod = Concordium.Sdk.Types.InvalidInitMethod;
+using InvalidModuleReference = Concordium.Sdk.Types.InvalidModuleReference;
+using InvalidProof = Concordium.Sdk.Types.InvalidProof;
+using InvalidReceiveMethod = Concordium.Sdk.Types.InvalidReceiveMethod;
+using InvalidTransferToPublicProof = Concordium.Sdk.Types.InvalidTransferToPublicProof;
+using KeyIndexAlreadyInUse = Concordium.Sdk.Types.KeyIndexAlreadyInUse;
+using MissingBakerAddParameters = Concordium.Sdk.Types.MissingBakerAddParameters;
+using MissingDelegationAddParameters = Application.Api.GraphQL.Transactions.MissingDelegationAddParameters;
+using ModuleHashAlreadyExists = Concordium.Sdk.Types.ModuleHashAlreadyExists;
+using ModuleNotWf = Concordium.Sdk.Types.ModuleNotWf;
+using NonExistentCredentialId = Concordium.Sdk.Types.NonExistentCredentialId;
+using NonExistentCredIds = Concordium.Sdk.Types.NonExistentCredIds;
+using NonIncreasingSchedule = Concordium.Sdk.Types.NonIncreasingSchedule;
+using NotABaker = Concordium.Sdk.Types.NotABaker;
+using NotADelegator = Concordium.Sdk.Types.NotADelegator;
+using NotAllowedMultipleCredentials = Concordium.Sdk.Types.NotAllowedMultipleCredentials;
+using NotAllowedToHandleEncrypted = Concordium.Sdk.Types.NotAllowedToHandleEncrypted;
+using NotAllowedToReceiveEncrypted = Concordium.Sdk.Types.NotAllowedToReceiveEncrypted;
+using OutOfEnergy = Concordium.Sdk.Types.OutOfEnergy;
+using PoolClosed = Concordium.Sdk.Types.PoolClosed;
+using PoolWouldBecomeOverDelegated = Concordium.Sdk.Types.PoolWouldBecomeOverDelegated;
+using RejectedInit = Concordium.Sdk.Types.RejectedInit;
+using RejectedReceive = Concordium.Sdk.Types.RejectedReceive;
+using RemoveFirstCredential = Concordium.Sdk.Types.RemoveFirstCredential;
+using RuntimeFailure = Concordium.Sdk.Types.RuntimeFailure;
+using ScheduledSelfTransfer = Concordium.Sdk.Types.ScheduledSelfTransfer;
+using SerializationFailure = Concordium.Sdk.Types.SerializationFailure;
+using StakeOverMaximumThresholdForPool = Concordium.Sdk.Types.StakeOverMaximumThresholdForPool;
+using StakeUnderMinimumThresholdForBaking = Concordium.Sdk.Types.StakeUnderMinimumThresholdForBaking;
+using TransactionFeeCommissionNotInRange = Concordium.Sdk.Types.TransactionFeeCommissionNotInRange;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
 using TransferredWithSchedule = Concordium.Sdk.Types.TransferredWithSchedule;
+using ZeroScheduledAmount = Concordium.Sdk.Types.ZeroScheduledAmount;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -405,7 +466,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_NewEncryptedAmount()
     {
-                // Arrange
+        // Arrange
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         const string newAmount = "8127cc7b219f268461b83c2397573b41815a4c4246b03e17184275ea158561d68bb526a2b5f69eb3ef5c5400927a6c528c461717287f5ec5f31bc0469f1f562f08a270f194963adf814e20fa632782de005efb59014490a2d7a726f2b626d12ab4e23198006317c29cbe3882030ba8f561ba52e6684408ea6e4471871f2f4e043cb2e036bc8e1d53b8d784b61c4cba5ca60c4a8172d9c50f5d56c16640f46f08f1f3224d8fbfa56482547af30b60a21cc24392c1e68df8dcba86bda4e3088fd2";
         const string inputAmount = "acde243d9f17432a12a04bd553846a9464ecd6c59be5bc3fd6b58d608b002c725c7f495f3c9fe80510d52a739bc5b67280b612dec5a2212bdb3257136fbe5703a3c159a3cda1e70aed0ce69245c8dc6f7c3f374bde1f7584dce9c90b288d3eef8b48cd548dfdeac5d58b0c32585d26c181f142f1e47f9c6695a6abe6a008a7bce1bc02f71f880e198acb03550c50de8daf1e25967487a5f1a9d0ee1afdee9f50c4d2a9fc849d5b234dd47a3af95a7a4e2df78923e39e60ac55d60fd90b4e9074";
@@ -679,9 +740,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         // Arrange
         const ulong index = 1423UL;
         const ulong subIndex = 1UL;
-        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
-        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
-        
+
         var resumed = new Resumed(
             ContractAddress.From(index, subIndex),
             true);
@@ -812,30 +871,22 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_MicroGtuPerEuroPayload() 
     {
-        new MicroCcdPerEuroUpdate(
-            new ExchangeRate(1,2)
-            )
-            
-        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transfer)
+        const int seconds = 1624630671;
+        var microCcdPerEuroUpdate = new MicroCcdPerEuroUpdate(new ExchangeRate(1,2));
+
+        var updateDetails = new UpdateDetailsBuilder(microCcdPerEuroUpdate)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
             .Build();
-        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
             .Build();
         
         // Act
         await WriteData(new List<BlockItemSummary>{blockItemSummary});
         
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), 
-                        new MicroGtuPerEuroUpdatePayload(new ExchangeRate(1, 2))))
-                    .Build())
-                .Build());
-        
-        await WriteData();
-
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
         var item = Assert.IsType<MicroCcdPerEuroChainUpdatePayload>(result.Payload);
         item.ExchangeRate.Numerator.Should().Be(1);
         item.ExchangeRate.Denominator.Should().Be(2);
@@ -844,35 +895,48 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_BakerStakeThresholdV1UpdatePayload() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new BakerStakeThresholdUpdatePayload(new BakerParameters(CcdAmount.FromMicroCcd(12345)))))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        // Arrange
+        const int seconds = 1624630671;
+        const int amount = 12345;
+        var bakerStakeThresholdUpdate = new BakerStakeThresholdUpdate(CcdAmount.FromMicroCcd(amount));
 
+        var updateDetails = new UpdateDetailsBuilder(bakerStakeThresholdUpdate)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
         var item = Assert.IsType<BakerStakeThresholdChainUpdatePayload>(result.Payload);
-        item.Amount.Should().Be(12345);
+        item.Amount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_CooldownParametersUpdatePayload() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), new CooldownParametersUpdatePayload(new CooldownParameters(20, 40))))
-                    .Build())
-                .Build());
+        // Arrange
+        const int seconds = 1624630671;
+        var cooldownUpdate = new CooldownParametersCpv1Update(new CooldownParameters(TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40)));
         
-        await WriteData();
-
+        var updateDetails = new UpdateDetailsBuilder(cooldownUpdate)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
         var item = Assert.IsType<CooldownParametersChainUpdatePayload>(result.Payload);
         item.PoolOwnerCooldown.Should().Be(20);
         item.DelegatorCooldown.Should().Be(40);
@@ -881,80 +945,131 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_ChainUpdateEnqueued_PoolParametersUpdatePayload() 
     {
-        var payload = new PoolParametersUpdatePayload(new PoolParameters(
-            0.1m, 0.2m, 0.3m, 
-            new InclusiveRange<decimal>(1.0m, 1.2m),
-            new InclusiveRange<decimal>(2.0m, 2.2m),
-            new InclusiveRange<decimal>(3.0m, 3.2m),
-            CcdAmount.FromMicroCcd(12000), 3.0m, new LeverageFactor(13, 17)));
+        // Arrange
+        const int seconds = 1624630671;
+        const decimal passiveFinalizationCommission = 0.1m;
+        const decimal passiveBakingCommission = 0.2m;
+        const decimal passiveTransactionCommission = 0.3m;
+        const decimal finalizationMin = 1.0m;
+        const decimal finalizationMax = 1.2m;
+        const decimal bakingMin = 2.0m;
+        const decimal bakingMax = 2.2m;
+        const decimal transactionMin = 3.0m;
+        const decimal transactionMax = 3.2m;
+        const ulong amount = 12000UL;
+        const decimal capitalBound = 3.0m;
+        const ulong leverageFactorNumerator = 13UL;
+        const ulong leverageFactorDenominator = 17UL;
+        var update = new PoolParametersCpv1Update(
+            new PoolParameters(
+                AmountFraction.From(passiveFinalizationCommission),
+                AmountFraction.From(passiveBakingCommission),
+                AmountFraction.From(passiveTransactionCommission),
+                new CommissionRanges(
+                    new InclusiveRange<AmountFraction>(
+                        AmountFraction.From(finalizationMin),
+                        AmountFraction.From(finalizationMax)),
+                    new InclusiveRange<AmountFraction>(
+                        AmountFraction.From(bakingMin),
+                        AmountFraction.From(bakingMax)),
+                    new InclusiveRange<AmountFraction>(
+                        AmountFraction.From(transactionMin),
+                        AmountFraction.From(transactionMax))
+                ),
+                CcdAmount.FromMicroCcd(amount),
+                new CapitalBound(AmountFraction.From(capitalBound)),
+                new LeverageFactor(leverageFactorNumerator, leverageFactorDenominator)
+            ));
         
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
-                    .Build())
-                .Build());
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
         var item = Assert.IsType<PoolParametersChainUpdatePayload>(result.Payload);
-        item.PassiveFinalizationCommission.Should().Be(0.1m);
-        item.PassiveBakingCommission.Should().Be(0.2m);
-        item.PassiveTransactionCommission.Should().Be(0.3m);
-        item.FinalizationCommissionRange.Min.Should().Be(1.0m);
-        item.FinalizationCommissionRange.Max.Should().Be(1.2m);
-        item.BakingCommissionRange.Min.Should().Be(2.0m);
-        item.BakingCommissionRange.Max.Should().Be(2.2m);
-        item.TransactionCommissionRange.Min.Should().Be(3.0m);
-        item.TransactionCommissionRange.Max.Should().Be(3.2m);
-        item.MinimumEquityCapital.Should().Be(12000UL);
-        item.CapitalBound.Should().Be(3.0m);
-        item.LeverageBound.Numerator.Should().Be(13);
-        item.LeverageBound.Denominator.Should().Be(17);
+        item.PassiveFinalizationCommission.Should().Be(passiveFinalizationCommission);
+        item.PassiveBakingCommission.Should().Be(passiveBakingCommission);
+        item.PassiveTransactionCommission.Should().Be(passiveTransactionCommission);
+        item.FinalizationCommissionRange.Min.Should().Be(finalizationMin);
+        item.FinalizationCommissionRange.Max.Should().Be(finalizationMax);
+        item.BakingCommissionRange.Min.Should().Be(bakingMin);
+        item.BakingCommissionRange.Max.Should().Be(bakingMax);
+        item.TransactionCommissionRange.Min.Should().Be(transactionMin);
+        item.TransactionCommissionRange.Max.Should().Be(transactionMax);
+        item.MinimumEquityCapital.Should().Be(amount);
+        item.CapitalBound.Should().Be(capitalBound);
+        item.LeverageBound.Numerator.Should().Be(leverageFactorNumerator);
+        item.LeverageBound.Denominator.Should().Be(leverageFactorDenominator);
     }
 
     [Fact]
-    public async Task TransactionEvents_ChainUpdateEnqueued_TimeParametersUpdatePayload() 
+    public async Task TransactionEvents_ChainUpdateEnqueued_TimeParametersUpdatePayload()
     {
-        var payload = new TimeParametersUpdatePayload(new TimeParameters(170, 4.2m));
+        // Arrange
+        var effectiveTime = DateTimeOffset.FromUnixTimeSeconds(1624630671);
+        const ulong epoch = 170UL;
+        const decimal mintPrPayDay = 4.2m;
+        var _ = MintRateExtensions.TryParse(mintPrPayDay, out var mintRate);
+        var update = new TimeParametersCpv1Update(
+            new TimeParameters(
+                new RewardPeriodLength(new Epoch(epoch)),
+                mintRate!.Value
+            )
+        );
         
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
-                    .Build())
-                .Build());
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(effectiveTime)
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(effectiveTime);
         var item = Assert.IsType<TimeParametersChainUpdatePayload>(result.Payload);
-        item.RewardPeriodLength.Should().Be(170);
-        item.MintPerPayday.Should().Be(4.2m);
+        item.RewardPeriodLength.Should().Be(epoch);
+        item.MintPerPayday.Should().Be(mintPrPayDay);
     }
 
     [Fact]
-    public async Task TransactionEvents_ChainUpdateEnqueued_MintDistributionV1UpdatePayload() 
+    public async Task TransactionEvents_ChainUpdateEnqueued_MintDistributionV1UpdatePayload()
     {
-        var payload = new MintDistributionV1UpdatePayload(new MintDistributionV1(1.1m, 0.5m));
+        // Arrange
+        const decimal bakingReward = 1.1m;
+        const decimal finalizationReward = 0.5m;
+        var update = new MintDistributionCpv1Update(
+            AmountFraction.From(bakingReward),
+            AmountFraction.From(finalizationReward)
+        );
+        var effectiveTime = DateTimeOffset.FromUnixTimeSeconds(1624630671);
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(effectiveTime)
+            .Build();
         
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new UpdateEnqueued(new UnixTimeSeconds(1624630671), payload))
-                    .Build())
-                .Build());
-        
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
-        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1624630671));
+        result.EffectiveTime.Should().Be(effectiveTime);
         var item = Assert.IsType<MintDistributionV1ChainUpdatePayload>(result.Payload);
-        item.BakingReward.Should().Be(1.1m);
-        item.FinalizationReward.Should().Be(0.5m);
+        item.BakingReward.Should().Be(bakingReward);
+        item.FinalizationReward.Should().Be(finalizationReward);
     }
 
     [Theory]
@@ -963,122 +1078,201 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [InlineData(BakerPoolOpenStatus.ClosedForAll, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus.ClosedForAll)]
     public async Task TransactionEvents_BakerSetOpenStatus(BakerPoolOpenStatus inputStatus, Application.Api.GraphQL.Bakers.BakerPoolOpenStatus expectedStatus) 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetOpenStatus(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), inputStatus))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong bakerId = 42UL;
+        var update = new BakerConfigured(
+            new List<IBakerEvent>{
+                new BakerSetOpenStatusEvent(
+                    new BakerId(new AccountIndex(bakerId)),
+                    inputStatus
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<BakerSetOpenStatus>();
-        result.BakerId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
         result.OpenStatus.Should().Be(expectedStatus);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerSetTransactionFeeCommission() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetTransactionFeeCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong bakerId = 42UL;
+        const decimal transactionFeeCommission = 0.9m;
+        var update = new BakerConfigured(
+            new List<IBakerEvent>{
+                new BakerSetTransactionFeeCommissionEvent(
+                    new BakerId(new AccountIndex(bakerId)),
+                    AmountFraction.From(transactionFeeCommission)
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<BakerSetTransactionFeeCommission>();
-        result.BakerId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.TransactionFeeCommission.Should().Be(0.9m);
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.TransactionFeeCommission.Should().Be(transactionFeeCommission);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerSetMetadataURL() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetMetadataURL(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), "https://ccd.bakers.com/metadata"))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong bakerId = 42UL;
+        const string metaDataUrl = "https://ccd.bakers.com/metadata";
+        var update = new BakerConfigured(
+            new List<IBakerEvent>{
+                new BakerSetMetadataUrlEvent(
+                    new BakerId(new AccountIndex(bakerId)),
+                    metaDataUrl
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<BakerSetMetadataURL>();
-        result.BakerId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.MetadataUrl.Should().Be("https://ccd.bakers.com/metadata");
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.MetadataUrl.Should().Be(metaDataUrl);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerSetBakingRewardCommission() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetBakingRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong bakerId = 42UL;
+        const decimal bakerRewardCommission = 0.9m;
+        var update = new BakerConfigured(
+            new List<IBakerEvent>{
+                new BakerSetBakingRewardCommissionEvent(
+                    new BakerId(new AccountIndex(bakerId)),
+                    AmountFraction.From(bakerRewardCommission)
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<BakerSetBakingRewardCommission>();
-        result.BakerId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.BakingRewardCommission.Should().Be(0.9m);
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.BakingRewardCommission.Should().Be(bakerRewardCommission);
     }
 
     [Fact]
     public async Task TransactionEvents_BakerSetFinalizationRewardCommission() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.BakerSetFinalizationRewardCommission(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), 0.9m))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong bakerId = 42UL;
+        const decimal finalizationRewardCommission = 0.9m;
+        var update = new BakerConfigured(
+            new List<IBakerEvent>{
+                new BakerSetFinalizationRewardCommissionEvent(
+                    new BakerId(new AccountIndex(bakerId)),
+                    AmountFraction.From(finalizationRewardCommission)
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<BakerSetFinalizationRewardCommission>();
-        result.BakerId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.FinalizationRewardCommission.Should().Be(0.9m);
+        result.BakerId.Should().Be(bakerId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.FinalizationRewardCommission.Should().Be(finalizationRewardCommission);
     }
 
     [Fact]
     public async Task TransactionEvents_DelegationAdded() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationAdded(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationAdded(
+                    new DelegatorId(new AccountIndex(delegationId))
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationAdded>();
-        result.DelegatorId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.DelegatorId.Should().Be(delegationId);
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionEvents_DelegationRemoved() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationRemoved(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationRemoved(
+                    new DelegatorId(new AccountIndex(delegationId))
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationRemoved>();
         result.DelegatorId.Should().Be(42);
         result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
@@ -1087,81 +1281,132 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_DelegationStakeIncreased() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationStakeIncreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        const ulong amount = 758111UL;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationStakeIncreased(
+                    new DelegatorId(new AccountIndex(delegationId)),
+                    CcdAmount.FromMicroCcd(amount)
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationStakeIncreased>();
-        result.DelegatorId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewStakedAmount.Should().Be(758111);
+        result.DelegatorId.Should().Be(delegationId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewStakedAmount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_DelegationStakeDecreased() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationStakeDecreased(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(758111)))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        const ulong amount = 758111UL;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationStakeDecreased(
+                    new DelegatorId(new AccountIndex(delegationId)),
+                    CcdAmount.FromMicroCcd(amount)
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationStakeDecreased>();
-        result.DelegatorId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
-        result.NewStakedAmount.Should().Be(758111);
+        result.DelegatorId.Should().Be(delegationId);
+        result.AccountAddress.AsString.Should().Be(address);
+        result.NewStakedAmount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionEvents_DelegationSetRestakeEarnings() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationSetRestakeEarnings(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), true))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        const bool restakeEarnings = true;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationSetRestakeEarnings(
+                    new DelegatorId(new AccountIndex(delegationId)),
+                    restakeEarnings
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary}); 
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationSetRestakeEarnings>();
-        result.DelegatorId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.DelegatorId.Should().Be(delegationId);
+        result.AccountAddress.AsString.Should().Be(address);
         result.RestakeEarnings.Should().BeTrue();
     }
 
     [Fact]
     public async Task TransactionEvents_DelegationSetDelegationTarget() 
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Concordium.Sdk.Types.DelegationSetDelegationTarget(42, AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), new PassiveDelegationTarget()))
-                    .Build())
-                .Build());
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        const ulong delegationId = 42UL;
+        var update = new DelegationConfigured(
+            new List<IDelegationEvent>{
+                new DelegationSetDelegationTarget(
+                    new DelegatorId(new AccountIndex(delegationId)),
+                    new PassiveDelegationTarget()
+                )});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(update)
+            .WithSender(AccountAddress.From(address))
+            .Build();
         
-        await WriteData();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary}); 
+        
+        // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.DelegationSetDelegationTarget>();
-        result.DelegatorId.Should().Be(42);
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.DelegatorId.Should().Be(delegationId);
+        result.AccountAddress.AsString.Should().Be(address);
         result.DelegationTarget.Should().BeOfType<Application.Api.GraphQL.PassiveDelegationTarget>();
     }
 
     [Fact]
     public async Task TransactionRejectReason_ModuleNotWf()
     {
-        var inputReason = new Application.NodeApi.ModuleNotWf();
-        await WriteSingleRejectedTransaction(inputReason);
+        // Arrange
+        var moduleNotWf = new ModuleNotWf();
         
+        // Act
+        await WriteSingleRejectedTransaction(moduleNotWf);
+
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleNotWf>();
         result.Should().NotBeNull();
     }
@@ -1169,69 +1414,105 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ModuleHashAlreadyExists()
     {
-        var inputReason = new Application.NodeApi.ModuleHashAlreadyExists(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
-        await WriteSingleRejectedTransaction(inputReason);
+        // Arrange
+        const string hexString = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        var reason = new ModuleHashAlreadyExists(new ModuleReference(hexString));
+
+        // Act
+        await WriteSingleRejectedTransaction(reason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.ModuleRef.Should().Be(hexString);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidAccountReference()
     {
-        var inputReason = new Application.NodeApi.InvalidAccountReference(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        // Assert
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new InvalidAccountReference(AccountAddress.From(address));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountReference>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidInitMethod()
     {
-        var inputReason = new Application.NodeApi.InvalidInitMethod(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.init");
+        // Assert
+        const string moduleRef = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        const string name = "init_trader";
+        var _ = ContractName.TryParse(name, out var output);
+        var inputReason = new InvalidInitMethod(new ModuleReference(moduleRef), output.ContractName!);
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidInitMethod>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
-        result.InitName.Should().Be("trader.init");
+        result.ModuleRef.Should().Be(moduleRef);
+        result.InitName.Should().Be(name);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidReceiveMethod()
     {
-        var inputReason = new Application.NodeApi.InvalidReceiveMethod(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"), "trader.receive");
+        // Assert
+        const string moduleRef = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        const string name = "trader.receive";
+        var _ = ReceiveName.TryParse(name, out var output);
+        var inputReason = new InvalidReceiveMethod(new ModuleReference(moduleRef), output.ReceiveName!);
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidReceiveMethod>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
-        result.ReceiveName.Should().Be("trader.receive");
+        result.ModuleRef.Should().Be(moduleRef);
+        result.ReceiveName.Should().Be(name);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidModuleReference()
     {
-        var inputReason = new Application.NodeApi.InvalidModuleReference(new ModuleReference("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb"));
+        // Arrange
+        const string moduleRef = "2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb";
+        var inputReason = new InvalidModuleReference(new ModuleReference(moduleRef));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidModuleReference>();
-        result.ModuleRef.Should().Be("2ff7af94aa3e338912d398309531578bd8b7dc903c974111c8d63f4b7098cecb");
+        result.ModuleRef.Should().Be(moduleRef);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidContractAddress()
     {
-        var inputReason = new Application.NodeApi.InvalidContractAddress(ContractAddress.From(187, 22));
+        // Arrange
+        const ulong index = 187;
+        const ulong subIndex = 22;
+        var inputReason = new InvalidContractAddress(ContractAddress.From(index, subIndex));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidContractAddress>();
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
     }
 
     [Fact]
     public async Task TransactionRejectReason_RuntimeFailure()
     {
-        var inputReason = new Application.NodeApi.RuntimeFailure();
+        // Arrange
+        var inputReason = new RuntimeFailure();
         await WriteSingleRejectedTransaction(inputReason);
         
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RuntimeFailure>();
@@ -1241,20 +1522,30 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AmountTooLarge()
     {
-        var inputReason = new Application.NodeApi.AmountTooLarge(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"), CcdAmount.FromMicroCcd(34656));
+        // Arrange
+        const ulong amount = 34656UL;
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new AmountTooLarge(AccountAddress.From(address), CcdAmount.FromMicroCcd(amount));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AmountTooLarge>();
-        result.Address.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
-        result.Amount.Should().Be(34656);
+        result.Address.Should().Be(new Application.Api.GraphQL.Accounts.AccountAddress(address));
+        result.Amount.Should().Be(amount);
     }
 
     [Fact]
     public async Task TransactionRejectReason_SerializationFailure()
     {
-        var inputReason = new Application.NodeApi.SerializationFailure();
+        // Arrange
+        var inputReason = new SerializationFailure();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.SerializationFailure>();
         result.Should().NotBeNull();
     }
@@ -1262,9 +1553,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_OutOfEnergy()
     {
-        var inputReason = new Application.NodeApi.OutOfEnergy();
+        // Arrange
+        var inputReason = new OutOfEnergy();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.OutOfEnergy>();
         result.Should().NotBeNull();
     }
@@ -1272,48 +1567,55 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_RejectedInit()
     {
-        var inputReason = new Application.NodeApi.RejectedInit(-48518);
+        // Arrange
+        const int rejectReason = -48518;
+        var inputReason = new RejectedInit(rejectReason);
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RejectedInit>();
-        result.RejectReason.Should().Be(-48518);
+        result.RejectReason.Should().Be(rejectReason);
     }
 
     [Fact]
     public async Task TransactionRejectReason_RejectedReceive()
     {
-        var inputReason = new Application.NodeApi.RejectedReceive(
-            -48518,
-            ContractAddress.From(187, 22),
-            "trader.dostuff",
-            BinaryData.FromHexString("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00"));
+        // Arrange
+        const int rejectReason = -48518;
+        const ulong index = 187UL;
+        const ulong subIndex = 22UL;
+        const string name = "trader.dostuff";
+        const string parameter = "fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00";
+        var _ = ReceiveName.TryParse(name, out var output);
+        var inputReason = new RejectedReceive(
+            rejectReason,
+            ContractAddress.From(index, subIndex),
+            output.ReceiveName!,
+            new Parameter(Convert.FromHexString(parameter)));
         
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RejectedReceive>();
-        result.RejectReason.Should().Be(-48518);
-        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(187, 22));
-        result.ReceiveName.Should().Be("trader.dostuff");
-        result.MessageAsHex.Should().Be("fb00160068747470733a2f2f636f6e636f726469756d2e636f6d00");
-    }
-
-    [Fact]
-    public async Task TransactionRejectReason_NonExistentRewardAccount()
-    {
-        var inputReason = new Application.NodeApi.NonExistentRewardAccount(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
-        
-        await WriteSingleRejectedTransaction(inputReason);
-        
-        var result = await ReadSingleRejectedTransactionRejectReason<NonExistentRewardAccount>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.RejectReason.Should().Be(rejectReason);
+        result.ContractAddress.Should().Be(new Application.Api.GraphQL.ContractAddress(index, subIndex));
+        result.ReceiveName.Should().Be(name);
+        result.MessageAsHex.Should().Be(parameter);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidProof()
     {
-        var inputReason = new Application.NodeApi.InvalidProof();
+        // Arrange
+        var inputReason = new InvalidProof();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidProof>();
         result.Should().NotBeNull();
     }
@@ -1321,31 +1623,43 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AlreadyABaker()
     {
-        var inputReason = new Application.NodeApi.AlreadyABaker(45);
+        // Arrange
+        const ulong bakerId = 45UL;
+        var inputReason = new AlreadyABaker(new BakerId(new AccountIndex(bakerId)));
         
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AlreadyABaker>();
-        result.BakerId.Should().Be(45);
+        result.BakerId.Should().Be(bakerId);
     }
 
     [Fact]
     public async Task TransactionRejectReason_NotABaker()
     {
-        var inputReason = new Application.NodeApi.NotABaker(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new NotABaker(AccountAddress.From(address));
         
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotABaker>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InsufficientBalanceForBakerStake()
     {
-        var inputReason = new Application.NodeApi.InsufficientBalanceForBakerStake();
+        // Arrange
+        var inputReason = new InsufficientBalanceForBakerStake();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForBakerStake>();
         result.Should().NotBeNull();
     }
@@ -1353,9 +1667,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_StakeUnderMinimumThresholdForBaking()
     {
-        var inputReason = new Application.NodeApi.StakeUnderMinimumThresholdForBaking();
+        // Arrange
+        var inputReason = new StakeUnderMinimumThresholdForBaking();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeUnderMinimumThresholdForBaking>();
         result.Should().NotBeNull();
     }
@@ -1363,9 +1681,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_BakerInCooldown()
     {
-        var inputReason = new Application.NodeApi.BakerInCooldown();
+        // Arrange
+        var inputReason = new BakerInCooldown();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakerInCooldown>();
         result.Should().NotBeNull();
     }
@@ -1373,19 +1695,28 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DuplicateAggregationKey()
     {
-        var inputReason = new Application.NodeApi.DuplicateAggregationKey("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
+        // Arrange
+        const string key = "98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83";
+        var inputReason = new DuplicateAggregationKey(Convert.FromHexString(key));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateAggregationKey>();
-        result.AggregationKey.Should().Be("98528ef89dc117f102ef3f089c81b92e4d945d22c0269269af6ef9f876d79e828b31b8b4b8cc3d9234c30e83bd79e20a0a807bc110f0ac9babae90cb6a8c6d0deb2e5627704b41bdd646a547895fd1f9f2a7b0dd4fb4e138356e91d002a28f83");
+        result.AggregationKey.Should().Be(key);
     }
 
     [Fact]
     public async Task TransactionRejectReason_NonExistentCredentialId()
     {
-        var inputReason = new Application.NodeApi.NonExistentCredentialId();
+        // Arrange
+        var inputReason = new NonExistentCredentialId();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredentialId>();
         result.Should().NotBeNull();
     }
@@ -1393,9 +1724,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_KeyIndexAlreadyInUse()
     {
-        var inputReason = new Application.NodeApi.KeyIndexAlreadyInUse();
+        // Arrange
+        var inputReason = new KeyIndexAlreadyInUse();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.KeyIndexAlreadyInUse>();
         result.Should().NotBeNull();
     }
@@ -1403,9 +1738,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidAccountThreshold()
     {
-        var inputReason = new Application.NodeApi.InvalidAccountThreshold();
+        // Arrange
+        var inputReason = new InvalidAccountThreshold();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidAccountThreshold>();
         result.Should().NotBeNull();
     }
@@ -1413,9 +1752,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidCredentialKeySignThreshold()
     {
-        var inputReason = new Application.NodeApi.InvalidCredentialKeySignThreshold();
+        // Arrange
+        var inputReason = new InvalidCredentialKeySignThreshold();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentialKeySignThreshold>();
         result.Should().NotBeNull();
     }
@@ -1423,9 +1766,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidEncryptedAmountTransferProof()
     {
-        var inputReason = new Application.NodeApi.InvalidEncryptedAmountTransferProof();
+        // Arrange
+        var inputReason = new InvalidEncryptedAmountTransferProof();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidEncryptedAmountTransferProof>();
         result.Should().NotBeNull();
     }
@@ -1433,9 +1780,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InvalidTransferToPublicProof()
     {
-        var inputReason = new Application.NodeApi.InvalidTransferToPublicProof();
+        // Arrange
+        var inputReason = new InvalidTransferToPublicProof();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidTransferToPublicProof>();
         result.Should().NotBeNull();
     }
@@ -1443,19 +1794,28 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_EncryptedAmountSelfTransfer()
     {
-        var inputReason = new Application.NodeApi.EncryptedAmountSelfTransfer(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new EncryptedAmountSelfTransfer(AccountAddress.From(address));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.EncryptedAmountSelfTransfer>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidIndexOnEncryptedTransfer()
     {
-        var inputReason = new Application.NodeApi.InvalidIndexOnEncryptedTransfer();
+        // Arrange
+        var inputReason = new InvalidIndexOnEncryptedTransfer();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidIndexOnEncryptedTransfer>();
         result.Should().NotBeNull();
     }
@@ -1463,9 +1823,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ZeroScheduledAmount()
     {
-        var inputReason = new Application.NodeApi.ZeroScheduledAmount();
+        // Arrange
+        var inputReason = new ZeroScheduledAmount();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ZeroScheduledAmount>();
         result.Should().NotBeNull();
     }
@@ -1473,9 +1837,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NonIncreasingSchedule()
     {
-        var inputReason = new Application.NodeApi.NonIncreasingSchedule();
+        // Arrange
+        var inputReason = new NonIncreasingSchedule();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonIncreasingSchedule>();
         result.Should().NotBeNull();
     }
@@ -1483,9 +1851,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_FirstScheduledReleaseExpired()
     {
-        var inputReason = new Application.NodeApi.FirstScheduledReleaseExpired();
+        // Arrange
+        var inputReason = new FirstScheduledReleaseExpired();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FirstScheduledReleaseExpired>();
         result.Should().NotBeNull();
     }
@@ -1493,19 +1865,28 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_ScheduledSelfTransfer()
     {
-        var inputReason = new Application.NodeApi.ScheduledSelfTransfer(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        // Arrange
+        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new ScheduledSelfTransfer(AccountAddress.From(address));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.ScheduledSelfTransfer>();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
     public async Task TransactionRejectReason_InvalidCredentials()
     {
-        var inputReason = new Application.NodeApi.InvalidCredentials();
+        // Arrange
+        var inputReason = new InvalidCredentials();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InvalidCredentials>();
         result.Should().NotBeNull();
     }
@@ -1513,29 +1894,43 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DuplicateCredIds()
     {
-        var inputReason = new Application.NodeApi.DuplicateCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        // Arrange
+        const string credId = "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f";
+        var inputReason = new DuplicateCredIds(new List<byte[]>{Convert.FromHexString(credId)});
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DuplicateCredIds>();
-        result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
+        result.CredIds.Should().ContainSingle().Which.Should().Be(credId);
     }
 
     [Fact]
     public async Task TransactionRejectReason_NonExistentCredIds()
     {
-        var inputReason = new Application.NodeApi.NonExistentCredIds(new[] { "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f" });
+        // Arrange
+        const string credId = "b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f";
+        var inputReason = new NonExistentCredIds(new List<byte[]> { Convert.FromHexString(credId) });
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NonExistentCredIds>();
-        result.CredIds.Should().ContainSingle().Which.Should().Be("b9a35cfb9556b897d3c1e81ab8247e916762755a7673bd493a2062a6988033e6a37d88c366a89109fa6e26ba7a317b7f");
+        result.CredIds.Should().ContainSingle().Which.Should().Be(credId);
     }
 
     [Fact]
     public async Task TransactionRejectReason_RemoveFirstCredential()
     {
-        var inputReason = new Application.NodeApi.RemoveFirstCredential();
+        // Arrange
+        var inputReason = new RemoveFirstCredential();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.RemoveFirstCredential>();
         result.Should().NotBeNull();
     }
@@ -1543,9 +1938,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_CredentialHolderDidNotSign()
     {
-        var inputReason = new Application.NodeApi.CredentialHolderDidNotSign();
+        // Arrange
+        var inputReason = new CredentialHolderDidNotSign();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.CredentialHolderDidNotSign>();
         result.Should().NotBeNull();
     }
@@ -1553,9 +1952,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedMultipleCredentials()
     {
-        var inputReason = new Application.NodeApi.NotAllowedMultipleCredentials();
+        // Arrange
+        var inputReason = new NotAllowedMultipleCredentials();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedMultipleCredentials>();
         result.Should().NotBeNull();
     }
@@ -1563,9 +1966,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedToReceiveEncrypted()
     {
-        var inputReason = new Application.NodeApi.NotAllowedToReceiveEncrypted();
+        // Arrange
+        var inputReason = new NotAllowedToReceiveEncrypted();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToReceiveEncrypted>();
         result.Should().NotBeNull();
     }
@@ -1573,9 +1980,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotAllowedToHandleEncrypted()
     {
-        var inputReason = new Application.NodeApi.NotAllowedToHandleEncrypted();
+        // Arrange
+        var inputReason = new NotAllowedToHandleEncrypted();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotAllowedToHandleEncrypted>();
         result.Should().NotBeNull();
     }
@@ -1583,9 +1994,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_MissingBakerAddParameters()
     {
-        var inputReason = new Application.NodeApi.MissingBakerAddParameters();
+        // Arrange
+        var inputReason = new MissingBakerAddParameters();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.MissingBakerAddParameters>();
         result.Should().NotBeNull();
     }
@@ -1593,9 +2008,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_FinalizationRewardCommissionNotInRange()
     {
-        var inputReason = new Application.NodeApi.FinalizationRewardCommissionNotInRange();
+        // Arrange
+        var inputReason = new FinalizationRewardCommissionNotInRange();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.FinalizationRewardCommissionNotInRange>();
         result.Should().NotBeNull();
     }
@@ -1603,9 +2022,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_BakingRewardCommissionNotInRange()
     {
-        var inputReason = new Application.NodeApi.BakingRewardCommissionNotInRange();
+        // Arrange
+        var inputReason = new BakingRewardCommissionNotInRange();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.BakingRewardCommissionNotInRange>();
         result.Should().NotBeNull();
     }
@@ -1613,9 +2036,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_TransactionFeeCommissionNotInRange()
     {
-        var inputReason = new Application.NodeApi.TransactionFeeCommissionNotInRange();
+        // Arrange
+        var inputReason = new TransactionFeeCommissionNotInRange();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.TransactionFeeCommissionNotInRange>();
         result.Should().NotBeNull();
     }
@@ -1623,9 +2050,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_AlreadyADelegator()
     {
-        var inputReason = new Application.NodeApi.AlreadyADelegator();
+        // Arrange
+        var inputReason = new AlreadyADelegator();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.AlreadyADelegator>();
         result.Should().NotBeNull();
     }
@@ -1633,9 +2064,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InsufficientBalanceForDelegationStake()
     {
-        var inputReason = new Application.NodeApi.InsufficientBalanceForDelegationStake();
+        // Arrange
+        var inputReason = new InsufficientBalanceForDelegationStake();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientBalanceForDelegationStake>();
         result.Should().NotBeNull();
     }
@@ -1643,9 +2078,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_MissingDelegationAddParameters()
     {
-        var inputReason = new Application.NodeApi.MissingDelegationAddParameters();
+        // Arrange
+        var inputReason = new Concordium.Sdk.Types.MissingDelegationAddParameters();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<MissingDelegationAddParameters>();
         result.Should().NotBeNull();
     }
@@ -1653,9 +2092,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_InsufficientDelegationStake()
     {
-        var inputReason = new Application.NodeApi.InsufficientDelegationStake();
+        // Arrange
+        var inputReason = new InsufficientDelegationStake();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.InsufficientDelegationStake>();
         result.Should().NotBeNull();
     }
@@ -1663,9 +2106,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_DelegatorInCooldown()
     {
-        var inputReason = new Application.NodeApi.DelegatorInCooldown();
+        // Arrange
+        var inputReason = new DelegatorInCooldown();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegatorInCooldown>();
         result.Should().NotBeNull();
     }
@@ -1673,31 +2120,45 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_NotADelegator()
     {
-        var inputReason = new Application.NodeApi.NotADelegator(AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"));
+        // Arrange
+        var address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var inputReason = new NotADelegator(AccountAddress.From(address));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.NotADelegator>();
         result.Should().NotBeNull();
-        result.AccountAddress.AsString.Should().Be("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        result.AccountAddress.AsString.Should().Be(address);
     }
     
     [Fact]
     public async Task TransactionRejectReason_DelegationTargetNotABaker()
     {
-        var inputReason = new Application.NodeApi.DelegationTargetNotABaker(42UL);
+        // Arrange
+        const ulong bakerId = 42UL;
+        var inputReason = new DelegationTargetNotABaker(new BakerId(new AccountIndex(bakerId)));
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.DelegationTargetNotABaker>();
         result.Should().NotBeNull();
-        result.BakerId.Should().Be(42UL);
+        result.BakerId.Should().Be(bakerId);
     }
     
     [Fact]
     public async Task TransactionRejectReason_StakeOverMaximumThresholdForPool()
     {
-        var inputReason = new Application.NodeApi.StakeOverMaximumThresholdForPool();
+        // Arrange
+        var inputReason = new StakeOverMaximumThresholdForPool();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.StakeOverMaximumThresholdForPool>();
         result.Should().NotBeNull();
     }
@@ -1705,9 +2166,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_PoolWouldBecomeOverDelegated()
     {
-        var inputReason = new Application.NodeApi.PoolWouldBecomeOverDelegated();
+        // Arrange
+        var inputReason = new PoolWouldBecomeOverDelegated();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Act
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolWouldBecomeOverDelegated>();
         result.Should().NotBeNull();
     }
@@ -1715,9 +2180,13 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionRejectReason_PoolClosed()
     {
-        var inputReason = new Application.NodeApi.PoolClosed();
+        // Arrange
+        var inputReason = new PoolClosed();
+        
+        // Act
         await WriteSingleRejectedTransaction(inputReason);
         
+        // Assert
         var result = await ReadSingleRejectedTransactionRejectReason<Application.Api.GraphQL.Transactions.PoolClosed>();
         result.Should().NotBeNull();
     }
@@ -1734,16 +2203,15 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         return result.Entity.Should().BeOfType<T>().Subject;
     }
     
-    private async Task WriteSingleRejectedTransaction(Application.NodeApi.TransactionRejectReason rejectReason)
+    private async Task WriteSingleRejectedTransaction(IRejectReason rejectReason)
     {
-        _blockSummaryBuilder
-            .WithTransactionSummaries(new TransactionSummaryBuilder()
-                .WithResult(new TransactionRejectResultBuilder()
-                    .WithRejectReason(rejectReason)
-                    .Build())
-                .Build());
-
-        await WriteData();
+        var none = new None(null, rejectReason);
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(none)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
     }
     
     private async Task<T> ReadSingleRejectedTransactionRejectReason<T>() where T : TransactionRejectReason

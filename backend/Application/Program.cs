@@ -100,7 +100,6 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
-        // .UseWebSockets()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
