@@ -69,7 +69,7 @@ public class Transaction : IBlockOrTransactionUnion
             SenderAccountAddress =  value.TryGetSenderAccount(out var sender) ?
                 AccountAddress.From(sender!) : null,
             CcdCost = value.GetCost().Value,
-            EnergyCost = Convert.ToUInt64(value.EnergyCost), // TODO: Is energy cost Int or UInt64 in CC?
+            EnergyCost = value.EnergyCost.Value,
             RejectReason = value.TryGetRejectedAccountTransaction(out var rejectReason) ?
                 TransactionRejectReason.MapRejectReason(rejectReason!) : null,
         };

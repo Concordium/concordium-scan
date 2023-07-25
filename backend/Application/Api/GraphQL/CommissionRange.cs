@@ -35,6 +35,6 @@ public class CommissionRange
         new()
         {
             Min = inclusiveRange.Min.AsDecimal(),
-            Max = inclusiveRange.Min.AsDecimal()
+            Max = inclusiveRange.Max.AsDecimal()
         };
 }

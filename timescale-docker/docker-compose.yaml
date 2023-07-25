@@ -1,7 +1,7 @@
 version: "3"
 services:
   timescaledb:
-    platform: linux/amd64  
+    platform: linux/amd64
     image: timescale-restore:1
     environment:
     - POSTGRES_PASSWORD=password

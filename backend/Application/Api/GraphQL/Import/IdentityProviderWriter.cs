@@ -49,7 +49,7 @@ public class IdentityProviderWriter
             if (existing == null)
             {
                 var mapped = new IdentityProvider(
-                    Convert.ToInt32(identityProvider.IpIdentity),
+                    checked((int)identityProvider.IpIdentity.Id),
                     identityProvider.Description.Name,
                     identityProvider.Description.Url,
                     identityProvider.Description.Info);

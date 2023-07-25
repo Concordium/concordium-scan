@@ -9,13 +9,18 @@ public abstract class TransactionTypeUnion
 {
     public static TransactionTypeUnion CreateFrom(IBlockItemSummaryDetails value)
     {
-        return value switch
+        switch (value)
         {
-            AccountTransactionDetails x => new AccountTransaction { AccountTransactionType = TransactionTypeFactory.From(x.Effects) },
-            AccountCreationDetails x => new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.CredentialType },
-            UpdateDetails x => new UpdateTransaction { UpdateTransactionType = UpdatePayloadFactory.From(x.Payload) },
-            _ => throw new NotSupportedException($"Cannot map this transaction type")
-        };
+            case AccountTransactionDetails x:
+                var _ = TransactionTypeFactory.TryFrom(x.Effects, out var transactionType);
+                return new AccountTransaction { AccountTransactionType = transactionType };
+            case AccountCreationDetails x:
+                return new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.CredentialType };
+            case UpdateDetails x:
+                return new UpdateTransaction { UpdateTransactionType = UpdatePayloadFactory.From(x.Payload) };
+            default:
+                throw new NotSupportedException($"Cannot map this transaction type");
+        }
     }
 
     [GraphQLIgnore] // Not part of GraphQL schema!
@@ -43,18 +48,45 @@ public abstract class TransactionTypeUnion
     }
 }
 
-// TODO: Follow up why these are nullable
 public class AccountTransaction : TransactionTypeUnion
 {
+    /// <summary>
+    /// In some cases when transaction is rejected <see cref="AccountTransactionType"/> can be null and <see cref="TransactionTypeUnion.FromCompactString"/>
+    /// maps to '0'. 
+    /// </summary>
     public TransactionType? AccountTransactionType { get; init; }
 }
 
 public class CredentialDeploymentTransaction : TransactionTypeUnion
 {
+    /// <summary>
+    /// Should always map to non null value.
+    ///
+    /// It is kept nullable for legacy reasons.
+    ///
+    /// Those nullable should be cleaned up and it would be those returned from query
+    /// <code>
+    /// select *
+    /// from graphql_transactions
+    /// where transaction_type = '1'
+    /// </code> 
+    /// </summary>
     public CredentialType? CredentialDeploymentTransactionType { get; init; }
 }
 
 public class UpdateTransaction : TransactionTypeUnion
 {
+    /// <summary>
+    /// Should always map to non null value.
+    ///
+    /// It is kept nullable for legacy reasons.
+    ///
+    /// Those nullable should be cleaned up and it would be those returned from query
+    /// <code>
+    /// select *
+    /// from graphql_transactions
+    /// where transaction_type = '2'
+    /// </code> 
+    /// </summary>
     public UpdateType? UpdateTransactionType { get; init; }
 }

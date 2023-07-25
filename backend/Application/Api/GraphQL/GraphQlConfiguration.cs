@@ -13,6 +13,7 @@ using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
 using Application.Api.GraphQL.Transactions;
 using Application.Api.GraphQL.Versions;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;
@@ -20,6 +21,84 @@ using HotChocolate.Types.Pagination;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Api.GraphQL;
+
+public sealed class TransactionTypeType : EnumType<TransactionType>
+{
+    protected override void Configure(IEnumTypeDescriptor<TransactionType> descriptor)
+    {
+        // Change enum names from gRPC v2 to align with gRPC v1 to avoid breaking schema changes.
+        descriptor.Name("AccountTransactionType");
+
+        // Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+        descriptor.Value(TransactionType.InitContract)
+            .Name("INITIALIZE_SMART_CONTRACT_INSTANCE");
+        descriptor.Value(TransactionType.Update)
+            .Name("UPDATE_SMART_CONTRACT_INSTANCE");
+        descriptor.Value(TransactionType.Transfer)
+            .Name("SIMPLE_TRANSFER");
+        descriptor.Value(TransactionType.EncryptedAmountTransfer)
+            .Name("ENCRYPTED_TRANSFER");
+        descriptor.Value(TransactionType.TransferWithMemo)
+            .Name("SIMPLE_TRANSFER_WITH_MEMO");
+        descriptor.Value(TransactionType.EncryptedAmountTransferWithMemo)
+            .Name("ENCRYPTED_TRANSFER_WITH_MEMO");
+        descriptor.Value(TransactionType.TransferWithScheduleAndMemo)
+            .Name("TRANSFER_WITH_SCHEDULE_WITH_MEMO");
+    }
+}
+
+public sealed class CredentialTypeType : EnumType<CredentialType>
+{
+    protected override void Configure(IEnumTypeDescriptor<CredentialType> descriptor)
+    {
+        // Change enum names from gRPC v2 to align with gRPC v1 to avoid breaking schema changes.
+        descriptor.Name("CredentialDeploymentTransactionType");
+    }
+}
+
+public sealed class UpdateTypeType : EnumType<UpdateType> {
+    protected override void Configure(IEnumTypeDescriptor<UpdateType> descriptor)
+    {
+        // Change enum names from gRPC v2 to align with gRPC v1 to avoid breaking schema changes.
+        descriptor.Name("UpdateTransactionType");
+        
+        // Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+        descriptor.Value(UpdateType.ProtocolUpdate)
+            .Name("UPDATE_PROTOCOL");
+        descriptor.Value(UpdateType.ElectionDifficultyUpdate)
+            .Name("UPDATE_ELECTION_DIFFICULTY");
+        descriptor.Value(UpdateType.EuroPerEnergyUpdate)
+            .Name("UPDATE_EURO_PER_ENERGY");
+        descriptor.Value(UpdateType.MicroCcdPerEuroUpdate)
+            .Name("UPDATE_MICRO_GTU_PER_EURO");
+        descriptor.Value(UpdateType.FoundationAccountUpdate)
+            .Name("UPDATE_FOUNDATION_ACCOUNT");
+        descriptor.Value(UpdateType.MintDistributionUpdate)
+            .Name("UPDATE_MINT_DISTRIBUTION");
+        descriptor.Value(UpdateType.TransactionFeeDistributionUpdate)
+            .Name("UPDATE_TRANSACTION_FEE_DISTRIBUTION");
+        descriptor.Value(UpdateType.GasRewardsUpdate)
+            .Name("UPDATE_GAS_REWARDS");
+        descriptor.Value(UpdateType.BakerStakeThresholdUpdate)
+            .Name("UPDATE_BAKER_STAKE_THRESHOLD");
+        descriptor.Value(UpdateType.AddAnonymityRevokerUpdate)
+            .Name("UPDATE_ADD_ANONYMITY_REVOKER");
+        descriptor.Value(UpdateType.AddIdentityProviderUpdate)
+            .Name("UPDATE_ADD_IDENTITY_PROVIDER");
+        descriptor.Value(UpdateType.RootUpdate)
+            .Name("UPDATE_ROOT_KEYS");
+        descriptor.Value(UpdateType.Level1Update)
+            .Name("UPDATE_LEVEL1_KEYS");
+        descriptor.Value(UpdateType.Level2Update)
+            .Name("UPDATE_LEVEL2_KEYS");
+        descriptor.Value(UpdateType.PoolParametersCpv1Update)
+            .Name("UPDATE_POOL_PARAMETERS");
+        descriptor.Value(UpdateType.CooldownParametersCpv1Update)
+            .Name("UPDATE_COOLDOWN_PARAMETERS");
+        descriptor.Value(UpdateType.TimeParametersCpv1Update)
+            .Name("UPDATE_TIME_PARAMETERS");
+    }
+}
 
 public static class GraphQlConfiguration
 {
@@ -40,6 +119,10 @@ public static class GraphQlConfiguration
 
     private static void ConfigureSchema(ISchemaBuilder builder)
     {
+        builder.AddType<TransactionTypeType>();
+        builder.AddType<CredentialTypeType>();
+        builder.AddType<UpdateTypeType>();
+        
         builder.AddGlobalObjectIdentification(false);
         
         builder.AddQueryType<Query>()

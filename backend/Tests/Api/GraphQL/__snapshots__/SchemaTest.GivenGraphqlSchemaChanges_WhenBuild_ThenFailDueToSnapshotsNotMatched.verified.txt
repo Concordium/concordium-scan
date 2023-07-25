@@ -1,4 +1,4 @@
-schema {
+﻿schema {
   query: Query
   subscription: Subscription
 }
@@ -1625,11 +1625,12 @@ type TimestampedAmount {
 }
 
 type Token {
+  tokens: [AccountToken!]!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
-  totalSupply: BigInteger!
+  totalSupply: Decimal!
 }
 
 type Transaction {
@@ -1784,25 +1785,25 @@ enum AccountStatementEntryType {
 }
 
 enum AccountTransactionType {
-  DEPLOY_MODULE
   INITIALIZE_SMART_CONTRACT_INSTANCE
   UPDATE_SMART_CONTRACT_INSTANCE
   SIMPLE_TRANSFER
+  ENCRYPTED_TRANSFER
+  SIMPLE_TRANSFER_WITH_MEMO
+  ENCRYPTED_TRANSFER_WITH_MEMO
+  TRANSFER_WITH_SCHEDULE_WITH_MEMO
+  DEPLOY_MODULE
   ADD_BAKER
   REMOVE_BAKER
   UPDATE_BAKER_STAKE
   UPDATE_BAKER_RESTAKE_EARNINGS
   UPDATE_BAKER_KEYS
   UPDATE_CREDENTIAL_KEYS
-  ENCRYPTED_TRANSFER
   TRANSFER_TO_ENCRYPTED
   TRANSFER_TO_PUBLIC
   TRANSFER_WITH_SCHEDULE
   UPDATE_CREDENTIALS
   REGISTER_DATA
-  SIMPLE_TRANSFER_WITH_MEMO
-  ENCRYPTED_TRANSFER_WITH_MEMO
-  TRANSFER_WITH_SCHEDULE_WITH_MEMO
   CONFIGURE_BAKER
   CONFIGURE_DELEGATION
 }
@@ -1901,6 +1902,12 @@ enum UpdateTransactionType {
   UPDATE_POOL_PARAMETERS
   UPDATE_COOLDOWN_PARAMETERS
   UPDATE_TIME_PARAMETERS
+  MINT_DISTRIBUTION_CPV1_UPDATE
+  GAS_REWARDS_CPV2_UPDATE
+  TIMEOUT_PARAMETERS_UPDATE
+  MIN_BLOCK_TIME_UPDATE
+  BLOCK_ENERGY_LIMIT_UPDATE
+  FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
 }
 
 "The `@defer` directive may be provided for fragment spreads and inline fragments to inform the executor to delay the execution of the current fragment to indicate deprioritization of the current fragment. A query with `@defer` directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred is delivered in a subsequent response. `@include` and `@skip` take precedence over `@defer`."

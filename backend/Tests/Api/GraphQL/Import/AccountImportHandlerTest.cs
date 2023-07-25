@@ -12,6 +12,7 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import
 {
+    [Collection("Postgres Collection")]
     public class AccountImportHandlerTest : IClassFixture<DatabaseFixture>
     {
         private readonly NullMetrics _metrics;

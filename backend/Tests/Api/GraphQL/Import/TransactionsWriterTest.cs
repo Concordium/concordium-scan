@@ -150,23 +150,32 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task TransactionEvents_TransactionIdAndIndex()
     {
-        const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
-
-        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
-            .WithCredentialRegistrationId(new CredentialRegistrationId(Convert.FromHexString("b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d")))
-            .WithAccountAddress(AccountAddress.From(address))
-            .Build();
-        var blockItemSummaryCredentialDeployed = new BlockItemSummaryBuilder(accountCreationDetails)
-            .Build();
+        // Arrange
+        const ulong index = 1423UL;
+        const ulong subIndex = 1UL;
+        const string firstEvent = "05080000d671a4d501aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c90309c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
+        const string secondEvent = "01080000d671a4d50101aa3a794db185bb8ac998abe33146301afcb53f78d58266c6417cb9d859c9030901c0196da50d25f71a236ec71cedc9ba2d49c8c6fc9fa98df7475d3bfbc7612c32";
         
-        var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Initial)
-            .WithAccountAddress(AccountAddress.From(address))
+        var interrupted = new Interrupted(
+            ContractAddress.From(index, subIndex),
+            new List<ContractEvent>
+            {
+                new(Convert.FromHexString(firstEvent)),
+                new(Convert.FromHexString(secondEvent))
+            });
+        var resumed = new Resumed(
+            ContractAddress.From(index, subIndex),
+            true);
+        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{interrupted, resumed});
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
             .Build();
-        var blockItemSummaryAccountCreated = new BlockItemSummaryBuilder(accountCreated)
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
             .Build();
 
-        await WriteData(new List<BlockItemSummary>{blockItemSummaryCredentialDeployed, blockItemSummaryAccountCreated});
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
+        // Assert
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var transaction = dbContext.Transactions.Single();
 
@@ -174,10 +183,10 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         result.Length.Should().Be(2);
         result[0].TransactionId.Should().Be(transaction.Id);
         result[0].Index.Should().Be(0);
-        result[0].Entity.Should().BeOfType<CredentialDeployed>();
+        result[0].Entity.Should().BeOfType<ContractInterrupted>();
         result[1].TransactionId.Should().Be(transaction.Id);
         result[1].Index.Should().Be(1);
-        result[1].Entity.Should().BeOfType<AccountCreated>();
+        result[1].Entity.Should().BeOfType<ContractResumed>();
     }
     
     [Fact]
@@ -207,7 +216,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
     public async Task TransactionEvents_AccountCreated()
     {
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
-        var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Initial)
+        var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Normal)
             .WithAccountAddress(AccountAddress.From(address))
             .Build();
         var blockItemSummaryAccountCreated = new BlockItemSummaryBuilder(accountCreated)
@@ -225,7 +234,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         const string regId = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
 
-        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
+        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Initial)
             .WithCredentialRegistrationId(new CredentialRegistrationId(Convert.FromHexString(regId)))
             .WithAccountAddress(AccountAddress.From(address))
             .Build();
@@ -579,6 +588,7 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
             new AccountThreshold(newThreshold));
 
         var accountTransactionDetails = new AccountTransactionDetailsBuilder(credentialsUpdated)
+            .WithSender(AccountAddress.From(address))
             .Build();
         var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
             .Build();
@@ -819,8 +829,8 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
 
         // Assert
         var result = await ReadSingleTransactionEventType<Application.Api.GraphQL.Transactions.TransferredWithSchedule>();
-        result.FromAccountAddress.AsString.Should().Be(to);
-        result.ToAccountAddress.AsString.Should().Be(from);
+        result.FromAccountAddress.AsString.Should().Be(from);
+        result.ToAccountAddress.AsString.Should().Be(to);
         result.AmountsSchedule.Should().Equal(
             new Application.Api.GraphQL.TimestampedAmount(tupleOne.Item1, tupleOne.Item2.Value),
             new Application.Api.GraphQL.TimestampedAmount(tupleSecond.Item1, tupleSecond.Item2.Value),
@@ -864,8 +874,20 @@ public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
         await WriteData(new List<BlockItemSummary>{blockItemSummary});
 
         // Assert
-        var result = await ReadSingleTransactionEventType<TransferMemo>();
-        result.RawHex.Should().Be(data);
+        await using var context = _dbContextFactory.CreateDbContext();
+        
+        var transaction = context.Transactions.Single();
+        
+        var events = await context.TransactionResultEvents.ToListAsync();
+        events.Count.Should().Be(2);
+        var first = events[0];
+        first.TransactionId.Should().Be(transaction.Id);
+        first.Entity.Should().BeOfType<Application.Api.GraphQL.Transactions.Transferred>();
+        var second = events[1];
+        second.TransactionId.Should().Be(transaction.Id);
+        second.Entity.Should().BeOfType<TransferMemo>();
+        var transferMemo = second.Entity as TransferMemo;
+        transferMemo!.RawHex.Should().Be(data);
     }
 
     [Fact]

@@ -68,7 +68,7 @@ public abstract record TransactionResultEvent
                                 accountTransactionDetails.Sender,
                                 bakerStakeUpdated.Data!,
                                 out var increased);
-                            BakerStakeDecreased.TryFrom(
+                        BakerStakeDecreased.TryFrom(
                                 accountTransactionDetails.Sender,
                                 bakerStakeUpdated.Data!,
                                 out var decreased);
@@ -308,9 +308,9 @@ public record BakerAdded(
             bakerAdded.RestakeEarnings,
             bakerAdded.KeysEvent.BakerId.Id.Index,
             AccountAddress.From(bakerAdded.KeysEvent.Account),
-            Convert.ToHexString(bakerAdded.KeysEvent.SignKey),
-            Convert.ToHexString(bakerAdded.KeysEvent.ElectionKey),
-            Convert.ToHexString(bakerAdded.KeysEvent.AggregationKey)
+            Convert.ToHexString(bakerAdded.KeysEvent.SignKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerAdded.KeysEvent.ElectionKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerAdded.KeysEvent.AggregationKey).ToLowerInvariant()
         );
 
     internal static BakerAdded From(BakerAddedEvent bakerAdded) =>
@@ -319,9 +319,9 @@ public record BakerAdded(
             bakerAdded.RestakeEarnings,
             bakerAdded.KeysEvent.BakerId.Id.Index,
             AccountAddress.From(bakerAdded.KeysEvent.Account),
-            Convert.ToHexString(bakerAdded.KeysEvent.SignKey),
-            Convert.ToHexString(bakerAdded.KeysEvent.ElectionKey),
-            Convert.ToHexString(bakerAdded.KeysEvent.AggregationKey)
+            Convert.ToHexString(bakerAdded.KeysEvent.SignKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerAdded.KeysEvent.ElectionKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerAdded.KeysEvent.AggregationKey).ToLowerInvariant()
         );
 }
 
@@ -337,9 +337,9 @@ public record BakerKeysUpdated(
         return new BakerKeysUpdated(
             bakerKeysUpdated.KeysEvent.BakerId.Id.Index,
             AccountAddress.From(bakerKeysUpdated.KeysEvent.Account),
-            Convert.ToHexString(bakerKeysUpdated.KeysEvent.SignKey),
-            Convert.ToHexString(bakerKeysUpdated.KeysEvent.ElectionKey),
-            Convert.ToHexString(bakerKeysUpdated.KeysEvent.AggregationKey)
+            Convert.ToHexString(bakerKeysUpdated.KeysEvent.SignKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerKeysUpdated.KeysEvent.ElectionKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerKeysUpdated.KeysEvent.AggregationKey).ToLowerInvariant()
         );
     }
     
@@ -348,9 +348,9 @@ public record BakerKeysUpdated(
         return new BakerKeysUpdated(
             bakerKeysUpdated.Data.BakerId.Id.Index,
             AccountAddress.From(bakerKeysUpdated.Data.Account),
-            Convert.ToHexString(bakerKeysUpdated.Data.SignKey),
-            Convert.ToHexString(bakerKeysUpdated.Data.ElectionKey),
-            Convert.ToHexString(bakerKeysUpdated.Data.AggregationKey)
+            Convert.ToHexString(bakerKeysUpdated.Data.SignKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerKeysUpdated.Data.ElectionKey).ToLowerInvariant(),
+            Convert.ToHexString(bakerKeysUpdated.Data.AggregationKey).ToLowerInvariant()
         );
     }
 }
@@ -536,7 +536,7 @@ public record ContractUpdated(
             ContractAddress.From(updated.Address),
             Address.From(updated.Instigator),
             updated.Amount.Value,
-            updated.Message.ToHexString(),
+            updated.Message.ToHex(),
             updated.ReceiveName.Receive,
             updated.Events.Select(e => e.ToHex()).ToArray()
         );
@@ -624,8 +624,8 @@ public record EncryptedAmountsRemoved(
     {
         return new EncryptedAmountsRemoved(
             AccountAddress.From(transfer.Account),
-            Convert.ToHexString(transfer.NewAmount),
-            Convert.ToHexString(transfer.InputAmount),
+            Convert.ToHexString(transfer.NewAmount).ToLowerInvariant(),
+            Convert.ToHexString(transfer.InputAmount).ToLowerInvariant(),
             transfer.UpToIndex
         );
     }
@@ -646,7 +646,7 @@ public record EncryptedSelfAmountAdded(
     internal static EncryptedSelfAmountAdded From(TransferredToEncrypted transfer) =>
         new(
             AccountAddress.From(transfer.Data.Account),
-            Convert.ToHexString(transfer.Data.NewAmount),
+            Convert.ToHexString(transfer.Data.NewAmount).ToLowerInvariant(),
             transfer.Data.Amount.Value
         );
 }
@@ -667,7 +667,7 @@ public record NewEncryptedAmount(
         return new NewEncryptedAmount(
             AccountAddress.From(transfer.Receiver),
             transfer.NewIndex,
-            Convert.ToHexString(transfer.EncryptedAmount)
+            Convert.ToHexString(transfer.EncryptedAmount).ToLowerInvariant()
         );
     }
 }
@@ -679,7 +679,7 @@ public record TransferMemo(string RawHex) : TransactionResultEvent
         return DecodedText.CreateFromHex(RawHex);
     }
 
-    internal static TransferMemo From(OnChainData data) => new(Convert.ToHexString(data.AsSpan()));
+    internal static TransferMemo From(OnChainData data) => new(data.ToString());
 }
 
 /// <summary>

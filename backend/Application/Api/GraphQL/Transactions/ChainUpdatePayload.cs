@@ -65,7 +65,7 @@ public record ProtocolChainUpdatePayload(
             update.Message,
             update.SpecificationUrl,
             update.SpecificationHash.ToHex(),
-            Convert.ToHexString(update.SpecificationAuxiliaryData)
+            Convert.ToHexString(update.SpecificationAuxiliaryData).ToLowerInvariant()
         );
     }
 }
