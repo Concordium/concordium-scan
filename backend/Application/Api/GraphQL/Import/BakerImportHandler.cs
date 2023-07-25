@@ -123,7 +123,7 @@ public class BakerImportHandler
     {
         var pool = mapBakerPool ? MapBakerPool(src) : null;
         
-        return Baker.CreateNewBaker(src.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
+        return Baker.CreateNewBaker(src.BakerInfo.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
     }
 
     private static BakerPool MapBakerPool(AccountBaker accountBaker)

@@ -119,7 +119,7 @@ public class PreProtocol4Strategy : IBakerChangeStrategy
             throw new InvalidOperationException("AccountInfo not included for baker -OR- was not a baker!");
         }
 
-        var updatedBaker = await _writer.UpdateBaker(accountBaker, src => src.BakerId.Id.Index,
+        var updatedBaker = await _writer.UpdateBaker(accountBaker, src => src.BakerInfo.BakerId.Id.Index,
             (src, dst) => SetPendingChange(dst, src));
 
         var result = ((ActiveBakerState)updatedBaker.State).PendingChange!;

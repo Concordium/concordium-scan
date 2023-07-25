@@ -207,7 +207,7 @@ public class AccountValidator : IImportValidator
             foreach (var chunk in Chunk(nodeAccountBakers, 10))
             {
                 var chunkResult = await Task.WhenAll(chunk
-                    .Select(x => _nodeClient.GetPoolInfoAsync(x.BakerId, given)));
+                    .Select(x => _nodeClient.GetPoolInfoAsync(x.BakerInfo.BakerId, given)));
             
                 poolStatuses.AddRange(chunkResult
                     .Where(x => x.Response != null)
@@ -220,12 +220,12 @@ public class AccountValidator : IImportValidator
             .Select(x =>
             {
                 var bakerPoolStatus = x.BakerPoolInfo != null 
-                    ? poolStatuses.Single(status => status.BakerId == x.BakerId) 
+                    ? poolStatuses.Single(status => status.BakerId == x.BakerInfo.BakerId) 
                     : null;
                 
                 return new
                 {
-                    Id = x.BakerId.Id.Index,
+                    Id = x.BakerInfo.BakerId.Id.Index,
                     StakedAmount = x.StakedAmount.Value,
                     RestakeEarnings = x.RestakeEarnings,
                     Pool = x.BakerPoolInfo == null ? null : new

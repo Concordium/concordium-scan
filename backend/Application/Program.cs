@@ -40,9 +40,6 @@ var logger = Log.ForContext<Program>();
 
 logger.Information("Application starting...");
 
-var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
-logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
-
 var featureFlags = builder.Configuration.GetSection("FeatureFlags").Get<SettingsBasedFeatureFlags>();
 builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
 logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
@@ -68,11 +65,14 @@ builder.Services.AddHostedService<BlockAddedPublisher>();
 builder.Services.AddSingleton<IAccountLookup, AccountLookup>();
 builder.Services.AddSingleton<ImportValidationController>();
 builder.Services.AddControllers();
+
+var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
 builder.Services.AddSingleton(databaseSettings);
+
 builder.Services.AddSingleton<NodeCache>();
 builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());

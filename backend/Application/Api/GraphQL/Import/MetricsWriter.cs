@@ -99,7 +99,7 @@ public class MetricsWriter
             CumulativeTransactionCount = cumulativeTransactionCount + ix + 1,
             Time = blockInfo.BlockSlotTime,
             TransactionType = TransactionTypeUnion.CreateFrom(txs.Details).ToCompactString(),
-            MicroCcdCost = Convert.ToInt64(txs.GetCost()),
+            MicroCcdCost = Convert.ToInt64(txs.GetCost().Value),
             Success = txs.IsSuccess()
         }).ToArray();
 

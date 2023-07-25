@@ -76,7 +76,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         foreach (var accountBaker in accountBakers)
         {
-            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerId.Id.Index);
+            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerInfo.BakerId.Id.Index);
             updateAction(baker, accountBaker);
             result.Add(baker);
         }
