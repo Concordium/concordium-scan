@@ -124,11 +124,11 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         {
             new AccountBaker
             (
-                BakerId: new BakerId(new AccountIndex(11)),
+                BakerInfo: new BakerInfo(BakerId: new BakerId(new AccountIndex(11)), Array.Empty<byte>(),Array.Empty<byte>(), Array.Empty<byte>()),
                 PendingChange: new AccountBakerRemovePending(_anyDateTimeOffset),
                 RestakeEarnings: false,
                 StakedAmount: CcdAmount.Zero, 
-                null
+                BakerPoolInfo: null
             )
         };
         

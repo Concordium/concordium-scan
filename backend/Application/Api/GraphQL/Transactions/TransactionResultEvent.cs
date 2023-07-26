@@ -494,7 +494,7 @@ public record ContractInitialized(
             ContractAddress.From(contract.Data.ContractAddress),
             contract.Data.Amount.Value,
             contract.Data.InitName.Name,
-            contract.Data.Events.Select(d => d.ToHex()).ToArray()
+            contract.Data.Events.Select(d => d.ToHexString()).ToArray()
         );
     }
 }
@@ -536,9 +536,9 @@ public record ContractUpdated(
             ContractAddress.From(updated.Address),
             Address.From(updated.Instigator),
             updated.Amount.Value,
-            updated.Message.ToHex(),
+            updated.Message.ToHexString(),
             updated.ReceiveName.Receive,
-            updated.Events.Select(e => e.ToHex()).ToArray()
+            updated.Events.Select(e => e.ToHexString()).ToArray()
         );
     }
 }
@@ -548,7 +548,7 @@ public record CredentialDeployed(
     AccountAddress AccountAddress) : TransactionResultEvent
 {
     internal static CredentialDeployed From(AccountCreationDetails accountCreationDetails) =>
-        new(accountCreationDetails.RegId.ToHex(),
+        new(accountCreationDetails.RegId.ToHexString(),
             AccountAddress.From(accountCreationDetails.Address));
 }
 
@@ -562,7 +562,7 @@ public record CredentialKeysUpdated(
     internal static CredentialKeysUpdated From(Concordium.Sdk.Types.CredentialKeysUpdated keys)
     {
         return new CredentialKeysUpdated(
-            keys.CredId.ToHex()
+            keys.CredId.ToHexString()
         );
     }
 }
@@ -586,8 +586,8 @@ public record CredentialsUpdated(
     {
         return new CredentialsUpdated(
             AccountAddress.From(sender),
-            updated.NewCredIds.Select(c => c.ToHex()).ToArray(),
-            updated.RemovedCredIds.Select(c => c.ToHex()).ToArray(),
+            updated.NewCredIds.Select(c => c.ToHexString()).ToArray(),
+            updated.RemovedCredIds.Select(c => c.ToHexString()).ToArray(),
             (byte)updated.NewThreshold.Threshold
         );
     }
@@ -604,7 +604,7 @@ public record DataRegistered(string DataAsHex) : TransactionResultEvent
         return DecodedText.CreateFromHex(DataAsHex);
     }
 
-    internal static DataRegistered From(Concordium.Sdk.Types.DataRegistered registered) => new(registered.ToHex());
+    internal static DataRegistered From(Concordium.Sdk.Types.DataRegistered registered) => new(registered.ToHexString());
 }
 
 /// <summary>
@@ -740,7 +740,7 @@ public record ContractInterrupted(
     {
         return new ContractInterrupted(
             ContractAddress.From(interrupted.Address),
-            interrupted.Events.Select(e => e.ToHex()).ToArray()
+            interrupted.Events.Select(e => e.ToHexString()).ToArray()
             );
     }
 }

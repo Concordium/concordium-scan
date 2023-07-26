@@ -36,7 +36,7 @@ public abstract record TransactionRejectReason
             Concordium.Sdk.Types.OutOfEnergy => new OutOfEnergy(),
             Concordium.Sdk.Types.RejectedInit x => new RejectedInit(x.RejectReason),
             Concordium.Sdk.Types.RejectedReceive x => new RejectedReceive(x.RejectReason,
-                ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHex()),
+                ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString()),
             Concordium.Sdk.Types.InvalidProof => new InvalidProof(),
             Concordium.Sdk.Types.AlreadyABaker x => new AlreadyABaker(x.BakerId.Id.Index),
             Concordium.Sdk.Types.NotABaker x => new NotABaker(AccountAddress.From(x.AccountAddress)),
