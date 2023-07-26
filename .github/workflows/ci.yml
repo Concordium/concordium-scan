@@ -24,3 +24,6 @@ jobs:
     
     - name: Build
       run: dotnet build ./backend/CcScan.Backend.sln -c Release --no-restore
+
+    - name: Test
+      run: dotnet test ./backend/CcScan.Backend.sln --filter Category!=IntegrationTests --no-build --verbosity normal
