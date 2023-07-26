@@ -10,8 +10,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class AccountLookupTest : IDisposable
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly MemoryCache _memoryCache;
@@ -19,11 +19,11 @@ public class AccountLookupTest : IClassFixture<DatabaseFixture>, IDisposable
 
     public AccountLookupTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
 
         var options = new MemoryCacheOptions();
         _memoryCache = new MemoryCache(options);
-        _target = new AccountLookup(_memoryCache, dbFixture.DatabaseSettings, new NullMetrics());
+        _target = new AccountLookup(_memoryCache, dbFixture. DatabaseSettings, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");

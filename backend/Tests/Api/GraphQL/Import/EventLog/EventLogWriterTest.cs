@@ -10,8 +10,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import.EventLog
 {
-    [Collection("Postgres Logs Collection")]
-    public class EventLogWriterTest : IClassFixture<DatabaseFixture>
+    [Collection(DatabaseCollectionFixture.DatabaseCollection)]
+    public class EventLogWriterTest
     {
         private const string TOKEN1_METADATA_URL = "http://example.com/token1";
         private const string TOKEN_1_ID = "token1";
@@ -25,7 +25,7 @@ namespace Tests.Api.GraphQL.Import.EventLog
 
         public EventLogWriterTest(DatabaseFixture dbFixture)
         {
-            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
             _accountLookup = new AccountLookupStub();
             _accountLookup.AddToCache(AccountAddress.From(ACCOUNT_1_ADDR).GetBaseAddress().ToString(), ACCOUNT_1_ID);
 

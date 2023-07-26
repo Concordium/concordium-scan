@@ -9,14 +9,14 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class ChainParametersConfigurationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
     public ChainParametersConfigurationTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_chain_parameters");

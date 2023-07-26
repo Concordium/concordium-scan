@@ -14,8 +14,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class MetricsWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class MetricsWriterTest
 {
     private readonly MetricsWriter _target;
     private readonly DatabaseSettings _databaseSettings;

@@ -9,8 +9,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Metrics;
 
-[Collection("Postgres Collection")]
-public class PoolRewardMetricsQueryTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class PoolRewardMetricsQueryTest
 {
     private readonly PoolRewardMetricsQuery _target;
     private readonly TimeProviderStub _timeProviderStub;

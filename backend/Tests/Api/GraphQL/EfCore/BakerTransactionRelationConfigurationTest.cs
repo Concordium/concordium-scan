@@ -6,14 +6,14 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class BakerTransactionRelationConfigurationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BakerTransactionRelationConfigurationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
     public BakerTransactionRelationConfigurationTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_baker_transactions");

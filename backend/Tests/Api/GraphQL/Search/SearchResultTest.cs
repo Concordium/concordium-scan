@@ -10,8 +10,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.Search;
 
-[Collection("Postgres Collection")]
-public class SearchResultTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class SearchResultTest
 {
     private readonly ITestOutputHelper _outputHelper;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;

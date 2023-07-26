@@ -8,8 +8,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class IdentityProviderWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class IdentityProviderWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly IdentityProviderWriter _target;

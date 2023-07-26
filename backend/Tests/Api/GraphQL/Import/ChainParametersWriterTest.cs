@@ -15,8 +15,8 @@ using ChainParametersV1Builder = Tests.TestUtilities.Builders.ChainParametersV1B
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class ChainParametersWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly ChainParametersWriter _target;
