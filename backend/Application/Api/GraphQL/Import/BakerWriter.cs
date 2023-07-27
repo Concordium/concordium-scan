@@ -137,8 +137,10 @@ public class BakerWriter
             batch.BatchCommands.Add(cmd);
         }
 
+        await conn.OpenAsync();
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
+        await conn.CloseAsync();
     }
 
     public async Task<ulong> GetTotalAmountStaked()
