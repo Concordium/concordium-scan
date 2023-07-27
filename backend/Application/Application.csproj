@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-<!--      <PackageReference Include="ConcordiumNetSdk" Version="2.0.0" />-->
+      <PackageReference Include="ConcordiumNetSdk" Version="3.0.0" />
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="dbup-postgresql" Version="4.5.0" />
       <PackageReference Include="HotChocolate.AspNetCore" Version="12.7.0" />
@@ -26,7 +26,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\concordium-net-sdk\src\Concordium.Sdk.csproj" />
       <ProjectReference Include="..\DatabaseScripts\DatabaseScripts.csproj" />
     </ItemGroup>
 
