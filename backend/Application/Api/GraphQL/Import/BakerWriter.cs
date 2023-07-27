@@ -5,7 +5,6 @@ using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using Dapper;
-using HotChocolate.AspNetCore.Subscriptions.Messages;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Baker = Application.Api.GraphQL.Bakers.Baker;
@@ -108,10 +107,8 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
         var result = await conn.ExecuteScalarAsync<string>("select min(active_pending_change->'data'->>'EffectiveTime') from graphql_bakers where active_pending_change is not null");
-        await conn.CloseAsync();
-        
+
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
 
@@ -130,7 +127,6 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
         var batch = conn.CreateBatch();
         foreach (var stakeUpdate in stakeUpdates)
         {
@@ -143,7 +139,6 @@ public class BakerWriter
 
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
-        await conn.CloseAsync();
     }
 
     public async Task<ulong> GetTotalAmountStaked()
@@ -152,10 +147,8 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         var result = await conn.QuerySingleAsync<long?>("select sum(active_staked_amount) from graphql_bakers");
-        await conn.CloseAsync();
 
         return result.HasValue ? (ulong)result.Value : 0;
     }
@@ -192,9 +185,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
         
-        await conn.OpenAsync();
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
 
     public async Task UpdateDelegatedStakeCap(ulong totalStakedAmount, decimal capitalBound, decimal leverageFactor)
@@ -222,10 +213,8 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 
     public async Task<PaydayPoolStakeSnapshot> GetPaydayPoolStakeSnapshot()
@@ -238,11 +227,9 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
-        var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
-        await conn.CloseAsync();
         
+        var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
+
         return new PaydayPoolStakeSnapshot(items.ToArray());
     }
 
@@ -261,10 +248,8 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
     
     public async Task UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(long payoutBlockId)
@@ -281,9 +266,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 }
