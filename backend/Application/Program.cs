@@ -1,4 +1,5 @@
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
