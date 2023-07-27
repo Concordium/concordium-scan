@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [ main, ss/ci-test ]
+    branches: [ main, ss/update-grpcv2 ]
 
 jobs:
   build:
