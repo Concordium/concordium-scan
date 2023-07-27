@@ -49,8 +49,7 @@ public class BakerWriter
         await context.SaveChangesAsync();
         return baker;
     }
-
-    // TODO: remove this function which gets the baker id and just accept it as a parameter
+    
     public Task<Baker> UpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Action<TSource, Baker> updateExisting)
     {
         return AddOrUpdateBaker(item, bakerIdSelector, _ => throw new InvalidOperationException("Baker did not exist in database"), updateExisting);
@@ -107,9 +106,8 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-        await conn.OpenAsync();
+
         var result = await conn.ExecuteScalarAsync<string>("select min(active_pending_change->'data'->>'EffectiveTime') from graphql_bakers where active_pending_change is not null");
-        await conn.CloseAsync();
 
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
@@ -129,8 +127,6 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
-
         var batch = conn.CreateBatch();
         foreach (var stakeUpdate in stakeUpdates)
         {
@@ -143,8 +139,6 @@ public class BakerWriter
 
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
-        
-        await conn.CloseAsync();
     }
 
     public async Task<ulong> GetTotalAmountStaked()
@@ -153,8 +147,7 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // TODO: verify as above removal
+        
         var result = await conn.QuerySingleAsync<long?>("select sum(active_staked_amount) from graphql_bakers");
 
         return result.HasValue ? (ulong)result.Value : 0;
@@ -191,8 +184,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // TODO: verify removal
+        
         await conn.ExecuteAsync(sql);
     }
 
@@ -221,8 +213,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // TODO: verify removal
+        
         await conn.ExecuteAsync(sql, param);
     }
 
@@ -236,8 +227,7 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // TODO: open and close has been removed since it is redundant. Verify
+        
         var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
 
         return new PaydayPoolStakeSnapshot(items.ToArray());
@@ -258,8 +248,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // TODO: verify removal
+        
         await conn.ExecuteAsync(sql);
     }
     
@@ -277,8 +266,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        // Verify removal
+        
         await conn.ExecuteAsync(sql, param);
     }
 }

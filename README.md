@@ -44,4 +44,4 @@ See the description of `CCDSCAN_BACKEND_PORT` for an explanation of why Mac user
 
 ## Database restore
 
-In `./timescale-docker` a description is given how to spin up and restore CCD scan database locally from Stage- or Testnet backups.
+In `./timescaledb-restore` a description is given how to spin up and restore CCD scan database locally from Stage- or Testnet backups.

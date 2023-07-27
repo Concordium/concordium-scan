@@ -1,5 +1,5 @@
-using Application;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
@@ -23,11 +23,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-if (args.Any())
-{
-    await SpecialRunModeHandler.HandleCommandLineArgs(args);
-    return;
-}
 var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()

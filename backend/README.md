@@ -24,6 +24,9 @@ At startup, the backend will check if the databases exists and if all migrations
 
 Separate databases are created for the unit test suite. These databases are automatically created and migrated when running a unit test that accesses the database (ie. a test class using the DatabaseFixture type).
 
+# Schema
+Schema is validated using snapshot testing in test `Tests.Api.GraphQL.GivenGraphqlSchemaChanges_WhenBuild_ThenFailDueToSnapshotsNotMatched`.
+
 # Run the backend locally
 Once the prerequisites are met you can run the backend either from within the IDE or via a shell by issuing the "dotnet run" command in the Application directory.
 

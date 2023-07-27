@@ -27,7 +27,6 @@ public class IdentityProviderWriter
         using var counter = _metrics.MeasureDuration(nameof(IdentityProviderWriter), nameof(AddOrUpdateIdentityProviders));
 
         var payloads = blockItemSummaries
-            .Where(b => b.IsSuccess()) // TODO : this is not needed - keep for now to align
             .Select(b => b.Details)
             .OfType<UpdateDetails>()
             .Select(u => u.Payload)

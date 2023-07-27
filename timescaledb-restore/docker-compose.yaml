@@ -12,8 +12,5 @@ services:
     - ccdscan
     volumes:
     - ./init/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf
-    - ./init/pg_hba.conf:/etc/pg_hba.conf
-    - ./init/postgresql.conf:/etc/postgresql.conf
-    - ./init/restore.sh:/etc/restore.sh
 networks:
   ccdscan:
