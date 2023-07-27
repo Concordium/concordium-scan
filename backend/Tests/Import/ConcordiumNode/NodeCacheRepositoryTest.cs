@@ -7,8 +7,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Import.ConcordiumNode;
 
-[Collection("Postgres Collection")]
-public class NodeCacheRepositoryTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class NodeCacheRepositoryTest
 {
     private readonly NodeCacheRepository _target;
 

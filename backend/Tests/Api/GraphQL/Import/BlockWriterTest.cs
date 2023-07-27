@@ -14,8 +14,8 @@ using FinalizationSummaryBuilder = Tests.TestUtilities.Builders.FinalizationSumm
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class BlockWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BlockWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockWriter _target;

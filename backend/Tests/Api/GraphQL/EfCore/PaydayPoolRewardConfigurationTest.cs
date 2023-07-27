@@ -8,15 +8,15 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class PaydayPoolRewardConfigurationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class PaydayPoolRewardConfigurationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly DateTimeOffset _anyTimestamp = new DateTimeOffset(2020, 11, 7, 17, 13, 0, 331, TimeSpan.Zero);
 
     public PaydayPoolRewardConfigurationTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_payday_pool_rewards");

@@ -5,15 +5,15 @@ using Tests.TestUtilities.Builders.GraphQL;
 
 namespace Tests.Api.GraphQL.Accounts;
 
-[Collection("Postgres Collection")]
-public class AccountTest : IClassFixture<DatabaseFixture>, IAsyncLifetime
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class AccountTest : IAsyncLifetime
 {
     private readonly GraphQlTestHelper _testHelper = new();
     private readonly DatabaseSettings _dbSettings;
 
     public AccountTest(DatabaseFixture dbFixture)
     {
-        _dbSettings = dbFixture.DatabaseSettings;
+        _dbSettings = dbFixture. DatabaseSettings;
     }
 
     public async Task InitializeAsync()

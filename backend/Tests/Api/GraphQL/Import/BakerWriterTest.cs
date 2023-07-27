@@ -13,8 +13,8 @@ using PassiveDelegationTarget = Application.Api.GraphQL.PassiveDelegationTarget;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class BakerWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BakerWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BakerWriter _target;
@@ -22,7 +22,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
 
     public BakerWriterTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new BakerWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();

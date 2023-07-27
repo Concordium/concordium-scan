@@ -77,8 +77,8 @@ using ZeroScheduledAmount = Concordium.Sdk.Types.ZeroScheduledAmount;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class TransactionsWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class TransactionsWriterTest
 {
     private readonly TransactionWriter _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;

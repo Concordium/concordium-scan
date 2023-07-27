@@ -42,7 +42,7 @@ The configuration file ``appsettings.Development.json`` contains the configurati
 Once the prerequisites are met you can run the backend test suite either from within the IDE or via a shell by issuing the "dotnet test" command in the backend root directory.
 
 ## Configuring the unit test suite
-A lot of unit tests require access to PostgreSQL. The connection strings used in the test suite are found in the class ``Tests.TestUtilities.DatabaseFixture``.
+Several unit test relies on access to PostgreSQL. These test part of a common collection fixture and a shared database using docker is created when test is run.
 
 There is a single unit test class the runs test directly against a Concordium Node. These tests are all ignored by default and is only intended to do manual experimental tests against a Concordium Node. These tests are found in the class ``Tests.ConcordiumSdk.NodeApi.GrpcNodeClientTest``. To change which Concordium node is used in the tests, the values in the constructor of that class must simply be changed.
 

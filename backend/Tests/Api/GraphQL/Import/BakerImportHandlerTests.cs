@@ -23,15 +23,15 @@ using TransactionHash = Concordium.Sdk.Types.TransactionHash;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Baker Import Handler")]
-public class BakerImportHandlerTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BakerImportHandlerTest
 {
     private GraphQlDbContextFactoryStub _dbContextFactory;
     private BakerImportHandler _target;
 
-    public BakerImportHandlerTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
+    public BakerImportHandlerTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new BakerImportHandler(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();

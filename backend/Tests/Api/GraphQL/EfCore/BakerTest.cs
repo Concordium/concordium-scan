@@ -9,8 +9,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class BakerTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BakerTest
 {
     private readonly ITestOutputHelper _outputHelper;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
@@ -21,7 +21,7 @@ public class BakerTest : IClassFixture<DatabaseFixture>
     {
         _dbFixture = dbFixture;
         _outputHelper = outputHelper;
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_bakers");

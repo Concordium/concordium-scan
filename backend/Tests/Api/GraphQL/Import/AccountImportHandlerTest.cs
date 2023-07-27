@@ -12,8 +12,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import
 {
-    [Collection("Postgres Collection")]
-    public class AccountImportHandlerTest : IClassFixture<DatabaseFixture>
+    [Collection(DatabaseCollectionFixture.DatabaseCollection)]
+    public class AccountImportHandlerTest
     {
         private readonly NullMetrics _metrics;
         private readonly GraphQlDbContextFactoryStub _dbContextFactory;
@@ -25,7 +25,7 @@ namespace Tests.Api.GraphQL.Import
         public AccountImportHandlerTest(DatabaseFixture dbFixture)
         {
             _metrics = new NullMetrics();
-            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
             _accountWriter = new AccountWriter(_dbContextFactory, _metrics);
             _accountLookup = new AccountLookupStub();
             _accountImportHandler = new AccountImportHandler(_accountLookup, _metrics, _accountWriter);

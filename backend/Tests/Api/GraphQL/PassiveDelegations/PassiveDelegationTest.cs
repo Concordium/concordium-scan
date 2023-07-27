@@ -10,8 +10,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.PassiveDelegations;
 
-[Collection("Postgres Collection")]
-public class PassiveDelegationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class PassiveDelegationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly PassiveDelegation _target;
