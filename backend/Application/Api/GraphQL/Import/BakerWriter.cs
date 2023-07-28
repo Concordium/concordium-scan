@@ -38,6 +38,9 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var bakerId = (long)bakerIdSelector(item);
+        var longs = context.Bakers
+            .Where(b => b.Id == bakerId)
+            .Select(x => x.Id).ToList();
         var baker = await context.Bakers.SingleOrDefaultAsync(x => x.Id == bakerId);
         if (baker == null)
         {

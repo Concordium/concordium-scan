@@ -23,9 +23,12 @@ public class DelegationImportHandler
         var resultBuilder = new DelegationUpdateResultsBuilder();
 
         if (payload.BlockInfo.ProtocolVersion.AsInt() < 4) return resultBuilder.Build();
-        
-        var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
-    
+
+        if (!ChainParameters.TryGetDelegatorCooldown(chainParameters, out var delegatorCooldown))
+        {
+            throw new InvalidOperationException("Delegator cooldown expected for protocol version 4 and above");
+        }
+
         if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
             await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
                 account => ApplyPendingChange(account, resultBuilder));
@@ -39,7 +42,7 @@ public class DelegationImportHandler
             .Where(d => d is not null)
             .Select(d => d!);
 
-        await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1, resultBuilder);
+        await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, delegatorCooldown!.Value, resultBuilder);
         await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
             
         resultBuilder.SetTotalAmountStaked(await _writer.GetTotalDelegationAmountStaked());
@@ -81,7 +84,7 @@ public class DelegationImportHandler
     }
 
     private async Task UpdateDelegationFromTransactionEvents(IEnumerable<DelegationConfigured> delegations,
-        BlockInfo blockInfo, ChainParametersV1 chainParameters, DelegationUpdateResultsBuilder resultBuilder)
+        BlockInfo blockInfo, ulong delegatorCooldown, DelegationUpdateResultsBuilder resultBuilder)
     {
         foreach (var configured in delegations)
         {
@@ -105,7 +108,7 @@ public class DelegationImportHandler
                             (_, dst) =>
                             {
                                 if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(chainParameters.DelegatorCooldown);
+                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(delegatorCooldown);
                                 dst.Delegation.PendingChange = new PendingDelegationRemoval(effectiveTime);
                             });
                         break;
@@ -136,7 +139,7 @@ public class DelegationImportHandler
                             (src, dst) =>
                             {
                                 if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(chainParameters.DelegatorCooldown);
+                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(delegatorCooldown);
                                 dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, delegationStakeDecreased.NewStake.Value);
                             });
                         break;

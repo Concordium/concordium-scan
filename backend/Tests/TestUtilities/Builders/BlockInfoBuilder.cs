@@ -38,7 +38,9 @@ public class BlockInfoBuilder
             TransactionEnergyCost: new EnergyAmount(4),
             TransactionSize: 42,
             BlockStateHash: new StateHash("42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b"),
-            ProtocolVersion: _protocolVersion
+            ProtocolVersion: _protocolVersion,
+            Round: null,
+            Epoch: null
         );
     }
 
