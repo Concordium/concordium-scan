@@ -11,3 +11,6 @@ timescale-helm/values.yaml
 
 # Mac users
 .DS_Store
+
+# Snapshot test
+*.received.*
