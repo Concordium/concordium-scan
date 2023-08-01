@@ -95,7 +95,8 @@ public class BakerImportHandlerTest
                     BakerPoolOpenStatus.OpenForAll,
                     ""),
                 null,
-                CcdAmount.Zero
+                CcdAmount.Zero,
+                null
             )
         });
 
