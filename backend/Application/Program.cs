@@ -76,7 +76,7 @@ builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 builder.Services.AddConcordiumClient(builder.Configuration);
 builder.Services.AddHttpClient<NodeCollectorClient>();
 builder.Services.AddSingleton<NodeCollectorClient>();
-// builder.Services.AddHostedService<NodeSummaryImportController>();
+builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
