@@ -2,6 +2,7 @@ version: "3"
 services:
   timescaledb:
     image: timescale-restore:1
+    build: .
     environment:
     - POSTGRES_PASSWORD=password
     - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
