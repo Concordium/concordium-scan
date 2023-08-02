@@ -4,6 +4,8 @@ Below is instructions how to spin up CCD scan database locally which is restored
 
 Before following below instructions make sure you have read access to the S3 buckets where the backups are located.
 
+Commands should be run from current directory.
+
 ## Database restore
 
 Build custom docker image by running this
@@ -11,7 +13,7 @@ Build custom docker image by running this
 docker build -t timescale-restore:1 .
 ```
 
-Make a `pgbackrest.conf` file like `pgbackrest.conf.example` replacing `$AWS_ACCESS_KEY` and `$AWS_SECRET_KEY` with your access credentials.
+In the `init` directory make a `pgbackrest.conf` file like `pgbackrest.conf.example` replacing `$AWS_ACCESS_KEY` and `$AWS_SECRET_KEY` with your access credentials.
 
 Start docker-compose
 ```

@@ -5,8 +5,6 @@ FROM ${timescale_image}
 
 USER root
 
-RUN apt-get update
-
 COPY ./input/keep_alive.sh /keep_alive.sh
 COPY ./input/restore.sh /etc/restore.sh
 COPY ./input/pg_hba.conf /etc/pg_hba.conf
@@ -14,8 +12,8 @@ COPY ./input/postgresql.conf /etc/postgresql.conf
 
 RUN chmod +x /keep_alive.sh
 RUN chmod +x /etc/restore.sh
-RUN chmod +x /etc/postgresql.conf
-RUN chmod +x /etc/pg_hba.conf
+RUN chmod a+r /etc/postgresql.conf
+RUN chmod a+r /etc/pg_hba.conf
 
 USER postgres
 
