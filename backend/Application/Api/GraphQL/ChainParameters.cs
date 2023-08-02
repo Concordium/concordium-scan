@@ -53,7 +53,9 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
         return !Equals(left, right);
     }
     
-    internal static ChainParameters From(IChainParameters chainParameters, int id = default)
+    internal static ChainParameters From(
+        IChainParameters chainParameters,
+        int id = default)
     {
         return chainParameters switch
         {
@@ -67,7 +69,9 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
     /// <summary>
     /// Present from protocol version 4 and above and hence from chain parameters 1 and above.
     /// </summary>
-    internal static bool TryGetPoolOwnerCooldown(ChainParameters chainParameters, out ulong? poolOwnerCooldown)
+    internal static bool TryGetPoolOwnerCooldown(
+        ChainParameters chainParameters,
+        out ulong? poolOwnerCooldown)
     {
         switch (chainParameters)
         {
@@ -119,7 +123,8 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
     /// <summary>
     /// Present from protocol version 4 and above and hence from chain parameters 1 and above.
     /// </summary>
-    internal static bool TryGetDelegatorCooldown(ChainParameters chainParameters,
+    internal static bool TryGetDelegatorCooldown(
+        ChainParameters chainParameters,
         out ulong? delegatorCooldown)
     {
         switch (chainParameters)
