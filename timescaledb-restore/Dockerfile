@@ -19,5 +19,4 @@ RUN chmod +x /etc/pg_hba.conf
 
 USER postgres
 
-ENTRYPOINT [ "/keep_alive.sh" ]
-CMD [ "restore" ]
+ENTRYPOINT [ "/keep_alive.sh", "restore" ]
