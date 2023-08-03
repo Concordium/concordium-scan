@@ -18,7 +18,7 @@ echo "*** Done restore ***"
 cp /etc/pg_hba.conf /home/postgres/pgdata/data/pg_hba.conf
 cp /etc/postgresql.conf /home/postgres/pgdata/data/postgresql.conf
 
-pg_ctl -D $PGDATA start -o '--archive-command=/bin/false'
+pg_ctl -D $PGDATA start -o --archive-command=/bin/false
 
 while true; do
     MAX_BACKUP_WAL="$(pgbackrest info --output=json | python3 -c "import json,sys;obj=json.load(sys.stdin); print(obj[0]['archive'][0]['max']);")"
