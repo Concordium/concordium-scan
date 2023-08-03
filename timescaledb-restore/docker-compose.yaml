@@ -1,8 +1,8 @@
 version: "3"
 services:
   timescaledb:
-    platform: linux/amd64
-    image: timescale-restore:1
+    image: timescale/timescaledb-ha:pg14.3-ts2.7.0-p0
+    entrypoint: ["/keep_alive.sh"]
     environment:
     - POSTGRES_PASSWORD=password
     - PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
@@ -12,5 +12,9 @@ services:
     - ccdscan
     volumes:
     - ./init/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf
+    - ./input/keep_alive.sh:/keep_alive.sh
+    - ./input/restore.sh:/etc/restore.sh
+    - ./input/pg_hba.conf:/etc/pg_hba.conf
+    - ./input/postgresql.conf:/etc/postgresql.conf
 networks:
   ccdscan:
