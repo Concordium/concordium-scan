@@ -8,8 +8,15 @@ public sealed class UpdateTypeType : EnumType<UpdateType> {
     {
         // Change enum names from gRPC v2 to align with gRPC v1 to avoid breaking schema changes.
         descriptor.Name("UpdateTransactionType");
-        
-        // Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+
+        ChangeEnumNames(descriptor);
+    }
+    
+    /// <summary>
+    /// Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+    /// </summary>
+    private static void ChangeEnumNames(IEnumTypeDescriptor<UpdateType> descriptor)
+    {
         descriptor.Value(UpdateType.ProtocolUpdate)
             .Name("UPDATE_PROTOCOL");
         descriptor.Value(UpdateType.ElectionDifficultyUpdate)

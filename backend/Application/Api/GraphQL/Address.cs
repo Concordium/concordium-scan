@@ -10,8 +10,8 @@ public abstract class Address
     internal static Address From(IAddress address) =>
         address switch
         {
-            Concordium.Sdk.Types.AccountAddress x => AccountAddress.From(x),
-            Concordium.Sdk.Types.ContractAddress x => ContractAddress.From(x),
+            Concordium.Sdk.Types.AccountAddress accountAddress => AccountAddress.From(accountAddress),
+            Concordium.Sdk.Types.ContractAddress contractAddress => ContractAddress.From(contractAddress),
             _ => throw new NotSupportedException("Cannot map this address type")
         };
 }

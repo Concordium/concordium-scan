@@ -16,7 +16,7 @@ public abstract class SpecialEvent
     [GraphQLName("id")]
     public long Index { get; init; }
     
-    internal static IEnumerable<Blocks.SpecialEvent> MapSpecialEvents(long blockId, IList<ISpecialEvent> inputs)
+    internal static IEnumerable<SpecialEvent> MapSpecialEvents(long blockId, IList<ISpecialEvent> inputs)
     {
         foreach (var input in inputs)
         {
@@ -36,7 +36,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case BlockAccrueReward blockAccrueReward:
-                    yield return new Blocks.BlockAccrueRewardSpecialEvent
+                    yield return new BlockAccrueRewardSpecialEvent
                     {
                         BlockId = blockId,
                         TransactionFees = blockAccrueReward.TransactionFees.Value,
@@ -49,7 +49,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case BlockReward blockReward:
-                    yield return new Blocks.BlockRewardsSpecialEvent
+                    yield return new BlockRewardsSpecialEvent
                     {
                         BlockId = blockId,
                         TransactionFees = blockReward.TransactionFees.Value,
@@ -65,7 +65,7 @@ public abstract class SpecialEvent
                     var accountAmounts = finalizationRewards.Rewards
                         .Select(kv => (AccountAddress: kv.Key, Amount: kv.Value))
                         .ToList();
-                    yield return new Blocks.FinalizationRewardsSpecialEvent
+                    yield return new FinalizationRewardsSpecialEvent
                     {
                         BlockId = blockId,
                         Remainder = finalizationRewards.Remainder.Value,
@@ -75,7 +75,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case Mint mint:
-                    yield return new Blocks.MintSpecialEvent
+                    yield return new MintSpecialEvent
                     {
                         BlockId = blockId,
                         BakingReward = mint.MintBakingReward.Value,
@@ -85,7 +85,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case PaydayAccountReward paydayAccountReward:
-                    yield return new Blocks.PaydayAccountRewardSpecialEvent
+                    yield return new PaydayAccountRewardSpecialEvent
                     {
                         BlockId = blockId,
                         Account = new AccountAddress(paydayAccountReward.Account.ToString()),
@@ -95,7 +95,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case PaydayFoundationReward paydayFoundationReward:
-                    yield return new Blocks.PaydayFoundationRewardSpecialEvent
+                    yield return new PaydayFoundationRewardSpecialEvent
                     {
                         BlockId = blockId,
                         FoundationAccount = new AccountAddress(paydayFoundationReward.FoundationAccount.ToString()),
@@ -103,7 +103,7 @@ public abstract class SpecialEvent
                     };
                     break;
                 case PaydayPoolReward paydayPoolReward:
-                    yield return new Blocks.PaydayPoolRewardSpecialEvent
+                    yield return new PaydayPoolRewardSpecialEvent
                     {
                         BlockId = blockId,
                         Pool = paydayPoolReward.PoolOwner.HasValue

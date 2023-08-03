@@ -84,12 +84,12 @@ public class Baker
             .OrderByDescending(x => x.Index);
     }
     
-    internal static Baker CreateNewBaker(BakerId bakerId, CcdAmount stakedAmount, bool restakeEarnings, BakerPool? pool)
+    internal static Baker CreateNewBaker(BakerId bakerId, CcdAmount stakedAmount, bool shouldRestakeEarnings, BakerPool? pool)
     {
         return new Baker
         {
             Id = (long)bakerId.Id.Index,
-            State = new ActiveBakerState(stakedAmount.Value, restakeEarnings, pool, null)
+            State = new ActiveBakerState(stakedAmount.Value, shouldRestakeEarnings, pool, null)
         };
     }
     

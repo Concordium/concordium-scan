@@ -1039,11 +1039,11 @@ public class TransactionsWriterTest
         var effectiveTime = DateTimeOffset.FromUnixTimeSeconds(1624630671);
         const ulong epoch = 170UL;
         const decimal mintPrPayDay = 4.2m;
-        var _ = MintRateExtensions.TryParse(mintPrPayDay, out var mintRate);
+        var mintRate = MintRateExtensions.From(mintPrPayDay);
         var update = new TimeParametersCpv1Update(
             new TimeParameters(
                 new RewardPeriodLength(new Epoch(epoch)),
-                mintRate!.Value
+                mintRate
             )
         );
         

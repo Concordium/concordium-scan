@@ -13,34 +13,23 @@ public abstract record ChainUpdatePayload
     {
         chainUpdatePayload = payload switch
         {
-            AddAnonymityRevokerUpdate addAnonymityRevokerUpdate => AddAnonymityRevokerChainUpdatePayload.From(
-                addAnonymityRevokerUpdate),
-            AddIdentityProviderUpdate addIdentityProviderUpdate => AddIdentityProviderChainUpdatePayload.From(
-                addIdentityProviderUpdate),
-            BakerStakeThresholdUpdate bakerStakeThresholdUpdate => BakerStakeThresholdChainUpdatePayload.From(
-                bakerStakeThresholdUpdate),
-            CooldownParametersCpv1Update cooldownParametersCpv1Update => CooldownParametersChainUpdatePayload.From(
-                cooldownParametersCpv1Update),
-            ElectionDifficultyUpdate electionDifficultyUpdate => ElectionDifficultyChainUpdatePayload.From(
-                electionDifficultyUpdate),
+            AddAnonymityRevokerUpdate addAnonymityRevokerUpdate => AddAnonymityRevokerChainUpdatePayload.From(addAnonymityRevokerUpdate),
+            AddIdentityProviderUpdate addIdentityProviderUpdate => AddIdentityProviderChainUpdatePayload.From(addIdentityProviderUpdate),
+            BakerStakeThresholdUpdate bakerStakeThresholdUpdate => BakerStakeThresholdChainUpdatePayload.From(bakerStakeThresholdUpdate),
+            CooldownParametersCpv1Update cooldownParametersCpv1Update => CooldownParametersChainUpdatePayload.From(cooldownParametersCpv1Update),
+            ElectionDifficultyUpdate electionDifficultyUpdate => ElectionDifficultyChainUpdatePayload.From(electionDifficultyUpdate),
             EuroPerEnergyUpdate euroPerEnergyUpdate => EuroPerEnergyChainUpdatePayload.From(euroPerEnergyUpdate),
-            FoundationAccountUpdate foundationAccountUpdate => FoundationAccountChainUpdatePayload.From(
-                foundationAccountUpdate),
+            FoundationAccountUpdate foundationAccountUpdate => FoundationAccountChainUpdatePayload.From(foundationAccountUpdate),
             GasRewardsUpdate gasRewardsUpdate => GasRewardsChainUpdatePayload.From(gasRewardsUpdate),
             Level1 level1 => Level1KeysChainUpdatePayload.From(level1),
-            MicroCcdPerEuroUpdate microCcdPerEuroUpdate =>
-                MicroCcdPerEuroChainUpdatePayload.From(microCcdPerEuroUpdate),
-            MintDistributionCpv0Update mintDistributionCpv0Update => MintDistributionChainUpdatePayload.From(
-                mintDistributionCpv0Update),
-            MintDistributionCpv1Update mintDistributionCpv1Update => MintDistributionV1ChainUpdatePayload.From(
-                mintDistributionCpv1Update),
-            PoolParametersCpv1Update poolParametersCpv1Update => PoolParametersChainUpdatePayload.From(
-                poolParametersCpv1Update),
+            MicroCcdPerEuroUpdate microCcdPerEuroUpdate => MicroCcdPerEuroChainUpdatePayload.From(microCcdPerEuroUpdate),
+            MintDistributionCpv0Update mintDistributionCpv0Update => MintDistributionChainUpdatePayload.From(mintDistributionCpv0Update),
+            MintDistributionCpv1Update mintDistributionCpv1Update => MintDistributionV1ChainUpdatePayload.From(mintDistributionCpv1Update),
+            PoolParametersCpv1Update poolParametersCpv1Update => PoolParametersChainUpdatePayload.From(poolParametersCpv1Update),
             ProtocolUpdate protocolUpdate => ProtocolChainUpdatePayload.From(protocolUpdate),
             RootUpdate rootUpdate => RootKeysChainUpdatePayload.From(rootUpdate),
             TimeParametersCpv1Update timeParametersCpv1Update => TimeParametersChainUpdatePayload.From(timeParametersCpv1Update),
-            TransactionFeeDistributionUpdate transactionFeeDistributionUpdate =>
-                TransactionFeeDistributionChainUpdatePayload.From(transactionFeeDistributionUpdate),
+            TransactionFeeDistributionUpdate transactionFeeDistributionUpdate => TransactionFeeDistributionChainUpdatePayload.From(transactionFeeDistributionUpdate),
             GasRewardsCpv2Update => null,
             BlockEnergyLimitUpdate => null,
             FinalizationCommitteeParametersUpdate => null,

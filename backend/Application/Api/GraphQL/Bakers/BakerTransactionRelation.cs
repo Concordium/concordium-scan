@@ -52,7 +52,7 @@ public class BakerTransactionRelation
                 };
                 return true;
             default:
-                throw new InvalidOperationException("Did not expect multiple baker id's from one transaction");
+                throw new InvalidOperationException("Did not expect multiple baker ids from one transaction");
         }
     }
 }

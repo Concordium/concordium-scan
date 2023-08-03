@@ -1,25 +1,31 @@
+using Application.Exceptions;
 using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Extensions;
 
 internal static class MintRateExtensions
 {
-    internal static bool TryParse(decimal number, out MintRate? mintRate)
+    internal static MintRate From(decimal number)
     {
+        var initialNumber = number;
         var exponent = 0u;
         while (number != Math.Floor(number))
         {
             number *= 10.0m;
             if (number > uint.MaxValue)
             {
-                mintRate = null;
-                return false;
+                throw MintRateCalculationException.MintRateExceptionWhenMantissaOverflow(initialNumber);
             }
             exponent++;
         }
 
-        var tryParse = MintRate.TryParse(exponent, (uint)number, out mintRate);
-        return tryParse;
+
+        if (MintRate.TryParse(exponent, (uint)number, out var mintRate))
+        {
+            return mintRate!.Value;
+        }
+        
+        throw MintRateCalculationException.MintRateExceptionWhenNotAbleToParseFromFoundExponentAndMantissa(initialNumber, exponent, number);
     }
 
     /// <summary>

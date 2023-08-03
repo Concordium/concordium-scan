@@ -11,6 +11,14 @@ public sealed class TransactionTypeType : EnumType<TransactionType>
         descriptor.Name("AccountTransactionType");
 
         // Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+        ChangeEnumNames(descriptor);
+    }
+
+    /// <summary>
+    /// Change enum value names from those in gRPC v2 to avoid breaking schema changes.
+    /// </summary>
+    private static void ChangeEnumNames(IEnumTypeDescriptor<TransactionType> descriptor)
+    {
         descriptor.Value(TransactionType.InitContract)
             .Name("INITIALIZE_SMART_CONTRACT_INSTANCE");
         descriptor.Value(TransactionType.Update)
