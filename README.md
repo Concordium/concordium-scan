@@ -41,3 +41,7 @@ docker-compose up
 ```
 
 See the description of `CCDSCAN_BACKEND_PORT` for an explanation of why Mac users in particular might want to set this value.
+
+## Database restore
+
+In `./timescaledb-restore` a description is given how to spin up and restore CCD scan database locally from Stage- or Testnet backups.
