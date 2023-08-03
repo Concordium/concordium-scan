@@ -47,6 +47,9 @@ public class PreProtocol4Strategy : IBakerChangeStrategy
         _accountInfos = accountInfos;
     }
 
+    /// <summary>
+    /// Prior to protocol 4 <see cref="Concordium.Sdk.Types.BakerConfigured"/> isn't used.
+    /// </summary>
     public async Task UpdateBakersFromTransactionEvents(
         IEnumerable<AccountTransactionDetails> transactionEvents,
         ImportState importState,
@@ -189,6 +192,9 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
         throw new InvalidOperationException("This method should only be called if pending changes must be applied.");
     }
 
+    /// <summary>
+    /// <see cref="Concordium.Sdk.Types.BakerConfigured"/> are used from protocol 4.
+    /// </summary>
     public async Task UpdateBakersFromTransactionEvents(IEnumerable<AccountTransactionDetails> transactionEvents, ImportState importState,
         BakerImportHandler.BakerUpdateResultsBuilder resultBuilder)
     {

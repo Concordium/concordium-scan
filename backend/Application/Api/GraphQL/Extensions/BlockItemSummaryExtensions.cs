@@ -15,7 +15,7 @@ internal static class BlockItemSummaryExtensions
         {
             yield return new AccountBalanceUpdate(
                 accountTransactionDetails.Sender,
-                (long)accountTransactionDetails.Cost.Value,
+                -1 * (long)accountTransactionDetails.Cost.Value,
                 BalanceUpdateType.TransactionFee
             );
         }

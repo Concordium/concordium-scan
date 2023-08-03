@@ -332,46 +332,38 @@ public record BakerKeysUpdated(
     string ElectionKey,
     string AggregationKey) : TransactionResultEvent
 {
-    internal static BakerKeysUpdated From(Concordium.Sdk.Types.BakerKeysUpdated bakerKeysUpdated)
-    {
-        return new BakerKeysUpdated(
+    internal static BakerKeysUpdated From(Concordium.Sdk.Types.BakerKeysUpdated bakerKeysUpdated) =>
+        new(
             bakerKeysUpdated.KeysEvent.BakerId.Id.Index,
             AccountAddress.From(bakerKeysUpdated.KeysEvent.Account),
             Convert.ToHexString(bakerKeysUpdated.KeysEvent.SignKey).ToLowerInvariant(),
             Convert.ToHexString(bakerKeysUpdated.KeysEvent.ElectionKey).ToLowerInvariant(),
             Convert.ToHexString(bakerKeysUpdated.KeysEvent.AggregationKey).ToLowerInvariant()
         );
-    }
-    
-    internal static BakerKeysUpdated From(BakerKeysUpdatedEvent bakerKeysUpdated)
-    {
-        return new BakerKeysUpdated(
+
+    internal static BakerKeysUpdated From(BakerKeysUpdatedEvent bakerKeysUpdated) =>
+        new(
             bakerKeysUpdated.Data.BakerId.Id.Index,
             AccountAddress.From(bakerKeysUpdated.Data.Account),
             Convert.ToHexString(bakerKeysUpdated.Data.SignKey).ToLowerInvariant(),
             Convert.ToHexString(bakerKeysUpdated.Data.ElectionKey).ToLowerInvariant(),
             Convert.ToHexString(bakerKeysUpdated.Data.AggregationKey).ToLowerInvariant()
         );
-    }
 }
 
 public record BakerRemoved(
     ulong BakerId,
     AccountAddress AccountAddress) : TransactionResultEvent
 {
-    internal static BakerRemoved From(Concordium.Sdk.Types.AccountAddress sender, BakerRemovedEvent bakerRemovedEvent)
-    {
-        return new BakerRemoved(
+    internal static BakerRemoved From(Concordium.Sdk.Types.AccountAddress sender, BakerRemovedEvent bakerRemovedEvent) =>
+        new(
             bakerRemovedEvent.BakerId.Id.Index,
             AccountAddress.From(sender));
-    }
-    
-    internal static BakerRemoved From(Concordium.Sdk.Types.AccountAddress sender, Concordium.Sdk.Types.BakerRemoved bakerRemoved)
-    {
-        return new BakerRemoved(
+
+    internal static BakerRemoved From(Concordium.Sdk.Types.AccountAddress sender, Concordium.Sdk.Types.BakerRemoved bakerRemoved) =>
+        new(
             bakerRemoved.BakerId.Id.Index,
             AccountAddress.From(sender));
-    }
 }
 
 public record BakerSetRestakeEarnings(
@@ -379,23 +371,19 @@ public record BakerSetRestakeEarnings(
     AccountAddress AccountAddress,
     bool RestakeEarnings) : TransactionResultEvent
 {
-    internal static BakerSetRestakeEarnings From(Concordium.Sdk.Types.AccountAddress sender, BakerRestakeEarningsUpdatedEvent bakerRestakeEarningsUpdatedEvent)
-    {
-        return new BakerSetRestakeEarnings(
+    internal static BakerSetRestakeEarnings From(Concordium.Sdk.Types.AccountAddress sender, BakerRestakeEarningsUpdatedEvent bakerRestakeEarningsUpdatedEvent) =>
+        new(
             bakerRestakeEarningsUpdatedEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             bakerRestakeEarningsUpdatedEvent.RestakeEarnings
         );
-    }
-    
-    internal static BakerSetRestakeEarnings From(Concordium.Sdk.Types.AccountAddress sender, BakerRestakeEarningsUpdated bakerRestakeEarningsUpdated)
-    {
-        return new BakerSetRestakeEarnings(
+
+    internal static BakerSetRestakeEarnings From(Concordium.Sdk.Types.AccountAddress sender, BakerRestakeEarningsUpdated bakerRestakeEarningsUpdated) =>
+        new(
             bakerRestakeEarningsUpdated.BakerId.Id.Index,
             AccountAddress.From(sender),
             bakerRestakeEarningsUpdated.RestakeEarnings
         );
-    }
 }
 
 public record BakerStakeDecreased(
@@ -425,14 +413,12 @@ public record BakerStakeDecreased(
 
     internal static BakerStakeDecreased From(
         Concordium.Sdk.Types.AccountAddress sender,
-        BakerStakeDecreasedEvent bakerStakeDecreasedEvent)
-    {
-        return new BakerStakeDecreased(
+        BakerStakeDecreasedEvent bakerStakeDecreasedEvent) =>
+        new(
             bakerStakeDecreasedEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             bakerStakeDecreasedEvent.NewStake.Value
         );
-    }
 }
 
 public record BakerStakeIncreased(
@@ -462,14 +448,12 @@ public record BakerStakeIncreased(
     
     internal static BakerStakeIncreased From(
         Concordium.Sdk.Types.AccountAddress sender,
-        BakerStakeIncreasedEvent bakerStakeDecreasedEvent)
-    {
-        return new BakerStakeIncreased(
+        BakerStakeIncreasedEvent bakerStakeDecreasedEvent) =>
+        new(
             bakerStakeDecreasedEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             bakerStakeDecreasedEvent.NewStake.Value
         );
-    }
 }
 
 /// <summary>
@@ -488,15 +472,14 @@ public record ContractInitialized(
     [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent
 {
-    internal static ContractInitialized From(Concordium.Sdk.Types.ContractInitialized contract) {
-        return new ContractInitialized(
+    internal static ContractInitialized From(Concordium.Sdk.Types.ContractInitialized contract) =>
+        new(
             contract.Data.ModuleReference.ToString(),
             ContractAddress.From(contract.Data.ContractAddress),
             contract.Data.Amount.Value,
             contract.Data.InitName.Name,
             contract.Data.Events.Select(d => d.ToHexString()).ToArray()
         );
-    }
 }
 
 /// <summary>
@@ -530,9 +513,8 @@ public record ContractUpdated(
     [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent
 {
-    internal static ContractUpdated From(Updated updated)
-    {
-        return new ContractUpdated(
+    internal static ContractUpdated From(Updated updated) =>
+        new(
             ContractAddress.From(updated.Address),
             Address.From(updated.Instigator),
             updated.Amount.Value,
@@ -540,7 +522,6 @@ public record ContractUpdated(
             updated.ReceiveName.Receive,
             updated.Events.Select(e => e.ToHexString()).ToArray()
         );
-    }
 }
 
 public record CredentialDeployed(
@@ -559,12 +540,10 @@ public record CredentialDeployed(
 public record CredentialKeysUpdated(
     string CredId) : TransactionResultEvent
 {
-    internal static CredentialKeysUpdated From(Concordium.Sdk.Types.CredentialKeysUpdated keys)
-    {
-        return new CredentialKeysUpdated(
+    internal static CredentialKeysUpdated From(Concordium.Sdk.Types.CredentialKeysUpdated keys) =>
+        new(
             keys.CredId.ToHexString()
         );
-    }
 }
 
 /// <summary>
@@ -582,15 +561,13 @@ public record CredentialsUpdated(
 {
     internal static CredentialsUpdated From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.CredentialsUpdated updated)
-    {
-        return new CredentialsUpdated(
+        Concordium.Sdk.Types.CredentialsUpdated updated) =>
+        new(
             AccountAddress.From(sender),
             updated.NewCredIds.Select(c => c.ToHexString()).ToArray(),
             updated.RemovedCredIds.Select(c => c.ToHexString()).ToArray(),
             (byte)updated.NewThreshold.Threshold
         );
-    }
 }
 
 /// <summary>
@@ -620,15 +597,13 @@ public record EncryptedAmountsRemoved(
     string InputAmount,
     ulong UpToIndex) : TransactionResultEvent
 {
-    internal static EncryptedAmountsRemoved From(EncryptedAmountRemovedEvent transfer)
-    {
-        return new EncryptedAmountsRemoved(
+    internal static EncryptedAmountsRemoved From(EncryptedAmountRemovedEvent transfer) =>
+        new(
             AccountAddress.From(transfer.Account),
             Convert.ToHexString(transfer.NewAmount).ToLowerInvariant(),
             Convert.ToHexString(transfer.InputAmount).ToLowerInvariant(),
             transfer.UpToIndex
         );
-    }
 }
 
 /// <summary>
@@ -662,14 +637,12 @@ public record NewEncryptedAmount(
     ulong NewIndex,
     string EncryptedAmount) : TransactionResultEvent
 {
-    internal static NewEncryptedAmount From(NewEncryptedAmountEvent transfer)
-    {
-        return new NewEncryptedAmount(
+    internal static NewEncryptedAmount From(NewEncryptedAmountEvent transfer) =>
+        new(
             AccountAddress.From(transfer.Receiver),
             transfer.NewIndex,
             Convert.ToHexString(transfer.EncryptedAmount).ToLowerInvariant()
         );
-    }
 }
 
 public record TransferMemo(string RawHex) : TransactionResultEvent
@@ -697,14 +670,12 @@ public record TransferredWithSchedule(
 
     internal static TransferredWithSchedule From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.TransferredWithSchedule transferredWithSchedule)
-    {
-        return new TransferredWithSchedule(
+        Concordium.Sdk.Types.TransferredWithSchedule transferredWithSchedule) =>
+        new(
             AccountAddress.From(sender),
             AccountAddress.From(transferredWithSchedule.To), 
             TimestampedAmount.From(transferredWithSchedule.Amount).ToArray()
         );
-    }
 }
 
 /// <summary>
@@ -736,26 +707,22 @@ public record ContractInterrupted(
     ContractAddress ContractAddress,
     string[] EventsAsHex) : TransactionResultEvent
 {
-    internal static ContractInterrupted From(Interrupted interrupted)
-    {
-        return new ContractInterrupted(
+    internal static ContractInterrupted From(Interrupted interrupted) =>
+        new(
             ContractAddress.From(interrupted.Address),
             interrupted.Events.Select(e => e.ToHexString()).ToArray()
-            );
-    }
+        );
 }
 
 public record ContractResumed(
     ContractAddress ContractAddress,
     bool Success) : TransactionResultEvent
 {
-    internal static ContractResumed From(Resumed resumed)
-    {
-        return new ContractResumed(
+    internal static ContractResumed From(Resumed resumed) =>
+        new(
             ContractAddress.From(resumed.Address),
             resumed.Success
         );
-    }
 }
 
 public record ContractUpgraded(
@@ -763,14 +730,12 @@ public record ContractUpgraded(
     string From,
     string To) : TransactionResultEvent
 {
-    internal static ContractUpgraded From_(Upgraded upgraded)
-    {
-        return new ContractUpgraded(
+    internal static ContractUpgraded From_(Upgraded upgraded) =>
+        new(
             ContractAddress.From(upgraded.Address),
             upgraded.From.ToString(),
             upgraded.To.ToString()
         );
-    }
 }
 
 public record BakerSetOpenStatus(
@@ -780,14 +745,12 @@ public record BakerSetOpenStatus(
 {
     internal static BakerSetOpenStatus From(
         Concordium.Sdk.Types.AccountAddress accountAddress,
-        BakerSetOpenStatusEvent bakerSetOpenStatusEvent)
-    {
-        return new BakerSetOpenStatus(
+        BakerSetOpenStatusEvent bakerSetOpenStatusEvent) =>
+        new(
             bakerSetOpenStatusEvent.BakerId.Id.Index,
             AccountAddress.From(accountAddress),
             bakerSetOpenStatusEvent.OpenStatus.MapToGraphQlEnum()
         );
-    }
 }
 
 public record BakerSetMetadataURL(
@@ -799,7 +762,7 @@ public record BakerSetMetadataURL(
         Concordium.Sdk.Types.AccountAddress sender,
         BakerSetMetadataUrlEvent bakerSetMetadataUrlEvent)
     {
-        return new BakerSetMetadataURL(
+        return new(
             bakerSetMetadataUrlEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             bakerSetMetadataUrlEvent.MetadataUrl
@@ -829,14 +792,12 @@ public record BakerSetBakingRewardCommission(
 {
     internal static BakerSetBakingRewardCommission From(
         Concordium.Sdk.Types.AccountAddress sender,
-        BakerSetBakingRewardCommissionEvent commissionEvent)
-    {
-        return new BakerSetBakingRewardCommission(
+        BakerSetBakingRewardCommissionEvent commissionEvent) =>
+        new(
             commissionEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             commissionEvent.BakingRewardCommission.AsDecimal()
         );
-    }
 }
 
 public record BakerSetFinalizationRewardCommission(
@@ -846,14 +807,12 @@ public record BakerSetFinalizationRewardCommission(
 {
     internal static BakerSetFinalizationRewardCommission From(
         Concordium.Sdk.Types.AccountAddress sender,
-        BakerSetFinalizationRewardCommissionEvent commissionEvent)
-    {
-        return new BakerSetFinalizationRewardCommission(
+        BakerSetFinalizationRewardCommissionEvent commissionEvent) =>
+        new(
             commissionEvent.BakerId.Id.Index,
             AccountAddress.From(sender),
             commissionEvent.FinalizationRewardCommission.AsDecimal()
         );
-    }
 }
 
 public record DelegationAdded(
@@ -862,12 +821,10 @@ public record DelegationAdded(
 {
     internal static DelegationAdded From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationAdded delegationAdded)
-    {
-        return new DelegationAdded(
+        Concordium.Sdk.Types.DelegationAdded delegationAdded) =>
+        new(
             delegationAdded.DelegatorId.Id.Index,
             AccountAddress.From(sender));
-    }
 }
 
 public record DelegationRemoved(
@@ -876,12 +833,10 @@ public record DelegationRemoved(
 {
     internal static DelegationRemoved From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationRemoved delegationRemoved)
-    {
-        return new DelegationRemoved(
+        Concordium.Sdk.Types.DelegationRemoved delegationRemoved) =>
+        new(
             delegationRemoved.DelegatorId.Id.Index,
             AccountAddress.From(sender));
-    }
 }
 
 public record DelegationStakeIncreased(
@@ -891,13 +846,11 @@ public record DelegationStakeIncreased(
 {
     internal static DelegationStakeIncreased From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationStakeIncreased delegationStakeIncreased)
-    {
-        return new DelegationStakeIncreased(
+        Concordium.Sdk.Types.DelegationStakeIncreased delegationStakeIncreased) =>
+        new(
             delegationStakeIncreased.DelegatorId.Id.Index,
             AccountAddress.From(sender),
             delegationStakeIncreased.NewStake.Value);
-    }    
 }
 
 public record DelegationStakeDecreased(
@@ -907,13 +860,11 @@ public record DelegationStakeDecreased(
 {
     internal static DelegationStakeDecreased From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationStakeDecreased delegationStakeDecreased)
-    {
-        return new DelegationStakeDecreased(
+        Concordium.Sdk.Types.DelegationStakeDecreased delegationStakeDecreased) =>
+        new(
             delegationStakeDecreased.DelegatorId.Id.Index,
             AccountAddress.From(sender),
             delegationStakeDecreased.NewStake.Value);
-    }    
 }
 
 public record DelegationSetRestakeEarnings(
@@ -923,13 +874,11 @@ public record DelegationSetRestakeEarnings(
 {
     internal static DelegationSetRestakeEarnings From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationSetRestakeEarnings delegationSetRestake)
-    {
-        return new DelegationSetRestakeEarnings(
+        Concordium.Sdk.Types.DelegationSetRestakeEarnings delegationSetRestake) =>
+        new(
             delegationSetRestake.DelegatorId.Id.Index,
             AccountAddress.From(sender),
             delegationSetRestake.RestakeEarnings);
-    }    
 }
 
 public record DelegationSetDelegationTarget(
@@ -939,11 +888,9 @@ public record DelegationSetDelegationTarget(
 {
     internal static DelegationSetDelegationTarget From(
         Concordium.Sdk.Types.AccountAddress sender,
-        Concordium.Sdk.Types.DelegationSetDelegationTarget delegationSetDelegation)
-    {
-        return new DelegationSetDelegationTarget(
+        Concordium.Sdk.Types.DelegationSetDelegationTarget delegationSetDelegation) =>
+        new(
             delegationSetDelegation.DelegatorId.Id.Index,
             AccountAddress.From(sender),
             DelegationTarget.From(delegationSetDelegation.DelegationTarget));
-    }
 }
