@@ -17,8 +17,6 @@ docker-compose up
 
 Database is now available at `localhost:15432` with user `postgres` and password `password`.
 
-One can start a timescale database without restoring by explicit in 'docker-compose.yaml' set command to entrypoint to nothing, 'command: [""]'. Default value is 'restore'.
-
 ### Refenreces
 - https://bun.uptrace.dev/postgres/pgbackrest-s3-backups.html#incremental-backup
 - https://pgbackrest.org/user-guide.html#restore/option-delta
