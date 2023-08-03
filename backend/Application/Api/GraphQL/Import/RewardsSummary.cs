@@ -1,6 +1,5 @@
-﻿using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Bakers;
-using ConcordiumSdk.NodeApi.Types;
+﻿using Application.Api.GraphQL.Extensions;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -13,14 +12,14 @@ public class RewardsSummary
         AggregatedAccountRewards = aggregatedAccountRewards;
     }
 
-    public static RewardsSummary Create(BlockSummaryBase blockSummary, IAccountLookup accountLookup)
+    public static RewardsSummary Create(IList<ISpecialEvent> specialEvents, IAccountLookup accountLookup)
     {
-        var rewards = blockSummary.SpecialEvents.SelectMany(se => se.GetAccountBalanceUpdates());
+        var rewards = specialEvents.SelectMany(e => e.Into());
 
         var aggregatedRewards = rewards
             .Select(x => new
             {
-                BaseAddress = x.AccountAddress.GetBaseAddress().AsString,
+                BaseAddress = x.AccountAddress.GetBaseAddress().ToString(),
                 Amount = x.AmountAdjustment,
                 x.BalanceUpdateType
             })

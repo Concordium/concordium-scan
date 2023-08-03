@@ -5,8 +5,8 @@ using Tests.TestUtilities.Builders.GraphQL;
 
 namespace Tests.Api.GraphQL;
 
-[Collection("Postgres Collection")]
-public class QueryTest : IClassFixture<DatabaseFixture>, IAsyncLifetime
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class QueryTest : IAsyncLifetime
 {
     private readonly GraphQlTestHelper _testHelper = new();
     private readonly DatabaseSettings _dbSettings;

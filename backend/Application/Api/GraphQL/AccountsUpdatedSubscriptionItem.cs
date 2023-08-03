@@ -1,4 +1,4 @@
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using HotChocolate;
 
 namespace Application.Api.GraphQL
@@ -17,7 +17,7 @@ namespace Application.Api.GraphQL
 
         public AccountsUpdatedSubscriptionItem(AccountAddress address)
         {
-            this.Address = address.AsString;
+            this.Address = address.ToString();
         }
     }
 }

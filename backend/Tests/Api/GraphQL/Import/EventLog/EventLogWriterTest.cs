@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.EventLogs;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Tests.TestUtilities;
@@ -10,8 +10,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Import.EventLog
 {
-    [Collection("Postgres Logs Collection")]
-    public class EventLogWriterTest : IClassFixture<DatabaseFixture>
+    [Collection(DatabaseCollectionFixture.DatabaseCollection)]
+    public class EventLogWriterTest
     {
         private const string TOKEN1_METADATA_URL = "http://example.com/token1";
         private const string TOKEN_1_ID = "token1";
@@ -25,9 +25,9 @@ namespace Tests.Api.GraphQL.Import.EventLog
 
         public EventLogWriterTest(DatabaseFixture dbFixture)
         {
-            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+            _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
             _accountLookup = new AccountLookupStub();
-            _accountLookup.AddToCache(new AccountAddress(ACCOUNT_1_ADDR).GetBaseAddress().AsString, ACCOUNT_1_ID);
+            _accountLookup.AddToCache(AccountAddress.From(ACCOUNT_1_ADDR).GetBaseAddress().ToString(), ACCOUNT_1_ID);
 
             writer = new EventLogWriter(_dbContextFactory, _accountLookup, new NullMetrics());
 
@@ -82,9 +82,9 @@ namespace Tests.Api.GraphQL.Import.EventLog
         public void ShouldHandleAccountUpdates()
         {
             var updatesCount = writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = new AccountAddress(ACCOUNT_1_ADDR) },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = new AccountAddress(ACCOUNT_1_ADDR) },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = new AccountAddress(ACCOUNT_1_ADDR)},
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = AccountAddress.From(ACCOUNT_1_ADDR) },
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = AccountAddress.From(ACCOUNT_1_ADDR) },
+                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = AccountAddress.From(ACCOUNT_1_ADDR)},
             });
 
             updatesCount.Should().Be(3);

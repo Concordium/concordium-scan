@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Accounts;
 using Application.Import;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -22,34 +22,30 @@ public class DelegationImportHandler
     {
         var resultBuilder = new DelegationUpdateResultsBuilder();
 
-        if (payload.BlockSummary.ProtocolVersion >= 4)
+        if (payload.BlockInfo.ProtocolVersion.AsInt() < 4) return resultBuilder.Build();
+
+        if (!ChainParameters.TryGetDelegatorCooldown(chainParameters, out var delegatorCooldown))
         {
-            var chainParametersV1 = chainParameters as ChainParametersV1 ?? throw new InvalidOperationException("Chain parameters always expect to be v1 after protocol version 4");
-    
-            if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
-                await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
-                    account => ApplyPendingChange(account, resultBuilder));
-
-            await HandleBakersRemovedOrClosedForAll(bakerUpdateResults, resultBuilder);
-            
-            var allTransactionEvents = payload.BlockSummary.TransactionSummaries
-                .Select(tx => tx.Result).OfType<TransactionSuccessResult>()
-                .SelectMany(x => x.Events)
-                .ToArray();
-
-            var txEvents = allTransactionEvents.Where(x => x
-                is ConcordiumSdk.NodeApi.Types.DelegationAdded
-                or ConcordiumSdk.NodeApi.Types.DelegationRemoved
-                or ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased
-                or ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased
-                or ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings
-                or ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget);
-
-            await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, chainParametersV1, resultBuilder);
-            await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
-            
-            resultBuilder.SetTotalAmountStaked(await _writer.GetTotalDelegationAmountStaked());
+            throw new InvalidOperationException("Delegator cooldown expected for protocol version 4 and above");
         }
+
+        if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
+            await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
+                account => ApplyPendingChange(account, resultBuilder));
+
+        await HandleBakersRemovedOrClosedForAll(bakerUpdateResults, resultBuilder);
+
+        var txEvents = payload.BlockItemSummaries.Where(b => b.IsSuccess())
+            .Select(b => b.Details as AccountTransactionDetails)
+            .Where(atd => atd is not null)
+            .Select(atd => atd!.Effects as DelegationConfigured)
+            .Where(d => d is not null)
+            .Select(d => d!);
+
+        await UpdateDelegationFromTransactionEvents(txEvents, payload.BlockInfo, delegatorCooldown!.Value, resultBuilder);
+        await _writer.UpdateDelegationStakeIfRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
+            
+        resultBuilder.SetTotalAmountStaked(await _writer.GetTotalDelegationAmountStaked());
 
         return resultBuilder.Build();
     }
@@ -87,88 +83,79 @@ public class DelegationImportHandler
         }
     }
 
-    private async Task UpdateDelegationFromTransactionEvents(IEnumerable<TransactionResultEvent> txEvents,
-        BlockInfo blockInfo, ChainParametersV1 chainParameters, DelegationUpdateResultsBuilder resultBuilder)
+    private async Task UpdateDelegationFromTransactionEvents(IEnumerable<DelegationConfigured> delegations,
+        BlockInfo blockInfo, ulong delegatorCooldown, DelegationUpdateResultsBuilder resultBuilder)
     {
-        foreach (var txEvent in txEvents)
+        foreach (var configured in delegations)
         {
-            if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationAdded added)
+            foreach (var delegation in configured.Data)
             {
-                await _writer.UpdateAccount(added,
-                    src => src.DelegatorId,
-                    (_, dst) =>
-                    {
-                        if (dst.Delegation != null) throw new InvalidOperationException("Trying to add delegation to an account that already has a delegation set!");
-                        dst.Delegation = new Delegation(0, false, new PassiveDelegationTarget());
-                        resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
-                    });
-            }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationRemoved removed)
-            {
-                await _writer.UpdateAccount(removed,
-                    src => src.DelegatorId,
-                    (_, dst) =>
-                    {
-                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                        var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(chainParameters.DelegatorCooldown);
-                        dst.Delegation.PendingChange = new PendingDelegationRemoval(effectiveTime);
-                    });
-            }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeDecreased stakeDecreased)
-            {
-                await _writer.UpdateAccount(stakeDecreased,
-                    src => src.DelegatorId,
-                    (src, dst) =>
-                    {
-                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                        var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(chainParameters.DelegatorCooldown);
-                        dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, stakeDecreased.NewStake.MicroCcdValue);
-                    });
-            }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationStakeIncreased stakeIncreased)
-            {
-                await _writer.UpdateAccount(stakeIncreased,
-                    src => src.DelegatorId,
-                    (src, dst) =>
-                    {
-                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
-                        dst.Delegation.StakedAmount = src.NewStake.MicroCcdValue;
-                    });
-            }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetRestakeEarnings setRestakeEarnings)
-            {
-                await _writer.UpdateAccount(setRestakeEarnings,
-                    src => src.DelegatorId,
-                    (src, dst) =>
-                    {
-                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
-                        dst.Delegation.RestakeEarnings = src.RestakeEarnings;
-                    });
-            }
-            else if (txEvent is ConcordiumSdk.NodeApi.Types.DelegationSetDelegationTarget setDelegationTarget)
-            {
-                await _writer.UpdateAccount(setDelegationTarget,
-                    src => src.DelegatorId,
-                    (src, dst) =>
-                    {
-                        if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
-                        resultBuilder.DelegationTargetRemoved(dst.Delegation.DelegationTarget);
-                        dst.Delegation.DelegationTarget = Map(src.DelegationTarget);
-                        resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
+                switch (delegation)
+                {
+                    case DelegationAdded delegationAdded:
+                        await _writer.UpdateAccount(delegationAdded,
+                            src => src.DelegatorId.Id.Index,
+                            (_, dst) =>
+                            {
+                                if (dst.Delegation != null) throw new InvalidOperationException("Trying to add delegation to an account that already has a delegation set!");
+                                dst.Delegation = new Delegation(0, false, new PassiveDelegationTarget());
+                                resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
+                            });
+                        break;
+                    case DelegationRemoved delegationRemoved:
+                        await _writer.UpdateAccount(delegationRemoved,
+                            src => src.DelegatorId.Id.Index,
+                            (_, dst) =>
+                            {
+                                if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
+                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(delegatorCooldown);
+                                dst.Delegation.PendingChange = new PendingDelegationRemoval(effectiveTime);
+                            });
+                        break;
+                    case DelegationSetDelegationTarget delegationSetDelegationTarget:
+                        await _writer.UpdateAccount(delegationSetDelegationTarget,
+                            src => src.DelegatorId.Id.Index,
+                            (src, dst) =>
+                            {
+                                if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
+                                resultBuilder.DelegationTargetRemoved(dst.Delegation.DelegationTarget);
+                                dst.Delegation.DelegationTarget = DelegationTarget.From(delegationSetDelegationTarget.DelegationTarget);
+                                resultBuilder.DelegationTargetAdded(dst.Delegation.DelegationTarget);
 
-                    });
+                            });
+                        break;
+                    case DelegationSetRestakeEarnings delegationSetRestakeEarnings:
+                        await _writer.UpdateAccount(delegationSetRestakeEarnings,
+                            src => src.DelegatorId.Id.Index,
+                            (src, dst) =>
+                            {
+                                if (dst.Delegation == null) throw new InvalidOperationException("Trying to set restake earnings flag on an account without a delegation instance!");
+                                dst.Delegation.RestakeEarnings = src.RestakeEarnings;
+                            });
+                        break;
+                    case DelegationStakeDecreased delegationStakeDecreased:
+                        await _writer.UpdateAccount(delegationStakeDecreased,
+                            src => src.DelegatorId.Id.Index,
+                            (src, dst) =>
+                            {
+                                if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
+                                var effectiveTime = blockInfo.BlockSlotTime.AddSeconds(delegatorCooldown);
+                                dst.Delegation.PendingChange = new PendingDelegationReduceStake(effectiveTime, delegationStakeDecreased.NewStake.Value);
+                            });
+                        break;
+                    case DelegationStakeIncreased delegationStakeIncreased:
+                        await _writer.UpdateAccount(delegationStakeIncreased,
+                            src => src.DelegatorId.Id.Index,
+                            (src, dst) =>
+                            {
+                                if (dst.Delegation == null) throw new InvalidOperationException("Trying to set pending change to remove delegation on an account without a delegation instance!");
+                                dst.Delegation.StakedAmount = src.NewStake.Value;
+                            });
+                        break;
+                }
+                
             }
         }
-    }
-
-    private DelegationTarget Map(ConcordiumSdk.NodeApi.Types.DelegationTarget source)
-    {
-        return source switch
-        {
-            ConcordiumSdk.NodeApi.Types.PassiveDelegationTarget => new PassiveDelegationTarget(),
-            ConcordiumSdk.NodeApi.Types.BakerDelegationTarget x => new BakerDelegationTarget((long)x.BakerId),
-            _ => throw new NotImplementedException()
-        };
     }
 
     public class DelegationUpdateResultsBuilder

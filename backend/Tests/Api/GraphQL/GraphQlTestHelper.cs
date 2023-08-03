@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Database;
 using Dapper;

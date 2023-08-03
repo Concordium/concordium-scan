@@ -23,12 +23,12 @@ public class ExportController : ControllerBase
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
-        if (!ConcordiumSdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
+        if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
         {
             return BadRequest("Invalid account format.");
         }
 
-        var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
+        var baseAddress = new AccountAddress(parsed!.GetBaseAddress().ToString());
         var account = dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);

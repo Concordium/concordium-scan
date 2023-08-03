@@ -1,7 +1,7 @@
 
-namespace Application.Common;
+using Concordium.Sdk.Types;
 
-using ConcordiumSdk.Types;
+namespace Application.Common;
 
 public class NonCirculatingAccounts
 {

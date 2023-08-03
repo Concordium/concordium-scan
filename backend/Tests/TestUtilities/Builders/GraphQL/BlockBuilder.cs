@@ -1,7 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Blocks;
-using Google.Protobuf.WellKnownTypes;
-using Tests.Api.GraphQL.Import;
+﻿using Application.Api.GraphQL.Blocks;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 

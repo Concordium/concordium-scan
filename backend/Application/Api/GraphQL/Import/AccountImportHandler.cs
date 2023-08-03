@@ -2,7 +2,7 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
 using Application.Import;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -24,7 +24,7 @@ public class AccountImportHandler
     public async Task AddNewAccounts(
         AccountInfo[] createdAccounts, 
         DateTimeOffset blockSlotTime, 
-        int blockHeight)
+        ulong blockHeight)
     {
         if (createdAccounts.Length == 0) return;
         
@@ -42,8 +42,12 @@ public class AccountImportHandler
         var transactionRelations = _changeCalculator.GetAccountTransactionRelations(transactions);
         if (transactionRelations.Length > 0)
             _writer.InsertAccountTransactionRelation(transactionRelations);
+
+        var balanceUpdates = 
+            AccountBalanceUpdateWithTransaction.From(payload.BlockItemSummaries)
+            .Concat(AccountBalanceUpdate.From(payload.SpecialEvents))
+            .ToArray();
         
-        var balanceUpdates = payload.BlockSummary.GetAccountBalanceUpdates().ToArray();
         var accountUpdates = _changeCalculator.GetAggregatedAccountUpdates(balanceUpdates, transactionRelations);
         var updateResults = _writer.UpdateAccounts(accountUpdates);
 

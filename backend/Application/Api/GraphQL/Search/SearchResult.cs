@@ -60,10 +60,10 @@ public class SearchResult
         if (string.IsNullOrEmpty(_queryString) || !AccountAddressRegex.IsMatch(_queryString)) 
             return new List<Account>().AsQueryable();
 
-        if (ConcordiumSdk.Types.AccountAddress.TryParse(_queryString, out var parsed))
+        if (Concordium.Sdk.Types.AccountAddress.TryParse(_queryString, out var parsed))
         {
             // Valid (full) address given, search by base address to allow searching by an alias address
-            var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
+            var baseAddress = new AccountAddress(parsed!.GetBaseAddress().ToString());
             return dbContext.Accounts
                 .AsNoTracking()
                 .Where(account => account.BaseAddress == baseAddress);

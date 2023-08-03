@@ -1,6 +1,5 @@
-using System.Net.Http;
-using Application;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.Validations;
@@ -11,10 +10,11 @@ using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
+using Application.Extensions;
 using Application.Import;
 using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
-using ConcordiumSdk.NodeApi;
+using Application.NodeApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -23,11 +23,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-if (args.Any())
-{
-    await SpecialRunModeHandler.HandleCommandLineArgs(args);
-    return;
-}
 var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
@@ -40,9 +35,6 @@ var logger = Log.ForContext<Program>();
 
 logger.Information("Application starting...");
 
-var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
-logger.Information("Using Postgres connection string: {postgresConnectionString}", databaseSettings.ConnectionString);
-
 var featureFlags = builder.Configuration.GetSection("FeatureFlags").Get<SettingsBasedFeatureFlags>();
 builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
 logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
@@ -53,7 +45,7 @@ var nonCirculatingAccounts = builder
     .Configuration
     .GetSection("NonCirculatingAccounts")
     .Get<List<string>>()
-    .Select(str => new ConcordiumSdk.Types.AccountAddress(str).GetBaseAddress());
+    .Select(str => Concordium.Sdk.Types.AccountAddress.From(str).GetBaseAddress());
 builder.Services.AddSingleton<NonCirculatingAccounts>(new NonCirculatingAccounts(nonCirculatingAccounts));
 
 builder.Services.AddMemoryCache();
@@ -68,19 +60,21 @@ builder.Services.AddHostedService<BlockAddedPublisher>();
 builder.Services.AddSingleton<IAccountLookup, AccountLookup>();
 builder.Services.AddSingleton<ImportValidationController>();
 builder.Services.AddControllers();
+
+var databaseSettings = builder.Configuration.GetSection("PostgresDatabase").Get<DatabaseSettings>();
 builder.Services.AddPooledDbContextFactory<GraphQlDbContext>(options =>
 {
     options.UseNpgsql(databaseSettings.ConnectionString);
 });
+builder.Services.AddSingleton(databaseSettings);
+
 builder.Services.AddSingleton<NodeCache>();
 builder.Services.AddSingleton<IGrpcNodeCache>(x => x.GetRequiredService<NodeCache>());
 builder.Services.AddSingleton<IHostedService>(x => x.GetRequiredService<NodeCache>());
-builder.Services.AddSingleton<GrpcNodeClient>();
 builder.Services.AddSingleton<DatabaseMigrator>();
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
-builder.Services.AddSingleton(new HttpClient());
-builder.Services.AddSingleton(databaseSettings);
-builder.Services.AddSingleton(builder.Configuration.GetSection("ConcordiumNodeGrpc").Get<GrpcNodeClientSettings>());
+builder.Services.AddConcordiumClient(builder.Configuration);
+builder.Services.AddHttpClient<NodeCollectorClient>();
 builder.Services.AddSingleton<NodeCollectorClient>();
 builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
@@ -99,12 +93,12 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
-        .UseWebSockets()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
             policy.AllowAnyHeader();
         })
+        .UseWebSockets()
         .UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();

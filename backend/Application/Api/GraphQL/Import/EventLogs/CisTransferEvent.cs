@@ -28,7 +28,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         public BaseAddress ToAddress { get; set; }
 
-        public static CisTransferEvent Parse(ConcordiumSdk.Types.ContractAddress address, BinaryReader st)
+        public static CisTransferEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
         {
             return new CisTransferEvent()
             {

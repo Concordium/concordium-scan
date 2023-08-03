@@ -8,8 +8,8 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Metrics;
 
-[Collection("Postgres Collection")]
-public class RewardMetricsQueryTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class RewardMetricsQueryTest
 {
     private readonly RewardMetricsQuery _target;
     private readonly DatabaseSettings _dbSettings;

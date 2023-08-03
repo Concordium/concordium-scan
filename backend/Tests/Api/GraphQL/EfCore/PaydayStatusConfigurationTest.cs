@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Payday;
+﻿using Application.Api.GraphQL.Payday;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -8,15 +7,15 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class PaydayStatusConfigurationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class PaydayStatusConfigurationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private DateTimeOffset _anyDateTimeOffset = new DateTimeOffset(2020, 10, 01, 12, 31, 42, 123, TimeSpan.Zero);
 
     public PaydayStatusConfigurationTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_payday_status");

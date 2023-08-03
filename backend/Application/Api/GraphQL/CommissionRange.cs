@@ -1,4 +1,6 @@
-﻿namespace Application.Api.GraphQL;
+﻿using Concordium.Sdk.Types;
+
+namespace Application.Api.GraphQL;
 
 public class CommissionRange
 {
@@ -28,4 +30,11 @@ public class CommissionRange
     {
         return !Equals(left, right);
     }
+
+    internal static CommissionRange From(InclusiveRange<AmountFraction> inclusiveRange) =>
+        new()
+        {
+            Min = inclusiveRange.Min.AsDecimal(),
+            Max = inclusiveRange.Max.AsDecimal()
+        };
 }

@@ -27,7 +27,7 @@ public class ImportState
     {
         return new ImportState
         {
-            GenesisBlockHash = payload.BlockInfo.BlockHash.AsString,
+            GenesisBlockHash = payload.BlockInfo.BlockHash.ToString(),
             MaxImportedBlockHeight = 0,
             CumulativeAccountsCreated = 0,
             CumulativeTransactionCount = 0,
@@ -59,5 +59,12 @@ public class ImportState
         MigrationToBakerPoolsCompleted = source.MigrationToBakerPoolsCompleted;
         PassiveDelegationAdded = source.PassiveDelegationAdded;
         EpochDuration = source.EpochDuration;
+    }
+    
+    internal void UpdateNextPendingBakerChangeTimeIfLower(DateTimeOffset pendingChangeTime)
+    {
+        if (!NextPendingBakerChangeTime.HasValue ||
+            NextPendingBakerChangeTime.Value > pendingChangeTime)
+            NextPendingBakerChangeTime = pendingChangeTime;
     }
 }

@@ -1,7 +1,8 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -22,19 +23,20 @@ public class AccountChangeCalculator
     /// </summary>
     /// <param name="createdAccounts">Created Account</param>
     /// <param name="blockSlotTime">Block Slot Time</param>
+    /// <param name="blockHeight">Block height from genesis</param>
     /// <returns></returns>
     public IEnumerable<Account> MapCreatedAccounts(
         AccountInfo[] createdAccounts, 
         DateTimeOffset blockSlotTime, 
-        int blockHeight)
+        ulong blockHeight)
     {
         return createdAccounts.Select(x => new Account
         {
-            Id = (long)x.AccountIndex,
-            CanonicalAddress = new AccountAddress(x.AccountAddress.AsString),
-            BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().AsString),
+            Id = (long)x.AccountIndex.Index,
+            CanonicalAddress = new AccountAddress(x.AccountAddress.ToString()),
+            BaseAddress = new AccountAddress(x.AccountAddress.GetBaseAddress().ToString()),
             //Newly Created Account should not have balance. Balance will be later computer through transactions
-            Amount = blockHeight == 0 ? x.AccountAmount.MicroCcdValue : 0, 
+            Amount = blockHeight == 0 ? x.AccountAmount.Value : 0, 
             CreatedAt = blockSlotTime
         });
     }
@@ -49,14 +51,14 @@ public class AccountChangeCalculator
             .Select(x => new
             {
                 TransactionId = x.Target.Id,
-                DistinctAccountBaseAddresses = FindAccountAddresses(x.Source)
+                DistinctAccountBaseAddresses = x.Source.AffectedAndCreatedAddresses()
                     .Select(address => address.GetBaseAddress())
                     .Distinct()
             })
             .SelectMany(x => x.DistinctAccountBaseAddresses
                 .Select(accountBaseAddress => new
                 {
-                    AccountBaseAddress = accountBaseAddress.AsString,
+                    AccountBaseAddress = accountBaseAddress.ToString(),
                     x.TransactionId
                 }))
             .ToArray();
@@ -86,20 +88,13 @@ public class AccountChangeCalculator
 
         return result;
     }
-    
-    private IEnumerable<ConcordiumSdk.Types.AccountAddress> FindAccountAddresses(TransactionSummary source)
-    {
-        if (source.Sender != null) yield return source.Sender;
-        foreach (var address in source.Result.GetAccountAddresses())
-            yield return address;
-    }
 
     public AccountUpdate[] GetAggregatedAccountUpdates(IEnumerable<AccountBalanceUpdate> balanceUpdates, AccountTransactionRelation[] transactionRelations)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAggregatedAccountUpdates));
 
         var aggregatedBalanceUpdates = balanceUpdates
-            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().AsString, x.AmountAdjustment })
+            .Select(x => new { BaseAddress = x.AccountAddress.GetBaseAddress().ToString(), x.AmountAdjustment })
             .GroupBy(x => x.BaseAddress)
             .Select(addressGroup => new
             {
@@ -135,36 +130,44 @@ public class AccountChangeCalculator
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAccountReleaseScheduleItems));
 
-        AccountReleaseScheduleItem[] toInsert = Array.Empty<AccountReleaseScheduleItem>();
-
-        var result = transactions
-            .Where(transaction => transaction.Source.Result is TransactionSuccessResult)
-            .SelectMany(transaction =>
-            {
-                return ((TransactionSuccessResult)transaction.Source.Result).Events
-                    .OfType<ConcordiumSdk.NodeApi.Types.TransferredWithSchedule>()
-                    .SelectMany(scheduleEvent => scheduleEvent.Amount.Select((amount, ix) => new
-                    {
-                        AccountBaseAddress = scheduleEvent.To.GetBaseAddress().AsString,
-                        TransactionId = transaction.Target.Id,
-                        ScheduleIndex = ix,
-                        Timestamp = amount.Timestamp,
-                        Amount = Convert.ToUInt64(amount.Amount.MicroCcdValue),
-                        FromAccountBaseAddress = scheduleEvent.From.GetBaseAddress().AsString
-                    }));
-            }).ToArray();
-
-        if (result.Length > 0)
+        var toInsert = Array.Empty<AccountReleaseScheduleItem>();
+        var events = new List<ScheduleHolder>();
+        
+        foreach (var (blockItemSummary, transaction) in transactions
+                     .Where(t => t.Source.Details is AccountTransactionDetails)
+                     .Where(t => ((AccountTransactionDetails)t.Source.Details).Effects is TransferredWithSchedule))
         {
-            var distinctBaseAddresses = result
-                .Select(x => x.AccountBaseAddress)
-                .Concat(result.Select(x => x.FromAccountBaseAddress))
+            if (blockItemSummary.Details is not AccountTransactionDetails accountTransactionDetails)
+            {
+                continue;
+            }
+
+            if (accountTransactionDetails.Effects is not TransferredWithSchedule scheduleEvent)
+            {
+                continue;
+            }
+            events.AddRange(
+                scheduleEvent.Amount.Select((amount, ix) => new ScheduleHolder(
+                ToAccountBaseAddress: scheduleEvent.To.GetBaseAddress().ToString(),
+                TransactionId: transaction.Id,
+                ScheduleIndex: ix,
+                Timestamp: amount.Item1,
+                Amount: Convert.ToUInt64(amount.Item2.Value),
+                FromAccountBaseAddress: accountTransactionDetails.Sender.GetBaseAddress().ToString()
+                )));
+        }
+
+        if (events.Count > 0)
+        {
+            var distinctBaseAddresses = events
+                .Select(x => x.ToAccountBaseAddress)
+                .Concat(events.Select(x => x.FromAccountBaseAddress))
                 .Distinct();
             var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
-            toInsert = result.Select(x => new AccountReleaseScheduleItem
+            toInsert = events.Select(x => new AccountReleaseScheduleItem
                 {
-                    AccountId = accountIdMap[x.AccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
+                    AccountId = accountIdMap[x.ToAccountBaseAddress] ?? throw new InvalidOperationException("Account does not exist!"),
                     TransactionId = x.TransactionId,
                     Index = x.ScheduleIndex,
                     Timestamp = x.Timestamp,
@@ -177,19 +180,26 @@ public class AccountChangeCalculator
         return toInsert;
     }
 
+    private sealed record ScheduleHolder(
+        string ToAccountBaseAddress,
+        long TransactionId, int ScheduleIndex,
+        DateTimeOffset Timestamp, 
+        UInt64 Amount,
+        string FromAccountBaseAddress);
+
     public IEnumerable<AccountStatementEntry> GetAccountStatementEntries(
         AccountBalanceUpdate[] balanceUpdates, AccountUpdateResult[] accountUpdateResults, Block block, TransactionPair[] transactions)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountChangeCalculator), nameof(GetAccountStatementEntries));
 
         var distinctBaseAddresses = balanceUpdates
-            .Select(x => x.AccountAddress.GetBaseAddress().AsString)
+            .Select(x => x.AccountAddress.GetBaseAddress().ToString())
             .Distinct();
         var accountIdMap = _accountLookup.GetAccountIdsFromBaseAddresses(distinctBaseAddresses);
 
         var result = balanceUpdates.Select(x => new AccountStatementEntry
             {
-                AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().AsString] ?? throw new InvalidOperationException("Account not found!"),
+                AccountId = accountIdMap[x.AccountAddress.GetBaseAddress().ToString()] ?? throw new InvalidOperationException("Account not found!"),
                 Index = default, // Will be set by database
                 Timestamp = block.BlockSlotTime,
                 Amount = x.AmountAdjustment,
@@ -220,9 +230,12 @@ public class AccountChangeCalculator
 
     private long? GetTransactionId(AccountBalanceUpdate update, TransactionPair[] transactions)
     {
-        if (update.TransactionHash == null) return null;
-        
-        var transaction = transactions.Single(x => x.Source.Hash == update.TransactionHash!);
+        if (update is not AccountBalanceUpdateWithTransaction withTransaction)
+        {
+            return null;
+        }
+
+        var transaction = transactions.Single(x => x.Source.TransactionHash == withTransaction.TransactionHash!);
         return transaction.Target.Id;
     }
 

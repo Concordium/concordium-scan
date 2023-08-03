@@ -1,6 +1,7 @@
 using System.Reflection;
-using Application.Api.GraphQL;
 using HotChocolate.Types;
+
+namespace Application.Api.GraphQL.Versions;
 
 [ExtendObjectType(typeof(Query))]
 public class VersionsQuery

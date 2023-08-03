@@ -1,6 +1,6 @@
 ﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -9,13 +9,14 @@ using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using ChainParameters = Application.Api.GraphQL.ChainParameters;
+using ChainParametersV0 = Application.Api.GraphQL.ChainParametersV0;
 using ChainParametersV0Builder = Tests.TestUtilities.Builders.ChainParametersV0Builder;
 using ChainParametersV1Builder = Tests.TestUtilities.Builders.ChainParametersV1Builder;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class ChainParametersWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly ChainParametersWriter _target;
@@ -26,12 +27,13 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new ChainParametersWriter(_dbContextFactory, new NullMetrics());
+        var foundationAccount = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
 
         _chainParametersV0Builder = new ChainParametersV0Builder()
-            .WithFoundationAccountIndex(7);
+            .WithFoundationAccount(foundationAccount);
         
         _chainParametersV1Builder = new ChainParametersV1Builder()
-            .WithFoundationAccountIndex(7);
+            .WithFoundationAccount(foundationAccount);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_chain_parameters");
@@ -41,7 +43,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task GetOrCreateChainParameters_DatabaseEmpty()
     {
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
 
         var returnedResult = await WriteV0Data();
         
@@ -62,7 +64,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsIdentical()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         await WriteV0Data();
         
         // act
@@ -79,7 +81,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
     
         // act
@@ -99,7 +101,7 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical_ChangedBlockSummaryVersion()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
     
         // act
@@ -117,12 +119,13 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     public async Task GetOrCreateChainParameters_PreviousWrittenIsNotIdentical_FoundationAccountChanged()
     {
         // arrange
-        await CreateAccount(7, new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
+        await CreateAccount(7, AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"));
         var previousWritten = await WriteV0Data();
-    
+        var foundationAccount = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        
         // act
-        await CreateAccount(24, new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"));
-        _chainParametersV0Builder.WithFoundationAccountIndex(24);
+        await CreateAccount(24, foundationAccount);
+        _chainParametersV0Builder.WithFoundationAccount(foundationAccount);
             
         var returnedResult = await WriteV0Data();
     
@@ -140,21 +143,16 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
 
     private async Task<ChainParameters> WriteV0Data()
     {
-        var blockSummary = new BlockSummaryV0Builder()
-            .WithChainParameters(_chainParametersV0Builder.Build())
-            .Build();
-
-        var result = await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        var chainParametersV0 = _chainParametersV0Builder.Build();
+        var result = await _target.GetOrCreateChainParameters(chainParametersV0, new ImportState());
         return result.Current;
     }
     
     private async Task<ChainParameters> WriteV1Data()
     {
-        var blockSummary = new BlockSummaryV1Builder()
-            .WithChainParameters(_chainParametersV1Builder.Build())
-            .Build();
+        var chainParametersV1 = _chainParametersV1Builder.Build();
 
-        var result = await _target.GetOrCreateChainParameters(blockSummary, new ImportState());
+        var result = await _target.GetOrCreateChainParameters(chainParametersV1, new ImportState());
         return result.Current;
     }
     
@@ -162,8 +160,8 @@ public class ChainParametersWriterTest : IClassFixture<DatabaseFixture>
     {
         var account = new AccountBuilder()
             .WithId(accountId)
-            .WithCanonicalAddress(canonicalAccountAddress.AsString)
-            .WithBaseAddress(canonicalAccountAddress.GetBaseAddress().AsString)
+            .WithCanonicalAddress(canonicalAccountAddress.ToString())
+            .WithBaseAddress(canonicalAccountAddress.GetBaseAddress().ToString())
             .Build();
 
         await using var dbContext = _dbContextFactory.CreateDbContext();

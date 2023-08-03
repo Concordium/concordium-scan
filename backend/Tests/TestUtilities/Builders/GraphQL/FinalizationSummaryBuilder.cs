@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Blocks;
+﻿using Application.Api.GraphQL.Blocks;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 

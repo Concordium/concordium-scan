@@ -8,33 +8,37 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="6.5.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.3" />
+        <PackageReference Include="Ductus.FluentDocker" Version="2.10.59" />
+        <PackageReference Include="FluentAssertions" Version="6.11.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.20" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
-        <PackageReference Include="xunit" Version="2.4.1" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+        <PackageReference Include="Moq" Version="4.18.4" />
+        <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+        <PackageReference Include="Verify.Xunit" Version="20.6.0" />
+        <PackageReference Include="xunit" Version="2.5.0" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.5.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="coverlet.collector" Version="3.1.2">
+        <PackageReference Include="coverlet.collector" Version="6.0.0">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="PeterO.Cbor" Version="4.5.2"/>
+        <PackageReference Include="PeterO.Cbor" Version="4.5.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Application\Application.csproj" />
-      <ProjectReference Include="..\ConcordiumSdk\ConcordiumSdk.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="Database" />
     </ItemGroup>
 
-    
-    <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
-        <Copy SourceFiles="..\committed_graphql_schema.graphql" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-    </Target>
+    <ItemGroup>
+      <None Update="TestUtilities\docker-compose.yaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
 </Project>

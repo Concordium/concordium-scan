@@ -1,4 +1,5 @@
-﻿using ConcordiumSdk.Types;
+﻿using Application.NodeApi;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -13,7 +14,7 @@ public class BlockChangeCalculator
 
     public ulong? CalculateTotalAmountUnlocked(DateTimeOffset blockSlotTime, string genesisBlockHash)
     {
-        var isMainnet = ConcordiumNetworkId.Mainnet.GenesisBlockHash == new BlockHash(genesisBlockHash);
+        var isMainnet = ConcordiumNetworkId.Mainnet.GenesisBlockHash == BlockHash.From(genesisBlockHash);
         if (!isMainnet) 
             return null;
         

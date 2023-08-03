@@ -1,19 +1,14 @@
-﻿using Application.Api.GraphQL;
+﻿using System.Collections.Generic;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using FluentAssertions;
+using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
-using AccountAddress = ConcordiumSdk.Types.AccountAddress;
-using AccountCreated = ConcordiumSdk.NodeApi.Types.AccountCreated;
-using CredentialDeployed = ConcordiumSdk.NodeApi.Types.CredentialDeployed;
-using TimestampedAmount = ConcordiumSdk.NodeApi.Types.TimestampedAmount;
-using Transferred = ConcordiumSdk.NodeApi.Types.Transferred;
-using TransferredWithSchedule = ConcordiumSdk.NodeApi.Types.TransferredWithSchedule;
+using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -40,8 +35,8 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAggregatedAccountUpdates_AmountAdjustment_SingleUpdate()
     {
-        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
+        var accountAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().ToString(), 10);
 
         var balanceUpdates = new []
         {
@@ -59,8 +54,8 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithSameAddress()
     {
-        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
+        var accountAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().ToString(), 10);
 
         var balanceUpdates = new []
         {
@@ -80,8 +75,8 @@ public class AccountChangeCalculatorTest
     [Fact] 
     public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToSameAccountWithAliasAddresses()
     {
-        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 10);
+        var accountAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().ToString(), 10);
 
         var balanceUpdates = new []
         {
@@ -101,10 +96,10 @@ public class AccountChangeCalculatorTest
     [Fact] 
     public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts()
     {
-        var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
-        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);
+        var accountAddress1 = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        var accountAddress2 = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().ToString(), 10);   
+        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().ToString(), 11);
 
         var balanceUpdates = new []
         {
@@ -126,12 +121,12 @@ public class AccountChangeCalculatorTest
     [Fact] 
     public void GetAggregatedAccountUpdates_AmountAdjustment_MultipleUpdatesToMultipleAccounts_KeepResultsThatWouldLeadToNoChanges()
     {
-        var accountAddress1 = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        var accountAddress2 = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        var accountAddress3 = new AccountAddress("3FYcaWUucnbXxvtnQQC5zpK91oN67MDbTiwzKzQUkVirKDrRce");
-        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().AsString, 10);   
-        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().AsString, 11);   
-        _accountLookupStub.AddToCache(accountAddress3.GetBaseAddress().AsString, 12);
+        var accountAddress1 = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        var accountAddress2 = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        var accountAddress3 = AccountAddress.From("3FYcaWUucnbXxvtnQQC5zpK91oN67MDbTiwzKzQUkVirKDrRce");
+        _accountLookupStub.AddToCache(accountAddress1.GetBaseAddress().ToString(), 10);   
+        _accountLookupStub.AddToCache(accountAddress2.GetBaseAddress().ToString(), 11);   
+        _accountLookupStub.AddToCache(accountAddress3.GetBaseAddress().ToString(), 12);
 
         var balanceUpdates = new []
         {
@@ -206,8 +201,8 @@ public class AccountChangeCalculatorTest
     [Fact] 
     public void GetAggregatedAccountUpdates_ResultsFlattened()
     {
-        var accountAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().AsString, 11);
+        var accountAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(accountAddress.GetBaseAddress().ToString(), 11);
 
         var balanceUpdates = new []
         {
@@ -228,23 +223,23 @@ public class AccountChangeCalculatorTest
     }
     
     
+    
     [Fact] 
     public void GetAccountTransactionRelations_AccountExists_SingleTransactionWithSameAddressTwice()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 13);
+        var canonicalAddress = AccountAddressHelper.CreateOneFilledWith(1);
+        var to = AccountAddressHelper.CreateOneFilledWith(1);
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 13);
 
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(new AccountTransfer(CcdAmount.Zero, to, null))
+            .WithSender(canonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(null)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(
-                        new AccountCreated(canonicalAddress),
-                        new CredentialDeployed("1234", canonicalAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-
+        
         var result = _target.GetAccountTransactionRelations(new[] { input });
 
         result.Length.Should().Be(1);
@@ -255,18 +250,21 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAccountTransactionRelations_AccountExists_MultipleTransactionsWithSameAddress()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 15);
+        var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 15);
+
+        var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Array.Empty<byte>());
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
+            .WithSender(canonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
 
         var input1 = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
         var input2 = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 43 });
 
         var result = _target.GetAccountTransactionRelations(new[] { input1, input2 });
@@ -284,18 +282,16 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAccountTransactionRelations_AccountDoesNotExist()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, null);
+        var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), null);
+
+        var accountCreationDetails = new AccountCreationDetailsBuilder(CredentialType.Normal)
+            .WithAccountAddress(canonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountCreationDetails).Build();
 
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(null)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(
-                        new AccountCreated(canonicalAddress),
-                        new CredentialDeployed("1234", canonicalAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
 
         var returnedResult = _target.GetAccountTransactionRelations(new[] { input });
@@ -305,20 +301,20 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAccountTransactionRelations_AccountExists_SingleTransactionWithAnAliasAddress()
     {
-        var canonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        var canonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
         var aliasAddress = canonicalAddress.CreateAliasAddress(48, 11, 99);
         
-        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().AsString, 15);
+        _accountLookupStub.AddToCache(canonicalAddress.GetBaseAddress().ToString(), 15);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(new AccountTransfer(CcdAmount.FromCcd(10), canonicalAddress, null))
+            .WithSender(aliasAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithSender(canonicalAddress)
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new Transferred(CcdAmount.FromCcd(10), canonicalAddress, aliasAddress))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-
+        
         var result = _target.GetAccountTransactionRelations(new[] { input });
         result.Length.Should().Be(1);
         result[0].AccountId.Should().Be(15);
@@ -328,29 +324,30 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAccountReleaseScheduleItems_AccountsExists_CanonicalAddress()
     {
-        var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().AsString, 13);
+        var toCanonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().ToString(), 13);
         
-        var fromCanonicalAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(fromCanonicalAddress.GetBaseAddress().AsString, 14);
+        var fromCanonicalAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(fromCanonicalAddress.GetBaseAddress().ToString(), 14);
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
+
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(toCanonicalAddress,
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(fromCanonicalAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
         var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new TransferredWithSchedule(
-                        fromCanonicalAddress, 
-                        toCanonicalAddress,
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
+            blockItemSummary,
             new Transaction { Id = 42 });
-        
+
         var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
@@ -361,31 +358,32 @@ public class AccountChangeCalculatorTest
     [Fact]
     public void GetAccountReleaseScheduleItems_AccountsExists_AliasAddresses()
     {
-        var toCanonicalAddress = new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
-        _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().AsString, 10);
+        var toCanonicalAddress = AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
+        _accountLookupStub.AddToCache(toCanonicalAddress.GetBaseAddress().ToString(), 10);
         var toAliasAddress = toCanonicalAddress.CreateAliasAddress(38, 11, 200);
         
-        var fromCanonicalAddress = new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
-        _accountLookupStub.AddToCache(fromCanonicalAddress.GetBaseAddress().AsString, 27);
+        var fromCanonicalAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+        _accountLookupStub.AddToCache(fromCanonicalAddress.GetBaseAddress().ToString(), 27);
         var fromAliasAddress = fromCanonicalAddress.CreateAliasAddress(10, 79, 5);
 
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
-        var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new TransferredWithSchedule(
-                        fromAliasAddress, 
-                        toAliasAddress,
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
-            new Transaction { Id = 42 });
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(toAliasAddress,
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(fromAliasAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        var input = new TransactionPair(
+            blockItemSummary,
+            new Transaction { Id = 42 });
+
         var result = _target.GetAccountReleaseScheduleItems(new []{ input });
 
         result.Length.Should().Be(2);
@@ -398,21 +396,22 @@ public class AccountChangeCalculatorTest
     {
         var baseTime = new DateTimeOffset(2021, 10, 01, 12, 0, 0, TimeSpan.Zero);
         
-        var input = new TransactionPair(
-            new TransactionSummaryBuilder()
-                .WithResult(new TransactionSuccessResultBuilder()
-                    .WithEvents(new TransferredWithSchedule(
-                        new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"), 
-                        new AccountAddress("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
-                        new []
-                        {
-                            new TimestampedAmount(baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
-                            new TimestampedAmount(baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
-                        }))
-                    .Build())
-                .Build(),
-            new Transaction { Id = 42 });
+        var transferredWithSchedule = new Concordium.Sdk.Types.TransferredWithSchedule(AccountAddress.From("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P"),
+            new List<(DateTimeOffset, CcdAmount)>
+            {
+                (baseTime.AddHours(1), CcdAmount.FromMicroCcd(515151)),
+                (baseTime.AddHours(2), CcdAmount.FromMicroCcd(4242)),
+            }, null);
         
+        var accountTransactionDetails = new AccountTransactionDetailsBuilder(transferredWithSchedule)
+            .WithSender(AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"))
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
+            .Build();
+        var input = new TransactionPair(
+            blockItemSummary,
+            new Transaction { Id = 42 });
+
         // We do not ever expect a scheduled transfer to complete successfully if either sender or receiver does not exist!
         Assert.ThrowsAny<Exception>(() => _target.GetAccountReleaseScheduleItems(new []{ input }));
     }

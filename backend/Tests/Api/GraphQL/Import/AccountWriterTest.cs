@@ -11,8 +11,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class AccountWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class AccountWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly AccountWriter _target;
@@ -20,7 +20,7 @@ public class AccountWriterTest : IClassFixture<DatabaseFixture>
 
     public AccountWriterTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new AccountWriter(_dbContextFactory, new NullMetrics());
         
         using var connection = dbFixture.GetOpenConnection();

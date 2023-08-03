@@ -1,3 +1,14 @@
-﻿namespace Application.Api.GraphQL;
+﻿using Concordium.Sdk.Types;
 
-public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount);
+namespace Application.Api.GraphQL;
+
+public record TimestampedAmount(DateTimeOffset Timestamp, ulong Amount)
+{
+    internal static IEnumerable<TimestampedAmount> From(IEnumerable<(DateTimeOffset, CcdAmount)> amount)
+    {
+        foreach (var (dateTimeOffset, ccdAmount) in amount)
+        {
+            yield return new TimestampedAmount(dateTimeOffset, ccdAmount.Value);
+        }
+    }
+}

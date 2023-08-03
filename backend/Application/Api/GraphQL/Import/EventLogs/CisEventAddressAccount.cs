@@ -1,3 +1,5 @@
+using Concordium.Sdk.Types;
+
 namespace Application.Api.GraphQL.Import.EventLogs
 {
     /// <summary>
@@ -10,6 +12,6 @@ namespace Application.Api.GraphQL.Import.EventLogs
         {
         }
 
-        public ConcordiumSdk.Types.AccountAddress Address { get; set; }
+        public AccountAddress Address { get; set; }
     }
 }

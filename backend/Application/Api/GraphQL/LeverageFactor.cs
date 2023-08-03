@@ -36,4 +36,11 @@ public class LeverageFactor
     {
         return (decimal)Numerator / Denominator;
     }
+
+    internal static LeverageFactor From(Concordium.Sdk.Types.LeverageFactor leverageFactor) =>
+        new()
+        {
+            Numerator = leverageFactor.Numerator,
+            Denominator = leverageFactor.Denominator
+        };
 }

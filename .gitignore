@@ -1,2 +1,11 @@
+# Local volume data
+data/
+
+# Configuration with access keys used for locally restoring database
 pgbackrest.conf
-.DS_store
+
+# Mac users
+.DS_Store
+
+# Snapshot test
+*.received.*

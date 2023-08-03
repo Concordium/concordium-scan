@@ -3,10 +3,11 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.Diagnostics;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Baker = Application.Api.GraphQL.Bakers.Baker;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -48,7 +49,7 @@ public class BakerWriter
         await context.SaveChangesAsync();
         return baker;
     }
-
+    
     public Task<Baker> UpdateBaker<TSource>(TSource item, Func<TSource, ulong> bakerIdSelector, Action<TSource, Baker> updateExisting)
     {
         return AddOrUpdateBaker(item, bakerIdSelector, _ => throw new InvalidOperationException("Baker did not exist in database"), updateExisting);
@@ -74,7 +75,7 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         foreach (var accountBaker in accountBakers)
         {
-            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerId);
+            var baker = await context.Bakers.SingleAsync(x => x.Id == (long)accountBaker.BakerInfo.BakerId.Id.Index);
             updateAction(baker, accountBaker);
             result.Add(baker);
         }
@@ -105,9 +106,8 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-        await conn.OpenAsync();
+
         var result = await conn.ExecuteScalarAsync<string>("select min(active_pending_change->'data'->>'EffectiveTime') from graphql_bakers where active_pending_change is not null");
-        await conn.CloseAsync();
 
         return result != null ? DateTimeOffset.Parse(result) : null;
     }
@@ -127,8 +127,6 @@ public class BakerWriter
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
 
-        await conn.OpenAsync();
-
         var batch = conn.CreateBatch();
         foreach (var stakeUpdate in stakeUpdates)
         {
@@ -139,9 +137,9 @@ public class BakerWriter
             batch.BatchCommands.Add(cmd);
         }
 
+        await conn.OpenAsync();
         await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
         await batch.ExecuteNonQueryAsync();
-        
         await conn.CloseAsync();
     }
 
@@ -151,10 +149,8 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         var result = await conn.QuerySingleAsync<long?>("select sum(active_staked_amount) from graphql_bakers");
-        await conn.CloseAsync();
 
         return result.HasValue ? (ulong)result.Value : 0;
     }
@@ -190,10 +186,8 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
 
     public async Task UpdateDelegatedStakeCap(ulong totalStakedAmount, decimal capitalBound, decimal leverageFactor)
@@ -221,10 +215,8 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 
     public async Task<PaydayPoolStakeSnapshot> GetPaydayPoolStakeSnapshot()
@@ -237,10 +229,8 @@ public class BakerWriter
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         var items = await conn.QueryAsync<PaydayPoolStakeSnapshotItem>(sql);
-        await conn.CloseAsync();
 
         return new PaydayPoolStakeSnapshot(items.ToArray());
     }
@@ -260,10 +250,8 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql);
-        await conn.CloseAsync();
     }
     
     public async Task UpdateTemporaryBakerPoolPaydayStatusesWithPayoutBlockId(long payoutBlockId)
@@ -280,9 +268,7 @@ public class BakerWriter
         
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var conn = context.Database.GetDbConnection();
-
-        await conn.OpenAsync();
+        
         await conn.ExecuteAsync(sql, param);
-        await conn.CloseAsync();
     }
 }

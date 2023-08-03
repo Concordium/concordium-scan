@@ -1,6 +1,5 @@
 ﻿using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.PassiveDelegations;
 using Dapper;
 using FluentAssertions;
@@ -11,8 +10,8 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.PassiveDelegations;
 
-[Collection("Postgres Collection")]
-public class PassiveDelegationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class PassiveDelegationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly PassiveDelegation _target;

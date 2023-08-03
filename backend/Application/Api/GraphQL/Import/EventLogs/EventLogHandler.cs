@@ -1,5 +1,4 @@
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -13,41 +12,38 @@ namespace Application.Api.GraphQL.Import.EventLogs
             this.writer = logWriter;
         }
 
+        private readonly record struct PossibleCis2Event(long TxId, Concordium.Sdk.Types.ContractAddress Address, ContractEvent ContractEvent);
+
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
         /// <param name="transactions">Pair of Database Persisted Transaction and on chain transaction</param>
         public List<CisAccountUpdate> HandleLogs(TransactionPair[] transactions)
         {
-            var events = transactions
-                .Where(t => t.Source.Type.Kind == ConcordiumSdk.Types.BlockItemKind.AccountTransactionKind)
-                .Where(t => t.Source.Result is TransactionSuccessResult && t != null)
-                .Select(t => new { Id = t.Target.Id, Result = t.Source.Result as TransactionSuccessResult })
-                .SelectMany(t => t.Result?.Events?.Select(e => new { TxnId = t.Id, Event = e }))
-                .Select(e =>
+            var events = new List<PossibleCis2Event>();
+            foreach (var (blockItemSummary, transaction) in transactions)
+            {
+                if (blockItemSummary.TryGetContractInit(out var contractInitializedEvent))
                 {
-                    switch (e.Event)
-                    {
-                        case Updated evnt:
-                            return new { e.TxnId, evnt.Address, evnt.Events };
-                        case ContractInitialized evnt:
-                            return new { e.TxnId, evnt.Address, evnt.Events };
-                        case Interrupted evnt:
-                            return new { e.TxnId, evnt.Address, evnt.Events };
-                        default:
-                            return new
-                            {
-                                e.TxnId,
-                                Address = new ConcordiumSdk.Types.ContractAddress(0, 0),
-                                Events = new BinaryData[0]
-                            };
-                    }
-                })
-                .SelectMany(e => e.Events.Select(evnt => new { e.TxnId, e.Address, Bytes = evnt.AsBytes }));
+                    events.AddRange(
+                        contractInitializedEvent!.Events.Select(e =>
+                            new PossibleCis2Event(transaction.Id, contractInitializedEvent.ContractAddress, e))
+                    );
+                }
+
+                if (blockItemSummary.TryGetContractUpdateLogs(out var items))
+                {
+                    events.AddRange(
+                        items!.SelectMany(item => 
+                            item.Item2.Select(e => 
+                                new PossibleCis2Event(transaction.Id, item.Item1, e)))
+                        );
+                }
+            }
 
             //Select Cis Events
             var cisEvents = events
-                .Select(e => ParseCisEvent(e.TxnId, e.Address, e.Bytes))
+                .Select(e => ParseCisEvent(e.TxId, e.Address, e.ContractEvent.Bytes))
                 .Where(e => e != null)
                 .Cast<CisEvent>();
 
@@ -196,7 +192,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns></returns>
         private CisEvent? ParseCisEvent(
             long txnId,
-            ConcordiumSdk.Types.ContractAddress address,
+            Concordium.Sdk.Types.ContractAddress address,
             byte[] bytes)
         {
             if (!CisEvent.IsCisEvent(bytes))

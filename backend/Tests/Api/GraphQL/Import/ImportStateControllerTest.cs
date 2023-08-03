@@ -9,16 +9,14 @@ using Xunit.Abstractions;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class ImportStateControllerTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class ImportStateControllerTest
 {
-    private readonly ITestOutputHelper _outputHelper;
     private readonly ImportStateController _target;
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
-    public ImportStateControllerTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
+    public ImportStateControllerTest(DatabaseFixture dbFixture)
     {
-        _outputHelper = outputHelper;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new ImportStateController(_dbContextFactory, new NullMetrics());
         

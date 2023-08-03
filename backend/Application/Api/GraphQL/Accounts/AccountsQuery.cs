@@ -21,10 +21,10 @@ public class AccountsQuery
     [UseDbContext(typeof(GraphQlDbContext))]
     public Account? GetAccountByAddress([ScopedService] GraphQlDbContext dbContext, string accountAddress)
     {
-        if (!ConcordiumSdk.Types.AccountAddress.TryParse(accountAddress, out var parsed)) 
+        if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed)) 
             return null;
         
-        var baseAddress = new AccountAddress(parsed!.GetBaseAddress().AsString);
+        var baseAddress = AccountAddress.From(parsed!.GetBaseAddress());
         return dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.BaseAddress == baseAddress);

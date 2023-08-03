@@ -1,4 +1,3 @@
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

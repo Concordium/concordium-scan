@@ -1,20 +1,19 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
 
 public class BalanceStatisticsValidator : IImportValidator
 {
-    private readonly GrpcNodeClient _grpcNodeClient;
+    private readonly ConcordiumClient _grpcNodeClient;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ILogger _logger;
 
-    public BalanceStatisticsValidator(GrpcNodeClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public BalanceStatisticsValidator(ConcordiumClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _grpcNodeClient = grpcNodeClient;
         _dbContextFactory = dbContextFactory;
@@ -23,19 +22,19 @@ public class BalanceStatisticsValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
-        var nodeData = await _grpcNodeClient.GetRewardStatusAsync(new BlockHash(block.BlockHash));
-        if (nodeData is RewardStatusV1 rv1)
+        var nodeData = await _grpcNodeClient.GetTokenomicsInfoAsync(new Given(BlockHash.From(block.BlockHash)));
+        if (nodeData.Response is RewardOverviewV1 rv1)
         {
             var mappedNode = new
             {
-                TotalStaked = rv1.TotalStakedCapital.MicroCcdValue
+                TotalStaked = rv1.TotalStakedCapital.Value
             };
         
             var mappedDb = new
             {
                 TotalStaked = block.BalanceStatistics.TotalAmountStaked
             };
-
+        
             var equals = mappedNode.Equals(mappedDb);
             _logger.Information($"Total staked equals: {equals}");
             if (!equals)

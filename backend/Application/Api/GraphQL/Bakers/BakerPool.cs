@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Application.Api.GraphQL.Accounts;
+﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
 using HotChocolate.Data;
@@ -88,5 +87,21 @@ public class BakerPool
         return dbContext.PaydayPoolRewards.AsNoTracking()
             .Where(x => x.Pool == pool)
             .OrderByDescending(x => x.Index);
+    }
+    
+    internal static BakerPool CreateDefaultBakerPool()
+    {
+        return new BakerPool
+        {
+            OpenStatus = BakerPoolOpenStatus.ClosedForAll,
+            MetadataUrl = "",
+            CommissionRates = new CommissionRates
+            {
+                TransactionCommission = 0.0m,
+                FinalizationCommission = 0.0m,
+                BakingCommission = 0.0m
+            },
+            PaydayStatus = null,
+        };
     }
 }

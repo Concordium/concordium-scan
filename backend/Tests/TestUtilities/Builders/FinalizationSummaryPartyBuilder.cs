@@ -1,30 +1,22 @@
-﻿using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
 public class FinalizationSummaryPartyBuilder
 {
-    private int _bakerId = 9;
-    private long _weight = 57366388920;
+    private BakerId _bakerId = new(new AccountIndex(9));
+    private ulong _weight = 57366388920UL;
     private bool _signed = true;
+    
+    public FinalizationSummaryParty Build() => new(_bakerId, _weight, _signed);
 
-    public FinalizationSummaryParty Build()
-    {
-        return new FinalizationSummaryParty
-        {
-            BakerId = _bakerId,
-            Weight = _weight,
-            Signed = _signed
-        };
-    }
-
-    public FinalizationSummaryPartyBuilder WithBakerId(int value)
+    public FinalizationSummaryPartyBuilder WithBakerId(BakerId value)
     {
         _bakerId = value;
         return this;
     }
 
-    public FinalizationSummaryPartyBuilder WithWeight(long value)
+    public FinalizationSummaryPartyBuilder WithWeight(ulong value)
     {
         _weight = value;
         return this;

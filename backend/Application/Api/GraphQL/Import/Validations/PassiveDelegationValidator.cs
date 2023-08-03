@@ -2,8 +2,8 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,11 +11,11 @@ namespace Application.Api.GraphQL.Import.Validations;
 
 public class PassiveDelegationValidator : IImportValidator
 {
-    private readonly GrpcNodeClient _nodeClient;
+    private readonly ConcordiumClient _nodeClient;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ILogger _logger;
 
-    public PassiveDelegationValidator(GrpcNodeClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public PassiveDelegationValidator(ConcordiumClient nodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _nodeClient = nodeClient;
         _dbContextFactory = dbContextFactory;
@@ -24,8 +24,8 @@ public class PassiveDelegationValidator : IImportValidator
 
     public async Task Validate(Block block)
     {
-        var nodeSwVersion = await _nodeClient.GetPeerVersionAsync();
-        if (nodeSwVersion.Major >= 4)
+        var nodeInfo = await _nodeClient.GetNodeInfoAsync();
+        if (nodeInfo.Version.Major >= 4)
         {
             var target = await ReadPassiveDelegation();
 
@@ -42,11 +42,11 @@ public class PassiveDelegationValidator : IImportValidator
             CurrentPaydayDelegatedStake = passiveDelegation?.CurrentPaydayDelegatedStake
         };
 
-        var nodePoolStatus = await _nodeClient.GetPoolStatusForPassiveDelegation(new BlockHash(block.BlockHash));
+        var nodePoolStatus = await _nodeClient.GetPassiveDelegationInfoAsync(block.Into());
         var actualValue = new
         {
-            DelegatedStake = nodePoolStatus?.DelegatedCapital.MicroCcdValue,
-            CurrentPaydayDelegatedStake = nodePoolStatus?.CurrentPaydayDelegatedCapital.MicroCcdValue
+            DelegatedStake = nodePoolStatus?.Response.DelegatedCapital.Value,
+            CurrentPaydayDelegatedStake = nodePoolStatus?.Response.CurrentPaydayDelegatedCapital.Value
         };
 
         var equal = expectedValue.Equals(actualValue);

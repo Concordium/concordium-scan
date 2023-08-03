@@ -1,5 +1,8 @@
 ﻿namespace Application.Api.GraphQL.Bakers;
 
+/// <summary>
+/// The status of whether a baking pool allows delegators to join.
+/// </summary>
 public enum BakerPoolOpenStatus 
 {
     /// <summary>
@@ -18,13 +21,13 @@ public enum BakerPoolOpenStatus
 
 public static class BakerPoolOpenStatusExtensions
 {
-    public static BakerPoolOpenStatus MapToGraphQlEnum(this ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus src)
+    public static BakerPoolOpenStatus MapToGraphQlEnum(this Concordium.Sdk.Types.BakerPoolOpenStatus src)
     {
         return src switch
         {
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
-            ConcordiumSdk.NodeApi.Types.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.OpenForAll => BakerPoolOpenStatus.OpenForAll,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.ClosedForNew => BakerPoolOpenStatus.ClosedForNew,
+            Concordium.Sdk.Types.BakerPoolOpenStatus.ClosedForAll => BakerPoolOpenStatus.ClosedForAll,
             _ => throw new NotImplementedException()
         };
     }

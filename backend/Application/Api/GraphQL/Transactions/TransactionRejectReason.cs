@@ -1,16 +1,85 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Transactions;
 
 [UnionType]
 public abstract record TransactionRejectReason
 {
-    [GraphQLDeprecated("Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")]
+    [GraphQLDeprecated(
+        "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")]
     public bool Get_() // Will translate to a boolean field named _ in the GraphQL schema.
     {
         return false;
+    }
+
+    internal static TransactionRejectReason MapRejectReason(IRejectReason rejectReason)
+    {
+        return rejectReason switch
+        {
+            Concordium.Sdk.Types.ModuleNotWf => new ModuleNotWf(),
+            Concordium.Sdk.Types.ModuleHashAlreadyExists x => new ModuleHashAlreadyExists(x.ModuleReference.ToString()),
+            Concordium.Sdk.Types.InvalidAccountReference x => new InvalidAccountReference(
+                AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.InvalidInitMethod x => new InvalidInitMethod(x.ModuleReference.ToString(),
+                x.ContractName.Name),
+            Concordium.Sdk.Types.InvalidReceiveMethod x => new InvalidReceiveMethod(x.ModuleReference.ToString(),
+                x.ReceiveName.Receive),
+            Concordium.Sdk.Types.InvalidModuleReference x => new InvalidModuleReference(x.ModuleReference.ToString()),
+            Concordium.Sdk.Types.InvalidContractAddress x => new InvalidContractAddress(
+                ContractAddress.From(x.ContractAddress)),
+            Concordium.Sdk.Types.RuntimeFailure => new RuntimeFailure(),
+            Concordium.Sdk.Types.AmountTooLarge x => new AmountTooLarge(Address.From(x.Address), x.Amount.Value),
+            Concordium.Sdk.Types.SerializationFailure => new SerializationFailure(),
+            Concordium.Sdk.Types.OutOfEnergy => new OutOfEnergy(),
+            Concordium.Sdk.Types.RejectedInit x => new RejectedInit(x.RejectReason),
+            Concordium.Sdk.Types.RejectedReceive x => new RejectedReceive(x.RejectReason,
+                ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString()),
+            Concordium.Sdk.Types.InvalidProof => new InvalidProof(),
+            Concordium.Sdk.Types.AlreadyABaker x => new AlreadyABaker(x.BakerId.Id.Index),
+            Concordium.Sdk.Types.NotABaker x => new NotABaker(AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.InsufficientBalanceForBakerStake => new InsufficientBalanceForBakerStake(),
+            Concordium.Sdk.Types.StakeUnderMinimumThresholdForBaking => new StakeUnderMinimumThresholdForBaking(),
+            Concordium.Sdk.Types.BakerInCooldown => new BakerInCooldown(),
+            Concordium.Sdk.Types.DuplicateAggregationKey x => new DuplicateAggregationKey(Convert.ToHexString(x.Key).ToLowerInvariant()),
+            Concordium.Sdk.Types.NonExistentCredentialId => new NonExistentCredentialId(),
+            Concordium.Sdk.Types.KeyIndexAlreadyInUse => new KeyIndexAlreadyInUse(),
+            Concordium.Sdk.Types.InvalidAccountThreshold => new InvalidAccountThreshold(),
+            Concordium.Sdk.Types.InvalidCredentialKeySignThreshold => new InvalidCredentialKeySignThreshold(),
+            Concordium.Sdk.Types.InvalidEncryptedAmountTransferProof => new InvalidEncryptedAmountTransferProof(),
+            Concordium.Sdk.Types.InvalidTransferToPublicProof => new InvalidTransferToPublicProof(),
+            Concordium.Sdk.Types.EncryptedAmountSelfTransfer x => new EncryptedAmountSelfTransfer(AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.InvalidIndexOnEncryptedTransfer => new InvalidIndexOnEncryptedTransfer(),
+            Concordium.Sdk.Types.ZeroScheduledAmount => new ZeroScheduledAmount(),
+            Concordium.Sdk.Types.NonIncreasingSchedule => new NonIncreasingSchedule(),
+            Concordium.Sdk.Types.FirstScheduledReleaseExpired => new FirstScheduledReleaseExpired(),
+            Concordium.Sdk.Types.ScheduledSelfTransfer x => new ScheduledSelfTransfer(AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.InvalidCredentials => new InvalidCredentials(),
+            Concordium.Sdk.Types.DuplicateCredIds x => new DuplicateCredIds(x.ToHexStrings().ToArray()),
+            Concordium.Sdk.Types.NonExistentCredIds x => new NonExistentCredIds(x.ToHexStrings().ToArray()),
+            Concordium.Sdk.Types.RemoveFirstCredential => new RemoveFirstCredential(),
+            Concordium.Sdk.Types.CredentialHolderDidNotSign => new CredentialHolderDidNotSign(),
+            Concordium.Sdk.Types.NotAllowedMultipleCredentials => new NotAllowedMultipleCredentials(),
+            Concordium.Sdk.Types.NotAllowedToReceiveEncrypted => new NotAllowedToReceiveEncrypted(),
+            Concordium.Sdk.Types.NotAllowedToHandleEncrypted => new NotAllowedToHandleEncrypted(),
+            Concordium.Sdk.Types.MissingBakerAddParameters => new MissingBakerAddParameters(),
+            Concordium.Sdk.Types.FinalizationRewardCommissionNotInRange => new FinalizationRewardCommissionNotInRange(),
+            Concordium.Sdk.Types.BakingRewardCommissionNotInRange => new BakingRewardCommissionNotInRange(),
+            Concordium.Sdk.Types.TransactionFeeCommissionNotInRange => new TransactionFeeCommissionNotInRange(),
+            Concordium.Sdk.Types.AlreadyADelegator => new AlreadyADelegator(),
+            Concordium.Sdk.Types.InsufficientBalanceForDelegationStake => new InsufficientBalanceForDelegationStake(),
+            Concordium.Sdk.Types.MissingDelegationAddParameters => new MissingDelegationAddParameters(),
+            Concordium.Sdk.Types.InsufficientDelegationStake => new InsufficientDelegationStake(),
+            Concordium.Sdk.Types.DelegatorInCooldown => new DelegatorInCooldown(),
+            Concordium.Sdk.Types.NotADelegator x => new NotADelegator(AccountAddress.From(x.AccountAddress)),
+            Concordium.Sdk.Types.DelegationTargetNotABaker x => new DelegationTargetNotABaker(x.BakerId.Id.Index),
+            Concordium.Sdk.Types.StakeOverMaximumThresholdForPool => new StakeOverMaximumThresholdForPool(),
+            Concordium.Sdk.Types.PoolWouldBecomeOverDelegated => new PoolWouldBecomeOverDelegated(),
+            Concordium.Sdk.Types.PoolClosed => new PoolClosed(),
+            _ => throw new NotImplementedException("Reject reason not mapped!")
+        };
     }
 }
 
@@ -96,6 +165,7 @@ public record RejectedReceive(
 /// <summary>
 /// Reward account desired by the baker does not exist.
 /// </summary>
+[Obsolete("Not present in gRPC v2")]
 public record NonExistentRewardAccount(
     AccountAddress AccountAddress) : TransactionRejectReason;
 

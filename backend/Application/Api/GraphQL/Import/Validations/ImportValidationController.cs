@@ -2,7 +2,7 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
-using ConcordiumSdk.NodeApi;
+using Concordium.Sdk.Client;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import.Validations;
@@ -12,7 +12,7 @@ public class ImportValidationController
     private readonly IFeatureFlags _featureFlags;
     private readonly IImportValidator[] _validators;
 
-    public ImportValidationController(GrpcNodeClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory, IFeatureFlags featureFlags)
+    public ImportValidationController(ConcordiumClient grpcNodeClient, IDbContextFactory<GraphQlDbContext> dbContextFactory, IFeatureFlags featureFlags)
     {
         _featureFlags = featureFlags;
         _validators = new IImportValidator[]

@@ -1,4 +1,6 @@
-﻿using HotChocolate;
+﻿using Application.Api.GraphQL.Import;
+using Concordium.Sdk.Types;
+using HotChocolate;
 
 namespace Application.Api.GraphQL.Blocks;
 
@@ -64,4 +66,30 @@ public class BalanceStatistics
 
     [GraphQLDescription("The amount in the GAS account")]
     public ulong GasAccount { get; init; }
+    
+    internal static BalanceStatistics MapBalanceStatistics(
+        RewardOverviewBase rewardStatus, 
+        DateTimeOffset blockSlotTime,
+        BakerUpdateResults bakerUpdateResults, 
+        DelegationUpdateResults delegationUpdateResults, 
+        ImportState importState, 
+        ulong nonCirculatingAccountsBalance,
+        ulong? totalAmountUnlocked)
+    {
+        var totalCcdSupply = rewardStatus.TotalAmount.Value;
+        var totalCirculatingCcdSupply = totalCcdSupply - nonCirculatingAccountsBalance;
+
+        return new BalanceStatistics(
+            totalCcdSupply,
+            totalCirculatingCcdSupply,
+            totalAmountUnlocked: totalAmountUnlocked,
+            rewardStatus.TotalEncryptedAmount.Value,
+            0, // Updated later in db-transaction, when amounts locked in schedules has been updated.
+            bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked,
+            bakerUpdateResults.TotalAmountStaked,
+            delegationUpdateResults.TotalAmountStaked,
+            rewardStatus.BakingRewardAccount.Value, 
+            rewardStatus.FinalizationRewardAccount.Value, 
+            rewardStatus.GasAccount.Value);
+    }
 }

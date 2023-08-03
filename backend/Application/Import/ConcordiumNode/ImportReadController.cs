@@ -1,11 +1,10 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
-using ConcordiumSdk.NodeApi;
-using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+using Application.NodeApi;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -14,13 +13,13 @@ namespace Application.Import.ConcordiumNode;
 
 public class ImportReadController : BackgroundService
 {
-    private readonly GrpcNodeClient _client;
+    private readonly ConcordiumClient _client;
     private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
     private readonly IMetrics _metrics;
 
-    public ImportReadController(GrpcNodeClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
+    public ImportReadController(ConcordiumClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
     {
         _client = client;
         _featureFlags = featureFlags;
@@ -58,7 +57,7 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), nameof(_client.GetConsensusStatusAsync), stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusInfoAsync(stoppingToken), nameof(_client.GetConsensusInfoAsync), stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
             {
@@ -80,7 +79,7 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private async Task ImportBatch(long startBlockHeight, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
+    private async Task ImportBatch(ulong startBlockHeight, ConsensusInfo consensusStatus, CancellationToken stoppingToken)
     {
         for (var blockHeight = startBlockHeight; blockHeight <= consensusStatus.LastFinalizedBlockHeight; blockHeight++)
         {
@@ -90,94 +89,126 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private async Task<BlockDataEnvelope> ReadBlockDataPayload(long blockHeight, ConsensusStatus consensusStatus, CancellationToken stoppingToken)
+    private async Task<BlockDataEnvelope> ReadBlockDataPayload(ulong blockHeight, ConsensusInfo consensusStatus, CancellationToken stoppingToken)
     {
-        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync((ulong)blockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
-        if (blocksAtHeight.Length != 1)
+        var absoluteBlockHeight = new AbsoluteHeight(blockHeight);
+        
+        var blocksAtHeight = await GetWithGrpcRetryAsync(() => _client.GetBlocksAtHeightAsync(absoluteBlockHeight, stoppingToken), nameof(_client.GetBlocksAtHeightAsync), stoppingToken);
+        if (blocksAtHeight.Count != 1)
             throw new InvalidOperationException("Unexpected with more than one block at a given height."); 
         var blockHash = blocksAtHeight.Single();
+        var blockHashInput = new Given(blockHash);
 
-        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHash, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
-        var blockSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockSummaryAsync(blockHash, stoppingToken), nameof(_client.GetBlockSummaryAsync), stoppingToken);
-        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetRewardStatusAsync(blockHash, stoppingToken), nameof(_client.GetRewardStatusAsync), stoppingToken);
+        var blockInfoTask = GetWithGrpcRetryAsync(() => _client.GetBlockInfoAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockInfoAsync), stoppingToken);
+        var rewardStatusTask = GetWithGrpcRetryAsync(() => _client.GetTokenomicsInfoAsync(blockHashInput, stoppingToken), nameof(_client.GetTokenomicsInfoAsync), stoppingToken);
+        var blockItemSummariesTask = GetWithGrpcRetryAsync(async () =>
+        {
+            var response = await _client.GetBlockTransactionEvents(blockHashInput, stoppingToken);
+            return await response.Response.ToListAsync(stoppingToken);
+        }, nameof(_client.GetBlockTransactionEvents), stoppingToken);
+        var chainParametersTask = GetWithGrpcRetryAsync(() => _client.GetBlockChainParametersAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockChainParametersAsync), stoppingToken);
+        var specialEventsTask = GetWithGrpcRetryAsync(async () =>
+        {
+            var response = await _client.GetBlockSpecialEvents(blockHashInput, stoppingToken);
+            return await response.Response.ToListAsync(stoppingToken);
+        }, nameof(_client.GetBlockSpecialEvents), stoppingToken);
+        var finalizationSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockFinalizationSummaryAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockFinalizationSummaryAsync), stoppingToken);
+        
 
-        var blockInfo = await blockInfoTask;
-        var blockSummary = await blockSummaryTask;
-        var rewardStatus = await rewardStatusTask;
+        await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask, finalizationSummaryTask);
+        var (_, blockInfo) = await blockInfoTask;
+        var (_, rewardStatus) = await rewardStatusTask;
+        var blockItemSummaries = await blockItemSummariesTask;
+        var (_, chainParameters) = await chainParametersTask;
+        var specialEvents = await specialEventsTask;
+        var (_, finalizationSummary) = await finalizationSummaryTask;
 
-        var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockInfo, blockSummary, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
+        var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockHashInput, blockItemSummaries, blockInfo, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
         
         // Dont proactively read pool statuses for each block, we will let the write controller decide if they must be read!
-        var bakerPoolStatusesFunc = () => GetWithGrpcRetryAsync(() => GetAllBakerPoolStatusesAsync(blockInfo, blockSummary, stoppingToken), nameof(GetAllBakerPoolStatusesAsync), stoppingToken);
-        var passiveDelegationPoolStatusFunc = () => GetWithGrpcRetryAsync(() => GetPassiveDelegationPoolStatusAsync(blockInfo, blockSummary, stoppingToken), nameof(GetPassiveDelegationPoolStatusAsync), stoppingToken);
+        var bakerPoolStatusesFunc = () => GetWithGrpcRetryAsync(() => GetAllBakerPoolStatusesAsync(blockHashInput, blockInfo.ProtocolVersion, stoppingToken), nameof(GetAllBakerPoolStatusesAsync), stoppingToken);
+        var passiveDelegationPoolStatusFunc = () => GetWithGrpcRetryAsync(() => GetPassiveDelegationPoolStatusAsync(blockHashInput, blockInfo.ProtocolVersion, stoppingToken), nameof(GetPassiveDelegationPoolStatusAsync), stoppingToken);
         
         BlockDataPayload payload;
         if (blockInfo.BlockHeight == 0)
         {
-            var genesisIdentityProviders = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHash, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
-            payload = new GenesisBlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, genesisIdentityProviders, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            var response = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHashInput, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
+            var genesisIdentityProviders = await response.Response.ToListAsync(stoppingToken);
+            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
         return new BlockDataEnvelope(payload, consensusStatus);
     }
 
-    private async Task<PoolStatusPassiveDelegation> GetPassiveDelegationPoolStatusAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    private async Task<PassiveDelegationStatus> GetPassiveDelegationPoolStatusAsync(IBlockHashInput blockHash, ProtocolVersion protocolVersion, CancellationToken stoppingToken)
     {
-        if (!(blockSummary.ProtocolVersion >= 4))
+        if ((int)protocolVersion < 4)
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
-
-        var poolStatus = await _client.GetPoolStatusForPassiveDelegation(blockInfo.BlockHash, stoppingToken);
+        
+        var (_, poolStatus) = await _client.GetPassiveDelegationInfoAsync(blockHash, stoppingToken);
         if (poolStatus == null) throw new InvalidOperationException("Did not expect pool status for passive delegation to be null");
-        return poolStatus;
+        return poolStatus!;
     }
 
-    private async Task<BakerPoolStatus[]> GetAllBakerPoolStatusesAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    private async Task<BakerPoolStatus[]> GetAllBakerPoolStatusesAsync(IBlockHashInput blockHash, ProtocolVersion protocolVersion, CancellationToken stoppingToken)
     {
-        if (!(blockSummary.ProtocolVersion >= 4))
+        if ((int)protocolVersion < 4)
             throw new InvalidOperationException("Cannot read baker pool statuses when protocol version is not 4 or greater.");
-
+        
         var result = new List<BakerPoolStatus>();
-        var bakerIds = await _client.GetBakerListAsync(blockInfo.BlockHash, stoppingToken);
-        foreach (var bakerId in bakerIds)
+        var (_, bakerIds) = await _client.GetBakerListAsync(blockHash, stoppingToken);
+        await foreach (var bakerId in bakerIds.WithCancellation(stoppingToken))
         {
-            var bakerPoolStatus = await _client.GetPoolStatusForBaker(bakerId, blockInfo.BlockHash, stoppingToken);
+            var (_, bakerPoolStatus) = await _client.GetPoolInfoAsync(bakerId, blockHash, stoppingToken);
             if (bakerPoolStatus == null) throw new InvalidOperationException("Did not expect baker pool status to be null");
             result.Add(bakerPoolStatus);
         }
         return result.ToArray();
     }
 
-    private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(BlockInfo blockInfo, BlockSummaryBase blockSummary, CancellationToken stoppingToken)
+    private async Task<AccountInfosRetrieved> GetRelevantAccountInfosAsync(IBlockHashInput blockHash, IList<BlockItemSummary> blockItemSummaries, BlockInfo blockInfo, CancellationToken stoppingToken)
     {
         if (blockInfo.BlockHeight == 0)
         {
-            var accountList = await _client.GetAccountListAsync(blockInfo.BlockHash, stoppingToken);
+            var accountList = await (await _client.GetAccountListAsync(blockHash, stoppingToken)).Response.ToListAsync(stoppingToken);
             var accountInfoTasks = accountList
-                .Select(x => _client.GetAccountInfoAsync(x, blockInfo.BlockHash, stoppingToken))
-                .ToArray();
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x, blockHash, stoppingToken);
+                    return response.Response;
+                });
 
             var accountsCreated = await Task.WhenAll(accountInfoTasks);
             return new AccountInfosRetrieved(accountsCreated, Array.Empty<AccountInfo>());
         }
         else
         {
-            var accountsToRead = blockSummary.TransactionSummaries
-                .Select(x => x.Result).OfType<TransactionSuccessResult>()
-                .SelectMany(x => GetAccountAddressesToRetrieve(x.Events, blockSummary.ProtocolVersion))
+            var accountsToRead = blockItemSummaries
+                .Where(b => b.IsSuccess())
+                .Select(b => b.Details)
+                .SelectMany(b => GetAccountAddressesToRetrieve(b, blockInfo.ProtocolVersion))
                 .ToArray();
 
             if (accountsToRead.Length == 0)
                 return new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
             
-            var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreated))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
+            var accountsCreatedTasks = accountsToRead.Where(x => x.Reason == typeof(AccountCreationDetails))
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x.Address, blockHash, stoppingToken);
+                    return response.Response;
+                })
                 .ToArray();
             var bakersWithNewPendingChangesTask = accountsToRead.Where(x => x.Reason == typeof(AccountBakerPendingChange))
-                .Select(x => _client.GetAccountInfoAsync(x.Address, blockInfo.BlockHash, stoppingToken))
+                .Select(async x =>
+                {
+                    var response = await _client.GetAccountInfoAsync(x.Address, blockHash, stoppingToken);
+                    return response.Response;
+                })
                 .ToArray();
             
             var accountsCreated = await Task.WhenAll(accountsCreatedTasks);
@@ -186,16 +217,46 @@ public class ImportReadController : BackgroundService
         }
     }
 
-    private static IEnumerable<AccountAddressAndReason> GetAccountAddressesToRetrieve(TransactionResultEvent[] txEvents, int? protocolVersion)
+    private static IEnumerable<AccountAddressAndReason> GetAccountAddressesToRetrieve(IBlockItemSummaryDetails details, ProtocolVersion protocolVersion)
     {
-        foreach (var txEvent in txEvents)
+        switch (details)
         {
-            if (txEvent is AccountCreated accountCreated)
-                yield return new AccountAddressAndReason(accountCreated.Contents, typeof(AccountCreated));
-            if (txEvent is BakerRemoved bakerRemoved && !(protocolVersion >= 4))
-                yield return new AccountAddressAndReason(bakerRemoved.Account, typeof(AccountBakerPendingChange));
-            if (txEvent is BakerStakeDecreased stakeDecreased && !(protocolVersion >= 4))
-                yield return new AccountAddressAndReason(stakeDecreased.Account, typeof(AccountBakerPendingChange));
+            case AccountCreationDetails accountCreationDetails:
+                yield return new AccountAddressAndReason(accountCreationDetails.Address, typeof(AccountCreationDetails));
+                break;
+            case AccountTransactionDetails accountTransactionDetails:
+                switch (accountTransactionDetails.Effects)
+                {
+                    case BakerRemoved when (int)protocolVersion < 4:
+                        yield return new AccountAddressAndReason(accountTransactionDetails.Sender, typeof(AccountBakerPendingChange));
+                        break;
+                    case BakerStakeUpdated bakerStakeUpdated when (int)protocolVersion < 4 && bakerStakeUpdated.Data is
+                    {
+                        Increased: false
+                    }:
+                        yield return new AccountAddressAndReason(accountTransactionDetails.Sender, typeof(AccountBakerPendingChange));
+                        break;
+                }
+                if (accountTransactionDetails.Effects is not BakerConfigured bakerConfigured)
+                {
+                    break;
+                }
+                
+                foreach (var bakerEvent in bakerConfigured.Data)
+                {
+                    switch (bakerEvent)
+                    {
+                        case BakerRemovedEvent:
+                            yield return new AccountAddressAndReason(accountTransactionDetails.Sender, typeof(AccountBakerPendingChange));
+                            break;
+                        case BakerStakeDecreasedEvent:
+                            yield return new AccountAddressAndReason(accountTransactionDetails.Sender, typeof(AccountBakerPendingChange));
+                            break;
+                    }
+                }
+                break;
+            case UpdateDetails:
+                break;
         }
     }
 
@@ -212,20 +273,20 @@ public class ImportReadController : BackgroundService
             if (databaseNetworkId != null)
                 _logger.Information(
                     "Database contains genesis block hash '{genesisBlockHash}' indicating network is {concordiumNetwork}",
-                    importedGenesisBlockHash.AsString, databaseNetworkId.NetworkName);
+                    importedGenesisBlockHash.ToString(), databaseNetworkId.NetworkName);
             else
                 _logger.Information(
                     "Database contains genesis block hash '{genesisBlockHash}' which is not one of the known Concordium networks.",
-                    importedGenesisBlockHash.AsString);
+                    importedGenesisBlockHash.ToString());
 
-            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusStatusAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
+            var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusInfoAsync(stoppingToken), "GetConsensusStatus", stoppingToken);
             var nodeNetworkId = ConcordiumNetworkId.TryGetFromGenesisBlockHash(consensusStatus.GenesisBlock);
             if (nodeNetworkId != null)
                 _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' indicating network is {concordiumNetwork}", 
-                    consensusStatus.GenesisBlock.AsString, nodeNetworkId.NetworkName);
+                    consensusStatus.GenesisBlock.ToString(), nodeNetworkId.NetworkName);
             else
                 _logger.Information("Concordium Node says genesis block hash is '{genesisBlockHash}' which is not one of the known Concordium networks.", 
-                    consensusStatus.GenesisBlock.AsString);
+                    consensusStatus.GenesisBlock.ToString());
 
             if (consensusStatus.GenesisBlock != importedGenesisBlockHash)
                 throw new InvalidOperationException("Genesis block hash of Concordium Node and Database are not identical.");

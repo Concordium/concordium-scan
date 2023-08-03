@@ -1,31 +1,29 @@
-﻿using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using System.Collections.Generic;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders;
 
 public class BakingRewardsSpecialEventBuilder
 {
     private CcdAmount _remainder = CcdAmount.FromMicroCcd(12);
-    private AccountAddressAmount[] _bakerRewards = {
-        new()
+    private IDictionary<AccountAddress, CcdAmount> _bakerRewards = new Dictionary<AccountAddress, CcdAmount>{
         {
-            Amount = CcdAmount.FromMicroCcd(122211),
-            Address = new AccountAddress("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi")
+            AccountAddress.From("3rsc7HNLVKnFz9vmKkAaEMVpNkFA4hZxJpZinCtUTJbBh58yYi"),
+            CcdAmount.FromMicroCcd(122211)
         },
-        new()
         {
-            Amount = CcdAmount.FromMicroCcd(324111123),
-            Address = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd")
+            AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
+            CcdAmount.FromMicroCcd(324111123)
         }
     };
 
-    public BakingRewardsSpecialEvent Build()
+    public Concordium.Sdk.Types.BakingRewards Build()
     {
-        return new BakingRewardsSpecialEvent
-        {
-            Remainder = _remainder,
-            BakerRewards = _bakerRewards
-        };
+        return new BakingRewards
+        (
+            Remainder: _remainder,
+            Rewards: _bakerRewards
+        );
     }
 
     public BakingRewardsSpecialEventBuilder WithRemainder(CcdAmount value)
@@ -34,9 +32,10 @@ public class BakingRewardsSpecialEventBuilder
         return this;
     }
 
-    public BakingRewardsSpecialEventBuilder WithBakerRewards(params AccountAddressAmount[] value)
+    public BakingRewardsSpecialEventBuilder WithBakerRewards(params (AccountAddress, CcdAmount)[] value)
     {
-        _bakerRewards = value;
+        var ccdAmounts = value.ToDictionary(t => t.Item1, t => t.Item2);
+        _bakerRewards = ccdAmounts;
         return this;
     }
 }

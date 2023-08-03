@@ -1,6 +1,6 @@
 ﻿using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -9,17 +9,18 @@ using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
+using FinalizationSummary = Concordium.Sdk.Types.FinalizationSummary;
+using FinalizationSummaryBuilder = Tests.TestUtilities.Builders.FinalizationSummaryBuilder;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class BlockWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BlockWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BlockWriter _target;
     private readonly BlockInfoBuilder _blockInfoBuilder = new();
-    private readonly BlockSummaryV0Builder _blockSummaryBuilder = new();
-    private readonly RewardStatusBuilder _rewardStatusBuilder = new();
+    private readonly RewardOverviewV0Builder _rewardOverviewV0Builder = new();
     private readonly ImportState _importState = new ImportStateBuilder().Build();
     private readonly BakerUpdateResultsBuilder _bakerUpdateResultsBuilder = new();
     private readonly DelegationUpdateResultsBuilder _delegationUpdateResultsBuilder = new();
@@ -39,10 +40,10 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     public async Task BasicBlockInformation_AllValuesNonNull()
     {
         _blockInfoBuilder
-            .WithBlockHash(new BlockHash("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
+            .WithBlockHash(BlockHash.From("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc"))
             .WithBlockHeight(42)
             .WithBlockSlotTime(new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero))
-            .WithBlockBaker(150)
+            .WithBlockBaker(new BakerId(new AccountIndex(150)))
             .WithFinalized(true)
             .WithTransactionCount(221);
         
@@ -84,46 +85,66 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task FinalizationSummary_NonNull()
     {
-        _blockSummaryBuilder
-            .WithFinalizationData(new FinalizationDataBuilder()
-                .WithFinalizationBlockPointer(new BlockHash("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e"))
-                .WithFinalizationIndex(42)
-                .WithFinalizationDelay(11)
-                .WithFinalizers(
-                    new FinalizationSummaryPartyBuilder().WithBakerId(1).WithWeight(130).WithSigned(true).Build(),
-                    new FinalizationSummaryPartyBuilder().WithBakerId(2).WithWeight(220).WithSigned(false).Build())
-                .Build());
-        
-        await WriteData();
+        // Arrange
+        const string blockHash = "86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e";
 
+        const ulong index = 42UL;
+        const ulong delay = 11;
+        
+        const ulong firstBakerId = 1;
+        const ulong firstWeight = 130;
+        const bool firstSigned = true;
+        
+        const ulong secondBakerId = 2;
+        const ulong secondWeight = 220;
+        const bool secondSigned = false;
+        var first = new FinalizationSummaryPartyBuilder()
+            .WithBakerId(new BakerId(new AccountIndex(firstBakerId)))
+            .WithWeight(firstWeight)
+            .WithSigned(firstSigned)
+            .Build();
+        var second = new FinalizationSummaryPartyBuilder()
+            .WithBakerId(new BakerId(new AccountIndex(secondBakerId)))
+            .WithWeight(secondWeight)
+            .WithSigned(secondSigned)
+            .Build();
+
+        var finalizationSummary = new FinalizationSummaryBuilder()
+            .WithBlockPointer(BlockHash.From(blockHash))
+            .WithIndex(index)
+            .WithDelay(delay)
+            .AddSummaryParty(first, second)
+            .Build();
+
+        // Act
+        await WriteData(finalizationSummary);
+
+        // Assert
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var block = dbContext.Blocks.Single();
         block.FinalizationSummary.Should().NotBeNull();
         block.FinalizationSummary!.Owner.Should().BeSameAs(block);
-        block.FinalizationSummary.FinalizedBlockHash.Should().Be("86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e");
-        block.FinalizationSummary.FinalizationIndex.Should().Be(42);
-        block.FinalizationSummary.FinalizationDelay.Should().Be(11);
+        block.FinalizationSummary.FinalizedBlockHash.Should().Be(blockHash);
+        block.FinalizationSummary.FinalizationIndex.Should().Be((long)index);
+        block.FinalizationSummary.FinalizationDelay.Should().Be((long)delay);
 
         var finalizers = dbContext.FinalizationSummaryFinalizers.ToArray();
         finalizers.Length.Should().Be(2);
         finalizers[0].BlockId.Should().Be(block.Id);
         finalizers[0].Index.Should().Be(0);
-        finalizers[0].Entity.BakerId.Should().Be(1);
-        finalizers[0].Entity.Weight.Should().Be(130);
+        finalizers[0].Entity.BakerId.Should().Be((long)firstBakerId);
+        finalizers[0].Entity.Weight.Should().Be((long)firstWeight);
         finalizers[0].Entity.Signed.Should().BeTrue();
         finalizers[1].BlockId.Should().Be(block.Id);
         finalizers[1].Index.Should().Be(1);
-        finalizers[1].Entity.BakerId.Should().Be(2);
-        finalizers[1].Entity.Weight.Should().Be(220);
+        finalizers[1].Entity.BakerId.Should().Be((long)secondBakerId);
+        finalizers[1].Entity.Weight.Should().Be((long)secondWeight);
         finalizers[1].Entity.Signed.Should().BeFalse();
     }
     
     [Fact]
     public async Task FinalizationSummary_Null()
     {
-        _blockSummaryBuilder
-            .WithSpecialEvents();
-        
         await WriteData();
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
@@ -137,7 +158,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
     [Fact]
     public async Task BalanceStatistics_FromRewardStatus()
     {
-        _rewardStatusBuilder
+        _rewardOverviewV0Builder
             .WithTotalAmount(CcdAmount.FromMicroCcd(421500))
             .WithTotalEncryptedAmount(CcdAmount.FromMicroCcd(161))
             .WithBakingRewardAccount(CcdAmount.FromMicroCcd(77551))
@@ -243,7 +264,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
 
         var blockWithProof = new BlockBuilder()
             .WithBlockSlotTime(baseTime.AddSeconds(9))
-            .WithFinalizationSummary(new FinalizationSummaryBuilder()
+            .WithFinalizationSummary(new Tests.TestUtilities.Builders.GraphQL.FinalizationSummaryBuilder()
                 .WithFinalizedBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1")
                 .Build())
             .Build();
@@ -270,7 +291,7 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
         
         var blockWithProof = new BlockBuilder()
             .WithBlockSlotTime(baseTime.AddSeconds(40))
-            .WithFinalizationSummary(new FinalizationSummaryBuilder()
+            .WithFinalizationSummary(new Tests.TestUtilities.Builders.GraphQL.FinalizationSummaryBuilder()
                 .WithFinalizedBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2")
                 .Build())
             .Build();
@@ -305,13 +326,12 @@ public class BlockWriterTest : IClassFixture<DatabaseFixture>
                 values (1, 1, 1, @Timestamp, @Amount, 2)", schedules);
     }
 
-    private async Task WriteData()
+    private async Task WriteData(FinalizationSummary? finalizationSummary = null)
     {
         var blockInfo = _blockInfoBuilder.Build();
-        var blockSummary = _blockSummaryBuilder.Build();
-        var rewardStatus = _rewardStatusBuilder.Build();
+        var rewardStatus = _rewardOverviewV0Builder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
-        await _target.AddBlock(blockInfo, blockSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, new ulong[0]);
+        await _target.AddBlock(blockInfo, finalizationSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, new ulong[0]);
     }
 }

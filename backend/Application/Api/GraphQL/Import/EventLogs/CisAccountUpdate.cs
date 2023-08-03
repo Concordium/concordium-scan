@@ -1,5 +1,5 @@
 using System.Numerics;
-using ConcordiumSdk.Types;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {

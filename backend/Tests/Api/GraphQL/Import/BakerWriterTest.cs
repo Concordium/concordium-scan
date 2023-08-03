@@ -1,7 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Import;
-using ConcordiumSdk.NodeApi.Types;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +13,8 @@ using PassiveDelegationTarget = Application.Api.GraphQL.PassiveDelegationTarget;
 
 namespace Tests.Api.GraphQL.Import;
 
-[Collection("Postgres Collection")]
-public class BakerWriterTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class BakerWriterTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
     private readonly BakerWriter _target;
@@ -22,7 +22,7 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
 
     public BakerWriterTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new BakerWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
@@ -123,10 +123,13 @@ public class BakerWriterTest : IClassFixture<DatabaseFixture>
         var input = new[]
         {
             new AccountBaker
-            {
-                BakerId = 11,
-                PendingChange = new AccountBakerRemovePendingV0(12)
-            }
+            (
+                BakerInfo: new BakerInfo(BakerId: new BakerId(new AccountIndex(11)), Array.Empty<byte>(),Array.Empty<byte>(), Array.Empty<byte>()),
+                PendingChange: new AccountBakerRemovePending(_anyDateTimeOffset),
+                RestakeEarnings: false,
+                StakedAmount: CcdAmount.Zero, 
+                BakerPoolInfo: null
+            )
         };
         
         var returned = await _target.UpdateBakersFromAccountBaker(input, (dst, src) =>

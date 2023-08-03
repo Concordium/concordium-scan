@@ -11,7 +11,6 @@ public class ChainParametersV0Builder
     private ulong _bakerCooldownEpochs = 12;
     private ushort _accountCreationLimit = 7;
     private RewardParametersV0 _rewardParameters = new RewardParametersV0Builder().Build();
-    private long _foundationAccountIndex = 1;
     private AccountAddress _foundationAccountAddress = new("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
     private ulong _minimumThresholdForBaking = 15000UL;
 
@@ -25,7 +24,6 @@ public class ChainParametersV0Builder
             BakerCooldownEpochs = _bakerCooldownEpochs,
             AccountCreationLimit = _accountCreationLimit,
             RewardParameters = _rewardParameters,
-            FoundationAccountId = _foundationAccountIndex,
             FoundationAccountAddress = _foundationAccountAddress,
             MinimumThresholdForBaking = _minimumThresholdForBaking
         };
@@ -64,12 +62,6 @@ public class ChainParametersV0Builder
     public ChainParametersV0Builder WithRewardParameters(RewardParametersV0 value)
     {
         _rewardParameters = value;
-        return this;
-    }
-
-    public ChainParametersV0Builder WithFoundationAccountIndex(long value)
-    {
-        _foundationAccountIndex = value;
         return this;
     }
 

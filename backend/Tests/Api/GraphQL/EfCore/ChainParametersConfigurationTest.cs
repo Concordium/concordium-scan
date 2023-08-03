@@ -9,14 +9,14 @@ using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.EfCore;
 
-[Collection("Postgres Collection")]
-public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
+public class ChainParametersConfigurationTest
 {
     private readonly GraphQlDbContextFactoryStub _dbContextFactory;
 
     public ChainParametersConfigurationTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
+        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_chain_parameters");
@@ -36,7 +36,6 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
                 .WithTransactionFeeDistribution(0.5m, 0.6m)
                 .WithGasRewards(0.7m, 0.8m, 0.9m, 0.95m)
                 .Build())
-            .WithFoundationAccountIndex(7)
             .WithFoundationAccountAddress(new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"))
             .WithMinimumThresholdForBaking(848482929)
             .Build();
@@ -62,7 +61,6 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
         typed.RewardParameters.GasRewards.FinalizationProof.Should().Be(0.8m);
         typed.RewardParameters.GasRewards.AccountCreation.Should().Be(0.9m);
         typed.RewardParameters.GasRewards.ChainUpdate.Should().Be(0.95m);
-        typed.FoundationAccountId.Should().Be(7);
         typed.FoundationAccountAddress.AsString.Should().Be("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         typed.MinimumThresholdForBaking.Should().Be(848482929);
     }
@@ -105,7 +103,6 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
                 .WithTransactionFeeDistribution(0.5m, 0.6m)
                 .WithGasRewards(0.7m, 0.8m, 0.9m, 0.95m)
                 .Build())
-            .WithFoundationAccountIndex(7)
             .WithFoundationAccountAddress(new AccountAddress("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy"))
             .WithPassiveFinalizationCommission(0.1m)
             .WithPassiveBakingCommission(0.2m)
@@ -141,7 +138,6 @@ public class ChainParametersConfigurationTest : IClassFixture<DatabaseFixture>
         typed.RewardParameters.GasRewards.FinalizationProof.Should().Be(0.8m);
         typed.RewardParameters.GasRewards.AccountCreation.Should().Be(0.9m);
         typed.RewardParameters.GasRewards.ChainUpdate.Should().Be(0.95m);
-        typed.FoundationAccountId.Should().Be(7);
         typed.FoundationAccountAddress.AsString.Should().Be("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
         typed.PassiveFinalizationCommission.Should().Be(0.1m);
         typed.PassiveBakingCommission.Should().Be(0.2m);

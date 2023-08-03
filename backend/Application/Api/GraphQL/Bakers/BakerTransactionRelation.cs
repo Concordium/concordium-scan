@@ -1,4 +1,6 @@
 ﻿using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Extensions;
+using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
 using HotChocolate.Data;
@@ -31,5 +33,26 @@ public class BakerTransactionRelation
         return dbContext.Transactions
             .AsNoTracking()
             .Single(tx => tx.Id == TransactionId);
+    }
+    
+    internal static bool TryFrom(TransactionPair transactionPair, out BakerTransactionRelation? relation)
+    {
+        var bakerIds = transactionPair.Source.GetBakerIds().Distinct().ToArray();
+        
+        switch (bakerIds.Length)
+        {
+            case 0:
+                relation = null;
+                return false;
+            case 1:
+                relation = new BakerTransactionRelation
+                {
+                    BakerId = (long)bakerIds.Single().Id.Index,
+                    TransactionId = transactionPair.Target.Id
+                };
+                return true;
+            default:
+                throw new InvalidOperationException("Did not expect multiple baker ids from one transaction");
+        }
     }
 }

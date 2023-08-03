@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Import;
+using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Import;
@@ -21,43 +22,42 @@ public class PassiveDelegationImportHandler
         ImportState importState, BlockImportPaydayStatus importPaydayStatus, Block block)
     {
         PaydayPassiveDelegationStakeSnapshot? result = null;
+
+        if (payload.BlockInfo.ProtocolVersion.AsInt() < 4) return result;
         
-        if (payload.BlockSummary.ProtocolVersion >= 4)
+        await EnsureInitialized(importState);
+            
+        var delegatorCountDelta = delegationUpdateResults.DelegatorCountDeltas
+            .SingleOrDefault(x => x.DelegationTarget == new PassiveDelegationTarget())?
+            .DelegatorCountDelta ?? 0;
+
+        var delegatedStake = await GetTotalStakedToPassiveDelegation();
+        var delegatedStakePercentage = Math.Round((decimal)delegatedStake / payload.RewardStatus.TotalAmount.Value, 10);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var instance = await dbContext.PassiveDelegations.SingleAsync();
+        instance.DelegatorCount += delegatorCountDelta;
+        instance.DelegatedStake = delegatedStake;
+        instance.DelegatedStakePercentage = delegatedStakePercentage;
+
+        if (importPaydayStatus is FirstBlockAfterPayday)
         {
-            await EnsureInitialized(importState);
-            
-            var delegatorCountDelta = delegationUpdateResults.DelegatorCountDeltas
-                .SingleOrDefault(x => x.DelegationTarget == new PassiveDelegationTarget())?
-                .DelegatorCountDelta ?? 0;
-
-            var delegatedStake = await GetTotalStakedToPassiveDelegation();
-            var delegatedStakePercentage = Math.Round((decimal)delegatedStake / payload.RewardStatus.TotalAmount.MicroCcdValue, 10);
-
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var instance = await dbContext.PassiveDelegations.SingleAsync();
-            instance.DelegatorCount += delegatorCountDelta;
-            instance.DelegatedStake = delegatedStake;
-            instance.DelegatedStakePercentage = delegatedStakePercentage;
-
-            if (importPaydayStatus is FirstBlockAfterPayday)
+            var stakes = new PoolPaydayStakes
             {
-                var stakes = new PoolPaydayStakes
-                {
-                    PayoutBlockId = block.Id,
-                    PoolId = -1,
-                    BakerStake = 0,
-                    DelegatedStake = (long)instance.CurrentPaydayDelegatedStake
-                };
-                dbContext.PoolPaydayStakes.Add(stakes);
+                PayoutBlockId = block.Id,
+                PoolId = -1,
+                BakerStake = 0,
+                DelegatedStake = (long)instance.CurrentPaydayDelegatedStake
+            };
+            dbContext.PoolPaydayStakes.Add(stakes);
                 
-                result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
+            result = new PaydayPassiveDelegationStakeSnapshot((long)instance.CurrentPaydayDelegatedStake);
 
-                var status = await payload.ReadPassiveDelegationPoolStatus();
-                instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.MicroCcdValue;
-            }
-            
-            await dbContext.SaveChangesAsync();
+            var status = await payload.ReadPassiveDelegationPoolStatus();
+            instance.CurrentPaydayDelegatedStake = status.CurrentPaydayDelegatedCapital.Value;
         }
+            
+        await dbContext.SaveChangesAsync();
 
         return result;
     }

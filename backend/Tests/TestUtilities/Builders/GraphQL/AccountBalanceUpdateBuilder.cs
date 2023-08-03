@@ -1,11 +1,11 @@
-﻿using ConcordiumSdk.NodeApi.Types;
-using ConcordiumSdk.Types;
+﻿using Application.Api.GraphQL.Import;
+using Concordium.Sdk.Types;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
 public class AccountBalanceUpdateBuilder
 {
-    private AccountAddress _accountAddress = new("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
+    private AccountAddress _accountAddress = AccountAddress.From("44B3fpw5duunyeH5U7uxE3N7mpjiBsk9ZwkDiVF9bLNegcVRoy");
     private long _amountAdjustment = 0;
 
     public AccountBalanceUpdateBuilder WithAccountAddress(AccountAddress value)
