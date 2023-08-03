@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
+using Application.Import;
 using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
@@ -14,6 +15,25 @@ internal interface IBakerChangeStrategy
     bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime);
     DateTimeOffset GetEffectiveTime();
 }
+
+internal static class BakerChangeStrategyFactory
+{
+    internal static IBakerChangeStrategy Create(
+        BlockInfo blockInfo,
+        ChainParameters chainParameters, 
+        BlockImportPaydayStatus importPaydayStatus,
+        BakerWriter writer,
+        AccountInfo[] bakersWithNewPendingChanges)
+    {
+        if (blockInfo.ProtocolVersion.AsInt() < 4)
+            return new PreProtocol4Strategy(bakersWithNewPendingChanges, blockInfo, writer);
+        
+        ChainParameters.TryGetPoolOwnerCooldown(chainParameters, out var poolOwnerCooldown);
+        return new PostProtocol4Strategy(blockInfo, poolOwnerCooldown!.Value, importPaydayStatus, writer);
+
+    }
+}
+
 public class PreProtocol4Strategy : IBakerChangeStrategy
 {
     private readonly AccountInfo[] _accountInfos;
@@ -143,14 +163,14 @@ public class PreProtocol4Strategy : IBakerChangeStrategy
 public class PostProtocol4Strategy : IBakerChangeStrategy
 {
     private readonly BlockInfo _blockInfo;
-    private readonly ChainParametersV1 _chainParameters;
+    private readonly ulong _poolOwnerCooldown;
     private readonly BakerWriter _writer;
     private readonly BlockImportPaydayStatus _importPaydayStatus;
 
-    public PostProtocol4Strategy(BlockInfo blockInfo, ChainParametersV1 chainParameters, BlockImportPaydayStatus importPaydayStatus, BakerWriter writer)
+    public PostProtocol4Strategy(BlockInfo blockInfo, ulong poolOwnerCooldown, BlockImportPaydayStatus importPaydayStatus, BakerWriter writer)
     {
         _blockInfo = blockInfo;
-        _chainParameters = chainParameters;
+        _poolOwnerCooldown = poolOwnerCooldown;
         _importPaydayStatus = importPaydayStatus;
         _writer = writer;
     }
@@ -289,7 +309,7 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
     private void SetPendingChange<T>(Baker destination, T pendingChangeType) where T : IBakerEvent
     {
         var activeState = destination.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set a pending change for a baker that is not active!");
-        var effectiveTime = _blockInfo.BlockSlotTime.AddSeconds(_chainParameters.PoolOwnerCooldown);
+        var effectiveTime = _blockInfo.BlockSlotTime.AddSeconds(_poolOwnerCooldown);
 
         activeState.PendingChange = pendingChangeType switch
         {

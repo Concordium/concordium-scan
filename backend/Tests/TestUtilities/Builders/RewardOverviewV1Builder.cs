@@ -18,8 +18,8 @@ public class RewardOverviewV1Builder
 
     public RewardOverviewV1Builder()
     {
-        var _ = MintRateExtensions.TryParse(1, out var nextPaydayMintRate);
-        _nextPaydayMintRate = nextPaydayMintRate!.Value;
+        var nextPaydayMintRate = MintRateExtensions.From(1);
+        _nextPaydayMintRate = nextPaydayMintRate;
     }
 
     public RewardOverviewV1 Build()

@@ -29,10 +29,9 @@ public class BakerImportHandler
         ChainParametersState chainParameters, BlockImportPaydayStatus importPaydayStatus, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
-
-        IBakerChangeStrategy changeStrategy = (int)payload.BlockInfo.ProtocolVersion >= 4 
-            ? new PostProtocol4Strategy(payload.BlockInfo, (ChainParametersV1)chainParameters.Current, importPaydayStatus, _writer) 
-            : new PreProtocol4Strategy(payload.AccountInfos.BakersWithNewPendingChanges, payload.BlockInfo, _writer);
+        
+        var changeStrategy = BakerChangeStrategyFactory.Create(payload.BlockInfo, chainParameters.Current, importPaydayStatus, _writer,
+            payload.AccountInfos.BakersWithNewPendingChanges);;
 
         var resultBuilder = new BakerUpdateResultsBuilder();
 
@@ -88,18 +87,14 @@ public class BakerImportHandler
                         activeState.Pool!.DelegatorCount += delegatorCountDelta.DelegatorCountDelta;
                 });
         }
-        
-        if (payload.BlockInfo.ProtocolVersion.AsInt() >= 4)
+
+        if (ChainParameters.TryGetCapitalBoundAndLeverageFactor(chainParameters, out var capitalBound, out var leverageFactor))
         {
-            var chainParametersV1 = (ChainParametersV1)chainParameters;
-            var capitalBound = chainParametersV1.CapitalBound;
-            var leverageFactor = chainParametersV1.LeverageBound.AsDecimal();
-        
             var totalAmountStaked = bakerUpdateResults.TotalAmountStaked + delegationUpdateResults.TotalAmountStaked;
-            await _writer.UpdateDelegatedStakeCap(totalAmountStaked, capitalBound, leverageFactor);
+            await _writer.UpdateDelegatedStakeCap(totalAmountStaked, capitalBound!.Value, leverageFactor!.AsDecimal());
         }
     }
-    
+
     private async Task AddGenesisBakers(BlockDataPayload payload, BakerUpdateResultsBuilder resultBuilder, ImportState importState)
     {
         var mapBakerPool = payload.BlockInfo.ProtocolVersion.AsInt() >= 4;
@@ -257,13 +252,20 @@ public class BakerImportHandler
         _logger.Information("Migration completed!");
     }
 
-    private async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParameters)
+    private async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParametersState)
     {
-        if (chainParameters is ChainParametersChangedState { Current: ChainParametersV1 current, Previous: ChainParametersV1 previous })
+        if(ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+               out var currentFinalizationCommissionRange,
+               out var currentBakingCommissionRange,
+               out var currentTransactionCommissionRange) && 
+           ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+               out var previousFinalizationCommissionRange,
+               out var previousBakingCommissionRange,
+               out var previousTransactionCommissionRange))
         {
-            if (current.FinalizationCommissionRange.Equals(previous.FinalizationCommissionRange)
-                && current.BakingCommissionRange.Equals(previous.BakingCommissionRange)
-                && current.TransactionCommissionRange.Equals(previous.TransactionCommissionRange))
+            if (currentFinalizationCommissionRange!.Equals(previousFinalizationCommissionRange)
+                && currentBakingCommissionRange!.Equals(previousBakingCommissionRange)
+                && currentTransactionCommissionRange!.Equals(previousTransactionCommissionRange))
                 return; // No commission ranges changed!
 
             _logger.Information("Applying commission range changes to baker pools");
@@ -271,9 +273,9 @@ public class BakerImportHandler
             await _writer.UpdateBakers(baker =>
                 {
                     var rates = baker.ActiveState!.Pool!.CommissionRates;
-                    rates.FinalizationCommission = AdjustValueToRange(rates.FinalizationCommission, current.FinalizationCommissionRange);
-                    rates.BakingCommission = AdjustValueToRange(rates.BakingCommission, current.BakingCommissionRange);
-                    rates.TransactionCommission = AdjustValueToRange(rates.TransactionCommission, current.TransactionCommissionRange);
+                    rates.FinalizationCommission = AdjustValueToRange(rates.FinalizationCommission, currentFinalizationCommissionRange);
+                    rates.BakingCommission = AdjustValueToRange(rates.BakingCommission, currentBakingCommissionRange);
+                    rates.TransactionCommission = AdjustValueToRange(rates.TransactionCommission, currentTransactionCommissionRange);
                 },
                 baker => baker.ActiveState!.Pool != null);
 

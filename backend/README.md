@@ -27,6 +27,8 @@ Separate databases are created for the unit test suite. These databases are auto
 # Schema
 Schema is validated using snapshot testing in test `Tests.Api.GraphQL.GivenGraphqlSchemaChanges_WhenBuild_ThenFailDueToSnapshotsNotMatched`.
 
+The committed schema is saved as file `committed-schema.verified.graphql` and this file is used for frontend type generations.
+
 # Run the backend locally
 Once the prerequisites are met you can run the backend either from within the IDE or via a shell by issuing the "dotnet run" command in the Application directory.
 

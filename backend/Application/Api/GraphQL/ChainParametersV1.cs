@@ -1,7 +1,11 @@
-﻿namespace Application.Api.GraphQL;
+﻿using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Extensions;
 
-public class ChainParametersV1 : ChainParameters
+namespace Application.Api.GraphQL;
+
+public class ChainParametersV1 : ChainParameters, IEquatable<ChainParametersV1>
 {
+    public decimal ElectionDifficulty { get; init; }
     public ulong PoolOwnerCooldown { get; init; }
     public ulong DelegatorCooldown { get; init; }
     public ulong RewardPeriodLength { get; init; }
@@ -17,13 +21,11 @@ public class ChainParametersV1 : ChainParameters
     public decimal CapitalBound { get; init; }
     public LeverageFactor LeverageBound { get; init; }
 
-    public override bool Equals(object? obj)
+    public bool Equals(ChainParametersV1? other)
     {
-        if (ReferenceEquals(null, obj)) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != GetType()) return false;
-        var other = (ChainParametersV1)obj;
-        return base.Equals(obj) &&
+        return other != null &&
+               base.Equals(other) &&
+               ElectionDifficulty == other.ElectionDifficulty &&
                PoolOwnerCooldown == other.PoolOwnerCooldown &&
                DelegatorCooldown == other.DelegatorCooldown &&
                RewardPeriodLength == other.RewardPeriodLength &&
@@ -40,6 +42,13 @@ public class ChainParametersV1 : ChainParameters
                LeverageBound == other.LeverageBound;
     }
 
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals(obj as ChainParametersV1);
+    }
+
     public override int GetHashCode()
     {
         return Id;
@@ -53,5 +62,61 @@ public class ChainParametersV1 : ChainParameters
     public static bool operator !=(ChainParametersV1? left, ChainParametersV1? right)
     {
         return !Equals(left, right);
+    }
+    
+    internal static ChainParametersV1 From(Concordium.Sdk.Types.ChainParametersV1 input, int id = default)
+    {
+        var mintDistribution = input.MintDistribution;
+        var transactionFeeDistribution = input.TransactionFeeDistribution;
+        var gasRewards = input.GasRewards;
+
+        var rewardParameters = new RewardParametersV1
+        {
+            MintDistribution = new MintDistributionV1
+            {
+                BakingReward = mintDistribution.BakingReward.AsDecimal(),
+                FinalizationReward = mintDistribution.FinalizationReward.AsDecimal()
+            },
+            TransactionFeeDistribution = new TransactionFeeDistribution
+            {
+                Baker = transactionFeeDistribution.Baker.AsDecimal(),
+                GasAccount = transactionFeeDistribution.GasAccount.AsDecimal()
+            },
+            GasRewards = new GasRewards
+            {
+                Baker = gasRewards.Baker.AsDecimal(),
+                FinalizationProof = gasRewards.FinalizationProof.AsDecimal(),
+                AccountCreation = gasRewards.AccountCreation.AsDecimal(),
+                ChainUpdate = gasRewards.ChainUpdate.AsDecimal()
+            }
+        };
+
+        return new ChainParametersV1
+        {
+            Id = id,
+            ElectionDifficulty = input.ElectionDifficulty.AsDecimal(),
+            EuroPerEnergy = ExchangeRate.From(input.EuroPerEnergy),
+            MicroCcdPerEuro = ExchangeRate.From(input.MicroCcdPerEuro),
+            PoolOwnerCooldown = (ulong)input.CooldownParameters.PoolOwnerCooldown.TotalSeconds,
+            DelegatorCooldown = (ulong)input.CooldownParameters.DelegatorCooldown.TotalSeconds,
+            RewardPeriodLength = input.TimeParameters.RewardPeriodLength.RewardPeriodEpochs.Count,
+            MintPerPayday = input.TimeParameters.MintPrPayDay.AsDecimal(),
+            AccountCreationLimit = (int)input.AccountCreationLimit.Limit,
+            RewardParameters = rewardParameters,
+            FoundationAccountAddress = AccountAddress.From(input.FoundationAccount),
+            PassiveFinalizationCommission = input.PoolParameters.PassiveFinalizationCommission.AsDecimal(),
+            PassiveBakingCommission = input.PoolParameters.PassiveBakingCommission.AsDecimal(),
+            PassiveTransactionCommission = input.PoolParameters.PassiveTransactionCommission.AsDecimal(),
+            FinalizationCommissionRange = CommissionRange.From(input.PoolParameters.CommissionBounds.Finalization),
+            BakingCommissionRange = CommissionRange.From(input.PoolParameters.CommissionBounds.Baking),
+            TransactionCommissionRange = CommissionRange.From(input.PoolParameters.CommissionBounds.Transaction),
+            MinimumEquityCapital = input.PoolParameters.MinimumEquityCapital.Value,
+            CapitalBound = input.PoolParameters.CapitalBound.Bound.AsDecimal(),
+            LeverageBound = new LeverageFactor
+            {
+                Numerator = input.PoolParameters.LeverageBound.Numerator,
+                Denominator = input.PoolParameters.LeverageBound.Denominator
+            }
+        };
     }
 }

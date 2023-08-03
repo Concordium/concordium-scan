@@ -47,7 +47,7 @@ public class BakerImportHandlerTest
         var address = AccountAddress.From("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
         const ProtocolVersion protocolVersion = ProtocolVersion.P4;
         var bakerId = new BakerId(new AccountIndex(1));
-        var _ = MintRateExtensions.TryParse(10, out var mintRate);
+        var mintRate = MintRateExtensions.From(10);
 
         var bakerConfigured = new BakerConfigured(new List<IBakerEvent>{new BakerAddedEvent(
             new BakerKeysEvent(
@@ -79,7 +79,7 @@ public class BakerImportHandlerTest
         var rewardOverviewV1 = new RewardOverviewV1Builder()
             .WithProtocolVersion(protocolVersion)
             .WithNextPaydayTime(DateTimeOffset.Now)
-            .WithNextPaydayMintRate(mintRate!.Value)
+            .WithNextPaydayMintRate(mintRate)
             .Build();
 
         var allBakerStatusesFunc = () => Task.FromResult(new[]
@@ -95,7 +95,8 @@ public class BakerImportHandlerTest
                     BakerPoolOpenStatus.OpenForAll,
                     ""),
                 null,
-                CcdAmount.Zero
+                CcdAmount.Zero,
+                null
             )
         });
 

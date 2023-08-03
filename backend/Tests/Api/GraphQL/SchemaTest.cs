@@ -35,7 +35,8 @@ public class SchemaTest
         
         // Assert
         var print = schema.Print();
-        await Verifier.Verify(print)
+        await Verifier.Verify(target: print, extension: "graphql")
+            .UseFileName("committed-schema")
             .UseDirectory("__snapshots__");
     }
 }

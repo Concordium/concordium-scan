@@ -1,6 +1,8 @@
 using Concordium.Sdk.Types;
 using FluentAssertions;
 using Application.Api.GraphQL.Extensions;
+using Application.Exceptions;
+using VerifyTests;
 
 namespace Tests.Api.GraphQL.Extensions;
 
@@ -20,12 +22,11 @@ public class MintRateExtensionsTests
         var calculated = mintRate!.Value.AsDecimal();
 
         // Act
-        var parsed = MintRateExtensions.TryParse(calculated, out var actualMintRate);
+        var actualMintRate = MintRateExtensions.From(calculated);
 
         // Assert
-        parsed.Should().BeTrue();
         actualMintRate.Should().NotBeNull();
-        var (actualExponent, actualMantissa) = actualMintRate!.Value.GetValues();
+        var (actualExponent, actualMantissa) = actualMintRate.GetValues();
         actualMantissa.Should().Be(mantissa);
         actualExponent.Should().Be(exponent);
     }
@@ -38,10 +39,9 @@ public class MintRateExtensionsTests
         var input = (((decimal)uint.MaxValue) + 1) / 100;
         
         // Act
-        var parsed = MintRateExtensions.TryParse(input, out var actualMintRate);
-        
+        var action = () => MintRateExtensions.From(input);
+
         // Assert
-        parsed.Should().BeFalse();
-        actualMintRate.Should().BeNull();
+        action.Should().Throw<MintRateCalculationException>();
     }
 }

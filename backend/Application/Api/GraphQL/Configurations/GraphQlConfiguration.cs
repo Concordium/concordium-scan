@@ -65,8 +65,18 @@ public static class GraphQlConfiguration
         
         builder.BindClrType<ulong, UnsignedLongType>();
         builder.BindClrType<BigInteger, BigIntegerScalarType>();
+        
+        builder.AddDerivedTypes();
+        
+        builder.AddEnumTypes();
+    }
 
-        // Bind all concrete types of GraphQL unions and interfaces
+    /// <summary>
+    /// Bind all concrete types of GraphQL unions and interfaces
+    /// </summary>
+    /// <param name="builder"></param>
+    private static void AddDerivedTypes(this ISchemaBuilder builder)
+    {
         AddAllTypesDerivedFrom<ChainParameters>(builder);
         AddAllTypesDerivedFrom<SpecialEvent>(builder);
         AddAllTypesDerivedFrom<TransactionResult>(builder);
@@ -80,9 +90,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<PendingBakerChange>(builder);
         AddAllTypesDerivedFrom<DelegationTarget>(builder);
         AddAllTypesDerivedFrom<PendingDelegationChange>(builder);
-        AddAllTypesDerivedFrom<PoolRewardTarget>(builder);
-        
-        builder.AddEnumTypes();
+        AddAllTypesDerivedFrom<PoolRewardTarget>(builder);        
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

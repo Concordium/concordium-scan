@@ -913,7 +913,6 @@ export type BlocksEdge = {
 
 export type ChainParameters = {
   accountCreationLimit: Scalars['Int'];
-  electionDifficulty: Scalars['Decimal'];
   euroPerEnergy: ExchangeRate;
   foundationAccountAddress: AccountAddress;
   microCcdPerEuro: ExchangeRate;
@@ -950,6 +949,28 @@ export type ChainParametersV1 = ChainParameters & {
   passiveTransactionCommission: Scalars['Decimal'];
   poolOwnerCooldown: Scalars['UnsignedLong'];
   rewardParameters: RewardParametersV1;
+  rewardPeriodLength: Scalars['UnsignedLong'];
+  transactionCommissionRange: CommissionRange;
+};
+
+export type ChainParametersV2 = ChainParameters & {
+  __typename?: 'ChainParametersV2';
+  accountCreationLimit: Scalars['Int'];
+  bakingCommissionRange: CommissionRange;
+  capitalBound: Scalars['Decimal'];
+  delegatorCooldown: Scalars['UnsignedLong'];
+  euroPerEnergy: ExchangeRate;
+  finalizationCommissionRange: CommissionRange;
+  foundationAccountAddress: AccountAddress;
+  leverageBound: LeverageFactor;
+  microCcdPerEuro: ExchangeRate;
+  minimumEquityCapital: Scalars['UnsignedLong'];
+  mintPerPayday: Scalars['Decimal'];
+  passiveBakingCommission: Scalars['Decimal'];
+  passiveFinalizationCommission: Scalars['Decimal'];
+  passiveTransactionCommission: Scalars['Decimal'];
+  poolOwnerCooldown: Scalars['UnsignedLong'];
+  rewardParameters: RewardParametersV2;
   rewardPeriodLength: Scalars['UnsignedLong'];
   transactionCommissionRange: CommissionRange;
 };
@@ -1350,6 +1371,13 @@ export type GasRewardsChainUpdatePayload = {
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
   finalizationProof: Scalars['Decimal'];
+};
+
+export type GasRewardsCpv2 = {
+  __typename?: 'GasRewardsCpv2';
+  accountCreation: Scalars['Decimal'];
+  baker: Scalars['Decimal'];
+  chainUpdate: Scalars['Decimal'];
 };
 
 export type ImportState = {
@@ -2234,6 +2262,13 @@ export type RewardParametersV1 = {
   transactionFeeDistribution: TransactionFeeDistribution;
 };
 
+export type RewardParametersV2 = {
+  __typename?: 'RewardParametersV2';
+  gasRewards: GasRewardsCpv2;
+  mintDistribution: MintDistributionV1;
+  transactionFeeDistribution: TransactionFeeDistribution;
+};
+
 export enum RewardType {
   BakerReward = 'BAKER_REWARD',
   FinalizationReward = 'FINALIZATION_REWARD',
@@ -2427,7 +2462,8 @@ export type Token = {
   contractSubIndex: Scalars['UnsignedLong'];
   metadataUrl?: Maybe<Scalars['String']>;
   tokenId: Scalars['String'];
-  totalSupply: Scalars['BigInteger'];
+  tokens: Array<AccountToken>;
+  totalSupply: Scalars['Decimal'];
 };
 
 export type Transaction = {
@@ -2543,6 +2579,12 @@ export type UpdateTransaction = {
 };
 
 export enum UpdateTransactionType {
+  BlockEnergyLimitUpdate = 'BLOCK_ENERGY_LIMIT_UPDATE',
+  FinalizationCommitteeParametersUpdate = 'FINALIZATION_COMMITTEE_PARAMETERS_UPDATE',
+  GasRewardsCpv2Update = 'GAS_REWARDS_CPV2_UPDATE',
+  MintDistributionCpv1Update = 'MINT_DISTRIBUTION_CPV1_UPDATE',
+  MinBlockTimeUpdate = 'MIN_BLOCK_TIME_UPDATE',
+  TimeoutParametersUpdate = 'TIMEOUT_PARAMETERS_UPDATE',
   UpdateAddAnonymityRevoker = 'UPDATE_ADD_ANONYMITY_REVOKER',
   UpdateAddIdentityProvider = 'UPDATE_ADD_IDENTITY_PROVIDER',
   UpdateBakerStakeThreshold = 'UPDATE_BAKER_STAKE_THRESHOLD',

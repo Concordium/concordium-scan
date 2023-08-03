@@ -4,7 +4,6 @@
 }
 
 interface ChainParameters {
-  electionDifficulty: Decimal!
   euroPerEnergy: ExchangeRate!
   microCcdPerEuro: ExchangeRate!
   accountCreationLimit: Int!
@@ -641,10 +640,10 @@ type BlocksEdge {
 }
 
 type ChainParametersV0 implements ChainParameters {
+  electionDifficulty: Decimal!
   bakerCooldownEpochs: UnsignedLong!
   rewardParameters: RewardParametersV0!
   minimumThresholdForBaking: UnsignedLong!
-  electionDifficulty: Decimal!
   euroPerEnergy: ExchangeRate!
   microCcdPerEuro: ExchangeRate!
   accountCreationLimit: Int!
@@ -652,6 +651,7 @@ type ChainParametersV0 implements ChainParameters {
 }
 
 type ChainParametersV1 implements ChainParameters {
+  electionDifficulty: Decimal!
   poolOwnerCooldown: UnsignedLong!
   delegatorCooldown: UnsignedLong!
   rewardPeriodLength: UnsignedLong!
@@ -666,7 +666,27 @@ type ChainParametersV1 implements ChainParameters {
   minimumEquityCapital: UnsignedLong!
   capitalBound: Decimal!
   leverageBound: LeverageFactor!
-  electionDifficulty: Decimal!
+  euroPerEnergy: ExchangeRate!
+  microCcdPerEuro: ExchangeRate!
+  accountCreationLimit: Int!
+  foundationAccountAddress: AccountAddress!
+}
+
+type ChainParametersV2 implements ChainParameters {
+  poolOwnerCooldown: UnsignedLong!
+  delegatorCooldown: UnsignedLong!
+  rewardPeriodLength: UnsignedLong!
+  mintPerPayday: Decimal!
+  rewardParameters: RewardParametersV2!
+  passiveFinalizationCommission: Decimal!
+  passiveBakingCommission: Decimal!
+  passiveTransactionCommission: Decimal!
+  finalizationCommissionRange: CommissionRange!
+  bakingCommissionRange: CommissionRange!
+  transactionCommissionRange: CommissionRange!
+  minimumEquityCapital: UnsignedLong!
+  capitalBound: Decimal!
+  leverageBound: LeverageFactor!
   euroPerEnergy: ExchangeRate!
   microCcdPerEuro: ExchangeRate!
   accountCreationLimit: Int!
@@ -966,6 +986,12 @@ type GasRewards {
 type GasRewardsChainUpdatePayload {
   baker: Decimal!
   finalizationProof: Decimal!
+  accountCreation: Decimal!
+  chainUpdate: Decimal!
+}
+
+type GasRewardsCpv2 {
+  baker: Decimal!
   accountCreation: Decimal!
   chainUpdate: Decimal!
 }
@@ -1534,6 +1560,12 @@ type RewardParametersV1 {
   mintDistribution: MintDistributionV1!
   transactionFeeDistribution: TransactionFeeDistribution!
   gasRewards: GasRewards!
+}
+
+type RewardParametersV2 {
+  mintDistribution: MintDistributionV1!
+  transactionFeeDistribution: TransactionFeeDistribution!
+  gasRewards: GasRewardsCpv2!
 }
 
 type RootKeysChainUpdatePayload {

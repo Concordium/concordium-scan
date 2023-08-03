@@ -57,10 +57,10 @@ public class ChainParametersV1Builder
 
     public ChainParametersV1Builder()
     {
-        var _ = MintRateExtensions.TryParse(0.25m, out var mintPrPayDay);
+        var mintPrPayDay = MintRateExtensions.From(0.25m);
         _timeParameters = new TimeParameters(
             new RewardPeriodLength(new Epoch(4)),
-            mintPrPayDay!.Value
+            mintPrPayDay
         );
     }
     

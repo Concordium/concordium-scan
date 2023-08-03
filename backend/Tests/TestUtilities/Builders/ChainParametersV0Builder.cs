@@ -32,9 +32,9 @@ public class ChainParametersV0Builder
 
     public ChainParametersV0Builder()
     {
-        var _ = MintRateExtensions.TryParse(0.2m, out var mintPerSlot);
+        var mintPerSlot = MintRateExtensions.From(0.2m);
         _mintDistribution = new MintDistributionCpv0(
-             mintPerSlot!.Value,
+             mintPerSlot,
             AmountFraction.From(0.3m),
             AmountFraction.From(0.4m));
     }
