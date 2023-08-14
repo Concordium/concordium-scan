@@ -20,12 +20,8 @@ public abstract record TransactionResultEvent
         switch (blockItemSummaryDetails)
         {
             case AccountCreationDetails accountCreationDetails:
-                yield return accountCreationDetails.CredentialType switch
-                {
-                    CredentialType.Initial => CredentialDeployed.From(accountCreationDetails),
-                    CredentialType.Normal => AccountCreated.From(accountCreationDetails),
-                    _ => throw new ArgumentOutOfRangeException(nameof(accountCreationDetails))
-                };
+                yield return CredentialDeployed.From(accountCreationDetails);
+                yield return AccountCreated.From(accountCreationDetails);
                 break;
             case AccountTransactionDetails accountTransactionDetails:
                 switch (accountTransactionDetails.Effects)
