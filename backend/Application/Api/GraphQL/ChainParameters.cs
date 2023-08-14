@@ -92,6 +92,37 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
     /// <summary>
     /// Present from protocol version 4 and above and hence from chain parameters 1 and above.
     /// </summary>
+    internal static bool TryGetPassiveCommissions(
+        ChainParameters chainParameters,
+        out decimal? passiveFinalizationCommission,
+        out decimal? passiveBakingCommission,
+        out decimal? passiveTransactionCommission)
+    {
+        switch (chainParameters)
+        {
+            case ChainParametersV0:
+                passiveFinalizationCommission = null;
+                passiveBakingCommission = null;
+                passiveTransactionCommission = null;
+                return false;
+            case ChainParametersV1 chainParametersV1:
+                passiveFinalizationCommission = chainParametersV1.PassiveFinalizationCommission;
+                passiveBakingCommission = chainParametersV1.PassiveBakingCommission;
+                passiveTransactionCommission = chainParametersV1.PassiveTransactionCommission;
+                return true;
+            case ChainParametersV2 chainParametersV2:
+                passiveFinalizationCommission = chainParametersV2.PassiveFinalizationCommission;
+                passiveBakingCommission = chainParametersV2.PassiveBakingCommission;
+                passiveTransactionCommission = chainParametersV2.PassiveTransactionCommission;
+                return true;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(chainParameters));
+        }
+    }
+    
+    /// <summary>
+    /// Present from protocol version 4 and above and hence from chain parameters 1 and above.
+    /// </summary>
     internal static bool TryGetCommissionRanges(
         ChainParameters chainParameters,
         out CommissionRange? finalizationCommissionRange,

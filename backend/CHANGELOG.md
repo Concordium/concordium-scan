@@ -1,4 +1,10 @@
-## Unreleased
+## 1.6.1
+- Bugfix
+    - Bumped NET SDK to 4.0.1 which fixes wrong transaction count mapping.
+    - Fixed Passive Delegation queries to be robust with chain parameters level 2.
+    - Fixed changed types on table `metrics_payday_pool_rewards` from PostgreSQL `numeric` to `double` such that they can't be casted to C# `double`s.
+
+## 1.6.0
 - Added support for CIS Token balances listing under accounts sidebar
 - Handled exceptions when Baker & Account not available in Database while trying to update them.
 - Added support for Contract Upgraded Event (Protocol 5)

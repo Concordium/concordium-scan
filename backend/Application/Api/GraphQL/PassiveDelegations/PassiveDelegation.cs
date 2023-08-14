@@ -42,15 +42,20 @@ public class PassiveDelegation
             .OrderByDescending(x => x.Id)
             .FirstOrDefault();
 
-        if (latestChainParameters is ChainParametersV1 chainParamsV1)
+        if (latestChainParameters != null && ChainParameters.TryGetPassiveCommissions(
+                latestChainParameters,
+                out var passiveFinalizationCommission,
+                out var passiveBakingCommission,
+                out var passiveTransactionCommission))
         {
             return new CommissionRates
             {
-                TransactionCommission = chainParamsV1.PassiveTransactionCommission,
-                FinalizationCommission = chainParamsV1.PassiveFinalizationCommission,
-                BakingCommission = chainParamsV1.PassiveBakingCommission
+                TransactionCommission = passiveTransactionCommission!.Value,
+                FinalizationCommission = passiveFinalizationCommission!.Value,
+                BakingCommission = passiveBakingCommission!.Value
             };
         }
+
         throw new NotImplementedException("Cannot get commission rates for passive delegation for this version of chain parameters!");
     }
     
