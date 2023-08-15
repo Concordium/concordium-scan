@@ -1,3 +1,7 @@
+## 1.6.2
+- Bugfix
+    - Added as before protocol update two transaction events, `CredentialDeployed` and `AccountCreated`, when a account is created.
+
 ## 1.6.1
 - Bugfix
     - Bumped NET SDK to 4.0.1 which fixes wrong transaction count mapping.

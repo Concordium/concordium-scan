@@ -213,23 +213,39 @@ public class TransactionsWriterTest
     }
     
     [Fact]
-    public async Task TransactionEvents_AccountCreated()
+    public async Task TransactionEvents_FromAccountCreationNormal_ThenAccountCreatedAndCredentialDeployed()
     {
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
+        var bytes = new byte[42];
+
         var accountCreated = new AccountCreationDetailsBuilder(CredentialType.Normal)
             .WithAccountAddress(AccountAddress.From(address))
+            .WithCredentialRegistrationId(new CredentialRegistrationId(bytes))
             .Build();
         var blockItemSummaryAccountCreated = new BlockItemSummaryBuilder(accountCreated)
             .Build();
 
         await WriteData(new List<BlockItemSummary>{blockItemSummaryAccountCreated});
 
-        var result = await ReadSingleTransactionEventType<AccountCreated>();
-        result.AccountAddress.AsString.Should().Be(address);
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var transaction = dbContext.Transactions.Single();
+
+        var result = dbContext.TransactionResultEvents.ToArray();
+        result.Length.Should().Be(2);
+        result[0].TransactionId.Should().Be(transaction.Id);
+        result[0].Index.Should().Be(0);
+        result[0].Entity.Should().BeOfType<CredentialDeployed>();
+        var credentialDeployed = result[0].Entity as CredentialDeployed;
+        credentialDeployed!.AccountAddress.AsString.Should().Be(address);
+        credentialDeployed!.RegId.Should().Be(Convert.ToHexString(bytes));
+        result[1].TransactionId.Should().Be(transaction.Id);
+        result[1].Index.Should().Be(1);
+        result[1].Entity.Should().BeOfType<AccountCreated>();
+        (result[1].Entity as AccountCreated)!.AccountAddress.AsString.Should().Be(address);
     }
     
     [Fact]
-    public async Task TransactionEvents_CredentialDeployed()
+    public async Task TransactionEvents_FromAccountCreationInitial_ThenAccountCreatedAndCredentialDeployed()
     {
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         const string regId = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
@@ -243,9 +259,21 @@ public class TransactionsWriterTest
 
         await WriteData(new List<BlockItemSummary>{blockItemSummaryCredentialDeployed});
 
-        var result = await ReadSingleTransactionEventType<CredentialDeployed>();
-        result.RegId.Should().Be(regId);
-        result.AccountAddress.AsString.Should().Be(address);
+        await using var dbContext = _dbContextFactory.CreateDbContext();
+        var transaction = dbContext.Transactions.Single();
+
+        var result = dbContext.TransactionResultEvents.ToArray();
+        result.Length.Should().Be(2);
+        result[0].TransactionId.Should().Be(transaction.Id);
+        result[0].Index.Should().Be(0);
+        result[0].Entity.Should().BeOfType<CredentialDeployed>();
+        var credentialDeployed = result[0].Entity as CredentialDeployed;
+        credentialDeployed!.AccountAddress.AsString.Should().Be(address);
+        credentialDeployed!.RegId.Should().Be(regId);
+        result[1].TransactionId.Should().Be(transaction.Id);
+        result[1].Index.Should().Be(1);
+        result[1].Entity.Should().BeOfType<AccountCreated>();
+        (result[1].Entity as AccountCreated)!.AccountAddress.AsString.Should().Be(address);
     }
 
     [Fact]
