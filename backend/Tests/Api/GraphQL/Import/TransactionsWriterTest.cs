@@ -213,7 +213,7 @@ public class TransactionsWriterTest
     }
     
     [Fact]
-    public async Task TransactionEvents_AccountCreated()
+    public async Task TransactionEvents_FromAccountCreationNormal_ThenAccountCreatedAndCredentialDeployed()
     {
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         var bytes = new byte[42];
@@ -245,7 +245,7 @@ public class TransactionsWriterTest
     }
     
     [Fact]
-    public async Task TransactionEvents_CredentialDeployed()
+    public async Task TransactionEvents_FromAccountCreationInitial_ThenAccountCreatedAndCredentialDeployed()
     {
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         const string regId = "b5e170bfd468a55bb2bf593e7d1904936436679f448779a67d3f8632b92b1c7e7e037bf9175c257f6893d7a80f8b317d";
