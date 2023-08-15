@@ -11,7 +11,6 @@ public class BlockDataPayloadBuilder
     private IList<BlockItemSummary> _blockItemSummaries;
     private readonly IChainParameters _chainParameters;
     private readonly IList<ISpecialEvent> _specialEvents;
-    private readonly FinalizationSummary? _finalizationSummary;
     private AccountInfosRetrieved _accountInfos;
     private RewardOverviewBase _rewardStatus;
     private Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc;
@@ -23,7 +22,6 @@ public class BlockDataPayloadBuilder
         _blockItemSummaries = new List<BlockItemSummary>();
         _chainParameters = Mock.Of<IChainParameters>();
         _specialEvents = new List<ISpecialEvent>();
-        _finalizationSummary = null;
         _accountInfos = new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
         _rewardStatus = new RewardOverviewV0Builder().Build();
         _readAllBakerPoolStatusesFunc = () => Task.FromResult(Array.Empty<BakerPoolStatus>());
@@ -36,7 +34,6 @@ public class BlockDataPayloadBuilder
             _blockItemSummaries,
             _chainParameters,
             _specialEvents,
-            _finalizationSummary,
             _accountInfos,
             _rewardStatus,
             _readAllBakerPoolStatusesFunc,

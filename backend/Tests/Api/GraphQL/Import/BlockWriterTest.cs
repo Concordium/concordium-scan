@@ -8,9 +8,6 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
-using Xunit.Abstractions;
-using FinalizationSummary = Concordium.Sdk.Types.FinalizationSummary;
-using FinalizationSummaryBuilder = Tests.TestUtilities.Builders.FinalizationSummaryBuilder;
 
 namespace Tests.Api.GraphQL.Import;
 
@@ -26,14 +23,13 @@ public class BlockWriterTest
     private readonly DelegationUpdateResultsBuilder _delegationUpdateResultsBuilder = new();
     private int _chainParametersId = 20;
 
-    public BlockWriterTest(DatabaseFixture dbFixture, ITestOutputHelper outputHelper)
+    public BlockWriterTest(DatabaseFixture dbFixture)
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new BlockWriter(_dbContextFactory, new NullMetrics());
 
         using var connection = dbFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
-        connection.Execute("TRUNCATE TABLE graphql_finalization_summary_finalizers");
     }
     
     [Fact]
@@ -80,79 +76,6 @@ public class BlockWriterTest
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = dbContext.Blocks.Single();
         result.BakerId.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task FinalizationSummary_NonNull()
-    {
-        // Arrange
-        const string blockHash = "86cb792754bc7bf2949378a8e1c9716a36877634a689d4e48198ceacb2e3591e";
-
-        const ulong index = 42UL;
-        const ulong delay = 11;
-        
-        const ulong firstBakerId = 1;
-        const ulong firstWeight = 130;
-        const bool firstSigned = true;
-        
-        const ulong secondBakerId = 2;
-        const ulong secondWeight = 220;
-        const bool secondSigned = false;
-        var first = new FinalizationSummaryPartyBuilder()
-            .WithBakerId(new BakerId(new AccountIndex(firstBakerId)))
-            .WithWeight(firstWeight)
-            .WithSigned(firstSigned)
-            .Build();
-        var second = new FinalizationSummaryPartyBuilder()
-            .WithBakerId(new BakerId(new AccountIndex(secondBakerId)))
-            .WithWeight(secondWeight)
-            .WithSigned(secondSigned)
-            .Build();
-
-        var finalizationSummary = new FinalizationSummaryBuilder()
-            .WithBlockPointer(BlockHash.From(blockHash))
-            .WithIndex(index)
-            .WithDelay(delay)
-            .AddSummaryParty(first, second)
-            .Build();
-
-        // Act
-        await WriteData(finalizationSummary);
-
-        // Assert
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.FinalizationSummary.Should().NotBeNull();
-        block.FinalizationSummary!.Owner.Should().BeSameAs(block);
-        block.FinalizationSummary.FinalizedBlockHash.Should().Be(blockHash);
-        block.FinalizationSummary.FinalizationIndex.Should().Be((long)index);
-        block.FinalizationSummary.FinalizationDelay.Should().Be((long)delay);
-
-        var finalizers = dbContext.FinalizationSummaryFinalizers.ToArray();
-        finalizers.Length.Should().Be(2);
-        finalizers[0].BlockId.Should().Be(block.Id);
-        finalizers[0].Index.Should().Be(0);
-        finalizers[0].Entity.BakerId.Should().Be((long)firstBakerId);
-        finalizers[0].Entity.Weight.Should().Be((long)firstWeight);
-        finalizers[0].Entity.Signed.Should().BeTrue();
-        finalizers[1].BlockId.Should().Be(block.Id);
-        finalizers[1].Index.Should().Be(1);
-        finalizers[1].Entity.BakerId.Should().Be((long)secondBakerId);
-        finalizers[1].Entity.Weight.Should().Be((long)secondWeight);
-        finalizers[1].Entity.Signed.Should().BeFalse();
-    }
-    
-    [Fact]
-    public async Task FinalizationSummary_Null()
-    {
-        await WriteData();
-
-        await using var dbContext = _dbContextFactory.CreateDbContext();
-        var block = dbContext.Blocks.Single();
-        block.FinalizationSummary.Should().BeNull();
-        
-        var result = dbContext.FinalizationSummaryFinalizers.ToArray();
-        result.Length.Should().Be(0);
     }
 
     [Fact]
@@ -241,35 +164,26 @@ public class BlockWriterTest
     }
 
     [Fact]
-    public async Task UpdateFinalizedBlocks_NoFinalizationProof()
-    {
-        var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
-
-        var block = new BlockBuilder()
-            .WithBlockSlotTime(baseTime)
-            .WithFinalizationSummary(null)
-            .Build();
-
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, _importState);
-    }
-    
-    [Fact]
     public async Task UpdateFinalizedBlocks_FinalizationProofForSingleBlock()
     {
         _importState.MaxBlockHeightWithUpdatedFinalizationTime = 0;
-        
+        const string lastBlockHash = "5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1";
+
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
-
-        await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
-
-        var blockWithProof = new BlockBuilder()
-            .WithBlockSlotTime(baseTime.AddSeconds(9))
-            .WithFinalizationSummary(new Tests.TestUtilities.Builders.GraphQL.FinalizationSummaryBuilder()
-                .WithFinalizedBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1")
-                .Build())
+        var block = new BlockBuilder()
+            .WithBlockHeight(10)
+            .WithBlockSlotTime(baseTime)
+            .WithBlockHash(lastBlockHash)
             .Build();
 
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof, _importState);
+        await AddBlock(block);
+
+        var blockInfo = new BlockInfoBuilder()
+            .WithBlockSlotTime(baseTime.AddSeconds(9))
+            .WithBlockLastFinalized(BlockHash.From(lastBlockHash))
+            .Build();
+
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockInfo, _importState);
         
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 10);
@@ -282,6 +196,7 @@ public class BlockWriterTest
     public async Task UpdateFinalizedBlocks_FinalizationProofForMultipleBlocks()
     {
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+        const string lastBlockHash = "9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2";
 
         await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime.AddSeconds(10)).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
         await AddBlock(new BlockBuilder().WithBlockHeight(11).WithBlockSlotTime(baseTime.AddSeconds(19)).WithBlockHash("01cc0746f74640292e2f1bcc5fd4a542678c88c7a840adfca365612278160845").Build());
@@ -289,14 +204,12 @@ public class BlockWriterTest
 
         _importState.MaxBlockHeightWithUpdatedFinalizationTime = 10;
         
-        var blockWithProof = new BlockBuilder()
+        var blockInfo = new BlockInfoBuilder()
             .WithBlockSlotTime(baseTime.AddSeconds(40))
-            .WithFinalizationSummary(new Tests.TestUtilities.Builders.GraphQL.FinalizationSummaryBuilder()
-                .WithFinalizedBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2")
-                .Build())
+            .WithBlockLastFinalized(BlockHash.From(lastBlockHash))
             .Build();
 
-        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockWithProof, _importState);
+        await _target.UpdateFinalizationTimeOnBlocksInFinalizationProof(blockInfo, _importState);
         
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.ToArrayAsync();
@@ -326,12 +239,12 @@ public class BlockWriterTest
                 values (1, 1, 1, @Timestamp, @Amount, 2)", schedules);
     }
 
-    private async Task WriteData(FinalizationSummary? finalizationSummary = null)
+    private async Task WriteData()
     {
         var blockInfo = _blockInfoBuilder.Build();
         var rewardStatus = _rewardOverviewV0Builder.Build();
         var bakerUpdateResults = _bakerUpdateResultsBuilder.Build();
         var delegationUpdateResults = _delegationUpdateResultsBuilder.Build();
-        await _target.AddBlock(blockInfo, finalizationSummary, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, new ulong[0]);
+        await _target.AddBlock(blockInfo, rewardStatus, _chainParametersId, bakerUpdateResults, delegationUpdateResults, _importState, Array.Empty<ulong>());
     }
 }

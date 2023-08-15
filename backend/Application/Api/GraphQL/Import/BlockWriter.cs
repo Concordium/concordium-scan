@@ -5,8 +5,6 @@ using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
-using FinalizationSummary = Application.Api.GraphQL.Blocks.FinalizationSummary;
-using FinalizationSummaryParty = Application.Api.GraphQL.Blocks.FinalizationSummaryParty;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -25,7 +23,6 @@ public class BlockWriter
 
     public async Task<Block> AddBlock(
         BlockInfo blockInfo,
-        Concordium.Sdk.Types.FinalizationSummary? finalizationSummary,
         RewardOverviewBase rewardStatus,
         int chainParametersId,
         BakerUpdateResults bakerUpdateResults,
@@ -50,25 +47,15 @@ public class BlockWriter
             delegationUpdateResults, 
             importState, 
             nonCirculatingAccountsBalance, calculateTotalAmountUnlocked);
-        FinalizationSummary.TryMapFinalizationSummary(finalizationSummary, out var possibleFinalizationSummary);
 
         var block = Block.MapBlock(
             blockInfo,
             blockTime,
             chainParametersId,
-            balanceStatistics,
-            possibleFinalizationSummary);
+            balanceStatistics);
         context.Blocks.Add(block);
 
         await context.SaveChangesAsync(); // assign ID to block!
-        
-        if (finalizationSummary != null)
-        {
-            var toSave = finalizationSummary.Finalizers
-                .Select((x, ix) => MapFinalizer(block, ix, x))
-                .ToArray();
-            context.FinalizationSummaryFinalizers.AddRange(toSave);
-        }
 
         await context.SaveChangesAsync();
         return block;
@@ -110,21 +97,6 @@ public class BlockWriter
         return Math.Round(blockTime.TotalSeconds, 1);
     }
 
-    private static BlockRelated<FinalizationSummaryParty> MapFinalizer(Block block, int index, Concordium.Sdk.Types.FinalizationSummaryParty value)
-    {
-        return new BlockRelated<FinalizationSummaryParty>
-        {
-            BlockId = block.Id,
-            Index = index,
-            Entity = new FinalizationSummaryParty
-            {
-                BakerId = (long)value.BakerId.Id.Index,
-                Weight = (long)value.Weight,
-                Signed = value.SignaturePresent
-            }
-        };
-    }
-
     public async Task UpdateTotalAmountLockedInReleaseSchedules(Block block)
     {
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(UpdateTotalAmountLockedInReleaseSchedules));
@@ -140,20 +112,23 @@ public class BlockWriter
         await context.SaveChangesAsync();
     }
     
-    public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(Block block, ImportState importState)
+    public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(BlockInfo block, ImportState importState)
     {
-        if (block.FinalizationSummary == null) return Array.Empty<FinalizationTimeUpdate>();
-
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(UpdateFinalizationTimeOnBlocksInFinalizationProof));
 
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var finalizedBlockHeights = await context.Blocks
-            .Where(x => x.BlockHash == block.FinalizationSummary.FinalizedBlockHash)
+            .Where(x => x.BlockHash == block.BlockLastFinalized.ToString())
             .Select(x => x.BlockHeight)
             .ToArrayAsync();
 
         if (finalizedBlockHeights.Length != 1) throw new InvalidOperationException();
         var maxBlockHeight = finalizedBlockHeights.Single();
+        if (maxBlockHeight == importState.MaxBlockHeightWithUpdatedFinalizationTime)
+        {
+            return Array.Empty<FinalizationTimeUpdate>();
+        }
+        
         var minBlockHeight = importState.MaxBlockHeightWithUpdatedFinalizationTime;
         
         var result = await context.Blocks
