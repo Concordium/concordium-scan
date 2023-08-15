@@ -170,6 +170,7 @@ public class BlockWriterTest
         const string lastBlockHash = "5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1";
 
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
+        const double secondsToAdd = 9.57;
         var block = new BlockBuilder()
             .WithBlockHeight(10)
             .WithBlockSlotTime(baseTime)
@@ -179,7 +180,7 @@ public class BlockWriterTest
         await AddBlock(block);
 
         var blockInfo = new BlockInfoBuilder()
-            .WithBlockSlotTime(baseTime.AddSeconds(9))
+            .WithBlockSlotTime(baseTime.AddSeconds(secondsToAdd))
             .WithBlockLastFinalized(BlockHash.From(lastBlockHash))
             .Build();
 
@@ -187,7 +188,7 @@ public class BlockWriterTest
         
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.SingleAsync(x => x.BlockHeight == 10);
-        result.BlockStatistics.FinalizationTime.Should().Be(9);
+        result.BlockStatistics.FinalizationTime.Should().Be(Math.Round(secondsToAdd, 1));
 
         _importState.MaxBlockHeightWithUpdatedFinalizationTime.Should().Be(10);
     }
@@ -197,7 +198,8 @@ public class BlockWriterTest
     {
         var baseTime = new DateTimeOffset(2010, 10, 05, 12, 30, 20, 123, TimeSpan.Zero);
         const string lastBlockHash = "9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2";
-
+        const double secondsToAdd = 40.52;
+        
         await AddBlock(new BlockBuilder().WithBlockHeight(10).WithBlockSlotTime(baseTime.AddSeconds(10)).WithBlockHash("5c0a11302f4098572c4741905b071d958066e0550d03c3186c4483fd920155a1").Build());
         await AddBlock(new BlockBuilder().WithBlockHeight(11).WithBlockSlotTime(baseTime.AddSeconds(19)).WithBlockHash("01cc0746f74640292e2f1bcc5fd4a542678c88c7a840adfca365612278160845").Build());
         await AddBlock(new BlockBuilder().WithBlockHeight(12).WithBlockSlotTime(baseTime.AddSeconds(31)).WithBlockHash("9408d0d26faf8b4cc99722ab27b094b8a27b251d8133ae690ea92b68caa689a2").Build());
@@ -205,7 +207,7 @@ public class BlockWriterTest
         _importState.MaxBlockHeightWithUpdatedFinalizationTime = 10;
         
         var blockInfo = new BlockInfoBuilder()
-            .WithBlockSlotTime(baseTime.AddSeconds(40))
+            .WithBlockSlotTime(baseTime.AddSeconds(secondsToAdd))
             .WithBlockLastFinalized(BlockHash.From(lastBlockHash))
             .Build();
 
@@ -214,8 +216,8 @@ public class BlockWriterTest
         var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.Blocks.ToArrayAsync();
         result.Should().ContainSingle(x => x.BlockHeight == 10).Which.BlockStatistics.FinalizationTime.Should().BeNull();
-        result.Should().ContainSingle(x => x.BlockHeight == 11).Which.BlockStatistics.FinalizationTime.Should().Be(21);
-        result.Should().ContainSingle(x => x.BlockHeight == 12).Which.BlockStatistics.FinalizationTime.Should().Be(9);
+        result.Should().ContainSingle(x => x.BlockHeight == 11).Which.BlockStatistics.FinalizationTime.Should().Be(21.5);
+        result.Should().ContainSingle(x => x.BlockHeight == 12).Which.BlockStatistics.FinalizationTime.Should().Be(9.5);
 
         _importState.MaxBlockHeightWithUpdatedFinalizationTime.Should().Be(12);
     }

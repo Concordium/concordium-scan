@@ -68,7 +68,6 @@ public record BlockDataPayload
     public IList<BlockItemSummary> BlockItemSummaries { get; }
     public IChainParameters ChainParameters { get; }
     public IList<ISpecialEvent> SpecialEvents { get; }
-    public FinalizationSummary? FinalizationSummary { get; }
     public AccountInfosRetrieved AccountInfos { get; }
     public RewardOverviewBase RewardStatus { get; }
 

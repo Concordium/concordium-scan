@@ -112,7 +112,7 @@ public class BlockWriter
         await context.SaveChangesAsync();
     }
     
-    public async Task<FinalizationTimeUpdate[]> UpdateFinalizationTimeOnBlocksInFinalizationProof(BlockInfo block, ImportState importState)
+    internal async Task<FinalizationTimeUpdate> UpdateFinalizationTimeOnBlocksInFinalizationProof(BlockInfo block, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BlockWriter), nameof(UpdateFinalizationTimeOnBlocksInFinalizationProof));
 
@@ -124,27 +124,38 @@ public class BlockWriter
 
         if (finalizedBlockHeights.Length != 1) throw new InvalidOperationException();
         var maxBlockHeight = finalizedBlockHeights.Single();
-        if (maxBlockHeight == importState.MaxBlockHeightWithUpdatedFinalizationTime)
+        var finalizationTimeUpdate = new FinalizationTimeUpdate(importState.MaxBlockHeightWithUpdatedFinalizationTime, maxBlockHeight);
+        if (finalizationTimeUpdate.MinBlockHeight == finalizationTimeUpdate.MaxBlockHeight)
         {
-            return Array.Empty<FinalizationTimeUpdate>();
+            return finalizationTimeUpdate;
         }
-        
-        var minBlockHeight = importState.MaxBlockHeightWithUpdatedFinalizationTime;
-        
-        var result = await context.Blocks
-            .Where(x => x.BlockHeight > minBlockHeight && x.BlockHeight <= maxBlockHeight)
-            .Select(x => new FinalizationTimeUpdate(x.BlockHeight, x.BlockSlotTime,
-                Math.Round((block.BlockSlotTime - x.BlockSlotTime).TotalSeconds, 1)
-            ))
-            .ToArrayAsync();
 
+        const string sql = @"
+update graphql_blocks 
+set 
+    block_stats_finalization_time_secs = sub_query.finalizationSeconds
+from (
+    select 
+        block_height,
+        ROUND(EXTRACT(EPOCH FROM (@BlockSlotTime - block_slot_time)),1) as finalizationSeconds
+    from graphql_blocks
+    where block_height > @MinBlockHeight
+        and block_height <= @MaxBlockHeight
+    ) as sub_query
+where graphql_blocks.block_height = sub_query.block_height";      
+        
         var conn = context.Database.GetDbConnection();
         await conn.ExecuteAsync(
-            "update graphql_blocks set block_stats_finalization_time_secs = @FinalizationTimeSecs where block_height = @BlockHeight",
-            result);
+            sql,
+        new
+            {
+                finalizationTimeUpdate.MinBlockHeight,
+                finalizationTimeUpdate.MaxBlockHeight,
+                block.BlockSlotTime
+            });
         
         importState.MaxBlockHeightWithUpdatedFinalizationTime = maxBlockHeight;
         
-        return result;
+        return finalizationTimeUpdate;
     }
 }
