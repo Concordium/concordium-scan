@@ -156,7 +156,7 @@ public abstract record TransactionResultEvent
         }
     }
 
-    private static IEnumerable<TransactionResultEvent> ToIter(ContractUpdateIssued update)
+    internal static IEnumerable<TransactionResultEvent> ToIter(ContractUpdateIssued update)
     {
         foreach (var contractTraceElement in update.Effects)
         {
