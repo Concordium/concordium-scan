@@ -53,7 +53,7 @@ internal sealed class SmartContractAggregate
         }
     }
 
-    private async Task GetTransactionEvents(
+    internal async Task GetTransactionEvents(
         ISmartContractRepository repository,
         IBlockHashInput blockHashInput,
         CancellationToken token = default
@@ -205,7 +205,7 @@ internal sealed class SmartContractAggregate
         }
     }
     
-    private async Task<ulong> GetLastReadBlockHeight()
+    internal async Task<ulong> GetLastReadBlockHeight()
     {
         await using var repository = await _repositoryFactory.CreateAsync();
         var importState = repository.GetReadOnlyQueryable<SmartContractReadHeight>()

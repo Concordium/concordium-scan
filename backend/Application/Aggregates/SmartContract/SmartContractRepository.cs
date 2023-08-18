@@ -6,14 +6,14 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Application.Aggregates.SmartContract;
 
-internal interface ISmartContractRepository : IAsyncDisposable
+public interface ISmartContractRepository : IAsyncDisposable
 {
     IQueryable<T> GetReadOnlyQueryable<T>() where T : class;
     ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class;
     Task SaveChangesAsync(CancellationToken token);
 }
 
-internal interface ISmartContractRepositoryFactory
+public interface ISmartContractRepositoryFactory
 {
     Task<ISmartContractRepository> CreateAsync();
 }
