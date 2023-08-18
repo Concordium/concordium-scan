@@ -6,33 +6,6 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Application.Aggregates.SmartContract;
 
-public interface ISmartContractRepository : IAsyncDisposable
-{
-    IQueryable<T> GetReadOnlyQueryable<T>() where T : class;
-    ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class;
-    Task SaveChangesAsync(CancellationToken token);
-}
-
-public interface ISmartContractRepositoryFactory
-{
-    Task<ISmartContractRepository> CreateAsync();
-}
-
-internal sealed class SmartContractRepositoryFactory : ISmartContractRepositoryFactory
-{
-    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-
-    public SmartContractRepositoryFactory(IDbContextFactory<GraphQlDbContext> dbContextFactory)
-    {
-        _dbContextFactory = dbContextFactory;
-    }
-    
-    public async Task<ISmartContractRepository> CreateAsync()
-    {
-        return new SmartContractRepository(await _dbContextFactory.CreateDbContextAsync());
-    }
-}
-
 internal sealed class SmartContractRepository : ISmartContractRepository
 {
     private readonly GraphQlDbContext _context;

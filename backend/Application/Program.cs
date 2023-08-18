@@ -1,3 +1,4 @@
+using Application.Aggregates.SmartContract;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
@@ -80,6 +81,8 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
+builder.Services.AddSmartContractAggregate();
+
 builder.Host.UseSystemd();
 var app = builder.Build();
 
