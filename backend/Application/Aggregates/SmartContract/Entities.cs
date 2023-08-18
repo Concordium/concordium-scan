@@ -1,4 +1,5 @@
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
 
 namespace Application.Aggregates.SmartContract;
@@ -23,6 +24,43 @@ public sealed class SmartContractReadHeight
     public SmartContractReadHeight(ulong blockHeight)
     {
         BlockHeight = blockHeight;
+    }
+}
+
+public sealed class SmartContract
+{
+    public ulong BlockHeight { get; init; }
+    public string TransactionHash { get; init; }
+    public ulong TransactionIndex { get; init; }
+    public uint EventIndex { get; init; }
+    public ulong ContractAddressIndex { get; init; }
+    public ulong ContractAddressSubIndex { get; init; }
+    public AccountAddress Creator { get; init; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    
+    /// <summary>
+    /// Needed for EF Core
+    /// </summary>
+#pragma warning disable CS8618
+    private SmartContract()
+#pragma warning restore CS8618
+    {}
+
+    internal SmartContract(
+        ulong blockHeight,
+        string transactionHash,
+        ulong transactionIndex,
+        uint eventIndex,
+        ContractAddress contractAddress,
+        AccountAddress creator)
+    {
+        BlockHeight = blockHeight;
+        TransactionHash = transactionHash;
+        TransactionIndex = transactionIndex;
+        EventIndex = eventIndex;
+        Creator = creator;
+        ContractAddressIndex = contractAddress.Index;
+        ContractAddressSubIndex = contractAddress.SubIndex;
     }
 }
 

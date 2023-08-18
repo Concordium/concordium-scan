@@ -1,4 +1,23 @@
 -- TODO : Provide summary
+create table graphql_smart_contracts
+(
+    block_height                bigint        not null,
+    transaction_hash            text          not null,
+    transaction_index           bigint        not null,
+    event_index                 bigint        not null,
+    contract_address_index      bigint        not null,
+    contract_address_sub_index  bigint        not null,
+    creator                     text          not null,
+    created_at                  TIMESTAMPTZ   not null,
+    PRIMARY KEY (
+                 block_height,
+                 transaction_index,
+                 event_index,
+                 contract_address_index,
+                 contract_address_sub_index
+        )
+);
+
 create table graphql_smart_contract_events
 (
     block_height                bigint        not null,

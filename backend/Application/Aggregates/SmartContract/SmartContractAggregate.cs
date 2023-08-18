@@ -72,13 +72,13 @@ internal sealed class SmartContractAggregate
             blockInfo ??= (await _client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
             var transactionHash = blockItemSummary.TransactionHash.ToString();
-
             var eventIndex = 0u;
             foreach (var transactionResultEvent in FilterEvents(details.Effects))
             {
                 await StoreEvent(
                     repository,
                     transactionResultEvent,
+                    details.Sender,
                     blockInfo.BlockHeight,
                     transactionHash,
                     blockItemSummary.Index,
@@ -92,6 +92,7 @@ internal sealed class SmartContractAggregate
     private async Task StoreEvent(
         ISmartContractRepository repository,        
         TransactionResultEvent transactionResultEvent,
+        AccountAddress sender,
         ulong blockHeight, 
         string transactionHash,
         ulong transactionIndex,
@@ -101,6 +102,14 @@ internal sealed class SmartContractAggregate
         switch (transactionResultEvent)
         {
             case Api.GraphQL.Transactions.ContractInitialized contractInitialized:
+                await repository.AddAsync(new SmartContract(
+                    blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    eventIndex,
+                    contractInitialized.ContractAddress,
+                    Api.GraphQL.Accounts.AccountAddress.From(sender)
+                ));
                 await repository
                     .AddAsync(new SmartContractEvent(
                         blockHeight,

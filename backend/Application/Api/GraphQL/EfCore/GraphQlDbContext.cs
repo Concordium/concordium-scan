@@ -46,6 +46,10 @@ public class GraphQlDbContext : DbContext
     /// <summary>
     /// TODO
     /// </summary>
+    public DbSet<SmartContract> SmartContract { get; private set; }
+    /// <summary>
+    /// TODO
+    /// </summary>
     public DbSet<SmartContractEvent> SmartContractEvents { get; private set; }
     /// <summary>
     /// TODO

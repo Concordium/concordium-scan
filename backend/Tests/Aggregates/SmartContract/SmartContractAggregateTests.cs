@@ -6,7 +6,9 @@ using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
+using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Tests.Aggregates.SmartContract;
 
@@ -48,12 +50,13 @@ public sealed class SmartContractAggregateTests
     }
     
     [Fact]
-    public async Task GivenContractInitialization_WhenGetTransaction_ThenStoreEventAndModuleLink()
+    public async Task GivenContractInitialization_WhenGetTransaction_ThenStoreSmartContractEventAndModuleLinkAndSmartContract()
     {
         // Arrange
         var repository = new TestRepository();
         const int contractIndex = 5;
         const string initName = "init_foo";
+        var accountAddress = AccountAddressHelper.CreateOneFilledWith(1);
         _ = ContractName.TryParse(initName, out var contractNameParse);
         var moduleTo = Convert.ToHexString(new byte[32]);
         var contractInitialized = new ContractInitialized(
@@ -65,7 +68,25 @@ public sealed class SmartContractAggregateTests
                 contractNameParse.ContractName!,
                 new List<ContractEvent>())
         );
-        var client = CreateMockClientFromEffects(contractInitialized);
+        var client = new Mock<ISmartContractNodeClient>();
+        var transactionDetails = new AccountTransactionDetailsBuilder(contractInitialized)
+            .WithSender(accountAddress)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(transactionDetails)
+            .Build();
+        var blockHash = BlockHash.From(new byte[32]);
+        var asyncEnumerable = new List<BlockItemSummary>{blockItemSummary}.ToAsyncEnumerable();
+        var queryResponse = new QueryResponse<IAsyncEnumerable<BlockItemSummary>>(blockHash, asyncEnumerable);
+
+        var blockInfo = new BlockInfoBuilder()
+            .WithBlockHash(blockHash)
+            .Build();
+        var queryResponseBlockInfo = new QueryResponse<BlockInfo>(blockHash, blockInfo);
+        
+        client.Setup(c => c.GetBlockTransactionEvents(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponse));
+        client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponseBlockInfo));
         
         var aggregate = new SmartContractAggregate(
             Mock.Of<ISmartContractRepositoryFactory>(),
@@ -90,6 +111,11 @@ public sealed class SmartContractAggregateTests
         var link = repository.ModuleReferenceSmartContractLinkEvents[0];
         link.ModuleReference.Should().Be(moduleTo);
         link.ContractAddressIndex.Should().Be(contractIndex);
+
+        repository.SmartContracts.Count.Should().Be(1);
+        var smartContract = repository.SmartContracts[0];
+        smartContract.ContractAddressIndex.Should().Be(contractIndex);
+        smartContract.Creator.Should().Be(AccountAddress.From(accountAddress));
     }
 
     [Fact]
@@ -191,6 +217,7 @@ internal sealed class TestRepository : ISmartContractRepository
     internal readonly IList<SmartContractEvent> SmartContractEvents = new List<SmartContractEvent>();
     internal readonly IList<ModuleReferenceEvent> ModuleReferenceEvents = new List<ModuleReferenceEvent>();
     internal readonly IList<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
+    internal readonly IList<Application.Aggregates.SmartContract.SmartContract> SmartContracts = new List<Application.Aggregates.SmartContract.SmartContract>();
 
     public IQueryable<T> GetReadOnlyQueryable<T>() where T : class
     {
@@ -209,6 +236,10 @@ internal sealed class TestRepository : ISmartContractRepository
         if (typeof(T) == typeof(ModuleReferenceSmartContractLinkEvent))
         {
             return ModuleReferenceSmartContractLinkEvents.Cast<T>().AsQueryable();
+        }
+        if (typeof(T) == typeof(Application.Aggregates.SmartContract.SmartContract))
+        {
+            return SmartContracts.Cast<T>().AsQueryable();
         }
         throw new NotImplementedException($"Not implemented for type: {typeof(T)}");
     }
@@ -233,6 +264,11 @@ internal sealed class TestRepository : ISmartContractRepository
         if (typeof(T) == typeof(ModuleReferenceSmartContractLinkEvent))
         {
             ModuleReferenceSmartContractLinkEvents.Add((entity as ModuleReferenceSmartContractLinkEvent)!);
+            return new ValueTask<EntityEntry<T>>();
+        }
+        if (typeof(T) == typeof(Application.Aggregates.SmartContract.SmartContract))
+        {
+            SmartContracts.Add((entity as Application.Aggregates.SmartContract.SmartContract)!);
             return new ValueTask<EntityEntry<T>>();
         }
         throw new NotImplementedException($"Not implemented for type: {typeof(T)}");
