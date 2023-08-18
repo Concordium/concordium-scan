@@ -18,13 +18,10 @@ public sealed class SmartContractAggregateTests
         // Arrange
         const ulong lastHeight = 9UL;
         var repository = new TestRepository();
-        repository.SmartContractAggregateImportStates = new List<SmartContractReadHeight>
-        {
-            new(3),
-            new(7),
-            new(1),
-            new(lastHeight)
-        };
+        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(3));
+        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(7));
+        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(1));
+        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(lastHeight));
         var testMockDbFactory = new TestMockDbFactory(repository);
         var aggregate = new SmartContractAggregate(testMockDbFactory, Mock.Of<ISmartContractNodeClient>());
 
@@ -51,41 +48,25 @@ public sealed class SmartContractAggregateTests
     }
     
     [Fact]
-    public async Task GivenContractInitialization_WhenGetTransaction_ThenStoreEvent()
+    public async Task GivenContractInitialization_WhenGetTransaction_ThenStoreEventAndModuleLink()
     {
         // Arrange
         var repository = new TestRepository();
-        var client = new Mock<ISmartContractNodeClient>();
         const int contractIndex = 5;
         const string initName = "init_foo";
         _ = ContractName.TryParse(initName, out var contractNameParse);
+        var moduleTo = Convert.ToHexString(new byte[32]);
         var contractInitialized = new ContractInitialized(
             new ContractInitializedEvent(
                 ContractVersion.V0,
-                new ModuleReference(Convert.ToHexString(new byte[32])),
+                new ModuleReference(moduleTo),
                 new ContractAddress(contractIndex, 0),
                 CcdAmount.Zero, 
                 contractNameParse.ContractName!,
                 new List<ContractEvent>())
         );
-        var transactionDetails = new AccountTransactionDetailsBuilder(contractInitialized)
-            .Build();
-        var blockItemSummary = new BlockItemSummaryBuilder(transactionDetails)
-            .Build();
-        var blockHash = BlockHash.From(new byte[32]);
-        var asyncEnumerable = new List<BlockItemSummary>{blockItemSummary}.ToAsyncEnumerable();
-        var queryResponse = new QueryResponse<IAsyncEnumerable<BlockItemSummary>>(blockHash, asyncEnumerable);
-
-        var blockInfo = new BlockInfoBuilder()
-            .WithBlockHash(blockHash)
-            .Build();
-        var queryResponseBlockInfo = new QueryResponse<BlockInfo>(blockHash, blockInfo);
+        var client = CreateMockClientFromEffects(contractInitialized);
         
-        client.Setup(c => c.GetBlockTransactionEvents(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(queryResponse));
-        client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(queryResponseBlockInfo));
-
         var aggregate = new SmartContractAggregate(
             Mock.Of<ISmartContractRepositoryFactory>(),
             client.Object);
@@ -104,16 +85,112 @@ public sealed class SmartContractAggregateTests
         contractEvent.ContractAddressIndex.Should().Be(contractIndex);
         (contractEvent.Event as Application.Api.GraphQL.Transactions.ContractInitialized)!.InitName.Should()
             .Be(initName);
+        
+        repository.ModuleReferenceSmartContractLinkEvents.Count.Should().Be(1);
+        var link = repository.ModuleReferenceSmartContractLinkEvents[0];
+        link.ModuleReference.Should().Be(moduleTo);
+        link.ContractAddressIndex.Should().Be(contractIndex);
+    }
+
+    [Fact]
+    public async Task GivenModuleDeployed_WhenGetTransaction_ThenStoreEvent()
+    {
+        // Arrange
+        var repository = new TestRepository();
+        var moduleReference = Convert.ToHexString(new byte[32]);
+        var moduleDeployed = new ModuleDeployed(new ModuleReference(moduleReference));
+        var client = CreateMockClientFromEffects(moduleDeployed);
+
+        var aggregate = new SmartContractAggregate(
+            Mock.Of<ISmartContractRepositoryFactory>(),
+            client.Object);
+        
+        // Act
+        await aggregate.GetTransactionEvents(
+            repository,
+            Mock.Of<IBlockHashInput>()
+        );
+
+        // Assert
+        repository.ModuleReferenceEvents.Count.Should().Be(1);
+        var repoEvent = repository.ModuleReferenceEvents[0];
+        repoEvent.ModuleReference.Should().Be(moduleReference);
+    }
+
+    [Fact]
+    public async Task GivenContractUpgraded_WhenGetTransaction_ThenStoreEventAndModuleLink()
+    {
+        // Arrange
+        var repository = new TestRepository();
+        var moduleReference = Convert.ToHexString(new byte[32]);
+        var moduleFrom = Convert.ToHexString(ArrayFilledWith(0, 32));
+        var moduleTo = Convert.ToHexString(ArrayFilledWith(1, 32));
+        const ulong contractIndex = 1UL;
+        var upgraded = new Upgraded(new ContractAddress(contractIndex, 1),
+            new ModuleReference(moduleFrom), 
+            new ModuleReference(moduleTo)
+        );
+        var client = CreateMockClientFromEffects(new ContractUpdateIssued(new List<IContractTraceElement>{upgraded}));
+
+        var aggregate = new SmartContractAggregate(
+            Mock.Of<ISmartContractRepositoryFactory>(),
+            client.Object);
+        
+        // Act
+        await aggregate.GetTransactionEvents(
+            repository,
+            Mock.Of<IBlockHashInput>()
+        );
+
+        // Assert
+        repository.SmartContractEvents.Count.Should().Be(1);
+        var contractUpgraded = (repository.SmartContractEvents[0].Event as Application.Api.GraphQL.Transactions.ContractUpgraded)!;
+        contractUpgraded.From.Should().Be(moduleFrom);
+        contractUpgraded.To.Should().Be(moduleTo);
+
+        repository.ModuleReferenceSmartContractLinkEvents.Count.Should().Be(1);
+        var link = repository.ModuleReferenceSmartContractLinkEvents[0];
+        link.ModuleReference.Should().Be(moduleTo);
+        link.ContractAddressIndex.Should().Be(contractIndex);
+    }
+    
+    private static byte[] ArrayFilledWith(byte fill, ushort size)
+    {
+        Span<byte> bytes = stackalloc byte[size];
+        bytes.Fill(fill); 
+        return bytes.ToArray();
+    }
+    
+    private static Mock<ISmartContractNodeClient> CreateMockClientFromEffects(IAccountTransactionEffects effects)
+    {
+        var client = new Mock<ISmartContractNodeClient>();
+        var transactionDetails = new AccountTransactionDetailsBuilder(effects)
+            .Build();
+        var blockItemSummary = new BlockItemSummaryBuilder(transactionDetails)
+            .Build();
+        var blockHash = BlockHash.From(new byte[32]);
+        var asyncEnumerable = new List<BlockItemSummary>{blockItemSummary}.ToAsyncEnumerable();
+        var queryResponse = new QueryResponse<IAsyncEnumerable<BlockItemSummary>>(blockHash, asyncEnumerable);
+
+        var blockInfo = new BlockInfoBuilder()
+            .WithBlockHash(blockHash)
+            .Build();
+        var queryResponseBlockInfo = new QueryResponse<BlockInfo>(blockHash, blockInfo);
+        
+        client.Setup(c => c.GetBlockTransactionEvents(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponse));
+        client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponseBlockInfo));
+        return client;
     }
 }
 
-
-public sealed class TestRepository : ISmartContractRepository
+internal sealed class TestRepository : ISmartContractRepository
 {
-    internal IList<SmartContractReadHeight> SmartContractAggregateImportStates = new List<SmartContractReadHeight>();
-    internal IList<SmartContractEvent> SmartContractEvents = new List<SmartContractEvent>();
-    internal IList<ModuleReferenceEvent> ModuleReferenceEvents = new List<ModuleReferenceEvent>();
-    internal IList<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
+    internal readonly IList<SmartContractReadHeight> SmartContractAggregateImportStates = new List<SmartContractReadHeight>();
+    internal readonly IList<SmartContractEvent> SmartContractEvents = new List<SmartContractEvent>();
+    internal readonly IList<ModuleReferenceEvent> ModuleReferenceEvents = new List<ModuleReferenceEvent>();
+    internal readonly IList<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
 
     public IQueryable<T> GetReadOnlyQueryable<T>() where T : class
     {
