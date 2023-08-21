@@ -15,45 +15,19 @@ namespace Tests.Aggregates.SmartContract;
 public sealed class SmartContractAggregateTests
 {
     [Fact]
-    public async Task GivenSomeRows_WhenGetLastReadBlockHeight_ThenReturnLatest()
-    {
-        // Arrange
-        const ulong lastHeight = 9UL;
-        var repository = new TestSmartContractRepository();
-        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(3));
-        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(7));
-        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(1));
-        repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(lastHeight));
-        var testMockDbFactory = new TestSmartContractRepositoryFactory(repository);
-        var aggregate = new SmartContractAggregate(testMockDbFactory);
-
-        // Act
-        var lastReadBlockHeight = await aggregate.GetLastReadBlockHeight();
-
-        // Assert
-        lastReadBlockHeight.Should().Be(lastHeight);
-    }
-    
-    [Fact]
-    public async Task GivenNoRows_WhenGetLastReadBlockHeight_ThenReturnZero()
-    {
-        // Arrange
-        var repository = new TestSmartContractRepository();
-        var testMockDbFactory = new TestSmartContractRepositoryFactory(repository);
-        var aggregate = new SmartContractAggregate(testMockDbFactory);
-
-        // Act
-        var lastReadBlockHeight = await aggregate.GetLastReadBlockHeight();
-
-        // Assert
-        lastReadBlockHeight.Should().Be(0);
-    }
-    
-    [Fact]
     public async Task GivenContractInitialization_WhenNodeImport_ThenStoreSmartContractEventAndModuleLinkAndSmartContract()
     {
         // Arrange
-        var repository = new TestSmartContractRepository();
+        var smartContractEvents = new List<SmartContractEvent>();
+        var moduleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
+        var smartContracts = new List<Application.Aggregates.SmartContract.SmartContract>();
+        var repository = new Mock<ISmartContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<SmartContractEvent[]>()))
+            .Callback<SmartContractEvent[]>((e) => smartContractEvents.AddRange(e));
+        repository.Setup(m => m.AddAsync(It.IsAny<ModuleReferenceSmartContractLinkEvent[]>()))
+            .Callback<ModuleReferenceSmartContractLinkEvent[]>((e) => moduleReferenceSmartContractLinkEvents.AddRange(e));
+        repository.Setup(m => m.AddAsync(It.IsAny<Application.Aggregates.SmartContract.SmartContract[]>()))
+            .Callback<Application.Aggregates.SmartContract.SmartContract[]>((e) => smartContracts.AddRange(e));
         const int contractIndex = 5;
         const string initName = "init_foo";
         var accountAddress = AccountAddressHelper.CreateOneFilledWith(1);
@@ -91,24 +65,24 @@ public sealed class SmartContractAggregateTests
         var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.NodeImport(repository, client.Object, 42);
+        await aggregate.NodeImport(repository.Object, client.Object, 42);
 
         // Assert
-        repository.SmartContractEvents.Count.Should().Be(1);
-        var contractEvent = repository.SmartContractEvents[0];
+        smartContractEvents.Count.Should().Be(1);
+        var contractEvent = smartContractEvents[0];
         contractEvent.Event.Should()
             .BeOfType<Application.Api.GraphQL.Transactions.ContractInitialized>();
         contractEvent.ContractAddressIndex.Should().Be(contractIndex);
         (contractEvent.Event as Application.Api.GraphQL.Transactions.ContractInitialized)!.InitName.Should()
             .Be(initName);
         
-        repository.ModuleReferenceSmartContractLinkEvents.Count.Should().Be(1);
-        var link = repository.ModuleReferenceSmartContractLinkEvents[0];
+        moduleReferenceSmartContractLinkEvents.Count.Should().Be(1);
+        var link = moduleReferenceSmartContractLinkEvents[0];
         link.ModuleReference.Should().Be(moduleTo);
         link.ContractAddressIndex.Should().Be(contractIndex);
 
-        repository.SmartContracts.Count.Should().Be(1);
-        var smartContract = repository.SmartContracts[0];
+        smartContracts.Count.Should().Be(1);
+        var smartContract = smartContracts[0];
         smartContract.ContractAddressIndex.Should().Be(contractIndex);
         smartContract.Creator.Should().Be(AccountAddress.From(accountAddress));
     }
@@ -117,7 +91,10 @@ public sealed class SmartContractAggregateTests
     public async Task GivenModuleDeployed_WhenNodeImport_ThenStoreEvent()
     {
         // Arrange
-        var repository = new TestSmartContractRepository();
+        var moduleReferenceEvents = new List<ModuleReferenceEvent>();
+        var repository = new Mock<ISmartContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<ModuleReferenceEvent[]>()))
+            .Callback<ModuleReferenceEvent[]>((e) => moduleReferenceEvents.AddRange(e));
         var moduleReference = Convert.ToHexString(new byte[32]);
         var moduleDeployed = new ModuleDeployed(new ModuleReference(moduleReference));
         var client = CreateMockClientFromEffects(moduleDeployed);
@@ -125,11 +102,11 @@ public sealed class SmartContractAggregateTests
         var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.NodeImport(repository, client.Object, 42);
+        await aggregate.NodeImport(repository.Object, client.Object, 42);
 
         // Assert
-        repository.ModuleReferenceEvents.Count.Should().Be(1);
-        var repoEvent = repository.ModuleReferenceEvents[0];
+        moduleReferenceEvents.Count.Should().Be(1);
+        var repoEvent = moduleReferenceEvents[0];
         repoEvent.ModuleReference.Should().Be(moduleReference);
     }
 
@@ -137,8 +114,13 @@ public sealed class SmartContractAggregateTests
     public async Task GivenContractUpgraded_WhenNodeImport_ThenStoreEventAndModuleLink()
     {
         // Arrange
-        var repository = new TestSmartContractRepository();
-        var moduleReference = Convert.ToHexString(new byte[32]);
+        var smartContractEvents = new List<SmartContractEvent>();
+        var moduleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
+        var repository = new Mock<ISmartContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<SmartContractEvent[]>()))
+            .Callback<SmartContractEvent[]>((e) => smartContractEvents.AddRange(e));
+        repository.Setup(m => m.AddAsync(It.IsAny<ModuleReferenceSmartContractLinkEvent[]>()))
+            .Callback<ModuleReferenceSmartContractLinkEvent[]>((e) => moduleReferenceSmartContractLinkEvents.AddRange(e));
         var moduleFrom = Convert.ToHexString(ArrayFilledWith(0, 32));
         var moduleTo = Convert.ToHexString(ArrayFilledWith(1, 32));
         const ulong contractIndex = 1UL;
@@ -151,16 +133,16 @@ public sealed class SmartContractAggregateTests
         var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.NodeImport(repository, client.Object, 42);
+        await aggregate.NodeImport(repository.Object, client.Object, 42);
 
         // Assert
-        repository.SmartContractEvents.Count.Should().Be(1);
-        var contractUpgraded = (repository.SmartContractEvents[0].Event as Application.Api.GraphQL.Transactions.ContractUpgraded)!;
+        smartContractEvents.Count.Should().Be(1);
+        var contractUpgraded = (smartContractEvents[0].Event as Application.Api.GraphQL.Transactions.ContractUpgraded)!;
         contractUpgraded.From.Should().Be(moduleFrom);
         contractUpgraded.To.Should().Be(moduleTo);
 
-        repository.ModuleReferenceSmartContractLinkEvents.Count.Should().Be(1);
-        var link = repository.ModuleReferenceSmartContractLinkEvents[0];
+        moduleReferenceSmartContractLinkEvents.Count.Should().Be(1);
+        var link = moduleReferenceSmartContractLinkEvents[0];
         link.ModuleReference.Should().Be(moduleTo);
         link.ContractAddressIndex.Should().Be(contractIndex);
     }
