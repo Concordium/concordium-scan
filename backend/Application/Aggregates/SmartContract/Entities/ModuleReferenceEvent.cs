@@ -1,3 +1,5 @@
+using Application.Aggregates.SmartContract.Types;
+
 namespace Application.Aggregates.SmartContract.Entities;
 
 /// <summary>

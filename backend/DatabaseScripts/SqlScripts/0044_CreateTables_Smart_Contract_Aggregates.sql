@@ -1,4 +1,6 @@
--- TODO : Provide summary
+/*
+Tables relevant for smart contract visualization. 
+*/
 create table graphql_smart_contracts
 (
     block_height                bigint        not null,
@@ -83,4 +85,10 @@ create table graphql_smart_contract_read_heights
     block_height                bigint      not null UNIQUE,
     source                      int         not null,
     created_at                  TIMESTAMPTZ not null
-)
+);
+
+create table graphql_smart_contract_jobs
+(
+    job                         text        primary key,
+    created_at                  TIMESTAMPTZ not null
+);

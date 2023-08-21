@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Entities;
+using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
@@ -15,12 +16,6 @@ internal sealed class SmartContractAggregate
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly TimeSpan _delay = TimeSpan.FromSeconds(1);
-
-    internal enum ImportType
-    {
-        NodeImport,
-        DatabaseImport,
-    }
 
     public SmartContractAggregate(
         ISmartContractRepositoryFactory repositoryFactory

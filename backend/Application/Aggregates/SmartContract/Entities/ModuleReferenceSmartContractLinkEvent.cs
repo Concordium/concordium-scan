@@ -1,3 +1,4 @@
+using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL;
 
 namespace Application.Aggregates.SmartContract.Entities;

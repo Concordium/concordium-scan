@@ -1,13 +1,18 @@
+using Application.Aggregates.SmartContract.BackgroundServices;
 using Application.Aggregates.SmartContract.Jobs;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Aggregates.SmartContract.Extensions;
 
 public static class SmartContractExtensions
 {
-    public static void AddSmartContractAggregate(this IServiceCollection collection)
+    public static void AddSmartContractAggregate(this IServiceCollection collection, IConfiguration configuration)
     {
+        collection.Configure<SmartContractAggregate>(configuration.GetSection("SmartContractAggregate"));
+
         collection.AddHostedService<SmartContractNodeImportBackgroundService>();
+        
         collection.AddTransient<ISmartContractRepositoryFactory, SmartContractRepositoryFactory>();
         collection.AddTransient<ISmartContractNodeClient, SmartContractNodeClient>();
         
@@ -22,6 +27,6 @@ public static class SmartContractExtensions
     private static void AddSmartContractJobs(this IServiceCollection collection)
     {
         collection.AddHostedService<SmartContractJobsBackgroundService>();
-        collection.AddTransient<SmartContractDatabaseImportJob>();
+        collection.AddTransient<ISmartContractJob, SmartContractDatabaseImportJob>();
     }
 }

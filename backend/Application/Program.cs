@@ -82,7 +82,7 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
-builder.Services.AddSmartContractAggregate();
+builder.Services.AddSmartContractAggregate(builder.Configuration);
 
 builder.Host.UseSystemd();
 var app = builder.Build();

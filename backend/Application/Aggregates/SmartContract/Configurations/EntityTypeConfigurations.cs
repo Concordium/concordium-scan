@@ -5,8 +5,20 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Aggregates.SmartContract.Configurations;
 
-public sealed class
-    SmartContractReadHeightEntityTypeConfigurations : IEntityTypeConfiguration<
+public sealed class SmartContractJobEntityTypeConfigurations : IEntityTypeConfiguration<SmartContractJob>
+{
+    public void Configure(EntityTypeBuilder<SmartContractJob> builder)
+    {
+        builder.ToTable("graphql_smart_contract_jobs");
+        builder.HasKey(x => x.Job);
+        builder.Property(x => x.Job)
+            .HasColumnName("job");
+        builder.Property(x => x.CreatedAt)
+            .HasColumnName("created_at");
+    }
+}
+
+public sealed class SmartContractReadHeightEntityTypeConfigurations : IEntityTypeConfiguration<
         SmartContractReadHeight>
 {
     public void Configure(EntityTypeBuilder<SmartContractReadHeight> builder)

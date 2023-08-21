@@ -1,10 +1,9 @@
 using System.Threading;
 using Application.Aggregates.SmartContract;
 using Application.Aggregates.SmartContract.Entities;
-using Application.Api.GraphQL.EfCore;
+using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
-using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
@@ -15,24 +14,22 @@ namespace Tests.Aggregates.SmartContract;
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
 public sealed class SmartContractRepositoryTests
 {
-    private readonly DbContextOptions<GraphQlDbContext> _dbContextOptions;
-
+    private readonly DatabaseFixture _databaseFixture;
 
     public SmartContractRepositoryTests(DatabaseFixture databaseFixture)
     {
-        _dbContextOptions = new DbContextOptionsBuilder<GraphQlDbContext>()
-            .UseNpgsql(databaseFixture.DatabaseSettings.ConnectionString)
-            .Options;
+        _databaseFixture = databaseFixture;
     }
+    
     [Fact]
     public async Task GivenEntityWithBlockHeight_WhenGetReadOnlySmartContractReadHeightAtHeight_ThenReturnEntity()
     {
         // Arrange
         const ulong blockHeight = 42;
         const ImportSource source = ImportSource.DatabaseImport;
-        await DeleteTables("graphql_smart_contract_read_heights");
-        await AddAsync(new SmartContractReadHeight(blockHeight, source));
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await _databaseFixture.AddAsync(new SmartContractReadHeight(blockHeight, source));
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -49,8 +46,8 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const ulong blockHeight = 42;
-        await DeleteTables("graphql_smart_contract_read_heights");
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -65,12 +62,12 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const int blockHeight = 42;
-        await DeleteTables("graphql_blocks");
+        await DatabaseFixture.TruncateTables("graphql_blocks");
         var block = new BlockBuilder()
             .WithBlockHeight(blockHeight)
             .Build();
-        await AddAsync(block);
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await _databaseFixture.AddAsync(block);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var single = await graphQlDbContext.Blocks.SingleAsync();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
@@ -86,8 +83,8 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const int blockHeight = 42;
-        await DeleteTables("graphql_blocks");
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await DatabaseFixture.TruncateTables("graphql_blocks");
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -102,14 +99,14 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const long blockId = 42;
-        await DeleteTables("graphql_transactions");
+        await DatabaseFixture.TruncateTables("graphql_transactions");
         var transaction = new TransactionBuilder()
             .WithId(0)
             .WithBlockId(blockId)
             .Build();
-        await AddAsync(transaction);
+        await _databaseFixture.AddAsync(transaction);
         
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -125,9 +122,9 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const long blockId = 42;
-        await DeleteTables("graphql_transactions");
+        await DatabaseFixture.TruncateTables("graphql_transactions");
 
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -142,12 +139,12 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const long transactionId = 42;
-        await DeleteTables("graphql_transaction_events");
+        await DatabaseFixture.TruncateTables("graphql_transaction_events");
         var transactionRelated = new TransactionRelated<TransactionResultEvent>(transactionId, 2, new TransferMemo("foo"));
         var transactionRelatedOther = new TransactionRelated<TransactionResultEvent>(12, 2, new TransferMemo("foo"));
-        await AddAsync(transactionRelated, transactionRelatedOther);
+        await _databaseFixture.AddAsync(transactionRelated, transactionRelatedOther);
         
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -163,12 +160,12 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const ulong latestHeight = 3;
-        await DeleteTables("graphql_smart_contract_read_heights");
-        await AddAsync(
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await _databaseFixture.AddAsync(
             new SmartContractReadHeight(1, ImportSource.DatabaseImport),
             new SmartContractReadHeight(latestHeight, ImportSource.NodeImport),
             new SmartContractReadHeight(2, ImportSource.DatabaseImport));
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
         
         // Act
@@ -184,8 +181,8 @@ public sealed class SmartContractRepositoryTests
     public async Task GivenNoEntities_WhenGetReadOnlyLatestSmartContractReadHeight_ThenReturnNull()
     {
         // Arrange
-        await DeleteTables("graphql_smart_contract_read_heights");
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
         
         // Act
@@ -199,7 +196,7 @@ public sealed class SmartContractRepositoryTests
     public async Task GivenEntities_WhenGetLatestImportState_ThenReturnLatest()
     {
         // Arrange
-        await DeleteTables("graphql_import_state");
+        await DatabaseFixture.TruncateTables("graphql_import_state");
         var latestBlockSlotTime = new DateTime(2023, 08, 21, 0, 0, 0, DateTimeKind.Utc);
         const int maxBlockHeight = 42;
         var first = new ImportStateBuilder()
@@ -214,9 +211,9 @@ public sealed class SmartContractRepositoryTests
             .WithLastBlockSlotTime(latestBlockSlotTime.Subtract(TimeSpan.FromSeconds(2)))
             .WithMaxImportedBlockHeight(maxBlockHeight-2)
             .Build();
-        await AddAsync(first, second, third);
+        await _databaseFixture.AddAsync(first, second, third);
         
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
         
         // Act
@@ -230,8 +227,8 @@ public sealed class SmartContractRepositoryTests
     public async Task GivenNoEntities_WhenGetLatestImportState_ThenReturnZero()
     {
         // Arrange
-        await DeleteTables("graphql_import_state");
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        await DatabaseFixture.TruncateTables("graphql_import_state");
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
         
         // Act
@@ -247,9 +244,9 @@ public sealed class SmartContractRepositoryTests
         // Arrange
         const ulong blockHeight = 42;
         const ImportSource source = ImportSource.DatabaseImport;
-        await DeleteTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
         
-        var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
@@ -263,24 +260,5 @@ public sealed class SmartContractRepositoryTests
         smartContractReadHeight.Should().NotBeNull();
         smartContractReadHeight!.BlockHeight.Should().Be(blockHeight);
         smartContractReadHeight.Source.Should().Be(source);
-    }
-
-    private async Task AddAsync<T>(params T[] entity) where T : class
-    {
-        await using var context = new GraphQlDbContext(_dbContextOptions);
-        
-        await context.Set<T>()
-            .AddRangeAsync(entity);
-        await context.SaveChangesAsync();
-    }
-
-
-    private static async Task DeleteTables(params string[] tables)
-    {
-        await using var connection = DatabaseFixture.GetOpenConnection();
-        foreach (var table in tables)
-        {
-            await connection.ExecuteAsync($"truncate table {table}");
-        }
     }
 }

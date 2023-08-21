@@ -64,6 +64,7 @@ public class GraphQlDbContext : DbContext
     /// TODO
     /// </summary>
     public DbSet<SmartContractReadHeight> SmartContractReadHeights { get; private set; }
+    public DbSet<SmartContractJob> SmartContractJobs { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

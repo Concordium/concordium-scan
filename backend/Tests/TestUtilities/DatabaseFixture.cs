@@ -1,8 +1,11 @@
 ﻿using System.IO;
 using System.Threading;
+using Application.Api.GraphQL.EfCore;
 using Application.Database;
+using Dapper;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tests.TestUtilities.Stubs;
 
@@ -19,6 +22,8 @@ public sealed class DatabaseFixture : IDisposable
         ConnectionString = ConnectionString,
         ConnectionStringNodeCache = ConnectionStringNodeCache
     };
+
+    private readonly DbContextOptions _dbContextOptions;
 
     public DatabaseFixture()
     {
@@ -37,6 +42,10 @@ public sealed class DatabaseFixture : IDisposable
         var featureFlags = new FeatureFlagsStub(migrateDatabasesAtStartup:true);
         var databaseMigrator = new DatabaseMigrator(DatabaseSettings, featureFlags);
         databaseMigrator.MigrateDatabases();
+        
+        _dbContextOptions = new DbContextOptionsBuilder<GraphQlDbContext>()
+            .UseNpgsql(DatabaseSettings.ConnectionString)
+            .Options;
     }
 
     internal static NpgsqlConnection GetOpenConnection()
@@ -52,6 +61,27 @@ public sealed class DatabaseFixture : IDisposable
         connection.Open();
         return connection;
     }
+
+    internal GraphQlDbContext CreateGraphQlDbContext() => new(_dbContextOptions);
+
+    internal async Task AddAsync<T>(params T[] entity) where T : class
+    {
+        await using var context = new GraphQlDbContext(_dbContextOptions);
+        
+        await context.Set<T>()
+            .AddRangeAsync(entity);
+        await context.SaveChangesAsync();
+    }
+
+
+    internal static async Task TruncateTables(params string[] tables)
+    {
+        await using var connection = GetOpenConnection();
+        foreach (var table in tables)
+        {
+            await connection.ExecuteAsync($"truncate table {table}");
+        }
+    }    
 
     public void Dispose()
     {

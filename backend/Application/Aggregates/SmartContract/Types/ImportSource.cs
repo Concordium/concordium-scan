@@ -1,4 +1,4 @@
-namespace Application.Aggregates.SmartContract.Entities;
+namespace Application.Aggregates.SmartContract.Types;
 
 /// <summary>
 /// Specifies if data is fetched from node or existing data in database.

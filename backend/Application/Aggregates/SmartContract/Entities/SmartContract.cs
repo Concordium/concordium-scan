@@ -1,3 +1,4 @@
+using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 

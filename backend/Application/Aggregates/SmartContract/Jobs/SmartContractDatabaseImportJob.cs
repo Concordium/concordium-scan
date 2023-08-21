@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.SmartContract.Jobs;
 
-internal class SmartContractDatabaseImportJob
+internal class SmartContractDatabaseImportJob : ISmartContractJob
 {
     private const string JobName = "SmartContractDatabaseImportJob";
     
@@ -25,7 +25,7 @@ internal class SmartContractDatabaseImportJob
     }
 
     private long _readCount;
-    
+
     public async Task StartImport(CancellationToken token)
     {
         try
@@ -60,6 +60,11 @@ internal class SmartContractDatabaseImportJob
             // TODO: Set health state to unhealthy
             _logger.Fatal(e, $"{nameof(SmartContractDatabaseImportJob)} stopped due to exception.");
         }
+    }
+
+    public string GetUniqueIdentifier()
+    {
+        return JobName;
     }
 
     private async Task<long> GetFinalHeight(CancellationToken token)
