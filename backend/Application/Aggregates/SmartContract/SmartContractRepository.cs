@@ -67,9 +67,9 @@ internal sealed class SmartContractRepository : ISmartContractRepository
             .FirstOrDefaultAsync(token);
     }
     /// <inheritdoc/>
-    public ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class
+    public Task AddAsync<T>(params T[] entities) where T : class
     {
-        return _context.Set<T>().AddAsync(entity);
+        return _context.Set<T>().AddRangeAsync(entities);
     }
     /// <inheritdoc/>
     public Task SaveChangesAsync(CancellationToken token = default)

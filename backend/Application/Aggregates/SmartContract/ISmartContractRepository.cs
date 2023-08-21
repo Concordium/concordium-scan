@@ -13,10 +13,10 @@ public interface ISmartContractRepository : IAsyncDisposable
     /// </summary>
     public Task<SmartContractReadHeight?> GetReadOnlySmartContractReadHeightAtHeight(ulong blockHeight);
     /// <summary>
-    /// Throws exception if block at height doesn't exist.
+    /// Get block id at block height.
+    ///
+    /// Should throw exception if no block at height exist.
     /// </summary>
-    /// <param name="blockHeight"></param>
-    /// <returns></returns>
     public Task<long> GetReadOnlyBlockIdAtHeight(int blockHeight);
     /// <summary>
     /// Returns all transaction from a block id.
@@ -29,19 +29,18 @@ public interface ISmartContractRepository : IAsyncDisposable
     /// <summary>
     /// Returns latest smart contract read height ordered descending by block height. 
     /// </summary>
-    /// <returns></returns>
     public Task<SmartContractReadHeight?> GetReadOnlyLatestSmartContractReadHeight();
     /// <summary>
-    /// Get latest import state of block- and transactions.
+    /// Get latest import state of block- and transactions ordered by
+    /// block slot time.
     ///
     /// Should return zero (default) is no entity is present.
     /// </summary>
-    /// <returns></returns>
     public Task<long> GetLatestImportState(CancellationToken token = default);
     /// <summary>
     /// Adds entity to repository.
     /// </summary>
-    ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class;
+    Task AddAsync<T>(params T[] entities) where T : class;
     /// <summary>
     /// Save changes to storage.
     /// </summary>

@@ -1,11 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Api.GraphQL.Blocks;
-using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
@@ -274,7 +270,7 @@ internal sealed class SmartContractAggregate
         return importState?.BlockHeight ?? 0;
     }
 
-    private static ValueTask<EntityEntry<SmartContractReadHeight>> SaveLastReadBlock(
+    private static Task SaveLastReadBlock(
         ISmartContractRepository repository,
         ulong blockHeight
     )

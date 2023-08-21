@@ -87,47 +87,47 @@ internal sealed class TestSmartContractRepository : ISmartContractRepository
         throw new NotImplementedException();
     }
 
-    public ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class
+    public Task AddAsync<T>(params T[] entity) where T : class
     {
         if (typeof(T) == typeof(SmartContractReadHeight))
         {
             SmartContractAggregateImportStates.Add((entity as SmartContractReadHeight)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(SmartContractEvent))
         {
             SmartContractEvents.Add((entity as SmartContractEvent)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(ModuleReferenceEvent))
         {
             ModuleReferenceEvents.Add((entity as ModuleReferenceEvent)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(ModuleReferenceSmartContractLinkEvent))
         {
             ModuleReferenceSmartContractLinkEvents.Add((entity as ModuleReferenceSmartContractLinkEvent)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(Application.Aggregates.SmartContract.SmartContract))
         {
             SmartContracts.Add((entity as Application.Aggregates.SmartContract.SmartContract)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(Block))
         {
             Blocks.Add((entity as Block)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(Transaction))
         {
             Transactions.Add((entity as Transaction)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         if (typeof(T) == typeof(TransactionRelated<TransactionResultEvent>))
         {
             TransactionRelations.Add((entity as TransactionRelated<TransactionResultEvent>)!);
-            return new ValueTask<EntityEntry<T>>();
+            return Task.CompletedTask;
         }
         throw new NotImplementedException($"Not implemented for type: {typeof(T)}");
     }
