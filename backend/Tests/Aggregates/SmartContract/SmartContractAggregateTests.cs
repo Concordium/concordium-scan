@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Entities;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using FluentAssertions;
@@ -20,14 +21,14 @@ public sealed class SmartContractAggregateTests
         // Arrange
         var smartContractEvents = new List<SmartContractEvent>();
         var moduleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
-        var smartContracts = new List<Application.Aggregates.SmartContract.SmartContract>();
+        var smartContracts = new List<Application.Aggregates.SmartContract.Entities.SmartContract>();
         var repository = new Mock<ISmartContractRepository>();
         repository.Setup(m => m.AddAsync(It.IsAny<SmartContractEvent[]>()))
             .Callback<SmartContractEvent[]>((e) => smartContractEvents.AddRange(e));
         repository.Setup(m => m.AddAsync(It.IsAny<ModuleReferenceSmartContractLinkEvent[]>()))
             .Callback<ModuleReferenceSmartContractLinkEvent[]>((e) => moduleReferenceSmartContractLinkEvents.AddRange(e));
-        repository.Setup(m => m.AddAsync(It.IsAny<Application.Aggregates.SmartContract.SmartContract[]>()))
-            .Callback<Application.Aggregates.SmartContract.SmartContract[]>((e) => smartContracts.AddRange(e));
+        repository.Setup(m => m.AddAsync(It.IsAny<Application.Aggregates.SmartContract.Entities.SmartContract[]>()))
+            .Callback<Application.Aggregates.SmartContract.Entities.SmartContract[]>((e) => smartContracts.AddRange(e));
         const int contractIndex = 5;
         const string initName = "init_foo";
         var accountAddress = AccountAddressHelper.CreateOneFilledWith(1);

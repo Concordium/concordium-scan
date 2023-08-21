@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
@@ -48,7 +49,7 @@ internal sealed class SmartContractAggregate
                 await using var repository = await _repositoryFactory.CreateAsync();
                 
                 await NodeImport(repository, client, height, token);
-                await SaveLastReadBlock(repository, height);
+                await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
                 await repository.SaveChangesAsync(token);
             }
             lastHeight = newLastHeight;
@@ -66,7 +67,7 @@ internal sealed class SmartContractAggregate
         }
 
         await DatabaseImport(repository, height);
-        await SaveLastReadBlock(repository, (ulong)height);
+        await SaveLastReadBlock(repository, (ulong)height, ImportSource.DatabaseImport);
         await repository.SaveChangesAsync(token);
     }
     
@@ -88,6 +89,7 @@ internal sealed class SmartContractAggregate
             foreach (var transactionRelated in transactionEvents)
             {
                 await StoreEvent(
+                    ImportSource.DatabaseImport,
                     repository,
                     transactionRelated.Entity,
                     transaction.SenderAccountAddress,
@@ -125,6 +127,7 @@ internal sealed class SmartContractAggregate
             foreach (var transactionResultEvent in FilterEvents(details.Effects))
             {
                 await StoreEvent(
+                    ImportSource.NodeImport,
                     repository,
                     transactionResultEvent,
                     AccountAddress.From(details.Sender),
@@ -139,6 +142,7 @@ internal sealed class SmartContractAggregate
     }
     
     private async Task StoreEvent(
+        ImportSource source,
         ISmartContractRepository repository,        
         TransactionResultEvent transactionResultEvent,
         AccountAddress sender,
@@ -151,13 +155,14 @@ internal sealed class SmartContractAggregate
         switch (transactionResultEvent)
         {
             case Api.GraphQL.Transactions.ContractInitialized contractInitialized:
-                await repository.AddAsync(new SmartContract(
+                await repository.AddAsync(new Entities.SmartContract(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
                     eventIndex,
                     contractInitialized.ContractAddress,
-                    sender
+                    sender,
+                    source
                 ));
                 await repository
                     .AddAsync(new SmartContractEvent(
@@ -166,7 +171,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractInitialized.ContractAddress,
-                        contractInitialized
+                        contractInitialized,
+                        source
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceSmartContractLinkEvent(
@@ -175,7 +181,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractInitialized.ModuleRef,
-                        contractInitialized.ContractAddress
+                        contractInitialized.ContractAddress,
+                        source
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
@@ -186,7 +193,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractInterrupted.ContractAddress,
-                        contractInterrupted
+                        contractInterrupted,
+                        source
                     ));
                 break;
             case ContractResumed contractResumed:
@@ -197,7 +205,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractResumed.ContractAddress,
-                        contractResumed
+                        contractResumed,
+                        source
                     ));
                 break;
             case ContractUpdated contractUpdated:
@@ -208,7 +217,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractUpdated.ContractAddress,
-                        contractUpdated
+                        contractUpdated,
+                        source
                     ));
                 break;
             case ContractUpgraded contractUpgraded:
@@ -219,7 +229,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractUpgraded.ContractAddress,
-                        contractUpgraded
+                        contractUpgraded,
+                        source
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceSmartContractLinkEvent(
@@ -228,7 +239,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractUpgraded.To,
-                        contractUpgraded.ContractAddress
+                        contractUpgraded.ContractAddress,
+                        source
                     ));
                 break;
             case Transferred transferred:
@@ -247,7 +259,8 @@ internal sealed class SmartContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractAddress,
-                        transferred
+                        transferred,
+                        source
                     ));
                 break;
             case ContractModuleDeployed contractModuleDeployed:
@@ -257,7 +270,8 @@ internal sealed class SmartContractAggregate
                         transactionHash,
                         transactionIndex,
                         eventIndex,
-                        contractModuleDeployed.ModuleRef
+                        contractModuleDeployed.ModuleRef,
+                        source
                     ));
                 break;
         }
@@ -272,11 +286,12 @@ internal sealed class SmartContractAggregate
 
     private static Task SaveLastReadBlock(
         ISmartContractRepository repository,
-        ulong blockHeight
+        ulong blockHeight,
+        ImportSource source
     )
     {
         return repository
-            .AddAsync(new SmartContractReadHeight(blockHeight));
+            .AddAsync(new SmartContractReadHeight(blockHeight, source));
     }
     
     private static IEnumerable<TransactionResultEvent> FilterEvents(IAccountTransactionEffects effect)

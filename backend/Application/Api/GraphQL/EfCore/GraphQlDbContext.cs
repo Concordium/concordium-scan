@@ -1,4 +1,5 @@
 ﻿using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;

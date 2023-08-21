@@ -1,3 +1,4 @@
+using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -15,14 +16,16 @@ public sealed class
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
         builder.Property(x => x.BlockHeight)
             .HasColumnName("block_height");
+        builder.Property(x => x.Source)
+            .HasColumnName("source");
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");
     }
 }
 
-public sealed class SmartContractEntityTypeConfigurations : IEntityTypeConfiguration<SmartContract>
+public sealed class SmartContractEntityTypeConfigurations : IEntityTypeConfiguration<Entities.SmartContract>
 {
-    public void Configure(EntityTypeBuilder<SmartContract> builder)
+    public void Configure(EntityTypeBuilder<Entities.SmartContract> builder)
     {
         builder.ToTable("graphql_smart_contracts");
         builder.HasKey(x => new

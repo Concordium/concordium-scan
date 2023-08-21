@@ -1,5 +1,6 @@
 using System.Threading;
 using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
@@ -28,8 +29,9 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const ulong blockHeight = 42;
+        const ImportSource source = ImportSource.DatabaseImport;
         await DeleteTables("graphql_smart_contract_read_heights");
-        await AddAsync(new SmartContractReadHeight(blockHeight));
+        await AddAsync(new SmartContractReadHeight(blockHeight, source));
         var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
@@ -39,6 +41,7 @@ public sealed class SmartContractRepositoryTests
         // Assert
         actual.Should().NotBeNull();
         actual!.BlockHeight.Should().Be(42);
+        actual!.Source.Should().Be(source);
     }
     
     [Fact]
@@ -162,9 +165,9 @@ public sealed class SmartContractRepositoryTests
         const ulong latestHeight = 3;
         await DeleteTables("graphql_smart_contract_read_heights");
         await AddAsync(
-            new SmartContractReadHeight(1),
-            new SmartContractReadHeight(latestHeight),
-            new SmartContractReadHeight(2));
+            new SmartContractReadHeight(1, ImportSource.DatabaseImport),
+            new SmartContractReadHeight(latestHeight, ImportSource.NodeImport),
+            new SmartContractReadHeight(2, ImportSource.DatabaseImport));
         var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
         
@@ -174,6 +177,7 @@ public sealed class SmartContractRepositoryTests
         // Assert
         latest.Should().NotBeNull();
         latest!.BlockHeight.Should().Be(latestHeight);
+        latest.Source.Should().Be(ImportSource.NodeImport);
     }
     
     [Fact]
@@ -242,13 +246,14 @@ public sealed class SmartContractRepositoryTests
     {
         // Arrange
         const ulong blockHeight = 42;
+        const ImportSource source = ImportSource.DatabaseImport;
         await DeleteTables("graphql_smart_contract_read_heights");
         
         var graphQlDbContext = new GraphQlDbContext(_dbContextOptions);
         var smartContractRepository = new SmartContractRepository(graphQlDbContext);
 
         // Act
-        await smartContractRepository.AddAsync(new SmartContractReadHeight(blockHeight));
+        await smartContractRepository.AddAsync(new SmartContractReadHeight(blockHeight, source));
         await smartContractRepository.SaveChangesAsync();
         graphQlDbContext.ChangeTracker.Clear();
         
@@ -257,6 +262,7 @@ public sealed class SmartContractRepositoryTests
             .FirstOrDefaultAsync();
         smartContractReadHeight.Should().NotBeNull();
         smartContractReadHeight!.BlockHeight.Should().Be(blockHeight);
+        smartContractReadHeight.Source.Should().Be(source);
     }
 
     private async Task AddAsync<T>(params T[] entity) where T : class

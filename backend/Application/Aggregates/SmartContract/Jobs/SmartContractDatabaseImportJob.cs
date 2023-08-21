@@ -35,10 +35,8 @@ internal class SmartContractDatabaseImportJob
             
             while (!token.IsCancellationRequested)
             {
-                await using var context = await _repositoryFactory.CreateAsync();
-
-                var finalHeight = await context.GetLatestImportState(token);
-
+                var finalHeight = await GetFinalHeight(token);
+                
                 if (finalHeight - _readCount <= _jobOptions.Limit)
                 {
                     break;
@@ -64,17 +62,26 @@ internal class SmartContractDatabaseImportJob
         }
     }
 
+    private async Task<long> GetFinalHeight(CancellationToken token)
+    {
+        await using var context = await _repositoryFactory.CreateAsync();
+
+        var finalHeight = await context.GetLatestImportState(token);
+
+        return finalHeight;
+    }
+
     private async Task Run(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)
     {
         while (_readCount < finalHeight && !token.IsCancellationRequested)
         {
-            var increment = Interlocked.Increment(ref _readCount);
-            if (increment > finalHeight)
+            var height = Interlocked.Increment(ref _readCount);
+            if (height > finalHeight)
             {
                 return;
             }
 
-            await contractAggregate.DatabaseImportJob(increment, token);
+            await contractAggregate.DatabaseImportJob(height, token);
         }
     }
 }
