@@ -31,7 +31,7 @@ namespace Tests.Api.GraphQL.Import.EventLog
 
             writer = new EventLogWriter(_dbContextFactory, _accountLookup, new NullMetrics());
 
-            using var connection = dbFixture.GetOpenConnection();
+            using var connection = DatabaseFixture.GetOpenConnection();
             connection.Execute("TRUNCATE TABLE graphql_tokens");
             connection.Execute("TRUNCATE TABLE graphql_account_tokens");
         }

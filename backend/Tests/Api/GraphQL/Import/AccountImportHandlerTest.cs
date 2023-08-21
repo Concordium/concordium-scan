@@ -31,7 +31,7 @@ namespace Tests.Api.GraphQL.Import
             _accountImportHandler = new AccountImportHandler(_accountLookup, _metrics, _accountWriter);
             _transactionWriter = new TransactionWriter(_dbContextFactory, _metrics);
 
-            using var connection = dbFixture.GetOpenConnection();
+            using var connection = DatabaseFixture.GetOpenConnection();
             connection.Execute("TRUNCATE TABLE graphql_accounts");
             connection.Execute("TRUNCATE TABLE graphql_account_statement_entries");
             connection.Execute("TRUNCATE TABLE graphql_transactions");

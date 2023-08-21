@@ -62,7 +62,7 @@ public class GraphQlDbContext : DbContext
     /// <summary>
     /// TODO
     /// </summary>
-    public DbSet<SmartContractReadHeight> SmartContractAggregateImportStates { get; private set; }
+    public DbSet<SmartContractReadHeight> SmartContractReadHeights { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

@@ -23,7 +23,7 @@ public class AccountWriterTest
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new AccountWriter(_dbContextFactory, new NullMetrics());
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
         connection.Execute("TRUNCATE TABLE graphql_account_transactions");
         connection.Execute("TRUNCATE TABLE graphql_account_release_schedule");

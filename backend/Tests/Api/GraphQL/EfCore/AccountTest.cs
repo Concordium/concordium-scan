@@ -21,7 +21,7 @@ public class AccountTest
         _dbFixture = dbFixture;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings, outputHelper);
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_accounts");
     }
 

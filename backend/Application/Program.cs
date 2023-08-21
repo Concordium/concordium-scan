@@ -1,4 +1,5 @@
 using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;

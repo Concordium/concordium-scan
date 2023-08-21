@@ -16,7 +16,7 @@ public class NodeCacheRepositoryTest
     {
         _target = new NodeCacheRepository(dbFixture.DatabaseSettings, new NullMetrics());
         
-        using var connection = dbFixture.GetOpenNodeCacheConnection();
+        using var connection = DatabaseFixture.GetOpenNodeCacheConnection();
         connection.Execute("TRUNCATE TABLE block_summary");
     }
 

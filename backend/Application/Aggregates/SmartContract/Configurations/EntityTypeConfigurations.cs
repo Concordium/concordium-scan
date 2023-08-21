@@ -1,9 +1,8 @@
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Application.Aggregates.SmartContract;
+namespace Application.Aggregates.SmartContract.Configurations;
 
 public sealed class
     SmartContractReadHeightEntityTypeConfigurations : IEntityTypeConfiguration<

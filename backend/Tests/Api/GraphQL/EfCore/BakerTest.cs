@@ -23,7 +23,7 @@ public class BakerTest
         _outputHelper = outputHelper;
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_bakers");
         
         RefreshBakerStatisticsView();
@@ -31,7 +31,7 @@ public class BakerTest
 
     private void RefreshBakerStatisticsView()
     {
-        using var connection = _dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("refresh materialized view graphql_baker_statistics");
     }
 

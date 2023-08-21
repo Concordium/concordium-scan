@@ -76,6 +76,6 @@ create table graphql_module_reference_smart_contract_link_events
 create table graphql_smart_contract_read_heights
 (
     id                          bigint      primary key generated always as identity,
-    block_height                bigint      not null,
+    block_height                bigint      not null UNIQUE,
     created_at                  TIMESTAMPTZ not null
 )

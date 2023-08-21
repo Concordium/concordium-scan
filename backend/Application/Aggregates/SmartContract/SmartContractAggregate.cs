@@ -1,8 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Api.GraphQL.Blocks;
+using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
 using Transferred = Application.Api.GraphQL.Transactions.Transferred;
@@ -12,27 +16,30 @@ namespace Application.Aggregates.SmartContract;
 internal sealed class SmartContractAggregate
 {
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
-    private readonly ISmartContractNodeClient _client;
     private readonly ILogger _logger;
     private readonly TimeSpan _delay = TimeSpan.FromSeconds(1);
 
+    internal enum ImportType
+    {
+        NodeImport,
+        DatabaseImport,
+    }
+
     public SmartContractAggregate(
-        ISmartContractRepositoryFactory repositoryFactory,
-        ISmartContractNodeClient client
+        ISmartContractRepositoryFactory repositoryFactory
     )
     {
         _repositoryFactory = repositoryFactory;
-        _client = client;
         _logger = _logger = Log.ForContext<SmartContractAggregate>();
     }
 
-    internal async Task Import(CancellationToken token = default)
+    internal async Task NodeImportJob(ISmartContractNodeClient client, CancellationToken token = default)
     {
         // TODO - add some resilience
         var lastHeight = await GetLastReadBlockHeight();
         while (!token.IsCancellationRequested)
         {
-            var consensusInfo = await _client.GetConsensusInfoAsync(token);
+            var consensusInfo = await client.GetConsensusInfoAsync(token);
             var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
             if (lastHeight == newLastHeight)
             {
@@ -44,8 +51,7 @@ internal sealed class SmartContractAggregate
             {
                 await using var repository = await _repositoryFactory.CreateAsync();
                 
-                var absolute = new Absolute(height);
-                await GetTransactionEvents(repository, absolute, token);
+                await NodeImport(repository, client, height, token);
                 await SaveLastReadBlock(repository, height);
                 await repository.SaveChangesAsync(token);
             }
@@ -53,13 +59,60 @@ internal sealed class SmartContractAggregate
         }
     }
 
-    internal async Task GetTransactionEvents(
+    internal async Task DatabaseImportJob(long height, CancellationToken token = default)
+    {
+        await using var repository = await _repositoryFactory.CreateAsync();
+
+        var existing = await repository.GetReadOnlySmartContractReadHeightAtHeight((ulong)height);
+        if (existing is not null)
+        {
+            _logger.Warning($"Block Height {height} already written.");
+        }
+
+        await DatabaseImport(repository, height);
+        await SaveLastReadBlock(repository, (ulong)height);
+        await repository.SaveChangesAsync(token);
+    }
+    
+    internal async Task DatabaseImport(ISmartContractRepository repository, long blockHeight)
+    {
+        var blockIdAtHeight = await repository.GetReadOnlyBlockIdAtHeight((int)blockHeight);
+
+        var transactions = await repository.GetReadOnlyTransactionsAtBlockId(blockIdAtHeight);
+        
+        foreach (var transaction in transactions)
+        {
+            if (transaction.SenderAccountAddress == null)
+            {
+                throw new SmartContractImportException(
+                    $"Not able to map transaction: {transaction.TransactionHash}, since transaction sender was null");
+            }
+            
+            var transactionEvents = await repository.GetReadOnlyTransactionResultEventsFromTransactionId(transaction.Id);
+            foreach (var transactionRelated in transactionEvents)
+            {
+                await StoreEvent(
+                    repository,
+                    transactionRelated.Entity,
+                    transaction.SenderAccountAddress,
+                    (ulong)blockHeight,
+                    transaction.TransactionHash,
+                    0,
+                    (uint)transactionRelated.Index
+                );
+            }
+        }
+    }
+
+    internal async Task NodeImport(
         ISmartContractRepository repository,
-        IBlockHashInput blockHashInput,
+        ISmartContractNodeClient client,
+        ulong height,
         CancellationToken token = default
         )
     {
-        var (blockHash, transactionEvents) = await _client.GetBlockTransactionEvents(blockHashInput, token);
+        var blockHashInput = new Absolute(height);
+        var (blockHash, transactionEvents) = await client.GetBlockTransactionEvents(blockHashInput, token);
         _logger.Debug("Reading {@BlockHash}", blockHash);
         
         BlockInfo? blockInfo = null;
@@ -69,7 +122,7 @@ internal sealed class SmartContractAggregate
             {
                 continue;
             }
-            blockInfo ??= (await _client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
+            blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
             var transactionHash = blockItemSummary.TransactionHash.ToString();
             var eventIndex = 0u;
@@ -78,7 +131,7 @@ internal sealed class SmartContractAggregate
                 await StoreEvent(
                     repository,
                     transactionResultEvent,
-                    details.Sender,
+                    AccountAddress.From(details.Sender),
                     blockInfo.BlockHeight,
                     transactionHash,
                     blockItemSummary.Index,
@@ -108,7 +161,7 @@ internal sealed class SmartContractAggregate
                     transactionIndex,
                     eventIndex,
                     contractInitialized.ContractAddress,
-                    Api.GraphQL.Accounts.AccountAddress.From(sender)
+                    sender
                 ));
                 await repository
                     .AddAsync(new SmartContractEvent(
@@ -184,7 +237,7 @@ internal sealed class SmartContractAggregate
                 break;
             case Transferred transferred:
                 if (transferred.From is not ContractAddress contractAddress ||
-                    transferred.To is not Api.GraphQL.Accounts.AccountAddress)
+                    transferred.To is not AccountAddress)
                 {
                     _logger.Error("Error when map transfer got {@From} and {@To} in transaction {TransactionHash}",
                         transferred.From, transferred.To, transactionHash);
@@ -217,9 +270,7 @@ internal sealed class SmartContractAggregate
     internal async Task<ulong> GetLastReadBlockHeight()
     {
         await using var repository = await _repositoryFactory.CreateAsync();
-        var importState = repository.GetReadOnlyQueryable<SmartContractReadHeight>()
-            .OrderByDescending(x => x.BlockHeight)
-            .FirstOrDefault();
+        var importState = await repository.GetReadOnlyLatestSmartContractReadHeight();
         return importState?.BlockHeight ?? 0;
     }
 

@@ -4,11 +4,11 @@ using Application.Aggregates.SmartContract;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
 
 namespace Tests.Aggregates.SmartContract;
 
@@ -19,13 +19,13 @@ public sealed class SmartContractAggregateTests
     {
         // Arrange
         const ulong lastHeight = 9UL;
-        var repository = new TestRepository();
+        var repository = new TestSmartContractRepository();
         repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(3));
         repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(7));
         repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(1));
         repository.SmartContractAggregateImportStates.Add(new SmartContractReadHeight(lastHeight));
-        var testMockDbFactory = new TestMockDbFactory(repository);
-        var aggregate = new SmartContractAggregate(testMockDbFactory, Mock.Of<ISmartContractNodeClient>());
+        var testMockDbFactory = new TestSmartContractRepositoryFactory(repository);
+        var aggregate = new SmartContractAggregate(testMockDbFactory);
 
         // Act
         var lastReadBlockHeight = await aggregate.GetLastReadBlockHeight();
@@ -38,9 +38,9 @@ public sealed class SmartContractAggregateTests
     public async Task GivenNoRows_WhenGetLastReadBlockHeight_ThenReturnZero()
     {
         // Arrange
-        var repository = new TestRepository();
-        var testMockDbFactory = new TestMockDbFactory(repository);
-        var aggregate = new SmartContractAggregate(testMockDbFactory, Mock.Of<ISmartContractNodeClient>());
+        var repository = new TestSmartContractRepository();
+        var testMockDbFactory = new TestSmartContractRepositoryFactory(repository);
+        var aggregate = new SmartContractAggregate(testMockDbFactory);
 
         // Act
         var lastReadBlockHeight = await aggregate.GetLastReadBlockHeight();
@@ -50,10 +50,10 @@ public sealed class SmartContractAggregateTests
     }
     
     [Fact]
-    public async Task GivenContractInitialization_WhenGetTransaction_ThenStoreSmartContractEventAndModuleLinkAndSmartContract()
+    public async Task GivenContractInitialization_WhenNodeImport_ThenStoreSmartContractEventAndModuleLinkAndSmartContract()
     {
         // Arrange
-        var repository = new TestRepository();
+        var repository = new TestSmartContractRepository();
         const int contractIndex = 5;
         const string initName = "init_foo";
         var accountAddress = AccountAddressHelper.CreateOneFilledWith(1);
@@ -88,15 +88,10 @@ public sealed class SmartContractAggregateTests
         client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponseBlockInfo));
         
-        var aggregate = new SmartContractAggregate(
-            Mock.Of<ISmartContractRepositoryFactory>(),
-            client.Object);
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.GetTransactionEvents(
-            repository,
-            Mock.Of<IBlockHashInput>()
-        );
+        await aggregate.NodeImport(repository, client.Object, 42);
 
         // Assert
         repository.SmartContractEvents.Count.Should().Be(1);
@@ -119,23 +114,18 @@ public sealed class SmartContractAggregateTests
     }
 
     [Fact]
-    public async Task GivenModuleDeployed_WhenGetTransaction_ThenStoreEvent()
+    public async Task GivenModuleDeployed_WhenNodeImport_ThenStoreEvent()
     {
         // Arrange
-        var repository = new TestRepository();
+        var repository = new TestSmartContractRepository();
         var moduleReference = Convert.ToHexString(new byte[32]);
         var moduleDeployed = new ModuleDeployed(new ModuleReference(moduleReference));
         var client = CreateMockClientFromEffects(moduleDeployed);
 
-        var aggregate = new SmartContractAggregate(
-            Mock.Of<ISmartContractRepositoryFactory>(),
-            client.Object);
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.GetTransactionEvents(
-            repository,
-            Mock.Of<IBlockHashInput>()
-        );
+        await aggregate.NodeImport(repository, client.Object, 42);
 
         // Assert
         repository.ModuleReferenceEvents.Count.Should().Be(1);
@@ -144,10 +134,10 @@ public sealed class SmartContractAggregateTests
     }
 
     [Fact]
-    public async Task GivenContractUpgraded_WhenGetTransaction_ThenStoreEventAndModuleLink()
+    public async Task GivenContractUpgraded_WhenNodeImport_ThenStoreEventAndModuleLink()
     {
         // Arrange
-        var repository = new TestRepository();
+        var repository = new TestSmartContractRepository();
         var moduleReference = Convert.ToHexString(new byte[32]);
         var moduleFrom = Convert.ToHexString(ArrayFilledWith(0, 32));
         var moduleTo = Convert.ToHexString(ArrayFilledWith(1, 32));
@@ -158,15 +148,10 @@ public sealed class SmartContractAggregateTests
         );
         var client = CreateMockClientFromEffects(new ContractUpdateIssued(new List<IContractTraceElement>{upgraded}));
 
-        var aggregate = new SmartContractAggregate(
-            Mock.Of<ISmartContractRepositoryFactory>(),
-            client.Object);
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
         
         // Act
-        await aggregate.GetTransactionEvents(
-            repository,
-            Mock.Of<IBlockHashInput>()
-        );
+        await aggregate.NodeImport(repository, client.Object, 42);
 
         // Assert
         repository.SmartContractEvents.Count.Should().Be(1);
@@ -179,7 +164,7 @@ public sealed class SmartContractAggregateTests
         link.ModuleReference.Should().Be(moduleTo);
         link.ContractAddressIndex.Should().Be(contractIndex);
     }
-    
+
     private static byte[] ArrayFilledWith(byte fill, ushort size)
     {
         Span<byte> bytes = stackalloc byte[size];
@@ -208,93 +193,5 @@ public sealed class SmartContractAggregateTests
         client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponseBlockInfo));
         return client;
-    }
-}
-
-internal sealed class TestRepository : ISmartContractRepository
-{
-    internal readonly IList<SmartContractReadHeight> SmartContractAggregateImportStates = new List<SmartContractReadHeight>();
-    internal readonly IList<SmartContractEvent> SmartContractEvents = new List<SmartContractEvent>();
-    internal readonly IList<ModuleReferenceEvent> ModuleReferenceEvents = new List<ModuleReferenceEvent>();
-    internal readonly IList<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents = new List<ModuleReferenceSmartContractLinkEvent>();
-    internal readonly IList<Application.Aggregates.SmartContract.SmartContract> SmartContracts = new List<Application.Aggregates.SmartContract.SmartContract>();
-
-    public IQueryable<T> GetReadOnlyQueryable<T>() where T : class
-    {
-        if (typeof(T) == typeof(SmartContractReadHeight))
-        {
-            return SmartContractAggregateImportStates.Cast<T>().AsQueryable();
-        }
-        if (typeof(T) == typeof(SmartContractEvent))
-        {
-            return SmartContractEvents.Cast<T>().AsQueryable();
-        }
-        if (typeof(T) == typeof(ModuleReferenceEvent))
-        {
-            return ModuleReferenceEvents.Cast<T>().AsQueryable();
-        }
-        if (typeof(T) == typeof(ModuleReferenceSmartContractLinkEvent))
-        {
-            return ModuleReferenceSmartContractLinkEvents.Cast<T>().AsQueryable();
-        }
-        if (typeof(T) == typeof(Application.Aggregates.SmartContract.SmartContract))
-        {
-            return SmartContracts.Cast<T>().AsQueryable();
-        }
-        throw new NotImplementedException($"Not implemented for type: {typeof(T)}");
-    }
-
-    public ValueTask<EntityEntry<T>> AddAsync<T>(T entity) where T : class
-    {
-        if (typeof(T) == typeof(SmartContractReadHeight))
-        {
-            SmartContractAggregateImportStates.Add((entity as SmartContractReadHeight)!);
-            return new ValueTask<EntityEntry<T>>();
-        }
-        if (typeof(T) == typeof(SmartContractEvent))
-        {
-            SmartContractEvents.Add((entity as SmartContractEvent)!);
-            return new ValueTask<EntityEntry<T>>();
-        }
-        if (typeof(T) == typeof(ModuleReferenceEvent))
-        {
-            ModuleReferenceEvents.Add((entity as ModuleReferenceEvent)!);
-            return new ValueTask<EntityEntry<T>>();
-        }
-        if (typeof(T) == typeof(ModuleReferenceSmartContractLinkEvent))
-        {
-            ModuleReferenceSmartContractLinkEvents.Add((entity as ModuleReferenceSmartContractLinkEvent)!);
-            return new ValueTask<EntityEntry<T>>();
-        }
-        if (typeof(T) == typeof(Application.Aggregates.SmartContract.SmartContract))
-        {
-            SmartContracts.Add((entity as Application.Aggregates.SmartContract.SmartContract)!);
-            return new ValueTask<EntityEntry<T>>();
-        }
-        throw new NotImplementedException($"Not implemented for type: {typeof(T)}");
-    }
-
-    public Task SaveChangesAsync(CancellationToken token)
-    {
-        return Task.CompletedTask;
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        return ValueTask.CompletedTask;
-    }
-}
-
-internal class TestMockDbFactory : ISmartContractRepositoryFactory
-{
-    private readonly TestRepository _repository;
-
-    public TestMockDbFactory(TestRepository repository)
-    {
-        _repository = repository;
-    }
-    public Task<ISmartContractRepository> CreateAsync()
-    {
-        return Task.FromResult<ISmartContractRepository>(_repository);
     }
 }

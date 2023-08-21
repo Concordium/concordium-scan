@@ -39,14 +39,14 @@ public sealed class DatabaseFixture : IDisposable
         databaseMigrator.MigrateDatabases();
     }
 
-    internal NpgsqlConnection GetOpenConnection()
+    internal static NpgsqlConnection GetOpenConnection()
     {
         var connection = new NpgsqlConnection(ConnectionString);
         connection.Open();
         return connection;
     }
     
-    internal NpgsqlConnection GetOpenNodeCacheConnection()
+    internal static NpgsqlConnection GetOpenNodeCacheConnection()
     {
         var connection = new NpgsqlConnection(ConnectionStringNodeCache);
         connection.Open();

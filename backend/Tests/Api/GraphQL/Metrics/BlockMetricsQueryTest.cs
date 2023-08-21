@@ -22,7 +22,7 @@ public class BlockMetricsQueryTest
         _timeProviderStub = new TimeProviderStub();
         _target = new BlockMetricsQuery(dbFixture.DatabaseSettings, _timeProviderStub);
 
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_blocks");
     }
     

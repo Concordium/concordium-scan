@@ -1,20 +1,18 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
 namespace Application.Aggregates.SmartContract;
 
-public class SmartContractBackgroundService : BackgroundService
+public class SmartContractNodeImportBackgroundService : BackgroundService
 {
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ISmartContractNodeClient _client;
     private readonly IFeatureFlags _featureFlags;
     private readonly ILogger _logger;
 
-    public SmartContractBackgroundService(
+    public SmartContractNodeImportBackgroundService(
         ISmartContractRepositoryFactory repositoryFactory,
         ISmartContractNodeClient client,
         IFeatureFlags featureFlags
@@ -23,7 +21,7 @@ public class SmartContractBackgroundService : BackgroundService
         _repositoryFactory = repositoryFactory;
         _client = client;
         _featureFlags = featureFlags;
-        _logger = Log.ForContext<SmartContractBackgroundService>();
+        _logger = Log.ForContext<SmartContractNodeImportBackgroundService>();
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,8 +32,16 @@ public class SmartContractBackgroundService : BackgroundService
             return;
         }
         
-        var smartContractAggregate = new SmartContractAggregate(_repositoryFactory, _client);
+        var smartContractAggregate = new SmartContractAggregate(_repositoryFactory);
 
-        await smartContractAggregate.Import(stoppingToken);
+        try
+        {
+            await smartContractAggregate.NodeImportJob(_client, stoppingToken);
+        }
+        catch (Exception e)
+        {
+            _logger.Fatal(e, $"{nameof(SmartContractNodeImportBackgroundService)} stopped due to exception.");
+            // TODO: Set health state to non healthy
+        }
     }
 }

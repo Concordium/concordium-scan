@@ -30,7 +30,7 @@ public sealed class SmartContractTests
         return dbContextOptions;
     }
     
-    [Fact]
+    [Fact(Skip = "Long running")]
     public async Task QueryNode()
     {
         var options = StartupDatabase();
@@ -39,9 +39,9 @@ public sealed class SmartContractTests
         using var client = new ConcordiumClient(new Uri("http://127.0.0.1:20100"), new ConcordiumClientOptions());
         var testDbFactory = new TestDbFactory(options);
         var nodeClient = new SmartContractNodeClient(client);
-        var smartContract = new SmartContractAggregate(testDbFactory, nodeClient);
+        var smartContract = new SmartContractAggregate(testDbFactory);
 
-        await smartContract.Import(cts.Token);
+        await smartContract.NodeImportJob(nodeClient, cts.Token);
     }
 }
 
