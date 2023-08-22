@@ -1,3 +1,6 @@
+## Unreleased changes
+- Added feature which fetched Smart Contract data from node and store as events.
+
 ## 1.6.2
 - Bugfix
     - Added as before protocol update two transaction events, `CredentialDeployed` and `AccountCreated`, when a account is created.
