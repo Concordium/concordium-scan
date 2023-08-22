@@ -52,7 +52,6 @@ internal sealed class SmartContractJobsBackgroundService : BackgroundService
         }
         catch (Exception e)
         {
-            // TODO add health
             _logger.Error(e, $"{nameof(SmartContractJobsBackgroundService)} didn't succeed successfully due to exception.");
         }
     }

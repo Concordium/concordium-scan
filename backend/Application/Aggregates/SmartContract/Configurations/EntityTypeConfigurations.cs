@@ -120,7 +120,6 @@ public sealed class ModuleReferenceEventEntityTypeConfigurations : IEntityTypeCo
             .HasColumnName("transaction_hash");
         builder.Property(x => x.TransactionIndex)
             .HasColumnName("transaction_index");
-        // TODO - not needed, but suggest to keep to have common filtering on aggregate
         builder.Property(x => x.EventIndex)
             .HasColumnName("event_index");
         builder.Property(x => x.ModuleReference)

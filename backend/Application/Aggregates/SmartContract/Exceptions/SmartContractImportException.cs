@@ -1,4 +1,4 @@
-namespace Application.Aggregates.SmartContract;
+namespace Application.Aggregates.SmartContract.Exceptions;
 
 /// <summary>
 /// Thrown when import of data fails.

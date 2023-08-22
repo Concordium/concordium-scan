@@ -1,5 +1,6 @@
 using System.Threading;
 using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Database;
 using Concordium.Sdk.Client;
@@ -39,7 +40,7 @@ public sealed class SmartContractTests
         using var client = new ConcordiumClient(new Uri("http://127.0.0.1:20100"), new ConcordiumClientOptions());
         var testDbFactory = new TestDbFactory(options);
         var nodeClient = new SmartContractNodeClient(client);
-        var smartContract = new SmartContractAggregate(testDbFactory);
+        var smartContract = new SmartContractAggregate(testDbFactory, new SmartContractAggregateOptions());
 
         await smartContract.NodeImportJob(nodeClient, cts.Token);
     }

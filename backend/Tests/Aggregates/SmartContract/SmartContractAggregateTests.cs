@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using Application.Aggregates.SmartContract;
+using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Entities;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
@@ -63,7 +64,7 @@ public sealed class SmartContractAggregateTests
         client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponseBlockInfo));
         
-        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>(), new SmartContractAggregateOptions());
         
         // Act
         await aggregate.NodeImport(repository.Object, client.Object, 42);
@@ -100,7 +101,7 @@ public sealed class SmartContractAggregateTests
         var moduleDeployed = new ModuleDeployed(new ModuleReference(moduleReference));
         var client = CreateMockClientFromEffects(moduleDeployed);
 
-        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>(), new SmartContractAggregateOptions());
         
         // Act
         await aggregate.NodeImport(repository.Object, client.Object, 42);
@@ -131,7 +132,7 @@ public sealed class SmartContractAggregateTests
         );
         var client = CreateMockClientFromEffects(new ContractUpdateIssued(new List<IContractTraceElement>{upgraded}));
 
-        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>());
+        var aggregate = new SmartContractAggregate(Mock.Of<ISmartContractRepositoryFactory>(), new SmartContractAggregateOptions());
         
         // Act
         await aggregate.NodeImport(repository.Object, client.Object, 42);

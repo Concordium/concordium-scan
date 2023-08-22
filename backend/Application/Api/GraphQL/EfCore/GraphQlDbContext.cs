@@ -44,25 +44,10 @@ public class GraphQlDbContext : DbContext
     public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
     public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
-    /// <summary>
-    /// TODO
-    /// </summary>
     public DbSet<SmartContract> SmartContract { get; private set; }
-    /// <summary>
-    /// TODO
-    /// </summary>
     public DbSet<SmartContractEvent> SmartContractEvents { get; private set; }
-    /// <summary>
-    /// TODO
-    /// </summary>
     public DbSet<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents { get; private set; }
-    /// <summary>
-    /// TODO
-    /// </summary>
     public DbSet<ModuleReferenceEvent> ModuleReferenceEvents { get; private set; }
-    /// <summary>
-    /// TODO
-    /// </summary>
     public DbSet<SmartContractReadHeight> SmartContractReadHeights { get; private set; }
     public DbSet<SmartContractJob> SmartContractJobs { get; private set; }
 

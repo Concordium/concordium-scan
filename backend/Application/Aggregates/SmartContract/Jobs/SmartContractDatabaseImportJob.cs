@@ -12,6 +12,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly SmartContractAggregateJobOptions _jobOptions;
+    private readonly SmartContractAggregateOptions smartContractAggregateOptions;
 
     public SmartContractDatabaseImportJob(
         ISmartContractRepositoryFactory repositoryFactory,
@@ -20,8 +21,9 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     {
         _repositoryFactory = repositoryFactory;
         _logger = Log.ForContext<SmartContractDatabaseImportJob>();
-        var gotJobOptions = options.Value.Jobs.TryGetValue(JobName, out var jobOptions);
-        _jobOptions =  new SmartContractAggregateJobOptions();
+        smartContractAggregateOptions = options.Value;
+        var gotJobOptions = smartContractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
+        _jobOptions = gotJobOptions ? jobOptions! : new SmartContractAggregateJobOptions();
     }
 
     private long _readCount;
@@ -30,7 +32,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     {
         try
         {
-            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory);
+            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory, smartContractAggregateOptions);
             _readCount = 0;
             
             while (!token.IsCancellationRequested)
@@ -57,7 +59,6 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         }
         catch (Exception e)
         {
-            // TODO: Set health state to unhealthy
             _logger.Fatal(e, $"{nameof(SmartContractDatabaseImportJob)} stopped due to exception.");
         }
     }

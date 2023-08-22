@@ -1,9 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Entities;
+using Application.Aggregates.SmartContract.Exceptions;
 using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
+using Microsoft.Extensions.Options;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
@@ -14,40 +17,61 @@ namespace Application.Aggregates.SmartContract;
 internal sealed class SmartContractAggregate
 {
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
+    private readonly SmartContractAggregateOptions _options;
     private readonly ILogger _logger;
     private readonly TimeSpan _delay = TimeSpan.FromSeconds(1);
 
     public SmartContractAggregate(
-        ISmartContractRepositoryFactory repositoryFactory
-    )
+        ISmartContractRepositoryFactory repositoryFactory,
+        SmartContractAggregateOptions options
+            )
     {
         _repositoryFactory = repositoryFactory;
+        _options = options;
         _logger = _logger = Log.ForContext<SmartContractAggregate>();
     }
 
     internal async Task NodeImportJob(ISmartContractNodeClient client, CancellationToken token = default)
     {
-        // TODO - add some resilience
-        var lastHeight = await GetLastReadBlockHeight();
+        var retryCount = 0;
         while (!token.IsCancellationRequested)
         {
-            var consensusInfo = await client.GetConsensusInfoAsync(token);
-            var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
-            if (lastHeight == newLastHeight)
+            try
             {
-                await Task.Delay(_delay, token);
-                continue;
-            }
+                var lastHeight = await GetLastReadBlockHeight();
+                while (!token.IsCancellationRequested)
+                {
+                    var consensusInfo = await client.GetConsensusInfoAsync(token);
+                    var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
+                    if (lastHeight == newLastHeight)
+                    {
+                        await Task.Delay(_delay, token);
+                        continue;
+                    }
 
-            for (var height = lastHeight; height <= newLastHeight; height++)
-            {
-                await using var repository = await _repositoryFactory.CreateAsync();
+                    for (var height = lastHeight; height <= newLastHeight; height++)
+                    {
+                        await using var repository = await _repositoryFactory.CreateAsync();
                 
-                await NodeImport(repository, client, height, token);
-                await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
-                await repository.SaveChangesAsync(token);
+                        await NodeImport(repository, client, height, token);
+                        await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
+                        await repository.SaveChangesAsync(token);
+                    }
+                    lastHeight = newLastHeight;
+                    retryCount = 0;
+                }
+                break;
             }
-            lastHeight = newLastHeight;
+            catch (Exception e)
+            {
+                if (retryCount == _options.RetryCount)
+                {
+                    throw;
+                }
+                _logger.Error(e, "Got exception running {Method} will try again with {RetryCount}", nameof(NodeImportJob), retryCount);
+                retryCount += 1;
+                await Task.Delay(_options.JobDelay, token);
+            }
         }
     }
 
@@ -242,10 +266,8 @@ internal sealed class SmartContractAggregate
                 if (transferred.From is not ContractAddress contractAddress ||
                     transferred.To is not AccountAddress)
                 {
-                    _logger.Error("Error when map transfer got {@From} and {@To} in transaction {TransactionHash}",
-                        transferred.From, transferred.To, transactionHash);
-                    break;
-                    // TODO Throw exception? Somehow this is just a swallow...
+                    throw new SmartContractImportException(
+                        $"Error when map transfer got {transferred.From} and {transferred.To} in transaction {transactionHash}");
                 }
                 await repository
                     .AddAsync(new SmartContractEvent(

@@ -51,7 +51,7 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
         {
             await AwaitJobsAsync(stoppingToken);
         
-            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory);
+            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory, _options);
             
             _logger.Information($"{nameof(SmartContractNodeImportBackgroundService)} started.");
             await smartContractAggregate.NodeImportJob(_client, stoppingToken);
@@ -59,7 +59,6 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
         catch (Exception e)
         {
             _logger.Fatal(e, $"{nameof(SmartContractNodeImportBackgroundService)} stopped due to exception.");
-            // TODO: Set health state to non healthy
         }
     }
 

@@ -11,9 +11,16 @@ public class SmartContractAggregateOptions
     /// it defined within the jobs class.
     /// </summary>
     public IDictionary<string, SmartContractAggregateJobOptions> Jobs { get; set; }
-
     /// <summary>
     /// Delay which is used by the node importer between validation if all jobs has succeeded.
     /// </summary>
     public TimeSpan JobDelay { get; set; } = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// Delay between retries in resilience policies.
+    /// </summary>
+    public TimeSpan DelayBetweenRetries { get; set; } = TimeSpan.FromSeconds(3);
+    /// <summary>
+    /// Number of times to retry.
+    /// </summary>
+    public uint RetryCount { get; set; } = 5;
 }
