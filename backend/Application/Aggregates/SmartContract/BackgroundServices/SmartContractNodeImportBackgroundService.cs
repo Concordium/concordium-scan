@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Configurations;
+using Application.Aggregates.SmartContract.Jobs;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace Application.Aggregates.SmartContract.BackgroundServices;
 /// </summary>
 internal class SmartContractNodeImportBackgroundService : BackgroundService
 {
-    private readonly SmartContractJobsBackgroundService _jobsBackgroundService;
+    private readonly ISmartContractJobFinder _jobFinder;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ISmartContractNodeClient _client;
@@ -23,14 +24,14 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
     private readonly ILogger _logger;
 
     public SmartContractNodeImportBackgroundService(
-        SmartContractJobsBackgroundService jobsBackgroundService,
+        ISmartContractJobFinder jobFinder,
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         ISmartContractRepositoryFactory repositoryFactory,
         ISmartContractNodeClient client,
         IFeatureFlags featureFlags,
         IOptions<SmartContractAggregateOptions> options)
     {
-        _jobsBackgroundService = jobsBackgroundService;
+        _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
         _repositoryFactory = repositoryFactory;
         _client = client;
@@ -66,7 +67,7 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
     {
         while (!token.IsCancellationRequested)
         {
-            var jobsToAwait = await GetJobsToAwait();
+            var jobsToAwait = await GetJobsToAwait(token);
             if (jobsToAwait.Count == 0)
             {
                 break;
@@ -83,7 +84,7 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
 
     internal async Task<IList<string>> GetJobsToAwait(CancellationToken token = default)
     {
-        var smartContractJobs = _jobsBackgroundService.GetJobs()
+        var smartContractJobs = _jobFinder.GetJobs()
             .Select(j => j.GetUniqueIdentifier())
             .ToList();
         await using var context = await _dbContextFactory.CreateDbContextAsync(token);

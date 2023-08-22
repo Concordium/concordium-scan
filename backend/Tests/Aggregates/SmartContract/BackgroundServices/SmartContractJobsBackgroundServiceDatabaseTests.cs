@@ -42,7 +42,7 @@ public class SmartContractJobsBackgroundServiceDatabaseTests
             await context.SaveChangesAsync();
         }
         var backgroundService = new SmartContractJobsBackgroundService(
-            Mock.Of<IServiceProvider>(),
+            Mock.Of<ISmartContractJobFinder>(),
             Mock.Of<IFeatureFlags>(),
             factory.Object);
         
@@ -66,7 +66,7 @@ public class SmartContractJobsBackgroundServiceDatabaseTests
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_databaseFixture.CreateGraphQlDbContext()));
         var backgroundService = new SmartContractJobsBackgroundService(
-            Mock.Of<IServiceProvider>(),
+            Mock.Of<ISmartContractJobFinder>(),
             Mock.Of<IFeatureFlags>(),
             factory.Object);
         

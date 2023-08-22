@@ -1,16 +1,11 @@
 using System.Threading;
-using Application.Aggregates.SmartContract.BackgroundServices;
 using Application.Aggregates.SmartContract.Jobs;
-using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 
-namespace Tests.Aggregates.SmartContract.BackgroundServices;
+namespace Tests.Aggregates.SmartContract.Jobs;
 
-public class SmartContractJobsBackgroundServiceTests
+public class SmartContractJobFinderTests
 {
     [Fact]
     public void WhenJobsRegistered_ThenReturnAllJobs()
@@ -21,13 +16,10 @@ public class SmartContractJobsBackgroundServiceTests
         services.AddTransient<ISmartContractJob, Second>();
         services.AddTransient<ISmartContractJob, Third>();
         var provider = services.BuildServiceProvider();
-        var backgroundService = new SmartContractJobsBackgroundService(
-            provider,
-            Mock.Of<IFeatureFlags>(),
-            Mock.Of<IDbContextFactory<GraphQlDbContext>>());
-        
+        var smartContractJobFinder = new SmartContractJobFinder(provider);
+
         // Act
-        var smartContractJobs = backgroundService.GetJobs();
+        var smartContractJobs = smartContractJobFinder.GetJobs();
 
         // Assert
         smartContractJobs.Count().Should().Be(3);

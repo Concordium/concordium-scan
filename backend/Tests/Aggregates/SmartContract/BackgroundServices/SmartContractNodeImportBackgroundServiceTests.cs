@@ -45,10 +45,7 @@ public class SmartContractNodeImportBackgroundServiceTests
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_fixture.CreateGraphQlDbContext()));
         var provider = services.BuildServiceProvider();
-        var backgroundService = new SmartContractJobsBackgroundService(
-            provider,
-            Mock.Of<IFeatureFlags>(),
-            Mock.Of<IDbContextFactory<GraphQlDbContext>>());
+        var smartContractJobFinder = new SmartContractJobFinder(provider);
         await using (var context = _fixture.CreateGraphQlDbContext())
         {
             await context.AddAsync(new SmartContractJob(done));
@@ -57,7 +54,7 @@ public class SmartContractNodeImportBackgroundServiceTests
         };
 
         var importService = new SmartContractNodeImportBackgroundService(
-            backgroundService,
+            smartContractJobFinder,
             factory.Object,
             Mock.Of<ISmartContractRepositoryFactory>(),
             Mock.Of<ISmartContractNodeClient>(),

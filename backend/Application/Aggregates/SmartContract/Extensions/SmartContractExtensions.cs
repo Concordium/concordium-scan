@@ -27,6 +27,8 @@ public static class SmartContractExtensions
     private static void AddSmartContractJobs(this IServiceCollection collection)
     {
         collection.AddHostedService<SmartContractJobsBackgroundService>();
+        collection.AddTransient<ISmartContractJobFinder, SmartContractJobFinder>();
+        
         collection.AddTransient<ISmartContractJob, SmartContractDatabaseImportJob>();
     }
 }

@@ -5,7 +5,6 @@ using Application.Aggregates.SmartContract.Jobs;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Application.Aggregates.SmartContract.BackgroundServices;
@@ -17,18 +16,18 @@ namespace Application.Aggregates.SmartContract.BackgroundServices;
 /// </summary>
 internal sealed class SmartContractJobsBackgroundService : BackgroundService
 {
-    private readonly IServiceProvider _provider;
+    private readonly ISmartContractJobFinder _jobFinder;
     private readonly IFeatureFlags _featureFlags;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly ILogger _logger;
 
     public SmartContractJobsBackgroundService(
-        IServiceProvider provider,
+        ISmartContractJobFinder jobFinder,
         IFeatureFlags featureFlags, 
         IDbContextFactory<GraphQlDbContext> dbContextFactory
     )
     {
-        _provider = provider;
+        _jobFinder = jobFinder;
         _featureFlags = featureFlags;
         _dbContextFactory = dbContextFactory;
         _logger = Log.ForContext<SmartContractJobsBackgroundService>();
@@ -42,7 +41,7 @@ internal sealed class SmartContractJobsBackgroundService : BackgroundService
             return;
         }
 
-        var jobs = GetJobs();
+        var jobs = _jobFinder.GetJobs();
 
         try
         {
@@ -54,11 +53,6 @@ internal sealed class SmartContractJobsBackgroundService : BackgroundService
         {
             _logger.Error(e, $"{nameof(SmartContractJobsBackgroundService)} didn't succeed successfully due to exception.");
         }
-    }
-
-    internal IEnumerable<ISmartContractJob> GetJobs()
-    {
-        return _provider.GetServices<ISmartContractJob>();
     }
 
     private async Task RunJob(ISmartContractJob job, CancellationToken token)
