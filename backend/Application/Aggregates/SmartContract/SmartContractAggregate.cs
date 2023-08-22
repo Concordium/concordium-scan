@@ -6,7 +6,7 @@ using Application.Aggregates.SmartContract.Exceptions;
 using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
-using Microsoft.Extensions.Options;
+using HotChocolate.Data.Projections;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
@@ -38,7 +38,7 @@ internal sealed class SmartContractAggregate
         {
             try
             {
-                var lastHeight = await GetLastReadBlockHeight();
+                var lastHeight = await GetNextBlockHeight();
                 while (!token.IsCancellationRequested)
                 {
                     var consensusInfo = await client.GetConsensusInfoAsync(token);
@@ -82,7 +82,8 @@ internal sealed class SmartContractAggregate
         var existing = await repository.GetReadOnlySmartContractReadHeightAtHeight((ulong)height);
         if (existing is not null)
         {
-            _logger.Warning($"Block Height {height} already written.");
+            _logger.Debug($"Block Height {height} already written.");
+            return;
         }
 
         await DatabaseImport(repository, height);
@@ -90,7 +91,7 @@ internal sealed class SmartContractAggregate
         await repository.SaveChangesAsync(token);
     }
     
-    internal async Task DatabaseImport(ISmartContractRepository repository, long blockHeight)
+    private static async Task DatabaseImport(ISmartContractRepository repository, long blockHeight)
     {
         var blockIdAtHeight = await repository.GetReadOnlyBlockIdAtHeight((int)blockHeight);
 
@@ -98,6 +99,10 @@ internal sealed class SmartContractAggregate
         
         foreach (var transaction in transactions)
         {
+            if (transaction.TransactionType is not AccountTransaction)
+            {
+                continue;
+            }
             if (transaction.SenderAccountAddress == null)
             {
                 throw new SmartContractImportException(
@@ -160,7 +165,7 @@ internal sealed class SmartContractAggregate
         }
     }
     
-    private async Task StoreEvent(
+    private static async Task StoreEvent(
         ImportSource source,
         ISmartContractRepository repository,        
         TransactionResultEvent transactionResultEvent,
@@ -266,8 +271,7 @@ internal sealed class SmartContractAggregate
                 if (transferred.From is not ContractAddress contractAddress ||
                     transferred.To is not AccountAddress)
                 {
-                    throw new SmartContractImportException(
-                        $"Error when map transfer got {transferred.From} and {transferred.To} in transaction {transactionHash}");
+                    break;
                 }
                 await repository
                     .AddAsync(new SmartContractEvent(
@@ -294,11 +298,11 @@ internal sealed class SmartContractAggregate
         }
     }
     
-    internal async Task<ulong> GetLastReadBlockHeight()
+    private async Task<ulong> GetNextBlockHeight()
     {
         await using var repository = await _repositoryFactory.CreateAsync();
         var importState = await repository.GetReadOnlyLatestSmartContractReadHeight();
-        return importState?.BlockHeight ?? 0;
+        return importState != null ? importState.BlockHeight + 1 : 0;
     }
 
     private static Task SaveLastReadBlock(

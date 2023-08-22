@@ -12,7 +12,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly SmartContractAggregateJobOptions _jobOptions;
-    private readonly SmartContractAggregateOptions smartContractAggregateOptions;
+    private readonly SmartContractAggregateOptions _smartContractAggregateOptions;
 
     public SmartContractDatabaseImportJob(
         ISmartContractRepositoryFactory repositoryFactory,
@@ -21,8 +21,8 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     {
         _repositoryFactory = repositoryFactory;
         _logger = Log.ForContext<SmartContractDatabaseImportJob>();
-        smartContractAggregateOptions = options.Value;
-        var gotJobOptions = smartContractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
+        _smartContractAggregateOptions = options.Value;
+        var gotJobOptions = _smartContractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new SmartContractAggregateJobOptions();
     }
 
@@ -32,8 +32,8 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     {
         try
         {
-            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory, smartContractAggregateOptions);
-            _readCount = 0;
+            var smartContractAggregate = new SmartContractAggregate(_repositoryFactory, _smartContractAggregateOptions);
+            _readCount = -1;
             
             while (!token.IsCancellationRequested)
             {
@@ -60,6 +60,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         catch (Exception e)
         {
             _logger.Fatal(e, $"{nameof(SmartContractDatabaseImportJob)} stopped due to exception.");
+            throw;
         }
     }
 
@@ -88,6 +89,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             }
 
             await contractAggregate.DatabaseImportJob(height, token);
+            _logger.Debug("Written {Height}", height);
         }
     }
 }

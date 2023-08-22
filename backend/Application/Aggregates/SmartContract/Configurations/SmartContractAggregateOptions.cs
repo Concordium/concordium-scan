@@ -1,5 +1,3 @@
-using Application.Aggregates.SmartContract.Jobs;
-
 namespace Application.Aggregates.SmartContract.Configurations;
 
 public class SmartContractAggregateOptions
@@ -10,7 +8,8 @@ public class SmartContractAggregateOptions
     /// Done as dictionary such that it can be changed from configurations. Key is unique identifier of job and
     /// it defined within the jobs class.
     /// </summary>
-    public IDictionary<string, SmartContractAggregateJobOptions> Jobs { get; set; }
+    public IDictionary<string, SmartContractAggregateJobOptions> Jobs { get; set; } =
+        new Dictionary<string, SmartContractAggregateJobOptions>();
     /// <summary>
     /// Delay which is used by the node importer between validation if all jobs has succeeded.
     /// </summary>
