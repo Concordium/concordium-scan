@@ -721,6 +721,7 @@ type ContractInitialized {
   contractAddress: ContractAddress!
   amount: UnsignedLong!
   initName: String!
+  version: ContractVersion
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
@@ -744,6 +745,7 @@ type ContractUpdated {
   amount: UnsignedLong!
   messageAsHex: String!
   receiveName: String!
+  version: ContractVersion
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
@@ -1862,6 +1864,11 @@ enum BakerSort {
   DELEGATOR_COUNT_DESC
   BAKER_APY30_DAYS_DESC
   DELEGATOR_APY30_DAYS_DESC
+}
+
+enum ContractVersion {
+  V0
+  V1
 }
 
 enum CredentialDeploymentTransactionType {

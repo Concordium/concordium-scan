@@ -651,6 +651,7 @@ public class TransactionsWriterTest
         result.Amount.Should().Be(amount);
         result.InitName.Should().Be(initName);
         result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
+        result.Version.Should().Be(Application.Api.GraphQL.ContractVersion.V1);
     }
 
     [Fact]
@@ -716,6 +717,7 @@ public class TransactionsWriterTest
         result.MessageAsHex.Should().Be(parameterHex);
         result.ReceiveName.Should().Be(name);
         result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
+        result.Version.Should().Be(Application.Api.GraphQL.ContractVersion.V1);
     }
 
     [Fact]
