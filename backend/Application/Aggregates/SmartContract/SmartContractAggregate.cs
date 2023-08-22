@@ -135,7 +135,7 @@ internal sealed class SmartContractAggregate
     {
         var blockHashInput = new Absolute(height);
         var (blockHash, transactionEvents) = await client.GetBlockTransactionEvents(blockHashInput, token);
-        _logger.Debug("Reading {@BlockHash}", blockHash);
+        _logger.Debug("Reading block {BlockHash}", blockHash.ToString());
         
         BlockInfo? blockInfo = null;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))

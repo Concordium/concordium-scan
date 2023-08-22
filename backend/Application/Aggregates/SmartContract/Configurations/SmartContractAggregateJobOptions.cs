@@ -13,5 +13,5 @@ public class SmartContractAggregateJobOptions
     /// <summary>
     /// Number of tasks which should be used for parallelism. 
     /// </summary>
-    public int NumberOfTask { get; set; } = 10;
+    public int NumberOfTask { get; set; } = 50;
 }
