@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using System.Globalization;
+using System.Threading.Tasks;
 using System.Text;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Concordium.Sdk.Types;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.Rest;
 
@@ -65,6 +67,7 @@ public class ExportController : ControllerBase
             x.Timestamp,
             x.EntryType,
             x.Amount,
+            x.AccountBalance
         });
         var values = await result.ToListAsync();
         if (values.Count == 0)
@@ -72,12 +75,14 @@ public class ExportController : ControllerBase
             return new NoContentResult();
         }
         
-        var csv = new StringBuilder("Time,Amount (CCD),Label\n");
+        var csv = new StringBuilder("Time,Amount (CCD),Balance (CCD),Label\n");
         foreach (var v in values)
         {
             csv.Append(v.Timestamp.ToString("u"));
             csv.Append(',');
-            csv.Append(v.Amount / 1e6);
+            csv.Append((v.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
+            csv.Append(',');
+            csv.Append((v.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));            
             csv.Append(',');
             csv.Append(v.EntryType);
             csv.Append('\n');
