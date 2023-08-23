@@ -1,4 +1,4 @@
-## Unreleased
+## 1.6.3
 - Added Account Balance to Account Statement export file.
 
 ## 1.6.2
