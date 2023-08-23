@@ -1,3 +1,6 @@
+## Unreleased
+- Added Account Balance to Account Statement export file.
+
 ## 1.6.2
 - Bugfix
     - Added as before protocol update two transaction events, `CredentialDeployed` and `AccountCreated`, when a account is created.
