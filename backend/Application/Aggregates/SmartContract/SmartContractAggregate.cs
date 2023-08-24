@@ -6,7 +6,6 @@ using Application.Aggregates.SmartContract.Exceptions;
 using Application.Aggregates.SmartContract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
-using HotChocolate.Data.Projections;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
@@ -19,7 +18,6 @@ internal sealed class SmartContractAggregate
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly SmartContractAggregateOptions _options;
     private readonly ILogger _logger;
-    private readonly TimeSpan _delay = TimeSpan.FromSeconds(1);
 
     public SmartContractAggregate(
         ISmartContractRepositoryFactory repositoryFactory,
@@ -45,7 +43,7 @@ internal sealed class SmartContractAggregate
                     var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
                     if (lastHeight == newLastHeight)
                     {
-                        await Task.Delay(_delay, token);
+                        await Task.Delay(_options.DelayBetweenRetries, token);
                         continue;
                     }
 
@@ -75,6 +73,69 @@ internal sealed class SmartContractAggregate
         }
     }
 
+    internal async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
+    {
+        await using var repository = await _repositoryFactory.CreateAsync();
+        var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
+        if (readHeights.Count > 0)
+        {
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));   
+        }
+        
+        var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
+        if (affectedColumns == 0)
+        {
+            return affectedColumns;
+        }
+
+        var events = await repository.FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
+        foreach (var eventDto in events.Where(e => !readHeights.Contains((ulong)e.BlockHeight)))
+        {
+            if (!IsUsableTransaction(eventDto.TransactionType, eventDto.TransactionSender, eventDto.TransactionHash))
+            {
+                continue;
+            }  
+            
+            await StoreEvent(
+                ImportSource.DatabaseImport,
+                repository,
+                eventDto.Event,
+                eventDto.TransactionSender!,
+                (ulong)eventDto.BlockHeight,
+                eventDto.TransactionHash,
+                eventDto.TransactionIndex,
+                eventDto.TransactionEventIndex
+            );
+        }
+
+        await SaveLastReadBlocks(repository, heightFrom, heightTo, readHeights, ImportSource.DatabaseImport);
+        await repository.SaveChangesAsync(token);
+        return affectedColumns;
+    }
+
+    /// <summary>
+    /// Stores successfully processed blocks. Will store from block height <see cref="heightFrom"/> to
+    /// <see cref="heightTo"/> except for those given in list <see cref="except"/>
+    /// </summary>
+    private static async Task SaveLastReadBlocks(
+        ISmartContractRepository repository,
+        ulong heightFrom,
+        ulong heightTo,
+        ICollection<ulong> except,
+        ImportSource source)
+    {
+        var heights = new List<SmartContractReadHeight>();
+        for (var height = heightFrom; height <= heightTo; height++)
+        {
+            if (except.Contains(height))
+            {
+                continue;
+            }
+            heights.Add(new SmartContractReadHeight(height, source));
+        }
+        await repository.AddRangeAsync(heights);
+    }
+
     internal async Task DatabaseImportJob(long height, CancellationToken token = default)
     {
         await using var repository = await _repositoryFactory.CreateAsync();
@@ -90,6 +151,28 @@ internal sealed class SmartContractAggregate
         await SaveLastReadBlock(repository, (ulong)height, ImportSource.DatabaseImport);
         await repository.SaveChangesAsync(token);
     }
+
+    /// <summary>
+    /// Validates if a transactions should be used and is valid.
+    /// </summary>
+    /// <exception cref="SmartContractImportException">
+    /// If a event of type <see cref="AccountTransaction"/> is given, and hence the event should be evaluated,
+    /// but transaction sender is zero.
+    /// </exception>
+    private static bool IsUsableTransaction(TransactionTypeUnion transactionType, AccountAddress? sender, string transactionHash)
+    {
+        if (transactionType is not AccountTransaction)
+        {
+            return false;
+        }
+        if (sender == null)
+        {
+            throw new SmartContractImportException(
+                $"Not able to map transaction: {transactionHash}, since transaction sender was null");
+        }
+
+        return true;
+    }
     
     private static async Task DatabaseImport(ISmartContractRepository repository, long blockHeight)
     {
@@ -99,16 +182,12 @@ internal sealed class SmartContractAggregate
         
         foreach (var transaction in transactions)
         {
-            if (transaction.TransactionType is not AccountTransaction)
+            if (!IsUsableTransaction(transaction.TransactionType, transaction.SenderAccountAddress,
+                    transaction.TransactionHash))
             {
                 continue;
             }
-            if (transaction.SenderAccountAddress == null)
-            {
-                throw new SmartContractImportException(
-                    $"Not able to map transaction: {transaction.TransactionHash}, since transaction sender was null");
-            }
-            
+
             var transactionEvents = await repository.GetReadOnlyTransactionResultEventsFromTransactionId(transaction.Id);
             foreach (var transactionRelated in transactionEvents)
             {
@@ -116,7 +195,7 @@ internal sealed class SmartContractAggregate
                     ImportSource.DatabaseImport,
                     repository,
                     transactionRelated.Entity,
-                    transaction.SenderAccountAddress,
+                    transaction.SenderAccountAddress!,
                     (ulong)blockHeight,
                     transaction.TransactionHash,
                     0,
@@ -332,5 +411,43 @@ internal sealed class SmartContractAggregate
                 yield return ContractModuleDeployed.From(moduleDeployed);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Create ranges from input list.
+    ///
+    /// Require list to be sorted from low to high.
+    /// </summary>
+    internal static IList<(ulong, ulong)> PrettifyToRanges(IList<ulong> read)
+    {
+        var intervals = new List<(ulong,ulong)>();
+        switch (read.Count)
+        {
+            case 0:
+                return intervals;
+            case 1:
+                intervals.Add((read[0], read[0]));
+                return intervals;
+        }
+
+        var start = read[0];
+        var lastRead = read[0];
+        for (var i = 1; i < read.Count; i++)
+        {
+            var current = read[i];
+            var last = lastRead;
+            
+            lastRead = read[i];
+            if (current == last + 1)
+            {
+                continue;
+            }
+            intervals.Add((start, last));
+            start = current;
+            
+        }
+        intervals.Add((start, read[^1]));
+
+        return intervals;
     }
 }

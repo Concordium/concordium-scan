@@ -39,7 +39,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             {
                 var finalHeight = await GetFinalHeight(token);
                 
-                if (finalHeight - _readCount <= _jobOptions.Limit)
+                if (finalHeight - _readCount * _jobOptions.BatchSize <= _jobOptions.Limit)
                 {
                     break;
                 }
@@ -47,7 +47,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
                 var tasks = new Task[_jobOptions.NumberOfTask];
                 for (var i = 0; i < _jobOptions.NumberOfTask; i++)
                 {
-                    tasks[i] = Task.Run(() => Run(smartContractAggregate, finalHeight, token), token);
+                    tasks[i] = Task.Run(() => RunBatch(smartContractAggregate, finalHeight, token), token);
                 }
 
                 await Task.WhenAll(tasks);
@@ -76,6 +76,25 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         var finalHeight = await context.GetLatestImportState(token);
 
         return finalHeight;
+    }
+    
+    private async Task RunBatch(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)
+    {
+        while (_readCount * _jobOptions.BatchSize < finalHeight && !token.IsCancellationRequested)
+        {
+            var height = Interlocked.Increment(ref _readCount);
+            var blockHeightTo = height * _jobOptions.BatchSize;
+            if (blockHeightTo > finalHeight)
+            {
+                return;
+            }
+            var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
+
+            var affectedRows = await contractAggregate.DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
+
+            if (affectedRows == 0) continue;
+            _logger.Debug("Written heights {From} {To}", blockHeightFrom, blockHeightTo);   
+        }
     }
 
     private async Task Run(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)

@@ -26,7 +26,7 @@ internal sealed class SmartContractRepository : ISmartContractRepository
     /// From <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> there is a mapping between
     /// `tag` in column `event` and a transaction event.
     /// </summary>
-    public async Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(int heightFrom, int heightTo)
+    public async Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(ulong heightFrom, ulong heightTo)
     {
         const string sql = @"
 SELECT
@@ -34,6 +34,8 @@ SELECT
     gt.transaction_type as TransactionType,
     gt.sender as TransactionSender,
     gt.transaction_hash as TransactionHash,
+    gt.index as TransactionIndex,
+    te.index as TransactionEventIndex,
     te.event as Event
 FROM
     graphql_transaction_events te
@@ -46,8 +48,18 @@ WHERE
   AND te.event->>'tag' IN ('1', '16', '18', '17', '34', '35', '36');
 ";
         var queryAsync = await _context.Database.GetDbConnection()
-            .QueryAsync<TransactionResultEventDto>(sql, new { FromHeight = heightFrom, ToHeight = heightTo });
+            .QueryAsync<TransactionResultEventDto>(sql, new { FromHeight = (long)heightFrom, ToHeight = (long)heightTo });
         return queryAsync.ToList();
+    }
+    
+    /// <inheritdoc/>
+    public async Task<List<ulong>> FromBlockHeightRangeGetBlockHeightsReadOrdered(ulong heightFrom, ulong heightTo)
+    {
+        return await _context.SmartContractReadHeights
+            .Where(r => r.BlockHeight >= heightFrom && r.BlockHeight <= heightTo)
+            .Select(r => r.BlockHeight)
+            .OrderBy(r => r)
+            .ToListAsync();
     }
 
     /// <inheritdoc/>
@@ -100,11 +112,19 @@ WHERE
             .Select(s => s.MaxImportedBlockHeight)
             .FirstOrDefaultAsync(token);
     }
+    
     /// <inheritdoc/>
     public Task AddAsync<T>(params T[] entities) where T : class
     {
         return _context.Set<T>().AddRangeAsync(entities);
     }
+    
+    /// <inheritdoc/>
+    public Task AddRangeAsync<T>(IEnumerable<T> heights) where T : class
+    {
+        return _context.Set<T>().AddRangeAsync(heights);
+    }
+
     /// <inheritdoc/>
     public Task SaveChangesAsync(CancellationToken token = default)
     {

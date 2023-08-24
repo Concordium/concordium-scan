@@ -12,6 +12,8 @@ public class TransactionResultEventDto
     public TransactionTypeUnion TransactionType { get; init; }
     public AccountAddress? TransactionSender { get; init; }
     public string TransactionHash { get; init; }
+    public uint TransactionIndex { get; init; }
+    public uint TransactionEventIndex { get; init; }
     public TransactionResultEvent Event { get; init; }
     
     /// <summary>

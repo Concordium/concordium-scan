@@ -10,10 +10,15 @@ namespace Application.Aggregates.SmartContract;
 public interface ISmartContractRepository : IAsyncDisposable
 {
     /// <summary>
-    /// From block <param name="heightFrom"></param> to block <param name="heightTo"></param> all transaction result event
+    /// From block <see cref="heightFrom"/> to block <see cref="heightTo"/> all transaction result event
     /// related to smart contract will be returned.
     /// </summary>
-    Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(int heightFrom, int heightTo);
+    Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(ulong heightFrom, ulong heightTo);
+    /// <summary>
+    /// From block <see cref="heightFrom"/> to block <see cref="heightTo"/> return all block heights
+    /// which has already been read and processed successfully.
+    /// </summary>
+    public Task<List<ulong>> FromBlockHeightRangeGetBlockHeightsReadOrdered(ulong heightFrom, ulong heightTo);
     /// <summary>
     /// Returns null if entity doesn't exist at height.
     /// </summary>
@@ -47,6 +52,10 @@ public interface ISmartContractRepository : IAsyncDisposable
     /// Adds entity to repository.
     /// </summary>
     Task AddAsync<T>(params T[] entities) where T : class;
+    /// <summary>
+    /// Adds entities to repository,
+    /// </summary>
+    Task AddRangeAsync<T>(IEnumerable<T> heights) where T : class;
     /// <summary>
     /// Save changes to storage.
     /// </summary>

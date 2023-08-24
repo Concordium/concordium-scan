@@ -25,10 +25,33 @@ public sealed class SmartContractRepositoryTests
         _databaseFixture = databaseFixture;
     }
 
+    [Fact]
+    public async Task WhenCallFromBlockHeightRangeGetBlockHeightsRead_ThenReturnReadEvents()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await _databaseFixture.AddAsync(
+            new SmartContractReadHeight(1, ImportSource.DatabaseImport),
+            new SmartContractReadHeight(2, ImportSource.NodeImport),
+            new SmartContractReadHeight(3, ImportSource.DatabaseImport),
+            new SmartContractReadHeight(5, ImportSource.DatabaseImport),
+            new SmartContractReadHeight(6, ImportSource.DatabaseImport),
+            new SmartContractReadHeight(7, ImportSource.DatabaseImport));
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        var smartContractRepository = new SmartContractRepository(graphQlDbContext);
+        
+        // Act
+        var readHeights = await smartContractRepository.FromBlockHeightRangeGetBlockHeightsReadOrdered(2, 6);
+
+        // Assert
+        readHeights.Should().BeEquivalentTo(new List<ulong> { 2, 3, 5, 6 });
+    }
+    
+
     #region Test WhenGetSmartContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
 
     [Fact]
-    public async Task WhenGetSmartContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents()
+    public async Task WhenCallFromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations_ThenReturnEvents()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_smart_contracts");

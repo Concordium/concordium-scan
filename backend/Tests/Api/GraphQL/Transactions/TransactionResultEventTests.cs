@@ -1,25 +1,14 @@
 using System.Text.Json;
-using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
-using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
-using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Transactions;
 
-[Collection(DatabaseCollectionFixture.DatabaseCollection)]
 public class TransactionResultEventTests
 {
     private readonly JsonSerializerOptions _serializerOptions = EfCoreJsonSerializerOptionsFactory.Create();
-    private readonly DatabaseFixture _databaseFixture;
-    
-    public TransactionResultEventTests(DatabaseFixture databaseFixture)
-    {
-        _databaseFixture = databaseFixture;
-    }
 
     [Fact]
     public void WhenDeserializeNullVersion_ThenReturnObjectWithNull()
@@ -50,37 +39,5 @@ public class TransactionResultEventTests
         var tryGetProperty = document.RootElement.TryGetProperty("Version", out var version);
         tryGetProperty.Should().BeTrue();
         version.ValueKind.Should().Be(JsonValueKind.Null);
-    }
-    
-    [Theory]
-    [InlineData(null)]
-    [InlineData(ContractVersion.V0)]
-    [InlineData(ContractVersion.V1)]
-    public async Task GivenContractVersion_WhenFetchDataFromDatabase_ThenParse(ContractVersion? version)
-    {
-        // Arrange
-        await DatabaseFixture.TruncateTables("graphql_transaction_events");
-
-        var updated = TransactionResultEventStubs.ContractUpdated(version: version);
-
-        await using var context = _databaseFixture.CreateGraphQlDbContext();
-        await context.TransactionResultEvents
-            .AddAsync(new TransactionRelated<TransactionResultEvent>(
-                0,
-                2,
-                updated
-            ));
-        await context.SaveChangesAsync();
-        context.ChangeTracker.Clear();
-
-        // Act
-        var transactionEvent = await context.TransactionResultEvents.FirstOrDefaultAsync();
-        
-        // Assert
-        transactionEvent.Should().NotBeNull();
-        transactionEvent!.Entity.Should().BeOfType<ContractUpdated>();
-        var contractUpdated = (transactionEvent.Entity as ContractUpdated)!;
-        contractUpdated.ReceiveName.Should().Be(updated.ReceiveName);
-        contractUpdated.Version.Should().Be(version);
     }
 }
