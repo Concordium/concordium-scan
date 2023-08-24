@@ -1,13 +1,17 @@
+using System.Collections.Generic;
 using System.Threading;
 using Application.Aggregates.SmartContract;
 using Application.Aggregates.SmartContract.Entities;
+using Application.Aggregates.SmartContract.Extensions;
 using Application.Aggregates.SmartContract.Types;
+using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
+using static Tests.TestUtilities.Stubs.TransactionResultEventStubs;
 
 namespace Tests.Aggregates.SmartContract;
 
@@ -20,7 +24,154 @@ public sealed class SmartContractRepositoryTests
     {
         _databaseFixture = databaseFixture;
     }
+
+    #region Test WhenGetSmartContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
+
+    [Fact]
+    public async Task WhenGetSmartContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_smart_contracts");
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_events");
+        await DatabaseFixture.TruncateTables("graphql_module_reference_events");
+        await DatabaseFixture.TruncateTables("graphql_module_reference_smart_contract_link_events");
+        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_blocks");
+        await DatabaseFixture.TruncateTables("graphql_transactions");
+        await DatabaseFixture.TruncateTables("graphql_transaction_events");
+        var blockIds = await InsertFiveBlocks();
+        var transactionIds = await InsertSixTransactions(blockIds);
+        await InsertTransactionResultEvents(transactionIds);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        var smartContractRepository = new SmartContractRepository(graphQlDbContext);
+        SmartContractExtensions.AddDapperTypeHandlers();
+        
+        // Act
+        var events = await smartContractRepository.FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(1, 4);
+        
+        // Assert
+        events.Count.Should().Be(3);
+        
+        // First event
+        var firstEvent = events[0];
+        firstEvent.BlockHeight.Should().Be(1);
+        firstEvent.TransactionType.Should().BeOfType<AccountTransaction>();
+        firstEvent.TransactionSender.Should().NotBeNull();
+        firstEvent.TransactionHash.Should().NotBeNull();
+        firstEvent.Event.Should().BeOfType<ContractUpdated>();
+        var firstEventEvent = (firstEvent.Event as ContractUpdated)!;
+        firstEventEvent.ContractAddress.Index.Should().Be(1);
+        
+        // Second event
+        var secondEvent = events[1];
+        secondEvent.BlockHeight.Should().Be(1);
+        secondEvent.TransactionType.Should().BeOfType<AccountTransaction>();
+        secondEvent.TransactionSender.Should().NotBeNull();
+        secondEvent.TransactionHash.Should().NotBeNull();
+        secondEvent.Event.Should().BeOfType<ContractUpdated>();
+        var secondEventEvent = (secondEvent.Event as ContractUpdated)!;
+        secondEventEvent.ContractAddress.Index.Should().Be(2);
+        
+        // Third event
+        var thirdEvent = events[2];
+        thirdEvent.BlockHeight.Should().Be(2);
+        thirdEvent.TransactionType.Should().BeOfType<AccountTransaction>();
+        thirdEvent.TransactionSender.Should().NotBeNull();
+        thirdEvent.TransactionHash.Should().NotBeNull();
+        thirdEvent.Event.Should().BeOfType<ContractUpdated>();
+        var thirdEventEvent = (thirdEvent.Event as ContractUpdated)!;
+        thirdEventEvent.ContractAddress.Index.Should().Be(4);
+    }
     
+    /// <summary>
+    /// Generates three transaction result event relevant for smart contracts and which is within
+    /// block height range 1-4.
+    /// </summary>
+    /// <param name="transactionIds"></param>
+    private async Task InsertTransactionResultEvents(IList<long> transactionIds)
+    {
+        var randoms = GetRandomsNotInList(2, transactionIds);
+        // Points to transactions within block height range
+        var first = new TransactionRelated<TransactionResultEvent>(transactionIds[0], 1, ContractUpdated(1,2));
+        var second = new TransactionRelated<TransactionResultEvent>(transactionIds[1], 1, ContractUpdated(2, 2));
+        var third = new TransactionRelated<TransactionResultEvent>(transactionIds[2], 1, ContractUpdated(4,2));
+        // Points to transaction outside block height range (points to block with height 5)
+        var fourth = new TransactionRelated<TransactionResultEvent>(transactionIds[5], 1, ContractUpdated(3,2));
+        // Points to some randoms transaction id's which doesn't exist
+        var fifth = new TransactionRelated<TransactionResultEvent>(randoms[1], 1, ContractUpdated(5,2));
+        // Non relevant events
+        var transactionRelated = new TransactionRelated<TransactionResultEvent>(transactionIds[3], 2, new TransferMemo("foo"));
+        var transactionRelatedOther = new TransactionRelated<TransactionResultEvent>(randoms[0], 2, new TransferMemo("foo"));
+        await _databaseFixture.AddAsync(first, second, third, fourth, fifth);
+        await _databaseFixture.AddAsync(transactionRelated);
+        await _databaseFixture.AddAsync(transactionRelatedOther);
+    }
+
+    private static IList<long> GetRandomsNotInList(int count, IList<long> input)
+    {
+        var found = 0;
+        var randoms = new List<long>();
+        while (found < count)
+        {
+            var next = Random.Shared.Next(99, 99_999);
+            if (randoms.Contains(next) || input.Contains(next))
+            {
+                continue;
+            }
+            randoms.Add(next);
+            found++;
+        }
+        return randoms;
+    }
+
+    private async Task<IList<long>> InsertSixTransactions(IList<long> blockIds)
+    {
+        await using var context = _databaseFixture.CreateGraphQlDbContext();
+        var transactions = new List<Transaction>
+        {
+            new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("first")
+            .WithBlockId(blockIds[0])
+            .Build()
+        };
+        for (var i = 0; i < 5; i++)
+        {
+            var transaction = new TransactionBuilder()
+                .WithBlockId(blockIds[i])
+                .WithTransactionHash($"{i}")
+                .WithId(0)
+                .Build();
+            transactions.Add(transaction);    
+        }
+        await context.AddRangeAsync(transactions);
+        await context.SaveChangesAsync();
+        return transactions
+            .Select(t => t.Id)
+            .ToList();
+    }
+
+    private async Task<IList<long>> InsertFiveBlocks()
+    {
+        await using var context = _databaseFixture.CreateGraphQlDbContext();
+        var blocks = new List<Block>();
+        for (var i = 1; i <= 5; i++)
+        {
+            var block = new BlockBuilder()
+                .WithId(0)
+                .WithBlockHeight(i)
+                .Build();
+            blocks.Add(block);
+        }
+        await context.AddRangeAsync(blocks);
+        await context.SaveChangesAsync();
+        return blocks
+            .Select(b => b.Id)
+            .ToList();
+    }
+
+    #endregion
+
     [Fact]
     public async Task GivenEntityWithBlockHeight_WhenGetReadOnlySmartContractReadHeightAtHeight_ThenReturnEntity()
     {

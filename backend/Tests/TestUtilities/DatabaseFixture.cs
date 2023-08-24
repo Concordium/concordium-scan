@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using Application.Api.GraphQL.EfCore;
 using Application.Database;
@@ -64,6 +65,15 @@ public sealed class DatabaseFixture : IDisposable
 
     internal GraphQlDbContext CreateGraphQlDbContext() => new(_dbContextOptions);
 
+    internal async Task AddListAsync<T>(IEnumerable<T> entity) where T : class
+    {
+        await using var context = new GraphQlDbContext(_dbContextOptions);
+        
+        await context.Set<T>()
+            .AddRangeAsync(entity);
+        await context.SaveChangesAsync();
+    }
+    
     internal async Task AddAsync<T>(params T[] entity) where T : class
     {
         await using var context = new GraphQlDbContext(_dbContextOptions);

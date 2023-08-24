@@ -1,5 +1,7 @@
 using Application.Aggregates.SmartContract.BackgroundServices;
+using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Jobs;
+using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +19,18 @@ public static class SmartContractExtensions
         collection.AddTransient<ISmartContractNodeClient, SmartContractNodeClient>();
         
         collection.AddSmartContractJobs();
+        
+        AddDapperTypeHandlers();
+    }
+    
+    /// <summary>
+    /// Used by <see cref="Dapper"/> to specify custom mappings of types.
+    /// </summary>
+    internal static void AddDapperTypeHandlers()
+    {
+        SqlMapper.AddTypeHandler(new TransactionResultEventHandler());
+        SqlMapper.AddTypeHandler(new TransactionTypeUnionHandler());
+        SqlMapper.AddTypeHandler(new AccountAddressHandler());
     }
 
     /// <summary>

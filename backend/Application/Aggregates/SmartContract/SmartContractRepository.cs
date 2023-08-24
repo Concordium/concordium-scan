@@ -1,11 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Aggregates.SmartContract.Dto;
 using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Application.Aggregates.SmartContract;
 
@@ -17,6 +18,38 @@ internal sealed class SmartContractRepository : ISmartContractRepository
     {
         _context = context;
     }
+
+    /// <summary>
+    /// <see cref="Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
+    /// <see cref="TransactionResultEvent"/> has column `transaction_id` which is reference to <see cref="Transaction"/>.
+    ///
+    /// From <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> there is a mapping between
+    /// `tag` in column `event` and a transaction event.
+    /// </summary>
+    public async Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(int heightFrom, int heightTo)
+    {
+        const string sql = @"
+SELECT
+    gb.block_height as BlockHeight,
+    gt.transaction_type as TransactionType,
+    gt.sender as TransactionSender,
+    gt.transaction_hash as TransactionHash,
+    te.event as Event
+FROM
+    graphql_transaction_events te
+        JOIN
+    graphql_transactions gt ON te.transaction_id = gt.id
+        JOIN
+    graphql_blocks gb ON gt.block_id = gb.id
+WHERE
+        gb.block_height >= @FromHeight AND gb.block_height <= @ToHeight
+  AND te.event->>'tag' IN ('1', '16', '18', '17', '34', '35', '36');
+";
+        var queryAsync = await _context.Database.GetDbConnection()
+            .QueryAsync<TransactionResultEventDto>(sql, new { FromHeight = heightFrom, ToHeight = heightTo });
+        return queryAsync.ToList();
+    }
+
     /// <inheritdoc/>
     public async Task<SmartContractReadHeight?> GetReadOnlySmartContractReadHeightAtHeight(ulong blockHeight)
     {

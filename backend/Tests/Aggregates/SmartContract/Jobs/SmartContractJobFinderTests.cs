@@ -1,7 +1,7 @@
-using System.Threading;
 using Application.Aggregates.SmartContract.Jobs;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace Tests.Aggregates.SmartContract.Jobs;
 
@@ -12,9 +12,9 @@ public class SmartContractJobFinderTests
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTransient<ISmartContractJob, First>();
-        services.AddTransient<ISmartContractJob, Second>();
-        services.AddTransient<ISmartContractJob, Third>();
+        services.AddTransient<ISmartContractJob>(_ => Mock.Of<ISmartContractJob>());
+        services.AddTransient<ISmartContractJob>(_ => Mock.Of<ISmartContractJob>());
+        services.AddTransient<ISmartContractJob>(_ => Mock.Of<ISmartContractJob>());
         var provider = services.BuildServiceProvider();
         var smartContractJobFinder = new SmartContractJobFinder(provider);
 
@@ -23,44 +23,5 @@ public class SmartContractJobFinderTests
 
         // Assert
         smartContractJobs.Count().Should().Be(3);
-    }
-    
-    internal class First : ISmartContractJob
-    {
-        public Task StartImport(CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetUniqueIdentifier()
-        {
-            throw new NotImplementedException();
-        }
-    }
-    
-    internal class Second : ISmartContractJob
-    {
-        public Task StartImport(CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetUniqueIdentifier()
-        {
-            throw new NotImplementedException();
-        }
-    }
-    
-    internal class Third : ISmartContractJob
-    {
-        public Task StartImport(CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetUniqueIdentifier()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

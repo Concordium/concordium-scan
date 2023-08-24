@@ -1,5 +1,4 @@
-﻿using Application.Aggregates.SmartContract;
-using Application.Aggregates.SmartContract.Entities;
+﻿using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
@@ -54,7 +53,7 @@ public class GraphQlDbContext : DbContext
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {
     }
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(GetType().Assembly);
