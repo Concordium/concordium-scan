@@ -112,46 +112,7 @@ internal sealed class SmartContractAggregate
         await repository.SaveChangesAsync(token);
         return affectedColumns;
     }
-
-    /// <summary>
-    /// Stores successfully processed blocks. Will store from block height <see cref="heightFrom"/> to
-    /// <see cref="heightTo"/> except for those given in list <see cref="except"/>
-    /// </summary>
-    private static async Task SaveLastReadBlocks(
-        ISmartContractRepository repository,
-        ulong heightFrom,
-        ulong heightTo,
-        ICollection<ulong> except,
-        ImportSource source)
-    {
-        var heights = new List<SmartContractReadHeight>();
-        for (var height = heightFrom; height <= heightTo; height++)
-        {
-            if (except.Contains(height))
-            {
-                continue;
-            }
-            heights.Add(new SmartContractReadHeight(height, source));
-        }
-        await repository.AddRangeAsync(heights);
-    }
-
-    internal async Task DatabaseImportJob(long height, CancellationToken token = default)
-    {
-        await using var repository = await _repositoryFactory.CreateAsync();
-
-        var existing = await repository.GetReadOnlySmartContractReadHeightAtHeight((ulong)height);
-        if (existing is not null)
-        {
-            _logger.Debug($"Block Height {height} already written.");
-            return;
-        }
-
-        await DatabaseImport(repository, height);
-        await SaveLastReadBlock(repository, (ulong)height, ImportSource.DatabaseImport);
-        await repository.SaveChangesAsync(token);
-    }
-
+    
     /// <summary>
     /// Validates if a transactions should be used and is valid.
     /// </summary>
@@ -172,37 +133,6 @@ internal sealed class SmartContractAggregate
         }
 
         return true;
-    }
-    
-    private static async Task DatabaseImport(ISmartContractRepository repository, long blockHeight)
-    {
-        var blockIdAtHeight = await repository.GetReadOnlyBlockIdAtHeight((int)blockHeight);
-
-        var transactions = await repository.GetReadOnlyTransactionsAtBlockId(blockIdAtHeight);
-        
-        foreach (var transaction in transactions)
-        {
-            if (!IsUsableTransaction(transaction.TransactionType, transaction.SenderAccountAddress,
-                    transaction.TransactionHash))
-            {
-                continue;
-            }
-
-            var transactionEvents = await repository.GetReadOnlyTransactionResultEventsFromTransactionId(transaction.Id);
-            foreach (var transactionRelated in transactionEvents)
-            {
-                await StoreEvent(
-                    ImportSource.DatabaseImport,
-                    repository,
-                    transactionRelated.Entity,
-                    transaction.SenderAccountAddress!,
-                    (ulong)blockHeight,
-                    transaction.TransactionHash,
-                    0,
-                    (uint)transactionRelated.Index
-                );
-            }
-        }
     }
 
     internal async Task NodeImport(
@@ -383,7 +313,30 @@ internal sealed class SmartContractAggregate
         var importState = await repository.GetReadOnlyLatestSmartContractReadHeight();
         return importState != null ? importState.BlockHeight + 1 : 0;
     }
-
+    
+    /// <summary>
+    /// Stores successfully processed blocks. Will store from block height <see cref="heightFrom"/> to
+    /// <see cref="heightTo"/> except for those given in list <see cref="except"/>
+    /// </summary>
+    private static async Task SaveLastReadBlocks(
+        ISmartContractRepository repository,
+        ulong heightFrom,
+        ulong heightTo,
+        ICollection<ulong> except,
+        ImportSource source)
+    {
+        var heights = new List<SmartContractReadHeight>();
+        for (var height = heightFrom; height <= heightTo; height++)
+        {
+            if (except.Contains(height))
+            {
+                continue;
+            }
+            heights.Add(new SmartContractReadHeight(height, source));
+        }
+        await repository.AddRangeAsync(heights);
+    }
+    
     private static Task SaveLastReadBlock(
         ISmartContractRepository repository,
         ulong blockHeight,

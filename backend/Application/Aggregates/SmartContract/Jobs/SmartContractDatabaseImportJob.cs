@@ -96,19 +96,4 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             _logger.Debug("Written heights {From} {To}", blockHeightFrom, blockHeightTo);   
         }
     }
-
-    private async Task Run(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)
-    {
-        while (_readCount < finalHeight && !token.IsCancellationRequested)
-        {
-            var height = Interlocked.Increment(ref _readCount);
-            if (height > finalHeight)
-            {
-                return;
-            }
-
-            await contractAggregate.DatabaseImportJob(height, token);
-            _logger.Debug("Written {Height}", height);
-        }
-    }
 }
