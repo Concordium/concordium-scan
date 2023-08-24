@@ -22,4 +22,8 @@ public class SmartContractAggregateOptions
     /// Number of times to retry.
     /// </summary>
     public uint RetryCount { get; set; } = 5;
+    /// <summary>
+    /// Delay between updating metrics which relies on fetch.
+    /// </summary>
+    public TimeSpan MetricDelay { get; set; } = TimeSpan.FromSeconds(5);
 }

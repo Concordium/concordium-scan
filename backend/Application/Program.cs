@@ -1,4 +1,3 @@
-using Application.Aggregates.SmartContract;
 using Application.Aggregates.SmartContract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
@@ -24,6 +23,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Prometheus;
+using Metrics = Application.Common.Diagnostics.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,6 +98,8 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
+        .UseHttpMetrics()
+        .UseGrpcMetrics()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
@@ -107,6 +110,7 @@ try
         {
             endpoints.MapControllers();
             endpoints.MapGraphQL();
+            endpoints.MapMetrics();
         });
     
     app.Run();    

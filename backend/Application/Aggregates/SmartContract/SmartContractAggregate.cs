@@ -49,11 +49,23 @@ internal sealed class SmartContractAggregate
 
                     for (var height = lastHeight; height <= newLastHeight; height++)
                     {
-                        await using var repository = await _repositoryFactory.CreateAsync();
-                
-                        await NodeImport(repository, client, height, token);
-                        await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
-                        await repository.SaveChangesAsync(token);
+                        using var durationMetric = new SmartContractMetrics.JobDurationMetric(ImportSource.NodeImport);
+                        try
+                        {
+                            await using var repository = await _repositoryFactory.CreateAsync();
+
+                            var affectedEvents = await NodeImport(repository, client, height, token);
+                            await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
+                            await repository.SaveChangesAsync(token);
+                        
+                            SmartContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
+                            SmartContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
+                        }
+                        catch (Exception e)
+                        {
+                            durationMetric.SetException(e);
+                            throw;
+                        }
                     }
                     lastHeight = newLastHeight;
                     retryCount = 0;
@@ -75,11 +87,12 @@ internal sealed class SmartContractAggregate
 
     internal async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
+        using var durationMetric = new SmartContractMetrics.JobDurationMetric(ImportSource.DatabaseImport);
         await using var repository = await _repositoryFactory.CreateAsync();
         var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
         if (readHeights.Count > 0)
         {
-            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));   
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));
         }
         
         var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
@@ -110,10 +123,15 @@ internal sealed class SmartContractAggregate
 
         await SaveLastReadBlocks(repository, heightFrom, heightTo, readHeights, ImportSource.DatabaseImport);
         await repository.SaveChangesAsync(token);
+        SmartContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
         return affectedColumns;
     }
 
-    internal async Task NodeImport(
+    /// <summary>
+    /// For a given height fetched state from node and store relevant events.
+    /// </summary>
+    /// <returns>Count of transaction event mapped. Observe this can result in multiple stored events.</returns>
+    internal async Task<uint> NodeImport(
         ISmartContractRepository repository,
         ISmartContractNodeClient client,
         ulong height,
@@ -125,6 +143,7 @@ internal sealed class SmartContractAggregate
         _logger.Debug("Reading block {BlockHash}", blockHash.ToString());
         
         BlockInfo? blockInfo = null;
+        var eventIndex = 0u;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))
         {
             if (blockItemSummary.Details is not AccountTransactionDetails details)
@@ -134,7 +153,6 @@ internal sealed class SmartContractAggregate
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
             var transactionHash = blockItemSummary.TransactionHash.ToString();
-            var eventIndex = 0u;
             foreach (var transactionResultEvent in FilterEvents(details.Effects))
             {
                 await StoreEvent(
@@ -150,6 +168,8 @@ internal sealed class SmartContractAggregate
                 eventIndex++;
             }
         }
+
+        return eventIndex;
     }
     
     /// <summary>
