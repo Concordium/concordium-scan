@@ -47,7 +47,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
                 var tasks = new Task[_jobOptions.NumberOfTask];
                 for (var i = 0; i < _jobOptions.NumberOfTask; i++)
                 {
-                    tasks[i] = Task.Run(() => RunBatch(smartContractAggregate, finalHeight, token), token);
+                    tasks[i] = RunBatch(smartContractAggregate, finalHeight, token);
                 }
 
                 await Task.WhenAll(tasks);
