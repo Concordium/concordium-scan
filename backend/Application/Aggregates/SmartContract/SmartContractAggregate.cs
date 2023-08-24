@@ -112,28 +112,6 @@ internal sealed class SmartContractAggregate
         await repository.SaveChangesAsync(token);
         return affectedColumns;
     }
-    
-    /// <summary>
-    /// Validates if a transactions should be used and is valid.
-    /// </summary>
-    /// <exception cref="SmartContractImportException">
-    /// If a event of type <see cref="AccountTransaction"/> is given, and hence the event should be evaluated,
-    /// but transaction sender is zero.
-    /// </exception>
-    private static bool IsUsableTransaction(TransactionTypeUnion transactionType, AccountAddress? sender, string transactionHash)
-    {
-        if (transactionType is not AccountTransaction)
-        {
-            return false;
-        }
-        if (sender == null)
-        {
-            throw new SmartContractImportException(
-                $"Not able to map transaction: {transactionHash}, since transaction sender was null");
-        }
-
-        return true;
-    }
 
     internal async Task NodeImport(
         ISmartContractRepository repository,
@@ -172,6 +150,72 @@ internal sealed class SmartContractAggregate
                 eventIndex++;
             }
         }
+    }
+    
+    /// <summary>
+    /// Create ranges from input list.
+    ///
+    /// Require list to be sorted from low to high.
+    /// </summary>
+    internal static IList<(ulong, ulong)> PrettifyToRanges(IList<ulong> read)
+    {
+        var intervals = new List<(ulong,ulong)>();
+        switch (read.Count)
+        {
+            case 0:
+                return intervals;
+            case 1:
+                intervals.Add((read[0], read[0]));
+                return intervals;
+        }
+
+        if (read[^1] - read[0] + 1 == (ulong)read.Count)
+        {
+            intervals.Add((read[0], read[^1]));
+            return intervals;
+        }
+
+        var start = read[0];
+        var lastRead = read[0];
+        for (var i = 1; i < read.Count; i++)
+        {
+            var current = read[i];
+            var last = lastRead;
+            
+            lastRead = read[i];
+            if (current == last + 1)
+            {
+                continue;
+            }
+            intervals.Add((start, last));
+            start = current;
+            
+        }
+        intervals.Add((start, read[^1]));
+
+        return intervals;
+    }
+
+    /// <summary>
+    /// Validates if a transactions should be used and is valid.
+    /// </summary>
+    /// <exception cref="SmartContractImportException">
+    /// If a event of type <see cref="AccountTransaction"/> is given, and hence the event should be evaluated,
+    /// but transaction sender is zero.
+    /// </exception>
+    private static bool IsUsableTransaction(TransactionTypeUnion transactionType, AccountAddress? sender, string transactionHash)
+    {
+        if (transactionType is not AccountTransaction)
+        {
+            return false;
+        }
+        if (sender == null)
+        {
+            throw new SmartContractImportException(
+                $"Not able to map transaction: {transactionHash}, since transaction sender was null");
+        }
+
+        return true;
     }
     
     private static async Task StoreEvent(
@@ -364,43 +408,5 @@ internal sealed class SmartContractAggregate
                 yield return ContractModuleDeployed.From(moduleDeployed);
                 break;
         }
-    }
-
-    /// <summary>
-    /// Create ranges from input list.
-    ///
-    /// Require list to be sorted from low to high.
-    /// </summary>
-    internal static IList<(ulong, ulong)> PrettifyToRanges(IList<ulong> read)
-    {
-        var intervals = new List<(ulong,ulong)>();
-        switch (read.Count)
-        {
-            case 0:
-                return intervals;
-            case 1:
-                intervals.Add((read[0], read[0]));
-                return intervals;
-        }
-
-        var start = read[0];
-        var lastRead = read[0];
-        for (var i = 1; i < read.Count; i++)
-        {
-            var current = read[i];
-            var last = lastRead;
-            
-            lastRead = read[i];
-            if (current == last + 1)
-            {
-                continue;
-            }
-            intervals.Add((start, last));
-            start = current;
-            
-        }
-        intervals.Add((start, read[^1]));
-
-        return intervals;
     }
 }

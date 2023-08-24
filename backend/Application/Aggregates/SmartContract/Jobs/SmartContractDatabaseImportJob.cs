@@ -39,7 +39,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             {
                 var finalHeight = await GetFinalHeight(token);
                 
-                if (finalHeight - _readCount * _jobOptions.BatchSize <= _jobOptions.Limit)
+                if (finalHeight < (_readCount + 1) * _jobOptions.BatchSize)
                 {
                     break;
                 }
@@ -52,7 +52,8 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
 
                 await Task.WhenAll(tasks);
 
-                _readCount = finalHeight;
+                // Each task has done one increment which they didn't process.
+                _readCount -= _jobOptions.NumberOfTask;
             }
             
             _logger.Information($"Done with job {nameof(SmartContractDatabaseImportJob)}");
@@ -78,9 +79,15 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         return finalHeight;
     }
     
+    /// <summary>
+    /// Run each batch up to final height.
+    ///
+    /// Atomically get next batch interval from `_readCount`. If intervals get above <see cref="finalHeight"/> then
+    /// processing stops.
+    /// </summary>
     private async Task RunBatch(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)
     {
-        while (_readCount * _jobOptions.BatchSize < finalHeight && !token.IsCancellationRequested)
+        while (!token.IsCancellationRequested)
         {
             var height = Interlocked.Increment(ref _readCount);
             var blockHeightTo = height * _jobOptions.BatchSize;
@@ -93,7 +100,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             var affectedRows = await contractAggregate.DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
             if (affectedRows == 0) continue;
-            _logger.Debug("Written heights {From} {To}", blockHeightFrom, blockHeightTo);   
+            _logger.Debug("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);   
         }
     }
 }
