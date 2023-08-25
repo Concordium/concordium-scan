@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Jobs;
+using Application.Aggregates.SmartContract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
     private readonly ISmartContractNodeClient _client;
     private readonly IFeatureFlags _featureFlags;
+    private readonly SmartContractHealthCheck _healthCheck;
     private readonly SmartContractAggregateOptions _options;
     private readonly ILogger _logger;
 
@@ -29,13 +31,16 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
         ISmartContractRepositoryFactory repositoryFactory,
         ISmartContractNodeClient client,
         IFeatureFlags featureFlags,
-        IOptions<SmartContractAggregateOptions> options)
+        IOptions<SmartContractAggregateOptions> options,
+        SmartContractHealthCheck healthCheck
+        )
     {
         _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
         _repositoryFactory = repositoryFactory;
         _client = client;
         _featureFlags = featureFlags;
+        _healthCheck = healthCheck;
         _options = options.Value;
         _logger = Log.ForContext<SmartContractNodeImportBackgroundService>();
     }
@@ -60,6 +65,7 @@ internal class SmartContractNodeImportBackgroundService : BackgroundService
         catch (Exception e)
         {
             _logger.Fatal(e, $"{nameof(SmartContractNodeImportBackgroundService)} stopped due to exception.");
+            _healthCheck.AddUnhealthyJobWithMessage(nameof(SmartContractNodeImportBackgroundService), "Stopped due to exception.");
         }
     }
 

@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Prometheus;
@@ -84,6 +85,8 @@ builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
 builder.Services.AddSmartContractAggregate(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"));
 
 builder.Host.UseSystemd();
 var app = builder.Build();
@@ -110,9 +113,10 @@ try
         {
             endpoints.MapControllers();
             endpoints.MapGraphQL();
-            endpoints.MapMetrics();
+            endpoints.MapMetrics("/system/metrics");
+            endpoints.MapHealthChecks("/system/health");
         });
-    
+
     app.Run();    
 }
 catch (Exception e)

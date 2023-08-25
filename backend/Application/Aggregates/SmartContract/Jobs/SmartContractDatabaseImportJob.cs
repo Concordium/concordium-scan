@@ -1,7 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Configurations;
+using Application.Aggregates.SmartContract.Exceptions;
+using Application.Aggregates.SmartContract.Observability;
 using Application.Aggregates.SmartContract.Types;
+using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.Transactions;
 using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.SmartContract.Jobs;
@@ -11,16 +15,19 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     private const string JobName = "SmartContractDatabaseImportJob";
     
     private readonly ISmartContractRepositoryFactory _repositoryFactory;
+    private readonly SmartContractHealthCheck _healthCheck;
     private readonly ILogger _logger;
     private readonly SmartContractAggregateJobOptions _jobOptions;
     private readonly SmartContractAggregateOptions _smartContractAggregateOptions;
 
     public SmartContractDatabaseImportJob(
         ISmartContractRepositoryFactory repositoryFactory,
-        IOptions<SmartContractAggregateOptions> options
+        IOptions<SmartContractAggregateOptions> options,
+        SmartContractHealthCheck healthCheck
         )
     {
         _repositoryFactory = repositoryFactory;
+        _healthCheck = healthCheck;
         _logger = Log.ForContext<SmartContractDatabaseImportJob>();
         _smartContractAggregateOptions = options.Value;
         var gotJobOptions = _smartContractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
@@ -67,6 +74,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         catch (Exception e)
         {
             _logger.Fatal(e, $"{nameof(SmartContractDatabaseImportJob)} stopped due to exception.");
+            _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Database import job stopped due to exception.");
             throw;
         }
     }
@@ -129,10 +137,118 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
             var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
             
             _logger.Debug("{TaskId} Processing heights {From} to {To}", id, blockHeightFrom, blockHeightTo);
-            var affectedRows = await contractAggregate.DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
+            var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
             if (affectedRows == 0) continue;
             _logger.Debug("{TaskId} Written heights {From} to {To}", id, blockHeightFrom, blockHeightTo);   
         }
+    }
+
+    private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
+    {
+        using var durationMetric = new SmartContractMetrics.DurationMetric(ImportSource.DatabaseImport);
+        await using var repository = await _repositoryFactory.CreateAsync();
+        var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
+        if (readHeights.Count > 0)
+        {
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));
+        }
+        
+        var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
+        if (affectedColumns == 0)
+        {
+            return affectedColumns;
+        }
+
+        var events = await repository.FromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
+        foreach (var eventDto in events.Where(e => !readHeights.Contains((ulong)e.BlockHeight)))
+        {
+            if (!IsUsableTransaction(eventDto.TransactionType, eventDto.TransactionSender, eventDto.TransactionHash))
+            {
+                continue;
+            }  
+            
+            await SmartContractAggregate.StoreEvent(
+                ImportSource.DatabaseImport,
+                repository,
+                eventDto.Event,
+                eventDto.TransactionSender!,
+                (ulong)eventDto.BlockHeight,
+                eventDto.TransactionHash,
+                eventDto.TransactionIndex,
+                eventDto.TransactionEventIndex
+            );
+        }
+
+        await SmartContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, readHeights, ImportSource.DatabaseImport);
+        await repository.SaveChangesAsync(token);
+        SmartContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
+        return affectedColumns;
+    }
+    
+    /// <summary>
+    /// Validates if a transactions should be used and is valid.
+    /// </summary>
+    /// <exception cref="SmartContractImportException">
+    /// If a event of type <see cref="AccountTransaction"/> is given, and hence the event should be evaluated,
+    /// but transaction sender is zero.
+    /// </exception>
+    private static bool IsUsableTransaction(TransactionTypeUnion transactionType, AccountAddress? sender, string transactionHash)
+    {
+        if (transactionType is not AccountTransaction)
+        {
+            return false;
+        }
+        if (sender == null)
+        {
+            throw new SmartContractImportException(
+                $"Not able to map transaction: {transactionHash}, since transaction sender was null");
+        }
+
+        return true;
+    }
+    
+    /// <summary>
+    /// Create ranges from input list.
+    ///
+    /// Require list to be sorted from low to high.
+    /// </summary>
+    internal static IList<(ulong, ulong)> PrettifyToRanges(IList<ulong> read)
+    {
+        var intervals = new List<(ulong,ulong)>();
+        switch (read.Count)
+        {
+            case 0:
+                return intervals;
+            case 1:
+                intervals.Add((read[0], read[0]));
+                return intervals;
+        }
+
+        if (read[^1] - read[0] + 1 == (ulong)read.Count)
+        {
+            intervals.Add((read[0], read[^1]));
+            return intervals;
+        }
+
+        var start = read[0];
+        var lastRead = read[0];
+        for (var i = 1; i < read.Count; i++)
+        {
+            var current = read[i];
+            var last = lastRead;
+            
+            lastRead = read[i];
+            if (current == last + 1)
+            {
+                continue;
+            }
+            intervals.Add((start, last));
+            start = current;
+            
+        }
+        intervals.Add((start, read[^1]));
+
+        return intervals;
     }
 }

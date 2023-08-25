@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Application.Aggregates.SmartContract.Types;
 using Prometheus;
 
-namespace Application.Aggregates.SmartContract;
+namespace Application.Aggregates.SmartContract.Observability;
 
 internal static class SmartContractMetrics
 {
@@ -46,13 +46,13 @@ internal static class SmartContractMetrics
             .Set(value);
     }
     
-    internal class JobDurationMetric : IDisposable
+    internal class DurationMetric : IDisposable
     {
         private string _exceptionName = "";
         private readonly Stopwatch _time;
         private readonly ImportSource _source;
     
-        public JobDurationMetric(ImportSource source)
+        public DurationMetric(ImportSource source)
         {
             _source = source;
             _time = Stopwatch.StartNew();
@@ -60,7 +60,7 @@ internal static class SmartContractMetrics
 
         internal void SetException(Exception ex)
         {
-            _exceptionName = ex.GetType().ToString();
+            _exceptionName = PrettyPrintException(ex);
         }
 
         public void Dispose()
@@ -68,6 +68,25 @@ internal static class SmartContractMetrics
             ReadDuration
                 .WithLabels(_source.ToStringCached(), _exceptionName)
                 .Observe(_time.ElapsedMilliseconds / 1_000);
+        }
+
+        private static string PrettyPrintException(Exception ex)
+        {
+            var type = ex.GetType();
+            if (type.GenericTypeArguments.Length == 0)
+            {
+                return type.Name;
+            }
+
+            var name = type.Name.AsSpan();
+            var indexOfGenericCount = name.IndexOf('`');
+            if (indexOfGenericCount != -1)
+            {
+                name = name[..indexOfGenericCount];
+            }
+            var typeArguments = string.Join(",", type.GenericTypeArguments.Select(t => t.Name));
+
+            return $"{name}<{typeArguments}>";
         }
     }
 }

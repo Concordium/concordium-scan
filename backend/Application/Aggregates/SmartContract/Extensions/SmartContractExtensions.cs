@@ -1,9 +1,11 @@
 using Application.Aggregates.SmartContract.BackgroundServices;
 using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Jobs;
+using Application.Aggregates.SmartContract.Observability;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Application.Aggregates.SmartContract.Extensions;
 
@@ -19,8 +21,16 @@ public static class SmartContractExtensions
         collection.AddTransient<ISmartContractNodeClient, SmartContractNodeClient>();
         
         collection.AddSmartContractJobs();
+        collection.AddObservability();
         
         AddDapperTypeHandlers();
+    }
+
+    private static void AddObservability(this IServiceCollection collection)
+    {
+        collection.AddSingleton<SmartContractHealthCheck>();
+        collection.AddHealthChecks()
+            .AddCheck<SmartContractHealthCheck>("Smart Contract", HealthStatus.Unhealthy);
     }
     
     /// <summary>
