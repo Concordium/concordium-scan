@@ -3,6 +3,9 @@
 - Added Prometheus metrics which give durations of imports, count of relevant processed transaction events and retry counts.
 - Added health checks, where application goes into degraded state if some job stops running. These health checks are now making endpoint `rest/health` redundant and it is removed.
 
+## 1.6.3
+- Added Account Balance to Account Statement export file.
+
 ## 1.6.2
 - Bugfix
     - Added as before protocol update two transaction events, `CredentialDeployed` and `AccountCreated`, when a account is created.
