@@ -92,7 +92,7 @@ public class ExportController : ControllerBase
         var lastTime = values.Last().Timestamp;
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
         {
-            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}-{lastTime:yyyyMMddHHmmss}.csv"
+            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}Z-{lastTime:yyyyMMddHHmmss}Z.csv"
         };
     }
 }
