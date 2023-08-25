@@ -101,7 +101,7 @@ internal sealed class SmartContractAggregate
         _logger.Debug("Reading block {BlockHash}", blockHash.ToString());
         
         BlockInfo? blockInfo = null;
-        var eventIndex = 0u;
+        var totalEvents = 0u;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))
         {
             if (blockItemSummary.Details is not AccountTransactionDetails details)
@@ -111,6 +111,7 @@ internal sealed class SmartContractAggregate
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
             var transactionHash = blockItemSummary.TransactionHash.ToString();
+            var eventIndex = 0u;
             foreach (var transactionResultEvent in FilterEvents(details.Effects))
             {
                 await StoreEvent(
@@ -125,9 +126,11 @@ internal sealed class SmartContractAggregate
                 );
                 eventIndex++;
             }
+
+            totalEvents += eventIndex;
         }
 
-        return eventIndex;
+        return totalEvents;
     }
     
     /// <summary>

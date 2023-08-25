@@ -114,8 +114,6 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         return finalHeight;
     }
 
-
-    private int taskId = 0;
     /// <summary>
     /// Run each batch up to final height.
     ///
@@ -124,23 +122,20 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
     /// </summary>
     private async Task RunBatch(SmartContractAggregate contractAggregate, long finalHeight, CancellationToken token)
     {
-        var id = Interlocked.Increment(ref taskId);
         while (!token.IsCancellationRequested)
         {
             var height = Interlocked.Increment(ref _readCount);
             var blockHeightTo = height * _jobOptions.BatchSize;
             if (blockHeightTo > finalHeight)
             {
-                _logger.Debug("{TaskId} Batch process done stopping due to {BlockHeightTo}", id, blockHeightTo);
                 return;
             }
             var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
             
-            _logger.Debug("{TaskId} Processing heights {From} to {To}", id, blockHeightFrom, blockHeightTo);
             var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
             if (affectedRows == 0) continue;
-            _logger.Debug("{TaskId} Written heights {From} to {To}", id, blockHeightFrom, blockHeightTo);   
+            _logger.Debug("Written heights {From} to {To}",blockHeightFrom, blockHeightTo);   
         }
     }
 
