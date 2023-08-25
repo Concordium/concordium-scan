@@ -32,7 +32,7 @@ public sealed class SmartContractHealthCheckTests
         var checkHealthAsync = await healthCheck.CheckHealthAsync(new HealthCheckContext());
         
         // Assert
-        checkHealthAsync.Status.Should().Be(HealthStatus.Unhealthy);
+        checkHealthAsync.Status.Should().Be(HealthStatus.Degraded);
         checkHealthAsync.Data[key].Should().Be(value);
     }
 }
