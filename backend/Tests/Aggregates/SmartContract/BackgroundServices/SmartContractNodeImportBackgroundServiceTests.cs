@@ -4,6 +4,7 @@ using Application.Aggregates.SmartContract.BackgroundServices;
 using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Entities;
 using Application.Aggregates.SmartContract.Jobs;
+using Application.Aggregates.SmartContract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using FluentAssertions;
@@ -59,7 +60,8 @@ public class SmartContractNodeImportBackgroundServiceTests
             Mock.Of<ISmartContractRepositoryFactory>(),
             Mock.Of<ISmartContractNodeClient>(),
             Mock.Of<IFeatureFlags>(),
-            Options.Create(new SmartContractAggregateOptions())
+            Options.Create(new SmartContractAggregateOptions()),
+            new SmartContractHealthCheck()
         );
         
         // Act

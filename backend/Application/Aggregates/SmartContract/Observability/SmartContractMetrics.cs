@@ -65,9 +65,10 @@ internal static class SmartContractMetrics
 
         public void Dispose()
         {
+            var elapsedSeconds = _time.ElapsedMilliseconds / 1_000d;
             ReadDuration
                 .WithLabels(_source.ToStringCached(), _exceptionName)
-                .Observe(_time.ElapsedMilliseconds / 1_000);
+                .Observe(elapsedSeconds);
         }
 
         private static string PrettyPrintException(Exception ex)

@@ -1,3 +1,7 @@
+using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
@@ -17,6 +21,8 @@ using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
 using Application.NodeApi;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -86,7 +92,8 @@ builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorSer
 builder.Services.AddScoped<NodeStatusSnapshot>();
 builder.Services.AddSmartContractAggregate(builder.Configuration);
 builder.Services.AddHealthChecks()
-    .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"));
+    .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"))
+    .ForwardToPrometheus();
 
 builder.Host.UseSystemd();
 var app = builder.Build();
@@ -102,7 +109,6 @@ try
         })
         .UseRouting()
         .UseHttpMetrics()
-        .UseGrpcMetrics()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
@@ -114,8 +120,8 @@ try
             endpoints.MapControllers();
             endpoints.MapGraphQL();
             endpoints.MapMetrics("/system/metrics");
-            endpoints.MapHealthChecks("/system/health");
-        });
+        })
+        .AddDefaultHealthChecks();
 
     app.Run();    
 }

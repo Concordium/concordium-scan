@@ -21,7 +21,7 @@ public sealed class SmartContractHealthCheck : IHealthCheck
             return Task.FromResult(HealthCheckResult.Healthy());
         }
         
-        return Task.FromResult(HealthCheckResult.Unhealthy("Some jobs have degraded",
+        return Task.FromResult(HealthCheckResult.Degraded("Some jobs have degraded",
             data: _unhealthyJobs.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)));
     }
 }

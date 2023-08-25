@@ -6,6 +6,7 @@ using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Prometheus;
 
 namespace Application.Aggregates.SmartContract.Extensions;
 
@@ -30,7 +31,8 @@ public static class SmartContractExtensions
     {
         collection.AddSingleton<SmartContractHealthCheck>();
         collection.AddHealthChecks()
-            .AddCheck<SmartContractHealthCheck>("Smart Contract", HealthStatus.Unhealthy);
+            .AddCheck<SmartContractHealthCheck>("Smart Contract", HealthStatus.Unhealthy)
+            .ForwardToPrometheus();
     }
     
     /// <summary>
