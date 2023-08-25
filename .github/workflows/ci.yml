@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, cbw-1248/implementation-smart-contract-aggregate ]
 
 jobs:
   build:
