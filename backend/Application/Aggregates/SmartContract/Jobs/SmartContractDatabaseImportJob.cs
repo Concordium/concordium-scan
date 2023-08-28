@@ -131,7 +131,6 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
                 return;
             }
             var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
-            
             var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
             if (affectedRows == 0) continue;
@@ -146,7 +145,7 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
         if (readHeights.Count > 0)
         {
-            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));   
         }
         
         var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
@@ -202,7 +201,8 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
 
         return true;
     }
-    
+
+
     /// <summary>
     /// Create ranges from input list.
     ///
