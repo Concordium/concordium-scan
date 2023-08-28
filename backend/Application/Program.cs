@@ -1,7 +1,3 @@
-using System.IO;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Application.Aggregates.SmartContract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
@@ -21,8 +17,6 @@ using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
 using Application.NodeApi;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;

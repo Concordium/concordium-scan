@@ -202,7 +202,6 @@ internal class SmartContractDatabaseImportJob : ISmartContractJob
         return true;
     }
 
-
     /// <summary>
     /// Create ranges from input list.
     ///
