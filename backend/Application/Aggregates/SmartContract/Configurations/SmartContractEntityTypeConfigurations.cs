@@ -1,3 +1,4 @@
+using Application.Aggregates.SmartContract.Entities;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,9 +12,6 @@ public sealed class SmartContractEntityTypeConfigurations : IEntityTypeConfigura
         builder.ToTable("graphql_smart_contracts");
         builder.HasKey(x => new
         {
-            x.BlockHeight, 
-            x.TransactionIndex,
-            x.EventIndex,
             x.ContractAddressIndex,
             x.ContractAddressSubIndex
         });
@@ -35,6 +33,11 @@ public sealed class SmartContractEntityTypeConfigurations : IEntityTypeConfigura
         builder.Property(x => x.Source)
             .HasColumnName("source");
         builder.Property(x => x.CreatedAt)
-            .HasColumnName("created_at");        
+            .HasColumnName("created_at");
+
+        builder
+            .HasMany<SmartContractEvent>(sm => sm.SmartContractEvents)
+            .WithOne()
+            .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
     }
 }

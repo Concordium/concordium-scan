@@ -7,8 +7,9 @@ namespace Application.Api.GraphQL;
 public class Subscription
 {
     [Subscribe]
+    [Topic("{accountAddress}")]
     public AccountsUpdatedSubscriptionItem AccountsUpdated(
-        [Topic] string accountAddress,
+        string accountAddress, 
         [EventMessage] AccountsUpdatedSubscriptionItem message) => message;
 
     [Subscribe]

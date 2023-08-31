@@ -913,6 +913,7 @@ type EventsConnection {
   edges: [EventsEdge!]
   "A flattened list of the nodes."
   nodes: [Event!]
+  "Identifies the total count of items in the connection."
   totalCount: Int!
 }
 
@@ -1505,6 +1506,7 @@ type Query {
   importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
+  smartContracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SmartContractsConnection
 }
 
 type Ranking {
@@ -1593,6 +1595,50 @@ type SearchResult {
 
 type SerializationFailure {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type SmartContract {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  creator: AccountAddress!
+  source: ImportSource!
+  createdAt: DateTime!
+  smartContractEvents: [SmartContractEvent!]!
+  amount: Float!
+}
+
+type SmartContractEvent {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  event: Event!
+  source: ImportSource!
+  createdAt: DateTime!
+}
+
+"A connection to a list of items."
+type SmartContractsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [SmartContractsEdge!]
+  "A flattened list of the nodes."
+  nodes: [SmartContract!]
+}
+
+"An edge in a connection."
+type SmartContractsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: SmartContract!
 }
 
 "A connection to a list of items."
@@ -1876,6 +1922,11 @@ enum CredentialDeploymentTransactionType {
   NORMAL
 }
 
+enum ImportSource {
+  NODE_IMPORT
+  DATABASE_IMPORT
+}
+
 enum MetricsPeriod {
   LAST_HOUR
   LAST24_HOURS
@@ -1949,14 +2000,8 @@ enum UpdateTransactionType {
   FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
 }
 
-"The `@defer` directive may be provided for fragment spreads and inline fragments to inform the executor to delay the execution of the current fragment to indicate deprioritization of the current fragment. A query with `@defer` directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred is delivered in a subsequent response. `@include` and `@skip` take precedence over `@defer`."
-directive @defer("If this argument label has a value other than null, it will be passed on to the result of this defer directive. This label is intended to give client applications a way to identify to which fragment a deferred result belongs to." label: String "Deferred when true." if: Boolean) on FRAGMENT_SPREAD | INLINE_FRAGMENT
-
 "The `@specifiedBy` directive is used within the type system definition language to provide a URL for specifying the behavior of custom scalar definitions."
 directive @specifiedBy("The specifiedBy URL points to a human-readable specification. This field will only read a result for scalar types." url: String!) on SCALAR
-
-"The `@stream` directive may be provided for a field of `List` type so that the backend can leverage technology such as asynchronous iterators to provide a partial list in the initial response, and additional list items in subsequent responses. `@include` and `@skip` take precedence over `@stream`."
-directive @stream("If this argument label has a value other than null, it will be passed on to the result of this stream directive. This label is intended to give client applications a way to identify to which fragment a streamed result belongs to." label: String "The initial elements that shall be send down to the consumer." initialCount: Int! = 0 "Streamed when true." if: Boolean) on FIELD
 
 scalar BigInteger
 
@@ -1974,6 +2019,9 @@ scalar Long
 
 "The `TimeSpan` scalar represents an ISO-8601 compliant duration type."
 scalar TimeSpan
+
+"The UnsignedInt scalar type represents a unsigned 32-bit numeric non-fractional value greater than or equal to 0."
+scalar UnsignedInt
 
 "The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0."
 scalar UnsignedLong

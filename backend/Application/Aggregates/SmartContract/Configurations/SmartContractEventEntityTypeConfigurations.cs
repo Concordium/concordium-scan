@@ -37,6 +37,6 @@ public sealed class SmartContractEventEntityTypeConfigurations : IEntityTypeConf
         builder.Property(x => x.Source)
             .HasColumnName("source");
         builder.Property(x => x.CreatedAt)
-            .HasColumnName("created_at");        
+            .HasColumnName("created_at");
     }
 }

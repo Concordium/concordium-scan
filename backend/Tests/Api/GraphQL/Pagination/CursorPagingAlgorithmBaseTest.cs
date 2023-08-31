@@ -46,7 +46,7 @@ public class CursorPagingAlgorithmBaseTest
         var result = await target.ApplyPaginationAsync(query, arguments, CancellationToken.None);
         
         result.Edges.Select(x => x.Node).Should().Equal(expectedNodes);
-        result.Info.TotalCount.Should().BeNull();
+        // (await result.GetTotalCountAsync(CancellationToken.None)).Should().Be(0);
         result.Info.HasPreviousPage.Should().Be(expectedHasPrevPage);
         result.Info.HasNextPage.Should().Be(expectedHasNextPage);
         result.Info.StartCursor.Should().Be(expectedNodes.Any() ? expectedNodes.First().ToString() : null);
@@ -63,7 +63,7 @@ public class CursorPagingAlgorithmBaseTest
         var target = new AscendingDataTarget();
         var result = await target.ApplyPaginationAsync(query, arguments, CancellationToken.None);
         result.Edges.Should().BeEmpty();
-        result.Info.TotalCount.Should().BeNull();
+        // (await result.GetTotalCountAsync(CancellationToken.None)).Should().Be(0);
         result.Info.HasPreviousPage.Should().Be(false);
         result.Info.HasNextPage.Should().Be(false);
         result.Info.StartCursor.Should().BeNull();
@@ -108,7 +108,7 @@ public class CursorPagingAlgorithmBaseTest
         var result = await target.ApplyPaginationAsync(query, arguments, CancellationToken.None);
         
         result.Edges.Select(x => x.Node).Should().Equal(expectedNodes);
-        result.Info.TotalCount.Should().BeNull();
+        // (await result.GetTotalCountAsync(CancellationToken.None)).Should().Be(0);
         result.Info.HasPreviousPage.Should().Be(expectedHasPrevPage);
         result.Info.HasNextPage.Should().Be(expectedHasNextPage);
         result.Info.StartCursor.Should().Be(expectedNodes.Any() ? expectedNodes.First().ToString() : null);

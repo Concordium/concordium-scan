@@ -13,9 +13,6 @@ create table graphql_smart_contracts
     source                      int           not null,    
     created_at                  TIMESTAMPTZ   not null,
     PRIMARY KEY (
-                 block_height,
-                 transaction_index,
-                 event_index,
                  contract_address_index,
                  contract_address_sub_index
         )

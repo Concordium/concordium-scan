@@ -7,6 +7,7 @@ using Dapper;
 using FluentAssertions;
 using HotChocolate;
 using HotChocolate.Execution;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -26,7 +27,6 @@ public class GraphQlTestHelper
         services.AddDbContextFactory<GraphQlDbContext>(options => options.UseNpgsql(settings.ConnectionString));
         
         _executor = await services.AddGraphQLServer().Configure().BuildRequestExecutorAsync();
-
         var dbContextFactory = services.BuildServiceProvider().GetService<IDbContextFactory<GraphQlDbContext>>()!;
         _dbContext = await dbContextFactory.CreateDbContextAsync();
 
@@ -46,10 +46,12 @@ public class GraphQlTestHelper
 
     public async Task<JsonNode> ExecuteGraphQlQueryAsync(string query)
     {
-        var result = await RequestExecutor.ExecuteAsync(query);
-        
+        var response = await RequestExecutor.ExecuteAsync(query);
+
+        response.Should().BeOfType<QueryResult>();
+        var result = (response as QueryResult)!;
         result.Errors.Should().BeNull();
-        var json = await result.ToJsonAsync();
+        var json = response.ToJson();
         var doc = JsonNode.Parse(json)!;
         return doc["data"] ?? throw new InvalidOperationException("query did not return expected data element at root.");
     }

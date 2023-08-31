@@ -3,6 +3,7 @@ using Application.Aggregates.SmartContract.Configurations;
 using Application.Aggregates.SmartContract.Jobs;
 using Application.Aggregates.SmartContract.Observability;
 using Dapper;
+using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -56,5 +57,13 @@ public static class SmartContractExtensions
         collection.AddTransient<ISmartContractJobFinder, SmartContractJobFinder>();
         
         collection.AddTransient<ISmartContractJob, SmartContractDatabaseImportJob>();
+    }
+
+    internal static IRequestExecutorBuilder AddSmartContractGraphQlConfigurations(this IRequestExecutorBuilder builder)
+    {
+        builder
+            .AddType<Entities.SmartContract.SmartContractQuery>()
+            .AddTypeExtension<Entities.SmartContract.SmartContractExtensions>();
+        return builder;
     }
 }
