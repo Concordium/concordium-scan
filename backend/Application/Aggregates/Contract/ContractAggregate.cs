@@ -1,11 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.SmartContract.Configurations;
-using Application.Aggregates.SmartContract.Entities;
-using Application.Aggregates.SmartContract.Observability;
-using Application.Aggregates.SmartContract.Types;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
@@ -53,7 +50,7 @@ internal sealed class ContractAggregate
 
                     for (var height = lastHeight; height <= newLastHeight; height++)
                     {
-                        using var durationMetric = new SmartContractMetrics.DurationMetric(ImportSource.NodeImport);
+                        using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
                         try
                         {
                             await using var repository = await _repositoryFactory.CreateAsync();
@@ -62,8 +59,8 @@ internal sealed class ContractAggregate
                             await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
                             await repository.SaveChangesAsync(token);
                         
-                            SmartContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
-                            SmartContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
+                            ContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
+                            ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
                         }
                         catch (Exception e)
                         {
@@ -94,9 +91,6 @@ internal sealed class ContractAggregate
     /// </summary>
     /// <returns>Count of transaction event mapped. Observe this can result in multiple stored events.</returns>
     internal async Task<uint> NodeImport(
-        ISmartContractRepository repository,
-        ISmartContractNodeClient client,
-    internal async Task NodeImport(
         IContractRepository repository,
         IContractNodeClient client,
         ulong height,

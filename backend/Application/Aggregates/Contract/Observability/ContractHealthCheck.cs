@@ -3,9 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Application.Aggregates.SmartContract.Observability;
+namespace Application.Aggregates.Contract.Observability;
 
-public sealed class SmartContractHealthCheck : IHealthCheck
+public sealed class ContractHealthCheck : IHealthCheck
 {
     private readonly ConcurrentDictionary<string, string> _unhealthyJobs = new();
 

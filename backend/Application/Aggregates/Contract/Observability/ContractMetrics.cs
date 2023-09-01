@@ -1,14 +1,14 @@
 using System.Diagnostics;
-using Application.Aggregates.SmartContract.Types;
+using Application.Aggregates.Contract.Types;
 using Prometheus;
 
-namespace Application.Aggregates.SmartContract.Observability;
+namespace Application.Aggregates.Contract.Observability;
 
-internal static class SmartContractMetrics
+internal static class ContractMetrics
 {
     private static readonly Gauge SmartReadHeight = Metrics.CreateGauge(
-        "smart_contract_read_height",
-        "Max height read by any smart contract import job",
+        "contract_read_height",
+        "Max height read by any contract import job",
         new GaugeConfiguration
         {
             LabelNames = new []{"data_source"}
@@ -16,7 +16,7 @@ internal static class SmartContractMetrics
 
 
     private static readonly Histogram ReadDuration = Metrics.CreateHistogram(
-        "smart_contract_read_duration_seconds",
+        "contract_read_duration_seconds",
         "Duration of import in seconds",
         new HistogramConfiguration
         {
@@ -25,7 +25,7 @@ internal static class SmartContractMetrics
     );
 
     private static readonly Counter ImportedTransactionEvents = Metrics.CreateCounter(
-        "smart_contract_imported_transaction_events_total", "Number of transaction event which has been processed and triggered one or more events",
+        "contract_imported_transaction_events_total", "Number of transaction event which has been processed and triggered one or more events",
         new CounterConfiguration
         {
             LabelNames = new[] { "source" }

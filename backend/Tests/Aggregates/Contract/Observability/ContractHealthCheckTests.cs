@@ -1,16 +1,16 @@
-using Application.Aggregates.SmartContract.Observability;
+using Application.Aggregates.Contract.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Tests.Aggregates.SmartContract.Observability;
+namespace Tests.Aggregates.Contract.Observability;
 
-public sealed class SmartContractHealthCheckTests
+public sealed class ContractHealthCheckTests
 {
     [Fact]
     public async Task GivenNoFailedJob_WhenCallingHealthCheck_ThenReturnHealthy()
     {
         // Arrange
-        var healthCheck = new SmartContractHealthCheck();
+        var healthCheck = new ContractHealthCheck();
         
         // Act
         var checkHealthAsync = await healthCheck.CheckHealthAsync(new HealthCheckContext());
@@ -25,7 +25,7 @@ public sealed class SmartContractHealthCheckTests
         // Arrange
         const string key = "foo";
         const string value = "value";
-        var healthCheck = new SmartContractHealthCheck();
+        var healthCheck = new ContractHealthCheck();
         healthCheck.AddUnhealthyJobWithMessage(key, value);
         
         // Act

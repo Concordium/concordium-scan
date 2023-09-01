@@ -1,15 +1,10 @@
 using System.Threading;
-using Application.Aggregates.SmartContract;
-using Application.Aggregates.SmartContract.BackgroundServices;
-using Application.Aggregates.SmartContract.Configurations;
-using Application.Aggregates.SmartContract.Entities;
-using Application.Aggregates.SmartContract.Jobs;
-using Application.Aggregates.SmartContract.Observability;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
+using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Common.FeatureFlags;
 using FluentAssertions;
@@ -65,9 +60,8 @@ public class ContractNodeImportBackgroundServiceTests
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),
             Mock.Of<IFeatureFlags>(),
-            Options.Create(new SmartContractAggregateOptions()),
-            new SmartContractHealthCheck()
-            Options.Create(new ContractAggregateOptions())
+            Options.Create(new ContractAggregateOptions()),
+            new ContractHealthCheck()
         );
         
         // Act

@@ -1,11 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.SmartContract.Configurations;
-using Application.Aggregates.SmartContract.Exceptions;
-using Application.Aggregates.SmartContract.Observability;
-using Application.Aggregates.SmartContract.Types;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Exceptions;
+using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
@@ -17,31 +14,20 @@ internal class ContractDatabaseImportJob : IContractJob
 {
     private const string JobName = "ContractDatabaseImportJob";
     
-    private readonly ISmartContractRepositoryFactory _repositoryFactory;
-    private readonly SmartContractHealthCheck _healthCheck;
+    private readonly ContractHealthCheck _healthCheck;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateJobOptions _jobOptions;
     private readonly ContractAggregateOptions _contractAggregateOptions;
 
-    public SmartContractDatabaseImportJob(
-        ISmartContractRepositoryFactory repositoryFactory,
-        IOptions<SmartContractAggregateOptions> options,
-        SmartContractHealthCheck healthCheck
+    public ContractDatabaseImportJob(
+        IContractRepositoryFactory repositoryFactory,
+        IOptions<ContractAggregateOptions> options,
+        ContractHealthCheck healthCheck
         )
     {
         _repositoryFactory = repositoryFactory;
         _healthCheck = healthCheck;
-        _logger = Log.ForContext<SmartContractDatabaseImportJob>();
-        _smartContractAggregateOptions = options.Value;
-        var gotJobOptions = _smartContractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new SmartContractAggregateJobOptions();
-    public ContractDatabaseImportJob(
-        IContractRepositoryFactory repositoryFactory,
-        IOptions<ContractAggregateOptions> options
-        )
-    {
-        _repositoryFactory = repositoryFactory;
         _logger = Log.ForContext<ContractDatabaseImportJob>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
@@ -87,7 +73,7 @@ internal class ContractDatabaseImportJob : IContractJob
         }
         catch (Exception e)
         {
-            _logger.Fatal(e, $"{nameof(SmartContractDatabaseImportJob)} stopped due to exception.");
+            _logger.Fatal(e, $"{nameof(ContractDatabaseImportJob)} stopped due to exception.");
             _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Database import job stopped due to exception.");
             _logger.Fatal(e, $"{nameof(ContractDatabaseImportJob)} stopped due to exception.");
             throw;
@@ -106,13 +92,13 @@ internal class ContractDatabaseImportJob : IContractJob
             while (!token.IsCancellationRequested)
             {
                 var repository = await _repositoryFactory.CreateAsync();
-                var latest = await repository.GetReadOnlyLatestSmartContractReadHeight();
+                var latest = await repository.GetReadOnlyLatestContractReadHeight();
                 if (latest != null)
                 {
-                    SmartContractMetrics.SetReadHeight(latest.BlockHeight, ImportSource.DatabaseImport);
+                    ContractMetrics.SetReadHeight(latest.BlockHeight, ImportSource.DatabaseImport);
                 }
 
-                await Task.Delay(_smartContractAggregateOptions.MetricDelay, token);
+                await Task.Delay(_contractAggregateOptions.MetricDelay, token);
             }
         }
         catch (TaskCanceledException)
@@ -155,7 +141,7 @@ internal class ContractDatabaseImportJob : IContractJob
 
     private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
-        using var durationMetric = new SmartContractMetrics.DurationMetric(ImportSource.DatabaseImport);
+        using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
         await using var repository = await _repositoryFactory.CreateAsync();
         var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
         if (readHeights.Count > 0)
@@ -191,7 +177,7 @@ internal class ContractDatabaseImportJob : IContractJob
 
         await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, readHeights, ImportSource.DatabaseImport);
         await repository.SaveChangesAsync(token);
-        SmartContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
+        ContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
         return affectedColumns;
     }
     

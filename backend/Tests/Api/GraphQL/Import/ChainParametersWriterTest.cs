@@ -1,11 +1,9 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Import;
+﻿using Application.Api.GraphQL.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
-using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using ChainParameters = Application.Api.GraphQL.ChainParameters;

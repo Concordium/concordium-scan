@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 
-namespace Application.Aggregates.SmartContract.Types;
 namespace Application.Aggregates.Contract.Types;
 
 /// <summary>

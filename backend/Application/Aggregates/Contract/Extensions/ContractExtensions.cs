@@ -1,9 +1,12 @@
 using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
+using Application.Aggregates.Contract.Observability;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Prometheus;
 
 namespace Application.Aggregates.Contract.Extensions;
 
@@ -19,8 +22,17 @@ public static class ContractExtensions
         collection.AddTransient<IContractNodeClient, ContractNodeClient>();
         
         collection.AddContractJobs();
+        collection.AddObservability();
         
         AddDapperTypeHandlers();
+    }
+
+    private static void AddObservability(this IServiceCollection collection)
+    {
+        collection.AddSingleton<ContractHealthCheck>();
+        collection.AddHealthChecks()
+            .AddCheck<ContractHealthCheck>("Smart Contract", HealthStatus.Unhealthy)
+            .ForwardToPrometheus();
     }
     
     /// <summary>
