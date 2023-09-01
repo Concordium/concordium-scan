@@ -67,12 +67,17 @@ public sealed class SmartContract
         }
     }
 
+    /// <summary>
+    /// Adds additional field to the returned GraphQL type <see cref="SmartContract"/>
+    /// </summary>
     [ExtendObjectType(typeof(SmartContract))]
     public sealed class SmartContractExtensions
     {
+        public ContractAddress GetContractAddress([Parent] SmartContract smartContract) => 
+            new(smartContract.ContractAddressIndex, smartContract.ContractAddressSubIndex);
+
         /// <summary>
-        /// Adds additional field to the returned GraphQL type <see cref="SmartContract"/> which returns
-        /// aggregated amount from events on contract.
+        /// Returns aggregated amount from events on contract.
         /// </summary>
         public double GetAmount([Parent] SmartContract smartContract)
         {

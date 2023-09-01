@@ -1608,6 +1608,7 @@ type SmartContract {
   source: ImportSource!
   createdAt: DateTime!
   smartContractEvents: [SmartContractEvent!]!
+  contractAddress: ContractAddress!
   amount: Float!
 }
 
