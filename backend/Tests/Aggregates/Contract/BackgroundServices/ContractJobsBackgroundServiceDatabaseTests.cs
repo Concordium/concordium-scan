@@ -12,11 +12,11 @@ using Tests.TestUtilities;
 namespace Tests.Aggregates.Contract.BackgroundServices;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public class SmartContractJobsBackgroundServiceDatabaseTests
+public class ContractJobsBackgroundServiceDatabaseTests
 {
     private readonly DatabaseFixture _databaseFixture;
 
-    public SmartContractJobsBackgroundServiceDatabaseTests(DatabaseFixture databaseFixture)
+    public ContractJobsBackgroundServiceDatabaseTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture;
     }
@@ -27,7 +27,7 @@ public class SmartContractJobsBackgroundServiceDatabaseTests
     public async Task WhenDoesExistingJobExist_ThenReturnTrueIfPresent(bool exists)
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_jobs");
+        await DatabaseFixture.TruncateTables("graphql_contract_jobs");
         const string jobName = "foo";
         var job = new Mock<IContractJob>();
         job.Setup(j => j.GetUniqueIdentifier())
@@ -57,7 +57,7 @@ public class SmartContractJobsBackgroundServiceDatabaseTests
     public async Task WhenSaveSuccessfullyExecutedJob_ThenJobSaved()
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_jobs");
+        await DatabaseFixture.TruncateTables("graphql_contract_jobs");
         const string jobName = "foo";
         var job = new Mock<IContractJob>();
         job.Setup(j => j.GetUniqueIdentifier())

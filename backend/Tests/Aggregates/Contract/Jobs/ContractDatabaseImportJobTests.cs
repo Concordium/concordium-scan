@@ -4,7 +4,7 @@ using FluentAssertions;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
-public sealed class SmartContractDatabaseImportJobTests
+public sealed class ContractDatabaseImportJobTests
 {
     [Fact]
     public void GivenNonContinuousRange_ThenReturnInternals()

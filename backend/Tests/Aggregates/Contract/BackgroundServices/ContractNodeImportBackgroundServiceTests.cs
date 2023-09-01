@@ -16,11 +16,11 @@ using Tests.TestUtilities;
 namespace Tests.Aggregates.Contract.BackgroundServices;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public class SmartContractNodeImportBackgroundServiceTests
+public class ContractNodeImportBackgroundServiceTests
 {
     private readonly DatabaseFixture _fixture;
 
-    public SmartContractNodeImportBackgroundServiceTests(DatabaseFixture fixture)
+    public ContractNodeImportBackgroundServiceTests(DatabaseFixture fixture)
     {
         _fixture = fixture;
     }
@@ -29,7 +29,7 @@ public class SmartContractNodeImportBackgroundServiceTests
     public async Task WhenGetJobsToAwait_ThenReturnJobsNotFinished()
     {
         // Assert
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_jobs");
+        await DatabaseFixture.TruncateTables("graphql_contract_jobs");
         const string done = "done";
         const string awaits = "await";
         var services = new ServiceCollection();
@@ -45,7 +45,7 @@ public class SmartContractNodeImportBackgroundServiceTests
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_fixture.CreateGraphQlDbContext()));
         var provider = services.BuildServiceProvider();
-        var smartContractJobFinder = new ContractJobFinder(provider);
+        var contractJobFinder = new ContractJobFinder(provider);
         await using (var context = _fixture.CreateGraphQlDbContext())
         {
             await context.AddAsync(new ContractJob(done));
@@ -54,7 +54,7 @@ public class SmartContractNodeImportBackgroundServiceTests
         };
 
         var importService = new ContractNodeImportBackgroundService(
-            smartContractJobFinder,
+            contractJobFinder,
             factory.Object,
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),

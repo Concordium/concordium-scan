@@ -29,7 +29,7 @@ public sealed class ContractRepositoryTests
     public async Task WhenCallFromBlockHeightRangeGetBlockHeightsRead_ThenReturnReadEvents()
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await _databaseFixture.AddAsync(
             new ContractReadHeight(1, ImportSource.DatabaseImport),
             new ContractReadHeight(2, ImportSource.NodeImport),
@@ -38,27 +38,27 @@ public sealed class ContractRepositoryTests
             new ContractReadHeight(6, ImportSource.DatabaseImport),
             new ContractReadHeight(7, ImportSource.DatabaseImport));
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var readHeights = await smartContractRepository.FromBlockHeightRangeGetBlockHeightsReadOrdered(2, 6);
+        var readHeights = await contractRepository.FromBlockHeightRangeGetBlockHeightsReadOrdered(2, 6);
 
         // Assert
         readHeights.Should().BeEquivalentTo(new List<ulong> { 2, 3, 5, 6 });
     }
     
 
-    #region Test WhenGetSmartContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
+    #region Test WhenGetContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
 
     [Fact]
-    public async Task WhenCallFromBlockHeightRangeGetSmartContractRelatedTransactionResultEventRelations_ThenReturnEvents()
+    public async Task WhenCallFromBlockHeightRangeGetContractRelatedTransactionResultEventRelations_ThenReturnEvents()
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_smart_contracts");
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_events");
+        await DatabaseFixture.TruncateTables("graphql_contracts");
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
-        await DatabaseFixture.TruncateTables("graphql_module_reference_smart_contract_link_events");
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await DatabaseFixture.TruncateTables("graphql_blocks");
         await DatabaseFixture.TruncateTables("graphql_transactions");
         await DatabaseFixture.TruncateTables("graphql_transaction_events");
@@ -66,11 +66,11 @@ public sealed class ContractRepositoryTests
         var transactionIds = await InsertSixTransactions(blockIds);
         await InsertTransactionResultEvents(transactionIds);
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         ContractExtensions.AddDapperTypeHandlers();
         
         // Act
-        var events = await smartContractRepository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(1, 4);
+        var events = await contractRepository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(1, 4);
         
         // Assert
         events.Count.Should().Be(3);
@@ -196,18 +196,18 @@ public sealed class ContractRepositoryTests
     #endregion
 
     [Fact]
-    public async Task GivenEntityWithBlockHeight_WhenGetReadOnlySmartContractReadHeightAtHeight_ThenReturnEntity()
+    public async Task GivenEntityWithBlockHeight_WhenGetReadOnlyContractReadHeightAtHeight_ThenReturnEntity()
     {
         // Arrange
         const ulong blockHeight = 42;
         const ImportSource source = ImportSource.DatabaseImport;
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await _databaseFixture.AddAsync(new ContractReadHeight(blockHeight, source));
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
+        var actual = await contractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
 
         // Assert
         actual.Should().NotBeNull();
@@ -216,16 +216,16 @@ public sealed class ContractRepositoryTests
     }
     
     [Fact]
-    public async Task GivenNoEntityWithBlockHeight_WhenGetReadOnlySmartContractReadHeightAtHeight_ThenReturnNull()
+    public async Task GivenNoEntityWithBlockHeight_WhenGetReadOnlyContractReadHeightAtHeight_ThenReturnNull()
     {
         // Arrange
         const ulong blockHeight = 42;
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
+        var actual = await contractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
 
         // Assert
         actual.Should().BeNull();
@@ -243,10 +243,10 @@ public sealed class ContractRepositoryTests
         await _databaseFixture.AddAsync(block);
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var single = await graphQlDbContext.Blocks.SingleAsync();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
+        var actual = await contractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
 
         // Assert
         actual!.Should().Be(single.Id);
@@ -259,10 +259,10 @@ public sealed class ContractRepositoryTests
         const int blockHeight = 42;
         await DatabaseFixture.TruncateTables("graphql_blocks");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var action = async () => await smartContractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
+        var action = async () => await contractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
 
         // Assert
         await action.Should().ThrowAsync<System.InvalidOperationException>();
@@ -281,10 +281,10 @@ public sealed class ContractRepositoryTests
         await _databaseFixture.AddAsync(transaction);
         
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
+        var actual = await contractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
 
         // Assert
         actual.Count.Should().Be(1);
@@ -299,10 +299,10 @@ public sealed class ContractRepositoryTests
         await DatabaseFixture.TruncateTables("graphql_transactions");
 
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
+        var actual = await contractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
 
         // Assert
         actual.Count.Should().Be(0);
@@ -319,10 +319,10 @@ public sealed class ContractRepositoryTests
         await _databaseFixture.AddAsync(transactionRelated, transactionRelatedOther);
         
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        var actual = await smartContractRepository.GetReadOnlyTransactionResultEventsFromTransactionId(transactionId);
+        var actual = await contractRepository.GetReadOnlyTransactionResultEventsFromTransactionId(transactionId);
 
         // Assert
         actual.Count.Should().Be(1);
@@ -330,20 +330,20 @@ public sealed class ContractRepositoryTests
     }
 
     [Fact]
-    public async Task GivenEntities_WhenGetReadOnlyLatestSmartContractReadHeight_ThenReturnLatest()
+    public async Task GivenEntities_WhenGetReadOnlyLatestContractReadHeight_ThenReturnLatest()
     {
         // Arrange
         const ulong latestHeight = 3;
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await _databaseFixture.AddAsync(
             new ContractReadHeight(1, ImportSource.DatabaseImport),
             new ContractReadHeight(latestHeight, ImportSource.NodeImport),
             new ContractReadHeight(2, ImportSource.DatabaseImport));
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await smartContractRepository.GetReadOnlyLatestContractReadHeight();
+        var latest = await contractRepository.GetReadOnlyLatestContractReadHeight();
 
         // Assert
         latest.Should().NotBeNull();
@@ -352,15 +352,15 @@ public sealed class ContractRepositoryTests
     }
     
     [Fact]
-    public async Task GivenNoEntities_WhenGetReadOnlyLatestSmartContractReadHeight_ThenReturnNull()
+    public async Task GivenNoEntities_WhenGetReadOnlyLatestContractReadHeight_ThenReturnNull()
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await smartContractRepository.GetReadOnlyLatestContractReadHeight();
+        var latest = await contractRepository.GetReadOnlyLatestContractReadHeight();
 
         // Assert
         latest.Should().BeNull();
@@ -388,10 +388,10 @@ public sealed class ContractRepositoryTests
         await _databaseFixture.AddAsync(first, second, third);
         
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await smartContractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
+        var latest = await contractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
 
         // Assert
         latest.Should().Be(maxBlockHeight);
@@ -403,10 +403,10 @@ public sealed class ContractRepositoryTests
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_import_state");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await smartContractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
+        var latest = await contractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
 
         // Assert
         latest.Should().Be(0);
@@ -418,21 +418,21 @@ public sealed class ContractRepositoryTests
         // Arrange
         const ulong blockHeight = 42;
         const ImportSource source = ImportSource.DatabaseImport;
-        await DatabaseFixture.TruncateTables("graphql_smart_contract_read_heights");
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var smartContractRepository = new ContractRepository(graphQlDbContext);
+        var contractRepository = new ContractRepository(graphQlDbContext);
 
         // Act
-        await smartContractRepository.AddAsync(new ContractReadHeight(blockHeight, source));
-        await smartContractRepository.SaveChangesAsync();
+        await contractRepository.AddAsync(new ContractReadHeight(blockHeight, source));
+        await contractRepository.SaveChangesAsync();
         graphQlDbContext.ChangeTracker.Clear();
         
         // Assert
-        var smartContractReadHeight = await graphQlDbContext.ContractReadHeights
+        var contractReadHeight = await graphQlDbContext.ContractReadHeights
             .FirstOrDefaultAsync();
-        smartContractReadHeight.Should().NotBeNull();
-        smartContractReadHeight!.BlockHeight.Should().Be(blockHeight);
-        smartContractReadHeight.Source.Should().Be(source);
+        contractReadHeight.Should().NotBeNull();
+        contractReadHeight!.BlockHeight.Should().Be(blockHeight);
+        contractReadHeight.Source.Should().Be(source);
     }
 }

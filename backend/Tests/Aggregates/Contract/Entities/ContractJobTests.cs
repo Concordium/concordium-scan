@@ -5,11 +5,11 @@ using Tests.TestUtilities;
 namespace Tests.Aggregates.Contract.Entities;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public class SmartContractJobTests
+public class ContractJobTests
 {
     private readonly DatabaseFixture _databaseFixture;
 
-    public SmartContractJobTests(DatabaseFixture databaseFixture)
+    public ContractJobTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture;
     }

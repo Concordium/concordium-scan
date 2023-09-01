@@ -5,7 +5,7 @@ using Moq;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
-public class SmartContractJobFinderTests
+public class ContractJobFinderTests
 {
     [Fact]
     public void WhenJobsRegistered_ThenReturnAllJobs()
@@ -16,12 +16,12 @@ public class SmartContractJobFinderTests
         services.AddTransient<IContractJob>(_ => Mock.Of<IContractJob>());
         services.AddTransient<IContractJob>(_ => Mock.Of<IContractJob>());
         var provider = services.BuildServiceProvider();
-        var smartContractJobFinder = new ContractJobFinder(provider);
+        var contractJobFinder = new ContractJobFinder(provider);
 
         // Act
-        var smartContractJobs = smartContractJobFinder.GetJobs();
+        var contractJobs = contractJobFinder.GetJobs();
 
         // Assert
-        smartContractJobs.Count().Should().Be(3);
+        contractJobs.Count().Should().Be(3);
     }
 }

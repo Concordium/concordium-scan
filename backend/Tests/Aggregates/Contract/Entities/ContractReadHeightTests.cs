@@ -6,11 +6,11 @@ using Tests.TestUtilities;
 namespace Tests.Aggregates.Contract.Entities;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public class SmartContractReadHeightTests
+public class ContractReadHeightTests
 {
     private readonly DatabaseFixture _databaseFixture;
 
-    public SmartContractReadHeightTests(DatabaseFixture databaseFixture)
+    public ContractReadHeightTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture;
     }
