@@ -83,6 +83,7 @@ public sealed class ContractAggregateTests
         var link = moduleReferenceContractLinkEvents[0];
         link.ModuleReference.Should().Be(moduleTo);
         link.ContractAddressIndex.Should().Be(contractIndex);
+        link.LinkAction.Should().Be(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added);
 
         contracts.Count.Should().Be(1);
         var contract = contracts[0];
@@ -144,10 +145,17 @@ public sealed class ContractAggregateTests
         contractUpgraded.From.Should().Be(moduleFrom);
         contractUpgraded.To.Should().Be(moduleTo);
 
-        moduleReferenceContractLinkEvents.Count.Should().Be(1);
-        var link = moduleReferenceContractLinkEvents[0];
-        link.ModuleReference.Should().Be(moduleTo);
-        link.ContractAddressIndex.Should().Be(contractIndex);
+        moduleReferenceContractLinkEvents.Count.Should().Be(2);
+        
+        var to = moduleReferenceContractLinkEvents[0];
+        to.ModuleReference.Should().Be(moduleTo);
+        to.LinkAction.Should().Be(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added);
+        to.ContractAddressIndex.Should().Be(contractIndex);
+        
+        var from = moduleReferenceContractLinkEvents[1];
+        from.ModuleReference.Should().Be(moduleFrom);
+        from.LinkAction.Should().Be(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed);
+        from.ContractAddressIndex.Should().Be(contractIndex);
     }
 
     private static byte[] ArrayFilledWith(byte fill, ushort size)
