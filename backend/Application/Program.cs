@@ -1,4 +1,5 @@
 using Application.Aggregates.SmartContract.Extensions;
+using Application.Aggregates.Contract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
@@ -88,6 +89,7 @@ builder.Services.AddSmartContractAggregate(builder.Configuration);
 builder.Services.AddHealthChecks()
     .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"))
     .ForwardToPrometheus();
+builder.Services.AddContractAggregate(builder.Configuration);
 
 builder.Host.UseSystemd();
 var app = builder.Build();

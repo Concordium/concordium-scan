@@ -1,4 +1,4 @@
-﻿using Application.Aggregates.SmartContract.Entities;
+﻿using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
@@ -43,12 +43,12 @@ public class GraphQlDbContext : DbContext
     public DbSet<PaydayStatus> PaydayStatuses { get; private set; }
     public DbSet<PaydaySummary> PaydaySummaries { get; private set; }
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
-    public DbSet<SmartContract> SmartContract { get; private set; }
-    public DbSet<SmartContractEvent> SmartContractEvents { get; private set; }
-    public DbSet<ModuleReferenceSmartContractLinkEvent> ModuleReferenceSmartContractLinkEvents { get; private set; }
+    public DbSet<Contract> Contract { get; private set; }
+    public DbSet<ContractEvent> ContractEvents { get; private set; }
+    public DbSet<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; private set; }
     public DbSet<ModuleReferenceEvent> ModuleReferenceEvents { get; private set; }
-    public DbSet<SmartContractReadHeight> SmartContractReadHeights { get; private set; }
-    public DbSet<SmartContractJob> SmartContractJobs { get; private set; }
+    public DbSet<ContractReadHeight> ContractReadHeights { get; private set; }
+    public DbSet<ContractJob> ContractJobs { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

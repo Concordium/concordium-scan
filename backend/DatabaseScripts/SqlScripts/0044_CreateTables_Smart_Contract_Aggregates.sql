@@ -1,7 +1,7 @@
 /*
-Tables relevant for smart contract visualization. 
+Tables relevant for contract visualization. 
 */
-create table graphql_smart_contracts
+create table graphql_contracts
 (
     block_height                bigint        not null,
     transaction_hash            text          not null,
@@ -21,7 +21,7 @@ create table graphql_smart_contracts
         )
 );
 
-create table graphql_smart_contract_events
+create table graphql_contract_events
 (
     block_height                bigint        not null,
     transaction_hash            text          not null,
@@ -58,7 +58,7 @@ create table graphql_module_reference_events
         )
 );
 
-create table graphql_module_reference_smart_contract_link_events
+create table graphql_module_reference_contract_link_events
 (
     block_height                bigint      not null,
     transaction_hash            text        not null,
@@ -79,7 +79,7 @@ create table graphql_module_reference_smart_contract_link_events
         )
 );
 
-create table graphql_smart_contract_read_heights
+create table graphql_contract_read_heights
 (
     id                          bigint      primary key generated always as identity,
     block_height                bigint      not null UNIQUE,
@@ -87,7 +87,7 @@ create table graphql_smart_contract_read_heights
     created_at                  TIMESTAMPTZ not null
 );
 
-create table graphql_smart_contract_jobs
+create table graphql_contract_jobs
 (
     job                         text        primary key,
     created_at                  TIMESTAMPTZ not null
