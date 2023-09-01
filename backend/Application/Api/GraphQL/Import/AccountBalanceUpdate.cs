@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using Application.Api.GraphQL.Extensions;
+﻿using Application.Api.GraphQL.Extensions;
 using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;

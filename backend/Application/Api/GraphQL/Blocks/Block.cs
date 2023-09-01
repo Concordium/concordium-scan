@@ -1,7 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
 using HotChocolate;

@@ -1,10 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Extensions;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
-using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Import;
 

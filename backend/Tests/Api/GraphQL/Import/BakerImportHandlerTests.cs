@@ -8,7 +8,6 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
-using Xunit.Abstractions;
 using AccountAddress = Concordium.Sdk.Types.AccountAddress;
 using AccountIndex = Concordium.Sdk.Types.AccountIndex;
 using BakerId = Concordium.Sdk.Types.BakerId;
@@ -17,7 +16,6 @@ using BakerPoolInfo = Concordium.Sdk.Types.BakerPoolInfo;
 using BlockItemSummary = Concordium.Sdk.Types.BlockItemSummary;
 using ChainParametersV1Builder = Tests.TestUtilities.Builders.GraphQL.ChainParametersV1Builder;
 using CommissionRates = Concordium.Sdk.Types.CommissionRates;
-using MintRate = Concordium.Sdk.Types.MintRate;
 using ProtocolVersion = Concordium.Sdk.Types.ProtocolVersion;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
 

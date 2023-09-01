@@ -1,5 +1,4 @@
-﻿using Application.Api.GraphQL;
-using Application.Api.GraphQL.Configurations;
+﻿using Application.Api.GraphQL.Configurations;
 using FluentAssertions;
 using HotChocolate.Execution;
 using Microsoft.Extensions.DependencyInjection;

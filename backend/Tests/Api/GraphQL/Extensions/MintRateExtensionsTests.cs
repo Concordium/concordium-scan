@@ -2,7 +2,6 @@ using Concordium.Sdk.Types;
 using FluentAssertions;
 using Application.Api.GraphQL.Extensions;
 using Application.Exceptions;
-using VerifyTests;
 
 namespace Tests.Api.GraphQL.Extensions;
 
