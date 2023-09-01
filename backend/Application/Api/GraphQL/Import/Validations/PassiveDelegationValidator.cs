@@ -3,7 +3,6 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
 using Concordium.Sdk.Client;
-using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 

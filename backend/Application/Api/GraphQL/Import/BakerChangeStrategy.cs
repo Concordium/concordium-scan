@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
-using Application.Import;
 using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
