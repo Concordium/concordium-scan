@@ -15,6 +15,7 @@ using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
 using Application.Api.GraphQL.Transactions;
 using Application.Api.GraphQL.Versions;
+using Application.Observability;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Execution.Configuration;
@@ -23,8 +24,6 @@ using HotChocolate.Types.Pagination;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Api.GraphQL.Configurations;
-
-
 
 public static class GraphQlConfiguration
 {
@@ -36,17 +35,23 @@ public static class GraphQlConfiguration
              * https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13#scopedserviceattribute
             */
             .RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)
-            .AddProjections()
+            .AddDiagnosticEventListener<MetricExecutionDiagnosticEventListener>()
             .AddInMemorySubscriptions()
             .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider: true)
-            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
-            .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(providerName:"transaction_by_descending_id")
-            .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"account_transaction_relation_by_descending_index")
-            .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(providerName:"account_statement_entry_by_descending_index")
-            .AddCursorPagingProvider<PaydayPoolRewardByDescendingIndexCursorPagingProvider>(providerName:"payday_pool_reward_by_descending_index")
-            .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(providerName:"account_reward_by_descending_index")
-            .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName:"account_token_descending")
-            .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"baker_transaction_relation_by_descending_index")
+            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName: "block_by_descending_id")
+            .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(
+                providerName: "transaction_by_descending_id")
+            .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(
+                providerName: "account_transaction_relation_by_descending_index")
+            .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(
+                providerName: "account_statement_entry_by_descending_index")
+            .AddCursorPagingProvider<PaydayPoolRewardByDescendingIndexCursorPagingProvider>(
+                providerName: "payday_pool_reward_by_descending_index")
+            .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(
+                providerName: "account_reward_by_descending_index")
+            .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName: "account_token_descending")
+            .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(
+                providerName: "baker_transaction_relation_by_descending_index")
             .AddSmartContractGraphQlConfigurations();
     }
 
