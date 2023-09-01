@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Application.Aggregates.SmartContract.Extensions;
+using Application.Aggregates.Contract.Extensions;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
@@ -52,7 +52,7 @@ public static class GraphQlConfiguration
             .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName: "account_token_descending")
             .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(
                 providerName: "baker_transaction_relation_by_descending_index")
-            .AddSmartContractGraphQlConfigurations();
+            .AddContractGraphQlConfigurations();
     }
 
     private static void ConfigureSchema(ISchemaBuilder builder)

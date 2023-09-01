@@ -3,6 +3,7 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Dapper;
+using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -56,5 +57,13 @@ public static class ContractExtensions
         collection.AddTransient<IContractJobFinder, ContractJobFinder>();
         
         collection.AddTransient<IContractJob, ContractDatabaseImportJob>();
+    }
+    
+    internal static IRequestExecutorBuilder AddContractGraphQlConfigurations(this IRequestExecutorBuilder builder)
+    {
+        builder
+            .AddType<Entities.Contract.ContractQuery>()
+            .AddTypeExtension<Entities.Contract.ContractExtensions>();
+        return builder;
     }
 }

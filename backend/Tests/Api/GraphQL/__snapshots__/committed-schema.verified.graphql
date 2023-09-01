@@ -710,10 +710,37 @@ type CommissionRates {
   bakingCommission: Decimal!
 }
 
+type Contract {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  creator: AccountAddress!
+  source: ImportSource!
+  createdAt: DateTime!
+  contractEvents: [ContractEvent!]!
+  contractAddress: ContractAddress!
+  amount: Float!
+}
+
 type ContractAddress {
   index: UnsignedLong!
   subIndex: UnsignedLong!
   asString: String!
+}
+
+type ContractEvent {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  event: Event!
+  source: ImportSource!
+  createdAt: DateTime!
 }
 
 type ContractInitialized {
@@ -753,6 +780,24 @@ type ContractUpgraded {
   contractAddress: ContractAddress!
   from: String!
   to: String!
+}
+
+"A connection to a list of items."
+type ContractsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [ContractsEdge!]
+  "A flattened list of the nodes."
+  nodes: [Contract!]
+}
+
+"An edge in a connection."
+type ContractsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Contract!
 }
 
 type CooldownParametersChainUpdatePayload {
@@ -1506,7 +1551,7 @@ type Query {
   importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
-  smartContracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SmartContractsConnection
+  contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
 }
 
 type Ranking {
@@ -1595,51 +1640,6 @@ type SearchResult {
 
 type SerializationFailure {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
-}
-
-type SmartContract {
-  blockHeight: UnsignedLong!
-  transactionHash: String!
-  transactionIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
-  contractAddressIndex: UnsignedLong!
-  contractAddressSubIndex: UnsignedLong!
-  creator: AccountAddress!
-  source: ImportSource!
-  createdAt: DateTime!
-  smartContractEvents: [SmartContractEvent!]!
-  contractAddress: ContractAddress!
-  amount: Float!
-}
-
-type SmartContractEvent {
-  blockHeight: UnsignedLong!
-  transactionHash: String!
-  transactionIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
-  contractAddressIndex: UnsignedLong!
-  contractAddressSubIndex: UnsignedLong!
-  event: Event!
-  source: ImportSource!
-  createdAt: DateTime!
-}
-
-"A connection to a list of items."
-type SmartContractsConnection {
-  "Information to aid in pagination."
-  pageInfo: PageInfo!
-  "A list of edges."
-  edges: [SmartContractsEdge!]
-  "A flattened list of the nodes."
-  nodes: [SmartContract!]
-}
-
-"An edge in a connection."
-type SmartContractsEdge {
-  "A cursor for use in pagination."
-  cursor: String!
-  "The item at the end of the edge."
-  node: SmartContract!
 }
 
 "A connection to a list of items."

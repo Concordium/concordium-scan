@@ -1,5 +1,4 @@
-using Application.Aggregates.SmartContract.Exceptions;
-using Application.Aggregates.SmartContract.Types;
+using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
@@ -26,7 +25,7 @@ public sealed class Contract
     public AccountAddress Creator { get; init; }
     public ImportSource Source { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<SmartContractEvent> SmartContractEvents { get; set; }
+    public ICollection<ContractEvent> ContractEvents { get; set; }
     
     /// <summary>
     /// Needed for EF Core
@@ -56,39 +55,39 @@ public sealed class Contract
     }
     
     [ExtendObjectType(typeof(Query))]
-    public class SmartContractQuery
+    public class ContractQuery
     {
         [UsePaging]
-        public IQueryable<SmartContract> GetSmartContracts(
+        public IQueryable<Contract> GetContracts(
             GraphQlDbContext context)
         {
-            return context.SmartContract
+            return context.Contract
                 .AsNoTracking()
-                .Include(s => s.SmartContractEvents);
+                .Include(s => s.ContractEvents);
         }
     }
 
     /// <summary>
-    /// Adds additional field to the returned GraphQL type <see cref="SmartContract"/>
+    /// Adds additional field to the returned GraphQL type <see cref="Contract"/>
     /// </summary>
-    [ExtendObjectType(typeof(SmartContract))]
-    public sealed class SmartContractExtensions
+    [ExtendObjectType(typeof(Contract))]
+    public sealed class ContractExtensions
     {
-        public ContractAddress GetContractAddress([Parent] SmartContract smartContract) => 
-            new(smartContract.ContractAddressIndex, smartContract.ContractAddressSubIndex);
+        public ContractAddress GetContractAddress([Parent] Contract contract) => 
+            new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
 
         /// <summary>
         /// Returns aggregated amount from events on contract.
         /// </summary>
-        public double GetAmount([Parent] SmartContract smartContract)
+        public double GetAmount([Parent] Contract contract)
         {
-            if (smartContract.SmartContractEvents is null)
+            if (contract.ContractEvents is null)
             {
                 return 0;
             }
 
             var amount = 0L;
-            foreach (var contractEvent in smartContract.SmartContractEvents)
+            foreach (var contractEvent in contract.ContractEvents)
             {
                 switch (contractEvent.Event)
                 {
@@ -101,14 +100,14 @@ public sealed class Contract
                     case Transferred transferred:
                         if (transferred.From is not ContractAddress contractAddress)
                         {
-                            throw new SmartContractQueryException(
-                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{smartContract.ContractAddressIndex},{smartContract.ContractAddressSubIndex}> with FROM which wasn't a contract address.");
+                            throw new ContractQueryException(
+                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{contract.ContractAddressIndex},{contract.ContractAddressSubIndex}> with FROM which wasn't a contract address.");
                         }
-                        if (contractAddress.Index != smartContract.ContractAddressIndex ||
-                            contractAddress.SubIndex != smartContract.ContractAddressSubIndex)
+                        if (contractAddress.Index != contract.ContractAddressIndex ||
+                            contractAddress.SubIndex != contract.ContractAddressSubIndex)
                         {
-                            throw new SmartContractQueryException(
-                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{smartContract.ContractAddressIndex},{smartContract.ContractAddressSubIndex}> with FROM which wasn't same contract address but instead <{contractAddress.Index},{contractAddress.SubIndex}>");
+                            throw new ContractQueryException(
+                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{contract.ContractAddressIndex},{contract.ContractAddressSubIndex}> with FROM which wasn't same contract address but instead <{contractAddress.Index},{contractAddress.SubIndex}>");
                         }
                         amount -= (long)transferred.Amount;
                         break;

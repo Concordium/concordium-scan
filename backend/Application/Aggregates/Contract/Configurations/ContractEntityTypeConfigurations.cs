@@ -1,4 +1,4 @@
-using Application.Aggregates.SmartContract.Entities;
+using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -36,7 +36,7 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasColumnName("created_at");
 
         builder
-            .HasMany<SmartContractEvent>(sm => sm.SmartContractEvents)
+            .HasMany<ContractEvent>(sm => sm.ContractEvents)
             .WithOne()
             .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
     }
