@@ -36,18 +36,18 @@ internal sealed class SmartContractAggregate
         {
             try
             {
-                var lastHeight = await GetNextBlockHeight();
+                var nextBlockHeight = await GetNextBlockHeight();
                 while (!token.IsCancellationRequested)
                 {
                     var consensusInfo = await client.GetConsensusInfoAsync(token);
-                    var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
-                    if (lastHeight == newLastHeight)
+                    var lastFinalizedHeight = consensusInfo.LastFinalizedBlockHeight;
+                    if (nextBlockHeight > lastFinalizedHeight)
                     {
                         await Task.Delay(_options.DelayBetweenRetries, token);
                         continue;
                     }
 
-                    for (var height = lastHeight; height <= newLastHeight; height++)
+                    for (var height = nextBlockHeight; height <= lastFinalizedHeight; height++)
                     {
                         using var durationMetric = new SmartContractMetrics.DurationMetric(ImportSource.NodeImport);
                         try
@@ -67,7 +67,7 @@ internal sealed class SmartContractAggregate
                             throw;
                         }
                     }
-                    lastHeight = newLastHeight;
+                    nextBlockHeight = lastFinalizedHeight + 1;
                     retryCount = 0;
                 }
                 break;
