@@ -12,7 +12,7 @@
 			</TableHead>
 			<TableBody>
 				<TableRow
-					v-for="contract in data?.smartContracts.edges"
+					v-for="contract in data?.contracts.edges"
 					:key="contract.node.contractAddress.asString"
 				>
 					<TableTd>
@@ -31,8 +31,8 @@
 			</TableBody>
 		</Table>
 		<Pagination
-			v-if="data?.smartContracts.pageInfo"
-			:page-info="data?.smartContracts.pageInfo"
+			v-if="data?.contracts.pageInfo"
+			:page-info="data?.contracts.pageInfo"
 			:go-to-page="goToPage"
 		/>
 	</div>

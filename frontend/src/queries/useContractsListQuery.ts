@@ -1,18 +1,18 @@
 import { Ref } from 'vue'
 import { useQuery, gql } from '@urql/vue'
-import type { PageInfo, SmartContractsEdge } from '../types/generated'
+import type { PageInfo, ContractsEdge } from '../types/generated'
 import type { QueryVariables } from '../types/queryVariables'
 
-export type SmartContractListResponse = {
-	smartContracts: {
-		edges: SmartContractsEdge[]
+export type ContractListResponse = {
+	contracts: {
+		edges: ContractsEdge[]
 		pageInfo: PageInfo
 	}
 }
 
-const Query = gql<SmartContractListResponse>`
+const Query = gql<ContractListResponse>`
 	query ($after: String, $before: String, $first: Int, $last: Int) {
-		smartContracts(after: $after, before: $before, first: $first, last: $last) {
+		contracts(after: $after, before: $before, first: $first, last: $last) {
 			edges {
 				node {
 					amount
@@ -41,7 +41,7 @@ type Variables = Partial<QueryVariables>
 
 export const useContractsListQuery = (
 	variables: Variables
-): { data: Ref<SmartContractListResponse | undefined> } => {
+): { data: Ref<ContractListResponse | undefined> } => {
 	const { data } = useQuery({
 		query: Query,
 		requestPolicy: 'cache-and-network',
