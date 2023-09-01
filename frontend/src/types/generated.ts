@@ -21,6 +21,8 @@ export type Scalars = {
   Long: any;
   /** The `TimeSpan` scalar represents an ISO-8601 compliant duration type. */
   TimeSpan: any;
+  /** The UnsignedInt scalar type represents a unsigned 32-bit numeric non-fractional value greater than or equal to 0. */
+  UnsignedInt: any;
   /** The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0. */
   UnsignedLong: any;
 };
@@ -1011,6 +1013,7 @@ export type ContractInitialized = {
   eventsAsHex?: Maybe<StringConnection>;
   initName: Scalars['String'];
   moduleRef: Scalars['String'];
+  version?: Maybe<ContractVersion>;
 };
 
 
@@ -1046,6 +1049,7 @@ export type ContractUpdated = {
   instigator: Address;
   messageAsHex: Scalars['String'];
   receiveName: Scalars['String'];
+  version?: Maybe<ContractVersion>;
 };
 
 
@@ -1062,6 +1066,11 @@ export type ContractUpgraded = {
   from: Scalars['String'];
   to: Scalars['String'];
 };
+
+export enum ContractVersion {
+  V0 = 'V0',
+  V1 = 'V1'
+}
 
 export type CooldownParametersChainUpdatePayload = {
   __typename?: 'CooldownParametersChainUpdatePayload';
@@ -1264,6 +1273,7 @@ export type EventsConnection = {
   nodes?: Maybe<Array<Event>>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
   totalCount: Scalars['Int'];
 };
 
@@ -1379,6 +1389,11 @@ export type GasRewardsCpv2 = {
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
 };
+
+export enum ImportSource {
+  DatabaseImport = 'DATABASE_IMPORT',
+  NodeImport = 'NODE_IMPORT'
+}
 
 export type ImportState = {
   __typename?: 'ImportState';
@@ -2047,6 +2062,7 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  smartContracts?: Maybe<SmartContractsConnection>;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
   transactionMetrics?: Maybe<TransactionMetrics>;
@@ -2167,6 +2183,14 @@ export type QueryRewardMetricsForAccountArgs = {
 
 export type QuerySearchArgs = {
   query: Scalars['String'];
+};
+
+
+export type QuerySmartContractsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -2348,6 +2372,55 @@ export type SerializationFailure = {
   __typename?: 'SerializationFailure';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export type SmartContract = {
+  __typename?: 'SmartContract';
+  amount: Scalars['Float'];
+  blockHeight: Scalars['UnsignedLong'];
+  contractAddress: ContractAddress;
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  creator: AccountAddress;
+  eventIndex: Scalars['UnsignedInt'];
+  smartContractEvents: Array<SmartContractEvent>;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
+};
+
+export type SmartContractEvent = {
+  __typename?: 'SmartContractEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  event: Event;
+  eventIndex: Scalars['UnsignedInt'];
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type SmartContractsConnection = {
+  __typename?: 'SmartContractsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<SmartContractsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<SmartContract>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type SmartContractsEdge = {
+  __typename?: 'SmartContractsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: SmartContract;
 };
 
 export type SpecialEvent = BakingRewardsSpecialEvent | BlockAccrueRewardSpecialEvent | BlockRewardsSpecialEvent | FinalizationRewardsSpecialEvent | MintSpecialEvent | PaydayAccountRewardSpecialEvent | PaydayFoundationRewardSpecialEvent | PaydayPoolRewardSpecialEvent;
