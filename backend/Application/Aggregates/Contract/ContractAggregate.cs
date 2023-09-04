@@ -37,18 +37,18 @@ internal sealed class ContractAggregate
         {
             try
             {
-                var lastHeight = await GetNextBlockHeight();
+                var nextBlockHeight = await GetNextBlockHeight();
                 while (!token.IsCancellationRequested)
                 {
                     var consensusInfo = await client.GetConsensusInfoAsync(token);
-                    var newLastHeight = consensusInfo.LastFinalizedBlockHeight;
-                    if (lastHeight == newLastHeight)
+                    var lastFinalizedHeight = consensusInfo.LastFinalizedBlockHeight;
+                    if (nextBlockHeight > lastFinalizedHeight)
                     {
                         await Task.Delay(_options.DelayBetweenRetries, token);
                         continue;
                     }
 
-                    for (var height = lastHeight; height <= newLastHeight; height++)
+                    for (var height = nextBlockHeight; height <= lastFinalizedHeight; height++)
                     {
                         using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
                         try
@@ -68,7 +68,7 @@ internal sealed class ContractAggregate
                             throw;
                         }
                     }
-                    lastHeight = newLastHeight;
+                    nextBlockHeight = lastFinalizedHeight + 1;
                     retryCount = 0;
                 }
                 break;
@@ -198,7 +198,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInitialized.ModuleRef,
                         contractInitialized.ContractAddress,
-                        source
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
@@ -256,7 +257,19 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.To,
                         contractUpgraded.ContractAddress,
-                        source
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                    ));
+                await repository
+                    .AddAsync(new ModuleReferenceContractLinkEvent(
+                        blockHeight,
+                        transactionHash,
+                        transactionIndex,
+                        eventIndex,
+                        contractUpgraded.From,
+                        contractUpgraded.ContractAddress,
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed
                     ));
                 break;
             case Transferred transferred:

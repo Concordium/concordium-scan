@@ -67,7 +67,8 @@ create table graphql_module_reference_contract_link_events
     module_reference            text        not null,    
     contract_address_index      bigint      not null,
     contract_address_sub_index  bigint      not null,
-    source                      int         not null,    
+    source                      int         not null,
+    link_action                 int         not null,
     created_at                  TIMESTAMPTZ not null,
     PRIMARY KEY (
                  block_height,
