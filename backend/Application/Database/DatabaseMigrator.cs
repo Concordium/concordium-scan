@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Application.Common.FeatureFlags;
+using Application.Observability;
 using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
@@ -28,6 +29,8 @@ namespace Application.Database
 
         public void MigrateDatabases()
         {
+            using var _ = TraceContext.StartActivity(nameof(DatabaseMigrator));
+            
             if (_featureFlags.MigrateDatabasesAtStartup)
             {
                 _logger.Information("Starting database migration...");

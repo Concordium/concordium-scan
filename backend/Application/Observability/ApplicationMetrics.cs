@@ -34,19 +34,7 @@ internal static class ApplicationMetrics
         {
             _context = context;
             _stringBuilderPool = stringBuilderPool;
-            _activity = StartActivity();
-        }
-
-        private static Activity StartActivity()
-        {
-            if (Activity.Current?.ParentId != null)
-            {
-                return new Activity(nameof(GraphQlDurationMetric))
-                    .SetParentId(Activity.Current.ParentId)
-                    .Start();
-            }
-
-            return new Activity(nameof(GraphQlDurationMetric)).Start();
+            _activity = TraceContext.StartActivity(nameof(GraphQlDurationMetric));
         }
 
         internal void SetException(Exception ex)

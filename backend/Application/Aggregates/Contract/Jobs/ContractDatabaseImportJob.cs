@@ -6,6 +6,7 @@ using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
+using Application.Observability;
 using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
@@ -38,9 +39,10 @@ internal class ContractDatabaseImportJob : IContractJob
 
     public async Task StartImport(CancellationToken token)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractDatabaseImportJob));
+        
         try
         {
-            var contractAggregate = new ContractAggregate(_repositoryFactory, _contractAggregateOptions);
             _readCount = -1;
             
             while (!token.IsCancellationRequested)
@@ -55,7 +57,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 var tasks = new Task[_jobOptions.NumberOfTask];
                 for (var i = 0; i < _jobOptions.NumberOfTask; i++)
                 {
-                    tasks[i] = RunBatch(contractAggregate, finalHeight, token);
+                    tasks[i] = RunBatch(finalHeight, token);
                 }
 
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -121,10 +123,12 @@ internal class ContractDatabaseImportJob : IContractJob
     /// Atomically get next batch interval from `_readCount`. If intervals get above <see cref="finalHeight"/> then
     /// processing stops.
     /// </summary>
-    private async Task RunBatch(ContractAggregate contractAggregate, long finalHeight, CancellationToken token)
+    private async Task RunBatch(long finalHeight, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
+            using var _ = TraceContext.StartActivity(nameof(RunBatch));
+            
             var height = Interlocked.Increment(ref _readCount);
             var blockHeightTo = height * _jobOptions.BatchSize;
             if (blockHeightTo > finalHeight)

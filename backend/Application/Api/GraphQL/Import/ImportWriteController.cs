@@ -10,15 +10,19 @@ using Application.Common.Diagnostics;
 using Application.Common.FeatureFlags;
 using Application.Database;
 using Application.Import;
+using Application.Observability;
 using Concordium.Sdk.Types;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Serilog.Context;
 
 namespace Application.Api.GraphQL.Import;
 
 public class ImportWriteController : BackgroundService
 {
+    private const string ImportWriteActivity = "ImportWriteActivity";
+
     private readonly ITopicEventSender _sender;
     private readonly ImportChannel _channel;
     private readonly ImportValidationController _accountBalanceValidator;
@@ -41,7 +45,7 @@ public class ImportWriteController : BackgroundService
     private readonly DelegationImportHandler _delegationHandler;
     private readonly PassiveDelegationImportHandler _passiveDelegationHandler;
     private readonly PaydayImportHandler _paydayHandler;
-
+    
     public ImportWriteController(
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         DatabaseSettings dbSettings,
@@ -81,12 +85,14 @@ public class ImportWriteController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ImportWriteController));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Warning("Import data from Concordium node is disabled. This controller will not run!");
             return;
         }
-        
+
         try
         {
             await ReadAndPublishInitialState();
@@ -94,27 +100,32 @@ public class ImportWriteController : BackgroundService
             var waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
             await foreach (var readFromNodeTask in _channel.Reader.ReadAllAsync(stoppingToken))
             {
-                var envelope = await readFromNodeTask;
-                waitCounter.Dispose();
-                stoppingToken.ThrowIfCancellationRequested();
+                using (LogContext.PushProperty("BlockHeight", readFromNodeTask.Result.Payload.BlockInfo.BlockHeight))
+                {
+                    using var __ = TraceContext.StartActivity(nameof(ImportWriteActivity));
                 
-                var result = await WriteData(envelope.Payload, envelope.ConsensusInfo, stoppingToken);
-                await _materializedViewRefresher.RefreshAllIfNeeded(result);
+                    var envelope = await readFromNodeTask;
+                    waitCounter.Dispose();
+                    stoppingToken.ThrowIfCancellationRequested();
+                
+                    var result = await WriteData(envelope.Payload, envelope.ConsensusInfo, stoppingToken);
+                    await _materializedViewRefresher.RefreshAllIfNeeded(result);
 
-                await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
+                    await _sender.SendAsync(nameof(Subscription.BlockAdded), result.Block, stoppingToken);
                 
-                _logger.Information(
-                    "Block {blockhash} at block height {blockheight} written, time: {blockTime}", 
-                    result.Block.BlockHash, 
-                    result.Block.BlockHeight,
-                    result.Block.BlockSlotTime.ToUniversalTime().ToString());
+                    _logger.Information(
+                        "Block {blockhash} at block height {blockheight} written, time: {blockTime}", 
+                        result.Block.BlockHash, 
+                        result.Block.BlockHeight,
+                        result.Block.BlockSlotTime.ToUniversalTime().ToString());
                 
-                await _accountBalanceValidator.PerformValidations(result.Block);
+                    await _accountBalanceValidator.PerformValidations(result.Block);
                 
-                if (result.Block.BlockHeight % 5000 == 0)
-                    _metricsListener.DumpCapturedMetrics();
+                    if (result.Block.BlockHeight % 5000 == 0)
+                        _metricsListener.DumpCapturedMetrics();
                 
-                waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
+                    waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");   
+                }
             }
         }
         finally

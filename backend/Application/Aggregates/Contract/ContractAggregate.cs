@@ -5,6 +5,7 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Transactions;
+using Application.Observability;
 using Concordium.Sdk.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
@@ -19,6 +20,8 @@ internal sealed class ContractAggregate
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
+    private const string NodeImportJobActivity = "NodeImportJobActivity";
+    private const string NodeImportJobLoopActivity = "NodeImportJobLoopActivity";
 
     public ContractAggregate(
         IContractRepositoryFactory repositoryFactory,
@@ -32,6 +35,8 @@ internal sealed class ContractAggregate
 
     internal async Task NodeImportJob(IContractNodeClient client, CancellationToken token = default)
     {
+        using var _ = TraceContext.StartActivity(NodeImportJobActivity);
+        
         var retryCount = 0;
         while (!token.IsCancellationRequested)
         {
@@ -50,6 +55,7 @@ internal sealed class ContractAggregate
 
                     for (var height = nextBlockHeight; height <= lastFinalizedHeight; height++)
                     {
+                        using var __ = TraceContext.StartActivity(NodeImportJobLoopActivity);
                         using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
                         try
                         {
