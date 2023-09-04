@@ -47,13 +47,13 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractNodeImportBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");
             return;
         }
-        
-        using var _ = TraceContext.StartActivity(nameof(ContractNodeImportBackgroundService));
 
         try
         {

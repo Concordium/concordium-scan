@@ -36,13 +36,13 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractJobsBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");
             return;
         }
-
-        using var _ = TraceContext.StartActivity(nameof(ContractJobsBackgroundService));
 
         var jobs = _jobFinder.GetJobs();
 
