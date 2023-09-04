@@ -28,13 +28,25 @@ internal static class ApplicationMetrics
         private readonly IRequestContext _context;
         private readonly ObjectPool<StringBuilder> _stringBuilderPool;
         private string _exception = "";
-        private readonly Stopwatch _time;
-        
+        private readonly Activity _activity;
+
         public GraphQlDurationMetric(IRequestContext context, ObjectPool<StringBuilder> stringBuilderPool)
         {
             _context = context;
             _stringBuilderPool = stringBuilderPool;
-            _time = Stopwatch.StartNew();
+            _activity = StartActivity();
+        }
+
+        private static Activity StartActivity()
+        {
+            if (Activity.Current?.ParentId != null)
+            {
+                return new Activity(nameof(GraphQlDurationMetric))
+                    .SetParentId(Activity.Current.ParentId)
+                    .Start();
+            }
+
+            return new Activity(nameof(GraphQlDurationMetric)).Start();
         }
 
         internal void SetException(Exception ex)
@@ -44,13 +56,15 @@ internal static class ApplicationMetrics
         
         public void Dispose()
         {
-            var elapsedSeconds = _time.ElapsedMilliseconds / 1_000d;
+            _activity.Stop();
+            var elapsedSeconds = _activity.Duration.TotalSeconds;
 
             var operation = CreateOperationDisplayName();
 
             GraphQlRequestDuration
                 .WithLabels(operation, _exception)
                 .Observe(elapsedSeconds);
+            _activity.Dispose();
         }
 
         private string CreateOperationDisplayName()
