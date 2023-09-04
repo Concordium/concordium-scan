@@ -18,8 +18,9 @@ public sealed class ModuleReferenceContractLinkEvent
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public ImportSource Source { get; init; }
+    public ModuleReferenceContractLinkAction LinkAction { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
-    
+
     /// <summary>
     /// Needed for EF Core
     /// </summary>
@@ -35,7 +36,8 @@ public sealed class ModuleReferenceContractLinkEvent
         uint eventIndex,
         string moduleReference,
         ContractAddress contractAddress,
-        ImportSource source
+        ImportSource source, 
+        ModuleReferenceContractLinkAction linkAction
     )
     {
         BlockHeight = blockHeight;
@@ -46,5 +48,16 @@ public sealed class ModuleReferenceContractLinkEvent
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
         Source = source;
+        LinkAction = linkAction;
+    }
+    
+    /// <summary>
+    /// Identifies if the event add- or removes a link between a <see cref="Contract"/>
+    /// and <see cref="ModuleReferenceEvent"/>.
+    /// </summary>
+    public enum ModuleReferenceContractLinkAction
+    {
+        Added,
+        Removed
     }
 }

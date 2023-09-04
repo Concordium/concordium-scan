@@ -198,7 +198,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInitialized.ModuleRef,
                         contractInitialized.ContractAddress,
-                        source
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
@@ -256,7 +257,19 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.To,
                         contractUpgraded.ContractAddress,
-                        source
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                    ));
+                await repository
+                    .AddAsync(new ModuleReferenceContractLinkEvent(
+                        blockHeight,
+                        transactionHash,
+                        transactionIndex,
+                        eventIndex,
+                        contractUpgraded.From,
+                        contractUpgraded.ContractAddress,
+                        source,
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed
                     ));
                 break;
             case Transferred transferred:
