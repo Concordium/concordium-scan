@@ -84,7 +84,6 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
-builder.Services.AddContractAggregate(builder.Configuration);
 builder.Services.AddHealthChecks()
     .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"))
     .ForwardToPrometheus();
