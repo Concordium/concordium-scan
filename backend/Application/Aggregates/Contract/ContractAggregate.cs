@@ -36,26 +36,19 @@ internal sealed class ContractAggregate
         {
             try
             {
-                var nextBlockHeight = await GetNextBlockHeight();
+                var nextBlockHeightToImport = await GetNextBlockHeight();
                 while (!token.IsCancellationRequested)
                 {
-                    var consensusInfo = await client.GetConsensusInfoAsync(token);
-                    var lastFinalizedHeight = consensusInfo.LastFinalizedBlockHeight;
-                    if (nextBlockHeight > lastFinalizedHeight)
+                    var lastFinalizedHeight = await GetLastFinalizedBlockHeight(client, token);
+                    if (nextBlockHeightToImport > lastFinalizedHeight)
                     {
                         await Task.Delay(_options.DelayBetweenRetries, token);
                         continue;
                     }
 
-                    for (var height = nextBlockHeight; height <= lastFinalizedHeight; height++)
-                    {
-                        await using var repository = await _repositoryFactory.CreateAsync();
-                
-                        await NodeImport(repository, client, height, token);
-                        await SaveLastReadBlock(repository, height, ImportSource.NodeImport);
-                        await repository.SaveChangesAsync(token);
-                    }
-                    nextBlockHeight = lastFinalizedHeight + 1;
+                    await NodeImportRange(client, nextBlockHeightToImport, lastFinalizedHeight, token);
+
+                    nextBlockHeightToImport = lastFinalizedHeight + 1;
                     retryCount = 0;
                 }
                 break;
@@ -281,6 +274,24 @@ internal sealed class ContractAggregate
         }
     }
     
+    private static async Task<ulong> GetLastFinalizedBlockHeight(IContractNodeClient client, CancellationToken token)
+    {
+        var consensusInfo = await client.GetConsensusInfoAsync(token);
+        return consensusInfo.LastFinalizedBlockHeight;
+    }
+
+    private async Task NodeImportRange(IContractNodeClient client, ulong fromBlockHeight, ulong toBlockHeight, CancellationToken token)
+    {
+        for (var height = fromBlockHeight; height <= toBlockHeight; height++)
+        {
+            await using var repository = await _repositoryFactory.CreateAsync();
+                
+            await NodeImport(repository, client, height, token);
+            await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
+            await repository.SaveChangesAsync(token);
+        }
+    }
+    
     private async Task<ulong> GetNextBlockHeight()
     {
         await using var repository = await _repositoryFactory.CreateAsync();
@@ -288,16 +299,6 @@ internal sealed class ContractAggregate
         return importState != null ? importState.BlockHeight + 1 : 0;
     }
 
-    private static Task SaveLastReadBlock(
-        IContractRepository repository,
-        ulong blockHeight,
-        ImportSource source
-    )
-    {
-        return repository
-            .AddAsync(new ContractReadHeight(blockHeight, source));
-    }
-    
     private static IEnumerable<TransactionResultEvent> FilterEvents(IAccountTransactionEffects effect)
     {
         switch (effect)
