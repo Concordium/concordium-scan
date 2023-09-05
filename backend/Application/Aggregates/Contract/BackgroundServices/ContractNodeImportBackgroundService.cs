@@ -4,7 +4,8 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
+using Application.Observability;
+using Application.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -20,8 +21,8 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly IContractNodeClient _client;
-    private readonly IFeatureFlags _featureFlags;
     private readonly ContractHealthCheck _healthCheck;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
 
@@ -30,22 +31,24 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         IContractRepositoryFactory repositoryFactory,
         IContractNodeClient client,
-        IFeatureFlags featureFlags,
         IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck)
+        ContractHealthCheck healthCheck,
+        IOptions<FeatureFlagOptions> featureFlagsOptions)
     {
         _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
         _repositoryFactory = repositoryFactory;
         _client = client;
-        _featureFlags = featureFlags;
         _healthCheck = healthCheck;
+        _featureFlags = featureFlagsOptions.Value;
         _options = options.Value;
         _logger = Log.ForContext<ContractNodeImportBackgroundService>();
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractNodeImportBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");

@@ -8,7 +8,6 @@ using Application.Api.GraphQL.ImportNodeStatus;
 using Application.Api.GraphQL.Network;
 using Application.Common;
 using Application.Common.Diagnostics;
-using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
 using Application.Extensions;
@@ -17,6 +16,7 @@ using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
 using Application.NodeApi;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,7 +31,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.With<SourceClassNameEnricher>()    
+    .Enrich.With<SourceClassNameEnricher>()
+    .Enrich.With<TraceEnricher>()
     .CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
@@ -39,11 +40,7 @@ var logger = Log.ForContext<Program>();
 
 logger.Information("Application starting...");
 
-var featureFlags = builder.Configuration.GetSection("FeatureFlags").Get<SettingsBasedFeatureFlags>();
-builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportEnabled), featureFlags.ConcordiumNodeImportEnabled);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportValidationEnabled), featureFlags.ConcordiumNodeImportValidationEnabled);
+builder.Services.AddFeatureFlagOptions(builder.Configuration, logger);
 
 var nonCirculatingAccounts = builder
     .Configuration
@@ -84,7 +81,6 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
-builder.Services.AddContractAggregate(builder.Configuration);
 builder.Services.AddHealthChecks()
     .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"))
     .ForwardToPrometheus();
@@ -98,6 +94,11 @@ try
     app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabases();
 
     app
+        .Use(async (context, next) =>
+        {
+            context.Request.EnableBuffering();
+            await next();
+        })
         .UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

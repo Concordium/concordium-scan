@@ -16,7 +16,8 @@ public sealed class ModuleReferenceContractLinkEventEntityTypeConfigurations : I
             x.EventIndex,
             x.ModuleReference,
             x.ContractAddressIndex,
-            x.ContractAddressSubIndex
+            x.ContractAddressSubIndex,
+            x.LinkAction
         });
         builder.Property(x => x.BlockHeight)
             .HasColumnName("block_height");

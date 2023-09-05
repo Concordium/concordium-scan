@@ -47,7 +47,6 @@ public sealed class ContractRepositoryTests
         readHeights.Should().BeEquivalentTo(new List<ulong> { 2, 3, 5, 6 });
     }
     
-
     #region Test WhenGetContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
 
     [Fact]
@@ -110,7 +109,6 @@ public sealed class ContractRepositoryTests
     /// Generates three transaction result event relevant for smart contracts and which is within
     /// block height range 1-4.
     /// </summary>
-    /// <param name="transactionIds"></param>
     private async Task InsertTransactionResultEvents(IList<long> transactionIds)
     {
         var randoms = GetRandomsNotInList(2, transactionIds);
@@ -194,140 +192,6 @@ public sealed class ContractRepositoryTests
     }
 
     #endregion
-
-    [Fact]
-    public async Task GivenEntityWithBlockHeight_WhenGetReadOnlyContractReadHeightAtHeight_ThenReturnEntity()
-    {
-        // Arrange
-        const ulong blockHeight = 42;
-        const ImportSource source = ImportSource.DatabaseImport;
-        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
-        await _databaseFixture.AddAsync(new ContractReadHeight(blockHeight, source));
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
-
-        // Assert
-        actual.Should().NotBeNull();
-        actual!.BlockHeight.Should().Be(42);
-        actual!.Source.Should().Be(source);
-    }
-    
-    [Fact]
-    public async Task GivenNoEntityWithBlockHeight_WhenGetReadOnlyContractReadHeightAtHeight_ThenReturnNull()
-    {
-        // Arrange
-        const ulong blockHeight = 42;
-        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyContractReadHeightAtHeight(blockHeight);
-
-        // Assert
-        actual.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GivenBlockAtHeight_WhenGetReadOnlyBlockIdAtHeight_ThenReturnBlockId()
-    {
-        // Arrange
-        const int blockHeight = 42;
-        await DatabaseFixture.TruncateTables("graphql_blocks");
-        var block = new BlockBuilder()
-            .WithBlockHeight(blockHeight)
-            .Build();
-        await _databaseFixture.AddAsync(block);
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var single = await graphQlDbContext.Blocks.SingleAsync();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
-
-        // Assert
-        actual!.Should().Be(single.Id);
-    }
-    
-    [Fact]
-    public async Task GivenNoBlockAtHeight_WhenGetReadOnlyBlockIdAtHeight_ThenReturnDefault()
-    {
-        // Arrange
-        const int blockHeight = 42;
-        await DatabaseFixture.TruncateTables("graphql_blocks");
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var action = async () => await contractRepository.GetReadOnlyBlockIdAtHeight(blockHeight);
-
-        // Assert
-        await action.Should().ThrowAsync<System.InvalidOperationException>();
-    }
-    
-    [Fact]
-    public async Task GivenTransactionAtBlockId_WhenGetReadOnlyTransactionsAtBlockId_ThenReturnTransactions()
-    {
-        // Arrange
-        const long blockId = 42;
-        await DatabaseFixture.TruncateTables("graphql_transactions");
-        var transaction = new TransactionBuilder()
-            .WithId(0)
-            .WithBlockId(blockId)
-            .Build();
-        await _databaseFixture.AddAsync(transaction);
-        
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
-
-        // Assert
-        actual.Count.Should().Be(1);
-        actual[0].BlockId.Should().Be(blockId);
-    }
-    
-    [Fact]
-    public async Task GivenNoTransactionAtBlockId_WhenGetReadOnlyTransactionsAtBlockId_ThenReturnEmptyList()
-    {
-        // Arrange
-        const long blockId = 42;
-        await DatabaseFixture.TruncateTables("graphql_transactions");
-
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyTransactionsAtBlockId(blockId);
-
-        // Assert
-        actual.Count.Should().Be(0);
-    }
-    
-    [Fact]
-    public async Task GivenTransactionResultEventAtTransactionId_WhenGetReadOnlyTransactionResultEventsFromTransactionId_ThenReturnTransactionResultEvents()
-    {
-        // Arrange
-        const long transactionId = 42;
-        await DatabaseFixture.TruncateTables("graphql_transaction_events");
-        var transactionRelated = new TransactionRelated<TransactionResultEvent>(transactionId, 2, new TransferMemo("foo"));
-        var transactionRelatedOther = new TransactionRelated<TransactionResultEvent>(12, 2, new TransferMemo("foo"));
-        await _databaseFixture.AddAsync(transactionRelated, transactionRelatedOther);
-        
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
-        // Act
-        var actual = await contractRepository.GetReadOnlyTransactionResultEventsFromTransactionId(transactionId);
-
-        // Assert
-        actual.Count.Should().Be(1);
-        actual[0].TransactionId.Should().Be(transactionId);
-    }
 
     [Fact]
     public async Task GivenEntities_WhenGetReadOnlyLatestContractReadHeight_ThenReturnLatest()

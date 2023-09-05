@@ -1,11 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
-using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
-using Microsoft.EntityFrameworkCore;
+using Application.Observability;
+using Application.Configurations;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.BackgroundServices;
 
@@ -17,24 +16,26 @@ namespace Application.Aggregates.Contract.BackgroundServices;
 internal sealed class ContractJobsBackgroundService : BackgroundService
 {
     private readonly IContractJobFinder _jobFinder;
-    private readonly IFeatureFlags _featureFlags;
-    private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private readonly IContractJobRepository _contractJobRepository;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public ContractJobsBackgroundService(
         IContractJobFinder jobFinder,
-        IFeatureFlags featureFlags, 
-        IDbContextFactory<GraphQlDbContext> dbContextFactory
+        IContractJobRepository contractJobRepository,
+        IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {
         _jobFinder = jobFinder;
-        _featureFlags = featureFlags;
-        _dbContextFactory = dbContextFactory;
+        _contractJobRepository = contractJobRepository;
+        _featureFlags = featureFlagsOptions.Value;
         _logger = Log.ForContext<ContractJobsBackgroundService>();
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractJobsBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");
@@ -59,14 +60,14 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
     {
         try
         {
-            if (await DoesExistingJobExist(job, token))
+            if (await _contractJobRepository.DoesExistingJobExist(job, token))
             {
                 return;
             }
             
             await job.StartImport(token);
 
-            await SaveSuccessfullyExecutedJob(job, token);
+            await _contractJobRepository.SaveSuccessfullyExecutedJob(job, token);
             _logger.Information($"{job.GetUniqueIdentifier()} finished successfully.");
         }
         catch (Exception e)
@@ -74,23 +75,5 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
             _logger.Error(e, $"{job.GetUniqueIdentifier()} didn't succeed successfully due to exception.");
             throw;
         }
-    }
-
-    internal async Task<bool> DoesExistingJobExist(IContractJob job, CancellationToken token = default)
-    {
-        await using var context = await _dbContextFactory.CreateDbContextAsync(token);
-        var existingJob = await context.ContractJobs
-            .AsNoTracking()
-            .Where(j => j.Job == job.GetUniqueIdentifier())
-            .FirstOrDefaultAsync(token);
-
-        return existingJob != null;
-    }
-
-    internal async Task SaveSuccessfullyExecutedJob(IContractJob job, CancellationToken token = default)
-    {
-        await using var context = await _dbContextFactory.CreateDbContextAsync(token);
-        await context.ContractJobs.AddAsync(new ContractJob(job.GetUniqueIdentifier()), token);
-        await context.SaveChangesAsync(token);
     }
 }

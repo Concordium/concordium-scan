@@ -30,12 +30,8 @@ public static class GraphQlConfiguration
     public static IRequestExecutorBuilder Configure(this IRequestExecutorBuilder builder)
     {
         return builder.ConfigureSchema(ConfigureSchema)
-            /*
-             * Migrating to v13
-             * https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13#scopedserviceattribute
-            */
             .RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)
-            .AddDiagnosticEventListener<MetricExecutionDiagnosticEventListener>()
+            .AddDiagnosticEventListener<ObservabilityExecutionDiagnosticEventListener>()
             .AddInMemorySubscriptions()
             .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider: true)
             .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName: "block_by_descending_id")

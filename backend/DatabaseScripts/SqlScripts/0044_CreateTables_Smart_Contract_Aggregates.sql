@@ -48,9 +48,6 @@ create table graphql_module_reference_events
     source                      int           not null,    
     created_at                  TIMESTAMPTZ   not null,    
     PRIMARY KEY (
-                 block_height,
-                 transaction_index,
-                 event_index,
                  module_reference
         )
 );
@@ -73,7 +70,8 @@ create table graphql_module_reference_contract_link_events
                  event_index,
                  module_reference,
                  contract_address_index,
-                 contract_address_sub_index
+                 contract_address_sub_index,
+                 link_action
         )
 );
 
