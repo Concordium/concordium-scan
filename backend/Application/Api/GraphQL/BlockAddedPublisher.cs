@@ -2,10 +2,11 @@
 using System.Threading.Tasks;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
+using Application.Configurations;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Application.Api.GraphQL;
 
@@ -20,15 +21,15 @@ namespace Application.Api.GraphQL;
 /// </summary>
 public class BlockAddedPublisher : BackgroundService
 {
-    private readonly IFeatureFlags _featureFlags;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly ITopicEventSender _sender;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private Block? _latestBlock;
     private readonly ILogger _logger;
 
-    public BlockAddedPublisher(IFeatureFlags featureFlags, ITopicEventSender sender, IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public BlockAddedPublisher(IOptions<FeatureFlagOptions> featureFlagsOptions, ITopicEventSender sender, IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
-        _featureFlags = featureFlags;
+        _featureFlags = featureFlagsOptions.Value;
         _sender = sender;
         _dbContextFactory = dbContextFactory;
         _logger = Log.ForContext(GetType());

@@ -1,15 +1,20 @@
-﻿using Application.Common.FeatureFlags;
+﻿using Application.Configurations;
+using Microsoft.Extensions.Options;
 
 namespace Tests.TestUtilities.Stubs;
 
-public class FeatureFlagsStub : IFeatureFlags
+internal static class FeatureFlagsStub
 {
-    public FeatureFlagsStub(bool migrateDatabasesAtStartup = true)
+    internal static IOptions<FeatureFlagOptions> Create(Action<FeatureFlagOptions> extraOptions = null)
     {
-        MigrateDatabasesAtStartup = migrateDatabasesAtStartup;
+        var featureFlagOptions = new FeatureFlagOptions
+        {
+            ConcordiumNodeImportEnabled = true,
+            MigrateDatabasesAtStartup = true,
+            ConcordiumNodeImportValidationEnabled = true
+        };
+        extraOptions?.Invoke(featureFlagOptions);
+        return Options.Create(featureFlagOptions);
     }
-
-    public bool ConcordiumNodeImportEnabled { get; } = true;
-    public bool MigrateDatabasesAtStartup { get; private set; }
-    public bool ConcordiumNodeImportValidationEnabled { get; } = true;
 }
+

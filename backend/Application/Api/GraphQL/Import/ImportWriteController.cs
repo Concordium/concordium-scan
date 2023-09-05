@@ -7,7 +7,7 @@ using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Common;
 using Application.Common.Diagnostics;
-using Application.Common.FeatureFlags;
+using Application.Configurations;
 using Application.Database;
 using Application.Import;
 using Application.Observability;
@@ -16,6 +16,7 @@ using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Serilog.Context;
+using Microsoft.Extensions.Options;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -39,7 +40,7 @@ public class ImportWriteController : BackgroundService
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly ImportStateController _importStateController;
-    private readonly IFeatureFlags _featureFlags;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly IAccountLookup _accountLookup;
     private readonly MaterializedViewRefresher _materializedViewRefresher;
     private readonly DelegationImportHandler _delegationHandler;
@@ -49,7 +50,7 @@ public class ImportWriteController : BackgroundService
     public ImportWriteController(
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         DatabaseSettings dbSettings,
-        IFeatureFlags featureFlags,
+        IOptions<FeatureFlagOptions> featureFlagsOptions,
         ITopicEventSender sender,
         ImportChannel channel,
         ImportValidationController accountBalanceValidator,
@@ -58,7 +59,7 @@ public class ImportWriteController : BackgroundService
         MetricsListener metricsListener,
         NonCirculatingAccounts nonCirculatingAccounts)
     {
-        _featureFlags = featureFlags;
+        _featureFlags = featureFlagsOptions.Value;
         _accountLookup = accountLookup;
         _sender = sender;
         _channel = channel;

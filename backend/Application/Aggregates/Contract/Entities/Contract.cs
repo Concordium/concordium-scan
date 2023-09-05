@@ -17,22 +17,20 @@ namespace Application.Aggregates.Contract.Entities;
 public sealed class Contract
 {
     public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; }
+    public string TransactionHash { get; init; } = null!;
     public ulong TransactionIndex { get; init; }
     public uint EventIndex { get; init; }
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
-    public AccountAddress Creator { get; init; }
+    public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public ICollection<ContractEvent> ContractEvents { get; set; }
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
     /// Needed for EF Core
     /// </summary>
-#pragma warning disable CS8618
     private Contract()
-#pragma warning restore CS8618
     {}
 
     internal Contract(

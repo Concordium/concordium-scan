@@ -46,6 +46,14 @@ public static class ContractExtensions
         SqlMapper.AddTypeHandler(new AccountAddressHandler());
     }
 
+    internal static IRequestExecutorBuilder AddContractGraphQlConfigurations(this IRequestExecutorBuilder builder)
+    {
+        builder
+            .AddType<Entities.Contract.ContractQuery>()
+            .AddTypeExtension<Entities.Contract.ContractExtensions>();
+        return builder;
+    }
+
     /// <summary>
     /// Background service which executes all jobs related to Smart Contracts.
     ///
@@ -55,15 +63,8 @@ public static class ContractExtensions
     {
         collection.AddHostedService<ContractJobsBackgroundService>();
         collection.AddTransient<IContractJobFinder, ContractJobFinder>();
-        
+
+        collection.AddSingleton<IContractJobRepository, ContractJobRepository>();
         collection.AddTransient<IContractJob, ContractDatabaseImportJob>();
-    }
-    
-    internal static IRequestExecutorBuilder AddContractGraphQlConfigurations(this IRequestExecutorBuilder builder)
-    {
-        builder
-            .AddType<Entities.Contract.ContractQuery>()
-            .AddTypeExtension<Entities.Contract.ContractExtensions>();
-        return builder;
     }
 }

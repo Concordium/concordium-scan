@@ -1,10 +1,12 @@
 ﻿using System.Reflection;
 using Application.Common.FeatureFlags;
 using Application.Observability;
+using Application.Configurations;
 using DatabaseScripts;
 using DbUp;
 using DbUp.Engine;
 using DbUp.Engine.Output;
+using Microsoft.Extensions.Options;
 
 namespace Application.Database
 {
@@ -13,15 +15,15 @@ namespace Application.Database
         private const string MainDatabaseSqlScriptsFolder = "SqlScripts";
         private const string NodeCacheSqlScriptsFolder = "SqlScriptsNodeCache";
         private readonly DatabaseSettings _settings;
-        private readonly IFeatureFlags _featureFlags;
+        private readonly FeatureFlagOptions _featureFlags;
         private readonly ILogger _logger;
         private readonly DbUpLogWrapper _dbUpLogWrapper;
         private readonly Assembly _sqlScriptsAssembly;
 
-        public DatabaseMigrator(DatabaseSettings settings, IFeatureFlags featureFlags)
+        public DatabaseMigrator(DatabaseSettings settings, IOptions<FeatureFlagOptions> featureFlagsOptions)
         {
-            _settings = settings;
-            _featureFlags = featureFlags;
+            _settings = settings; 
+            _featureFlags = featureFlagsOptions.Value;
             _logger = Log.ForContext(GetType());
             _dbUpLogWrapper = new DbUpLogWrapper(_logger);
             _sqlScriptsAssembly = typeof(DatabaseScriptsMarkerType).Assembly;
