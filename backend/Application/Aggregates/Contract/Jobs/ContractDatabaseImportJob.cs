@@ -145,20 +145,20 @@ internal class ContractDatabaseImportJob : IContractJob
     {
         using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
         await using var repository = await _repositoryFactory.CreateAsync();
-        var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
-        if (readHeights.Count > 0)
+        var alreadyReadHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
+        if (alreadyReadHeights.Count > 0)
         {
-            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(readHeights));   
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(alreadyReadHeights));   
         }
         
-        var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
+        var affectedColumns = heightTo - heightFrom + 1 - (ulong)alreadyReadHeights.Count;
         if (affectedColumns == 0)
         {
             return affectedColumns;
         }
 
         var events = await repository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
-        foreach (var eventDto in events.Where(e => !readHeights.Contains((ulong)e.BlockHeight)))
+        foreach (var eventDto in events.Where(e => !alreadyReadHeights.Contains((ulong)e.BlockHeight)))
         {
             if (!IsUsableTransaction(eventDto.TransactionType, eventDto.TransactionSender, eventDto.TransactionHash))
             {
@@ -177,7 +177,7 @@ internal class ContractDatabaseImportJob : IContractJob
             );
         }
 
-        await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, readHeights, ImportSource.DatabaseImport);
+        await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
         await repository.SaveChangesAsync(token);
         ContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
         return affectedColumns;

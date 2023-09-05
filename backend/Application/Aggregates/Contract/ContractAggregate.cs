@@ -302,9 +302,9 @@ internal sealed class ContractAggregate
                 var affectedEvents = await NodeImport(repository, client, height, token);
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
                 await repository.SaveChangesAsync(token);
-
-                ContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
+                
                 ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
+                ContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
             }
             catch (Exception e)
             {
