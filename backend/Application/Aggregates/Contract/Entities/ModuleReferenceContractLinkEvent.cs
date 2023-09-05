@@ -19,7 +19,7 @@ public sealed class ModuleReferenceContractLinkEvent
     public ulong ContractAddressSubIndex { get; init; }
     public ImportSource Source { get; init; }
     public ModuleReferenceContractLinkAction LinkAction { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>
     /// Needed for EF Core

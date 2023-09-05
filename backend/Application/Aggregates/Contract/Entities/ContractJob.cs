@@ -6,7 +6,7 @@ namespace Application.Aggregates.Contract.Entities;
 public sealed class ContractJob
 {
     public string Job { get; set; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
     /// Needed for EF Core

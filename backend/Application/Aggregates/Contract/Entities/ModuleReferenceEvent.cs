@@ -13,7 +13,7 @@ public sealed class ModuleReferenceEvent
     public uint EventIndex { get; init; }
     public string ModuleReference { get; init; }
     public ImportSource Source { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
     /// Needed for EF Core

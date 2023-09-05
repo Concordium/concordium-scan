@@ -17,7 +17,7 @@ public sealed class ContractEvent
     public ulong ContractAddressSubIndex { get; init; }
     public TransactionResultEvent Event { get; init; }
     public ImportSource Source { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>
     /// Needed for EF Core
