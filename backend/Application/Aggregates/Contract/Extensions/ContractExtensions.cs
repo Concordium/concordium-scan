@@ -42,7 +42,8 @@ public static class ContractExtensions
     {
         collection.AddHostedService<ContractJobsBackgroundService>();
         collection.AddTransient<IContractJobFinder, ContractJobFinder>();
-        
+
+        collection.AddSingleton<IContractJobRepository, ContractJobRepository>();
         collection.AddTransient<IContractJob, ContractDatabaseImportJob>();
     }
 }

@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -61,42 +60,7 @@ WHERE
             .OrderBy(r => r)
             .ToListAsync();
     }
-
-    /// <inheritdoc/>
-    public async Task<ContractReadHeight?> GetReadOnlyContractReadHeightAtHeight(ulong blockHeight)
-    {
-        var block = await _context.ContractReadHeights
-            .Where(b => b.BlockHeight == blockHeight)
-            .AsNoTracking()
-            .FirstOrDefaultAsync();
-        return block;
-    }
-    /// <inheritdoc/>
-    public async Task<long> GetReadOnlyBlockIdAtHeight(int blockHeight)
-    {
-        return await _context.Blocks
-            .AsNoTracking()
-            .Where(b => b.BlockHeight == blockHeight)
-            .Select(b => b.Id)
-            .FirstAsync();
-    }
-    /// <inheritdoc/>
-    public async Task<IList<Transaction>> GetReadOnlyTransactionsAtBlockId(long blockId)
-    {
-        return await _context.Transactions
-            .AsNoTracking()
-            .Where(t => t.BlockId == blockId)
-            .ToListAsync();
-    }
-    /// <inheritdoc/>
-    public async Task<IList<TransactionRelated<TransactionResultEvent>>> GetReadOnlyTransactionResultEventsFromTransactionId(
-        long transactionId)
-    {
-        return await _context.TransactionResultEvents
-            .AsNoTracking()
-            .Where(te => te.TransactionId == transactionId)
-            .ToListAsync();
-    }
+    
     /// <inheritdoc/>
     public async Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight()
     {
@@ -105,6 +69,7 @@ WHERE
             .OrderByDescending(x => x.BlockHeight)
             .FirstOrDefaultAsync();
     }
+    
     /// <inheritdoc/>
     public async Task<long> GetReadOnlyLatestImportState(CancellationToken token)
     {

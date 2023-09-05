@@ -20,24 +20,6 @@ public interface IContractRepository : IAsyncDisposable
     /// </summary>
     public Task<List<ulong>> FromBlockHeightRangeGetBlockHeightsReadOrdered(ulong heightFrom, ulong heightTo);
     /// <summary>
-    /// Returns null if entity doesn't exist at height.
-    /// </summary>
-    Task<ContractReadHeight?> GetReadOnlyContractReadHeightAtHeight(ulong blockHeight);
-    /// <summary>
-    /// Get block id at block height.
-    ///
-    /// Should throw exception if no block at height exist.
-    /// </summary>
-    Task<long> GetReadOnlyBlockIdAtHeight(int blockHeight);
-    /// <summary>
-    /// Returns all transaction from a block id.
-    /// </summary>
-    Task<IList<Transaction>> GetReadOnlyTransactionsAtBlockId(long blockId);
-    /// <summary>
-    /// Returns transaction result events from a transaction id. 
-    /// </summary>
-    Task<IList<TransactionRelated<TransactionResultEvent>>> GetReadOnlyTransactionResultEventsFromTransactionId(long transactionId);
-    /// <summary>
     /// Returns latest smart contract read height ordered descending by block height. 
     /// </summary>
     Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight();
