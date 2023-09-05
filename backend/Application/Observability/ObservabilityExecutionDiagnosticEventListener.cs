@@ -57,7 +57,11 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         {
             graphQlDurationMetric.SetException(exception);
         }
-        
+        if (!ShouldLogException(exception))
+        {
+            return;
+        }
+
         var query = GetQuery(context);
         
         _logger.Error(exception, "Exception from {Query}", query);
@@ -65,32 +69,62 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
     
     public override void ResolverError(IMiddlewareContext context, IError error)
     {
-        if (error.Exception != null && context.ContextData.TryGetValue(
+        if (error.Exception == null)
+        {
+            return;
+        }
+        if (context.ContextData.TryGetValue(
                 ApplicationMetrics.GraphQlDurationMetric.GraphQlDurationMetricContextKey,
                 out var metric) &&
             metric is ApplicationMetrics.GraphQlDurationMetric graphQlDurationMetric)
         {
             graphQlDurationMetric.SetException(error.Exception);
+        }
+        if (!ShouldLogException(error.Exception))
+        {
+            return;
         }
 
         var query = GetQuery(context);
 
         _logger.Error(error.Exception, "Exception from {Query}", query);
     }
-    
+
     public override void ResolverError(IRequestContext context, ISelection selection, IError error)
     {
-        if (error.Exception != null && context.ContextData.TryGetValue(
+        if (error.Exception is null)
+        {
+            return;
+        }
+        if (context.ContextData.TryGetValue(
                 ApplicationMetrics.GraphQlDurationMetric.GraphQlDurationMetricContextKey,
                 out var metric) &&
             metric is ApplicationMetrics.GraphQlDurationMetric graphQlDurationMetric)
         {
             graphQlDurationMetric.SetException(error.Exception);
         }
+        if (!ShouldLogException(error.Exception))
+        {
+            return;
+        }
         
         var query = GetQuery(context);
         
         _logger.Error(error.Exception, "Exception from {Query}", query);
+    }
+    
+    private static bool ShouldLogException(Exception? exception)
+    {
+        if (exception is null)
+        {
+            return false;
+        }
+        return exception switch
+        {
+            // Don't log when users cancel queries
+            OperationCanceledException => false,
+            _ => true,
+        };
     }
     
     private static string GetQuery(IRequestContext context)
