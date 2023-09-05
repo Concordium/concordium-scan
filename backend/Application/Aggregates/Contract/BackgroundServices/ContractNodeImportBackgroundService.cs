@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
+using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly IContractNodeClient _client;
+    private readonly ContractHealthCheck _healthCheck;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
@@ -28,13 +30,15 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         IContractRepositoryFactory repositoryFactory,
         IContractNodeClient client,
-        IOptions<FeatureFlagOptions> featureFlagsOptions,
-        IOptions<ContractAggregateOptions> options)
+        IOptions<ContractAggregateOptions> options,
+        ContractHealthCheck healthCheck,
+        IOptions<FeatureFlagOptions> featureFlagsOptions)
     {
         _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
         _repositoryFactory = repositoryFactory;
         _client = client;
+        _healthCheck = healthCheck;
         _featureFlags = featureFlagsOptions.Value;
         _options = options.Value;
         _logger = Log.ForContext<ContractNodeImportBackgroundService>();
@@ -59,6 +63,8 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         }
         catch (Exception e)
         {
+            _logger.Fatal(e, $"{nameof(ContractNodeImportBackgroundService)} stopped due to exception.");
+            _healthCheck.AddUnhealthyJobWithMessage(nameof(ContractNodeImportBackgroundService), "Stopped due to exception.");
             _logger.Fatal(e, $"{nameof(ContractNodeImportBackgroundService)} stopped due to exception.");
         }
     }

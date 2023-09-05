@@ -4,6 +4,7 @@ using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
+using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using FluentAssertions;
@@ -58,9 +59,9 @@ public class ContractNodeImportBackgroundServiceTests
             factory.Object,
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),
-            Mock.Of<IOptions<FeatureFlagOptions>>(),
-            Options.Create(new ContractAggregateOptions())
-        );
+            Options.Create(new ContractAggregateOptions()),
+            new ContractHealthCheck(),
+            Mock.Of<IOptions<FeatureFlagOptions>>());
         
         // Act
         var awaitJobsAsync = await importService.GetJobsToAwait();

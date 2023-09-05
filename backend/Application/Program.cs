@@ -20,8 +20,11 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Prometheus;
+using Metrics = Application.Common.Diagnostics.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +79,7 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
+builder.Services.AddDefaultHealthChecks();
 builder.Services.AddContractAggregate(builder.Configuration);
 
 builder.Host.UseSystemd();
@@ -91,6 +95,7 @@ try
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
         })
         .UseRouting()
+        .UseHttpMetrics()
         .UseCors(policy =>
         {
             policy.AllowAnyOrigin();
@@ -101,8 +106,10 @@ try
         {
             endpoints.MapControllers();
             endpoints.MapGraphQL();
-        });
-    
+            endpoints.MapMetrics("/system/metrics");
+        })
+        .AddHealthChecks();
+
     app.Run();    
 }
 catch (Exception e)

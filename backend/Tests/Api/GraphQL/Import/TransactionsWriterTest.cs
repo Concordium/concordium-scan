@@ -10,7 +10,6 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
 using AccountAddress = Concordium.Sdk.Types.AccountAddress;
-using AccountTransaction = Application.Api.GraphQL.Transactions.AccountTransaction;
 using AlreadyABaker = Concordium.Sdk.Types.AlreadyABaker;
 using AlreadyADelegator = Concordium.Sdk.Types.AlreadyADelegator;
 using AmountTooLarge = Concordium.Sdk.Types.AmountTooLarge;

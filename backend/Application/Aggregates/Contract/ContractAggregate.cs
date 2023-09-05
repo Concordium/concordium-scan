@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Types;
@@ -66,7 +67,11 @@ internal sealed class ContractAggregate
         }
     }
 
-    internal async Task NodeImport(
+    /// <summary>
+    /// For a given height fetch state from node and store relevant events.
+    /// </summary>
+    /// <returns>Count of transaction events mapped.</returns>
+    internal async Task<uint> NodeImport(
         IContractRepository repository,
         IContractNodeClient client,
         ulong height,
@@ -78,6 +83,7 @@ internal sealed class ContractAggregate
         _logger.Debug("Reading block {BlockHash}", blockHash.ToString());
         
         BlockInfo? blockInfo = null;
+        var totalEvents = 0u;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))
         {
             if (blockItemSummary.Details is not AccountTransactionDetails details)
@@ -102,7 +108,11 @@ internal sealed class ContractAggregate
                 );
                 eventIndex++;
             }
+
+            totalEvents += eventIndex;
         }
+
+        return totalEvents;
     }
     
     /// <summary>
@@ -284,11 +294,23 @@ internal sealed class ContractAggregate
     {
         for (var height = fromBlockHeight; height <= toBlockHeight; height++)
         {
-            await using var repository = await _repositoryFactory.CreateAsync();
+            using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
+            try
+            {
+                await using var repository = await _repositoryFactory.CreateAsync();
+
+                var affectedEvents = await NodeImport(repository, client, height, token);
+                await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
+                await repository.SaveChangesAsync(token);
                 
-            await NodeImport(repository, client, height, token);
-            await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
-            await repository.SaveChangesAsync(token);
+                ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
+                ContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
+            }
+            catch (Exception e)
+            {
+                durationMetric.SetException(e);
+                throw;
+            }
         }
     }
     

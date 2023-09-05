@@ -12,7 +12,6 @@ using ExchangeRate = Concordium.Sdk.Types.ExchangeRate;
 using GasRewards = Concordium.Sdk.Types.GasRewards;
 using LeverageFactor = Concordium.Sdk.Types.LeverageFactor;
 using MintDistributionCpv1 = Concordium.Sdk.Types.MintDistributionCpv1;
-using MintRate = Concordium.Sdk.Types.MintRate;
 using RewardPeriodLength = Concordium.Sdk.Types.RewardPeriodLength;
 using TransactionFeeDistribution = Concordium.Sdk.Types.TransactionFeeDistribution;
 

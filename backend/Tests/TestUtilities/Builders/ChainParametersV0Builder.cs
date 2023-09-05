@@ -1,6 +1,5 @@
 ﻿using Application.Api.GraphQL.Extensions;
 using Concordium.Sdk.Types;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Tests.TestUtilities.Stubs;
 using ExchangeRate = Concordium.Sdk.Types.ExchangeRate;
 using GasRewards = Concordium.Sdk.Types.GasRewards;
