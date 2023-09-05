@@ -18,7 +18,7 @@ public class TraceEnricher : ILogEventEnricher
         }
         
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(Id, Activity.Current.Id));
-        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(TraceId, Activity.Current.Id));
-        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(SpanId, Activity.Current.Id));
+        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(TraceId, Activity.Current.TraceId));
+        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(SpanId, Activity.Current.SpanId));
     }
 }
