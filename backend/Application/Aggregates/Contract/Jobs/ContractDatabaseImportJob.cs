@@ -106,6 +106,8 @@ internal class ContractDatabaseImportJob : IContractJob
         }
         catch (TaskCanceledException)
         {
+            // Thrown from `Task.Delay` when token is cancelled. We don't want to have this rethrown but just
+            // stop loop.
         }
     }
 
