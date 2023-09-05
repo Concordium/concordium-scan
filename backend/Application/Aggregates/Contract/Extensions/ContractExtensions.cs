@@ -32,7 +32,7 @@ public static class ContractExtensions
     {
         collection.AddSingleton<ContractHealthCheck>();
         collection.AddHealthChecks()
-            .AddCheck<ContractHealthCheck>("Contracts", HealthStatus.Unhealthy)
+            .AddCheck<ContractHealthCheck>("Contract", HealthStatus.Unhealthy)
             .ForwardToPrometheus();
     }
     
