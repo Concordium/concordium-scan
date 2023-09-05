@@ -15,9 +15,7 @@ public sealed class ContractReadHeight
     /// <summary>
     /// Needed for EF Core
     /// </summary>
-#pragma warning disable CS8618
     private ContractReadHeight()
-#pragma warning restore CS8618
     {}
     
     public ContractReadHeight(ulong blockHeight, ImportSource source)
