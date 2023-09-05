@@ -117,7 +117,6 @@ internal class ContractDatabaseImportJob : IContractJob
 
         return finalHeight;
     }
-
     /// <summary>
     /// Run each batch up to final height.
     ///
