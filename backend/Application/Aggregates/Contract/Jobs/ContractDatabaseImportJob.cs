@@ -139,7 +139,7 @@ internal class ContractDatabaseImportJob : IContractJob
             var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
             if (affectedRows == 0) continue;
-            _logger.Debug("Written heights {From} to {To}",blockHeightFrom, blockHeightTo);   
+            _logger.Debug("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);   
         }
     }
 

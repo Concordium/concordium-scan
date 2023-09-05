@@ -2,7 +2,6 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
 using Application.Configurations;
 using Application.NodeApi;
 using Concordium.Sdk.Client;
@@ -12,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Prometheus;
 
 namespace Application.Extensions;
 
@@ -25,7 +25,14 @@ internal static class StartupExtensions
         services.AddSingleton(new ConcordiumClient(uri, concordiumClientOptions));
     }
 
-    internal static void AddDefaultHealthChecks(this IApplicationBuilder app)
+    internal static void AddDefaultHealthChecks(this IServiceCollection services)
+    {
+        services.AddHealthChecks()
+            .AddCheck("live", () => HealthCheckResult.Healthy("Application is running"))
+            .ForwardToPrometheus();
+    }
+
+    internal static void AddHealthChecks(this IApplicationBuilder app)
     {
         app.UseHealthChecks("/system/health", new HealthCheckOptions
         {

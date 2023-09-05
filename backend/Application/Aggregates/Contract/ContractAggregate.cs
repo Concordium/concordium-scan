@@ -70,7 +70,7 @@ internal sealed class ContractAggregate
     /// <summary>
     /// For a given height fetch state from node and store relevant events.
     /// </summary>
-    /// <returns>Count of transaction event mapped. Observe this can result in multiple stored events.</returns>
+    /// <returns>Count of transaction events mapped.</returns>
     internal async Task<uint> NodeImport(
         IContractRepository repository,
         IContractNodeClient client,
