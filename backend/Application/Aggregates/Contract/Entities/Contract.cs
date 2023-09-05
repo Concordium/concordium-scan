@@ -24,8 +24,8 @@ public sealed class Contract
     public ulong ContractAddressSubIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
-    public ICollection<ContractEvent> ContractEvents { get; set; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
+    public ICollection<ContractEvent> ContractEvents { get; set; }
     
     /// <summary>
     /// Needed for EF Core

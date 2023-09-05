@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Application.Common.FeatureFlags;
 using Application.Observability;
 using Application.Configurations;
 using DatabaseScripts;

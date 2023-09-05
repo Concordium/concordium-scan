@@ -1,10 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Jobs;
-using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
 using Application.Observability;
-using Microsoft.EntityFrameworkCore;
 using Application.Configurations;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;

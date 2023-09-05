@@ -4,7 +4,6 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
 using Application.Observability;
 using Application.Configurations;
 using Microsoft.EntityFrameworkCore;
