@@ -8,9 +8,7 @@
     - Smart Contract listing with pagination
 - Updated
     - `HotChocolate` nuget libraries from major `12` to `13`. Because of this done some migration changes like adding `RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)` 
-    to GraphQL schema configuration.
-
-        All relevant migrations are documented at https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13.
+    to GraphQL schema configuration *(migration documentation located at: https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13)*.
 
 ## 1.6.3
 - Added Account Balance to Account Statement export file.
