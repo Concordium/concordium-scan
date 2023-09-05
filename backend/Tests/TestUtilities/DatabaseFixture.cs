@@ -1,8 +1,12 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading;
+using Application.Api.GraphQL.EfCore;
 using Application.Database;
+using Dapper;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tests.TestUtilities.Stubs;
 
@@ -20,6 +24,8 @@ public sealed class DatabaseFixture : IDisposable
         ConnectionStringNodeCache = ConnectionStringNodeCache
     };
 
+    private readonly DbContextOptions _dbContextOptions;
+
     public DatabaseFixture()
     {
         var file = Path.Combine(Directory.GetCurrentDirectory(), "TestUtilities/docker-compose.yaml");
@@ -33,25 +39,59 @@ public sealed class DatabaseFixture : IDisposable
             .Start();
         
         Thread.Sleep(5_000);
-        
-        var featureFlags = new FeatureFlagsStub(migrateDatabasesAtStartup:true);
+
+        var featureFlags = FeatureFlagsStub.Create();
         var databaseMigrator = new DatabaseMigrator(DatabaseSettings, featureFlags);
         databaseMigrator.MigrateDatabases();
+        
+        _dbContextOptions = new DbContextOptionsBuilder<GraphQlDbContext>()
+            .UseNpgsql(DatabaseSettings.ConnectionString)
+            .Options;
     }
 
-    internal NpgsqlConnection GetOpenConnection()
+    internal static NpgsqlConnection GetOpenConnection()
     {
         var connection = new NpgsqlConnection(ConnectionString);
         connection.Open();
         return connection;
     }
     
-    internal NpgsqlConnection GetOpenNodeCacheConnection()
+    internal static NpgsqlConnection GetOpenNodeCacheConnection()
     {
         var connection = new NpgsqlConnection(ConnectionStringNodeCache);
         connection.Open();
         return connection;
     }
+
+    internal GraphQlDbContext CreateGraphQlDbContext() => new(_dbContextOptions);
+
+    internal async Task AddListAsync<T>(IEnumerable<T> entity) where T : class
+    {
+        await using var context = new GraphQlDbContext(_dbContextOptions);
+        
+        await context.Set<T>()
+            .AddRangeAsync(entity);
+        await context.SaveChangesAsync();
+    }
+    
+    internal async Task AddAsync<T>(params T[] entity) where T : class
+    {
+        await using var context = new GraphQlDbContext(_dbContextOptions);
+        
+        await context.Set<T>()
+            .AddRangeAsync(entity);
+        await context.SaveChangesAsync();
+    }
+
+
+    internal static async Task TruncateTables(params string[] tables)
+    {
+        await using var connection = GetOpenConnection();
+        foreach (var table in tables)
+        {
+            await connection.ExecuteAsync($"truncate table {table}");
+        }
+    }    
 
     public void Dispose()
     {

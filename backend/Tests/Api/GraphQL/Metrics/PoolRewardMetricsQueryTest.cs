@@ -23,7 +23,7 @@ public class PoolRewardMetricsQueryTest
         _timeProviderStub = new TimeProviderStub();
         _target = new PoolRewardMetricsQuery(dbFixture.DatabaseSettings, _timeProviderStub);
 
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_payday_pool_rewards");
     }
 

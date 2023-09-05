@@ -62,7 +62,7 @@ public class AccountTransactionDetailsBuilder
 
     public AccountTransactionDetailsBuilder(IAccountTransactionEffects accountTransactionEffects)
     {
-        this._accountTransactionEffects = accountTransactionEffects;
+        _accountTransactionEffects = accountTransactionEffects;
     }
 
     public AccountTransactionDetails Build()

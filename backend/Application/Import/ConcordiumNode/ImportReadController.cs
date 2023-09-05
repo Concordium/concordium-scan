@@ -1,12 +1,13 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using Application.Common.Diagnostics;
-using Application.Common.FeatureFlags;
+using Application.Configurations;
 using Application.NodeApi;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Application.Import.ConcordiumNode;
@@ -14,15 +15,15 @@ namespace Application.Import.ConcordiumNode;
 public class ImportReadController : BackgroundService
 {
     private readonly ConcordiumClient _client;
-    private readonly IFeatureFlags _featureFlags;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
     private readonly IMetrics _metrics;
 
-    public ImportReadController(ConcordiumClient client, IFeatureFlags featureFlags, ImportChannel channel, IMetrics metrics)
+    public ImportReadController(ConcordiumClient client, IOptions<FeatureFlagOptions> featureFlagsOptions, ImportChannel channel, IMetrics metrics)
     {
         _client = client;
-        _featureFlags = featureFlags;
+        _featureFlags = featureFlagsOptions.Value;
         _channel = channel;
         _metrics = metrics;
         _logger = Log.ForContext(GetType());

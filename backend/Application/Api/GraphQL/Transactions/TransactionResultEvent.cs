@@ -156,7 +156,7 @@ public abstract record TransactionResultEvent
         }
     }
 
-    private static IEnumerable<TransactionResultEvent> ToIter(ContractUpdateIssued update)
+    internal static IEnumerable<TransactionResultEvent> ToIter(ContractUpdateIssued update)
     {
         foreach (var contractTraceElement in update.Effects)
         {
@@ -465,6 +465,7 @@ public record ContractInitialized(
     ContractAddress ContractAddress,
     ulong Amount,
     string InitName,
+    ContractVersion? Version,
     [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent
 {
@@ -474,6 +475,7 @@ public record ContractInitialized(
             ContractAddress.From(contract.Data.ContractAddress),
             contract.Data.Amount.Value,
             contract.Data.InitName.Name,
+            ContractVersionFactory.From(contract.Data.ContractVersion),
             contract.Data.Events.Select(d => d.ToHexString()).ToArray()
         );
 }
@@ -506,6 +508,7 @@ public record ContractUpdated(
     ulong Amount,
     string MessageAsHex,
     string ReceiveName,
+    ContractVersion? Version,
     [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent
 {
@@ -516,6 +519,7 @@ public record ContractUpdated(
             updated.Amount.Value,
             updated.Message.ToHexString(),
             updated.ReceiveName.Receive,
+            ContractVersionFactory.From(updated.ContractVersion),
             updated.Events.Select(e => e.ToHexString()).ToArray()
         );
 }

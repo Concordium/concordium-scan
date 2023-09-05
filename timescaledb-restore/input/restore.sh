@@ -24,7 +24,7 @@ while true; do
     MAX_BACKUP_WAL="$(pgbackrest info --output=json | python3 -c "import json,sys;obj=json.load(sys.stdin); print(obj[0]['archive'][0]['max']);")"
     echo "Testing whether WAL file ${MAX_BACKUP_WAL} has been restored ..."
     [ -f "${PGDATA}/pg_wal/${MAX_BACKUP_WAL}" ] && break
-    sleep 10;
+    sleep 3;
 done
 
 pg_ctl -D $PGDATA stop -mf

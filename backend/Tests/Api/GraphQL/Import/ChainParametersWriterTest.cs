@@ -35,7 +35,7 @@ public class ChainParametersWriterTest
         _chainParametersV1Builder = new ChainParametersV1Builder()
             .WithFoundationAccount(foundationAccount);
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_chain_parameters");
         connection.Execute("TRUNCATE TABLE graphql_accounts");
     }

@@ -16,7 +16,7 @@ public class PoolPaydayStakesConfigurationTest
     {
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_pool_payday_stakes");
     }
 

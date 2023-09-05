@@ -22,7 +22,7 @@ public class RewardMetricsQueryTest
         _timeProviderStub = new TimeProviderStub();
         _target = new RewardMetricsQuery(dbFixture.DatabaseSettings, _timeProviderStub);
 
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_rewards");
     }
 

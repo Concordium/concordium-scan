@@ -25,7 +25,7 @@ public class BakerWriterTest
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
         _target = new BakerWriter(_dbContextFactory, new NullMetrics());
 
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_bakers");
         connection.Execute("TRUNCATE TABLE graphql_accounts");
     }

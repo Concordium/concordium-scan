@@ -1,3 +1,6 @@
+## Unreleased changes
+- Added feature which fetched Smart Contract data from node and store as events.
+
 ## 1.6.3
 - Added Account Balance to Account Statement export file.
 

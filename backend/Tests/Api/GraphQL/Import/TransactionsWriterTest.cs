@@ -89,7 +89,7 @@ public class TransactionsWriterTest
         _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture.DatabaseSettings);
         _target = new TransactionWriter(_dbContextFactory, new NullMetrics());
 
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_transactions");
         connection.Execute("TRUNCATE TABLE graphql_transaction_events");
     }
@@ -125,28 +125,6 @@ public class TransactionsWriterTest
         transaction.EnergyCost.Should().Be(energyCost);
     }
 
-    // [Theory]
-    // [InlineData(TransactionType.AddBaker)]
-    // [InlineData(TransactionType.EncryptedAmountTransfer)]
-    // [InlineData(TransactionType.Transfer)]
-    // [InlineData(TransactionType.TransferWithSchedule)]
-    // [InlineData(TransactionType.InitContract)]
-    // public async Task Transactions_TransactionType_TransactionTypes(TransactionType transactionType)
-    // {
-    //     var dataRegistered = new Concordium.Sdk.Types.DataRegistered(Array.Empty<byte>());
-    //     var accountTransactionDetails = new AccountTransactionDetailsBuilder(dataRegistered)
-    //         .Build();
-    //     var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
-    //         .Build();
-    //
-    //     await WriteData(blockItemSummary);
-    //     
-    //     await using var dbContext = _dbContextFactory.CreateDbContext();
-    //     var transaction = dbContext.Transactions.Single();
-    //     transaction.TransactionType.Should().BeOfType<AccountTransaction>()
-    //         .Which.AccountTransactionType.Should().Be(transactionType);
-    // }
-    
     [Fact]
     public async Task TransactionEvents_TransactionIdAndIndex()
     {
@@ -673,6 +651,7 @@ public class TransactionsWriterTest
         result.Amount.Should().Be(amount);
         result.InitName.Should().Be(initName);
         result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
+        result.Version.Should().Be(Application.Api.GraphQL.ContractVersion.V1);
     }
 
     [Fact]
@@ -738,6 +717,7 @@ public class TransactionsWriterTest
         result.MessageAsHex.Should().Be(parameterHex);
         result.ReceiveName.Should().Be(name);
         result.EventsAsHex.Should().Equal(firstEvent, secondEvent);
+        result.Version.Should().Be(Application.Api.GraphQL.ContractVersion.V1);
     }
 
     [Fact]

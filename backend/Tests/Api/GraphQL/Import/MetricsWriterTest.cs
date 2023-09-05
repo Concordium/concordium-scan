@@ -29,7 +29,7 @@ public class MetricsWriterTest
 
         _target = new MetricsWriter(_databaseSettings, new NullMetrics());
         
-        using var connection = dbFixture.GetOpenConnection();
+        using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE metrics_blocks");
         connection.Execute("TRUNCATE TABLE metrics_bakers");
         connection.Execute("TRUNCATE TABLE metrics_rewards");

@@ -1,3 +1,4 @@
+using Application.Aggregates.Contract.Extensions;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
@@ -7,7 +8,6 @@ using Application.Api.GraphQL.ImportNodeStatus;
 using Application.Api.GraphQL.Network;
 using Application.Common;
 using Application.Common.Diagnostics;
-using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
 using Application.Extensions;
@@ -35,11 +35,7 @@ var logger = Log.ForContext<Program>();
 
 logger.Information("Application starting...");
 
-var featureFlags = builder.Configuration.GetSection("FeatureFlags").Get<SettingsBasedFeatureFlags>();
-builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportEnabled), featureFlags.ConcordiumNodeImportEnabled);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportValidationEnabled), featureFlags.ConcordiumNodeImportValidationEnabled);
+builder.Services.AddFeatureFlagOptions(builder.Configuration, logger);
 
 var nonCirculatingAccounts = builder
     .Configuration
@@ -80,6 +76,8 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
+builder.Services.AddContractAggregate(builder.Configuration);
+
 builder.Host.UseSystemd();
 var app = builder.Build();
 

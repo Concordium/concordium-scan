@@ -11,7 +11,7 @@ public class TransactionTypeToStringConverter : ValueConverter<TransactionTypeUn
     {
     }
 
-    private static TransactionTypeUnion ConvertToTransactionTypeUnion(string value)
+    internal static TransactionTypeUnion ConvertToTransactionTypeUnion(string value)
     {
         return TransactionTypeUnion.FromCompactString(value);
     }
