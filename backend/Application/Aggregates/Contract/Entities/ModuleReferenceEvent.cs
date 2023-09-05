@@ -8,19 +8,17 @@ namespace Application.Aggregates.Contract.Entities;
 public sealed class ModuleReferenceEvent
 {
     public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; }
+    public string TransactionHash { get; init; } = null!;
     public ulong TransactionIndex { get; init; }
     public uint EventIndex { get; init; }
-    public string ModuleReference { get; init; }
+    public string ModuleReference { get; init; } = null!;
     public ImportSource Source { get; init; }
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
     /// Needed for EF Core
     /// </summary>
-#pragma warning disable CS8618
     private ModuleReferenceEvent()
-#pragma warning restore CS8618
     {}
 
     public ModuleReferenceEvent(

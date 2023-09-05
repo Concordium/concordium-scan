@@ -5,6 +5,13 @@ using Concordium.Sdk.Types;
 
 namespace Application.Aggregates.Contract;
 
+public interface IContractNodeClient
+{
+    Task<QueryResponse<BlockInfo>> GetBlockInfoAsync(IBlockHashInput input, CancellationToken token);
+    Task<QueryResponse<IAsyncEnumerable<BlockItemSummary>>> GetBlockTransactionEvents(IBlockHashInput input, CancellationToken token);
+    Task<ConsensusInfo> GetConsensusInfoAsync(CancellationToken token);
+}
+
 internal sealed class ContractNodeClient : IContractNodeClient
 {
     private readonly ConcordiumClient _client;

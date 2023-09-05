@@ -8,7 +8,6 @@ using Application.Api.GraphQL.ImportNodeStatus;
 using Application.Api.GraphQL.Network;
 using Application.Common;
 using Application.Common.Diagnostics;
-using Application.Common.FeatureFlags;
 using Application.Common.Logging;
 using Application.Database;
 using Application.Extensions;
@@ -39,11 +38,7 @@ var logger = Log.ForContext<Program>();
 
 logger.Information("Application starting...");
 
-var featureFlags = builder.Configuration.GetSection("FeatureFlags").Get<SettingsBasedFeatureFlags>();
-builder.Services.AddSingleton<IFeatureFlags>(featureFlags);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportEnabled), featureFlags.ConcordiumNodeImportEnabled);
-logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportValidationEnabled), featureFlags.ConcordiumNodeImportValidationEnabled);
+builder.Services.AddFeatureFlagOptions(builder.Configuration, logger);
 
 var nonCirculatingAccounts = builder
     .Configuration

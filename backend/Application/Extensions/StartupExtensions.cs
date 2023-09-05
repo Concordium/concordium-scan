@@ -2,6 +2,8 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using Application.Configurations;
 using Application.NodeApi;
 using Concordium.Sdk.Client;
 using Microsoft.AspNetCore.Builder;
@@ -30,6 +32,16 @@ internal static class StartupExtensions
             ResponseWriter = WriteResponse
         });
     }
+
+    internal static IServiceCollection AddFeatureFlagOptions(this IServiceCollection collection, IConfiguration configuration, ILogger logger)
+    {
+        var featureFlags = configuration.GetSection("FeatureFlags").Get<FeatureFlagOptions>();
+        collection.Configure<FeatureFlagOptions>(configuration.GetSection("FeatureFlags"));
+        logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.MigrateDatabasesAtStartup), featureFlags.MigrateDatabasesAtStartup);
+        logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportEnabled), featureFlags.ConcordiumNodeImportEnabled);
+        logger.Information("Feature flag [{name}]: {value}", nameof(featureFlags.ConcordiumNodeImportValidationEnabled), featureFlags.ConcordiumNodeImportValidationEnabled);
+        return collection;
+    }    
     
     /// <summary>
     /// Taken from https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-7.0#customize-output

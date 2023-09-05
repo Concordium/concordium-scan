@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract;
 
+public interface IContractRepositoryFactory
+{
+    Task<IContractRepository> CreateAsync();
+}
+
 internal sealed class ContractRepositoryFactory : IContractRepositoryFactory
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
