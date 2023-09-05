@@ -25,7 +25,7 @@ public sealed class Contract
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<ContractEvent> ContractEvents { get; set; }
+    public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -61,7 +61,8 @@ public sealed class Contract
         {
             return context.Contract
                 .AsNoTracking()
-                .Include(s => s.ContractEvents);
+                .Include(s => s.ContractEvents)
+                .OrderByDescending(c => c.ContractAddressIndex);
         }
     }
 
