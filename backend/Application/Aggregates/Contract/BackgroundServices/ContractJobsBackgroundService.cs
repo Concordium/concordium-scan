@@ -1,8 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Jobs;
-using Application.Common.FeatureFlags;
+using Application.Configurations;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.BackgroundServices;
 
@@ -15,18 +16,18 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
 {
     private readonly IContractJobFinder _jobFinder;
     private readonly IContractJobRepository _contractJobRepository;
-    private readonly IFeatureFlags _featureFlags;
+    private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public ContractJobsBackgroundService(
         IContractJobFinder jobFinder,
         IContractJobRepository contractJobRepository,
-        IFeatureFlags featureFlags
+        IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {
         _jobFinder = jobFinder;
         _contractJobRepository = contractJobRepository;
-        _featureFlags = featureFlags;
+        _featureFlags = featureFlagsOptions.Value;
         _logger = Log.ForContext<ContractJobsBackgroundService>();
     }
     

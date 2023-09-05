@@ -39,8 +39,8 @@ public sealed class DatabaseFixture : IDisposable
             .Start();
         
         Thread.Sleep(5_000);
-        
-        var featureFlags = new FeatureFlagsStub(migrateDatabasesAtStartup:true);
+
+        var featureFlags = FeatureFlagsStub.Create();
         var databaseMigrator = new DatabaseMigrator(DatabaseSettings, featureFlags);
         databaseMigrator.MigrateDatabases();
         

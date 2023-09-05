@@ -5,7 +5,7 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.EfCore;
-using Application.Common.FeatureFlags;
+using Application.Configurations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,7 +58,7 @@ public class ContractNodeImportBackgroundServiceTests
             factory.Object,
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),
-            Mock.Of<IFeatureFlags>(),
+            Mock.Of<IOptions<FeatureFlagOptions>>(),
             Options.Create(new ContractAggregateOptions())
         );
         

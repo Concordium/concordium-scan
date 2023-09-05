@@ -1,6 +1,6 @@
-﻿namespace Application.Common.FeatureFlags;
+﻿namespace Application.Configurations;
 
-public interface IFeatureFlags
+public class FeatureFlagOptions
 {
     /// <summary>
     /// This configurations sets if ANY import will be done by the application.
@@ -9,7 +9,7 @@ public interface IFeatureFlags
     ///
     /// Naming is as-is since it is a configuration variable and to avoid making a breaking change.
     /// </summary>
-    bool ConcordiumNodeImportEnabled { get; }
-    bool MigrateDatabasesAtStartup { get; }
-    bool ConcordiumNodeImportValidationEnabled { get; }
+    public bool ConcordiumNodeImportEnabled { get; init; }
+    public bool MigrateDatabasesAtStartup { get; init; }
+    public bool ConcordiumNodeImportValidationEnabled { get; init; }
 }
