@@ -21,6 +21,7 @@ internal class ContractDatabaseImportJob : IContractJob
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateJobOptions _jobOptions;
+    private readonly ContractAggregateOptions _contractAggregateOptions;
 
     public ContractDatabaseImportJob(
         IContractRepositoryFactory repositoryFactory,
@@ -31,8 +32,8 @@ internal class ContractDatabaseImportJob : IContractJob
         _repositoryFactory = repositoryFactory;
         _healthCheck = healthCheck;
         _logger = Log.ForContext<ContractDatabaseImportJob>();
-        var contractAggregateOptions = options.Value;
-        var gotJobOptions = contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
+        _contractAggregateOptions = options.Value;
+        var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
     }
 

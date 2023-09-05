@@ -59,11 +59,9 @@ public class ContractNodeImportBackgroundServiceTests
             factory.Object,
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),
-            Mock.Of<IFeatureFlags>(),
             Options.Create(new ContractAggregateOptions()),
-            new ContractHealthCheck()
-            Mock.Of<IOptions<FeatureFlagOptions>>())
-        );
+            new ContractHealthCheck(),
+            Mock.Of<IOptions<FeatureFlagOptions>>());
         
         // Act
         var awaitJobsAsync = await importService.GetJobsToAwait();

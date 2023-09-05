@@ -31,9 +31,8 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         IContractRepositoryFactory repositoryFactory,
         IContractNodeClient client,
         IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck)
-        IOptions<FeatureFlagOptions> featureFlagsOptions,
-        IOptions<ContractAggregateOptions> options)
+        ContractHealthCheck healthCheck,
+        IOptions<FeatureFlagOptions> featureFlagsOptions)
     {
         _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
