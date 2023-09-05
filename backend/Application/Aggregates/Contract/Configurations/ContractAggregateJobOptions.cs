@@ -5,7 +5,7 @@ public class ContractAggregateJobOptions
     /// <summary>
     /// Number of tasks which should be used for parallelism. 
     /// </summary>
-    public int NumberOfTask { get; set; } = 5;
+    public int MaxParallelTasks { get; set; } = 5;
     /// <summary>
     /// Each task when processing will load multiple blocks and transaction to avoid databases round trips.
     ///

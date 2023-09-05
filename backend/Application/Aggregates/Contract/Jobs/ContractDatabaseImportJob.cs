@@ -48,8 +48,8 @@ internal class ContractDatabaseImportJob : IContractJob
                     break;
                 }
 
-                var tasks = new Task[_jobOptions.NumberOfTask];
-                for (var i = 0; i < _jobOptions.NumberOfTask; i++)
+                var tasks = new Task[_jobOptions.MaxParallelTasks];
+                for (var i = 0; i < _jobOptions.MaxParallelTasks; i++)
                 {
                     tasks[i] = RunBatch(contractAggregate, finalHeight, token);
                 }
@@ -57,7 +57,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 await Task.WhenAll(tasks);
 
                 // Each task has done one increment which they didn't process.
-                _readCount -= _jobOptions.NumberOfTask;
+                _readCount -= _jobOptions.MaxParallelTasks;
             }
             
             _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
