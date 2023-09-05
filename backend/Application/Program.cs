@@ -81,9 +81,7 @@ builder.Services.AddHostedService<NodeSummaryImportController>();
 builder.Services.AddSingleton<NodeStatusRepository>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorService").Get<NodeCollectorClientSettings>());
 builder.Services.AddScoped<NodeStatusSnapshot>();
-builder.Services.AddHealthChecks()
-    .AddCheck("Live", () => HealthCheckResult.Healthy("Application is running"))
-    .ForwardToPrometheus();
+builder.Services.AddDefaultHealthChecks();
 builder.Services.AddContractAggregate(builder.Configuration);
 
 builder.Host.UseSystemd();
@@ -117,7 +115,7 @@ try
             endpoints.MapGraphQL();
             endpoints.MapMetrics("/system/metrics");
         })
-        .AddDefaultHealthChecks();
+        .AddHealthChecks();
 
     app.Run();    
 }

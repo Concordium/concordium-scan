@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [ main, 'cbw-1248/implementation-smart-contract-aggregate', 'cbw-1249/add-observability' ]
+    branches: [ main ]
 
 jobs:
   build:
