@@ -19,7 +19,6 @@ internal class ContractDatabaseImportJob : IContractJob
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateJobOptions _jobOptions;
-    private readonly ContractAggregateOptions _contractAggregateOptions;
 
     public ContractDatabaseImportJob(
         IContractRepositoryFactory repositoryFactory,
@@ -28,8 +27,8 @@ internal class ContractDatabaseImportJob : IContractJob
     {
         _repositoryFactory = repositoryFactory;
         _logger = Log.ForContext<ContractDatabaseImportJob>();
-        _contractAggregateOptions = options.Value;
-        var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
+        var contractAggregateOptions = options.Value;
+        var gotJobOptions = contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
     }
 
@@ -39,7 +38,6 @@ internal class ContractDatabaseImportJob : IContractJob
     {
         try
         {
-            var contractAggregate = new ContractAggregate(_repositoryFactory, _contractAggregateOptions);
             _readCount = -1;
             
             while (!token.IsCancellationRequested)
@@ -54,7 +52,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 var tasks = new Task[_jobOptions.MaxParallelTasks];
                 for (var i = 0; i < _jobOptions.MaxParallelTasks; i++)
                 {
-                    tasks[i] = RunBatch(contractAggregate, finalHeight, token);
+                    tasks[i] = RunBatch(finalHeight, token);
                 }
 
                 await Task.WhenAll(tasks);
@@ -93,7 +91,7 @@ internal class ContractDatabaseImportJob : IContractJob
     /// Atomically get next batch interval from `_readCount`. If intervals get above <see cref="finalHeight"/> then
     /// processing stops.
     /// </summary>
-    private async Task RunBatch(ContractAggregate contractAggregate, long finalHeight, CancellationToken token)
+    private async Task RunBatch(long finalHeight, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -118,7 +116,7 @@ internal class ContractDatabaseImportJob : IContractJob
         var readHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
         if (readHeights.Count > 0)
         {
-            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifyToRanges(readHeights));   
+            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(readHeights));   
         }
         
         var affectedColumns = heightTo - heightFrom + 1 - (ulong)readHeights.Count;
@@ -175,45 +173,54 @@ internal class ContractDatabaseImportJob : IContractJob
     }
 
     /// <summary>
-    /// Create ranges from input list.
-    ///
-    /// Require list to be sorted from low to high.
+    /// Converts a sorted list of numbers into a list of tuple ranges, where each tuple indicates a
+    /// sequential range in the input list.
+    /// 
+    /// For instance, for the input [1,2,3,5,6,8], the output will be [(1,3),(5,6),(8,8)].
     /// </summary>
-    internal static IList<(ulong, ulong)> PrettifyToRanges(IList<ulong> read)
+    internal static IList<(ulong, ulong)> PrettifySortedListToRanges(IList<ulong> read)
     {
         var intervals = new List<(ulong,ulong)>();
         switch (read.Count)
         {
+            // No interval exist.
             case 0:
                 return intervals;
+            // Only one singular "interval" exist.
             case 1:
                 intervals.Add((read[0], read[0]));
                 return intervals;
         }
 
+        // If difference + 1 between first and last element are equal to lenght then all values are continuous. 
         if (read[^1] - read[0] + 1 == (ulong)read.Count)
         {
             intervals.Add((read[0], read[^1]));
             return intervals;
         }
 
-        var start = read[0];
-        var lastRead = read[0];
+        // Create intervals
+        var firstElementOfRange = read[0];
+        var previousRead = read[0];
         for (var i = 1; i < read.Count; i++)
         {
             var current = read[i];
-            var last = lastRead;
+            var previous = previousRead;
             
-            lastRead = read[i];
-            if (current == last + 1)
+            previousRead = read[i];
+            if (current == previous + 1)
             {
+                // Values are continuous hence we are within interval.
                 continue;
             }
-            intervals.Add((start, last));
-            start = current;
+            // Values not continuous since step between current and previous > 1. Hence add a interval.
+            intervals.Add((firstElementOfRange, previous));
+            // Set start of next interval to current read value.
+            firstElementOfRange = current;
             
         }
-        intervals.Add((start, read[^1]));
+        // Add last interval
+        intervals.Add((firstElementOfRange, read[^1]));
 
         return intervals;
     }
