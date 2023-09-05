@@ -11,6 +11,9 @@ namespace Application.Aggregates.Contract.Jobs;
 
 internal class ContractDatabaseImportJob : IContractJob
 {
+    /// <summary>
+    /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
+    /// </summary>
     private const string JobName = "ContractDatabaseImportJob";
     
     private readonly IContractRepositoryFactory _repositoryFactory;
@@ -69,6 +72,7 @@ internal class ContractDatabaseImportJob : IContractJob
         }
     }
 
+    /// <inheritdoc/>
     public string GetUniqueIdentifier()
     {
         return JobName;
