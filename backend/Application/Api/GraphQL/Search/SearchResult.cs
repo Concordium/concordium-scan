@@ -21,52 +21,6 @@ public class SearchResult
     private readonly string _queryString;
     private readonly long? _queryNumeric;
 
-    /// <summary>
-    /// Try match query with contract regex.
-    /// 
-    /// Only consider query if there is a match.
-    /// </summary>
-    internal static bool TryMatchContractPattern(
-        string? query, out string? pattern)
-    {
-        const char end = '%';
-        const char start = '<';
-        
-        pattern = null;
-        if (query is null)
-        {
-            return false;
-        }
-        
-        var match = ContractAddressRegex.Match(query);
-        if (!match.Success) return false;
-
-        if (!match.Groups[2].Success || string.IsNullOrEmpty(match.Groups[2].Value))
-        {
-            var firstSpan = match.Groups[1].ValueSpan;
-            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 1];
-            patternSpan[0] = start;
-            firstSpan.CopyTo(patternSpan[1..]);
-            patternSpan[^1] = end;
-            pattern = patternSpan.ToString();
-        }
-        else
-        {
-            ReadOnlySpan<char> section = stackalloc char[] { ',', ' ' };
-            var firstSpan = match.Groups[1].ValueSpan;
-            var secondSpan = match.Groups[2].ValueSpan;
-            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + section.Length + secondSpan.Length + 1];
-            patternSpan[0] = start;
-            firstSpan.CopyTo(patternSpan[1..]);
-            section.CopyTo(patternSpan[(1 + firstSpan.Length)..]);
-            secondSpan.CopyTo(patternSpan[(1 + firstSpan.Length + section.Length)..]);
-            patternSpan[^1] = end;
-            pattern = patternSpan.ToString();
-        }
-
-        return true;
-    }
-
     public SearchResult(string query)
     {
         _queryString = query;
@@ -160,5 +114,51 @@ public class SearchResult
     {
         return nodeSummarySnapshot.NodeStatuses
             .Where(x => x.NodeName != null && x.NodeName.Contains(_queryString, StringComparison.InvariantCultureIgnoreCase));
+    }
+    
+    /// <summary>
+    /// Try match query with contract regex.
+    /// 
+    /// Only consider query if there is a match.
+    /// </summary>
+    internal static bool TryMatchContractPattern(
+        string? query, out string? pattern)
+    {
+        const char end = '%';
+        const char start = '<';
+        
+        pattern = null;
+        if (query is null)
+        {
+            return false;
+        }
+        
+        var match = ContractAddressRegex.Match(query);
+        if (!match.Success) return false;
+
+        if (!match.Groups[2].Success || string.IsNullOrEmpty(match.Groups[2].Value))
+        {
+            var firstSpan = match.Groups[1].ValueSpan;
+            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 1];
+            patternSpan[0] = start;
+            firstSpan.CopyTo(patternSpan[1..]);
+            patternSpan[^1] = end;
+            pattern = patternSpan.ToString();
+        }
+        else
+        {
+            ReadOnlySpan<char> section = stackalloc char[] { ',', ' ' };
+            var firstSpan = match.Groups[1].ValueSpan;
+            var secondSpan = match.Groups[2].ValueSpan;
+            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + section.Length + secondSpan.Length + 1];
+            patternSpan[0] = start;
+            firstSpan.CopyTo(patternSpan[1..]);
+            section.CopyTo(patternSpan[(1 + firstSpan.Length)..]);
+            secondSpan.CopyTo(patternSpan[(1 + firstSpan.Length + section.Length)..]);
+            patternSpan[^1] = end;
+            pattern = patternSpan.ToString();
+        }
+
+        return true;
     }
 }
