@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
@@ -16,14 +17,66 @@ public class SearchResult
 {
     private static readonly Regex HashRegex = new("^[a-fA-F0-9]{1,64}$");
     private static readonly Regex AccountAddressRegex = new("^[a-zA-Z0-9]{1,64}$");
+    private static readonly Regex ContractAddressRegex = new Regex(@"^<?(\d{1,20})(?:,(\d{0,20}))?>?$");
     private readonly string _queryString;
     private readonly long? _queryNumeric;
+
+    /// <summary>
+    /// Try match query with contract regex.
+    /// 
+    /// Only consider query if there is a match.
+    /// </summary>
+    internal static bool TryMatchContractPattern(
+        string? query, out ulong? index, out ulong? subIndex)
+    {
+        index = null;
+        subIndex = null;
+        if (query is null)
+        {
+            return false;
+        }
+        
+        var match = ContractAddressRegex.Match(query);
+        if (!match.Success) return false;
+
+        index = ulong.Parse(match.Groups[1].Value);
+        if (match.Groups[2].Success && !string.IsNullOrEmpty(match.Groups[2].Value))
+        {
+            subIndex = ulong.Parse(match.Groups[2].Value);
+        }
+
+        return true;
+    }
 
     public SearchResult(string query)
     {
         _queryString = query;
         var isQueryNumeric = long.TryParse(query, out var queryNumeric);
         _queryNumeric = isQueryNumeric ? queryNumeric : null;
+    }
+
+    [UsePaging]
+    public IQueryable<Contract> GetContracts(GraphQlDbContext context)
+    {
+        if (!TryMatchContractPattern(_queryString, out var index, out var subIndex))
+        {
+            return new List<Contract>().AsQueryable();
+        }
+
+        var contracts = context.Contract
+            .AsNoTracking()
+            .Where(c => c.ContractAddressIndex == index!);
+        if (subIndex is not null)
+        {
+            contracts = contracts
+                .Where(c => c.ContractAddressSubIndex == subIndex);
+        }
+
+        contracts = contracts
+            .OrderByDescending(c => c.ContractAddressIndex)
+            .ThenByDescending(c => c.ContractAddressSubIndex);
+
+        return contracts;
     }
 
     [UseDbContext(typeof(GraphQlDbContext))]

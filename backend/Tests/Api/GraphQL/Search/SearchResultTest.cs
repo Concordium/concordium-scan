@@ -101,6 +101,38 @@ public class SearchResultTest
         result.Length.Should().Be(1);
         result[0].CanonicalAddress.AsString.Should().Be("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
     }
+
+    [Theory]
+    [InlineData("<31,32>", true, 31UL, 32UL)]
+    [InlineData("31,32>", true, 31UL, 32UL)]
+    [InlineData("42,32", true, 42UL, 32UL)]
+    [InlineData("42", true, 42UL, null)]
+    [InlineData("31>", true, 31UL, null)]
+    [InlineData("<42", true, 42UL, null)]
+    [InlineData("42,", true, 42UL, null)]
+    [InlineData("a", false, null, null)]
+    [InlineData("00a", false, null, null)]
+    [InlineData(null, false, null, null)]
+    [InlineData("", false, null, null)]
+    [InlineData("-42,32", false, null, null)]
+    [InlineData("42,-32", false, null, null)]
+    public void WhenMatchContractRegex_ThenReturnGroups(
+        string query,
+        bool expectedDidMatch,
+        ulong? expectedIndex,
+        ulong? expectedSubIndex)
+    {
+        // Act
+        var searchResult = SearchResult.TryMatchContractPattern(
+            query,
+            out var actualIndex,
+            out var actualSubIndex);
+        
+        // Assert
+        searchResult.Should().Be(expectedDidMatch);
+        actualIndex.Should().Be(expectedIndex);
+        actualSubIndex.Should().Be(expectedSubIndex);
+    }
     
     private async Task AddBlock(params Block[] entities)
     {
