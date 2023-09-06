@@ -103,35 +103,35 @@ public class SearchResultTest
     }
 
     [Theory]
-    [InlineData("<31,32>", true, 31UL, 32UL)]
-    [InlineData("31,32>", true, 31UL, 32UL)]
-    [InlineData("42,32", true, 42UL, 32UL)]
-    [InlineData("42", true, 42UL, null)]
-    [InlineData("31>", true, 31UL, null)]
-    [InlineData("<42", true, 42UL, null)]
-    [InlineData("42,", true, 42UL, null)]
-    [InlineData("a", false, null, null)]
-    [InlineData("00a", false, null, null)]
-    [InlineData(null, false, null, null)]
-    [InlineData("", false, null, null)]
-    [InlineData("-42,32", false, null, null)]
-    [InlineData("42,-32", false, null, null)]
+    [InlineData("<31,32>", true, "<31, 32%")]
+    [InlineData("31,32>", true, "<31, 32%")]
+    [InlineData("42,32", true, "<42, 32%")]
+    [InlineData("<31, 32>", true, "<31, 32%")]
+    [InlineData("31, 32>", true, "<31, 32%")]
+    [InlineData("42, 32", true, "<42, 32%")]
+    [InlineData("42", true, "<42%")]
+    [InlineData("31>", true, "<31%")]
+    [InlineData("<42", true, "<42%")]
+    [InlineData("42,", true, "<42%")]
+    [InlineData("a", false, null)]
+    [InlineData("00a", false, null)]
+    [InlineData(null, false, null)]
+    [InlineData("", false, null)]
+    [InlineData("-42,32", false, null)]
+    [InlineData("42,-32", false, null)]
     public void WhenMatchContractRegex_ThenReturnGroups(
         string query,
         bool expectedDidMatch,
-        ulong? expectedIndex,
-        ulong? expectedSubIndex)
+        string expectedAddress)
     {
         // Act
         var searchResult = SearchResult.TryMatchContractPattern(
             query,
-            out var actualIndex,
-            out var actualSubIndex);
+            out var actualAddress);
         
         // Assert
         searchResult.Should().Be(expectedDidMatch);
-        actualIndex.Should().Be(expectedIndex);
-        actualSubIndex.Should().Be(expectedSubIndex);
+        actualAddress.Should().Be(expectedAddress);
     }
     
     private async Task AddBlock(params Block[] entities)

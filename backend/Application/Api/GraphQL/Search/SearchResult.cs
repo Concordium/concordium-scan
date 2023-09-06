@@ -17,7 +17,7 @@ public class SearchResult
 {
     private static readonly Regex HashRegex = new("^[a-fA-F0-9]{1,64}$");
     private static readonly Regex AccountAddressRegex = new("^[a-zA-Z0-9]{1,64}$");
-    private static readonly Regex ContractAddressRegex = new Regex(@"^<?(\d{1,20})(?:,(\d{0,20}))?>?$");
+    private static readonly Regex ContractAddressRegex = new Regex(@"^<?(\d{1,20})(?:,\s?(\d{0,20}))?>?$");
     private readonly string _queryString;
     private readonly long? _queryNumeric;
 
@@ -27,10 +27,12 @@ public class SearchResult
     /// Only consider query if there is a match.
     /// </summary>
     internal static bool TryMatchContractPattern(
-        string? query, out ulong? index, out ulong? subIndex)
+        string? query, out string? pattern)
     {
-        index = null;
-        subIndex = null;
+        const char end = '%';
+        const char start = '<';
+        
+        pattern = null;
         if (query is null)
         {
             return false;
@@ -39,10 +41,27 @@ public class SearchResult
         var match = ContractAddressRegex.Match(query);
         if (!match.Success) return false;
 
-        index = ulong.Parse(match.Groups[1].Value);
-        if (match.Groups[2].Success && !string.IsNullOrEmpty(match.Groups[2].Value))
+        if (!match.Groups[2].Success || string.IsNullOrEmpty(match.Groups[2].Value))
         {
-            subIndex = ulong.Parse(match.Groups[2].Value);
+            var firstSpan = match.Groups[1].ValueSpan;
+            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 1];
+            patternSpan[0] = start;
+            firstSpan.CopyTo(patternSpan[1..]);
+            patternSpan[^1] = end;
+            pattern = patternSpan.ToString();
+        }
+        else
+        {
+            ReadOnlySpan<char> section = stackalloc char[] { ',', ' ' };
+            var firstSpan = match.Groups[1].ValueSpan;
+            var secondSpan = match.Groups[2].ValueSpan;
+            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + section.Length + secondSpan.Length + 1];
+            patternSpan[0] = start;
+            firstSpan.CopyTo(patternSpan[1..]);
+            section.CopyTo(patternSpan[(1 + firstSpan.Length)..]);
+            secondSpan.CopyTo(patternSpan[(1 + firstSpan.Length + section.Length)..]);
+            patternSpan[^1] = end;
+            pattern = patternSpan.ToString();
         }
 
         return true;
@@ -58,25 +77,16 @@ public class SearchResult
     [UsePaging]
     public IQueryable<Contract> GetContracts(GraphQlDbContext context)
     {
-        if (!TryMatchContractPattern(_queryString, out var index, out var subIndex))
+        if (!TryMatchContractPattern(_queryString, out var pattern))
         {
             return new List<Contract>().AsQueryable();
         }
-
-        var contracts = context.Contract
+        
+        return context.Contract
             .AsNoTracking()
-            .Where(c => c.ContractAddressIndex == index!);
-        if (subIndex is not null)
-        {
-            contracts = contracts
-                .Where(c => c.ContractAddressSubIndex == subIndex);
-        }
-
-        contracts = contracts
+            .Where(c => EF.Functions.Like(c.ContractAddress, pattern!))
             .OrderByDescending(c => c.ContractAddressIndex)
             .ThenByDescending(c => c.ContractAddressSubIndex);
-
-        return contracts;
     }
 
     [UseDbContext(typeof(GraphQlDbContext))]

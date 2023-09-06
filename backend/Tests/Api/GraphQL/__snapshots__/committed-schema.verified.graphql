@@ -717,11 +717,11 @@ type Contract {
   eventIndex: UnsignedInt!
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
+  contractAddress: String!
   creator: AccountAddress!
   source: ImportSource!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
-  contractAddress: ContractAddress!
   amount: Float!
 }
 

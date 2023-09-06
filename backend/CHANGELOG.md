@@ -1,11 +1,12 @@
 ## Unreleased changes
-- Added feature which fetched Smart Contract data from node and store as events.
+- Added feature which fetched Contract data from node and store as events.
 - Added Prometheus metrics
     - Durations of imports, count of relevant processed transaction events and retry counts.
     - Duration of GraphQL endpoints
 - Added health checks, where application goes into degraded state if some job stops running. These health checks are now making endpoint `rest/health` redundant and it is removed.
 - Added GraphQL endpoints
-    - Smart Contract listing with pagination
+    - Contract listing with pagination
+- Extended search functionality to include contracts.
 - Updated
     - `HotChocolate` nuget libraries from major `12` to `13`. Because of this done some migration changes like adding `RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)` 
     to GraphQL schema configuration *(migration documentation located at: https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13)*.

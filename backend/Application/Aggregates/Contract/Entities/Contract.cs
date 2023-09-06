@@ -22,6 +22,7 @@ public sealed class Contract
     public uint EventIndex { get; init; }
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
+    public string ContractAddress { get; init; } = null!;
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
@@ -49,6 +50,7 @@ public sealed class Contract
         Creator = creator;
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
+        ContractAddress = contractAddress.AsString;
         Source = source;
     }
     
@@ -72,9 +74,6 @@ public sealed class Contract
     [ExtendObjectType(typeof(Contract))]
     public sealed class ContractExtensions
     {
-        public ContractAddress GetContractAddress([Parent] Contract contract) => 
-            new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
-
         /// <summary>
         /// Returns aggregated amount from events on contract.
         /// </summary>

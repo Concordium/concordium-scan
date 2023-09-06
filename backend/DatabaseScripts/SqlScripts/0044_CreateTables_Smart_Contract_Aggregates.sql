@@ -9,6 +9,7 @@ create table graphql_contracts
     event_index                 bigint        not null,
     contract_address_index      bigint        not null,
     contract_address_sub_index  bigint        not null,
+    contract_address            text          not null,
     creator                     text          not null,
     source                      int           not null,    
     created_at                  TIMESTAMPTZ   not null,
