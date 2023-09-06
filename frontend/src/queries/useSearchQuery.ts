@@ -1,6 +1,7 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { Ref } from 'vue'
 import type {
+	Contract,
 	Account,
 	PageInfo,
 	Block,
@@ -10,6 +11,7 @@ import type {
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
+		contracts: { nodes: Contract[]; pageInfo: PageInfo }
 		blocks: { nodes: Block[]; pageInfo: PageInfo }
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
@@ -24,6 +26,17 @@ type SearchResponse = {
 const SearchQuery = gql<SearchResponse>`
 	query Search($query: String!) {
 		search(query: $query) {
+			contracts(first: 3) {
+				nodes {
+					contractAddress
+					creator {
+						asString
+					}
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
 			blocks(first: 3) {
 				nodes {
 					id

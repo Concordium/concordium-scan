@@ -17,10 +17,7 @@ const Query = gql<ContractListResponse>`
 				node {
 					amount
 					transactionHash
-					contractAddress {
-						__typename
-						asString
-					}
+					contractAddress
 					creator {
 						__typename
 						asString

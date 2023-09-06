@@ -1003,7 +1003,7 @@ export type Contract = {
   __typename?: 'Contract';
   amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
-  contractAddress: ContractAddress;
+  contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents: Array<ContractEvent>;
@@ -2373,6 +2373,7 @@ export type SearchResult = {
   accounts?: Maybe<AccountsConnection>;
   bakers?: Maybe<BakersConnection>;
   blocks?: Maybe<BlocksConnection>;
+  contracts?: Maybe<ContractsConnection>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   transactions?: Maybe<TransactionsConnection>;
 };
@@ -2395,6 +2396,14 @@ export type SearchResultBakersArgs = {
 
 
 export type SearchResultBlocksArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultContractsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
