@@ -19,6 +19,7 @@ const ContractQuery = gql`
 			}
 			amount
 			contractEvents {
+				transactionHash
 				event {
 					__typename
 					... on ContractInitialized {
@@ -67,6 +68,11 @@ const ContractQuery = gql`
 					}
 					... on ContractUpgraded {
 						__typename
+						contractAddress {
+							__typename
+							index
+							subIndex
+						}
 						fromModule: from
 						toModule: to
 					}

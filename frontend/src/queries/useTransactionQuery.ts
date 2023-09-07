@@ -94,6 +94,16 @@ __typename
 		subIndex
 	}
 }
+... on ContractUpgraded {
+	__typename
+	contractAddress {
+		__typename
+		index
+		subIndex
+	}						
+	fromModule: from
+	toModule: to
+}
 ... on CredentialKeysUpdated {
 	credId
 }
