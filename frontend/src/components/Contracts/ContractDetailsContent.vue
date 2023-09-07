@@ -5,7 +5,7 @@
 			<div class="grid gap-8 md:grid-cols-1 mb-4">
 				<ContractDetailsAmounts :contract="contract" />
 			</div>
-			<Accordion>
+			<Accordion :is-initial-open="true">
 				Events
 				<span class="numerical text-theme-faded"
 					>({{ contract.contractEvents.length }})</span

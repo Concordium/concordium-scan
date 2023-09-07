@@ -5,12 +5,16 @@
 				<TableRow>
 					<TableTh>Transaction Hash</TableTh>
 					<TableTh>Type</TableTh>
+					<TableTh>Details</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
 				<TableRow v-for="contractEvent in contractEvents" :key="contractEvent">
 					<TableTd class="numerical">
 						<TransactionLink :hash="contractEvent.transactionHash" />
+					</TableTd>
+					<TableTd>
+						{{ contractEvent.event.__typename }}
 					</TableTd>
 					<TableTd>
 						<ContractInitialized
