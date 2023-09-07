@@ -5,7 +5,7 @@
 			class="h-5 inline align-text-top mr-3"
 		/>
 		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
-		<LinkButton class="numerical px-2">
+		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ props.address }}
 			</div>
@@ -24,14 +24,33 @@
 
 <script lang="ts" setup>
 import { UserIcon } from '@heroicons/vue/solid'
-import LinkButton from '../atoms/LinkButton.vue'
+import { useDrawer } from '~/composables/useDrawer'
+import LinkButton from '~/components/atoms/LinkButton.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
 	address?: string | null
+	contractAddressIndex?: number | null
+	contractAddressSubIndex?: number | null
 	iconSize?: string
 	hideTooltip?: boolean
 }
 const props = defineProps<Props>()
+const drawer = useDrawer()
+const emit = defineEmits(['blur'])
+const emitBlur = (newTarget: FocusEvent) => {
+	emit('blur', newTarget)
+}
+
+const handleOnClick = () => {
+	props.contractAddressIndex &&
+		props.contractAddressSubIndex !== null &&
+		props.contractAddressSubIndex !== undefined &&
+		drawer.push({
+			entityTypeName: 'contract',
+			contractAddressIndex: props.contractAddressIndex,
+			contractAddressSubIndex: props.contractAddressSubIndex,
+		})
+}
 </script>

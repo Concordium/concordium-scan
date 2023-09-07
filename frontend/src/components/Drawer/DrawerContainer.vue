@@ -40,6 +40,12 @@
 							:id="drawerItem.id"
 							:address="drawerItem.address"
 						/>
+						<ContractDetailsContainer
+							v-else-if="drawerItem && drawerItem.entityTypeName === 'contract'"
+							:id="drawerItem.contractAddressIndex"
+							:contract-address-index="drawerItem.contractAddressIndex"
+							:contract-address-sub-index="drawerItem.contractAddressSubIndex"
+						/>
 						<BakerDetailsContainer
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'baker'"
 							:baker-id="drawerItem.bakerId"
@@ -77,6 +83,7 @@ import BlockDetailsContainer from '~/components/BlockDetails/BlockDetailsContain
 import BakerDetailsContainer from '~/components/BakerDetails/BakerDetailsContainer.vue'
 import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDelegationContainer.vue'
 import NodeDetailsContainer from '~/components/NodeDetails/NodeDetailsContainer.vue'
+import ContractDetailsContainer from '~/components/Contracts/ContractDetailsContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()

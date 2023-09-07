@@ -5,9 +5,11 @@
 			<TableHead>
 				<TableRow>
 					<TableTh>Address</TableTh>
-					<TableTh>Creator</TableTh>
-					<TableTh>Initial Transaction</TableTh>
-					<TableTh>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh>
+					<TableTh align="right">Creator</TableTh>
+					<TableTh align="right">Initial Transaction</TableTh>
+					<TableTh align="right"
+						>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh
+					>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -16,7 +18,13 @@
 					:key="contract.node.contractAddress"
 				>
 					<TableTd>
-						<ContractLink :address="contract.node.contractAddress" />
+						<ContractLink
+							:address="contract.node.contractAddress"
+							:contract-address-index="contract.node.contractAddressIndex"
+							:contract-address-sub-index="
+								contract.node.contractAddressSubIndex
+							"
+						/>
 					</TableTd>
 					<TableTd class="text-right">
 						<AccountLink :address="contract.node.creator.asString" />
@@ -39,15 +47,12 @@
 </template>
 
 <script lang="ts" setup>
-import { useDateNow } from '~/composables/useDateNow'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Pagination from '~/components/Pagination.vue'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import { useContractsListQuery } from '~~/src/queries/useContractsListQuery'
 
-const { NOW } = useDateNow()
-const { first, last, after, before, goToPage, resetPagination } =
-	usePagination()
+const { first, last, after, before, goToPage } = usePagination()
 const { data } = useContractsListQuery({ first, last, after, before })
 </script>

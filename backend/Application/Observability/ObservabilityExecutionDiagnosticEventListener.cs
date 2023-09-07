@@ -48,6 +48,9 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         return durationMetric;
     }
 
+    /// <summary>
+    /// Used ex. when client refresh browser.
+    /// </summary>
     public override void RequestError(IRequestContext context, Exception exception)
     {
         if (context.ContextData.TryGetValue(
@@ -123,6 +126,7 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         {
             // Don't log when users cancel queries
             OperationCanceledException => false,
+            ObjectDisposedException => false,
             _ => true,
         };
     }

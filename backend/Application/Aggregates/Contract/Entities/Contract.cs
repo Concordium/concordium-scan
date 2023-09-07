@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
@@ -57,6 +58,15 @@ public sealed class Contract
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
+        public Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
+        {
+            return context.Contract
+                .AsNoTracking()
+                .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
+                .Include(c => c.ContractEvents)
+                .SingleOrDefaultAsync();
+        }
+        
         [UsePaging]
         public IQueryable<Contract> GetContracts(
             GraphQlDbContext context)

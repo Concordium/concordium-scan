@@ -29,6 +29,8 @@ const SearchQuery = gql<SearchResponse>`
 			contracts(first: 3) {
 				nodes {
 					contractAddress
+					contractAddressIndex
+					contractAddressSubIndex
 					creator {
 						asString
 					}
