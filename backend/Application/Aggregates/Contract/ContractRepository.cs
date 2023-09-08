@@ -12,8 +12,14 @@ namespace Application.Aggregates.Contract;
 public interface IContractRepository : IAsyncDisposable
 {
     /// <summary>
+    /// From block <see cref="heightFrom"/> to block <see cref="heightTo"/> all transaction rejected events
+    /// will be returned which is related to contract or module entities.
+    /// </summary>
+    public Task<IList<TransactionRejectEventDto>>
+        FromBlockHeightRangeGetContractRelatedRejections(ulong heightFrom, ulong heightTo);
+    /// <summary>
     /// From block <see cref="heightFrom"/> to block <see cref="heightTo"/> all transaction result event
-    /// related to smart contract will be returned.
+    /// related to contracts will be returned.
     /// </summary>
     Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(ulong heightFrom, ulong heightTo);
     /// <summary>
@@ -53,6 +59,37 @@ internal sealed class ContractRepository : IContractRepository
     public ContractRepository(GraphQlDbContext context)
     {
         _context = context;
+    }
+
+    /// <summary>
+    /// <see cref="Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
+    ///
+    /// From <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionRejectReasonConverter"/> there is a mapping between
+    /// `tag` in column `reject_reason` and a transaction.
+    /// </summary>
+    public async Task<IList<TransactionRejectEventDto>>
+        FromBlockHeightRangeGetContractRelatedRejections(ulong heightFrom, ulong heightTo)
+    {
+        const string sql = @"
+SELECT
+    gb.block_height as BlockHeight,
+    gb.block_slot_time as BlockSlotTime,
+    gt.transaction_type as TransactionType,
+    gt.sender as TransactionSender,
+    gt.transaction_hash as TransactionHash,
+    gt.index as TransactionIndex,
+    gt.reject_reason as RejectedEvent
+FROM
+    graphql_transactions gt
+        JOIN
+    graphql_blocks gb ON gt.block_id = gb.id
+WHERE
+        gb.block_height >= @FromHeight AND gb.block_height <= @ToHeight
+  AND gt.reject_reason is not null and gt.reject_reason->>'tag' IN ('2', '4', '5', '13');
+";
+        var queryAsync = await _context.Database.GetDbConnection()
+            .QueryAsync<TransactionRejectEventDto>(sql, new { FromHeight = (long)heightFrom, ToHeight = (long)heightTo });
+        return queryAsync.ToList();        
     }
 
     /// <summary>

@@ -1,20 +1,20 @@
 using Application.Aggregates.Contract.Entities;
-using Application.Api.GraphQL.EfCore.Converters.EfCore;
+using Application.Api.GraphQL.EfCore.Converters.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using AccountAddressConverter = Application.Api.GraphQL.EfCore.Converters.EfCore.AccountAddressConverter;
 
 namespace Application.Aggregates.Contract.Configurations;
 
-public sealed class ContractEventEntityTypeConfigurations : IEntityTypeConfiguration<ContractEvent>
+public sealed class ContractRejectEventEntityTypeConfigurations : IEntityTypeConfiguration<ContractRejectEvent>
 {
-    public void Configure(EntityTypeBuilder<ContractEvent> builder)
+    public void Configure(EntityTypeBuilder<ContractRejectEvent> builder)
     {
-        builder.ToTable("graphql_contract_events");
+        builder.ToTable("graphql_contract_reject_events");
         builder.HasKey(x => new
         {
             x.BlockHeight, 
             x.TransactionIndex,
-            x.EventIndex,
             x.ContractAddressIndex,
             x.ContractAddressSubIndex
         });
@@ -24,8 +24,6 @@ public sealed class ContractEventEntityTypeConfigurations : IEntityTypeConfigura
             .HasColumnName("transaction_hash");
         builder.Property(x => x.TransactionIndex)
             .HasColumnName("transaction_index");
-        builder.Property(x => x.EventIndex)
-            .HasColumnName("event_index");
         builder.Property(x => x.ContractAddressIndex)
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
@@ -33,10 +31,10 @@ public sealed class ContractEventEntityTypeConfigurations : IEntityTypeConfigura
         builder.Property(x => x.Sender)
             .HasColumnName("sender")
             .HasConversion<AccountAddressConverter>();        
-        builder.Property(x => x.Event)
-            .HasColumnName("event")
+        builder.Property(x => x.RejectedEvent)
+            .HasColumnName("reject_event")
             .HasColumnType("json")
-            .HasConversion<TransactionResultEventToJsonConverter>();
+            .HasConversion<TransactionRejectReasonConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
         builder.Property(x => x.BlockSlotTime)
