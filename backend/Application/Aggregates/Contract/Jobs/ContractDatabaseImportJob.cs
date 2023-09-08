@@ -134,7 +134,7 @@ internal class ContractDatabaseImportJob : IContractJob
         var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
         if (affectedRows == 0) return;
-        _logger.Debug("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
+        _logger.Information("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
     }
 
     private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
