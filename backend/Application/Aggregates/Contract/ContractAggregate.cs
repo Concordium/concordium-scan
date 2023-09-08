@@ -107,6 +107,7 @@ internal sealed class ContractAggregate
                     transactionResultEvent,
                     AccountAddress.From(details.Sender),
                     blockInfo.BlockHeight,
+                    blockInfo.BlockSlotTime,
                     transactionHash,
                     blockItemSummary.Index,
                     eventIndex
@@ -149,6 +150,7 @@ internal sealed class ContractAggregate
         TransactionResultEvent transactionResultEvent,
         AccountAddress sender,
         ulong blockHeight, 
+        DateTimeOffset blockSlotTime,
         string transactionHash,
         ulong transactionIndex,
         uint eventIndex
@@ -164,7 +166,8 @@ internal sealed class ContractAggregate
                     eventIndex,
                     contractInitialized.ContractAddress,
                     sender,
-                    source
+                    source,
+                    blockSlotTime
                 ));
                 await repository
                     .AddAsync(new ContractEvent(
@@ -174,7 +177,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInitialized.ContractAddress,
                         contractInitialized,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -185,7 +189,8 @@ internal sealed class ContractAggregate
                         contractInitialized.ModuleRef,
                         contractInitialized.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
+                        blockSlotTime
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
@@ -197,7 +202,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInterrupted.ContractAddress,
                         contractInterrupted,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
             case ContractResumed contractResumed:
@@ -209,7 +215,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractResumed.ContractAddress,
                         contractResumed,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
             case ContractUpdated contractUpdated:
@@ -221,8 +228,9 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpdated.ContractAddress,
                         contractUpdated,
-                        source
-                    ));
+                        source,
+                        blockSlotTime
+                        ));
                 if (contractUpdated.Instigator is ContractAddress contractInstigator && contractUpdated.Amount != 0)
                 {
                     await repository
@@ -237,7 +245,8 @@ internal sealed class ContractAggregate
                                 contractInstigator,
                                 contractUpdated.ContractAddress
                             ),
-                            source
+                            source,
+                            blockSlotTime
                         ));
                 }
                 break;
@@ -250,7 +259,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.ContractAddress,
                         contractUpgraded,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -261,7 +271,8 @@ internal sealed class ContractAggregate
                         contractUpgraded.To,
                         contractUpgraded.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -272,7 +283,8 @@ internal sealed class ContractAggregate
                         contractUpgraded.From,
                         contractUpgraded.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed,
+                        blockSlotTime
                     ));
                 break;
             case Transferred transferred:
@@ -286,7 +298,8 @@ internal sealed class ContractAggregate
                             eventIndex,
                             contractAddressFrom,
                             transferred,
-                            source
+                            source,
+                            blockSlotTime
                         ));
                 }
                 if (transferred.To is ContractAddress contractAddressTo)
@@ -299,7 +312,8 @@ internal sealed class ContractAggregate
                             eventIndex,
                             contractAddressTo,
                             transferred,
-                            source
+                            source,
+                            blockSlotTime
                         ));
                 }
                 break;
@@ -311,7 +325,8 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractModuleDeployed.ModuleRef,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
         }

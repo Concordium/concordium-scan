@@ -25,6 +25,8 @@ public sealed class ModuleReferenceEventEntityTypeConfigurations : IEntityTypeCo
             .HasColumnName("module_reference");
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");        
     }

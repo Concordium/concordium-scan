@@ -17,6 +17,7 @@ public sealed class ContractEvent
     public ulong ContractAddressSubIndex { get; init; }
     public TransactionResultEvent Event { get; init; } = null!;
     public ImportSource Source { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>
@@ -32,7 +33,8 @@ public sealed class ContractEvent
         uint eventIndex,
         ContractAddress contractAddress,
         TransactionResultEvent @event,
-        ImportSource source)
+        ImportSource source,
+        DateTimeOffset blockSlotTime)
     {
         BlockHeight = blockHeight;
         TransactionHash = transactionHash;
@@ -42,5 +44,6 @@ public sealed class ContractEvent
         ContractAddressSubIndex = contractAddress.SubIndex;
         Event = @event;
         Source = source;
+        BlockSlotTime = blockSlotTime;
     }
 }

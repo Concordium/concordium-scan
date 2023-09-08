@@ -36,6 +36,8 @@ public sealed class ContractEventEntityTypeConfigurations : IEntityTypeConfigura
             .HasConversion<TransactionResultEventToJsonConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");
     }

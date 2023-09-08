@@ -67,6 +67,7 @@ internal sealed class ContractRepository : IContractRepository
         const string sql = @"
 SELECT
     gb.block_height as BlockHeight,
+    gb.block_slot_time as BlockSlotTime,
     gt.transaction_type as TransactionType,
     gt.sender as TransactionSender,
     gt.transaction_hash as TransactionHash,

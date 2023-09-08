@@ -9,6 +9,7 @@ namespace Application.Aggregates.Contract.Dto;
 public class TransactionResultEventDto
 {
     public int BlockHeight { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public TransactionTypeUnion TransactionType { get; init; }
     public AccountAddress? TransactionSender { get; init; }
     public string TransactionHash { get; init; }

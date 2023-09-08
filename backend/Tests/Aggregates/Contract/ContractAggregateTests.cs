@@ -43,6 +43,7 @@ public sealed class ContractAggregateTests
             transfer,
             new AccountAddress(""),
             1UL,
+            DateTimeOffset.Now,
             "",
             1UL,
             1U);
@@ -77,6 +78,7 @@ public sealed class ContractAggregateTests
             transfer,
             new AccountAddress(""),
             1UL,
+            DateTimeOffset.Now,
             "",
             1UL,
             1U);
@@ -119,6 +121,7 @@ public sealed class ContractAggregateTests
             contractUpdated,
             new AccountAddress(""),
             1UL,
+            DateTimeOffset.Now,
             "",
             1UL,
             1U);
@@ -158,6 +161,7 @@ public sealed class ContractAggregateTests
             contractUpdated,
             new AccountAddress(""),
             1UL,
+            DateTimeOffset.Now,
             "",
             1UL,
             1U);
