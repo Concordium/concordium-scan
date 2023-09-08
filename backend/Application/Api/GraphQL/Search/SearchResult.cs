@@ -126,6 +126,7 @@ public class SearchResult
     {
         const char end = '%';
         const char start = '<';
+        const char comma = ',';
         
         pattern = null;
         if (query is null)
@@ -136,27 +137,46 @@ public class SearchResult
         var match = ContractAddressRegex.Match(query);
         if (!match.Success) return false;
 
-        if (!match.Groups[2].Success || string.IsNullOrEmpty(match.Groups[2].Value))
+        switch (match.Groups[2].Success)
         {
-            var firstSpan = match.Groups[1].ValueSpan;
-            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 1];
-            patternSpan[0] = start;
-            firstSpan.CopyTo(patternSpan[1..]);
-            patternSpan[^1] = end;
-            pattern = patternSpan.ToString();
-        }
-        else
-        {
-            ReadOnlySpan<char> section = stackalloc char[] { ',', ' ' };
-            var firstSpan = match.Groups[1].ValueSpan;
-            var secondSpan = match.Groups[2].ValueSpan;
-            Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + section.Length + secondSpan.Length + 1];
-            patternSpan[0] = start;
-            firstSpan.CopyTo(patternSpan[1..]);
-            section.CopyTo(patternSpan[(1 + firstSpan.Length)..]);
-            secondSpan.CopyTo(patternSpan[(1 + firstSpan.Length + section.Length)..]);
-            patternSpan[^1] = end;
-            pattern = patternSpan.ToString();
+            // The query ends in a comma or comma + space
+            case true when string.IsNullOrEmpty(match.Groups[2].Value):
+            {
+                var firstSpan = match.Groups[1].ValueSpan;
+                Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 2];
+                patternSpan[0] = start;
+                firstSpan.CopyTo(patternSpan[1..]);
+                patternSpan[^2] = comma;
+                patternSpan[^1] = end;
+                pattern = patternSpan.ToString();
+                break;
+            }
+            // The query only match index part
+            case false:
+            {
+                var firstSpan = match.Groups[1].ValueSpan;
+                Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + 1];
+                patternSpan[0] = start;
+                firstSpan.CopyTo(patternSpan[1..]);
+                patternSpan[^1] = end;
+                pattern = patternSpan.ToString();
+                break;
+            }
+            // The query contains both a index, comma and sub index part
+            default:
+            {
+                ReadOnlySpan<char> section = stackalloc char[] { ',', ' ' };
+                var firstSpan = match.Groups[1].ValueSpan;
+                var secondSpan = match.Groups[2].ValueSpan;
+                Span<char> patternSpan = stackalloc char[1 + firstSpan.Length + section.Length + secondSpan.Length + 1];
+                patternSpan[0] = start;
+                firstSpan.CopyTo(patternSpan[1..]);
+                section.CopyTo(patternSpan[(1 + firstSpan.Length)..]);
+                secondSpan.CopyTo(patternSpan[(1 + firstSpan.Length + section.Length)..]);
+                patternSpan[^1] = end;
+                pattern = patternSpan.ToString();
+                break;
+            }
         }
 
         return true;
