@@ -81,7 +81,7 @@ FROM
     graphql_blocks gb ON gt.block_id = gb.id
 WHERE
         gb.block_height >= @FromHeight AND gb.block_height <= @ToHeight
-  AND te.event->>'tag' IN ('1', '16', '18', '17', '34', '35', '36');
+  AND te.event->>'tag' IN ('1', '16', '17', '18', '34', '35', '36');
 ";
         var queryAsync = await _context.Database.GetDbConnection()
             .QueryAsync<TransactionResultEventDto>(sql, new { FromHeight = (long)heightFrom, ToHeight = (long)heightTo });

@@ -223,6 +223,23 @@ internal sealed class ContractAggregate
                         contractUpdated,
                         source
                     ));
+                if (contractUpdated.Instigator is ContractAddress contractInstigator && contractUpdated.Amount != 0)
+                {
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractInstigator,
+                            new Transferred(
+                                contractUpdated.Amount,
+                                contractInstigator,
+                                contractUpdated.ContractAddress
+                            ),
+                            source
+                        ));
+                }
                 break;
             case ContractUpgraded contractUpgraded:
                 await repository
@@ -259,21 +276,32 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case Transferred transferred:
-                if (transferred.From is not ContractAddress contractAddress ||
-                    transferred.To is not AccountAddress)
+                if (transferred.From is ContractAddress contractAddressFrom)
                 {
-                    break;
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractAddressFrom,
+                            transferred,
+                            source
+                        ));
                 }
-                await repository
-                    .AddAsync(new ContractEvent(
-                        blockHeight,
-                        transactionHash,
-                        transactionIndex,
-                        eventIndex,
-                        contractAddress,
-                        transferred,
-                        source
-                    ));
+                if (transferred.To is ContractAddress contractAddressTo)
+                {
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractAddressTo,
+                            transferred,
+                            source
+                        ));
+                }
                 break;
             case ContractModuleDeployed contractModuleDeployed:
                 await repository
