@@ -1,5 +1,5 @@
 using Application.Aggregates.Contract.Entities;
-using Application.Api.GraphQL.EfCore.Converters.Json;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AccountAddressConverter = Application.Api.GraphQL.EfCore.Converters.EfCore.AccountAddressConverter;
@@ -34,7 +34,7 @@ public sealed class ContractRejectEventEntityTypeConfigurations : IEntityTypeCon
         builder.Property(x => x.RejectedEvent)
             .HasColumnName("reject_event")
             .HasColumnType("json")
-            .HasConversion<TransactionRejectReasonConverter>();
+            .HasConversion<TransactionRejectReasonToJsonConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
         builder.Property(x => x.BlockSlotTime)

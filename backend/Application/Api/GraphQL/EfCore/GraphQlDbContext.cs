@@ -45,8 +45,10 @@ public class GraphQlDbContext : DbContext
     public DbSet<PoolPaydayStakes> PoolPaydayStakes { get; private set; }
     public DbSet<Contract> Contract { get; private set; }
     public DbSet<ContractEvent> ContractEvents { get; private set; }
+    public DbSet<ContractRejectEvent> ContractRejectEvents { get; private set; }
     public DbSet<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; private set; }
     public DbSet<ModuleReferenceEvent> ModuleReferenceEvents { get; private set; }
+    public DbSet<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; private set; }
     public DbSet<ContractReadHeight> ContractReadHeights { get; private set; }
     public DbSet<ContractJob> ContractJobs { get; private set; }
 

@@ -62,28 +62,6 @@ create table graphql_contract_reject_events
         )
 );
 
-create table graphql_contract_events
-(
-    block_height                bigint        not null,
-    transaction_hash            text          not null,
-    transaction_index           bigint        not null,
-    event_index                 bigint        not null,
-    contract_address_index      bigint        not null,
-    contract_address_sub_index  bigint        not null,
-    sender                      text          not null,    
-    event                       json          not null,
-    source                      int           not null,
-    block_slot_time             TIMESTAMPTZ   not null,
-    created_at                  TIMESTAMPTZ   not null,
-    PRIMARY KEY (
-                 block_height,
-                 transaction_index,
-                 event_index,
-                 contract_address_index,
-                 contract_address_sub_index
-        )
-);
-
 create table graphql_module_reference_events
 (
     block_height                bigint        not null,

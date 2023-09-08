@@ -54,11 +54,6 @@ public sealed class ContractRepositoryTests
     public async Task WhenFromBlockHeightRangeGetContractRelatedRejections_ThenRelatedRejectedEvents()
     {
         // Arrange
-        // await DatabaseFixture.TruncateTables("graphql_contracts");
-        // await DatabaseFixture.TruncateTables("graphql_contract_events");
-        // await DatabaseFixture.TruncateTables("graphql_module_reference_events");
-        // await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
-        // await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await DatabaseFixture.TruncateTables("graphql_blocks");
         await DatabaseFixture.TruncateTables("graphql_transactions");
         var blockIds = await InsertFiveBlocks();
