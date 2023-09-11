@@ -19,6 +19,7 @@ public class ContractReadHeightTests
     public async Task GivenTwoEntitiesWithSameHeight_WhenSave_ThenFailDueToUniquenessConstrain()
     {
         // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         var first = new ContractReadHeight(1, ImportSource.DatabaseImport);
         var second = new ContractReadHeight(1, ImportSource.NodeImport);
 

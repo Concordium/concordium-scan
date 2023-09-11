@@ -2,16 +2,19 @@ using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using AccountAddressConverter = Application.Api.GraphQL.EfCore.Converters.EfCore.AccountAddressConverter;
 
 namespace Application.Aggregates.Contract.Configurations;
 
-public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<Entities.Contract>
+public sealed class ContractRejectEventEntityTypeConfigurations : IEntityTypeConfiguration<ContractRejectEvent>
 {
-    public void Configure(EntityTypeBuilder<Entities.Contract> builder)
+    public void Configure(EntityTypeBuilder<ContractRejectEvent> builder)
     {
-        builder.ToTable("graphql_contracts");
+        builder.ToTable("graphql_contract_reject_events");
         builder.HasKey(x => new
         {
+            x.BlockHeight, 
+            x.TransactionIndex,
             x.ContractAddressIndex,
             x.ContractAddressSubIndex
         });
@@ -21,27 +24,22 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasColumnName("transaction_hash");
         builder.Property(x => x.TransactionIndex)
             .HasColumnName("transaction_index");
-        builder.Property(x => x.EventIndex)
-            .HasColumnName("event_index");
         builder.Property(x => x.ContractAddressIndex)
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
             .HasColumnName("contract_address_sub_index");
-        builder.Property(x => x.ContractAddress)
-            .HasColumnName("contract_address");
-        builder.Property(x => x.Creator)
-            .HasColumnName("creator")
-            .HasConversion<AccountAddressConverter>();
+        builder.Property(x => x.Sender)
+            .HasColumnName("sender")
+            .HasConversion<AccountAddressConverter>();        
+        builder.Property(x => x.RejectedEvent)
+            .HasColumnName("reject_event")
+            .HasColumnType("json")
+            .HasConversion<TransactionRejectReasonToJsonConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
         builder.Property(x => x.BlockSlotTime)
-            .HasColumnName("block_slot_time");
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");
-
-        builder
-            .HasMany<ContractEvent>(sm => sm.ContractEvents)
-            .WithOne()
-            .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
     }
 }

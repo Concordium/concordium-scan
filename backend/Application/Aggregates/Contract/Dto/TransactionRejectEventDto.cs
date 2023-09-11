@@ -4,9 +4,9 @@ using Application.Api.GraphQL.Transactions;
 namespace Application.Aggregates.Contract.Dto;
 
 /// <summary>
-/// Used as a Dto when <see cref="TransactionResultEvent"/> from a block height is queried.
+/// Used as a Dto when <see cref="TransactionRejectReason"/> from a block height is queried.
 /// </summary>
-public class TransactionResultEventDto
+public class TransactionRejectEventDto
 {
     public int BlockHeight { get; init; }
     public DateTimeOffset BlockSlotTime { get; init; }
@@ -14,14 +14,13 @@ public class TransactionResultEventDto
     public AccountAddress? TransactionSender { get; init; }
     public string TransactionHash { get; init; }
     public uint TransactionIndex { get; init; }
-    public uint TransactionEventIndex { get; init; }
-    public TransactionResultEvent Event { get; init; }
+    public TransactionRejectReason RejectedEvent { get; init; }
     
     /// <summary>
     /// Needed for Dapper
     /// </summary>
 #pragma warning disable CS8618
-    public TransactionResultEventDto()
+    public TransactionRejectEventDto()
 #pragma warning restore CS8618
     {}
 }

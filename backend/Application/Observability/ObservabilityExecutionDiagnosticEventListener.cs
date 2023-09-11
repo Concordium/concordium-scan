@@ -49,7 +49,7 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
     }
 
     /// <summary>
-    /// Used ex. when client refresh browser.
+    /// Exceptions occurs when ex. client refresh browser and hence cancel request.
     /// </summary>
     public override void RequestError(IRequestContext context, Exception exception)
     {
@@ -70,6 +70,9 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         _logger.Error(exception, "Exception from {Query}", query);
     }
     
+    /// <summary>
+    /// Exceptions from resolver execution.
+    /// </summary>
     public override void ResolverError(IMiddlewareContext context, IError error)
     {
         if (error.Exception == null)
