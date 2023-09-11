@@ -1003,8 +1003,8 @@ export type Contract = {
   __typename?: 'Contract';
   amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
-  contractAddress: Scalars['String'];
   blockSlotTime: Scalars['DateTime'];
+  contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents: Array<ContractEvent>;
@@ -2126,6 +2126,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  contract?: Maybe<Contract>;
   contracts?: Maybe<ContractsConnection>;
   importState?: Maybe<ImportState>;
   latestChainParameters?: Maybe<ChainParameters>;
@@ -2216,6 +2217,12 @@ export type QueryBlocksArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryContractArgs = {
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
 };
 
 

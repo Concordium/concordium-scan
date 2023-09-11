@@ -724,7 +724,6 @@ type Contract {
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
   moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
-  contractAddress: ContractAddress!
   moduleReference: String!
   amount: Float!
 }
@@ -1572,6 +1571,7 @@ type Query {
   importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
+  contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex: UnsignedLong!): Contract
   contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
 }
 
