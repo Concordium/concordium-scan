@@ -1008,6 +1008,7 @@ export type Contract = {
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents: Array<ContractEvent>;
+  contractRejectEvents: Array<ContractRejectEvent>;
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
@@ -1067,6 +1068,20 @@ export type ContractInterrupted = {
 export type ContractModuleDeployed = {
   __typename?: 'ContractModuleDeployed';
   moduleRef: Scalars['String'];
+};
+
+export type ContractRejectEvent = {
+  __typename?: 'ContractRejectEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  rejectedEvent: TransactionRejectReason;
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
 };
 
 export type ContractResumed = {

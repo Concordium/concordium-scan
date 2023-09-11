@@ -28,8 +28,9 @@ public sealed class Contract
     public ImportSource Source { get; init; }
     public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
-    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; set; } = null!;
+    public ICollection<ContractEvent> ContractEvents { get; init; } = null!;
+    public ICollection<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
+    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -65,9 +66,12 @@ public sealed class Contract
         public Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
         {
             return context.Contract
+                .AsSplitQuery()
                 .AsNoTracking()
                 .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
                 .Include(c => c.ContractEvents)
+                .Include(c => c.ContractRejectEvents)
+                .Include(c => c.ModuleReferenceContractLinkEvents)
                 .SingleOrDefaultAsync();
         }
         

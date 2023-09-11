@@ -723,6 +723,7 @@ type Contract {
   blockSlotTime: DateTime!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
+  contractRejectEvents: [ContractRejectEvent!]!
   moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
   moduleReference: String!
   amount: Float!
@@ -764,6 +765,19 @@ type ContractInterrupted {
 
 type ContractModuleDeployed {
   moduleRef: String!
+}
+
+type ContractRejectEvent {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  sender: AccountAddress!
+  rejectedEvent: TransactionRejectReason!
+  source: ImportSource!
+  blockSlotTime: DateTime!
+  createdAt: DateTime!
 }
 
 type ContractResumed {

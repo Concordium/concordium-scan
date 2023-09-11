@@ -14,11 +14,29 @@ const ContractQuery = gql`
 		) {
 			transactionHash
 			contractAddress
+			blockSlotTime
+			moduleReference
+			amount
 			creator {
 				asString
 			}
-			amount
+			contractRejectEvents {
+				blockSlotTime
+				transactionHash
+				rejectedEvent {
+					__typename
+					... on RejectedReceive {
+						rejectReason
+						contractAddress {
+							index
+							subIndex
+						}
+						receiveName
+					}
+				}
+			}
 			contractEvents {
+				blockSlotTime
 				transactionHash
 				event {
 					__typename

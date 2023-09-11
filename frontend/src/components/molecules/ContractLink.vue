@@ -5,7 +5,7 @@
 			class="h-5 inline align-text-top mr-3"
 		/>
 		<ChipIcon v-else class="h-4 text-theme-white inline align-text-top" />
-		<LinkButton class="numerical px-2">
+		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ props.address }}
 			</div>

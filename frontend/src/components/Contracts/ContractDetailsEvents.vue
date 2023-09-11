@@ -4,6 +4,7 @@
 			<TableHead>
 				<TableRow>
 					<TableTh>Transaction Hash</TableTh>
+					<TableTh>Age</TableTh>
 					<TableTh>Type</TableTh>
 					<TableTh>Details</TableTh>
 				</TableRow>
@@ -12,6 +13,11 @@
 				<TableRow v-for="contractEvent in contractEvents" :key="contractEvent">
 					<TableTd class="numerical">
 						<TransactionLink :hash="contractEvent.transactionHash" />
+					</TableTd>
+					<TableTd>
+						<Tooltip :text="formatTimestamp(contractEvent.blockSlotTime)">
+							{{ convertTimestampToRelative(contractEvent.blockSlotTime, NOW) }}
+						</Tooltip>
 					</TableTd>
 					<TableTd>
 						{{ contractEvent.event.__typename }}
@@ -71,6 +77,12 @@ import TransferMemo from '~/components/TransactionEventList/Events/TransferMemo.
 import Transferred from '~/components/TransactionEventList/Events/Transferred.vue'
 import { ContractEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
+import {
+	convertTimestampToRelative,
+	formatTimestamp,
+} from '~~/src/utils/format'
+
+const { NOW } = useDateNow()
 
 type Props = {
 	contractEvents: ContractEvent[]

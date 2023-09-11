@@ -45,6 +45,11 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
         
         builder
+            .HasMany<ContractRejectEvent>(c => c.ContractRejectEvents)
+            .WithOne()
+            .HasForeignKey(link => new { link.ContractAddressIndex, link.ContractAddressSubIndex });
+        
+        builder
             .HasMany<ModuleReferenceContractLinkEvent>(c => c.ModuleReferenceContractLinkEvents)
             .WithOne()
             .HasForeignKey(link => new { link.ContractAddressIndex, link.ContractAddressSubIndex });
