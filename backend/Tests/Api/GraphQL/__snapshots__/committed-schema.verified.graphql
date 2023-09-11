@@ -720,6 +720,7 @@ type Contract {
   contractAddress: String!
   creator: AccountAddress!
   source: ImportSource!
+  blockSlotTime: DateTime!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
   amount: Float!
@@ -738,8 +739,10 @@ type ContractEvent {
   eventIndex: UnsignedInt!
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
+  sender: AccountAddress!
   event: Event!
   source: ImportSource!
+  blockSlotTime: DateTime!
   createdAt: DateTime!
 }
 

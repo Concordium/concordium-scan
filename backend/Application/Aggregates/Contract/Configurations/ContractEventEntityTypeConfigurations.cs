@@ -30,12 +30,17 @@ public sealed class ContractEventEntityTypeConfigurations : IEntityTypeConfigura
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
             .HasColumnName("contract_address_sub_index");
+        builder.Property(x => x.Sender)
+            .HasColumnName("sender")
+            .HasConversion<AccountAddressConverter>();        
         builder.Property(x => x.Event)
             .HasColumnName("event")
             .HasColumnType("json")
             .HasConversion<TransactionResultEventToJsonConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");
     }

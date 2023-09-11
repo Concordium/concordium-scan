@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Types;
+using Application.Api.GraphQL.Transactions;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using FluentAssertions;
@@ -12,11 +15,168 @@ using Tests.TestUtilities.Builders;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractEvent = Application.Aggregates.Contract.Entities.ContractEvent;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
+using Transferred = Application.Api.GraphQL.Transactions.Transferred;
 
 namespace Tests.Aggregates.Contract;
 
 public sealed class ContractAggregateTests
 {
+    [Fact]
+    public async Task GivenTransferFromContract_WithAccountTo_WhenStoreEvent_TheOneTransfers()
+    {
+        // Arrange
+        const ulong from = 4;
+        const ulong amount = 5UL;
+        var contractEvents = new List<ContractEvent>();
+        var repository = new Mock<IContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
+            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        var transfer = new Transferred(
+            amount,
+            new Application.Api.GraphQL.ContractAddress(from, 0),
+            new AccountAddress(""));
+        
+        // Act
+        await ContractAggregate.StoreEvent(
+            ImportSource.NodeImport,
+            repository.Object,
+            transfer,
+            new AccountAddress(""),
+            1UL,
+            DateTimeOffset.Now,
+            "",
+            1UL,
+            1U);
+        
+        // Assert
+        contractEvents.Count.Should().Be(1);
+        var updateEvent = contractEvents[0];
+        updateEvent.Event.Should().BeOfType<Transferred>();
+        updateEvent.ContractAddressIndex.Should().Be(from);
+    }
+    
+    [Fact]
+    public async Task GivenTransferFromContract_WithContractTo_WhenStoreEvent_TheTwoTransfers()
+    {
+        // Arrange
+        const ulong from = 4;
+        const ulong to = 2;
+        const ulong amount = 5UL;
+        var contractEvents = new List<ContractEvent>();
+        var repository = new Mock<IContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
+            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        var transfer = new Transferred(
+            amount,
+            new Application.Api.GraphQL.ContractAddress(from, 0),
+            new Application.Api.GraphQL.ContractAddress(to, 0));
+        
+        // Act
+        await ContractAggregate.StoreEvent(
+            ImportSource.NodeImport,
+            repository.Object,
+            transfer,
+            new AccountAddress(""),
+            1UL,
+            DateTimeOffset.Now,
+            "",
+            1UL,
+            1U);
+        
+        // Assert
+        contractEvents.Count.Should().Be(2);
+        var updateEvent = contractEvents[0];
+        updateEvent.Event.Should().BeOfType<Transferred>();
+        updateEvent.ContractAddressIndex.Should().Be(from);
+        
+        var transferEvent = contractEvents[1];
+        transferEvent.Event.Should().BeOfType<Transferred>();
+        transferEvent.ContractAddressIndex.Should().Be(to);
+    }
+    
+    [Fact]
+    public async Task GivenContractUpdated_WithAccountInstigator_WhenStoreEvent_ThenStoreUpgrade()
+    {
+        // Arrange
+        const int from = 4;
+        var messageAsHex = Convert.ToHexString(Encoding.UTF8.GetBytes("Foo"));
+        var contractEvents = new List<ContractEvent>();
+        var repository = new Mock<IContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
+            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        var contractUpdated = new ContractUpdated(
+            new Application.Api.GraphQL.ContractAddress(from, 0),
+            new AccountAddress(""),
+            5,
+            messageAsHex,
+            "foo",
+            Application.Api.GraphQL.ContractVersion.V0,
+            new string[] { "foo", "bar" }
+        );
+        
+        // Act
+        await ContractAggregate.StoreEvent(
+            ImportSource.NodeImport,
+            repository.Object,
+            contractUpdated,
+            new AccountAddress(""),
+            1UL,
+            DateTimeOffset.Now,
+            "",
+            1UL,
+            1U);
+        
+        // Assert
+        contractEvents.Count.Should().Be(1);
+        var updateEvent = contractEvents[0];
+        updateEvent.Event.Should().BeOfType<ContractUpdated>();
+        updateEvent.ContractAddressIndex.Should().Be(from);
+    }
+    
+    [Fact]
+    public async Task GivenContractUpdated_WithContractInstigator_WhenStoreEvent_ThenStoreUpgradeAndTransfer()
+    {
+        // Arrange
+        const int from = 4;
+        const int to = 2;
+        var messageAsHex = Convert.ToHexString(Encoding.UTF8.GetBytes("Foo"));
+        var contractEvents = new List<ContractEvent>();
+        var repository = new Mock<IContractRepository>();
+        repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
+            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        var contractUpdated = new ContractUpdated(
+            new Application.Api.GraphQL.ContractAddress(from, 0),
+            new Application.Api.GraphQL.ContractAddress(to, 0),
+            5,
+            messageAsHex,
+            "foo",
+            Application.Api.GraphQL.ContractVersion.V0,
+            new string[] { "foo", "bar" }
+        );
+        
+        // Act
+        await ContractAggregate.StoreEvent(
+            ImportSource.NodeImport,
+            repository.Object,
+            contractUpdated,
+            new AccountAddress(""),
+            1UL,
+            DateTimeOffset.Now,
+            "",
+            1UL,
+            1U);
+        
+        // Assert
+        contractEvents.Count.Should().Be(2);
+        var updateEvent = contractEvents[0];
+        updateEvent.Event.Should().BeOfType<ContractUpdated>();
+        updateEvent.ContractAddressIndex.Should().Be(from);
+        
+        var transferEvent = contractEvents[1];
+        transferEvent.Event.Should().BeOfType<Transferred>();
+        transferEvent.ContractAddressIndex.Should().Be(to);
+    }
+    
     [Fact]
     public async Task GivenContractInitialization_WhenNodeImport_ThenStoreContractEventAndModuleLinkAndContract()
     {

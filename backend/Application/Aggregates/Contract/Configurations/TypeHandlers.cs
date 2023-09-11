@@ -7,6 +7,19 @@ using Dapper;
 
 namespace Application.Aggregates.Contract.Configurations;
 
+public class TransactionRejectReasonHandler : SqlMapper.TypeHandler<TransactionRejectReason>
+{
+    public override void SetValue(IDbDataParameter parameter, TransactionRejectReason value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override TransactionRejectReason Parse(object value)
+    {
+        var options = EfCoreJsonSerializerOptionsFactory.Create();
+        return JsonSerializer.Deserialize<TransactionRejectReason>(value.ToString()!, options)!;
+    }
+}
 
 public class TransactionResultEventHandler : SqlMapper.TypeHandler<TransactionResultEvent>
 {

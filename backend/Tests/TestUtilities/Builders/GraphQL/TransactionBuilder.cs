@@ -4,11 +4,12 @@ using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Tests.TestUtilities.Builders.GraphQL;
 
-public class @TransactionBuilder
+public class TransactionBuilder
 {
     private long _id = 1;
     private string _transactionHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b";
     private long _blockId = 1;
+    private TransactionRejectReason? _rejectReason = null;
 
     public Transaction Build()
     {
@@ -22,8 +23,14 @@ public class @TransactionBuilder
             CcdCost = 241,
             EnergyCost = 422,
             TransactionType = new AccountTransaction { AccountTransactionType = TransactionType.Transfer },
-            RejectReason = null
+            RejectReason = _rejectReason
         };
+    }
+
+    public TransactionBuilder WithRejectReason(TransactionRejectReason rejectReason)
+    {
+        _rejectReason = rejectReason;
+        return this;
     }
 
     public TransactionBuilder WithBlockId(long blockId)

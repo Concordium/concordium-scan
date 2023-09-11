@@ -48,6 +48,9 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         return durationMetric;
     }
 
+    /// <summary>
+    /// Exceptions occurs when ex. client refresh browser and hence cancel request.
+    /// </summary>
     public override void RequestError(IRequestContext context, Exception exception)
     {
         if (context.ContextData.TryGetValue(
@@ -67,6 +70,9 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         _logger.Error(exception, "Exception from {Query}", query);
     }
     
+    /// <summary>
+    /// Exceptions from resolver execution.
+    /// </summary>
     public override void ResolverError(IMiddlewareContext context, IError error)
     {
         if (error.Exception == null)
@@ -123,6 +129,7 @@ public sealed class ObservabilityExecutionDiagnosticEventListener : ExecutionDia
         {
             // Don't log when users cancel queries
             OperationCanceledException => false,
+            ObjectDisposedException => false,
             _ => true,
         };
     }
