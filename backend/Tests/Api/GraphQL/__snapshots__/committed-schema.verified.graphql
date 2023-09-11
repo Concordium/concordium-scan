@@ -739,6 +739,7 @@ type ContractEvent {
   eventIndex: UnsignedInt!
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
+  sender: AccountAddress!
   event: Event!
   source: ImportSource!
   blockSlotTime: DateTime!

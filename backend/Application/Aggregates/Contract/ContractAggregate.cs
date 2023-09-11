@@ -11,6 +11,10 @@ using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
 using ContractEvent = Application.Aggregates.Contract.Entities.ContractEvent;
 using ContractInitialized = Concordium.Sdk.Types.ContractInitialized;
+using InvalidInitMethod = Application.Api.GraphQL.Transactions.InvalidInitMethod;
+using InvalidReceiveMethod = Application.Api.GraphQL.Transactions.InvalidReceiveMethod;
+using ModuleHashAlreadyExists = Application.Api.GraphQL.Transactions.ModuleHashAlreadyExists;
+using RejectedReceive = Application.Api.GraphQL.Transactions.RejectedReceive;
 using Transferred = Application.Api.GraphQL.Transactions.Transferred;
 
 namespace Application.Aggregates.Contract;
@@ -97,30 +101,13 @@ internal sealed class ContractAggregate
             }
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
-            var transactionHash = blockItemSummary.TransactionHash.ToString();
-            var eventIndex = 0u;
-            foreach (var transactionResultEvent in FilterEvents(details.Effects))
-            {
-                await StoreEvent(
-                    ImportSource.NodeImport,
-                    repository,
-                    transactionResultEvent,
-                    AccountAddress.From(details.Sender),
-                    blockInfo.BlockHeight,
-                    blockInfo.BlockSlotTime,
-                    transactionHash,
-                    blockItemSummary.Index,
-                    eventIndex
-                );
-                eventIndex++;
-            }
-
-            totalEvents += eventIndex;
+            totalEvents += await StoreEvents(repository, blockInfo, details, blockItemSummary);
+            totalEvents += await StorePossibleRejectEvent(repository, blockInfo, details, blockItemSummary);
         }
 
         return totalEvents;
     }
-    
+
     /// <summary>
     /// Stores successfully processed blocks. Will store from block height <see cref="heightFrom"/> to
     /// <see cref="heightTo"/> except for those given in list <see cref="except"/>
@@ -144,6 +131,70 @@ internal sealed class ContractAggregate
         await repository.AddRangeAsync(heights);
     }
 
+    internal static async Task StoreReject(
+        ImportSource source,
+        IContractRepository repository,
+        TransactionRejectReason rejectEvent,
+        AccountAddress sender,
+        ulong blockHeight,
+        DateTimeOffset blockSlotTime,
+        string transactionHash,
+        ulong transactionIndex
+    )
+    {
+        switch (rejectEvent)
+        {
+            case InvalidInitMethod invalidInitMethod:
+                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                    blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    invalidInitMethod.ModuleRef,
+                    sender,
+                    rejectEvent,
+                    source,
+                    blockSlotTime
+                ));
+                break;
+            case InvalidReceiveMethod invalidReceiveMethod:
+                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                    blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    invalidReceiveMethod.ModuleRef,
+                    sender,
+                    rejectEvent,
+                    source,
+                    blockSlotTime
+                ));
+                break;
+            case ModuleHashAlreadyExists moduleHashAlreadyExists:
+                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                    blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    moduleHashAlreadyExists.ModuleRef,
+                    sender,
+                    rejectEvent,
+                    source,
+                    blockSlotTime
+                ));
+                break;
+            case RejectedReceive rejectedReceive:
+                await repository.AddAsync(new ContractRejectEvent(
+                    blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    rejectedReceive.ContractAddress,
+                    sender,
+                    rejectEvent,
+                    source,
+                    blockSlotTime
+                ));
+                break;
+        }
+    }
+    
     internal static async Task StoreEvent(
         ImportSource source,
         IContractRepository repository,        
@@ -176,6 +227,7 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractInitialized.ContractAddress,
+                        sender,
                         contractInitialized,
                         source,
                         blockSlotTime
@@ -188,6 +240,7 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInitialized.ModuleRef,
                         contractInitialized.ContractAddress,
+                        sender,
                         source,
                         ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
                         blockSlotTime
@@ -201,6 +254,7 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractInterrupted.ContractAddress,
+                        sender,
                         contractInterrupted,
                         source,
                         blockSlotTime
@@ -214,6 +268,7 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractResumed.ContractAddress,
+                        sender,
                         contractResumed,
                         source,
                         blockSlotTime
@@ -227,6 +282,7 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractUpdated.ContractAddress,
+                        sender,
                         contractUpdated,
                         source,
                         blockSlotTime
@@ -240,6 +296,7 @@ internal sealed class ContractAggregate
                             transactionIndex,
                             eventIndex,
                             contractInstigator,
+                            sender,
                             new Transferred(
                                 contractUpdated.Amount,
                                 contractInstigator,
@@ -258,6 +315,7 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractUpgraded.ContractAddress,
+                        sender,
                         contractUpgraded,
                         source,
                         blockSlotTime
@@ -270,6 +328,7 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.To,
                         contractUpgraded.ContractAddress,
+                        sender,
                         source,
                         ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
                         blockSlotTime
@@ -282,6 +341,7 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.From,
                         contractUpgraded.ContractAddress,
+                        sender,
                         source,
                         ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed,
                         blockSlotTime
@@ -297,6 +357,7 @@ internal sealed class ContractAggregate
                             transactionIndex,
                             eventIndex,
                             contractAddressFrom,
+                            sender,
                             transferred,
                             source,
                             blockSlotTime
@@ -311,6 +372,7 @@ internal sealed class ContractAggregate
                             transactionIndex,
                             eventIndex,
                             contractAddressTo,
+                            sender,
                             transferred,
                             source,
                             blockSlotTime
@@ -325,11 +387,100 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractModuleDeployed.ModuleRef,
+                        sender,
                         source,
                         blockSlotTime
                     ));
                 break;
         }
+    }
+
+    /// <summary>
+    /// Store rejected events if present in block item summary and if related to contract- or modules.
+    ///
+    /// Return 1 if a rejected event was created.
+    /// </summary>
+    private static async Task<uint> StorePossibleRejectEvent(
+        IContractRepository repository, 
+        BlockInfo blockInfo, 
+        AccountTransactionDetails details,
+        BlockItemSummary blockItemSummary
+    )
+    {
+        if (details.Effects is not None none || !IsRelevantReject(none.RejectReason, out var rejectReason))
+        {
+            return 0;
+        }
+        
+        await StoreReject(
+            ImportSource.NodeImport,
+            repository,
+            rejectReason!,
+            AccountAddress.From(details.Sender),
+            blockInfo.BlockHeight,
+            blockInfo.BlockSlotTime,
+            blockItemSummary.TransactionHash.ToString(),
+            blockItemSummary.Index
+        );
+
+        return 1;
+    }
+
+    /// <summary>
+    /// Map relevant rejected reasons to <see cref="TransactionRejectReason"/>.
+    /// </summary>
+    private static bool IsRelevantReject(IRejectReason rejectReason, out TransactionRejectReason? rejected)
+    {
+        rejected = null;
+        switch (rejectReason)
+        {
+            case Concordium.Sdk.Types.InvalidInitMethod x:
+                rejected = new InvalidInitMethod(x.ModuleReference.ToString(), x.ContractName.Name);
+                return true;
+            case Concordium.Sdk.Types.InvalidReceiveMethod x:
+                rejected = new InvalidReceiveMethod(x.ModuleReference.ToString(), x.ReceiveName.Receive);
+                return true;
+            case Concordium.Sdk.Types.ModuleHashAlreadyExists x:
+                rejected = new ModuleHashAlreadyExists(x.ModuleReference.ToString());
+                return true;
+            case Concordium.Sdk.Types.RejectedReceive x:
+                rejected =new RejectedReceive(x.RejectReason,
+                    ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString());
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Store related events and return mapped events count.
+    /// </summary>
+    private static async Task<uint> StoreEvents(
+        IContractRepository repository, 
+        BlockInfo blockInfo, 
+        AccountTransactionDetails details,
+        BlockItemSummary blockItemSummary
+        )
+    {
+        var transactionHash = blockItemSummary.TransactionHash.ToString();
+        var eventIndex = 0u;
+        foreach (var transactionResultEvent in FilterEvents(details.Effects))
+        {
+            await StoreEvent(
+                ImportSource.NodeImport,
+                repository,
+                transactionResultEvent,
+                AccountAddress.From(details.Sender),
+                blockInfo.BlockHeight,
+                blockInfo.BlockSlotTime,
+                transactionHash,
+                blockItemSummary.Index,
+                eventIndex
+            );
+            eventIndex++;
+        }
+
+        return eventIndex;
     }
     
     private static async Task<ulong> GetLastFinalizedBlockHeight(IContractNodeClient client, CancellationToken token)

@@ -41,6 +41,7 @@ public static class ContractExtensions
     /// </summary>
     internal static void AddDapperTypeHandlers()
     {
+        SqlMapper.AddTypeHandler(new TransactionRejectReasonHandler());
         SqlMapper.AddTypeHandler(new TransactionResultEventHandler());
         SqlMapper.AddTypeHandler(new TransactionTypeUnionHandler());
         SqlMapper.AddTypeHandler(new AccountAddressHandler());
