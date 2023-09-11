@@ -20,6 +20,8 @@ const Query = gql<ContractListResponse>`
 					contractAddress
 					contractAddressIndex
 					contractAddressSubIndex
+					moduleReference
+					blockSlotTime
 					creator {
 						__typename
 						asString

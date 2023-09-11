@@ -1,11 +1,11 @@
 <template>
 	<div v-if="props.address" class="inline-block whitespace-nowrap">
-		<UserIcon
+		<ChipIcon
 			v-if="props.iconSize == 'big'"
 			class="h-5 inline align-text-top mr-3"
 		/>
-		<UserIcon v-else class="h-4 text-theme-white inline align-text-top" />
-		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
+		<ChipIcon v-else class="h-4 text-theme-white inline align-text-top" />
+		<LinkButton class="numerical px-2">
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ props.address }}
 			</div>
@@ -23,9 +23,8 @@
 </template>
 
 <script lang="ts" setup>
-import { UserIcon } from '@heroicons/vue/solid'
-import { useDrawer } from '~/composables/useDrawer'
-import LinkButton from '~/components/atoms/LinkButton.vue'
+import { ChipIcon } from '@heroicons/vue/solid/index.js'
+import LinkButton from '../atoms/LinkButton.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 

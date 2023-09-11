@@ -126,7 +126,7 @@ public class SearchResultTest
         string expectedAddress)
     {
         // Act
-        var searchResult = SearchResult.TryMatchContractPattern(
+        var searchResult = SearchResult.ContractSearching.TryMatchContractPattern(
             query,
             out var actualAddress);
         
