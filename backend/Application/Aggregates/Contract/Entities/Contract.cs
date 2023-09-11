@@ -59,6 +59,18 @@ public sealed class Contract
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
+        /// <summary>
+        /// Get contracts with pagination support.
+        /// 
+        /// Currently contracts module reference are not updated for the lifetime of the contract. Hence often there will
+        /// be only one module link event for each contract.
+        ///
+        /// Because of this we are currently not using <see cref="Microsoft.EntityFrameworkCore.RelationalQueryableExtensions.AsSplitQuery"/>.
+        /// If performance issues on this query is seen and module reference links increases then look into using above splitting technique.
+        /// </summary>
+        /// <remarks>
+        ///     See <see href="https://aka.ms/efcore-docs-split-queries">EF Core split queries</see> for more information.
+        /// </remarks> 
         [UsePaging]
         public IQueryable<Contract> GetContracts(
             GraphQlDbContext context)
