@@ -1,3 +1,4 @@
+using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,9 +12,6 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
         builder.ToTable("graphql_contracts");
         builder.HasKey(x => new
         {
-            x.BlockHeight, 
-            x.TransactionIndex,
-            x.EventIndex,
             x.ContractAddressIndex,
             x.ContractAddressSubIndex
         });
@@ -34,7 +32,14 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasConversion<AccountAddressConverter>();
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");
         builder.Property(x => x.CreatedAt)
-            .HasColumnName("created_at");        
+            .HasColumnName("created_at");
+
+        builder
+            .HasMany<ContractEvent>(sm => sm.ContractEvents)
+            .WithOne()
+            .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
     }
 }

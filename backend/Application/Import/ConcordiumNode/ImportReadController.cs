@@ -3,12 +3,14 @@ using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.NodeApi;
+using Application.Observability;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Polly;
+using Serilog.Context;
 
 namespace Application.Import.ConcordiumNode;
 
@@ -31,12 +33,14 @@ public class ImportReadController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ImportReadController));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Warning("Import data from Concordium node is disabled. This controller will not run!");
             return;
         }
-
+        
         try
         {
             _logger.Information("Awaiting initial import state...");
@@ -58,6 +62,8 @@ public class ImportReadController : BackgroundService
         var importedMaxBlockHeight = initialState.MaxBlockHeight;
         while (!stoppingToken.IsCancellationRequested)
         {
+            using var _ = TraceContext.StartActivity(nameof(ImportData));
+            
             var consensusStatus = await GetWithGrpcRetryAsync(() => _client.GetConsensusInfoAsync(stoppingToken), nameof(_client.GetConsensusInfoAsync), stoppingToken);
 
             if (!importedMaxBlockHeight.HasValue || consensusStatus.LastFinalizedBlockHeight > importedMaxBlockHeight)
@@ -84,9 +90,14 @@ public class ImportReadController : BackgroundService
     {
         for (var blockHeight = startBlockHeight; blockHeight <= consensusStatus.LastFinalizedBlockHeight; blockHeight++)
         {
-            stoppingToken.ThrowIfCancellationRequested();
-            var readFromNodeTask = ReadBlockDataPayload(blockHeight, consensusStatus, stoppingToken);
-            await _channel.Writer.WriteAsync(readFromNodeTask, stoppingToken);
+            using (LogContext.PushProperty("BlockHeight", blockHeight))
+            {
+                using var _ = TraceContext.StartActivity(nameof(ImportData));
+            
+                stoppingToken.ThrowIfCancellationRequested();
+                var readFromNodeTask = ReadBlockDataPayload(blockHeight, consensusStatus, stoppingToken);
+                await _channel.Writer.WriteAsync(readFromNodeTask, stoppingToken);   
+            }
         }
     }
 

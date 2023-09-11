@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Jobs;
+using Application.Observability;
 using Application.Configurations;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,8 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractJobsBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");

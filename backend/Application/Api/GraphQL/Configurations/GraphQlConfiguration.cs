@@ -1,8 +1,10 @@
 ﻿using System.Numerics;
+using Application.Aggregates.Contract.Extensions;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.ChainParametersGraphql;
+using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Extensions.ScalarTypes;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Metrics;
@@ -13,7 +15,9 @@ using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
 using Application.Api.GraphQL.Transactions;
 using Application.Api.GraphQL.Versions;
+using Application.Observability;
 using HotChocolate;
+using HotChocolate.Data;
 using HotChocolate.Execution.Configuration;
 using HotChocolate.Types;
 using HotChocolate.Types.Pagination;
@@ -26,16 +30,25 @@ public static class GraphQlConfiguration
     public static IRequestExecutorBuilder Configure(this IRequestExecutorBuilder builder)
     {
         return builder.ConfigureSchema(ConfigureSchema)
+            .RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)
+            .AddDiagnosticEventListener<ObservabilityExecutionDiagnosticEventListener>()
             .AddInMemorySubscriptions()
-            .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider:true)
-            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName:"block_by_descending_id")
-            .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(providerName:"transaction_by_descending_id")
-            .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"account_transaction_relation_by_descending_index")
-            .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(providerName:"account_statement_entry_by_descending_index")
-            .AddCursorPagingProvider<PaydayPoolRewardByDescendingIndexCursorPagingProvider>(providerName:"payday_pool_reward_by_descending_index")
-            .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(providerName:"account_reward_by_descending_index")
-            .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName:"account_token_descending")
-            .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(providerName:"baker_transaction_relation_by_descending_index");
+            .AddCursorPagingProvider<QueryableCursorPagingProvider>(defaultProvider: true)
+            .AddCursorPagingProvider<BlockByDescendingIdCursorPagingProvider>(providerName: "block_by_descending_id")
+            .AddCursorPagingProvider<TransactionByDescendingIdCursorPagingProvider>(
+                providerName: "transaction_by_descending_id")
+            .AddCursorPagingProvider<AccountTransactionRelationByDescendingIndexCursorPagingProvider>(
+                providerName: "account_transaction_relation_by_descending_index")
+            .AddCursorPagingProvider<AccountStatementEntryByDescendingIndexCursorPagingProvider>(
+                providerName: "account_statement_entry_by_descending_index")
+            .AddCursorPagingProvider<PaydayPoolRewardByDescendingIndexCursorPagingProvider>(
+                providerName: "payday_pool_reward_by_descending_index")
+            .AddCursorPagingProvider<AccountRewardByDescendingIndexCursorPagingProvider>(
+                providerName: "account_reward_by_descending_index")
+            .AddCursorPagingProvider<AccountTokensDescendingPagingProvider>(providerName: "account_token_descending")
+            .AddCursorPagingProvider<BakerTransactionRelationByDescendingIndexCursorPagingProvider>(
+                providerName: "baker_transaction_relation_by_descending_index")
+            .AddContractGraphQlConfigurations();
     }
 
     private static void ConfigureSchema(ISchemaBuilder builder)
@@ -60,12 +73,13 @@ public static class GraphQlConfiguration
             .AddType<ChainParametersQuery>()
             .AddType<ImportStateQuery>()
             .AddType<NetworkQuery>();
-        
+
         builder.AddSubscriptionType<Subscription>();
         
-        builder.BindClrType<ulong, UnsignedLongType>();
-        builder.BindClrType<BigInteger, BigIntegerScalarType>();
-        
+        builder.BindRuntimeType<ulong, UnsignedLongType>();
+        builder.BindRuntimeType<uint, UnsignedIntType>();
+        builder.BindRuntimeType<BigInteger, BigIntegerScalarType>();
+
         builder.AddDerivedTypes();
         
         builder.AddEnumTypes();

@@ -1,6 +1,12 @@
+using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
+using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
+using HotChocolate;
+using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -18,7 +24,9 @@ public sealed class Contract
     public ulong ContractAddressSubIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
+    public ICollection<ContractEvent> ContractEvents { get; set; }
     
     /// <summary>
     /// Needed for EF Core
@@ -33,7 +41,8 @@ public sealed class Contract
         uint eventIndex,
         ContractAddress contractAddress,
         AccountAddress creator,
-        ImportSource source)
+        ImportSource source,
+        DateTimeOffset blockSlotTime)
     {
         BlockHeight = blockHeight;
         TransactionHash = transactionHash;
@@ -43,5 +52,70 @@ public sealed class Contract
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
         Source = source;
+        BlockSlotTime = blockSlotTime;
+    }
+    
+    [ExtendObjectType(typeof(Query))]
+    public class ContractQuery
+    {
+        [UsePaging]
+        public IQueryable<Contract> GetContracts(
+            GraphQlDbContext context)
+        {
+            return context.Contract
+                .AsNoTracking()
+                .Include(s => s.ContractEvents);
+        }
+    }
+
+    /// <summary>
+    /// Adds additional field to the returned GraphQL type <see cref="Contract"/>
+    /// </summary>
+    [ExtendObjectType(typeof(Contract))]
+    public sealed class ContractExtensions
+    {
+        public ContractAddress GetContractAddress([Parent] Contract contract) => 
+            new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
+
+        /// <summary>
+        /// Returns aggregated amount from events on contract.
+        /// </summary>
+        public double GetAmount([Parent] Contract contract)
+        {
+            if (contract.ContractEvents is null)
+            {
+                return 0;
+            }
+
+            var amount = 0L;
+            foreach (var contractEvent in contract.ContractEvents)
+            {
+                switch (contractEvent.Event)
+                {
+                    case ContractInitialized contractInitialized:
+                        amount += (long)contractInitialized.Amount;
+                        break;
+                    case ContractUpdated contractUpdated:
+                        amount += (long)contractUpdated.Amount;
+                        break;
+                    case Transferred transferred:
+                        if (transferred.From is ContractAddress contractAddressFrom &&
+                            contractAddressFrom.Index == contract.ContractAddressIndex &&
+                            contractAddressFrom.SubIndex == contract.ContractAddressSubIndex)
+                        {
+                            amount -= (long)transferred.Amount;
+                        }
+                        if (transferred.To is ContractAddress contractAddressTo &&
+                            contractAddressTo.Index == contract.ContractAddressIndex &&
+                            contractAddressTo.SubIndex == contract.ContractAddressSubIndex)
+                        {
+                            amount += (long)transferred.Amount;
+                        }
+                        break;
+                }
+            }
+
+            return amount;
+        }
     }
 }

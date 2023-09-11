@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Application.Api.GraphQL.Network;
 using Application.Import.NodeCollector;
+using Application.Observability;
 using Microsoft.Extensions.Hosting;
 using Polly;
 
@@ -22,6 +23,8 @@ public class NodeSummaryImportController : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(NodeSummaryImportController));
+        
         _logger.Information("Starting reading data from Concordium Collector backend...");
 
         while (!stoppingToken.IsCancellationRequested)

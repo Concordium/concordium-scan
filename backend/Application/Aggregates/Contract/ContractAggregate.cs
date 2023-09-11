@@ -5,6 +5,7 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Transactions;
+using Application.Observability;
 using Concordium.Sdk.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 using ContractAddress = Application.Api.GraphQL.ContractAddress;
@@ -19,6 +20,8 @@ internal sealed class ContractAggregate
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
+    private const string NodeImportJobActivity = "NodeImportJobActivity";
+    private const string NodeImportJobLoopActivity = "NodeImportJobLoopActivity";
 
     public ContractAggregate(
         IContractRepositoryFactory repositoryFactory,
@@ -32,6 +35,8 @@ internal sealed class ContractAggregate
 
     internal async Task NodeImportJob(IContractNodeClient client, CancellationToken token = default)
     {
+        using var _ = TraceContext.StartActivity(NodeImportJobActivity);
+        
         var retryCount = 0;
         while (!token.IsCancellationRequested)
         {
@@ -102,6 +107,7 @@ internal sealed class ContractAggregate
                     transactionResultEvent,
                     AccountAddress.From(details.Sender),
                     blockInfo.BlockHeight,
+                    blockInfo.BlockSlotTime,
                     transactionHash,
                     blockItemSummary.Index,
                     eventIndex
@@ -144,6 +150,7 @@ internal sealed class ContractAggregate
         TransactionResultEvent transactionResultEvent,
         AccountAddress sender,
         ulong blockHeight, 
+        DateTimeOffset blockSlotTime,
         string transactionHash,
         ulong transactionIndex,
         uint eventIndex
@@ -159,7 +166,8 @@ internal sealed class ContractAggregate
                     eventIndex,
                     contractInitialized.ContractAddress,
                     sender,
-                    source
+                    source,
+                    blockSlotTime
                 ));
                 await repository
                     .AddAsync(new ContractEvent(
@@ -169,7 +177,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInitialized.ContractAddress,
                         contractInitialized,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -180,7 +189,8 @@ internal sealed class ContractAggregate
                         contractInitialized.ModuleRef,
                         contractInitialized.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
+                        blockSlotTime
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
@@ -192,7 +202,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractInterrupted.ContractAddress,
                         contractInterrupted,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
             case ContractResumed contractResumed:
@@ -204,7 +215,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractResumed.ContractAddress,
                         contractResumed,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
             case ContractUpdated contractUpdated:
@@ -216,8 +228,27 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpdated.ContractAddress,
                         contractUpdated,
-                        source
-                    ));
+                        source,
+                        blockSlotTime
+                        ));
+                if (contractUpdated.Instigator is ContractAddress contractInstigator && contractUpdated.Amount != 0)
+                {
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractInstigator,
+                            new Transferred(
+                                contractUpdated.Amount,
+                                contractInstigator,
+                                contractUpdated.ContractAddress
+                            ),
+                            source,
+                            blockSlotTime
+                        ));
+                }
                 break;
             case ContractUpgraded contractUpgraded:
                 await repository
@@ -228,7 +259,8 @@ internal sealed class ContractAggregate
                         eventIndex,
                         contractUpgraded.ContractAddress,
                         contractUpgraded,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -239,7 +271,8 @@ internal sealed class ContractAggregate
                         contractUpgraded.To,
                         contractUpgraded.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
+                        blockSlotTime
                     ));
                 await repository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
@@ -250,25 +283,39 @@ internal sealed class ContractAggregate
                         contractUpgraded.From,
                         contractUpgraded.ContractAddress,
                         source,
-                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed
+                        ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed,
+                        blockSlotTime
                     ));
                 break;
             case Transferred transferred:
-                if (transferred.From is not ContractAddress contractAddress ||
-                    transferred.To is not AccountAddress)
+                if (transferred.From is ContractAddress contractAddressFrom)
                 {
-                    break;
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractAddressFrom,
+                            transferred,
+                            source,
+                            blockSlotTime
+                        ));
                 }
-                await repository
-                    .AddAsync(new ContractEvent(
-                        blockHeight,
-                        transactionHash,
-                        transactionIndex,
-                        eventIndex,
-                        contractAddress,
-                        transferred,
-                        source
-                    ));
+                if (transferred.To is ContractAddress contractAddressTo)
+                {
+                    await repository
+                        .AddAsync(new ContractEvent(
+                            blockHeight,
+                            transactionHash,
+                            transactionIndex,
+                            eventIndex,
+                            contractAddressTo,
+                            transferred,
+                            source,
+                            blockSlotTime
+                        ));
+                }
                 break;
             case ContractModuleDeployed contractModuleDeployed:
                 await repository
@@ -278,7 +325,8 @@ internal sealed class ContractAggregate
                         transactionIndex,
                         eventIndex,
                         contractModuleDeployed.ModuleRef,
-                        source
+                        source,
+                        blockSlotTime
                     ));
                 break;
         }
@@ -294,6 +342,7 @@ internal sealed class ContractAggregate
     {
         for (var height = fromBlockHeight; height <= toBlockHeight; height++)
         {
+            using var __ = TraceContext.StartActivity(NodeImportJobLoopActivity);
             using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
             try
             {

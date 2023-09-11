@@ -13,6 +13,7 @@ public sealed class ModuleReferenceEvent
     public uint EventIndex { get; init; }
     public string ModuleReference { get; init; } = null!;
     public ImportSource Source { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
@@ -27,7 +28,8 @@ public sealed class ModuleReferenceEvent
         ulong transactionIndex,
         uint eventIndex,
         string moduleReference,
-        ImportSource source
+        ImportSource source,
+        DateTimeOffset blockSlotTime
     )
     {
         BlockHeight = blockHeight;
@@ -36,5 +38,6 @@ public sealed class ModuleReferenceEvent
         EventIndex = eventIndex;
         ModuleReference = moduleReference;
         Source = source;
+        BlockSlotTime = blockSlotTime;
     }
 }

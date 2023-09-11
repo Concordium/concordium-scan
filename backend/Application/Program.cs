@@ -16,6 +16,7 @@ using Application.Import.ConcordiumNode;
 using Application.Import.NodeCollector;
 using Application.NodeApi;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +31,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.With<SourceClassNameEnricher>()    
+    .Enrich.With<SourceClassNameEnricher>()
+    .Enrich.With<TraceEnricher>()
     .CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);
@@ -90,6 +92,11 @@ try
     app.Services.GetRequiredService<DatabaseMigrator>().MigrateDatabases();
 
     app
+        .Use(async (context, next) =>
+        {
+            context.Request.EnableBuffering();
+            await next();
+        })
         .UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

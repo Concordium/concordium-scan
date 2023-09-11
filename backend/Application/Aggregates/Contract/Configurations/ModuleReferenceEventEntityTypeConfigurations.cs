@@ -11,9 +11,6 @@ public sealed class ModuleReferenceEventEntityTypeConfigurations : IEntityTypeCo
         builder.ToTable("graphql_module_reference_events");
         builder.HasKey(x => new
         {
-            x.BlockHeight,
-            x.TransactionIndex,
-            x.EventIndex,
             x.ModuleReference
         });
         builder.Property(x => x.BlockHeight)
@@ -28,6 +25,8 @@ public sealed class ModuleReferenceEventEntityTypeConfigurations : IEntityTypeCo
             .HasColumnName("module_reference");
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");        
     }

@@ -6,6 +6,7 @@ using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
+using Application.Observability;
 using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
@@ -41,6 +42,8 @@ internal class ContractDatabaseImportJob : IContractJob
 
     public async Task StartImport(CancellationToken token)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractDatabaseImportJob));
+        
         try
         {
             _readCount = -1;
@@ -129,6 +132,8 @@ internal class ContractDatabaseImportJob : IContractJob
     {
         while (!token.IsCancellationRequested)
         {
+            using var _ = TraceContext.StartActivity(nameof(RunBatch));
+            
             var height = Interlocked.Increment(ref _readCount);
             var blockHeightTo = height * _jobOptions.BatchSize;
             if (blockHeightTo > finalHeight)
@@ -173,6 +178,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 eventDto.Event,
                 eventDto.TransactionSender!,
                 (ulong)eventDto.BlockHeight,
+                eventDto.BlockSlotTime.ToUniversalTime(),
                 eventDto.TransactionHash,
                 eventDto.TransactionIndex,
                 eventDto.TransactionEventIndex

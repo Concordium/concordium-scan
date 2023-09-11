@@ -4,6 +4,7 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
+using Application.Observability;
 using Application.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -46,6 +47,8 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var _ = TraceContext.StartActivity(nameof(ContractNodeImportBackgroundService));
+        
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
             _logger.Information("Import data from Concordium node is disabled. This controller will not run!");

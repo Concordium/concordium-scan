@@ -16,7 +16,8 @@ public sealed class ModuleReferenceContractLinkEventEntityTypeConfigurations : I
             x.EventIndex,
             x.ModuleReference,
             x.ContractAddressIndex,
-            x.ContractAddressSubIndex
+            x.ContractAddressSubIndex,
+            x.LinkAction
         });
         builder.Property(x => x.BlockHeight)
             .HasColumnName("block_height");
@@ -36,6 +37,8 @@ public sealed class ModuleReferenceContractLinkEventEntityTypeConfigurations : I
             .HasColumnName("source");
         builder.Property(x => x.LinkAction)
             .HasColumnName("link_action");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");        
     }

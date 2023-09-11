@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Application.Aggregates.Contract.Types;
 using Prometheus;
+using static Application.Observability.ApplicationMetrics;
 
 namespace Application.Aggregates.Contract.Observability;
 
@@ -69,25 +70,6 @@ internal static class ContractMetrics
             ReadDuration
                 .WithLabels(_source.ToStringCached(), _exceptionName)
                 .Observe(elapsedSeconds);
-        }
-
-        private static string PrettyPrintException(Exception ex)
-        {
-            var type = ex.GetType();
-            if (type.GenericTypeArguments.Length == 0)
-            {
-                return type.Name;
-            }
-
-            var name = type.Name.AsSpan();
-            var indexOfGenericCount = name.IndexOf('`');
-            if (indexOfGenericCount != -1)
-            {
-                name = name[..indexOfGenericCount];
-            }
-            var typeArguments = string.Join(",", type.GenericTypeArguments.Select(t => t.Name));
-
-            return $"{name}<{typeArguments}>";
         }
     }
 }
