@@ -722,7 +722,9 @@ type Contract {
   blockSlotTime: DateTime!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
+  moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
   contractAddress: ContractAddress!
+  moduleReference: String!
   amount: Float!
 }
 
@@ -1191,6 +1193,21 @@ type ModuleHashAlreadyExists {
 
 type ModuleNotWf {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
+}
+
+type ModuleReferenceContractLinkEvent {
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  moduleReference: String!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  sender: AccountAddress!
+  source: ImportSource!
+  linkAction: ModuleReferenceContractLinkAction!
+  blockSlotTime: DateTime!
+  createdAt: DateTime!
 }
 
 type NewEncryptedAmount {
@@ -1937,6 +1954,11 @@ enum MetricsPeriod {
   LAST7_DAYS
   LAST30_DAYS
   LAST_YEAR
+}
+
+enum ModuleReferenceContractLinkAction {
+  ADDED
+  REMOVED
 }
 
 enum NodeSortDirection {

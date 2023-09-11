@@ -1003,6 +1003,7 @@ export type Contract = {
   __typename?: 'Contract';
   amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
   contractAddress: ContractAddress;
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
@@ -1010,6 +1011,8 @@ export type Contract = {
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
+  moduleReference: Scalars['String'];
+  moduleReferenceContractLinkEvents: Array<ModuleReferenceContractLinkEvent>;
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
@@ -1025,11 +1028,13 @@ export type ContractAddress = {
 export type ContractEvent = {
   __typename?: 'ContractEvent';
   blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   createdAt: Scalars['DateTime'];
   event: Event;
   eventIndex: Scalars['UnsignedInt'];
+  sender: AccountAddress;
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
@@ -1646,6 +1651,27 @@ export type ModuleNotWf = {
   __typename?: 'ModuleNotWf';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export enum ModuleReferenceContractLinkAction {
+  Added = 'ADDED',
+  Removed = 'REMOVED'
+}
+
+export type ModuleReferenceContractLinkEvent = {
+  __typename?: 'ModuleReferenceContractLinkEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  eventIndex: Scalars['UnsignedInt'];
+  linkAction: ModuleReferenceContractLinkAction;
+  moduleReference: Scalars['String'];
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
 };
 
 export type NewEncryptedAmount = {

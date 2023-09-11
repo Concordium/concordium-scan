@@ -27,6 +27,7 @@ public sealed class Contract
     public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
+    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; set; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -65,6 +66,7 @@ public sealed class Contract
             return context.Contract
                 .AsNoTracking()
                 .Include(s => s.ContractEvents)
+                .Include(s => s.ModuleReferenceContractLinkEvents)
                 .OrderByDescending(c => c.ContractAddressIndex);
         }
     }
@@ -77,6 +79,20 @@ public sealed class Contract
     {
         public ContractAddress GetContractAddress([Parent] Contract contract) => 
             new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
+
+        /// <summary>
+        /// Returns the current linked module reference which is the latest added <see cref="ModuleReferenceContractLinkEvent"/>.
+        /// </summary>
+        public string GetModuleReference([Parent] Contract contract)
+        {
+            var link = contract.ModuleReferenceContractLinkEvents
+                .Where(link => link.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+                .OrderByDescending(link => link.BlockHeight)
+                .ThenByDescending(link => link.TransactionIndex)
+                .ThenByDescending(link => link.EventIndex)
+                .First();
+            return link.ModuleReference;
+        }
 
         /// <summary>
         /// Returns aggregated amount from events on contract.

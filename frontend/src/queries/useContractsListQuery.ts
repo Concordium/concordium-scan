@@ -17,6 +17,8 @@ const Query = gql<ContractListResponse>`
 				node {
 					amount
 					transactionHash
+					moduleReference
+					blockSlotTime
 					contractAddress {
 						__typename
 						asString

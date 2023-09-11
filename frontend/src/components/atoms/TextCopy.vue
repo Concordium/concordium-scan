@@ -7,6 +7,7 @@
 	>
 		<button
 			:aria-label="label"
+			:class="$style.w24"
 			class="transition-colors text-theme-faded hover:text-theme-interactiveHover inline"
 			@click="handleOnCopy"
 		>
@@ -52,3 +53,9 @@ const handleOnCopy = () => {
 	)
 }
 </script>
+
+<style module>
+.w24 {
+	width: 24px;
+}
+</style>
