@@ -244,6 +244,13 @@ public abstract record TransactionResultEvent
     }
 }
 
+
+/// <summary>
+/// This event is used in cases
+/// - Account transfer. This is where one account transfer CCD to another account.
+/// - Contract transfer. When a contract transfer CCD to an account.
+/// - Contract Upgrade when a contract is instigator and call a payable receive method with positive CCD amount on a contract.
+/// </summary>
 public record Transferred(
     ulong Amount,
     Address From,
