@@ -719,6 +719,7 @@ type Contract {
   contractAddressSubIndex: UnsignedLong!
   creator: AccountAddress!
   source: ImportSource!
+  blockSlotTime: DateTime!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
   contractAddress: ContractAddress!
@@ -740,6 +741,7 @@ type ContractEvent {
   contractAddressSubIndex: UnsignedLong!
   event: Event!
   source: ImportSource!
+  blockSlotTime: DateTime!
   createdAt: DateTime!
 }
 

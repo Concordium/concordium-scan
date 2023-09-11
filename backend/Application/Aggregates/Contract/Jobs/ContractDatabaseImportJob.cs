@@ -178,6 +178,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 eventDto.Event,
                 eventDto.TransactionSender!,
                 (ulong)eventDto.BlockHeight,
+                eventDto.BlockSlotTime.ToUniversalTime(),
                 eventDto.TransactionHash,
                 eventDto.TransactionIndex,
                 eventDto.TransactionEventIndex

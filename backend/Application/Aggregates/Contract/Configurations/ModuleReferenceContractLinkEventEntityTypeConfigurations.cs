@@ -37,6 +37,8 @@ public sealed class ModuleReferenceContractLinkEventEntityTypeConfigurations : I
             .HasColumnName("source");
         builder.Property(x => x.LinkAction)
             .HasColumnName("link_action");
+        builder.Property(x => x.BlockSlotTime)
+            .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");        
     }

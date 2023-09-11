@@ -19,6 +19,7 @@ public sealed class ModuleReferenceContractLinkEvent
     public ulong ContractAddressSubIndex { get; init; }
     public ImportSource Source { get; init; }
     public ModuleReferenceContractLinkAction LinkAction { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>
@@ -35,7 +36,8 @@ public sealed class ModuleReferenceContractLinkEvent
         string moduleReference,
         ContractAddress contractAddress,
         ImportSource source, 
-        ModuleReferenceContractLinkAction linkAction
+        ModuleReferenceContractLinkAction linkAction,
+        DateTimeOffset blockSlotTime
     )
     {
         BlockHeight = blockHeight;
@@ -47,6 +49,7 @@ public sealed class ModuleReferenceContractLinkEvent
         ContractAddressSubIndex = contractAddress.SubIndex;
         Source = source;
         LinkAction = linkAction;
+        BlockSlotTime = blockSlotTime;
     }
     
     /// <summary>

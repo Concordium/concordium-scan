@@ -10,7 +10,8 @@ create table graphql_contracts
     contract_address_index      bigint        not null,
     contract_address_sub_index  bigint        not null,
     creator                     text          not null,
-    source                      int           not null,    
+    source                      int           not null,
+    block_slot_time             TIMESTAMPTZ   not null,    
     created_at                  TIMESTAMPTZ   not null,
     PRIMARY KEY (
                  contract_address_index,
@@ -27,7 +28,8 @@ create table graphql_contract_events
     contract_address_index      bigint        not null,
     contract_address_sub_index  bigint        not null,
     event                       json          not null,
-    source                      int           not null,    
+    source                      int           not null,
+    block_slot_time             TIMESTAMPTZ   not null,        
     created_at                  TIMESTAMPTZ   not null,
     PRIMARY KEY (
                  block_height,
@@ -45,7 +47,8 @@ create table graphql_module_reference_events
     transaction_index           bigint        not null,
     event_index                 bigint        not null,
     module_reference            text          not null,
-    source                      int           not null,    
+    source                      int           not null,
+    block_slot_time             TIMESTAMPTZ   not null,    
     created_at                  TIMESTAMPTZ   not null,    
     PRIMARY KEY (
                  module_reference
@@ -63,6 +66,7 @@ create table graphql_module_reference_contract_link_events
     contract_address_sub_index  bigint      not null,
     source                      int         not null,
     link_action                 int         not null,
+    block_slot_time             TIMESTAMPTZ not null,
     created_at                  TIMESTAMPTZ not null,
     PRIMARY KEY (
                  block_height,

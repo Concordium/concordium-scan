@@ -24,6 +24,7 @@ public sealed class Contract
     public ulong ContractAddressSubIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
+    public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
     
@@ -40,7 +41,8 @@ public sealed class Contract
         uint eventIndex,
         ContractAddress contractAddress,
         AccountAddress creator,
-        ImportSource source)
+        ImportSource source,
+        DateTimeOffset blockSlotTime)
     {
         BlockHeight = blockHeight;
         TransactionHash = transactionHash;
@@ -50,6 +52,7 @@ public sealed class Contract
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
         Source = source;
+        BlockSlotTime = blockSlotTime;
     }
     
     [ExtendObjectType(typeof(Query))]
@@ -97,18 +100,18 @@ public sealed class Contract
                         amount += (long)contractUpdated.Amount;
                         break;
                     case Transferred transferred:
-                        if (transferred.From is not ContractAddress contractAddress)
+                        if (transferred.From is ContractAddress contractAddressFrom &&
+                            contractAddressFrom.Index == contract.ContractAddressIndex &&
+                            contractAddressFrom.SubIndex == contract.ContractAddressSubIndex)
                         {
-                            throw new ContractQueryException(
-                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{contract.ContractAddressIndex},{contract.ContractAddressSubIndex}> with FROM which wasn't a contract address.");
+                            amount -= (long)transferred.Amount;
                         }
-                        if (contractAddress.Index != contract.ContractAddressIndex ||
-                            contractAddress.SubIndex != contract.ContractAddressSubIndex)
+                        if (transferred.To is ContractAddress contractAddressTo &&
+                            contractAddressTo.Index == contract.ContractAddressIndex &&
+                            contractAddressTo.SubIndex == contract.ContractAddressSubIndex)
                         {
-                            throw new ContractQueryException(
-                                $"Got transfer with txHash, {contractEvent.TransactionHash}, with event on contract <{contract.ContractAddressIndex},{contract.ContractAddressSubIndex}> with FROM which wasn't same contract address but instead <{contractAddress.Index},{contractAddress.SubIndex}>");
+                            amount += (long)transferred.Amount;
                         }
-                        amount -= (long)transferred.Amount;
                         break;
                 }
             }
