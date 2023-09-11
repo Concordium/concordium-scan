@@ -42,22 +42,28 @@
 				</TableRow>
 			</TableBody>
 		</Table>
+		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { ContractRejectEvent } from '~~/src/types/generated'
+import { ContractRejectEvent, PageInfo } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import RejectedReceive from '~/components/RejectionReason/Reasons/RejectedReceive.vue'
+import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import {
 	convertTimestampToRelative,
 	formatTimestamp,
 } from '~~/src/utils/format'
+import { PaginationTarget } from '~~/src/composables/usePagination'
+import Pagination from '~/components/Pagination.vue'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	contractRejectEvents: ContractRejectEvent[]
+	pageInfo: PageInfo
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
 </script>

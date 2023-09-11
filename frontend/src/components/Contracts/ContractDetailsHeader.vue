@@ -1,6 +1,6 @@
 <template>
 	<DrawerTitle class="flex flex-row flex-wrap">
-		<CodeIcon class="w-12 h-12 mr-4 hidden md:block" />
+		<ChipIcon class="w-12 h-12 mr-4 hidden md:block" />
 
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">Contract</h3>
@@ -21,7 +21,7 @@
 </template>
 
 <script lang="ts" setup>
-import { CodeIcon } from '@heroicons/vue/solid/index.js'
+import { ChipIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 import type { Contract } from '~/types/generated'

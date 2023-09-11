@@ -29,20 +29,34 @@
 			<Accordion :is-initial-open="true">
 				Events
 				<span class="numerical text-theme-faded"
-					>({{ contract.contractEvents.length }})</span
+					>({{ contract.contractEvents?.totalCount }})</span
 				>
 				<template #content>
-					<ContractDetailsEvents :contract-events="contract.contractEvents" />
+					<ContractDetailsEvents
+						v-if="
+							contract.contractEvents?.nodes?.length &&
+							contract.contractEvents?.nodes?.length > 0
+						"
+						:contract-events="contract.contractEvents!.nodes"
+						:page-info="contract.contractEvents!.pageInfo"
+						:go-to-page="goToPageEvents"
+					/>
 				</template>
 			</Accordion>
 			<Accordion :is-initial-open="true">
 				Rejected Events
 				<span class="numerical text-theme-faded"
-					>({{ contract.contractRejectEvents.length }})</span
+					>({{ contract.contractRejectEvents?.totalCount }})</span
 				>
 				<template #content>
 					<ContractDetailsRejectEvents
-						:contract-reject-events="contract.contractRejectEvents"
+						v-if="
+							contract.contractRejectEvents?.nodes?.length &&
+							contract.contractRejectEvents?.nodes?.length > 0
+						"
+						:contract-reject-events="contract.contractRejectEvents!.nodes"
+						:page-info="contract.contractRejectEvents!.pageInfo"
+						:go-to-page="goToPageRejectEvents"
 					/>
 				</template>
 			</Accordion>
@@ -57,17 +71,20 @@ import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { Contract } from '~~/src/types/generated'
+import { Contract, PageInfo } from '~~/src/types/generated'
 import {
 	convertTimestampToRelative,
 	formatTimestamp,
 } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
+import type { PaginationTarget } from '~/composables/usePagination'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	contract: Contract
+	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
+	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
 </script>

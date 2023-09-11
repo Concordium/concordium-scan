@@ -1007,8 +1007,8 @@ export type Contract = {
   contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  contractEvents: Array<ContractEvent>;
-  contractRejectEvents: Array<ContractRejectEvent>;
+  contractEvents?: Maybe<ContractEventsConnection>;
+  contractRejectEvents?: Maybe<ContractRejectEventsConnection>;
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
@@ -1017,6 +1017,22 @@ export type Contract = {
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
+};
+
+
+export type ContractContractEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type ContractContractRejectEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type ContractAddress = {
@@ -1039,6 +1055,28 @@ export type ContractEvent = {
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type ContractEventsConnection = {
+  __typename?: 'ContractEventsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractEventsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ContractEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
+  totalCount: Scalars['Int'];
+};
+
+/** An edge in a connection. */
+export type ContractEventsEdge = {
+  __typename?: 'ContractEventsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ContractEvent;
 };
 
 export type ContractInitialized = {
@@ -1082,6 +1120,28 @@ export type ContractRejectEvent = {
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type ContractRejectEventsConnection = {
+  __typename?: 'ContractRejectEventsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractRejectEventsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ContractRejectEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
+  totalCount: Scalars['Int'];
+};
+
+/** An edge in a connection. */
+export type ContractRejectEventsEdge = {
+  __typename?: 'ContractRejectEventsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ContractRejectEvent;
 };
 
 export type ContractResumed = {

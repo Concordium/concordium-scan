@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
@@ -28,9 +27,20 @@ public sealed class Contract
     public ImportSource Source { get; init; }
     public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<ContractEvent> ContractEvents { get; init; } = null!;
-    public ICollection<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
-    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
+    /// <summary>
+    /// It is important, that when pagination is used together with a <see cref="System.Linq.IQueryable"/> return type
+    /// then aggregation result like <see cref="Contract.ContractExtensions.GetAmount"/> will not be correct.
+    ///
+    /// Hence pagination should only by used in cases where database query has executed like <see cref="Contract.ContractQuery.GetContract"/>.
+    /// </summary>
+    [UsePaging(IncludeTotalCount = true)]
+    public IList<ContractEvent> ContractEvents { get; init; } = null!;
+    /// <summary>
+    /// See pagination comment on above.
+    /// </summary>
+    [UsePaging(IncludeTotalCount = true)]
+    public IList<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
+    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -69,9 +79,17 @@ public sealed class Contract
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
-                .Include(c => c.ContractEvents)
-                .Include(c => c.ContractRejectEvents)
-                .Include(c => c.ModuleReferenceContractLinkEvents)
+                .Include(c => c.ContractEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
+                .Include(c => c.ContractRejectEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex))
+                .Include(c => c.ModuleReferenceContractLinkEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
                 .SingleOrDefaultAsync();
         }
         

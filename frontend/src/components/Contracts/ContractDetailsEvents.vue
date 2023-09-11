@@ -63,6 +63,7 @@
 				</TableRow>
 			</TableBody>
 		</Table>
+		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
 	</div>
 </template>
 
@@ -75,17 +76,21 @@ import ContractUpdated from '~/components/TransactionEventList/Events/ContractUp
 import ContractUpgraded from '~/components/TransactionEventList/Events/ContractUpgraded.vue'
 import TransferMemo from '~/components/TransactionEventList/Events/TransferMemo.vue'
 import Transferred from '~/components/TransactionEventList/Events/Transferred.vue'
-import { ContractEvent } from '~~/src/types/generated'
+import Tooltip from '~~/src/components/atoms/Tooltip.vue'
+import { ContractEvent, PageInfo } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import {
 	convertTimestampToRelative,
 	formatTimestamp,
 } from '~~/src/utils/format'
+import { PaginationTarget } from '~~/src/composables/usePagination'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	contractEvents: ContractEvent[]
+	pageInfo: PageInfo
+	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
 </script>
