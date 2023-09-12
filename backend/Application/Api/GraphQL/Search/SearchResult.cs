@@ -40,7 +40,7 @@ public class SearchResult
             .AsNoTracking()
             .Where(c => EF.Functions.Like(c.ContractAddress, pattern!))
             .OrderByDescending(c => c.ContractAddressIndex)
-            .ThenByDescending(c => c.ContractAddressSubindex);
+            .ThenByDescending(c => c.ContractAddressSubIndex);
     }
 
     [UseDbContext(typeof(GraphQlDbContext))]
