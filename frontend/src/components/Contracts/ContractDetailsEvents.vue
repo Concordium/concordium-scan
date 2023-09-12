@@ -70,7 +70,6 @@ import ContractInterrupted from '~/components/TransactionEventList/Events/Contra
 import ContractResumed from '~/components/TransactionEventList/Events/ContractResumed.vue'
 import ContractUpdated from '~/components/TransactionEventList/Events/ContractUpdated.vue'
 import ContractUpgraded from '~/components/TransactionEventList/Events/ContractUpgraded.vue'
-import TransferMemo from '~/components/TransactionEventList/Events/TransferMemo.vue'
 import Transferred from '~/components/TransactionEventList/Events/Transferred.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { ContractEvent, PageInfo } from '~~/src/types/generated'

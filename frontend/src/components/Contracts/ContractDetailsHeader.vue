@@ -6,10 +6,10 @@
 			<h3 class="w-full text-sm text-theme-faded">Contract</h3>
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl numerical">
-					{{ contract.contractAddress }}
+					{{ contractAddress }}
 				</h1>
 				<TextCopy
-					:text="contract.contractAddress"
+					:text="contractAddress"
 					label="Click to copy contract address to clipboard"
 					class="mx-3"
 					icon-size="h-5 w-5"
@@ -24,9 +24,9 @@
 import { ChipIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
-import type { Contract } from '~/types/generated'
+
 type Props = {
-	contract: Contract
+	contractAddress: string
 }
 defineProps<Props>()
 </script>

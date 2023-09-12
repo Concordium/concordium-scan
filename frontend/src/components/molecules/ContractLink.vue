@@ -43,7 +43,8 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = () => {
-	props.contractAddressIndex &&
+	props.contractAddressIndex !== null &&
+		props.contractAddressIndex !== undefined &&
 		props.contractAddressSubIndex !== null &&
 		props.contractAddressSubIndex !== undefined &&
 		drawer.push({

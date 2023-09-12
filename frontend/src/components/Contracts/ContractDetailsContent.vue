@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<ContractDetailsHeader :contract="contract" />
+		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<ContractDetailsAmounts :contract="contract" />

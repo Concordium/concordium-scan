@@ -89,8 +89,10 @@ export const isItemOnTop = (
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	)
 		return !!(
-			item.contractAddressIndex &&
-			item.contractAddressSubIndex &&
+			item.contractAddressIndex !== null &&
+			item.contractAddressIndex !== undefined &&
+			item.contractAddressSubIndex !== null &&
+			item.contractAddressSubIndex !== undefined &&
 			item.contractAddressIndex === currentTopItem.value.contractAddressIndex &&
 			item.contractAddressSubIndex ===
 				currentTopItem.value.contractAddressSubIndex

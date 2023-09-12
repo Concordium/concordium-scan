@@ -172,8 +172,8 @@ export const useContractQuery = ({
 		query: ContractQuery,
 		requestPolicy: 'cache-first',
 		variables: {
-			contractAddressIndex: contractAddressIndex?.value,
-			contractAddressSubIndex: contractAddressSubIndex?.value,
+			contractAddressIndex: contractAddressIndex.value,
+			contractAddressSubIndex: contractAddressSubIndex.value,
 			firstEvent: eventsVariables.first,
 			lastEvent: eventsVariables.last,
 			afterEvent: eventsVariables.after,

@@ -2107,4 +2107,3 @@ scalar UnsignedInt
 
 "The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0."
 scalar UnsignedLong
-
