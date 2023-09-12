@@ -14,19 +14,12 @@ namespace Application.Aggregates.Contract.Entities;
 /// Initial event stored when a smart contract is created
 /// These are non mutable values through the lifetime of the smart contract.
 /// </summary>
-public sealed class Contract
+public sealed class Contract : BaseIdentification
 {
-    public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; } = null!;
-    public ulong TransactionIndex { get; init; }
-    public uint EventIndex { get; init; }
-    public ulong ContractAddressIndex { get; init; }
-    public ulong ContractAddressSubIndex { get; init; }
     public string ContractAddress { get; init; } = null!;
+    public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
-    public ImportSource Source { get; init; }
-    public DateTimeOffset BlockSlotTime { get; init; }
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
+ 
     /// <summary>
     /// It is important, that when pagination is used together with a <see cref="System.Linq.IQueryable"/> return type
     /// then aggregation result like <see cref="Contract.ContractExtensions.GetAmount"/> will not be correct.
@@ -56,18 +49,12 @@ public sealed class Contract
         ContractAddress contractAddress,
         AccountAddress creator,
         ImportSource source,
-        DateTimeOffset blockSlotTime)
+        DateTimeOffset blockSlotTime) : 
+        base(blockHeight, transactionHash, transactionIndex, contractAddress, source, blockSlotTime)
     {
-        BlockHeight = blockHeight;
-        TransactionHash = transactionHash;
-        TransactionIndex = transactionIndex;
+        ContractAddress = contractAddress.AsString;
         EventIndex = eventIndex;
         Creator = creator;
-        ContractAddressIndex = contractAddress.Index;
-        ContractAddressSubIndex = contractAddress.SubIndex;
-        ContractAddress = contractAddress.AsString;
-        Source = source;
-        BlockSlotTime = blockSlotTime;
     }
     
     [ExtendObjectType(typeof(Query))]

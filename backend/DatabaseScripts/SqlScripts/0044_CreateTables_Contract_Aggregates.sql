@@ -8,7 +8,7 @@ create table graphql_contracts
     transaction_index           bigint        not null,
     event_index                 bigint        not null,
     contract_address_index      bigint        not null,
-    contract_address_sub_index  bigint        not null,
+    contract_address_subindex  bigint        not null,
     contract_address            text          not null,
     creator                     text          not null,
     source                      int           not null,
@@ -16,7 +16,7 @@ create table graphql_contracts
     created_at                  TIMESTAMPTZ   not null,
     PRIMARY KEY (
                  contract_address_index,
-                 contract_address_sub_index
+                 contract_address_subindex
         )
 );
 
@@ -27,7 +27,7 @@ create table graphql_contract_events
     transaction_index           bigint        not null,
     event_index                 bigint        not null,
     contract_address_index      bigint        not null,
-    contract_address_sub_index  bigint        not null,
+    contract_address_subindex  bigint        not null,
     sender                      text          not null,    
     event                       json          not null,
     source                      int           not null,
@@ -38,7 +38,7 @@ create table graphql_contract_events
                  transaction_index,
                  event_index,
                  contract_address_index,
-                 contract_address_sub_index
+                 contract_address_subindex
                 )
 );
 
@@ -48,7 +48,7 @@ create table graphql_contract_reject_events
     transaction_hash            text          not null,
     transaction_index           bigint        not null,
     contract_address_index      bigint        not null,
-    contract_address_sub_index  bigint        not null,
+    contract_address_subindex  bigint        not null,
     sender                      text          not null,
     reject_event                json          not null,
     source                      int           not null,
@@ -58,7 +58,7 @@ create table graphql_contract_reject_events
                  block_height,
                  transaction_index,
                  contract_address_index,
-                 contract_address_sub_index
+                 contract_address_subindex
         )
 );
 
@@ -104,7 +104,7 @@ create table graphql_module_reference_contract_link_events
     event_index                 bigint      not null,
     module_reference            text        not null,    
     contract_address_index      bigint      not null,
-    contract_address_sub_index  bigint      not null,
+    contract_address_subindex  bigint      not null,
     sender                      text        not null,    
     source                      int         not null,
     link_action                 int         not null,
@@ -116,7 +116,7 @@ create table graphql_module_reference_contract_link_events
                  event_index,
                  module_reference,
                  contract_address_index,
-                 contract_address_sub_index,
+                 contract_address_subindex,
                  link_action
         )
 );
