@@ -16,6 +16,8 @@ namespace Application.Aggregates.Contract.Entities;
 /// </summary>
 public sealed class Contract : BaseIdentification
 {
+    public ulong ContractAddressIndex { get; init; }
+    public ulong ContractAddressSubIndex { get; init; }
     public string ContractAddress { get; init; } = null!;
     public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
@@ -50,8 +52,10 @@ public sealed class Contract : BaseIdentification
         AccountAddress creator,
         ImportSource source,
         DateTimeOffset blockSlotTime) : 
-        base(blockHeight, transactionHash, transactionIndex, contractAddress, source, blockSlotTime)
+        base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
     {
+        ContractAddressIndex = contractAddress.Index;
+        ContractAddressSubIndex = contractAddress.SubIndex;
         ContractAddress = contractAddress.AsString;
         EventIndex = eventIndex;
         Creator = creator;

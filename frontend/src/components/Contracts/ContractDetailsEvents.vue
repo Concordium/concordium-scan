@@ -51,10 +51,6 @@
 							v-else-if="contractEvent.event.__typename === 'ContractResumed'"
 							:event="contractEvent.event"
 						/>
-						<TransferMemo
-							v-else-if="contractEvent.event.__typename === 'TransferMemo'"
-							:event="contractEvent.event"
-						/>
 						<Transferred
 							v-else-if="contractEvent.event.__typename === 'Transferred'"
 							:event="contractEvent.event"

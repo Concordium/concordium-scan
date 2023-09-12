@@ -10,6 +10,8 @@ namespace Application.Aggregates.Contract.Entities;
 /// </summary>
 public sealed class ContractEvent : BaseIdentification
 {
+    public ulong ContractAddressIndex { get; init; }
+    public ulong ContractAddressSubIndex { get; init; }
     public uint EventIndex { get; init; }
     public AccountAddress Sender { get; init; } = null!;
     public TransactionResultEvent Event { get; init; } = null!;
@@ -30,8 +32,10 @@ public sealed class ContractEvent : BaseIdentification
         TransactionResultEvent @event,
         ImportSource source,
         DateTimeOffset blockSlotTime) :
-        base(blockHeight, transactionHash, transactionIndex, contractAddress, source, blockSlotTime)
+        base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
     {
+        ContractAddressIndex = contractAddress.Index;
+        ContractAddressSubIndex = contractAddress.SubIndex;
         EventIndex = eventIndex;
         Sender = sender;
         Event = @event;
