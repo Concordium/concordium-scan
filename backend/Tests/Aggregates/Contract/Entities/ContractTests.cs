@@ -81,7 +81,7 @@ public sealed class ContractTests
             .WithContractAddress(contractAddress)
             .WithContractEvents(contractEvents)
             .Build();
-        
+	
         // Act
         var amount = _contractExtensions.GetAmount(contract);
 
