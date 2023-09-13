@@ -95,7 +95,7 @@ public sealed class ContractAggregateTests
     }
     
     [Fact]
-    public async Task GivenContractUpdated_WithContractInstigator_WhenStoreEvent_ThenStoreUpgradeAndTransfer()
+    public async Task GivenContractUpdated_WithContractInstigator_WhenStoreEvent_ThenStoreUpgradeAndContractCall()
     {
         // Arrange
         const int from = 4;
@@ -134,7 +134,7 @@ public sealed class ContractAggregateTests
         updateEvent.ContractAddressIndex.Should().Be(from);
         
         var transferEvent = contractEvents[1];
-        transferEvent.Event.Should().BeOfType<Transferred>();
+        transferEvent.Event.Should().BeOfType<ContractCall>();
         transferEvent.ContractAddressIndex.Should().Be(to);
     }
     
