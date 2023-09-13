@@ -735,6 +735,10 @@ type ContractAddress {
   asString: String!
 }
 
+type ContractCall {
+  contractUpdated: ContractUpdated!
+}
+
 type ContractEvent {
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
@@ -1924,7 +1928,7 @@ union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainU
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
-union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | ContractInterrupted | ContractResumed | ContractUpgraded | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
+union Event = Transferred | AccountCreated | AmountAddedByDecryption | BakerAdded | BakerKeysUpdated | BakerRemoved | BakerSetRestakeEarnings | BakerStakeDecreased | BakerStakeIncreased | ContractInitialized | ContractModuleDeployed | ContractUpdated | ContractCall | CredentialDeployed | CredentialKeysUpdated | CredentialsUpdated | DataRegistered | EncryptedAmountsRemoved | EncryptedSelfAmountAdded | NewEncryptedAmount | TransferMemo | TransferredWithSchedule | ChainUpdateEnqueued | ContractInterrupted | ContractResumed | ContractUpgraded | BakerSetOpenStatus | BakerSetMetadataURL | BakerSetTransactionFeeCommission | BakerSetBakingRewardCommission | BakerSetFinalizationRewardCommission | DelegationAdded | DelegationRemoved | DelegationStakeIncreased | DelegationStakeDecreased | DelegationSetRestakeEarnings | DelegationSetDelegationTarget
 
 union PendingBakerChange = PendingBakerRemoval | PendingBakerReduceStake
 

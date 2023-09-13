@@ -149,18 +149,22 @@ public sealed class Contract : BaseIdentification
                     case ContractUpdated contractUpdated:
                         amount += (long)contractUpdated.Amount;
                         break;
+                    case ContractCall contractCall:
+                    {
+                        if (contractCall.ContractUpdated.Instigator is ContractAddress instigator &&
+                            instigator.Index == contract.ContractAddressIndex &&
+                            instigator.SubIndex == contract.ContractAddressSubIndex)
+                        {
+                            amount -= (long)contractCall.ContractUpdated.Amount;
+                        }                        
+                        break;
+                    }
                     case Transferred transferred:
                         if (transferred.From is ContractAddress contractAddressFrom &&
                             contractAddressFrom.Index == contract.ContractAddressIndex &&
                             contractAddressFrom.SubIndex == contract.ContractAddressSubIndex)
                         {
                             amount -= (long)transferred.Amount;
-                        }
-                        if (transferred.To is ContractAddress contractAddressTo &&
-                            contractAddressTo.Index == contract.ContractAddressIndex &&
-                            contractAddressTo.SubIndex == contract.ContractAddressSubIndex)
-                        {
-                            amount += (long)transferred.Amount;
                         }
                         break;
                 }
