@@ -295,6 +295,14 @@ const gotoSearchResult = () => {
 			entityTypeName: 'node',
 			nodeId: data.value.search.nodeStatuses.nodes[0].id,
 		})
+	else if (data.value.search.contracts.nodes[0])
+		drawer.push({
+			entityTypeName: 'contract',
+			contractAddressIndex:
+				data.value.search.contracts.nodes[0].contractAddressIndex,
+			contractAddressSubIndex:
+				data.value.search.contracts.nodes[0].contractAddressSubIndex,
+		})
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false

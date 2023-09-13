@@ -1264,6 +1264,36 @@ type ModuleReferenceContractLinkEvent {
   createdAt: DateTime!
 }
 
+type ModuleReferenceEvent {
+  eventIndex: UnsignedInt!
+  moduleReference: String!
+  sender: AccountAddress!
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  source: ImportSource!
+  blockSlotTime: DateTime!
+  createdAt: DateTime!
+}
+
+"A connection to a list of items."
+type ModulesConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [ModulesEdge!]
+  "A flattened list of the nodes."
+  nodes: [ModuleReferenceEvent!]
+}
+
+"An edge in a connection."
+type ModulesEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: ModuleReferenceEvent!
+}
+
 type NewEncryptedAmount {
   accountAddress: AccountAddress!
   newIndex: UnsignedLong!
@@ -1707,6 +1737,7 @@ type ScheduledSelfTransfer {
 
 type SearchResult {
   contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
+  modules("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ModulesConnection
   blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection

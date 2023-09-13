@@ -1749,6 +1749,39 @@ export type ModuleReferenceContractLinkEvent = {
   transactionIndex: Scalars['UnsignedLong'];
 };
 
+export type ModuleReferenceEvent = {
+  __typename?: 'ModuleReferenceEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  createdAt: Scalars['DateTime'];
+  eventIndex: Scalars['UnsignedInt'];
+  moduleReference: Scalars['String'];
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type ModulesConnection = {
+  __typename?: 'ModulesConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ModulesEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ModuleReferenceEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ModulesEdge = {
+  __typename?: 'ModulesEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ModuleReferenceEvent;
+};
+
 export type NewEncryptedAmount = {
   __typename?: 'NewEncryptedAmount';
   accountAddress: AccountAddress;
@@ -2482,6 +2515,7 @@ export type SearchResult = {
   bakers?: Maybe<BakersConnection>;
   blocks?: Maybe<BlocksConnection>;
   contracts?: Maybe<ContractsConnection>;
+  modules?: Maybe<ModulesConnection>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
   transactions?: Maybe<TransactionsConnection>;
 };
@@ -2512,6 +2546,14 @@ export type SearchResultBlocksArgs = {
 
 
 export type SearchResultContractsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultModulesArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
