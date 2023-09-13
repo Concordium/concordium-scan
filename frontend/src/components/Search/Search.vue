@@ -162,6 +162,23 @@
 							<AccountLink :address="contract.creator.asString" />
 						</div>
 					</SearchResultCategory>
+					<SearchResultCategory
+						v-if="resultCount.modules"
+						title="Modules"
+						:has-more-results="data.search.modules.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="module in data.search.modules.nodes"
+							:key="module.moduleReference"
+							class="grid grid-cols-4 gap-8"
+						>
+							<ModuleLink
+								:module-reference="module.moduleReference"
+								:hide-tooltip="true"
+								@blur="lostFocusOnSearch"
+							/>
+						</div>
+					</SearchResultCategory>
 
 					<SearchResultCategory
 						v-if="resultCount.bakers"
@@ -212,6 +229,7 @@
 </template>
 
 <script lang="ts" setup>
+import ModuleLink from '../molecules/ModuleLink.vue'
 import SearchResultCategory from './SearchResultCategory.vue'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
@@ -274,6 +292,11 @@ const gotoSearchResult = () => {
 			hash: data.value.search.transactions.nodes[0].transactionHash,
 			id: data.value.search.transactions.nodes[0].id,
 		})
+	else if (data.value.search.modules.nodes[0])
+		drawer.push({
+			entityTypeName: 'module',
+			hash: data.value.search.modules.nodes[0].moduleReference,
+		})
 	else if (data.value.search.blocks.nodes[0])
 		drawer.push({
 			entityTypeName: 'block',
@@ -319,6 +342,7 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 }
 
 const resultCount = computed(() => ({
+	modules: data.value?.search.modules.nodes.length,
 	contracts: data.value?.search.contracts.nodes.length,
 	blocks: data.value?.search.blocks.nodes.length,
 	transactions: data.value?.search.transactions.nodes.length,
@@ -331,7 +355,8 @@ const resultCount = computed(() => ({
 		(data.value?.search.transactions.nodes.length ?? 0) +
 		(data.value?.search.accounts.nodes.length ?? 0) +
 		(data.value?.search.bakers.nodes.length ?? 0) +
-		(data.value?.search.nodeStatuses.nodes.length ?? 0),
+		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
+		(data.value?.search.modules.nodes.length ?? 0),
 }))
 </script>
 
