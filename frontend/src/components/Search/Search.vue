@@ -148,9 +148,9 @@
 						:has-more-results="!!data.search.contracts.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="contract in data.search.contracts.nodes"
+							v-for="(contract, index) in data.search.contracts.nodes"
 							:key="contract.contractAddress"
-							class="grid grid-cols-2 gap-8"
+							class="grid grid-cols-3 gap-8"
 						>
 							<ContractLink
 								:address="contract.contractAddress"
@@ -160,6 +160,20 @@
 								@blur="lostFocusOnSearch"
 							/>
 							<AccountLink :address="contract.creator.asString" />
+							<div>
+								Age
+								<Tooltip
+									:text="formatTimestamp(contract.blockSlotTime)"
+									:position="index === 0 ? tooltipPositionBottom : ''"
+								>
+									{{
+										convertTimestampToRelative(
+											contract.blockSlotTime || '',
+											NOW
+										)
+									}}
+								</Tooltip>
+							</div>
 						</div>
 					</SearchResultCategory>
 					<SearchResultCategory
@@ -168,15 +182,26 @@
 						:has-more-results="data.search.modules.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="module in data.search.modules.nodes"
+							v-for="(module, index) in data.search.modules.nodes"
 							:key="module.moduleReference"
-							class="grid grid-cols-4 gap-8"
+							class="grid grid-cols-2 gap-8"
 						>
 							<ModuleLink
 								:module-reference="module.moduleReference"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
+							<div>
+								Age
+								<Tooltip
+									:text="formatTimestamp(module.blockSlotTime)"
+									:position="index === 0 ? tooltipPositionBottom : ''"
+								>
+									{{
+										convertTimestampToRelative(module.blockSlotTime || '', NOW)
+									}}
+								</Tooltip>
+							</div>
 						</div>
 					</SearchResultCategory>
 

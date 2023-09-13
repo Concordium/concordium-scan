@@ -30,6 +30,7 @@ const SearchQuery = gql<SearchResponse>`
 		search(query: $query) {
 			modules(first: 3) {
 				nodes {
+					blockSlotTime
 					moduleReference
 				}
 				pageInfo {
@@ -38,6 +39,7 @@ const SearchQuery = gql<SearchResponse>`
 			}
 			contracts(first: 3) {
 				nodes {
+					blockSlotTime
 					contractAddress
 					contractAddressIndex
 					contractAddressSubIndex
