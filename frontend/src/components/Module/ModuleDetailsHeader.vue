@@ -6,7 +6,7 @@
 			<h3 class="w-full text-sm text-theme-faded">Module</h3>
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl numerical">
-					{{ moduleReference }}
+					{{ shortenHash(moduleReference) }}
 				</h1>
 				<TextCopy
 					:text="moduleReference"
@@ -24,6 +24,7 @@
 import { CodeIcon } from '@heroicons/vue/solid/index.js'
 import DrawerTitle from '~/components/Drawer/DrawerTitle.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
+import { shortenHash } from '~/utils/format'
 
 type Props = {
 	moduleReference: string

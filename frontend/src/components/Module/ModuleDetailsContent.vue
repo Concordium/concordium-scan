@@ -38,7 +38,7 @@
 							moduleReferenceEvent.linkedContracts?.nodes?.length > 0
 						"
 						:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
-						:page-info="contract.contractEvents!.pageInfo"
+						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
 						:go-to-page="goToPageLinkedContract"
 					/>
 				</template>

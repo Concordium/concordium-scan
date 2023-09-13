@@ -23,6 +23,7 @@ const ContractQuery = gql`
 		moduleReferenceEvent(moduleReference: $moduleReference) {
 			transactionHash
 			moduleReference
+			blockSlotTime
 			sender {
 				asString
 			}
