@@ -1291,6 +1291,7 @@ type ModuleReferenceContractLinkEvent {
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
+  contractAddress: ContractAddress!
 }
 
 "A connection to a list of items."
