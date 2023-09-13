@@ -445,7 +445,7 @@ internal sealed class ContractAggregate
                 rejected = new ModuleHashAlreadyExists(x.ModuleReference.ToString());
                 return true;
             case Concordium.Sdk.Types.RejectedReceive x:
-                rejected =new RejectedReceive(x.RejectReason,
+                rejected = new RejectedReceive(x.RejectReason, 
                     ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString());
                 return true;
             default:
