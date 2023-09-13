@@ -42,6 +42,7 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
         { typeof(ContractInterrupted), 34 },
         { typeof(ContractResumed), 35 },
         { typeof(ContractUpgraded), 36 },
+        { typeof(ContractCall), 37 },
     };
 
     public TransactionResultEventConverter() : base(SerializeMap)

@@ -53,6 +53,26 @@ event {
 			subIndex
 		}
 	}
+	... on ContractCall {
+		contractUpdated {
+			amount
+			instigator {
+				__typename
+				... on AccountAddress {
+					asString
+				}
+				... on ContractAddress {
+					index
+					subIndex
+				}
+			}
+			contractAddress {
+				__typename
+				index
+				subIndex
+			}			
+		}
+	}
 	... on ContractUpgraded {
 		__typename
 		contractAddress {

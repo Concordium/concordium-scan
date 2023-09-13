@@ -287,7 +287,7 @@ internal sealed class ContractAggregate
                         source,
                         blockSlotTime
                         ));
-                if (contractUpdated.Instigator is ContractAddress contractInstigator && contractUpdated.Amount != 0)
+                if (contractUpdated.Instigator is ContractAddress contractInstigator)
                 {
                     await repository
                         .AddAsync(new ContractEvent(
@@ -297,10 +297,8 @@ internal sealed class ContractAggregate
                             eventIndex,
                             contractInstigator,
                             sender,
-                            new Transferred(
-                                contractUpdated.Amount,
-                                contractInstigator,
-                                contractUpdated.ContractAddress
+                            new ContractCall(
+                                contractUpdated
                             ),
                             source,
                             blockSlotTime

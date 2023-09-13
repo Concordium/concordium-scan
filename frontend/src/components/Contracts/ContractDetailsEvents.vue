@@ -37,6 +37,10 @@
 							v-else-if="contractEvent.event.__typename === 'ContractUpdated'"
 							:event="contractEvent.event"
 						/>
+						<ContractCall
+							v-else-if="contractEvent.event.__typename === 'ContractCall'"
+							:event="contractEvent.event"
+						/>
 						<ContractUpgraded
 							v-else-if="contractEvent.event.__typename === 'ContractUpgraded'"
 							:event="contractEvent.event"
@@ -70,6 +74,7 @@ import ContractInterrupted from '~/components/TransactionEventList/Events/Contra
 import ContractResumed from '~/components/TransactionEventList/Events/ContractResumed.vue'
 import ContractUpdated from '~/components/TransactionEventList/Events/ContractUpdated.vue'
 import ContractUpgraded from '~/components/TransactionEventList/Events/ContractUpgraded.vue'
+import ContractCall from '~/components/TransactionEventList/Events/ContractCall.vue'
 import Transferred from '~/components/TransactionEventList/Events/Transferred.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { ContractEvent, PageInfo } from '~~/src/types/generated'
