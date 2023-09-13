@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
 using Tests.TestUtilities.Builders;
@@ -62,17 +63,22 @@ public sealed class ContractTests
     public void WhenGetAmount_ThenReturnCorrectAmount()
     {
         // Arrange
-        var from = new ContractAddress(1, 1);
-        var to = new ContractAddress(2, 1);
+        var contractAddress = new ContractAddress(1, 1);
+        var other = new ContractAddress(2, 1);
+        var someAccount = new AccountAddress("");
         var contractEvents = new List<ContractEvent>{
-            ContractEventBuilder.Create().WithEvent(new Transferred(42, from, to)).Build(),
-            ContractEventBuilder.Create().WithEvent(new Transferred(2, to, from)).Build(),
+            // Add Contract Initialized
             ContractEventBuilder.Create().WithEvent(new ContractInitialized("", new ContractAddress(1,0), 10, "", ContractVersion.V0, Array.Empty<string>())).Build(),
-            ContractEventBuilder.Create().WithEvent(new ContractUpdated(new ContractAddress(1,0), new ContractAddress(1,0), 7, "", "", ContractVersion.V0,  Array.Empty<string>())).Build()
+            // Subtract Transferred
+            ContractEventBuilder.Create().WithEvent(new Transferred(2, contractAddress, someAccount)).Build(),
+            // Add Contract Updated
+            ContractEventBuilder.Create().WithEvent(new ContractUpdated(new ContractAddress(1,0), other, 42, "", "", ContractVersion.V0,  Array.Empty<string>())).Build(),
+            // Subtract Contract Call
+            ContractEventBuilder.Create().WithEvent(new ContractCall(new ContractUpdated(other, contractAddress, 8, "", "", ContractVersion.V0,  Array.Empty<string>()))).Build(), 
         };
         var contract = ContractBuilder
             .Create()
-            .WithContractAddress(to)
+            .WithContractAddress(contractAddress)
             .WithContractEvents(contractEvents)
             .Build();
         
@@ -80,6 +86,6 @@ public sealed class ContractTests
         var amount = _contractExtensions.GetAmount(contract);
 
         // Assert
-        amount.Should().Be(57);
+        amount.Should().Be(42);
     }
 }
