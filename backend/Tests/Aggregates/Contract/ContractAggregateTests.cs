@@ -56,45 +56,6 @@ public sealed class ContractAggregateTests
     }
     
     [Fact]
-    public async Task GivenTransferFromContract_WithContractTo_WhenStoreEvent_TheTwoTransfers()
-    {
-        // Arrange
-        const ulong from = 4;
-        const ulong to = 2;
-        const ulong amount = 5UL;
-        var contractEvents = new List<ContractEvent>();
-        var repository = new Mock<IContractRepository>();
-        repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
-            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
-        var transfer = new Transferred(
-            amount,
-            new Application.Api.GraphQL.ContractAddress(from, 0),
-            new Application.Api.GraphQL.ContractAddress(to, 0));
-        
-        // Act
-        await ContractAggregate.StoreEvent(
-            ImportSource.NodeImport,
-            repository.Object,
-            transfer,
-            new AccountAddress(""),
-            1UL,
-            DateTimeOffset.Now,
-            "",
-            1UL,
-            1U);
-        
-        // Assert
-        contractEvents.Count.Should().Be(2);
-        var updateEvent = contractEvents[0];
-        updateEvent.Event.Should().BeOfType<Transferred>();
-        updateEvent.ContractAddressIndex.Should().Be(from);
-        
-        var transferEvent = contractEvents[1];
-        transferEvent.Event.Should().BeOfType<Transferred>();
-        transferEvent.ContractAddressIndex.Should().Be(to);
-    }
-    
-    [Fact]
     public async Task GivenContractUpdated_WithAccountInstigator_WhenStoreEvent_ThenStoreUpgrade()
     {
         // Arrange

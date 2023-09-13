@@ -193,16 +193,26 @@ internal class ContractDatabaseImportJob : IContractJob
 
     private static async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
     {
-        var eventIndex = 0u;
+        var addedEvents = 0u;
         var events = await repository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
-        foreach (var eventDto in events.Where(e => !alreadyReadHeights.Contains((ulong)e.BlockHeight)))
+        var eventIndexMap = new Dictionary<(int BlockHeight, uint TransactionIndex), uint>();
+        foreach (var eventDto in events
+                     .Where(e => !alreadyReadHeights.Contains((ulong)e.BlockHeight))
+                     .OrderBy(e => e.BlockHeight)
+                     .ThenBy(e => e.TransactionIndex)
+                     .ThenBy(e => e.TransactionEventIndex))
         {
             if (!IsUsableTransaction(eventDto.TransactionType, eventDto.TransactionSender, eventDto.TransactionHash))
             {
                 continue;
-            }  
+            }
+
+            if (!eventIndexMap.TryGetValue((eventDto.BlockHeight, eventDto.TransactionIndex), out var nextEventIndex))
+            {
+                nextEventIndex = 0;
+            }
             
-            await ContractAggregate.StoreEvent(
+            var latestEventIndex = await ContractAggregate.StoreEvent(
                 ImportSource.DatabaseImport,
                 repository,
                 eventDto.Event,
@@ -211,12 +221,13 @@ internal class ContractDatabaseImportJob : IContractJob
                 eventDto.BlockSlotTime.ToUniversalTime(),
                 eventDto.TransactionHash,
                 eventDto.TransactionIndex,
-                eventDto.TransactionEventIndex
+                nextEventIndex
             );
-            eventIndex += 1;
+            addedEvents += latestEventIndex - nextEventIndex + 1;
+            eventIndexMap[(eventDto.BlockHeight, eventDto.TransactionIndex)] = latestEventIndex + 1;
         }
 
-        return eventIndex;
+        return addedEvents;
     }
     
     /// <summary>
