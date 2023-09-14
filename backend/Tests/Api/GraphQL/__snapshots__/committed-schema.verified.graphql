@@ -717,13 +717,13 @@ type Contract {
   eventIndex: UnsignedInt!
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
+  contractAddress: String!
   creator: AccountAddress!
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
   moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
-  contractAddress: ContractAddress!
   moduleReference: String!
   amount: Float!
 }
@@ -1651,6 +1651,7 @@ type ScheduledSelfTransfer {
 }
 
 type SearchResult {
+  contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
   blocks("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BlocksConnection
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
   accounts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AccountsConnection

@@ -17,10 +17,10 @@
 			<TableBody>
 				<TableRow
 					v-for="contract in data?.contracts.edges"
-					:key="contract.node.contractAddress.asString"
+					:key="contract.node.contractAddress"
 				>
 					<TableTd>
-						<ContractLink :address="contract.node.contractAddress.asString" />
+						<ContractLink :address="contract.node.contractAddress" />
 					</TableTd>
 					<TableTd>
 						<Tooltip :text="formatTimestamp(contract.node.blockSlotTime)">

@@ -143,6 +143,25 @@
 					</SearchResultCategory>
 
 					<SearchResultCategory
+						v-if="resultCount.contracts"
+						title="Contracts"
+						:has-more-results="!!data.search.contracts.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="contract in data.search.contracts.nodes"
+							:key="contract.contractAddress"
+							class="grid grid-cols-2 gap-8"
+						>
+							<ContractLink
+								:address="contract.contractAddress"
+								:hide-tooltip="true"
+								@blur="lostFocusOnSearch"
+							/>
+							<AccountLink :address="contract.creator.asString" />
+						</div>
+					</SearchResultCategory>
+
+					<SearchResultCategory
 						v-if="resultCount.bakers"
 						title="Bakers"
 						:has-more-results="data.search.bakers.pageInfo.hasNextPage"
@@ -196,14 +215,11 @@ import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import SearchIcon from '~/components/icons/SearchIcon.vue'
-import {
-	formatTimestamp,
-	convertTimestampToRelative,
-	formatUptime,
-} from '~/utils/format'
+import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import BlockLink from '~/components/molecules/BlockLink.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
+import ContractLink from '~/components/molecules/ContractLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
 import NodeLink from '~/components/molecules/NodeLink.vue'
@@ -293,12 +309,14 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 }
 
 const resultCount = computed(() => ({
+	contracts: data.value?.search.contracts.nodes.length,
 	blocks: data.value?.search.blocks.nodes.length,
 	transactions: data.value?.search.transactions.nodes.length,
 	accounts: data.value?.search.accounts.nodes.length,
 	bakers: data.value?.search.bakers.nodes.length,
 	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
 	total:
+		(data.value?.search.contracts.nodes.length ?? 0) +
 		(data.value?.search.blocks.nodes.length ?? 0) +
 		(data.value?.search.transactions.nodes.length ?? 0) +
 		(data.value?.search.accounts.nodes.length ?? 0) +

@@ -27,6 +27,8 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
             .HasColumnName("contract_address_sub_index");
+        builder.Property(x => x.ContractAddress)
+            .HasColumnName("contract_address");
         builder.Property(x => x.Creator)
             .HasColumnName("creator")
             .HasConversion<AccountAddressConverter>();

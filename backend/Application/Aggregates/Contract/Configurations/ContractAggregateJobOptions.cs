@@ -13,5 +13,5 @@ public class ContractAggregateJobOptions
     ///
     /// Increasing batch size will increase memory consumption on job since more will be loaded into memory.
     /// </summary>
-    public int BatchSize { get; set; } = 10_000;
+    public int BatchSize { get; set; } = 5_000;
 }

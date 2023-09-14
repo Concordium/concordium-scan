@@ -22,6 +22,7 @@ public sealed class Contract
     public uint EventIndex { get; init; }
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
+    public string ContractAddress { get; init; } = null!;
     public AccountAddress Creator { get; init; } = null!;
     public ImportSource Source { get; init; }
     public DateTimeOffset BlockSlotTime { get; init; }
@@ -52,6 +53,7 @@ public sealed class Contract
         Creator = creator;
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
+        ContractAddress = contractAddress.AsString;
         Source = source;
         BlockSlotTime = blockSlotTime;
     }
@@ -89,9 +91,6 @@ public sealed class Contract
     [ExtendObjectType(typeof(Contract))]
     public sealed class ContractExtensions
     {
-        public ContractAddress GetContractAddress([Parent] Contract contract) => 
-            new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
-
         /// <summary>
         /// Returns the current linked module reference which is the latest added <see cref="ModuleReferenceContractLinkEvent"/>.
         /// </summary>

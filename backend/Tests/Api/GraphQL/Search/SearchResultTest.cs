@@ -101,6 +101,39 @@ public class SearchResultTest
         result.Length.Should().Be(1);
         result[0].CanonicalAddress.AsString.Should().Be("3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P");
     }
+
+    [Theory]
+    [InlineData("<31,32>", true, "<31, 32%")]
+    [InlineData("31,32>", true, "<31, 32%")]
+    [InlineData("42,32", true, "<42, 32%")]
+    [InlineData("<31, 32>", true, "<31, 32%")]
+    [InlineData("31, 32>", true, "<31, 32%")]
+    [InlineData("42, 32", true, "<42, 32%")]
+    [InlineData("42", true, "<42%")]
+    [InlineData("31>", true, "<31%")]
+    [InlineData("<42", true, "<42%")]
+    [InlineData("42,", true, "<42,%")]
+    [InlineData("42, ", true, "<42,%")]
+    [InlineData("a", false, null)]
+    [InlineData("00a", false, null)]
+    [InlineData(null, false, null)]
+    [InlineData("", false, null)]
+    [InlineData("-42,32", false, null)]
+    [InlineData("42,-32", false, null)]
+    public void WhenMatchContractRegex_ThenReturnGroups(
+        string query,
+        bool expectedDidMatch,
+        string expectedAddress)
+    {
+        // Act
+        var searchResult = SearchResult.ContractSearching.TryMatchContractPattern(
+            query,
+            out var actualAddress);
+        
+        // Assert
+        searchResult.Should().Be(expectedDidMatch);
+        actualAddress.Should().Be(expectedAddress);
+    }
     
     private async Task AddBlock(params Block[] entities)
     {
