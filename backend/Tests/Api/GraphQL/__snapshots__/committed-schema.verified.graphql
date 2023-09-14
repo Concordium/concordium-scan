@@ -724,7 +724,6 @@ type Contract {
   createdAt: DateTime!
   contractEvents: [ContractEvent!]!
   moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
-  contractAddress: ContractAddress!
   moduleReference: String!
   amount: Float!
 }
