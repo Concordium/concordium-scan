@@ -20,8 +20,10 @@ public class ContractAggregateOptions
     public TimeSpan DelayBetweenRetries { get; set; } = TimeSpan.FromSeconds(3);
     /// <summary>
     /// Number of times to retry.
+    ///
+    /// Defaults to `-1`w which is retry forever.
     /// </summary>
-    public uint RetryCount { get; set; } = 5;
+    public int RetryCount { get; set; } = -1;
     /// <summary>
     /// Delay between updating metrics which relies on fetch.
     /// </summary>

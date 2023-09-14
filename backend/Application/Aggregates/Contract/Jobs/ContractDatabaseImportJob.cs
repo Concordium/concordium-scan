@@ -38,40 +38,40 @@ internal class ContractDatabaseImportJob : IContractJob
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
     }
 
-    private long _readCount;
-
     public async Task StartImport(CancellationToken token)
     {
         using var _ = TraceContext.StartActivity(nameof(ContractDatabaseImportJob));
         
         try
         {
-            _readCount = -1;
-            
+            var fromBatch = 0;
             while (!token.IsCancellationRequested)
             {
                 var finalHeight = await GetFinalHeight(token);
-                
-                if (finalHeight < (_readCount + 1) * _jobOptions.BatchSize)
+
+                if (finalHeight < fromBatch * _jobOptions.BatchSize)
                 {
                     break;
                 }
+                
+                var sequenceTo = (int)(finalHeight / _jobOptions.BatchSize);
 
-                var tasks = new Task[_jobOptions.MaxParallelTasks];
-                for (var i = 0; i < _jobOptions.MaxParallelTasks; i++)
-                {
-                    tasks[i] = RunBatch(finalHeight, token);
-                }
-
+                var cycle = Parallel.ForEachAsync(
+                    Enumerable.Range(fromBatch, sequenceTo),
+                    new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
+                    },
+                    (height, batchToken) => RunBatch(height, batchToken));
+                
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
                 var metricUpdater = UpdateReadHeightMetric(cts.Token);
 
-                await Task.WhenAll(tasks);
+                await cycle;
                 cts.Cancel();
                 await metricUpdater;
-                
-                // Each task has done one increment which they didn't process.
-                _readCount -= _jobOptions.MaxParallelTasks;
+
+                fromBatch = sequenceTo + 1;
             }
             
             _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
@@ -123,29 +123,21 @@ internal class ContractDatabaseImportJob : IContractJob
         return finalHeight;
     }
     /// <summary>
-    /// Run each batch up to final height.
-    ///
-    /// Atomically get next batch interval from `_readCount`. If intervals get above <see cref="finalHeight"/> then
-    /// processing stops.
+    /// Run a batch.
     /// </summary>
-    private async Task RunBatch(long finalHeight, CancellationToken token)
+    private async ValueTask RunBatch(long height, CancellationToken token)
     {
-        while (!token.IsCancellationRequested)
-        {
-            using var _ = TraceContext.StartActivity(nameof(RunBatch));
+        using var _ = TraceContext.StartActivity(nameof(RunBatch));
             
-            var height = Interlocked.Increment(ref _readCount);
-            var blockHeightTo = height * _jobOptions.BatchSize;
-            if (blockHeightTo > finalHeight)
-            {
-                return;
-            }
-            var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
-            var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
+        var blockHeightTo = height * _jobOptions.BatchSize;
+        var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
+        var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
-            if (affectedRows == 0) continue;
-            _logger.Debug("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);   
-        }
+        if (affectedRows == 0)
+        {
+            return;
+        };
+        _logger.Information("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
     }
 
     private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
@@ -158,12 +150,53 @@ internal class ContractDatabaseImportJob : IContractJob
             _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(alreadyReadHeights));   
         }
         
-        var affectedColumns = heightTo - heightFrom + 1 - (ulong)alreadyReadHeights.Count;
-        if (affectedColumns == 0)
+        var affectedRows = heightTo - heightFrom + 1 - (ulong)alreadyReadHeights.Count;
+        if (affectedRows == 0)
         {
-            return affectedColumns;
+            return affectedRows;
         }
 
+        var totalEvents = 0u;
+        totalEvents += await StoreEvents(repository, alreadyReadHeights, heightFrom, heightTo);
+        totalEvents += await StoreRejected(repository, alreadyReadHeights, heightFrom, heightTo);
+
+        await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
+        await repository.SaveChangesAsync(token);
+        ContractMetrics.IncTransactionEvents(totalEvents, ImportSource.DatabaseImport);
+        return affectedRows;
+    }
+
+    private static async Task<uint> StoreRejected(IContractRepository repository, ICollection<ulong> alreadyReadHeights,
+        ulong heightFrom, ulong heightTo)
+    {
+        var eventIndex = 0u;
+        var rejections = await repository.FromBlockHeightRangeGetContractRelatedRejections(heightFrom, heightTo);
+        foreach (var rejectEventDto in rejections.Where(r => !alreadyReadHeights.Contains((ulong)r.BlockHeight)))
+        {
+            if (!IsUsableTransaction(rejectEventDto.TransactionType, rejectEventDto.TransactionSender, rejectEventDto.TransactionHash))
+            {
+                continue;
+            }
+
+            await ContractAggregate.StoreReject(
+                ImportSource.DatabaseImport,
+                repository,
+                rejectEventDto.RejectedEvent,
+                rejectEventDto.TransactionSender!,
+                (ulong)rejectEventDto.BlockHeight,
+                rejectEventDto.BlockSlotTime.ToUniversalTime(),
+                rejectEventDto.TransactionHash,
+                rejectEventDto.TransactionIndex
+            );
+            eventIndex += 1;
+        }
+
+        return eventIndex;
+    }
+
+    private static async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
+    {
+        var eventIndex = 0u;
         var events = await repository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
         foreach (var eventDto in events.Where(e => !alreadyReadHeights.Contains((ulong)e.BlockHeight)))
         {
@@ -183,12 +216,10 @@ internal class ContractDatabaseImportJob : IContractJob
                 eventDto.TransactionIndex,
                 eventDto.TransactionEventIndex
             );
+            eventIndex += 1;
         }
 
-        await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
-        await repository.SaveChangesAsync(token);
-        ContractMetrics.IncTransactionEvents(affectedColumns, ImportSource.DatabaseImport);
-        return affectedColumns;
+        return eventIndex;
     }
     
     /// <summary>

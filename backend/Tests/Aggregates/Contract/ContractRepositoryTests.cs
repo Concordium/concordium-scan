@@ -4,6 +4,7 @@ using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Types;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
@@ -46,6 +47,84 @@ public sealed class ContractRepositoryTests
         // Assert
         readHeights.Should().BeEquivalentTo(new List<ulong> { 2, 3, 5, 6 });
     }
+
+    #region FromBlockHeightRangeGetContractRelatedRejections
+
+    [Fact]
+    public async Task WhenFromBlockHeightRangeGetContractRelatedRejections_ThenRelatedRejectedEvents()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_blocks");
+        await DatabaseFixture.TruncateTables("graphql_transactions");
+        var blockIds = await InsertFiveBlocks();
+        await InsertSixTransactionsWithRejections(blockIds);
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        var contractRepository = new ContractRepository(graphQlDbContext);
+        ContractExtensions.AddDapperTypeHandlers();
+        
+        // Act
+        var events = await contractRepository.FromBlockHeightRangeGetContractRelatedRejections(1, 4);
+        
+        // Assert
+        events.Count.Should().Be(4);
+        var firstEvent = events[0];
+        firstEvent.RejectedEvent.Should().BeOfType<InvalidInitMethod>();
+        var secondEvent = events[1];
+        secondEvent.RejectedEvent.Should().BeOfType<InvalidReceiveMethod>();
+        var thirdEvent = events[2];
+        thirdEvent.RejectedEvent.Should().BeOfType<ModuleHashAlreadyExists>();
+        var fourth = events[3];
+        fourth.RejectedEvent.Should().BeOfType<RejectedReceive>();
+    }
+    
+    private async Task InsertSixTransactionsWithRejections(IList<long> blockIds)
+    {
+        var randoms = GetRandomsNotInList(1, blockIds);
+        // Points to blocks within block height range and relevant
+        var first = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("1")
+            .WithBlockId(blockIds[0])
+            .WithRejectReason(new InvalidInitMethod("", ""))
+            .Build();
+        var second = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("2")
+            .WithBlockId(blockIds[1])
+            .WithRejectReason(new InvalidReceiveMethod("", ""))
+            .Build();
+        var third = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("3")
+            .WithBlockId(blockIds[2])
+            .WithRejectReason(new ModuleHashAlreadyExists(""))
+            .Build();
+        var fourth = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("4")
+            .WithBlockId(blockIds[3])
+            .WithRejectReason(new RejectedReceive(1, new ContractAddress(1,0), "", ""))
+            .Build();
+        // Valid event but outside block range
+        var outside = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("5")
+            .WithBlockId(randoms[0])
+            .WithRejectReason(new ModuleHashAlreadyExists(""))
+            .Build();
+        // Not valid event and inside block height range
+        var notValid = new TransactionBuilder()
+            .WithId(0)
+            .WithTransactionHash("6")
+            .WithBlockId(blockIds[4])
+            .WithRejectReason(new InvalidProof())
+            .Build();
+        await _databaseFixture.AddAsync(first, second, third, fourth);
+        await _databaseFixture.AddAsync(outside);
+        await _databaseFixture.AddAsync(notValid);
+    }
+
+    #endregion
     
     #region Test WhenGetContractRelatedBlockTransactionResultEventRelationsFromBlockHeightRange_ThenReturnEvents
 
@@ -53,11 +132,6 @@ public sealed class ContractRepositoryTests
     public async Task WhenCallFromBlockHeightRangeGetContractRelatedTransactionResultEventRelations_ThenReturnEvents()
     {
         // Arrange
-        await DatabaseFixture.TruncateTables("graphql_contracts");
-        await DatabaseFixture.TruncateTables("graphql_contract_events");
-        await DatabaseFixture.TruncateTables("graphql_module_reference_events");
-        await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
-        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         await DatabaseFixture.TruncateTables("graphql_blocks");
         await DatabaseFixture.TruncateTables("graphql_transactions");
         await DatabaseFixture.TruncateTables("graphql_transaction_events");
