@@ -1003,8 +1003,8 @@ export type Contract = {
   __typename?: 'Contract';
   amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
-  contractAddress: Scalars['String'];
   blockSlotTime: Scalars['DateTime'];
+  contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents?: Maybe<ContractEventsConnection>;

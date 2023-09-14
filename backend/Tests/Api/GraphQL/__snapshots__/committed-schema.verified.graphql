@@ -725,8 +725,6 @@ type Contract {
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
-  contractEvents: [ContractEvent!]!
-  moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
   moduleReference: String!
   amount: Float!
 }
