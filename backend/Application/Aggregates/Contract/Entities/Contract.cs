@@ -106,20 +106,6 @@ public sealed class Contract
         }
 
         /// <summary>
-        /// Returns the current linked module reference which is the latest added <see cref="ModuleReferenceContractLinkEvent"/>.
-        /// </summary>
-        public string GetModuleReference([Parent] Contract contract)
-        {
-            var link = contract.ModuleReferenceContractLinkEvents
-                .Where(link => link.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                .OrderByDescending(link => link.BlockHeight)
-                .ThenByDescending(link => link.TransactionIndex)
-                .ThenByDescending(link => link.EventIndex)
-                .First();
-            return link.ModuleReference;
-        }
-
-        /// <summary>
         /// Returns aggregated amount from events on contract.
         /// </summary>
         public double GetAmount([Parent] Contract contract)
