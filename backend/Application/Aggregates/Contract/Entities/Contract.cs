@@ -26,7 +26,8 @@ public sealed class Contract
     public ImportSource Source { get; init; }
     public DateTimeOffset BlockSlotTime { get; init; }
     public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<ContractEvent> ContractEvents { get; set; }
+    public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
+    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; set; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -58,13 +59,27 @@ public sealed class Contract
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
+        /// <summary>
+        /// Get contracts with pagination support.
+        /// 
+        /// Currently contracts module reference are not updated for the lifetime of the contract. Hence often there will
+        /// be only one module link event for each contract.
+        ///
+        /// Because of this we are currently not using <see cref="Microsoft.EntityFrameworkCore.RelationalQueryableExtensions.AsSplitQuery"/>.
+        /// If performance issues on this query is seen and module reference links increases then look into using above splitting technique.
+        /// </summary>
+        /// <remarks>
+        ///     See <see href="https://aka.ms/efcore-docs-split-queries">EF Core split queries</see> for more information.
+        /// </remarks> 
         [UsePaging]
         public IQueryable<Contract> GetContracts(
             GraphQlDbContext context)
         {
             return context.Contract
                 .AsNoTracking()
-                .Include(s => s.ContractEvents);
+                .Include(s => s.ContractEvents)
+                .Include(s => s.ModuleReferenceContractLinkEvents)
+                .OrderByDescending(c => c.ContractAddressIndex);
         }
     }
 
@@ -76,6 +91,20 @@ public sealed class Contract
     {
         public ContractAddress GetContractAddress([Parent] Contract contract) => 
             new(contract.ContractAddressIndex, contract.ContractAddressSubIndex);
+
+        /// <summary>
+        /// Returns the current linked module reference which is the latest added <see cref="ModuleReferenceContractLinkEvent"/>.
+        /// </summary>
+        public string GetModuleReference([Parent] Contract contract)
+        {
+            var link = contract.ModuleReferenceContractLinkEvents
+                .Where(link => link.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+                .OrderByDescending(link => link.BlockHeight)
+                .ThenByDescending(link => link.TransactionIndex)
+                .ThenByDescending(link => link.EventIndex)
+                .First();
+            return link.ModuleReference;
+        }
 
         /// <summary>
         /// Returns aggregated amount from events on contract.

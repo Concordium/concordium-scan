@@ -36,5 +36,9 @@ const routes: Route[] = [
 		title: 'Nodes',
 		path: '/nodes',
 	},
+	{
+		title: 'Contracts',
+		path: '/contracts',
+	},
 ]
 </script>

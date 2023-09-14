@@ -21,6 +21,8 @@ export type Scalars = {
   Long: any;
   /** The `TimeSpan` scalar represents an ISO-8601 compliant duration type. */
   TimeSpan: any;
+  /** The UnsignedInt scalar type represents a unsigned 32-bit numeric non-fractional value greater than or equal to 0. */
+  UnsignedInt: any;
   /** The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0. */
   UnsignedLong: any;
 };
@@ -997,11 +999,45 @@ export type CommissionRates = {
   transactionCommission: Scalars['Decimal'];
 };
 
+export type Contract = {
+  __typename?: 'Contract';
+  amount: Scalars['Float'];
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddress: ContractAddress;
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  contractEvents: Array<ContractEvent>;
+  createdAt: Scalars['DateTime'];
+  creator: AccountAddress;
+  eventIndex: Scalars['UnsignedInt'];
+  moduleReference: Scalars['String'];
+  moduleReferenceContractLinkEvents: Array<ModuleReferenceContractLinkEvent>;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
+};
+
 export type ContractAddress = {
   __typename?: 'ContractAddress';
   asString: Scalars['String'];
   index: Scalars['UnsignedLong'];
   subIndex: Scalars['UnsignedLong'];
+};
+
+export type ContractEvent = {
+  __typename?: 'ContractEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  event: Event;
+  eventIndex: Scalars['UnsignedInt'];
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
 };
 
 export type ContractInitialized = {
@@ -1011,6 +1047,7 @@ export type ContractInitialized = {
   eventsAsHex?: Maybe<StringConnection>;
   initName: Scalars['String'];
   moduleRef: Scalars['String'];
+  version?: Maybe<ContractVersion>;
 };
 
 
@@ -1046,6 +1083,7 @@ export type ContractUpdated = {
   instigator: Address;
   messageAsHex: Scalars['String'];
   receiveName: Scalars['String'];
+  version?: Maybe<ContractVersion>;
 };
 
 
@@ -1061,6 +1099,31 @@ export type ContractUpgraded = {
   contractAddress: ContractAddress;
   from: Scalars['String'];
   to: Scalars['String'];
+};
+
+export enum ContractVersion {
+  V0 = 'V0',
+  V1 = 'V1'
+}
+
+/** A connection to a list of items. */
+export type ContractsConnection = {
+  __typename?: 'ContractsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Contract>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type ContractsEdge = {
+  __typename?: 'ContractsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Contract;
 };
 
 export type CooldownParametersChainUpdatePayload = {
@@ -1264,6 +1327,7 @@ export type EventsConnection = {
   nodes?: Maybe<Array<Event>>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
   totalCount: Scalars['Int'];
 };
 
@@ -1379,6 +1443,11 @@ export type GasRewardsCpv2 = {
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
 };
+
+export enum ImportSource {
+  DatabaseImport = 'DATABASE_IMPORT',
+  NodeImport = 'NODE_IMPORT'
+}
 
 export type ImportState = {
   __typename?: 'ImportState';
@@ -1582,6 +1651,27 @@ export type ModuleNotWf = {
   __typename?: 'ModuleNotWf';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
+};
+
+export enum ModuleReferenceContractLinkAction {
+  Added = 'ADDED',
+  Removed = 'REMOVED'
+}
+
+export type ModuleReferenceContractLinkEvent = {
+  __typename?: 'ModuleReferenceContractLinkEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  eventIndex: Scalars['UnsignedInt'];
+  linkAction: ModuleReferenceContractLinkAction;
+  moduleReference: Scalars['String'];
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
 };
 
 export type NewEncryptedAmount = {
@@ -2036,6 +2126,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  contracts?: Maybe<ContractsConnection>;
   importState?: Maybe<ImportState>;
   latestChainParameters?: Maybe<ChainParameters>;
   nodeStatus?: Maybe<NodeStatus>;
@@ -2121,6 +2212,14 @@ export type QueryBlockMetricsArgs = {
 
 
 export type QueryBlocksArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryContractsArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
