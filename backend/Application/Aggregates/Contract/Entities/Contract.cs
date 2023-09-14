@@ -98,7 +98,7 @@ public sealed class Contract : BaseIdentification
         /// </remarks> 
         [UsePaging]
         public IQueryable<Contract> GetContracts(
-            GraphQlDbContext context)
+            GraphQlDbContext context) 
         {
             return context.Contract
                 .AsNoTracking()
