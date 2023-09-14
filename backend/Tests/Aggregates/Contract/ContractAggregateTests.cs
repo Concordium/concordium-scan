@@ -309,3 +309,4 @@ public sealed class ContractAggregateTests
         return client;
     }
 }
+

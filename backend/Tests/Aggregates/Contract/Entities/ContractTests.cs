@@ -10,12 +10,7 @@ namespace Tests.Aggregates.Contract.Entities;
 
 public sealed class ContractTests
 {
-    private readonly Application.Aggregates.Contract.Entities.Contract.ContractExtensions _contractExtensions;
-
-    public ContractTests()
-    {
-        _contractExtensions = new Application.Aggregates.Contract.Entities.Contract.ContractExtensions();
-    }
+    private readonly Application.Aggregates.Contract.Entities.Contract.ContractExtensions _contractExtensions = new();
 
     [Fact]
     public void WhenGetModuleReference_ThenReturnLatestAdded()
@@ -89,3 +84,4 @@ public sealed class ContractTests
         amount.Should().Be(42);
     }
 }
+
