@@ -20,6 +20,12 @@ type AccountDrawerItem = {
 	entityTypeName: 'account'
 } & ({ id: string; address?: string } | { address: string; id?: string })
 
+type ContractDrawerItem = {
+	entityTypeName: 'contract'
+	contractAddressIndex: number
+	contractAddressSubIndex: number
+}
+
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
@@ -35,6 +41,7 @@ export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
 	| AccountDrawerItem
+	| ContractDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
@@ -76,6 +83,19 @@ export const isItemOnTop = (
 		return !!(
 			(item.address && item.address === currentTopItem.value.address) ||
 			(item.id && item.id === currentTopItem.value.id)
+		)
+	if (
+		item.entityTypeName === 'contract' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(
+			item.contractAddressIndex !== null &&
+			item.contractAddressIndex !== undefined &&
+			item.contractAddressSubIndex !== null &&
+			item.contractAddressSubIndex !== undefined &&
+			item.contractAddressIndex === currentTopItem.value.contractAddressIndex &&
+			item.contractAddressSubIndex ===
+				currentTopItem.value.contractAddressSubIndex
 		)
 
 	if (
@@ -129,6 +149,14 @@ export const pushToRouter =
 						: drawerItem.entityTypeName === 'node'
 						? encodeURIComponent(drawerItem.nodeId)
 						: undefined,
+				dcontractAddressIndex:
+					drawerItem.entityTypeName === 'contract'
+						? drawerItem.contractAddressIndex
+						: undefined,
+				dcontractAddressSubIndex:
+					drawerItem.entityTypeName === 'contract'
+						? drawerItem.contractAddressSubIndex
+						: undefined,
 			},
 		})
 	}
@@ -164,6 +192,23 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'transaction',
 					hash: route.query.dhash as string,
+				},
+				false
+			)
+		} else if (
+			route.query.density === 'contract' &&
+			route.query.dcontractAddressIndex &&
+			route.query.dcontractAddressSubIndex
+		) {
+			push(
+				{
+					entityTypeName: 'contract',
+					contractAddressIndex: parseInt(
+						route.query.dcontractAddressIndex.toString()
+					),
+					contractAddressSubIndex: parseInt(
+						route.query.dcontractAddressSubIndex.toString()
+					),
 				},
 				false
 			)

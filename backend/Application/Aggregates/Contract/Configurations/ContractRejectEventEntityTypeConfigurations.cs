@@ -27,7 +27,7 @@ public sealed class ContractRejectEventEntityTypeConfigurations : IEntityTypeCon
         builder.Property(x => x.ContractAddressIndex)
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
-            .HasColumnName("contract_address_sub_index");
+            .HasColumnName("contract_address_subindex");
         builder.Property(x => x.Sender)
             .HasColumnName("sender")
             .HasConversion<AccountAddressConverter>();        

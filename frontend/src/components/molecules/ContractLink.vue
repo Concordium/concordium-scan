@@ -5,7 +5,7 @@
 			class="h-5 inline align-text-top mr-3"
 		/>
 		<ChipIcon v-else class="h-4 text-theme-white inline align-text-top" />
-		<LinkButton class="numerical px-2">
+		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{ props.address }}
 			</div>
@@ -30,8 +30,27 @@ import Tooltip from '~/components/atoms/Tooltip.vue'
 
 type Props = {
 	address?: string | null
+	contractAddressIndex?: number | null
+	contractAddressSubIndex?: number | null
 	iconSize?: string
 	hideTooltip?: boolean
 }
 const props = defineProps<Props>()
+const drawer = useDrawer()
+const emit = defineEmits(['blur'])
+const emitBlur = (newTarget: FocusEvent) => {
+	emit('blur', newTarget)
+}
+
+const handleOnClick = () => {
+	props.contractAddressIndex !== null &&
+		props.contractAddressIndex !== undefined &&
+		props.contractAddressSubIndex !== null &&
+		props.contractAddressSubIndex !== undefined &&
+		drawer.push({
+			entityTypeName: 'contract',
+			contractAddressIndex: props.contractAddressIndex,
+			contractAddressSubIndex: props.contractAddressSubIndex,
+		})
+}
 </script>

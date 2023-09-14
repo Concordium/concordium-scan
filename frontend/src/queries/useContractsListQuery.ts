@@ -18,6 +18,8 @@ const Query = gql<ContractListResponse>`
 					amount
 					transactionHash
 					contractAddress
+					contractAddressIndex
+					contractAddressSubIndex
 					moduleReference
 					blockSlotTime
 					creator {

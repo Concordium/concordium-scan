@@ -26,7 +26,7 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
         builder.Property(x => x.ContractAddressIndex)
             .HasColumnName("contract_address_index");
         builder.Property(x => x.ContractAddressSubIndex)
-            .HasColumnName("contract_address_sub_index");
+            .HasColumnName("contract_address_subindex");
         builder.Property(x => x.ContractAddress)
             .HasColumnName("contract_address");
         builder.Property(x => x.Creator)
@@ -43,6 +43,11 @@ public sealed class ContractEntityTypeConfigurations : IEntityTypeConfiguration<
             .HasMany<ContractEvent>(sm => sm.ContractEvents)
             .WithOne()
             .HasForeignKey(sme => new { sme.ContractAddressIndex, sme.ContractAddressSubIndex });
+        
+        builder
+            .HasMany<ContractRejectEvent>(c => c.ContractRejectEvents)
+            .WithOne()
+            .HasForeignKey(link => new { link.ContractAddressIndex, link.ContractAddressSubIndex });
         
         builder
             .HasMany<ModuleReferenceContractLinkEvent>(c => c.ModuleReferenceContractLinkEvents)

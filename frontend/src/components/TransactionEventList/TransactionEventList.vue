@@ -86,7 +86,10 @@
 					v-else-if="event.__typename === 'CredentialsUpdated'"
 					:event="event"
 				/>
-
+				<ContractUpgraded
+					v-else-if="event.__typename === 'ContractUpgraded'"
+					:event="event"
+				/>
 				<DataRegistered
 					v-else-if="event.__typename === 'DataRegistered'"
 					:event="event"
@@ -199,6 +202,7 @@ import ContractModuleDeployed from './Events/ContractModuleDeployed.vue'
 import ContractInterrupted from './Events/ContractInterrupted.vue'
 import ContractResumed from './Events/ContractResumed.vue'
 import ContractUpdated from './Events/ContractUpdated.vue'
+import ContractUpgraded from './Events/ContractUpgraded.vue'
 import CredentialDeployed from './Events/CredentialDeployed.vue'
 import CredentialKeysUpdated from './Events/CredentialKeysUpdated.vue'
 import CredentialsUpdated from './Events/CredentialsUpdated.vue'

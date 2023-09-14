@@ -1003,11 +1003,12 @@ export type Contract = {
   __typename?: 'Contract';
   amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
-  contractAddress: Scalars['String'];
   blockSlotTime: Scalars['DateTime'];
+  contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  contractEvents: Array<ContractEvent>;
+  contractEvents?: Maybe<ContractEventsConnection>;
+  contractRejectEvents?: Maybe<ContractRejectEventsConnection>;
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
@@ -1016,6 +1017,22 @@ export type Contract = {
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
+};
+
+
+export type ContractContractEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type ContractContractRejectEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type ContractAddress = {
@@ -1038,6 +1055,28 @@ export type ContractEvent = {
   source: ImportSource;
   transactionHash: Scalars['String'];
   transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type ContractEventsConnection = {
+  __typename?: 'ContractEventsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractEventsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ContractEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
+  totalCount: Scalars['Int'];
+};
+
+/** An edge in a connection. */
+export type ContractEventsEdge = {
+  __typename?: 'ContractEventsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ContractEvent;
 };
 
 export type ContractInitialized = {
@@ -1067,6 +1106,42 @@ export type ContractInterrupted = {
 export type ContractModuleDeployed = {
   __typename?: 'ContractModuleDeployed';
   moduleRef: Scalars['String'];
+};
+
+export type ContractRejectEvent = {
+  __typename?: 'ContractRejectEvent';
+  blockHeight: Scalars['UnsignedLong'];
+  blockSlotTime: Scalars['DateTime'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  createdAt: Scalars['DateTime'];
+  rejectedEvent: TransactionRejectReason;
+  sender: AccountAddress;
+  source: ImportSource;
+  transactionHash: Scalars['String'];
+  transactionIndex: Scalars['UnsignedLong'];
+};
+
+/** A connection to a list of items. */
+export type ContractRejectEventsConnection = {
+  __typename?: 'ContractRejectEventsConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<ContractRejectEventsEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<ContractRejectEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+  /** Identifies the total count of items in the connection. */
+  totalCount: Scalars['Int'];
+};
+
+/** An edge in a connection. */
+export type ContractRejectEventsEdge = {
+  __typename?: 'ContractRejectEventsEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: ContractRejectEvent;
 };
 
 export type ContractResumed = {
@@ -2126,6 +2201,7 @@ export type Query = {
   blockByBlockHash?: Maybe<Block>;
   blockMetrics: BlockMetrics;
   blocks?: Maybe<BlocksConnection>;
+  contract?: Maybe<Contract>;
   contracts?: Maybe<ContractsConnection>;
   importState?: Maybe<ImportState>;
   latestChainParameters?: Maybe<ChainParameters>;
@@ -2216,6 +2292,12 @@ export type QueryBlocksArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type QueryContractArgs = {
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
 };
 
 

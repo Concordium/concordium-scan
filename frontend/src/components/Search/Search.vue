@@ -154,6 +154,8 @@
 						>
 							<ContractLink
 								:address="contract.contractAddress"
+								:contract-address-index="contract.contractAddressIndex"
+								:contract-address-sub-index="contract.contractAddressSubIndex"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>

@@ -8,18 +8,12 @@ namespace Application.Aggregates.Contract.Entities;
 /// <summary>
 /// Event which is generated at rejected events on a contract instance.
 /// </summary>
-public sealed class ContractRejectEvent
+public sealed class ContractRejectEvent : BaseIdentification
 {
-    public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; } = null!;
-    public ulong TransactionIndex { get; init; }
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public AccountAddress Sender { get; init; } = null!;
     public TransactionRejectReason RejectedEvent { get; init; } = null!;
-    public ImportSource Source { get; init; }
-    public DateTimeOffset BlockSlotTime { get; init; }
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
 
     /// <summary>
     /// Needed for EF Core
@@ -35,16 +29,12 @@ public sealed class ContractRejectEvent
         AccountAddress sender,
         TransactionRejectReason rejectedEvent,
         ImportSource source,
-        DateTimeOffset blockSlotTime)
+        DateTimeOffset blockSlotTime) :
+        base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
     {
-        BlockHeight = blockHeight;
-        TransactionHash = transactionHash;
-        TransactionIndex = transactionIndex;
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
         Sender = sender;
         RejectedEvent = rejectedEvent;
-        Source = source;
-        BlockSlotTime = blockSlotTime;
     }
 }

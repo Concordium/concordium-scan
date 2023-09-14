@@ -7,17 +7,11 @@ namespace Application.Aggregates.Contract.Entities;
 /// <summary>
 /// Event which is generated when a module reference is created.
 /// </summary>
-public sealed class ModuleReferenceRejectEvent
+public sealed class ModuleReferenceRejectEvent : BaseIdentification
 {
-    public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; } = null!;
-    public ulong TransactionIndex { get; init; }
     public string ModuleReference { get; init; } = null!;
     public AccountAddress Sender { get; init; } = null!;
     public TransactionRejectReason RejectedEvent { get; init; } = null!;
-    public ImportSource Source { get; init; }
-    public DateTimeOffset BlockSlotTime { get; init; }
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
     
     /// <summary>
     /// Needed for EF Core
@@ -33,16 +27,11 @@ public sealed class ModuleReferenceRejectEvent
         AccountAddress sender,
         TransactionRejectReason rejectedEvent,
         ImportSource source,
-        DateTimeOffset blockSlotTime
-    )
+        DateTimeOffset blockSlotTime) : 
+        base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
     {
-        BlockHeight = blockHeight;
-        TransactionHash = transactionHash;
-        TransactionIndex = transactionIndex;
         ModuleReference = moduleReference;
         Sender = sender;
         RejectedEvent = rejectedEvent;
-        Source = source;
-        BlockSlotTime = blockSlotTime;
     }
 }

@@ -711,19 +711,20 @@ type CommissionRates {
 }
 
 type Contract {
-  blockHeight: UnsignedLong!
-  transactionHash: String!
-  transactionIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
   contractAddress: String!
+  eventIndex: UnsignedInt!
   creator: AccountAddress!
+  contractEvents("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractEventsConnection
+  contractRejectEvents("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractRejectEventsConnection
+  moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
-  contractEvents: [ContractEvent!]!
-  moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
   moduleReference: String!
   amount: Float!
 }
@@ -735,17 +736,37 @@ type ContractAddress {
 }
 
 type ContractEvent {
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  sender: AccountAddress!
+  event: Event!
   blockHeight: UnsignedLong!
   transactionHash: String!
   transactionIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
-  contractAddressIndex: UnsignedLong!
-  contractAddressSubIndex: UnsignedLong!
-  sender: AccountAddress!
-  event: Event!
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
+}
+
+"A connection to a list of items."
+type ContractEventsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [ContractEventsEdge!]
+  "A flattened list of the nodes."
+  nodes: [ContractEvent!]
+  "Identifies the total count of items in the connection."
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type ContractEventsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: ContractEvent!
 }
 
 type ContractInitialized {
@@ -764,6 +785,39 @@ type ContractInterrupted {
 
 type ContractModuleDeployed {
   moduleRef: String!
+}
+
+type ContractRejectEvent {
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  sender: AccountAddress!
+  rejectedEvent: TransactionRejectReason!
+  blockHeight: UnsignedLong!
+  transactionHash: String!
+  transactionIndex: UnsignedLong!
+  source: ImportSource!
+  blockSlotTime: DateTime!
+  createdAt: DateTime!
+}
+
+"A connection to a list of items."
+type ContractRejectEventsConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [ContractRejectEventsEdge!]
+  "A flattened list of the nodes."
+  nodes: [ContractRejectEvent!]
+  "Identifies the total count of items in the connection."
+  totalCount: Int!
+}
+
+"An edge in a connection."
+type ContractRejectEventsEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: ContractRejectEvent!
 }
 
 type ContractResumed {
@@ -1196,16 +1250,16 @@ type ModuleNotWf {
 }
 
 type ModuleReferenceContractLinkEvent {
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  eventIndex: UnsignedInt!
+  moduleReference: String!
+  sender: AccountAddress!
+  linkAction: ModuleReferenceContractLinkAction!
   blockHeight: UnsignedLong!
   transactionHash: String!
   transactionIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
-  moduleReference: String!
-  contractAddressIndex: UnsignedLong!
-  contractAddressSubIndex: UnsignedLong!
-  sender: AccountAddress!
   source: ImportSource!
-  linkAction: ModuleReferenceContractLinkAction!
   blockSlotTime: DateTime!
   createdAt: DateTime!
 }
@@ -1571,6 +1625,7 @@ type Query {
   importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
+  contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex: UnsignedLong!): Contract
   contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
 }
 

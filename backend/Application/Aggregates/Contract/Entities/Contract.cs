@@ -1,4 +1,4 @@
-using Application.Aggregates.Contract.Exceptions;
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
@@ -14,21 +14,28 @@ namespace Application.Aggregates.Contract.Entities;
 /// Initial event stored when a smart contract is created
 /// These are non mutable values through the lifetime of the smart contract.
 /// </summary>
-public sealed class Contract
+public sealed class Contract : BaseIdentification
 {
-    public ulong BlockHeight { get; init; }
-    public string TransactionHash { get; init; } = null!;
-    public ulong TransactionIndex { get; init; }
-    public uint EventIndex { get; init; }
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public string ContractAddress { get; init; } = null!;
+    public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
-    public ImportSource Source { get; init; }
-    public DateTimeOffset BlockSlotTime { get; init; }
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
-    public ICollection<ContractEvent> ContractEvents { get; set; } = null!;
-    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; set; } = null!;
+ 
+    /// <summary>
+    /// It is important, that when pagination is used together with a <see cref="System.Linq.IQueryable"/> return type
+    /// then aggregation result like <see cref="Contract.ContractExtensions.GetAmount"/> will not be correct.
+    ///
+    /// Hence pagination should only by used in cases where database query has executed like <see cref="Contract.ContractQuery.GetContract"/>.
+    /// </summary>
+    [UsePaging(IncludeTotalCount = true)]
+    public IList<ContractEvent> ContractEvents { get; init; } = null!;
+    /// <summary>
+    /// See pagination comment on above.
+    /// </summary>
+    [UsePaging(IncludeTotalCount = true)]
+    public IList<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
+    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -44,23 +51,39 @@ public sealed class Contract
         ContractAddress contractAddress,
         AccountAddress creator,
         ImportSource source,
-        DateTimeOffset blockSlotTime)
+        DateTimeOffset blockSlotTime) : 
+        base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
     {
-        BlockHeight = blockHeight;
-        TransactionHash = transactionHash;
-        TransactionIndex = transactionIndex;
-        EventIndex = eventIndex;
-        Creator = creator;
         ContractAddressIndex = contractAddress.Index;
         ContractAddressSubIndex = contractAddress.SubIndex;
         ContractAddress = contractAddress.AsString;
-        Source = source;
-        BlockSlotTime = blockSlotTime;
+        EventIndex = eventIndex;
+        Creator = creator;
     }
     
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
+        public Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
+        {
+            return context.Contract
+                .AsSplitQuery()
+                .AsNoTracking()
+                .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
+                .Include(c => c.ContractEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
+                .Include(c => c.ContractRejectEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex))
+                .Include(c => c.ModuleReferenceContractLinkEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
+                .SingleOrDefaultAsync();
+        }
+        
         /// <summary>
         /// Get contracts with pagination support.
         /// 
@@ -75,7 +98,7 @@ public sealed class Contract
         /// </remarks> 
         [UsePaging]
         public IQueryable<Contract> GetContracts(
-            GraphQlDbContext context)
+            GraphQlDbContext context) 
         {
             return context.Contract
                 .AsNoTracking()
