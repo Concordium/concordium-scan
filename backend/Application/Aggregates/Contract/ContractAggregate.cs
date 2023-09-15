@@ -397,7 +397,7 @@ internal sealed class ContractAggregate
         BlockItemSummary blockItemSummary
     )
     {
-        if (details.Effects is not None none || !IsRelevantReject(none.RejectReason, out var rejectReason))
+        if (details.Effects is not None none || !TryGetRelevantReject(none.RejectReason, out var rejectReason))
         {
             return 0;
         }
@@ -417,9 +417,10 @@ internal sealed class ContractAggregate
     }
 
     /// <summary>
-    /// Map relevant rejected reasons to <see cref="TransactionRejectReason"/>.
+    /// Map relevant rejected reasons to <see cref="TransactionRejectReason"/>. Returns `false` if the rejected
+    /// event wasn't relevant for the aggregate.
     /// </summary>
-    private static bool IsRelevantReject(IRejectReason rejectReason, out TransactionRejectReason? rejected)
+    private static bool TryGetRelevantReject(IRejectReason rejectReason, out TransactionRejectReason? rejected)
     {
         rejected = null;
         switch (rejectReason)
@@ -434,7 +435,7 @@ internal sealed class ContractAggregate
                 rejected = new ModuleHashAlreadyExists(x.ModuleReference.ToString());
                 return true;
             case Concordium.Sdk.Types.RejectedReceive x:
-                rejected =new RejectedReceive(x.RejectReason,
+                rejected = new RejectedReceive(x.RejectReason, 
                     ContractAddress.From(x.ContractAddress), x.ReceiveName.Receive, x.Parameter.ToHexString());
                 return true;
             default:

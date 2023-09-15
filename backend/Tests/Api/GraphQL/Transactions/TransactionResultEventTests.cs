@@ -72,3 +72,4 @@ public class TransactionResultEventTests
         version.ValueKind.Should().Be(JsonValueKind.Null);
     }
 }
+

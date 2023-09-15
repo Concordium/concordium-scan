@@ -44,12 +44,12 @@ internal class ContractDatabaseImportJob : IContractJob
         
         try
         {
-            var from = 0;
+            var fromBatch = 0;
             while (!token.IsCancellationRequested)
             {
                 var finalHeight = await GetFinalHeight(token);
 
-                if (finalHeight < from * _jobOptions.BatchSize)
+                if (finalHeight < fromBatch * _jobOptions.BatchSize)
                 {
                     break;
                 }
@@ -57,7 +57,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 var sequenceTo = (int)(finalHeight / _jobOptions.BatchSize);
 
                 var cycle = Parallel.ForEachAsync(
-                    Enumerable.Range(from, sequenceTo),
+                    Enumerable.Range(fromBatch, sequenceTo),
                     new ParallelOptions
                     {
                         MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
@@ -71,7 +71,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 cts.Cancel();
                 await metricUpdater;
 
-                from = sequenceTo + 1;
+                fromBatch = sequenceTo + 1;
             }
             
             _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
@@ -133,7 +133,10 @@ internal class ContractDatabaseImportJob : IContractJob
         var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
         var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
 
-        if (affectedRows == 0) return;
+        if (affectedRows == 0)
+        {
+            return;
+        };
         _logger.Information("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
     }
 

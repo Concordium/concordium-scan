@@ -49,3 +49,4 @@ public class TransactionResultEventConverter : PolymorphicJsonConverter<Transact
     {
     }
 }
+
