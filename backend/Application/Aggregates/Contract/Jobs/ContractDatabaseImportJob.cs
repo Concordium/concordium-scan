@@ -8,6 +8,9 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
 using Application.Observability;
 using Microsoft.Extensions.Options;
+using Npgsql;
+using Polly;
+using Polly.Retry;
 
 namespace Application.Aggregates.Contract.Jobs;
 
@@ -53,11 +56,10 @@ internal class ContractDatabaseImportJob : IContractJob
                 {
                     break;
                 }
-                
-                var sequenceTo = (int)(finalHeight / _jobOptions.BatchSize);
+                var toBatch = (int)(finalHeight / _jobOptions.BatchSize);
 
                 var cycle = Parallel.ForEachAsync(
-                    Enumerable.Range(fromBatch, sequenceTo),
+                    Enumerable.Range(fromBatch, toBatch - fromBatch + 1),
                     new ParallelOptions
                     {
                         MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
@@ -71,7 +73,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 cts.Cancel();
                 await metricUpdater;
 
-                fromBatch = sequenceTo + 1;
+                fromBatch = toBatch + 1;
             }
             
             _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
@@ -142,28 +144,40 @@ internal class ContractDatabaseImportJob : IContractJob
 
     private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
-        using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
-        await using var repository = await _repositoryFactory.CreateAsync();
-        var alreadyReadHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
-        if (alreadyReadHeights.Count > 0)
-        {
-            _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(alreadyReadHeights));   
-        }
+        return await GetTransientPolicy<ulong>()
+            .ExecuteAsync(async () =>
+            {
+                using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
+                try
+                {
+                    await using var repository = await _repositoryFactory.CreateAsync();
+                    var alreadyReadHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
+                    if (alreadyReadHeights.Count > 0)
+                    {
+                        _logger.Information("Following heights ranges has already been processed successfully and will be skipped {@Ranges}", PrettifySortedListToRanges(alreadyReadHeights));   
+                    }
         
-        var affectedRows = heightTo - heightFrom + 1 - (ulong)alreadyReadHeights.Count;
-        if (affectedRows == 0)
-        {
-            return affectedRows;
-        }
+                    var affectedRows = heightTo - heightFrom + 1 - (ulong)alreadyReadHeights.Count;
+                    if (affectedRows == 0)
+                    {
+                        return affectedRows;
+                    }
 
-        var totalEvents = 0u;
-        totalEvents += await StoreEvents(repository, alreadyReadHeights, heightFrom, heightTo);
-        totalEvents += await StoreRejected(repository, alreadyReadHeights, heightFrom, heightTo);
+                    var totalEvents = 0u;
+                    totalEvents += await StoreEvents(repository, alreadyReadHeights, heightFrom, heightTo);
+                    totalEvents += await StoreRejected(repository, alreadyReadHeights, heightFrom, heightTo);
 
-        await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
-        await repository.SaveChangesAsync(token);
-        ContractMetrics.IncTransactionEvents(totalEvents, ImportSource.DatabaseImport);
-        return affectedRows;
+                    await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
+                    await repository.SaveChangesAsync(token);
+                    ContractMetrics.IncTransactionEvents(totalEvents, ImportSource.DatabaseImport);
+                    return affectedRows;
+                }
+                catch (Exception e)
+                {
+                    durationMetric.SetException(e);
+                    throw;
+                }
+            });
     }
 
     private static async Task<uint> StoreRejected(IContractRepository repository, ICollection<ulong> alreadyReadHeights,
@@ -306,5 +320,39 @@ internal class ContractDatabaseImportJob : IContractJob
         intervals.Add((firstElementOfRange, read[^1]));
 
         return intervals;
+    }
+    
+    /// <summary>
+    /// Create a async retry policy which retries on all transient database errors.
+    /// </summary>
+    private AsyncPolicy<T> GetTransientPolicy<T>()
+    {
+        var policyBuilder = Policy<T>
+            .Handle<NpgsqlException>(ex => ex.IsTransient)
+            .OrInner<NpgsqlException>(ex => ex.IsTransient);
+        AsyncPolicy<T> policy;
+        if (_contractAggregateOptions.RetryCount == -1)
+        {
+            policy = policyBuilder
+                .WaitAndRetryForeverAsync((_, _, _) => _contractAggregateOptions.RetryDelay,
+                    (ex, retryCount, _, _) =>
+                    {
+                        _logger.Error(ex.Exception, $"Triggering retry policy with {retryCount} due to exception");
+                        return Task.CompletedTask;
+                    });
+        }
+        else
+        {
+            policy = policyBuilder
+                .WaitAndRetryAsync(_contractAggregateOptions.RetryCount,
+                    (_, _, _) => _contractAggregateOptions.RetryDelay,
+                    (ex, _, retryCount, _) =>
+                    {
+                        _logger.Error(ex.Exception, $"Triggering retry policy with {retryCount} due to exception");
+                        return Task.CompletedTask;
+                    });
+        }
+
+        return policy;
     }
 }

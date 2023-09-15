@@ -25,6 +25,10 @@ public class ContractAggregateOptions
     /// </summary>
     public int RetryCount { get; set; } = -1;
     /// <summary>
+    /// Time between retries in retry policies.
+    /// </summary>
+    public TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(3);
+    /// <summary>
     /// Delay between updating metrics which relies on fetch.
     /// </summary>
     public TimeSpan MetricDelay { get; set; } = TimeSpan.FromSeconds(5);
