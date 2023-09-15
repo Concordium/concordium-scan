@@ -56,11 +56,10 @@ internal class ContractDatabaseImportJob : IContractJob
                 {
                     break;
                 }
-                
-                var sequenceTo = (int)(finalHeight / _jobOptions.BatchSize);
+                var toBatch = (int)(finalHeight / _jobOptions.BatchSize);
 
                 var cycle = Parallel.ForEachAsync(
-                    Enumerable.Range(fromBatch, sequenceTo),
+                    Enumerable.Range(fromBatch, toBatch - fromBatch + 1),
                     new ParallelOptions
                     {
                         MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
@@ -74,7 +73,7 @@ internal class ContractDatabaseImportJob : IContractJob
                 cts.Cancel();
                 await metricUpdater;
 
-                fromBatch = sequenceTo + 1;
+                fromBatch = toBatch + 1;
             }
             
             _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
