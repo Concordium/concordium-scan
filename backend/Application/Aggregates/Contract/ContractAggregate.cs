@@ -89,7 +89,7 @@ internal sealed class ContractAggregate
     {
         var blockHashInput = new Absolute(height);
         var (blockHash, transactionEvents) = await client.GetBlockTransactionEvents(blockHashInput, token);
-        _logger.Debug("Reading block {BlockHash}", blockHash.ToString());
+        _logger.Debug("Reading block {BlockHash}, at height {BlockHeight}", blockHash.ToString(), height);
         
         BlockInfo? blockInfo = null;
         var totalEvents = 0u;
@@ -493,6 +493,7 @@ internal sealed class ContractAggregate
                 var affectedEvents = await NodeImport(repository, client, height, token);
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
                 await repository.SaveChangesAsync(token);
+                _logger.Information("Block Height: {BlockHeight} has been processed from node.", height);
                 
                 ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);
                 ContractMetrics.IncTransactionEvents(affectedEvents, ImportSource.NodeImport);
