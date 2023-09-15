@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
@@ -10,6 +11,36 @@ public class TransactionResultEventTests
 {
     private readonly JsonSerializerOptions _serializerOptions = EfCoreJsonSerializerOptionsFactory.Create();
 
+    [Fact]
+    public void GivenInvokedContract_WhenDeserializeAndSerialize_ThenParse()
+    {
+        // Arrange
+        var updated = TransactionResultEventStubs.ContractUpdated();
+        var instigator = new ContractAddress(1,0);
+        var invoked = new ContractAddress(2, 0);
+        updated = updated with
+        {
+            ContractAddress = invoked,
+            Instigator = instigator
+        };
+        TransactionResultEvent invokedContract = new ContractCall(updated);
+        
+        // Act
+        var serialized = JsonSerializer.Serialize(invokedContract, _serializerOptions);
+        var deserialized = JsonSerializer.Deserialize<TransactionResultEvent>(serialized, _serializerOptions);
+        
+        // Assert
+        deserialized.Should().BeOfType<ContractCall>();
+        var actualInvoked = (deserialized as ContractCall)!;
+        actualInvoked.ContractUpdated.ContractAddress.Index.Should().Be(invoked.Index);
+        actualInvoked.ContractUpdated.Instigator.Should().BeOfType<ContractAddress>();
+        using var document = JsonDocument.Parse(serialized);
+        document.RootElement.TryGetProperty("data", out var data).Should().BeTrue();
+        data.TryGetProperty("ContractUpdated", out var contractUpdated).Should().BeTrue();
+        contractUpdated.TryGetProperty("ContractAddress", out var contractAddress).Should().BeTrue();
+        contractAddress.GetString().Should().Be("2,0");
+    }
+    
     [Fact]
     public void WhenDeserializeNullVersion_ThenReturnObjectWithNull()
     {
@@ -41,3 +72,4 @@ public class TransactionResultEventTests
         version.ValueKind.Should().Be(JsonValueKind.Null);
     }
 }
+

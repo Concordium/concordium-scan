@@ -195,7 +195,10 @@ internal sealed class ContractAggregate
         }
     }
     
-    internal static async Task StoreEvent(
+    /// <summary>
+    /// Store a event and returns the latest <see cref="eventIndex"/> given to a event.
+    /// </summary>
+    internal static async Task<uint> StoreEvent(
         ImportSource source,
         IContractRepository repository,        
         TransactionResultEvent transactionResultEvent,
@@ -287,8 +290,10 @@ internal sealed class ContractAggregate
                         source,
                         blockSlotTime
                         ));
-                if (contractUpdated.Instigator is ContractAddress contractInstigator && contractUpdated.Amount != 0)
+                if (contractUpdated.Instigator is ContractAddress contractInstigator)
                 {
+                    // Possible a contract has called itself.
+                    eventIndex += 1;
                     await repository
                         .AddAsync(new ContractEvent(
                             blockHeight,
@@ -297,10 +302,8 @@ internal sealed class ContractAggregate
                             eventIndex,
                             contractInstigator,
                             sender,
-                            new Transferred(
-                                contractUpdated.Amount,
-                                contractInstigator,
-                                contractUpdated.ContractAddress
+                            new ContractCall(
+                                contractUpdated
                             ),
                             source,
                             blockSlotTime
@@ -363,21 +366,6 @@ internal sealed class ContractAggregate
                             blockSlotTime
                         ));
                 }
-                if (transferred.To is ContractAddress contractAddressTo)
-                {
-                    await repository
-                        .AddAsync(new ContractEvent(
-                            blockHeight,
-                            transactionHash,
-                            transactionIndex,
-                            eventIndex,
-                            contractAddressTo,
-                            sender,
-                            transferred,
-                            source,
-                            blockSlotTime
-                        ));
-                }
                 break;
             case ContractModuleDeployed contractModuleDeployed:
                 await repository
@@ -393,6 +381,8 @@ internal sealed class ContractAggregate
                     ));
                 break;
         }
+
+        return eventIndex;
     }
 
     /// <summary>
@@ -467,7 +457,7 @@ internal sealed class ContractAggregate
         var eventIndex = 0u;
         foreach (var transactionResultEvent in FilterEvents(details.Effects))
         {
-            await StoreEvent(
+            eventIndex = await StoreEvent(
                 ImportSource.NodeImport,
                 repository,
                 transactionResultEvent,

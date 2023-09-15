@@ -249,7 +249,6 @@ public abstract record TransactionResultEvent
 /// This event is used in cases
 /// - Account transfer. This is where one account transfer CCD to another account.
 /// - Contract transfer. When a contract transfer CCD to an account.
-/// - Contract Upgrade when a contract is instigator and call a payable receive method with positive CCD amount on a contract.
 /// </summary>
 public record Transferred(
     ulong Amount,
@@ -530,6 +529,18 @@ public record ContractUpdated(
             updated.Events.Select(e => e.ToHexString()).ToArray()
         );
 }
+
+/// <summary>
+/// This event is created to have a reference from a invoking contract to the update event.
+///
+/// This event is not mapped from node events, but are used by <see cref="Application.Aggregates.Contract.ContractAggregate"/>
+/// such that a <see cref="Application.Aggregates.Contract.Entities.ContractEvent"/> can be created linked to the invoking contract.
+///
+/// The Instigator Contract will be at <see cref="ContractUpdated.Instigator"/> and the called contract
+/// at <see cref="ContractUpdated.ContractAddress"/>.
+/// </summary>
+/// <param name="ContractUpdated">The updated event generated on the contract invoked.</param>
+public record ContractCall(ContractUpdated ContractUpdated) : TransactionResultEvent;
 
 public record CredentialDeployed(
     string RegId,
