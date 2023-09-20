@@ -1,11 +1,11 @@
 <template>
 	<span>
-		Module <ModuleRef :module-ref="reason.moduleRef" /> already exists
+		Module <ModuleLink :module-reference="reason.moduleRef" /> already exists
 	</span>
 </template>
 
 <script setup lang="ts">
-import ModuleRef from '~/components/molecules/ModuleRef.vue'
+import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import type { ModuleHashAlreadyExists } from '~/types/generated'
 
 type Props = {

@@ -61,7 +61,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
 									{{
 										convertTimestampToRelative(block.blockSlotTime || '', NOW)
@@ -99,9 +99,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
-									:position="
-										index === 0 ? tooltipPositionBottom : tooltipPositionTop
-									"
+									:position="getTooltipPosition(index)"
 								>
 									{{
 										convertTimestampToRelative(
@@ -134,7 +132,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
 									{{ convertTimestampToRelative(account.createdAt || '', NOW) }}
 								</Tooltip>
@@ -148,9 +146,9 @@
 						:has-more-results="!!data.search.contracts.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="contract in data.search.contracts.nodes"
+							v-for="(contract, index) in data.search.contracts.nodes"
 							:key="contract.contractAddress"
-							class="grid grid-cols-2 gap-8"
+							class="grid grid-cols-3 gap-8"
 						>
 							<ContractLink
 								:address="contract.contractAddress"
@@ -160,6 +158,41 @@
 								@blur="lostFocusOnSearch"
 							/>
 							<AccountLink :address="contract.creator.asString" />
+							<div>
+								Age
+								<Tooltip
+									:text="formatTimestamp(contract.blockSlotTime)"
+									:position="getTooltipPosition(index)"
+								>
+									{{ convertTimestampToRelative(contract.blockSlotTime, NOW) }}
+								</Tooltip>
+							</div>
+						</div>
+					</SearchResultCategory>
+					<SearchResultCategory
+						v-if="resultCount.modules"
+						title="Modules"
+						:has-more-results="data.search.modules.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="(module, index) in data.search.modules.nodes"
+							:key="module.moduleReference"
+							class="grid grid-cols-2 gap-8"
+						>
+							<ModuleLink
+								:module-reference="module.moduleReference"
+								:hide-tooltip="true"
+								@blur="lostFocusOnSearch"
+							/>
+							<div>
+								Age
+								<Tooltip
+									:text="formatTimestamp(module.blockSlotTime)"
+									:position="getTooltipPosition(index)"
+								>
+									{{ convertTimestampToRelative(module.blockSlotTime, NOW) }}
+								</Tooltip>
+							</div>
 						</div>
 					</SearchResultCategory>
 
@@ -212,6 +245,7 @@
 </template>
 
 <script lang="ts" setup>
+import ModuleLink from '../molecules/ModuleLink.vue'
 import SearchResultCategory from './SearchResultCategory.vue'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
@@ -274,6 +308,11 @@ const gotoSearchResult = () => {
 			hash: data.value.search.transactions.nodes[0].transactionHash,
 			id: data.value.search.transactions.nodes[0].id,
 		})
+	else if (data.value.search.modules.nodes[0])
+		drawer.push({
+			entityTypeName: 'module',
+			moduleReference: data.value.search.modules.nodes[0].moduleReference,
+		})
 	else if (data.value.search.blocks.nodes[0])
 		drawer.push({
 			entityTypeName: 'block',
@@ -295,6 +334,14 @@ const gotoSearchResult = () => {
 			entityTypeName: 'node',
 			nodeId: data.value.search.nodeStatuses.nodes[0].id,
 		})
+	else if (data.value.search.contracts.nodes[0])
+		drawer.push({
+			entityTypeName: 'contract',
+			contractAddressIndex:
+				data.value.search.contracts.nodes[0].contractAddressIndex,
+			contractAddressSubIndex:
+				data.value.search.contracts.nodes[0].contractAddressSubIndex,
+		})
 	searchValue.value = ''
 	status.value = 'idle'
 	isMaskVisible.value = false
@@ -310,7 +357,12 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 	}, 100)
 }
 
+const getTooltipPosition = (index: number) => {
+	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
+}
+
 const resultCount = computed(() => ({
+	modules: data.value?.search.modules.nodes.length,
 	contracts: data.value?.search.contracts.nodes.length,
 	blocks: data.value?.search.blocks.nodes.length,
 	transactions: data.value?.search.transactions.nodes.length,
@@ -323,7 +375,8 @@ const resultCount = computed(() => ({
 		(data.value?.search.transactions.nodes.length ?? 0) +
 		(data.value?.search.accounts.nodes.length ?? 0) +
 		(data.value?.search.bakers.nodes.length ?? 0) +
-		(data.value?.search.nodeStatuses.nodes.length ?? 0),
+		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
+		(data.value?.search.modules?.nodes.length ?? 0),
 }))
 </script>
 

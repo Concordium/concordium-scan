@@ -43,6 +43,22 @@ public class SearchResult
             .ThenByDescending(c => c.ContractAddressSubIndex);
     }
 
+    [UsePaging]
+    public IQueryable<ModuleReferenceEvent> GetModules(GraphQlDbContext context)
+    {
+        if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString))
+        {
+            return new List<ModuleReferenceEvent>().AsQueryable();
+        }
+        
+        var lowerCaseQuery = _queryString.ToLowerInvariant() + "%";
+        return context.ModuleReferenceEvents.AsNoTracking()
+            .Where(module => EF.Functions.Like(module.ModuleReference, lowerCaseQuery))
+            .OrderByDescending(module => module.BlockHeight)
+            .ThenByDescending(module => module.TransactionIndex)
+            .ThenByDescending(module => module.EventIndex); 
+    }
+
     [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
     public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)

@@ -8,9 +8,11 @@ import type {
 	Transaction,
 	Baker,
 	NodeStatus,
+	ModuleReferenceEvent,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
+		modules: { nodes: ModuleReferenceEvent[]; pageInfo: PageInfo }
 		contracts: { nodes: Contract[]; pageInfo: PageInfo }
 		blocks: { nodes: Block[]; pageInfo: PageInfo }
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
@@ -26,8 +28,18 @@ type SearchResponse = {
 const SearchQuery = gql<SearchResponse>`
 	query Search($query: String!) {
 		search(query: $query) {
+			modules(first: 3) {
+				nodes {
+					blockSlotTime
+					moduleReference
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
 			contracts(first: 3) {
 				nodes {
+					blockSlotTime
 					contractAddress
 					contractAddressIndex
 					contractAddressSubIndex
