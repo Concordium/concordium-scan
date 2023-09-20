@@ -1,6 +1,8 @@
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
+using HotChocolate;
+using HotChocolate.Types;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -54,5 +56,15 @@ public sealed class ModuleReferenceContractLinkEvent : BaseIdentification
     {
         Added,
         Removed
+    }
+
+    /// <summary>
+    /// Adds additional fields to the GraphQL type <see cref="ModuleReferenceContractLinkEvent"/>.
+    /// </summary>
+    [ExtendObjectType(typeof(ModuleReferenceContractLinkEvent))]
+    public sealed class ModuleReferenceContractLinkEventExtensions
+    {
+        public ContractAddress GetContractAddress([Parent] ModuleReferenceContractLinkEvent linkEvent) => 
+            new(linkEvent.ContractAddressIndex, linkEvent.ContractAddressSubIndex);
     }
 }

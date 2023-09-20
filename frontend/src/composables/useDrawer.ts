@@ -26,6 +26,11 @@ type ContractDrawerItem = {
 	contractAddressSubIndex: number
 }
 
+type ModuleDrawerItem = {
+	entityTypeName: 'module'
+	moduleReference: string
+}
+
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
 	bakerId: number
@@ -42,6 +47,7 @@ export type DrawerItem = (
 	| TxDrawerItem
 	| AccountDrawerItem
 	| ContractDrawerItem
+	| ModuleDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
@@ -97,7 +103,14 @@ export const isItemOnTop = (
 			item.contractAddressSubIndex ===
 				currentTopItem.value.contractAddressSubIndex
 		)
-
+	if (
+		item.entityTypeName === 'module' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	)
+		return !!(
+			item.moduleReference &&
+			item.moduleReference === currentTopItem.value.moduleReference
+		)
 	if (
 		item.entityTypeName === 'baker' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
@@ -157,6 +170,10 @@ export const pushToRouter =
 					drawerItem.entityTypeName === 'contract'
 						? drawerItem.contractAddressSubIndex
 						: undefined,
+				dmoduleReference:
+					drawerItem.entityTypeName === 'module'
+						? drawerItem.moduleReference
+						: undefined,
 			},
 		})
 	}
@@ -192,6 +209,17 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'transaction',
 					hash: route.query.dhash as string,
+				},
+				false
+			)
+		} else if (
+			route.query.dentity === 'module' &&
+			route.query.dmoduleReference
+		) {
+			push(
+				{
+					entityTypeName: 'module',
+					moduleReference: route.query.dmoduleReference as string,
 				},
 				false
 			)

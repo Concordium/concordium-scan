@@ -16,7 +16,7 @@
 				<DetailsCard>
 					<template #title>Module</template>
 					<template #default>
-						<Hash :hash="contract.moduleReference" />
+						<ModuleLink :module-reference="contract.moduleReference" />
 					</template>
 				</DetailsCard>
 				<DetailsCard>
@@ -65,6 +65,7 @@
 </template>
 
 <script lang="ts" setup>
+import ModuleLink from '../molecules/ModuleLink.vue'
 import Accordion from '../Accordion.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'

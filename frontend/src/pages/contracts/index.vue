@@ -40,7 +40,7 @@
 						<TransactionLink :hash="contract.node.transactionHash" />
 					</TableTd>
 					<TableTd class="text-right">
-						<Hash :hash="contract.node.moduleReference" />
+						<ModuleLink :module-reference="contract.node.moduleReference" />
 					</TableTd>
 					<TableTd class="text-right">
 						<Amount :amount="contract.node.amount" />
@@ -59,7 +59,6 @@
 <script lang="ts" setup>
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
-import Hash from '~/components/molecules/Hash.vue'
 import Pagination from '~/components/Pagination.vue'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import { useContractsListQuery } from '~~/src/queries/useContractsListQuery'
@@ -68,6 +67,7 @@ import {
 	convertTimestampToRelative,
 	formatTimestamp,
 } from '~~/src/utils/format'
+import ModuleLink from '~~/src/components/molecules/ModuleLink.vue'
 
 const { NOW } = useDateNow()
 const { first, last, after, before, goToPage } = usePagination()

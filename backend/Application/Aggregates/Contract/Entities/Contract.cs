@@ -109,7 +109,7 @@ public sealed class Contract : BaseIdentification
     }
 
     /// <summary>
-    /// Adds additional field to the returned GraphQL type <see cref="Contract"/>
+    /// Adds additional field to the GraphQL type <see cref="Contract"/>
     /// </summary>
     [ExtendObjectType(typeof(Contract))]
     public sealed class ContractExtensions
