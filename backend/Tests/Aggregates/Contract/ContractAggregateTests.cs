@@ -129,13 +129,12 @@ public sealed class ContractAggregateTests
         
         // Assert
         contractEvents.Count.Should().Be(2);
-        var updateEvent = contractEvents[0];
-        updateEvent.Event.Should().BeOfType<ContractUpdated>();
-        updateEvent.ContractAddressIndex.Should().Be(from);
-        
-        var transferEvent = contractEvents[1];
+        var transferEvent = contractEvents[0];
         transferEvent.Event.Should().BeOfType<ContractCall>();
         transferEvent.ContractAddressIndex.Should().Be(to);
+        var updateEvent = contractEvents[1];
+        updateEvent.Event.Should().BeOfType<ContractUpdated>();
+        updateEvent.ContractAddressIndex.Should().Be(from);
     }
     
     [Fact]
