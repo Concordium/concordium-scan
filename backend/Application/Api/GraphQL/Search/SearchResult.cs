@@ -46,9 +46,11 @@ public class SearchResult
     [UsePaging]
     public IQueryable<ModuleReferenceEvent> GetModules(GraphQlDbContext context)
     {
-        if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString)) 
+        if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString))
+        {
             return new List<ModuleReferenceEvent>().AsQueryable();
-
+        }
+        
         var lowerCaseQuery = _queryString.ToLowerInvariant() + "%";
         return context.ModuleReferenceEvents.AsNoTracking()
             .Where(module => EF.Functions.Like(module.ModuleReference, lowerCaseQuery))

@@ -61,7 +61,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
 									{{
 										convertTimestampToRelative(block.blockSlotTime || '', NOW)
@@ -99,9 +99,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
-									:position="
-										index === 0 ? tooltipPositionBottom : tooltipPositionTop
-									"
+									:position="getTooltipPosition(index)"
 								>
 									{{
 										convertTimestampToRelative(
@@ -134,7 +132,7 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
 									{{ convertTimestampToRelative(account.createdAt || '', NOW) }}
 								</Tooltip>
@@ -164,14 +162,9 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(contract.blockSlotTime)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
-									{{
-										convertTimestampToRelative(
-											contract.blockSlotTime || '',
-											NOW
-										)
-									}}
+									{{ convertTimestampToRelative(contract.blockSlotTime, NOW) }}
 								</Tooltip>
 							</div>
 						</div>
@@ -195,11 +188,9 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(module.blockSlotTime)"
-									:position="index === 0 ? tooltipPositionBottom : ''"
+									:position="getTooltipPosition(index)"
 								>
-									{{
-										convertTimestampToRelative(module.blockSlotTime || '', NOW)
-									}}
+									{{ convertTimestampToRelative(module.blockSlotTime, NOW) }}
 								</Tooltip>
 							</div>
 						</div>
@@ -320,7 +311,7 @@ const gotoSearchResult = () => {
 	else if (data.value.search.modules.nodes[0])
 		drawer.push({
 			entityTypeName: 'module',
-			hash: data.value.search.modules.nodes[0].moduleReference,
+			moduleReference: data.value.search.modules.nodes[0].moduleReference,
 		})
 	else if (data.value.search.blocks.nodes[0])
 		drawer.push({
@@ -366,6 +357,10 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 	}, 100)
 }
 
+const getTooltipPosition = (index: number) => {
+	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
+}
+
 const resultCount = computed(() => ({
 	modules: data.value?.search.modules.nodes.length,
 	contracts: data.value?.search.contracts.nodes.length,
@@ -381,7 +376,7 @@ const resultCount = computed(() => ({
 		(data.value?.search.accounts.nodes.length ?? 0) +
 		(data.value?.search.bakers.nodes.length ?? 0) +
 		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
-		(data.value?.search.modules.nodes.length ?? 0),
+		(data.value?.search.modules?.nodes.length ?? 0),
 }))
 </script>
 

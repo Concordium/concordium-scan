@@ -76,7 +76,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     }
     
     /// <summary>
-    /// Adds additional fields to the GraphQL type <see cref="ModuleReferenceRejectEvent"/>.
+    /// Adds additional fields to the GraphQL type <see cref="ModuleReferenceEvent"/>.
     /// </summary>
     [ExtendObjectType(typeof(ModuleReferenceEvent))]
     public sealed class ModuleReferenceEventExtensions

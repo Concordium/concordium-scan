@@ -33,10 +33,7 @@
 				>
 				<template #content>
 					<ModuleDetailsLinkedContracts
-						v-if="
-							moduleReferenceEvent.linkedContracts?.nodes?.length &&
-							moduleReferenceEvent.linkedContracts?.nodes?.length > 0
-						"
+						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
 						:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
 						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
 						:go-to-page="goToPageLinkedContract"
@@ -54,9 +51,7 @@
 					<ModuleDetailsContractLinkEvents
 						v-if="
 							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
-								?.length &&
-							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
-								?.length > 0
+								?.length
 						"
 						:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceContractLinkEvents!.pageInfo"
@@ -74,9 +69,7 @@
 				<template #content>
 					<ModuleDetailsRejectEvents
 						v-if="
-							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length &&
-							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length >
-								0
+							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
 						"
 						:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceRejectEvents!.pageInfo"
