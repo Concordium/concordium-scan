@@ -278,22 +278,8 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractUpdated contractUpdated:
-                await repository
-                    .AddAsync(new ContractEvent(
-                        blockHeight,
-                        transactionHash,
-                        transactionIndex,
-                        eventIndex,
-                        contractUpdated.ContractAddress,
-                        sender,
-                        contractUpdated,
-                        source,
-                        blockSlotTime
-                        ));
                 if (contractUpdated.Instigator is ContractAddress contractInstigator)
                 {
-                    // Possible a contract has called itself.
-                    eventIndex += 1;
                     await repository
                         .AddAsync(new ContractEvent(
                             blockHeight,
@@ -308,7 +294,21 @@ internal sealed class ContractAggregate
                             source,
                             blockSlotTime
                         ));
+                    // Possible a contract has called itself.
+                    eventIndex += 1;
                 }
+                await repository
+                    .AddAsync(new ContractEvent(
+                        blockHeight,
+                        transactionHash,
+                        transactionIndex,
+                        eventIndex,
+                        contractUpdated.ContractAddress,
+                        sender,
+                        contractUpdated,
+                        source,
+                        blockSlotTime
+                        ));
                 break;
             case ContractUpgraded contractUpgraded:
                 await repository
