@@ -1,6 +1,6 @@
 <template>
 	<header
-		class="z-20 flex-grow-0 sticky top-0 p-8 pr-16 mb-20"
+		class="z-20 flex-grow-0 sticky top-0 p-8 pr-16"
 		:class="$style.drawerTitle"
 	>
 		<DrawerNavigation />
@@ -19,7 +19,6 @@ import DrawerNavigation from '~/components/Drawer/DrawerNavigation.vue'
 
 .drawerTitle::after {
 	content: '';
-	box-shadow: 0 0 50px 10px hsl(247, 40%, 18%);
 	position: absolute;
 	top: 0;
 	width: 100%;

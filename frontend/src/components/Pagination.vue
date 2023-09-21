@@ -1,26 +1,23 @@
 <template>
 	<nav
 		class="flex bottom-0 pagination"
-		:class="[
-			position ? position : 'relative',
-			'justify-center',
-		]"
+		:class="[position ? position : 'relative', 'justify-center']"
 	>
 		<Button
+			v-if="props.pageInfo.hasPreviousPage"
 			class="mr-4 rounded-lg"
 			aria-label="Go to the first page"
 			:size="size"
-			:disabled="!props.pageInfo.hasPreviousPage"
 			:on-click="goToFirst"
 		>
 			<ChevronDoubleLeftIcon :class="buttonClasses" />
 			<span v-if="size !== 'sm'" class="hidden md:inline">First</span>
 		</Button>
 		<Button
+			v-if="props.pageInfo.hasPreviousPage"
 			class="rounded-none rounded-l-lg"
 			aria-label="Go to the previous page"
 			:size="size"
-			:disabled="!props.pageInfo.hasPreviousPage"
 			group-position="first"
 			:on-click="goToPrevious"
 		>
@@ -31,11 +28,11 @@
 			<span v-if="size !== 'sm'" class="hidden md:inline">Previous</span>
 		</Button>
 		<Button
+			v-if="props.pageInfo.hasNextPage"
 			class="rounded-none rounded-r-lg"
 			aria-label="Go to the next page"
 			:size="size"
 			group-position="last"
-			:disabled="!props.pageInfo.hasNextPage"
 			:on-click="goToNext"
 		>
 			<span v-if="size !== 'sm'" class="hidden md:inline">Next</span>

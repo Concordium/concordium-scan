@@ -37,6 +37,8 @@ const ContractQuery = gql`
 					linkedDateTime
 					contractAddress {
 						asString
+						index
+						subIndex
 					}
 				}
 				totalCount
@@ -91,6 +93,8 @@ const ContractQuery = gql`
 					linkAction
 					contractAddress {
 						asString
+						index
+						subIndex
 					}
 				}
 				totalCount

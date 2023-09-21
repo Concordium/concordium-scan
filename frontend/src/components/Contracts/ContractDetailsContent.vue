@@ -2,15 +2,15 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="grid gap-8 md:grid-cols-2 mb-16">
+			<div class="grid gap-8 md:grid-cols-4 mb-16">
 				<ContractDetailsAmounts :contract="contract" />
 				<DetailsCard>
-					<template #title>Age</template>
+					<template #title>Date</template>
 					<template #default>
-						{{ convertTimestampToRelative(contract.blockSlotTime, NOW) }}
+						{{ formatTimestamp(contract.blockSlotTime) }}
 					</template>
 					<template #secondary>
-						{{ formatTimestamp(contract.blockSlotTime) }}
+						({{ convertTimestampToRelative(contract.blockSlotTime, NOW) }})
 					</template>
 				</DetailsCard>
 				<DetailsCard>

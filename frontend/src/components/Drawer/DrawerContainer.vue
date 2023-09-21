@@ -64,14 +64,6 @@
 							:node-internal-id="drawerItem.nodeId"
 						/>
 					</template>
-
-					<template #actions>
-						<DrawerActions class="flex flex-grow-0 justify-between">
-							<Button class="self-end" :on-click="() => softReset()">
-								Close
-							</Button>
-						</DrawerActions>
-					</template>
 				</Drawer>
 			</div>
 		</TransitionGroup>
@@ -104,11 +96,17 @@ watch(currentTopItem, () => {
 	background: hsla(247, 40%, 4%, 0.5);
 	backdrop-filter: blur(2px);
 }
+
 .drawer {
-	max-width: 960px;
+	max-width: 1440px;
 	background: hsl(247, 40%, 18%);
 	box-shadow: -25px 0 50px -12px var(--color-shadow-dark);
 	transition: 0.3s ease-in-out;
+}
+@media screen and (max-width: 960px) {
+	.drawer {
+		max-width: 100%;
+	}
 }
 
 .fixedAndMaxHeight {
