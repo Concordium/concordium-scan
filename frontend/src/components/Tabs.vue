@@ -10,18 +10,18 @@
 			}"
 		>
 			<li v-for="(tab, index) in tabList" :key="index">
-				<label :for="`${_uid}${index}`" v-text="tab" />
+				<label :for="`${index}`" v-text="tab" />
 				<input
-					:id="`${_uid}${index}`"
+					:id="`${index}`"
 					v-model="activeTab"
 					type="radio"
-					:name="`${_uid}-tab`"
+					:name="`${index}-tab`"
 					:value="index + 1"
 				/>
 			</li>
 		</ul>
 
-		<template v-for="(tab, index) in tabList">
+		<template v-for="(_, index) in tabList">
 			<div v-if="index + 1 === activeTab" :key="index">
 				<slot :name="`tabPanel-${index + 1}`" />
 			</div>
@@ -29,26 +29,21 @@
 	</div>
 </template>
 
-<script>
-export default {
-	props: {
-		tabList: {
-			type: Array,
-			required: true,
-		},
-		variant: {
-			type: String,
-			required: false,
-			default: () => 'vertical',
-			validator: value => ['horizontal', 'vertical'].includes(value),
-		},
+<script lang="ts" setup>
+const activeTab = ref(1)
+defineProps({
+	tabList: {
+		type: Array,
+		required: true,
 	},
-	data() {
-		return {
-			activeTab: 1,
-		}
+	variant: {
+		type: String,
+		required: false,
+		default: () => 'vertical',
+		validator: (value: string): boolean =>
+			['horizontal', 'vertical'].includes(value),
 	},
-}
+})
 </script>
 
 <style>
