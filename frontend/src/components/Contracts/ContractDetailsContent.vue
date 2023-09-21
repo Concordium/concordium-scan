@@ -26,12 +26,8 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<Accordion :is-initial-open="true">
-				Events
-				<span class="numerical text-theme-faded"
-					>({{ contract.contractEvents?.totalCount }})</span
-				>
-				<template #content>
+			<Tabs :tab-list="tabList">
+				<template #tabPanel-1>
 					<ContractDetailsEvents
 						v-if="
 							contract.contractEvents?.nodes?.length &&
@@ -42,13 +38,7 @@
 						:go-to-page="goToPageEvents"
 					/>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Rejected Events
-				<span class="numerical text-theme-faded"
-					>({{ contract.contractRejectEvents?.totalCount }})</span
-				>
-				<template #content>
+				<template #tabPanel-2>
 					<ContractDetailsRejectEvents
 						v-if="
 							contract.contractRejectEvents?.nodes?.length &&
@@ -59,14 +49,14 @@
 						:go-to-page="goToPageRejectEvents"
 					/>
 				</template>
-			</Accordion>
+			</Tabs>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
-import Accordion from '../Accordion.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
@@ -87,5 +77,12 @@ type Props = {
 	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const tabList = computed(() => {
+	return [
+		`Event (${props.contract.contractEvents?.totalCount ?? 0})`,
+		`Rejected Events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
+	]
+})
 </script>

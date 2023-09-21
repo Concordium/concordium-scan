@@ -26,12 +26,8 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<Accordion :is-initial-open="true">
-				Linked Contracts
-				<span class="numerical text-theme-faded"
-					>({{ moduleReferenceEvent.linkedContracts?.totalCount }})</span
-				>
-				<template #content>
+			<Tabs :tab-list="tabList">
+				<template #tabPanel-1>
 					<ModuleDetailsLinkedContracts
 						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
 						:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
@@ -39,15 +35,7 @@
 						:go-to-page="goToPageLinkedContract"
 					/>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Linking Events
-				<span class="numerical text-theme-faded"
-					>({{
-						moduleReferenceEvent.moduleReferenceContractLinkEvents?.totalCount
-					}})</span
-				>
-				<template #content>
+				<template #tabPanel-2>
 					<ModuleDetailsContractLinkEvents
 						v-if="
 							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
@@ -58,15 +46,7 @@
 						:go-to-page="goToPageEvents"
 					/>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Rejected Events
-				<span class="numerical text-theme-faded"
-					>({{
-						moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount
-					}})</span
-				>
-				<template #content>
+				<template #tabPanel-3>
 					<ModuleDetailsRejectEvents
 						v-if="
 							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
@@ -76,13 +56,13 @@
 						:go-to-page="goToPageRejectEvents"
 					/>
 				</template>
-			</Accordion>
+			</Tabs>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import Accordion from '../Accordion.vue'
+import Tabs from '../Tabs.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
@@ -104,5 +84,19 @@ type Props = {
 	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageLinkedContract: (page: PageInfo) => (target: PaginationTarget) => void
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+const tabList = computed(() => {
+	return [
+		`Linked Contracts (${
+			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
+		})`,
+		`Linking Events (${
+			props.moduleReferenceEvent.moduleReferenceContractLinkEvents
+				?.totalCount ?? 0
+		})`,
+		`Rejected Events (${
+			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
+		})`,
+	]
+})
 </script>
