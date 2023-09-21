@@ -28,27 +28,49 @@
 						{{ moduleRejectEvent.rejectedEvent.__typename }}
 					</TableTd>
 					<TableTd>
-						<InvalidInitMethod
+						<div
 							v-if="
 								moduleRejectEvent.rejectedEvent.__typename ===
 								'InvalidInitMethod'
 							"
-							:reason="moduleRejectEvent.rejectedEvent"
-						/>
-						<InvalidReceiveMethod
-							v-else-if="
+						>
+							<p>Init Name:</p>
+							<p>{{ moduleRejectEvent.rejectedEvent.initName }}</p>
+							<p>Module Reference:</p>
+							<p>
+								<ModuleLink
+									:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
+								/>
+							</p>
+						</div>
+						<div
+							v-if="
 								moduleRejectEvent.rejectedEvent.__typename ===
 								'InvalidReceiveMethod'
 							"
-							:reason="moduleRejectEvent.rejectedEvent"
-						/>
-						<ModuleHashAlreadyExists
-							v-else-if="
+						>
+							<p>Receive Name:</p>
+							<p>{{ moduleRejectEvent.rejectedEvent.receiveName }}</p>
+							<p>Module Reference:</p>
+							<p>
+								<ModuleLink
+									:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
+								/>
+							</p>
+						</div>
+						<div
+							v-if="
 								moduleRejectEvent.rejectedEvent.__typename ===
 								'ModuleHashAlreadyExists'
 							"
-							:reason="moduleRejectEvent.rejectedEvent"
-						/>
+						>
+							<p>Module Reference:</p>
+							<p>
+								<ModuleLink
+									:module-reference="moduleRejectEvent.moduleReference"
+								/>
+							</p>
+						</div>
 					</TableTd>
 				</TableRow>
 			</TableBody>
@@ -58,10 +80,8 @@
 </template>
 
 <script lang="ts" setup>
-import InvalidInitMethod from '../RejectionReason/Reasons/InvalidInitMethod.vue'
-import InvalidReceiveMethod from '../RejectionReason/Reasons/InvalidReceiveMethod.vue'
-import ModuleHashAlreadyExists from '../RejectionReason/Reasons/ModuleHashAlreadyExists.vue'
 import { ModuleReferenceRejectEvent, PageInfo } from '~~/src/types/generated'
+import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import {
