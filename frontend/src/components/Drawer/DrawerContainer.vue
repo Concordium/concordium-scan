@@ -60,14 +60,6 @@
 							:node-internal-id="drawerItem.nodeId"
 						/>
 					</template>
-
-					<template #actions>
-						<DrawerActions class="flex flex-grow-0 justify-between">
-							<Button class="self-end" :on-click="() => softReset()">
-								Close
-							</Button>
-						</DrawerActions>
-					</template>
 				</Drawer>
 			</div>
 		</TransitionGroup>
@@ -111,7 +103,6 @@ watch(currentTopItem, () => {
 		max-width: 100%;
 	}
 }
-
 
 .fixedAndMaxHeight {
 	max-height: 100vh;
