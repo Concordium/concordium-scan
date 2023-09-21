@@ -5,8 +5,9 @@
     - Duration of GraphQL endpoints
 - Added health checks, where application goes into degraded state if some job stops running. These health checks are now making endpoint `rest/health` redundant and it is removed.
 - Added GraphQL endpoints
-    - Contract listing with pagination
-- Extended search functionality to include contracts.
+    - Contract listing with pagination and details page.
+    - Module details page.
+- Extended search functionality to include contracts and modules.
 - Updated
     - `HotChocolate` nuget libraries from major `12` to `13`. Because of this done some migration changes like adding `RegisterDbContext<GraphQlDbContext>(DbContextKind.Pooled)` 
     to GraphQL schema configuration *(migration documentation located at: https://chillicream.com/docs/hotchocolate/v13/migrating/migrate-from-12-to-13)*.
