@@ -723,6 +723,7 @@ public record ChainUpdateEnqueued(
 
 public record ContractInterrupted(
     ContractAddress ContractAddress,
+    [property: UsePaging(InferConnectionNameFromField = false)]
     string[] EventsAsHex) : TransactionResultEvent
 {
     internal static ContractInterrupted From(Interrupted interrupted) =>
