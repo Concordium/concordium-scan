@@ -224,7 +224,7 @@ export const useDrawer = () => {
 				false
 			)
 		} else if (
-			route.query.density === 'contract' &&
+			route.query.dentity === 'contract' &&
 			route.query.dcontractAddressIndex &&
 			route.query.dcontractAddressSubIndex
 		) {
@@ -232,10 +232,10 @@ export const useDrawer = () => {
 				{
 					entityTypeName: 'contract',
 					contractAddressIndex: parseInt(
-						route.query.dcontractAddressIndex.toString()
+						route.query.dcontractAddressIndex as string
 					),
 					contractAddressSubIndex: parseInt(
-						route.query.dcontractAddressSubIndex.toString()
+						route.query.dcontractAddressSubIndex as string
 					),
 				},
 				false
