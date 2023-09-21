@@ -140,11 +140,12 @@ rejectedEvent {
   __typename
 	... on RejectedReceive {
 		rejectReason
+		receiveName
+		messageAsHex
 		contractAddress {
 			index
 			subIndex
 		}
-		receiveName
 	}        
 }
 `
