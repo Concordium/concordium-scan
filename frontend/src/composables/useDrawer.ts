@@ -225,10 +225,8 @@ export const useDrawer = () => {
 			)
 		} else if (
 			route.query.dentity === 'contract' &&
-			route.query.dcontractAddressIndex !== undefined &&
-			route.query.dcontractAddressIndex !== null &&
-			route.query.dcontractAddressSubIndex !== undefined &&
-			route.query.dcontractAddressSubIndex !== null
+			route.query.dcontractAddressIndex &&
+			route.query.dcontractAddressSubIndex
 		) {
 			push(
 				{
