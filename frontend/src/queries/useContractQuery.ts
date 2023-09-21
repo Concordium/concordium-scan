@@ -12,22 +12,34 @@ event {
 	... on ContractInitialized {
 		contractAddress {
 			__typename
+			asString
 			index
 			subIndex
 		}
 		amount
 		moduleRef
+		initName
+		moduleRef
+		version
+		eventsAsHex {
+			nodes
+		}
 	}
 	... on ContractInterrupted {
 		contractAddress {
 			__typename
+			asString
 			index
 			subIndex
+		}
+		eventsAsHex {
+			nodes
 		}
 	}
 	... on ContractResumed {
 		contractAddress {
 			__typename
+			asString			
 			index
 			subIndex
 		}
@@ -37,39 +49,56 @@ event {
 		moduleRef
 	}
 	... on ContractUpdated {
+		amount
+		receiveName
+		messageAsHex
+		version
 		instigator {
 			__typename
 			... on AccountAddress {
 				asString
 			}
 			... on ContractAddress {
+				asString
 				index
 				subIndex
 			}
 		}
 		contractAddress {
 			__typename
+			asString
 			index
 			subIndex
 		}
+		eventsAsHex {
+			nodes
+		}		
 	}
 	... on ContractCall {
 		contractUpdated {
 			amount
+			receiveName
+			messageAsHex
+			version
 			instigator {
 				__typename
 				... on AccountAddress {
 					asString
 				}
 				... on ContractAddress {
+					asString
 					index
 					subIndex
 				}
 			}
 			contractAddress {
 				__typename
+				asString
 				index
 				subIndex
+			}
+			eventsAsHex {
+				nodes
 			}			
 		}
 	}
@@ -77,6 +106,7 @@ event {
 		__typename
 		contractAddress {
 			__typename
+			asString
 			index
 			subIndex
 		}
@@ -88,6 +118,7 @@ event {
 		from {
 			... on ContractAddress {
 				__typename
+				asString
 				index
 				subIndex
 			}

@@ -1105,7 +1105,15 @@ export type ContractInitializedEventsAsHexArgs = {
 export type ContractInterrupted = {
   __typename?: 'ContractInterrupted';
   contractAddress: ContractAddress;
-  eventsAsHex: Array<Scalars['String']>;
+  eventsAsHex?: Maybe<StringConnection>;
+};
+
+
+export type ContractInterruptedEventsAsHexArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 export type ContractModuleDeployed = {
