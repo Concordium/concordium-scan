@@ -2,7 +2,7 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="grid gap-8 md:grid-cols-4 mb-16">
+			<div class="flex flex-row gap-20 mb-12">
 				<ContractDetailsAmounts :contract="contract" />
 				<DetailsCard>
 					<template #title>Date</template>

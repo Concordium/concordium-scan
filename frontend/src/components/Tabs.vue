@@ -1,16 +1,20 @@
 <template>
 	<div
-		:class="{
-			flex: variant === 'horizontal',
-		}"
+		:class="[
+			$style.tabContainer,
+			{
+				flex: variant === 'horizontal',
+			},
+		]"
 	>
 		<ul
-			:class="{
-				flex: variant === 'vertical',
-			}"
+			:class="[
+				{
+					flex: variant === 'vertical',
+				},
+			]"
 		>
-			<li v-for="(tab, index) in tabList" :key="index">
-				<label :for="`${index}`" v-text="tab" />
+			<li v-for="(tab, index) in tabList" :key="index" :class="$style.tabItem">
 				<input
 					:id="`${index}`"
 					v-model="activeTab"
@@ -18,11 +22,12 @@
 					:name="`${index}-tab`"
 					:value="index + 1"
 				/>
+				<label :for="`${index}`" v-text="tab" />
 			</li>
 		</ul>
 
 		<template v-for="(_, index) in tabList">
-			<div v-if="index + 1 === activeTab" :key="index">
+			<div v-if="index + 1 === activeTab" :key="index" :class="$style.tabPanel">
 				<slot :name="`tabPanel-${index + 1}`" />
 			</div>
 		</template>
@@ -46,8 +51,37 @@ defineProps({
 })
 </script>
 
-<style>
+<style module>
 .flex {
 	display: flex;
+}
+
+.tabContainer {
+	margin-bottom: 40px;
+}
+
+.tabItem {
+	padding: 12px 24px 10px;
+	background-color: var(--color-background-elevated);
+	opacity: 0.4;
+	border-radius: 8px 8px 0 0;
+	margin-right: 3px;
+	margin-bottom: 3px;
+}
+
+.tabItem input {
+	display: none;
+}
+
+.tabItem:has(input[type='radio']:checked) {
+	background-color: var(--color-background-elevated);
+	opacity: 1;
+	margin-bottom: 0;
+}
+
+.tabPanel {
+	padding: 40px 20px 20px;
+	border-radius: 0 16px 16px;
+	background-color: var(--color-background-elevated);
 }
 </style>
