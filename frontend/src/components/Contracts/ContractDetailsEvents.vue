@@ -1,12 +1,12 @@
 <template>
 	<div>
-		<Table>
+		<Table :class="[$style.table]" style="width: 100%">
 			<TableHead>
 				<TableRow>
-					<TableTh>Transaction Hash</TableTh>
-					<TableTh>Age</TableTh>
-					<TableTh>Type</TableTh>
-					<TableTh>Details</TableTh>
+					<TableTh style="width: 10%">Transaction Hash</TableTh>
+					<TableTh style="width: 10%">Age</TableTh>
+					<TableTh style="width: 10%">Type</TableTh>
+					<TableTh style="width: 70%">Details</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -80,75 +80,7 @@
 							</div>
 						</div>
 						<div v-if="contractEvent.event.__typename === 'ContractUpdated'">
-							<p>Amount:</p>
-							<p>
-								<Amount :amount="contractEvent.event.amount" />
-							</p>
-							<br />
-							<p>Contract Address:</p>
-							<p>
-								<ContractLink
-									:address="contractEvent.event.contractAddress.asString"
-									:contract-address-index="
-										contractEvent.event.contractAddress.index
-									"
-									:contract-address-sub-index="
-										contractEvent.event.contractAddress.subIndex
-									"
-								/>
-							</p>
-							<br />
-							<p>Receive Name:</p>
-							<p>
-								{{ contractEvent.event.receiveName }}
-							</p>
-							<br />
-							<p>Message as HEX:</p>
-							<p>
-								{{ contractEvent.event.messageAsHex }}
-							</p>
-							<br />
-							<p>Instigator:</p>
-							<p>
-								<ContractLink
-									v-if="
-										contractEvent.event.instigator.__typename ===
-										'ContractAddress'
-									"
-									:address="contractEvent.event.instigator.asString"
-									:contract-address-index="contractEvent.event.instigator.index"
-									:contract-address-sub-index="
-										contractEvent.event.instigator.subIndex
-									"
-								/>
-								<AccountLink
-									v-else-if="
-										contractEvent.event.instigator.__typename ===
-										'AccountAddress'
-									"
-									:address="contractEvent.event.instigator.asString"
-								/>
-							</p>
-							<br />
-							<div v-if="contractEvent.event.version">
-								<p>Version (nullable):</p>
-								<p>
-									{{ contractEvent.event.version }}
-								</p>
-							</div>
-							<br />
-							<div>
-								<p>Event Logs as HEX:</p>
-								<ul v-if="contractEvent.event.eventsAsHex?.nodes?.length">
-									<li
-										v-for="(event, i) in contractEvent.event.eventsAsHex.nodes"
-										:key="i"
-										style="list-style-type: circle"
-									>
-										{{ event }}
-									</li>
-								</ul>
-							</div>
+							<ContractUpdated :contract-event="contractEvent.event" />
 						</div>
 						<div
 							v-if="contractEvent.event.__typename === 'ContractModuleDeployed'"
@@ -373,6 +305,7 @@ import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import ContractUpdated from '~/components/Contracts/Events/ContractUpdated.vue'
 
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { ContractEvent, PageInfo } from '~~/src/types/generated'
@@ -397,3 +330,12 @@ function trimTypeName(typeName: string | undefined) {
 	return name
 }
 </script>
+<style module>
+.table tr {
+	border-bottom: 2px solid;
+	border-bottom-color: var(--color-thead-bg);
+}
+.table tr:last-child {
+	border-bottom: none;
+}
+</style>
