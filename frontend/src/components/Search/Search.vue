@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="rootSearchContainer"
-		class="xl:relative flex-grow w-min z-20"
+		class="lg:relative flex-grow w-min z-20"
 		:class="$style.container"
 	>
 		<div class="relative flex flex-row z-20">
@@ -21,7 +21,7 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 xl:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
+			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -45,7 +45,7 @@
 						<div
 							v-for="(block, index) in data.search.blocks.nodes"
 							:key="block.blockHash"
-							class="grid grid-cols-4 gap-8"
+							:class="getSearchClass"
 						>
 							<div>
 								<BlockLink
@@ -55,9 +55,8 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div>@ {{ block.blockHeight }}</div>
-
-							<div>
+							<div v-if="shouldShowColumn(3)">@ {{ block.blockHeight }}</div>
+							<div v-if="shouldShowColumn(2)">
 								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
@@ -79,7 +78,7 @@
 						<div
 							v-for="(transaction, index) in data.search.transactions.nodes"
 							:key="transaction.transactionHash"
-							class="grid grid-cols-4 gap-8"
+							:class="getSearchClass"
 						>
 							<TransactionLink
 								:id="transaction.id"
@@ -87,7 +86,7 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div>
+							<div v-if="shouldShowColumn(3)">
 								<BlockLink
 									:id="transaction.block.id"
 									:hash="transaction.block.blockHash"
@@ -95,7 +94,7 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div>
+							<div v-if="shouldShowColumn(2)">
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
@@ -120,15 +119,15 @@
 						<div
 							v-for="(account, index) in data.search.accounts.nodes"
 							:key="account.address.asString"
-							class="grid grid-cols-4 gap-8"
+							:class="getSearchClass"
 						>
 							<AccountLink
 								:address="account.address.asString"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div></div>
-							<div>
+							<div v-if="shouldShowColumn(3)"></div>
+							<div v-if="shouldShowColumn(2)">
 								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
@@ -148,7 +147,7 @@
 						<div
 							v-for="(contract, index) in data.search.contracts.nodes"
 							:key="contract.contractAddress"
-							class="grid grid-cols-3 gap-8"
+							:class="getSearchClass"
 						>
 							<ContractLink
 								:address="contract.contractAddress"
@@ -157,8 +156,11 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<AccountLink :address="contract.creator.asString" />
-							<div>
+							<AccountLink
+								v-if="shouldShowColumn(3)"
+								:address="contract.creator.asString"
+							/>
+							<div v-if="shouldShowColumn(2)">
 								Age
 								<Tooltip
 									:text="formatTimestamp(contract.blockSlotTime)"
@@ -177,14 +179,15 @@
 						<div
 							v-for="(module, index) in data.search.modules.nodes"
 							:key="module.moduleReference"
-							class="grid grid-cols-2 gap-8"
+							:class="getSearchClass"
 						>
 							<ModuleLink
 								:module-reference="module.moduleReference"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div>
+							<div v-if="shouldShowColumn(3)"></div>
+							<div v-if="shouldShowColumn(2)">
 								Age
 								<Tooltip
 									:text="formatTimestamp(module.blockSlotTime)"
@@ -204,10 +207,11 @@
 						<div
 							v-for="baker in data.search.bakers.nodes"
 							:key="baker.bakerId"
-							class="grid grid-cols-4 gap-8"
+							:class="getSearchClass"
 						>
 							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
-							<div>
+							<div v-if="shouldShowColumn(3)"></div>
+							<div v-if="shouldShowColumn(2)">
 								<AccountLink
 									:address="baker.account.address.asString"
 									:hide-tooltip="true"
@@ -225,10 +229,11 @@
 						<div
 							v-for="node in data.search.nodeStatuses.nodes"
 							:key="node.id"
-							class="grid grid-cols-2 gap-8"
+							:class="getSearchClass"
 						>
 							<NodeLink :node="node" @blur="lostFocusOnSearch" />
-							<div>
+							<div v-if="shouldShowColumn(3)"></div>
+							<div v-if="shouldShowColumn(2)">
 								<BakerLink
 									v-if="Number.isInteger(node.consensusBakerId)"
 									:id="node.consensusBakerId"
@@ -259,9 +264,11 @@ import ContractLink from '~/components/molecules/ContractLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
 import NodeLink from '~/components/molecules/NodeLink.vue'
+import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
+const { breakpoint } = useBreakpoint()
 
 const tooltipPositionBottom = 'bottom' as Position
 const tooltipPositionTop = 'top' as Position
@@ -359,6 +366,48 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 
 const getTooltipPosition = (index: number) => {
 	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
+}
+
+/**
+ * Class used for search results.
+ *
+ * When the windows is less then `Breakpoint.LG` the search results has full page width.
+ */
+const getSearchClass = computed(() => {
+	if (breakpoint.value >= Breakpoint.XXL) {
+		return 'grid grid-cols-3 gap-8'
+	}
+	if (breakpoint.value >= Breakpoint.XL) {
+		return 'grid grid-cols-2 gap-8'
+	}
+	if (breakpoint.value >= Breakpoint.SM) {
+		return 'grid grid-cols-3 gap-8'
+	}
+	return 'grid grid-cols-1 gap-8'
+})
+
+/**
+ * Calculated if a columns should be shown conditional on the `columnCount`
+ * parameter.
+ * @param {number} `columnCount` - Column count of property.
+ */
+function shouldShowColumn(columnCount: number) {
+	if (columnCount === 3) {
+		if (breakpoint.value >= Breakpoint.XXL) {
+			return true
+		}
+		if (breakpoint.value < Breakpoint.XL && breakpoint.value >= Breakpoint.SM) {
+			return true
+		}
+		return false
+	}
+	if (columnCount === 2) {
+		if (breakpoint.value >= Breakpoint.SM) {
+			return true
+		}
+		return false
+	}
+	return true
 }
 
 const resultCount = computed(() => ({
