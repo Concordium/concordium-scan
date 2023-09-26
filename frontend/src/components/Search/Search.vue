@@ -371,7 +371,7 @@ const getTooltipPosition = (index: number) => {
 /**
  * Class used for search results.
  *
- * When the windows is less then `Breakpoint.LG` the search results has full page width.
+ * When the screen size is less then `Breakpoint.LG` the search results has full page width.
  */
 const getSearchClass = computed(() => {
 	if (breakpoint.value >= Breakpoint.XXL) {
