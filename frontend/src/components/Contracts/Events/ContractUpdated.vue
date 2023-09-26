@@ -23,14 +23,6 @@
 				/>
 			</p>
 		</div>
-		<!-- <div>
-            <p>Contract Address:</p>
-            <p>
-                <ContractLink 
-                :address="props.contractEvent.contractAddress.asString" :contract-address-index="props.contractEvent.contractAddress.index" 
-                :contract-address-sub-index="props.contractEvent.contractAddress.subIndex" />
-            </p>
-        </div> -->
 		<div>
 			<p>Receive Name:</p>
 			<p>
