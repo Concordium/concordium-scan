@@ -1,5 +1,5 @@
 <template>
-	<div class="grid grid-cols-4 grid-gap-8">
+	<div class="flex flex-wrap flex-grow gap-8">
 		<div>
 			<p>Amount:</p>
 			<p>
@@ -40,7 +40,9 @@
 		<div>
 			<p>Message (HEX):</p>
 			<p>
-				{{ props.contractEvent.messageAsHex }}
+				<code :class="$style.code">
+					{{ props.contractEvent.messageAsHex }}
+				</code>
 			</p>
 		</div>
 		<div>
@@ -55,9 +57,11 @@
 				<li
 					v-for="(event, i) in props.contractEvent.eventsAsHex.nodes"
 					:key="i"
-					style="list-style-type: circle"
+					style="list-style-type: disc; margin: 0 0 0 20px"
 				>
-					{{ event }}
+					<code :class="$style.code">
+						{{ event }}
+					</code>
 				</li>
 			</ul>
 		</div>
@@ -74,3 +78,10 @@ type Props = {
 }
 const props = defineProps<Props>()
 </script>
+<style module>
+.code {
+	background-color: grey;
+	padding: 2px 2px 0.5px;
+	border-radius: 2.5px;
+}
+</style>
