@@ -20,11 +20,11 @@
 								convertTimestampToRelative(contractEvent.blockSlotTime, NOW)
 							"
 						>
-							{{ formatTimestamp(contractEvent.blockSlotTime) }}
+							<DateTimeWithLineBreak :date-time="contractEvent.blockSlotTime" />
 						</Tooltip>
 					</TableTd>
 					<TableTd>
-						{{ contractEvent.event.__typename }}
+						{{ trimTypeName(contractEvent.event.__typename) }}
 					</TableTd>
 					<TableTd>
 						<div
@@ -368,6 +368,7 @@
 </template>
 
 <script lang="ts" setup>
+import DateTimeWithLineBreak from './DateTimeWithLineBreak.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import ModuleLink from '~/components/molecules/ModuleLink.vue'
@@ -376,10 +377,7 @@ import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { ContractEvent, PageInfo } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
+import { convertTimestampToRelative } from '~~/src/utils/format'
 import { PaginationTarget } from '~~/src/composables/usePagination'
 
 const { NOW } = useDateNow()
@@ -390,4 +388,12 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
+
+function trimTypeName(typeName: string | undefined) {
+	let name = typeName
+	if (typeName?.startsWith('Contract')) {
+		name = typeName.slice(8)
+	}
+	return name
+}
 </script>
