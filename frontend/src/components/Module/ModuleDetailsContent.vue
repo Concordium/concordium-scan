@@ -28,33 +28,42 @@
 			</div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
-					<ModuleDetailsLinkedContracts
+					<DetailsTable
 						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
-						:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
 						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
 						:go-to-page="goToPageLinkedContract"
-					/>
+					>
+						<ModuleDetailsLinkedContracts
+							:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
+						/>
+					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
-					<ModuleDetailsContractLinkEvents
+					<DetailsTable
 						v-if="
 							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
 								?.length
 						"
-						:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceContractLinkEvents!.pageInfo"
 						:go-to-page="goToPageEvents"
-					/>
+					>
+						<ModuleDetailsContractLinkEvents
+							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
 				<template #tabPanel-3>
-					<ModuleDetailsRejectEvents
+					<DetailsTable
 						v-if="
 							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
 						"
-						:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceRejectEvents!.pageInfo"
 						:go-to-page="goToPageRejectEvents"
-					/>
+					>
+						<ModuleDetailsRejectEvents
+							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
 			</Tabs>
 		</DrawerContent>
@@ -63,6 +72,7 @@
 
 <script lang="ts" setup>
 import Tabs from '../Tabs.vue'
+import DetailsTable from '../Details/DetailsTable.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'

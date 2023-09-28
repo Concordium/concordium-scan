@@ -1,102 +1,92 @@
 <template>
-	<div>
-		<Table>
-			<TableHead>
-				<TableRow>
-					<TableTh>Transaction Hash</TableTh>
-					<TableTh>Age</TableTh>
-					<TableTh>Type</TableTh>
-					<TableTh>Details</TableTh>
-				</TableRow>
-			</TableHead>
-			<TableBody>
-				<TableRow
-					v-for="moduleRejectEvent in moduleRejectEvents"
-					:key="moduleRejectEvent"
+	<TableHead>
+		<TableRow>
+			<TableTh>Transaction</TableTh>
+			<TableTh>Age</TableTh>
+			<TableTh>Type</TableTh>
+			<TableTh>Details</TableTh>
+		</TableRow>
+	</TableHead>
+	<TableBody>
+		<TableRow
+			v-for="moduleRejectEvent in moduleRejectEvents"
+			:key="moduleRejectEvent"
+		>
+			<TableTd class="numerical">
+				<TransactionLink :hash="moduleRejectEvent.transactionHash" />
+			</TableTd>
+			<TableTd>
+				<Tooltip
+					:text="
+						convertTimestampToRelative(moduleRejectEvent.blockSlotTime, NOW)
+					"
 				>
-					<TableTd class="numerical">
-						<TransactionLink :hash="moduleRejectEvent.transactionHash" />
-					</TableTd>
-					<TableTd>
-						<Tooltip :text="formatTimestamp(moduleRejectEvent.blockSlotTime)">
-							{{
-								convertTimestampToRelative(moduleRejectEvent.blockSlotTime, NOW)
-							}}
-						</Tooltip>
-					</TableTd>
-					<TableTd>
-						{{ moduleRejectEvent.rejectedEvent.__typename }}
-					</TableTd>
-					<TableTd>
-						<div
-							v-if="
-								moduleRejectEvent.rejectedEvent.__typename ===
-								'InvalidInitMethod'
-							"
-						>
-							<p>Init Name:</p>
-							<p>{{ moduleRejectEvent.rejectedEvent.initName }}</p>
-							<p>Module Reference:</p>
-							<p>
-								<ModuleLink
-									:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
-								/>
-							</p>
-						</div>
-						<div
-							v-if="
-								moduleRejectEvent.rejectedEvent.__typename ===
-								'InvalidReceiveMethod'
-							"
-						>
-							<p>Receive Name:</p>
-							<p>{{ moduleRejectEvent.rejectedEvent.receiveName }}</p>
-							<p>Module Reference:</p>
-							<p>
-								<ModuleLink
-									:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
-								/>
-							</p>
-						</div>
-						<div
-							v-if="
-								moduleRejectEvent.rejectedEvent.__typename ===
-								'ModuleHashAlreadyExists'
-							"
-						>
-							<p>Module Reference:</p>
-							<p>
-								<ModuleLink
-									:module-reference="moduleRejectEvent.moduleReference"
-								/>
-							</p>
-						</div>
-					</TableTd>
-				</TableRow>
-			</TableBody>
-		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
-	</div>
+					<DateTimeWithLineBreak :date-time="moduleRejectEvent.blockSlotTime" />
+				</Tooltip>
+			</TableTd>
+			<TableTd>
+				{{ moduleRejectEvent.rejectedEvent.__typename }}
+			</TableTd>
+			<TableTd>
+				<div
+					v-if="
+						moduleRejectEvent.rejectedEvent.__typename === 'InvalidInitMethod'
+					"
+				>
+					<div>Init Name:</div>
+					<div>{{ moduleRejectEvent.rejectedEvent.initName }}</div>
+					<div>Module Reference:</div>
+					<div>
+						<ModuleLink
+							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
+						/>
+					</div>
+				</div>
+				<div
+					v-if="
+						moduleRejectEvent.rejectedEvent.__typename ===
+						'InvalidReceiveMethod'
+					"
+				>
+					<div>Receive Name:</div>
+					<div>{{ moduleRejectEvent.rejectedEvent.receiveName }}</div>
+					<div>Module Reference:</div>
+					<div>
+						<ModuleLink
+							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
+						/>
+					</div>
+				</div>
+				<div
+					v-if="
+						moduleRejectEvent.rejectedEvent.__typename ===
+						'ModuleHashAlreadyExists'
+					"
+				>
+					<div>Module Reference:</div>
+					<div>
+						<ModuleLink
+							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
+						/>
+					</div>
+				</div>
+			</TableTd>
+		</TableRow>
+	</TableBody>
 </template>
 
 <script lang="ts" setup>
-import { ModuleReferenceRejectEvent, PageInfo } from '~~/src/types/generated'
+import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
+import { ModuleReferenceRejectEvent } from '~~/src/types/generated'
 import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import { PaginationTarget } from '~~/src/composables/usePagination'
-import Pagination from '~/components/Pagination.vue'
+import { convertTimestampToRelative } from '~~/src/utils/format'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	moduleRejectEvents: ModuleReferenceRejectEvent[]
-	pageInfo: PageInfo
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
 </script>
