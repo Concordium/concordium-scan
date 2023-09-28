@@ -31,42 +31,15 @@
 			{{ props.contractEvent?.contractUpdated.version }}
 		</div>
 	</div>
-	<div class="w-full">
-		<div>Called Message (HEX):</div>
-		<div class="flex">
-			<code class="truncate w-36">
-				{{ props.contractEvent.contractUpdated.messageAsHex }}
-			</code>
-			<TextCopy
-				:text="props.contractEvent.contractUpdated.messageAsHex"
-				label="Click to copy message (HEX) to clipboard"
-			/>
-		</div>
-	</div>
-	<div class="w-full">
-		<div>Logs (HEX) from Contract Called:</div>
-		<template
-			v-if="props.contractEvent.contractUpdated.eventsAsHex?.nodes?.length"
-		>
-			<div
-				v-for="(event, i) in props.contractEvent.contractUpdated.eventsAsHex
-					.nodes"
-				:key="i"
-				class="flex"
-			>
-				<code class="truncate w-36">
-					{{ event }}
-				</code>
-				<TextCopy
-					:text="event"
-					label="Click to copy events logs (HEX) to clipboard"
-				/>
-			</div>
-		</template>
-	</div>
+	<MessageHEX
+		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
+	/>
+	<LogsHEX :events-as-hex="props.contractEvent.contractUpdated.eventsAsHex" />
 </template>
 <script lang="ts" setup>
 import { ContractCall } from '../../../../src/types/generated'
+import MessageHEX from './MessageHEX.vue'
+import LogsHEX from './LogsHEX.vue'
 import Amount from '~/components/atoms/Amount.vue'
 import TextCopy from '~/components/atoms/TextCopy.vue'
 

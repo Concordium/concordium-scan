@@ -28,26 +28,32 @@
 			</div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
-					<ContractDetailsEvents
+					<DetailsTable
 						v-if="
 							contract.contractEvents?.nodes?.length &&
 							contract.contractEvents?.nodes?.length > 0
 						"
-						:contract-events="contract.contractEvents!.nodes"
 						:page-info="contract.contractEvents!.pageInfo"
 						:go-to-page="goToPageEvents"
-					/>
+					>
+						<ContractDetailsEvents
+							:contract-events="contract.contractEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
-					<ContractDetailsRejectEvents
+					<DetailsTable
 						v-if="
 							contract.contractRejectEvents?.nodes?.length &&
 							contract.contractRejectEvents?.nodes?.length > 0
 						"
-						:contract-reject-events="contract.contractRejectEvents!.nodes"
 						:page-info="contract.contractRejectEvents!.pageInfo"
 						:go-to-page="goToPageRejectEvents"
-					/>
+					>
+						<ContractDetailsRejectEvents
+							:contract-reject-events="contract.contractRejectEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
 			</Tabs>
 		</DrawerContent>
@@ -57,6 +63,7 @@
 <script lang="ts" setup>
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
+import DetailsTable from './DetailsTable.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
