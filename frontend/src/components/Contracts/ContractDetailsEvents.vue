@@ -1,12 +1,12 @@
 <template>
 	<div>
-		<Table :class="[$style.table]" style="width: 100%">
+		<Table :class="[$style.table, $style.contractDetail]">
 			<TableHead>
 				<TableRow>
-					<TableTh style="width: 10%">Transaction Hash</TableTh>
-					<TableTh style="width: 10%">Age</TableTh>
-					<TableTh style="width: 10%">Type</TableTh>
-					<TableTh style="width: 70%">Details</TableTh>
+					<TableTh>Transaction Hash</TableTh>
+					<TableTh>Age</TableTh>
+					<TableTh>Type</TableTh>
+					<TableTh>Details</TableTh>
 				</TableRow>
 			</TableHead>
 			<TableBody>
@@ -79,9 +79,11 @@
 								</ul>
 							</div>
 						</div>
-						<div v-if="contractEvent.event.__typename === 'ContractUpdated'">
+						<template
+							v-if="contractEvent.event.__typename === 'ContractUpdated'"
+						>
 							<ContractUpdated :contract-event="contractEvent.event" />
-						</div>
+						</template>
 						<div
 							v-if="contractEvent.event.__typename === 'ContractModuleDeployed'"
 						>
@@ -331,6 +333,9 @@ function trimTypeName(typeName: string | undefined) {
 }
 </script>
 <style module>
+.contractDetail table td {
+	padding: 30px 20px;
+}
 .table tr {
 	border-bottom: 2px solid;
 	border-bottom-color: var(--color-thead-bg);
