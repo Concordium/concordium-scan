@@ -20,7 +20,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ChevronRightIcon } from '@heroicons/vue/solid/index.js'
 
 type Props = {

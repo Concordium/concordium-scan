@@ -39,8 +39,8 @@
 </template>
 <script lang="ts" setup>
 import { ContractUpdated } from '../../../../src/types/generated'
-import MessageHEX from './MessageHEX.vue'
-import LogsHEX from './LogsHEX.vue'
+import MessageHEX from '../../MessageHEX.vue'
+import LogsHEX from '../../Details/LogsHEX.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Amount from '~/components/atoms/Amount.vue'

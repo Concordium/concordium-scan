@@ -95,11 +95,11 @@
 </template>
 
 <script lang="ts" setup>
-import DateTimeWithLineBreak from './DateTimeWithLineBreak.vue'
-import DetailsView from './DetailsView.vue'
+import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
+import DetailsView from '../Details/DetailsView.vue'
+import LogsHEX from '../Details/LogsHEX.vue'
 import ContractInitialized from './Events/ContractInitialized.vue'
 import ContractCall from './Events/ContractCall.vue'
-import LogsHEX from './Events/LogsHEX.vue'
 import ContractTransfer from './Events/ContractTransfer.vue'
 import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import ContractUpdated from '~/components/Contracts/Events/ContractUpdated.vue'

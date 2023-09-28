@@ -26,8 +26,8 @@
 	<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />
 </template>
 <script lang="ts" setup>
+import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractInitialized } from '../../../../src/types/generated'
-import LogsHEX from './LogsHEX.vue'
 import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {

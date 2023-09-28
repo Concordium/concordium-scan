@@ -3,7 +3,8 @@
 	<div>{{ datePartRef }}</div>
 </template>
 <script lang="ts" setup>
-import { formatTimestamp } from '~~/src/utils/format'
+import { ref, watch } from 'vue'
+import { formatTimestamp } from '../../utils/format'
 type Props = {
 	dateTime: string
 }

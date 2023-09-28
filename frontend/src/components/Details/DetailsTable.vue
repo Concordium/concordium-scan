@@ -8,8 +8,9 @@
 </template>
 
 <script lang="ts" setup>
-import { PageInfo } from '~~/src/types/generated'
-import { PaginationTarget } from '~~/src/composables/usePagination'
+import { PageInfo } from '../../types/generated'
+import { PaginationTarget } from '../../composables/usePagination'
+import { useDateNow } from '../../composables/useDateNow'
 
 const { NOW } = useDateNow()
 

@@ -63,7 +63,7 @@
 <script lang="ts" setup>
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
-import DetailsTable from './DetailsTable.vue'
+import DetailsTable from '../Details/DetailsTable.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'

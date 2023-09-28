@@ -37,11 +37,10 @@
 	<LogsHEX :events-as-hex="props.contractEvent.contractUpdated.eventsAsHex" />
 </template>
 <script lang="ts" setup>
+import MessageHEX from '../../MessageHEX.vue'
+import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractCall } from '../../../../src/types/generated'
-import MessageHEX from './MessageHEX.vue'
-import LogsHEX from './LogsHEX.vue'
 import Amount from '~/components/atoms/Amount.vue'
-import TextCopy from '~/components/atoms/TextCopy.vue'
 
 type Props = {
 	contractEvent: ContractCall

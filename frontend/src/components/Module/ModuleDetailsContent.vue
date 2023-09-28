@@ -4,19 +4,19 @@
 			:module-reference="moduleReferenceEvent.moduleReference"
 		/>
 		<DrawerContent>
-			<div class="grid gap-8 md:grid-cols-2 mb-16">
+			<div class="flex flex-row gap-20 mb-12">
 				<DetailsCard>
 					<template #title>Age</template>
 					<template #default>
+						{{ formatTimestamp(moduleReferenceEvent.blockSlotTime) }}
+					</template>
+					<template #secondary>
 						{{
 							convertTimestampToRelative(
 								moduleReferenceEvent.blockSlotTime,
 								NOW
 							)
 						}}
-					</template>
-					<template #secondary>
-						{{ formatTimestamp(moduleReferenceEvent.blockSlotTime) }}
 					</template>
 				</DetailsCard>
 				<DetailsCard>

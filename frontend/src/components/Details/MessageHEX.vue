@@ -13,7 +13,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import TextCopy from '~/components/atoms/TextCopy.vue'
+import TextCopy from '../atoms/TextCopy.vue'
 
 type Props = {
 	messageAsHex: string

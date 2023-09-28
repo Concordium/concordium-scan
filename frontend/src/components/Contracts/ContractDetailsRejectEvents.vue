@@ -54,9 +54,9 @@
 </template>
 
 <script lang="ts" setup>
-import DateTimeWithLineBreak from './DateTimeWithLineBreak.vue'
-import DetailsView from './DetailsView.vue'
-import MessageHEX from './Events/MessageHEX.vue'
+import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
+import MessageHEX from '../Details/MessageHEX.vue'
+import DetailsView from '../Details/DetailsView.vue'
 import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'

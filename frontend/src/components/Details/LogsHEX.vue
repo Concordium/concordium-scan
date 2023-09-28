@@ -15,8 +15,8 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { Maybe, StringConnection } from '~~/src/types/generated'
-import TextCopy from '~/components/atoms/TextCopy.vue'
+import { Maybe, StringConnection } from '../../types/generated'
+import TextCopy from '../../components/atoms/TextCopy.vue'
 
 type Props = {
 	eventsAsHex?: Maybe<StringConnection>
