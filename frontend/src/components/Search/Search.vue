@@ -45,7 +45,7 @@
 						<div
 							v-for="(block, index) in data.search.blocks.nodes"
 							:key="block.blockHash"
-							class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-8"
+							:class="$style.searchColumns"
 						>
 							<div>
 								<BlockLink
@@ -119,7 +119,7 @@
 						<div
 							v-for="(account, index) in data.search.accounts.nodes"
 							:key="account.address.asString"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<AccountLink
 								:address="account.address.asString"
@@ -147,7 +147,7 @@
 						<div
 							v-for="(contract, index) in data.search.contracts.nodes"
 							:key="contract.contractAddress"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<ContractLink
 								:address="contract.contractAddress"
@@ -179,7 +179,7 @@
 						<div
 							v-for="(module, index) in data.search.modules.nodes"
 							:key="module.moduleReference"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<ModuleLink
 								:module-reference="module.moduleReference"
@@ -207,7 +207,7 @@
 						<div
 							v-for="baker in data.search.bakers.nodes"
 							:key="baker.bakerId"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
 							<div v-if="shouldShowColumn(3)"></div>
@@ -229,7 +229,7 @@
 						<div
 							v-for="node in data.search.nodeStatuses.nodes"
 							:key="node.id"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<NodeLink :node="node" @blur="lostFocusOnSearch" />
 							<div v-if="shouldShowColumn(3)"></div>
@@ -367,24 +367,6 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 const getTooltipPosition = (index: number) => {
 	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
 }
-
-/**
- * Class used for search results.
- *
- * When the screen size is less then `Breakpoint.LG` the search results has full page width.
- */
-const getSearchClass = computed(() => {
-	if (breakpoint.value >= Breakpoint.XXL) {
-		return 'grid grid-cols-3 gap-8'
-	}
-	if (breakpoint.value >= Breakpoint.XL) {
-		return 'grid grid-cols-2 gap-8'
-	}
-	if (breakpoint.value >= Breakpoint.SM) {
-		return 'grid grid-cols-3 gap-8'
-	}
-	return 'grid grid-cols-1 gap-8'
-})
 
 /**
  * Calculated if a columns should be shown conditional on the `columnCount`
