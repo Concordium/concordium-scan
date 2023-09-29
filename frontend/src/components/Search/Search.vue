@@ -45,7 +45,7 @@
 						<div
 							v-for="(block, index) in data.search.blocks.nodes"
 							:key="block.blockHash"
-							:class="getSearchClass"
+							class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-8"
 						>
 							<div>
 								<BlockLink
@@ -78,7 +78,7 @@
 						<div
 							v-for="(transaction, index) in data.search.transactions.nodes"
 							:key="transaction.transactionHash"
-							:class="getSearchClass"
+							:class="$style.searchColumns"
 						>
 							<TransactionLink
 								:id="transaction.id"
@@ -430,6 +430,20 @@ const resultCount = computed(() => ({
 </script>
 
 <style module>
+.searchColumns {
+	display: grid;
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+	@media (min-width: 640px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	@media (min-width: 1280px) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	@media (min-width: 1536px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
 .input {
 	background: var(--color-input-bg);
 	-webkit-appearance: none;
