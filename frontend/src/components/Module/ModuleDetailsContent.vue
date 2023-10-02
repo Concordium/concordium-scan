@@ -4,19 +4,19 @@
 			:module-reference="moduleReferenceEvent.moduleReference"
 		/>
 		<DrawerContent>
-			<div class="grid gap-8 md:grid-cols-2 mb-16">
+			<div class="flex flex-row gap-20 mb-12">
 				<DetailsCard>
 					<template #title>Age</template>
 					<template #default>
+						{{ formatTimestamp(moduleReferenceEvent.blockSlotTime) }}
+					</template>
+					<template #secondary>
 						{{
 							convertTimestampToRelative(
 								moduleReferenceEvent.blockSlotTime,
 								NOW
 							)
 						}}
-					</template>
-					<template #secondary>
-						{{ formatTimestamp(moduleReferenceEvent.blockSlotTime) }}
 					</template>
 				</DetailsCard>
 				<DetailsCard>
@@ -26,63 +26,53 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<Accordion :is-initial-open="true">
-				Linked Contracts
-				<span class="numerical text-theme-faded"
-					>({{ moduleReferenceEvent.linkedContracts?.totalCount }})</span
-				>
-				<template #content>
-					<ModuleDetailsLinkedContracts
+			<Tabs :tab-list="tabList">
+				<template #tabPanel-1>
+					<DetailsTable
 						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
-						:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
 						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
 						:go-to-page="goToPageLinkedContract"
-					/>
+					>
+						<ModuleDetailsLinkedContracts
+							:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
+						/>
+					</DetailsTable>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Linking Events
-				<span class="numerical text-theme-faded"
-					>({{
-						moduleReferenceEvent.moduleReferenceContractLinkEvents?.totalCount
-					}})</span
-				>
-				<template #content>
-					<ModuleDetailsContractLinkEvents
+				<template #tabPanel-2>
+					<DetailsTable
 						v-if="
 							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
 								?.length
 						"
-						:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceContractLinkEvents!.pageInfo"
 						:go-to-page="goToPageEvents"
-					/>
+					>
+						<ModuleDetailsContractLinkEvents
+							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Rejected Events
-				<span class="numerical text-theme-faded"
-					>({{
-						moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount
-					}})</span
-				>
-				<template #content>
-					<ModuleDetailsRejectEvents
+				<template #tabPanel-3>
+					<DetailsTable
 						v-if="
 							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
 						"
-						:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
 						:page-info="moduleReferenceEvent.moduleReferenceRejectEvents!.pageInfo"
 						:go-to-page="goToPageRejectEvents"
-					/>
+					>
+						<ModuleDetailsRejectEvents
+							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
-			</Accordion>
+			</Tabs>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import Accordion from '../Accordion.vue'
+import Tabs from '../Tabs.vue'
+import DetailsTable from '../Details/DetailsTable.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
@@ -104,5 +94,19 @@ type Props = {
 	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageLinkedContract: (page: PageInfo) => (target: PaginationTarget) => void
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+const tabList = computed(() => {
+	return [
+		`Linked Contracts (${
+			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
+		})`,
+		`Linking Events (${
+			props.moduleReferenceEvent.moduleReferenceContractLinkEvents
+				?.totalCount ?? 0
+		})`,
+		`Rejected Events (${
+			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
+		})`,
+	]
+})
 </script>

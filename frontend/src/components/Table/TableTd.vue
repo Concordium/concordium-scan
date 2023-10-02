@@ -1,5 +1,5 @@
 <template>
-	<td class="px-6 py-3 whitespace-nowrap align-top" :class="variant">
+	<td class="py-3 px-3 whitespace-nowrap align-top" :class="variant">
 		<slot />
 	</td>
 </template>

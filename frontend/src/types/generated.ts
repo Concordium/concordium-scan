@@ -1187,6 +1187,13 @@ export type ContractUpgraded = {
   contractAddress: ContractAddress;
   from: Scalars['String'];
   to: Scalars['String'];
+  /**
+   * The below two are added maunally since this event are queried with below alias.
+   * 
+   * This is because their type conflicts with other fields with same name when query for events.
+   */
+  fromModule: Scalars['String'];
+  toModule: Scalars['String'];  
 };
 
 export enum ContractVersion {
