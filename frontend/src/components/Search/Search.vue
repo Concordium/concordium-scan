@@ -264,11 +264,9 @@ import ContractLink from '~/components/molecules/ContractLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
 import type { Position } from '~/composables/useTooltip'
 import NodeLink from '~/components/molecules/NodeLink.vue'
-import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
-const { breakpoint } = useBreakpoint()
 
 const tooltipPositionBottom = 'bottom' as Position
 const tooltipPositionTop = 'top' as Position
