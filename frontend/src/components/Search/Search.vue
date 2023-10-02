@@ -1,7 +1,7 @@
 <template>
 	<div
 		ref="rootSearchContainer"
-		class="xl:relative flex-grow w-min z-20"
+		class="lg:relative flex-grow w-min z-20"
 		:class="$style.container"
 	>
 		<div class="relative flex flex-row z-20">
@@ -21,7 +21,7 @@
 
 		<div
 			v-if="searchValue !== ''"
-			class="left-0 xl:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
+			class="left-0 lg:left-auto absolute border-theme-selected border solid rounded-lg p-4 bg-theme-background-primary-elevated-nontrans w-full z-20"
 			@click="searchValue = ''"
 		>
 			<div class="overflow-hidden whitespace-nowrap overflow-ellipsis">
@@ -45,7 +45,7 @@
 						<div
 							v-for="(block, index) in data.search.blocks.nodes"
 							:key="block.blockHash"
-							class="grid grid-cols-4 gap-8"
+							:class="$style.searchColumns"
 						>
 							<div>
 								<BlockLink
@@ -55,9 +55,8 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div>@ {{ block.blockHeight }}</div>
-
-							<div>
+							<div :class="$style.threeColumns">@ {{ block.blockHeight }}</div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
@@ -79,7 +78,7 @@
 						<div
 							v-for="(transaction, index) in data.search.transactions.nodes"
 							:key="transaction.transactionHash"
-							class="grid grid-cols-4 gap-8"
+							:class="$style.searchColumns"
 						>
 							<TransactionLink
 								:id="transaction.id"
@@ -87,7 +86,7 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div>
+							<div :class="$style.threeColumns">
 								<BlockLink
 									:id="transaction.block.id"
 									:hash="transaction.block.blockHash"
@@ -95,7 +94,7 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
@@ -120,15 +119,15 @@
 						<div
 							v-for="(account, index) in data.search.accounts.nodes"
 							:key="account.address.asString"
-							class="grid grid-cols-4 gap-8"
+							:class="$style.searchColumns"
 						>
 							<AccountLink
 								:address="account.address.asString"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div></div>
-							<div>
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
@@ -148,7 +147,7 @@
 						<div
 							v-for="(contract, index) in data.search.contracts.nodes"
 							:key="contract.contractAddress"
-							class="grid grid-cols-3 gap-8"
+							:class="$style.searchColumns"
 						>
 							<ContractLink
 								:address="contract.contractAddress"
@@ -157,8 +156,11 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<AccountLink :address="contract.creator.asString" />
-							<div>
+							<AccountLink
+								:class="$style.threeColumns"
+								:address="contract.creator.asString"
+							/>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(contract.blockSlotTime)"
@@ -177,14 +179,15 @@
 						<div
 							v-for="(module, index) in data.search.modules.nodes"
 							:key="module.moduleReference"
-							class="grid grid-cols-2 gap-8"
+							:class="$style.searchColumns"
 						>
 							<ModuleLink
 								:module-reference="module.moduleReference"
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div>
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(module.blockSlotTime)"
@@ -204,10 +207,11 @@
 						<div
 							v-for="baker in data.search.bakers.nodes"
 							:key="baker.bakerId"
-							class="grid grid-cols-4 gap-8"
+							:class="$style.searchColumns"
 						>
 							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
-							<div>
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								<AccountLink
 									:address="baker.account.address.asString"
 									:hide-tooltip="true"
@@ -225,10 +229,11 @@
 						<div
 							v-for="node in data.search.nodeStatuses.nodes"
 							:key="node.id"
-							class="grid grid-cols-2 gap-8"
+							:class="$style.searchColumns"
 						>
 							<NodeLink :node="node" @blur="lostFocusOnSearch" />
-							<div>
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								<BakerLink
 									v-if="Number.isInteger(node.consensusBakerId)"
 									:id="node.consensusBakerId"
@@ -381,6 +386,34 @@ const resultCount = computed(() => ({
 </script>
 
 <style module>
+.twoColumns {
+	@media (max-width: 640px) {
+		display: none;
+	}
+}
+.threeColumns {
+	@media only screen and (min-width: 1280px) and (max-width: 1535px) {
+		display: none;
+	}
+	@media (max-width: 639px) {
+		display: none;
+	}
+}
+
+.searchColumns {
+	display: grid;
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+	@media (min-width: 640px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	@media (min-width: 1280px) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	@media (min-width: 1536px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
 .input {
 	background: var(--color-input-bg);
 	-webkit-appearance: none;
