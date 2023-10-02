@@ -55,8 +55,8 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div v-if="shouldShowColumn(3)">@ {{ block.blockHeight }}</div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.threeColumns">@ {{ block.blockHeight }}</div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(block.blockSlotTime)"
@@ -86,7 +86,7 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div v-if="shouldShowColumn(3)">
+							<div :class="$style.threeColumns">
 								<BlockLink
 									:id="transaction.block.id"
 									:hash="transaction.block.blockHash"
@@ -94,7 +94,7 @@
 									@blur="lostFocusOnSearch"
 								/>
 							</div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
@@ -126,8 +126,8 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div v-if="shouldShowColumn(3)"></div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(account.createdAt)"
@@ -157,10 +157,10 @@
 								@blur="lostFocusOnSearch"
 							/>
 							<AccountLink
-								v-if="shouldShowColumn(3)"
+								:class="$style.threeColumns"
 								:address="contract.creator.asString"
 							/>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(contract.blockSlotTime)"
@@ -186,8 +186,8 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div v-if="shouldShowColumn(3)"></div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								Age
 								<Tooltip
 									:text="formatTimestamp(module.blockSlotTime)"
@@ -210,8 +210,8 @@
 							:class="$style.searchColumns"
 						>
 							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
-							<div v-if="shouldShowColumn(3)"></div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								<AccountLink
 									:address="baker.account.address.asString"
 									:hide-tooltip="true"
@@ -232,8 +232,8 @@
 							:class="$style.searchColumns"
 						>
 							<NodeLink :node="node" @blur="lostFocusOnSearch" />
-							<div v-if="shouldShowColumn(3)"></div>
-							<div v-if="shouldShowColumn(2)">
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
 								<BakerLink
 									v-if="Number.isInteger(node.consensusBakerId)"
 									:id="node.consensusBakerId"
@@ -368,30 +368,6 @@ const getTooltipPosition = (index: number) => {
 	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
 }
 
-/**
- * Calculated if a columns should be shown conditional on the `columnCount`
- * parameter.
- * @param {number} `columnCount` - Column count of property.
- */
-function shouldShowColumn(columnCount: number) {
-	if (columnCount === 3) {
-		if (breakpoint.value >= Breakpoint.XXL) {
-			return true
-		}
-		if (breakpoint.value < Breakpoint.XL && breakpoint.value >= Breakpoint.SM) {
-			return true
-		}
-		return false
-	}
-	if (columnCount === 2) {
-		if (breakpoint.value >= Breakpoint.SM) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
 const resultCount = computed(() => ({
 	modules: data.value?.search.modules.nodes.length,
 	contracts: data.value?.search.contracts.nodes.length,
@@ -412,6 +388,20 @@ const resultCount = computed(() => ({
 </script>
 
 <style module>
+.twoColumns {
+	@media (max-width: 640px) {
+		display: none;
+	}
+}
+.threeColumns {
+	@media only screen and (min-width: 1280px) and (max-width: 1535px) {
+		display: none;
+	}
+	@media (max-width: 639px) {
+		display: none;
+	}
+}
+
 .searchColumns {
 	display: grid;
 	grid-template-columns: repeat(1, minmax(0, 1fr));
