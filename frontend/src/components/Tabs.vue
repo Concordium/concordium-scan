@@ -16,13 +16,13 @@
 		>
 			<li v-for="(tab, index) in tabList" :key="index" :class="$style.tabItem">
 				<input
-					:id="`${index}`"
+					:id="`${index}-${ID}`"
 					v-model="activeTab"
 					type="radio"
 					:name="`${index}-tab`"
 					:value="index + 1"
 				/>
-				<label :for="`${index}`" v-text="tab" />
+				<label :for="`${index}-${ID}`" v-text="tab" />
 			</li>
 		</ul>
 
@@ -35,6 +35,7 @@
 </template>
 
 <script lang="ts" setup>
+const ID = `tab-${Math.floor(Math.random() * 1000)}`
 const activeTab = ref(1)
 defineProps({
 	tabList: {

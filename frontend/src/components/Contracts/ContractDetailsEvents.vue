@@ -72,7 +72,7 @@
 					:id="i"
 				>
 					<div>Expand to see logs</div>
-					<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />
+					<LogsHEX :events-as-hex="contractEvent.event.eventsAsHex" />
 				</DetailsView>
 				<DetailsView
 					v-if="contractEvent.event.__typename === 'ContractResumed'"
