@@ -26,6 +26,10 @@
 					</template>
 				</DetailsCard>
 			</div>
+			<PaginationOffset 
+				:total-count="props.contract.contractEvents!.totalCount"
+				:info="paginationOffsetInfo"
+			/>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
@@ -64,6 +68,7 @@
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
+import PaginationOffset from '../PaginationOffset.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
@@ -76,7 +81,9 @@ import {
 } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import type { PaginationTarget } from '~/composables/usePagination'
+import { PaginationOffsetInfo, usePaginationOffset } from '~~/src/composables/usePaginationOffset'
 
+const paginationOffsetInfo: PaginationOffsetInfo = usePaginationOffset(5);
 const { NOW } = useDateNow()
 
 type Props = {

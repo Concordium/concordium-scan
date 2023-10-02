@@ -28,12 +28,12 @@ public sealed class Contract : BaseIdentification
     ///
     /// Hence pagination should only by used in cases where database query has executed like <see cref="Contract.ContractQuery.GetContract"/>.
     /// </summary>
-    [UsePaging(IncludeTotalCount = true)]
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ContractEvent> ContractEvents { get; init; } = null!;
     /// <summary>
     /// See pagination comment on above.
     /// </summary>
-    [UsePaging(IncludeTotalCount = true)]
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
     public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
     
@@ -96,7 +96,7 @@ public sealed class Contract : BaseIdentification
         /// <remarks>
         ///     See <see href="https://aka.ms/efcore-docs-split-queries">EF Core split queries</see> for more information.
         /// </remarks> 
-        [UsePaging]
+        [UsePaging(MaxPageSize = 100)]
         public IQueryable<Contract> GetContracts(
             GraphQlDbContext context) 
         {
