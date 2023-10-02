@@ -1,8 +1,8 @@
 <template>
 	<span>
 		Contract <Contract :address="event.contractAddress" /> upgraded module from
-		<ModuleLink :module-reference="event.from" /> to module
-		<ModuleLink :module-reference="event.to" />.
+		<ModuleLink :module-reference="event.fromModule" /> to module
+		<ModuleLink :module-reference="event.toModule" />.
 	</span>
 </template>
 

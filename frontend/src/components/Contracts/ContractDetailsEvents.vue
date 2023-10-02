@@ -1,96 +1,125 @@
 <template>
-	<div>
-		<Table>
-			<TableHead>
-				<TableRow>
-					<TableTh>Transaction Hash</TableTh>
-					<TableTh>Age</TableTh>
-					<TableTh>Type</TableTh>
-					<TableTh>Details</TableTh>
-				</TableRow>
-			</TableHead>
-			<TableBody>
-				<TableRow v-for="contractEvent in contractEvents" :key="contractEvent">
-					<TableTd class="numerical">
-						<TransactionLink :hash="contractEvent.transactionHash" />
-					</TableTd>
-					<TableTd>
-						<Tooltip :text="formatTimestamp(contractEvent.blockSlotTime)">
-							{{ convertTimestampToRelative(contractEvent.blockSlotTime, NOW) }}
-						</Tooltip>
-					</TableTd>
-					<TableTd>
-						{{ contractEvent.event.__typename }}
-					</TableTd>
-					<TableTd>
-						<ContractInitialized
-							v-if="contractEvent.event.__typename === 'ContractInitialized'"
-							:event="contractEvent.event"
-						/>
-						<ContractModuleDeployed
-							v-else-if="
-								contractEvent.event.__typename === 'ContractModuleDeployed'
-							"
-							:event="contractEvent.event"
-						/>
-						<ContractUpdated
-							v-else-if="contractEvent.event.__typename === 'ContractUpdated'"
-							:event="contractEvent.event"
-						/>
-						<ContractCall
-							v-else-if="contractEvent.event.__typename === 'ContractCall'"
-							:event="contractEvent.event"
-						/>
-						<ContractUpgraded
-							v-else-if="contractEvent.event.__typename === 'ContractUpgraded'"
-							:event="contractEvent.event"
-						/>
-						<ContractInterrupted
-							v-else-if="
-								contractEvent.event.__typename === 'ContractInterrupted'
-							"
-							:event="contractEvent.event"
-						/>
-						<ContractResumed
-							v-else-if="contractEvent.event.__typename === 'ContractResumed'"
-							:event="contractEvent.event"
-						/>
-						<Transferred
-							v-else-if="contractEvent.event.__typename === 'Transferred'"
-							:event="contractEvent.event"
-						/>
-					</TableTd>
-				</TableRow>
-			</TableBody>
-		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
-	</div>
+	<TableHead>
+		<TableRow>
+			<TableTh>Transaction</TableTh>
+			<TableTh>Age</TableTh>
+			<TableTh>Type</TableTh>
+			<TableTh>Details</TableTh>
+		</TableRow>
+	</TableHead>
+	<TableBody>
+		<TableRow v-for="(contractEvent, i) in contractEvents" :key="contractEvent">
+			<TableTd class="numerical">
+				<TransactionLink :hash="contractEvent.transactionHash" />
+			</TableTd>
+			<TableTd>
+				<Tooltip
+					:text="convertTimestampToRelative(contractEvent.blockSlotTime, NOW)"
+				>
+					<DateTimeWithLineBreak :date-time="contractEvent.blockSlotTime" />
+				</Tooltip>
+			</TableTd>
+			<TableTd>
+				{{ trimTypeName(contractEvent.event.__typename) }}
+			</TableTd>
+			<TableTd>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractInitialized'"
+					:id="i"
+				>
+					<ContractInitialized :contract-event="contractEvent.event" />
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractUpdated'"
+					:id="i"
+				>
+					<ContractUpdated :contract-event="contractEvent.event" />
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractModuleDeployed'"
+					:id="i"
+				>
+					<div>Module Reference:</div>
+					<div>
+						<ModuleLink :module-reference="contractEvent.event.moduleRef" />
+					</div>
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractCall'"
+					:id="i"
+				>
+					<ContractCall :contract-event="contractEvent.event" />
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractUpgraded'"
+					:id="i"
+				>
+					<div>
+						<div>From Module</div>
+						<div>
+							<ModuleLink :module-reference="contractEvent.event.fromModule" />
+						</div>
+					</div>
+					<div>
+						<div>To Module</div>
+						<div>
+							<ModuleLink :module-reference="contractEvent.event.toModule" />
+						</div>
+					</div>
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractInterrupted'"
+					:id="i"
+				>
+					<div>Expand to see logs</div>
+					<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'ContractResumed'"
+					:id="i"
+				>
+					<div>
+						<div>Successfully Resumed:</div>
+						<div>{{ contractEvent.event.success }}</div>
+					</div>
+				</DetailsView>
+				<DetailsView
+					v-if="contractEvent.event.__typename === 'Transferred'"
+					:id="i"
+				>
+					<ContractTransfer :contract-event="contractEvent.event" />
+				</DetailsView>
+			</TableTd>
+		</TableRow>
+	</TableBody>
 </template>
 
 <script lang="ts" setup>
-import ContractInitialized from '~/components/TransactionEventList/Events/ContractInitialized.vue'
-import ContractModuleDeployed from '~/components/TransactionEventList/Events/ContractModuleDeployed.vue'
-import ContractInterrupted from '~/components/TransactionEventList/Events/ContractInterrupted.vue'
-import ContractResumed from '~/components/TransactionEventList/Events/ContractResumed.vue'
-import ContractUpdated from '~/components/TransactionEventList/Events/ContractUpdated.vue'
-import ContractUpgraded from '~/components/TransactionEventList/Events/ContractUpgraded.vue'
-import ContractCall from '~/components/TransactionEventList/Events/ContractCall.vue'
-import Transferred from '~/components/TransactionEventList/Events/Transferred.vue'
+import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
+import DetailsView from '../Details/DetailsView.vue'
+import LogsHEX from '../Details/LogsHEX.vue'
+import ContractInitialized from './Events/ContractInitialized.vue'
+import ContractCall from './Events/ContractCall.vue'
+import ContractTransfer from './Events/ContractTransfer.vue'
+import ModuleLink from '~/components/molecules/ModuleLink.vue'
+import ContractUpdated from '~/components/Contracts/Events/ContractUpdated.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { ContractEvent, PageInfo } from '~~/src/types/generated'
+import { ContractEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import { PaginationTarget } from '~~/src/composables/usePagination'
+import { convertTimestampToRelative } from '~~/src/utils/format'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	contractEvents: ContractEvent[]
-	pageInfo: PageInfo
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 defineProps<Props>()
+
+function trimTypeName(typeName: string | undefined) {
+	let name = typeName
+	if (typeName?.startsWith('Contract')) {
+		name = typeName.slice(8)
+	}
+	return name
+}
 </script>

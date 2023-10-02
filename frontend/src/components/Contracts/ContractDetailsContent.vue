@@ -2,7 +2,7 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="grid gap-8 md:grid-cols-4 mb-16">
+			<div class="flex flex-row gap-20 mb-12">
 				<ContractDetailsAmounts :contract="contract" />
 				<DetailsCard>
 					<template #title>Date</template>
@@ -26,47 +26,44 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<Accordion :is-initial-open="true">
-				Events
-				<span class="numerical text-theme-faded"
-					>({{ contract.contractEvents?.totalCount }})</span
-				>
-				<template #content>
-					<ContractDetailsEvents
+			<Tabs :tab-list="tabList">
+				<template #tabPanel-1>
+					<DetailsTable
 						v-if="
 							contract.contractEvents?.nodes?.length &&
 							contract.contractEvents?.nodes?.length > 0
 						"
-						:contract-events="contract.contractEvents!.nodes"
 						:page-info="contract.contractEvents!.pageInfo"
 						:go-to-page="goToPageEvents"
-					/>
+					>
+						<ContractDetailsEvents
+							:contract-events="contract.contractEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
-			</Accordion>
-			<Accordion :is-initial-open="true">
-				Rejected Events
-				<span class="numerical text-theme-faded"
-					>({{ contract.contractRejectEvents?.totalCount }})</span
-				>
-				<template #content>
-					<ContractDetailsRejectEvents
+				<template #tabPanel-2>
+					<DetailsTable
 						v-if="
 							contract.contractRejectEvents?.nodes?.length &&
 							contract.contractRejectEvents?.nodes?.length > 0
 						"
-						:contract-reject-events="contract.contractRejectEvents!.nodes"
 						:page-info="contract.contractRejectEvents!.pageInfo"
 						:go-to-page="goToPageRejectEvents"
-					/>
+					>
+						<ContractDetailsRejectEvents
+							:contract-reject-events="contract.contractRejectEvents!.nodes"
+						/>
+					</DetailsTable>
 				</template>
-			</Accordion>
+			</Tabs>
 		</DrawerContent>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
-import Accordion from '../Accordion.vue'
+import DetailsTable from '../Details/DetailsTable.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
@@ -87,5 +84,12 @@ type Props = {
 	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
 	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const tabList = computed(() => {
+	return [
+		`Event (${props.contract.contractEvents?.totalCount ?? 0})`,
+		`Rejected Events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
+	]
+})
 </script>
