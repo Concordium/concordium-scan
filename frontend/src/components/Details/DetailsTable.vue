@@ -3,20 +3,23 @@
 		<Table :class="[$style.table, $style.contractDetail]">
 			<slot />
 		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
+		<PaginationOffset 
+				:total-count="props.totalCount"
+				:info="pageOffsetInfo"
+		/>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { PageInfo } from '../../types/generated'
-import { PaginationTarget } from '../../composables/usePagination'
 import { useDateNow } from '../../composables/useDateNow'
+import PaginationOffset from '../PaginationOffset.vue'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
 const { NOW } = useDateNow()
 
 type Props = {
-	pageInfo: PageInfo
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	totalCount: number
+	pageOffsetInfo: PaginationOffsetInfo
 }
 const props = defineProps<Props>()
 </script>

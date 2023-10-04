@@ -22,7 +22,6 @@
             <button
                 v-for="page in pages" :key="page.name"
                 type="button"
-                :disabled="page.isDisabled"
                 :class="{ active: !page.isDisabled }"
                 @click="onClickPage(page.name)"
             > {{ page.name }}</button>
@@ -96,8 +95,11 @@ const onClickLastPage = () => {
     props.info.update(toSkip)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const onClickPage = (page: number): void => {};
+const onClickPage = (page: number): void => {
+    const toSkip = page * props.info.take.value - props.info.take.value;
+    console.log(toSkip)
+    props.info.update(toSkip);
+};
 
 </script>
 <style>

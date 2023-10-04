@@ -26,36 +26,32 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<PaginationOffset 
-				:total-count="props.contract.contractEvents!.totalCount"
-				:info="paginationOffsetInfo"
-			/>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
 						v-if="
-							contract.contractEvents?.nodes?.length &&
-							contract.contractEvents?.nodes?.length > 0
+							contract.contractEvents?.items?.length &&
+							contract.contractEvents?.items?.length > 0
 						"
-						:page-info="contract.contractEvents!.pageInfo"
-						:go-to-page="goToPageEvents"
+						:total-count="contract.contractEvents.totalCount"
+						:page-offset-info="paginationEvents"
 					>
 						<ContractDetailsEvents
-							:contract-events="contract.contractEvents!.nodes"
+							:contract-events="contract.contractEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
 					<DetailsTable
 						v-if="
-							contract.contractRejectEvents?.nodes?.length &&
-							contract.contractRejectEvents?.nodes?.length > 0
+							contract.contractRejectEvents?.items?.length &&
+							contract.contractRejectEvents?.items?.length > 0
 						"
-						:page-info="contract.contractRejectEvents!.pageInfo"
-						:go-to-page="goToPageRejectEvents"
+						:total-count="contract.contractRejectEvents.totalCount"
+						:page-offset-info="paginationRejectEvents"
 					>
 						<ContractDetailsRejectEvents
-							:contract-reject-events="contract.contractRejectEvents!.nodes"
+							:contract-reject-events="contract.contractRejectEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
@@ -68,28 +64,22 @@
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
-import PaginationOffset from '../PaginationOffset.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { Contract, PageInfo } from '~~/src/types/generated'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
+import { Contract } from '~~/src/types/generated'
+import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
-import type { PaginationTarget } from '~/composables/usePagination'
-import { PaginationOffsetInfo, usePaginationOffset } from '~~/src/composables/usePaginationOffset'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
-const paginationOffsetInfo: PaginationOffsetInfo = usePaginationOffset(5);
 const { NOW } = useDateNow()
 
 type Props = {
 	contract: Contract
-	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
+	paginationEvents: PaginationOffsetInfo
+	paginationRejectEvents: PaginationOffsetInfo
 }
 const props = defineProps<Props>()
 
