@@ -25,7 +25,6 @@
 				<label :for="`${index}-${ID}`" v-text="tab" />
 			</li>
 		</ul>
-
 		<template v-for="(_, index) in tabList">
 			<div v-if="index + 1 === activeTab" :key="index" :class="$style.tabPanel">
 				<slot :name="`tabPanel-${index + 1}`" />
@@ -81,7 +80,7 @@ defineProps({
 }
 
 .tabPanel {
-	padding: 40px 20px 20px;
+	padding: 20px;
 	border-radius: 0 16px 16px;
 	background-color: var(--color-background-elevated);
 }

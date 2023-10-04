@@ -8,6 +8,8 @@
 		:contract="data?.contract"
 		:pagination-events="pageOffsetInfoEvents"
 		:pagination-reject-events="pageOffsetInfoRejectedEvents"
+		:page-dropdown-events="pageDropdownEvents"
+		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
 	/>
 </template>
 
@@ -18,14 +20,18 @@ import NotFound from '~/components/molecules/NotFound.vue'
 import ContractDetailsContent from '~/components/Contracts/ContractDetailsContent.vue'
 import { useContractQuery } from '~~/src/queries/useContractQuery'
 import { usePaginationOffset } from '~~/src/composables/usePaginationOffset'
+import { usePageDropdown } from '~~/src/composables/usePageDropdown'
 
 type Props = {
 	contractAddressIndex: number
 	contractAddressSubIndex: number
 }
 
-const pageOffsetInfoEvents = usePaginationOffset(2); // TODO make page size dynamic
-const pageOffsetInfoRejectedEvents = usePaginationOffset(2); // TODO make page size dynamic
+const pageDropdownEvents = usePageDropdown();
+const pageDropdownRejectedEvents = usePageDropdown();
+
+const pageOffsetInfoEvents = usePaginationOffset(pageDropdownEvents.take);
+const pageOffsetInfoRejectedEvents = usePaginationOffset(pageDropdownRejectedEvents.take);
 
 const props = defineProps<Props>()
 const contractAddressIndex = ref(props.contractAddressIndex)

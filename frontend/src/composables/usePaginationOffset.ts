@@ -13,9 +13,9 @@ export type PaginationOffsetInfo = {
     update: (skip: number) => void
 }
 
-export const usePaginationOffset = (pageSize: number) : PaginationOffsetInfo => {
+export const usePaginationOffset = (pageSize: Ref<number>) : PaginationOffsetInfo => {
     const _skip = ref<number>(0);
-    const _take = ref<number>(pageSize);
+    const _take = pageSize
 
     const updateReferences = (skip: number) => {
         _skip.value = skip;

@@ -35,6 +35,7 @@
 						"
 						:total-count="contract.contractEvents.totalCount"
 						:page-offset-info="paginationEvents"
+						:page-dropdown-info="pageDropdownEvents"
 					>
 						<ContractDetailsEvents
 							:contract-events="contract.contractEvents!.items"
@@ -49,6 +50,7 @@
 						"
 						:total-count="contract.contractRejectEvents.totalCount"
 						:page-offset-info="paginationRejectEvents"
+						:page-dropdown-info="pageDropdownRejectedEvents"
 					>
 						<ContractDetailsRejectEvents
 							:contract-reject-events="contract.contractRejectEvents!.items"
@@ -73,6 +75,7 @@ import { Contract } from '~~/src/types/generated'
 import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 
 const { NOW } = useDateNow()
 
@@ -80,6 +83,8 @@ type Props = {
 	contract: Contract
 	paginationEvents: PaginationOffsetInfo
 	paginationRejectEvents: PaginationOffsetInfo
+	pageDropdownEvents: PageDropdownInfo
+	pageDropdownRejectedEvents: PageDropdownInfo
 }
 const props = defineProps<Props>()
 
