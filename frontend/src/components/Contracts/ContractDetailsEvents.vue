@@ -21,6 +21,15 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractEvent.event.__typename) }}
+				<Tooltip
+					:text="getEventTooltip(contractEvent.event.__typename!)"
+					position="bottom"
+					x="50%"
+					y="50%"
+					tooltip-position="absolute"
+				>
+					<span style="padding-left: 10px;">?</span>
+				</Tooltip>
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -34,15 +43,6 @@
 					:id="i"
 				>
 					<ContractUpdated :contract-event="contractEvent.event" />
-				</DetailsView>
-				<DetailsView
-					v-if="contractEvent.event.__typename === 'ContractModuleDeployed'"
-					:id="i"
-				>
-					<div>Module Reference:</div>
-					<div>
-						<ModuleLink :module-reference="contractEvent.event.moduleRef" />
-					</div>
 				</DetailsView>
 				<DetailsView
 					v-if="contractEvent.event.__typename === 'ContractCall'"
@@ -78,10 +78,7 @@
 					v-if="contractEvent.event.__typename === 'ContractResumed'"
 					:id="i"
 				>
-					<div>
-						<div>Successfully Resumed:</div>
-						<div>{{ contractEvent.event.success }}</div>
-					</div>
+					<div> {{ getResumedLabel(contractEvent.event.success) }}</div>
 				</DetailsView>
 				<DetailsView
 					v-if="contractEvent.event.__typename === 'Transferred'"
@@ -114,6 +111,38 @@ type Props = {
 	contractEvents: ContractEvent[]
 }
 defineProps<Props>()
+
+function getResumedLabel(resumed: boolean) : string {
+	return resumed ? "Sucessfully resumed" : "Failed"
+}
+
+function getEventTooltip(eventType: string) {
+	if (eventType === 'ContractInitialized') {
+		return "TODO"
+	}
+	if (eventType === 'ContractUpdated') {
+		return "TODO"
+	}
+	if (eventType === 'ContractModuleDeployed') {
+		return "TODO"
+	}
+	if (eventType === 'ContractUpdated') {
+		return "TODO"
+	}
+	if (eventType === 'ContractCall') {
+		return "TODO"
+	}
+	if (eventType === 'ContractUpgraded') {
+		return "TODO"
+	}
+	if (eventType === 'ContractResumed') {
+		return "TODO"
+	} 
+	if (eventType === 'Transferred') {
+		return "TODO"
+	} 
+	return ""
+}
 
 function trimTypeName(typeName: string | undefined) {
 	let name = typeName

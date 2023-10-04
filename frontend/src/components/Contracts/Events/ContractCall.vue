@@ -20,13 +20,23 @@
 		</div>
 	</div>
 	<div>
-		<div>Receive name of contract called:</div>
+		<div>Receive name of contract called:
+			<Tooltip
+				text="Entrypoint of the activity of the called contract."
+				position="bottom"
+				x="50%"
+				y="50%"
+				tooltip-position="absolute"
+			>
+				<span style="padding-left: 10px;">?</span>
+			</Tooltip>			
+		</div>
 		<div>
 			{{ props.contractEvent.contractUpdated.receiveName }}
 		</div>
 	</div>
 	<div>
-		<div>Version of Contract Called:</div>
+		<div>Version:</div>
 		<div>
 			{{ props.contractEvent?.contractUpdated.version }}
 		</div>

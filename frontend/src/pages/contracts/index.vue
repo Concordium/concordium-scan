@@ -6,9 +6,31 @@
 				<TableRow>
 					<TableTh>Address</TableTh>
 					<TableTh>Age</TableTh>
-					<TableTh align="right">Creator</TableTh>
+					<TableTh align="right">
+						Creator
+						<Tooltip
+							text="Account address of contract creator"
+							position="bottom"
+							x="50%"
+							y="50%"
+							tooltip-position="absolute"
+						>
+							<span style="padding-left: 10px;">?</span>
+						</Tooltip>
+					</TableTh>
 					<TableTh align="right">Initial Transaction</TableTh>
-					<TableTh align="right">Module</TableTh>
+					<TableTh align="right">
+						Module
+						<Tooltip
+							text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."
+							position="bottom"
+							x="50%"
+							y="50%"
+							tooltip-position="absolute"
+						>
+							<span style="padding-left: 10px;">?</span>
+						</Tooltip>
+					</TableTh>
 					<TableTh align="right"
 						>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh
 					>

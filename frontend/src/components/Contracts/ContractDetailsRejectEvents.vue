@@ -24,6 +24,15 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractRejectEvent.rejectedEvent.__typename) }}
+				<Tooltip
+					:text="getEventTooltip(contractRejectEvent.rejectedEvent.__typename!)"
+					position="bottom"
+					x="50%"
+					y="50%"
+					tooltip-position="absolute"
+				>
+					<span style="padding-left: 10px;">?</span>
+				</Tooltip>				
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -33,13 +42,33 @@
 					:id="i"
 				>
 					<div>
-						<div>Reject Reason:</div>
+						<div>Reject reason:
+							<Tooltip
+								text="Errors are present as enum in contract. TODO"
+								position="bottom"
+								x="50%"
+								y="50%"
+								tooltip-position="absolute"
+							>
+								<span style="padding-left: 10px;">?</span>
+							</Tooltip>
+						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
 						</div>
 					</div>
 					<div>
-						<div>Receive Name:</div>
+						<div>Receive name:
+							<Tooltip
+								text="Entrypoint of the activity of the contract."
+								position="bottom"
+								x="50%"
+								y="50%"
+								tooltip-position="absolute"
+							>
+								<span style="padding-left: 10px;">?</span>
+							</Tooltip>				
+						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.receiveName }}
 						</div>
@@ -62,12 +91,17 @@ import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { formatTimestamp } from '~~/src/utils/format'
 
-const { NOW } = useDateNow()
-
 type Props = {
 	contractRejectEvents: ContractRejectEvent[]
 }
 defineProps<Props>()
+
+function getEventTooltip(eventType: string) {
+	if (eventType === 'RejectedReceive') {
+		return "TODO"
+	}
+	return ""
+}
 
 function trimTypeName(typeName: string | undefined) {
 	let name = typeName

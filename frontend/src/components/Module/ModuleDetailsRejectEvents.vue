@@ -26,49 +26,47 @@
 			</TableTd>
 			<TableTd>
 				{{ moduleRejectEvent.rejectedEvent.__typename }}
+				<Tooltip
+					:text="getEventTooltip(moduleRejectEvent.rejectedEvent.__typename!)"
+					position="bottom"
+					x="50%"
+					y="50%"
+					tooltip-position="absolute"
+				>
+					<span style="padding-left: 10px;">?</span>
+				</Tooltip>		
 			</TableTd>
 			<TableTd>
-				<div
-					v-if="
-						moduleRejectEvent.rejectedEvent.__typename === 'InvalidInitMethod'
-					"
-				>
-					<div>Init Name:</div>
+				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidInitMethod'">
+					<div>Init name:
+						<Tooltip
+							text="Initial entrypoint of the contract."
+							position="bottom"
+							x="50%"
+							y="50%"
+							tooltip-position="absolute"
+						>
+							<span style="padding-left: 10px;">?</span>
+						</Tooltip>						
+					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.initName }}</div>
-					<div>Module Reference:</div>
-					<div>
-						<ModuleLink
-							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
-						/>
-					</div>
 				</div>
-				<div
-					v-if="
-						moduleRejectEvent.rejectedEvent.__typename ===
-						'InvalidReceiveMethod'
-					"
-				>
-					<div>Receive Name:</div>
+				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidReceiveMethod'">
+					<div>Receive name:
+						<Tooltip
+							text="Entrypoint of the activity of the contract."
+							position="bottom"
+							x="50%"
+							y="50%"
+							tooltip-position="absolute"
+						>
+							<span style="padding-left: 10px;">?</span>
+						</Tooltip>			
+					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.receiveName }}</div>
-					<div>Module Reference:</div>
-					<div>
-						<ModuleLink
-							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
-						/>
-					</div>
 				</div>
-				<div
-					v-if="
-						moduleRejectEvent.rejectedEvent.__typename ===
-						'ModuleHashAlreadyExists'
-					"
-				>
-					<div>Module Reference:</div>
-					<div>
-						<ModuleLink
-							:module-reference="moduleRejectEvent.rejectedEvent.moduleRef"
-						/>
-					</div>
+				<div v-if="moduleRejectEvent.rejectedEvent.__typename ==='ModuleHashAlreadyExists'">
+					<div></div>
 				</div>
 			</TableTd>
 		</TableRow>
@@ -78,7 +76,6 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import { ModuleReferenceRejectEvent } from '~~/src/types/generated'
-import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { convertTimestampToRelative } from '~~/src/utils/format'
@@ -89,4 +86,18 @@ type Props = {
 	moduleRejectEvents: ModuleReferenceRejectEvent[]
 }
 defineProps<Props>()
+
+function getEventTooltip(eventType: string) {
+	if (eventType === 'InvalidInitMethod') {
+		return "TODO"
+	}
+	if (eventType === 'InvalidReceiveMethod') {
+		return "TODO"
+	}
+	if (eventType === 'ModuleHashAlreadyExists') {
+		return "TODO"
+	}		
+	return ""
+}
+
 </script>

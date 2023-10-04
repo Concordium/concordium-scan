@@ -20,7 +20,17 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Creator</template>
+					<template #title>Creator
+						<Tooltip
+							text="Account address of module creator"
+							position="bottom"
+							x="50%"
+							y="50%"
+							tooltip-position="absolute"
+						>
+							<span style="padding-left: 10px;">?</span>
+						</Tooltip>						
+					</template>
 					<template #default>
 						<AccountLink :address="moduleReferenceEvent.sender.asString" />
 					</template>
@@ -85,6 +95,7 @@ import {
 	formatTimestamp,
 } from '~~/src/utils/format'
 import type { PaginationTarget } from '~/composables/usePagination'
+import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 
 const { NOW } = useDateNow()
 
