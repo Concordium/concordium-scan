@@ -25,12 +25,12 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     /// Hence pagination should only by used in cases where database query has executed like
     /// <see cref="ModuleReferenceEvent.ModuleReferenceEventQuery.GetModuleReferenceEvent"/>.
     /// </summary>
-    [UsePaging(IncludeTotalCount = true)]
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
     /// <summary>
     /// See pagination comment on above.
     /// </summary>
-    [UsePaging(IncludeTotalCount = true)]
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; init; } = null!;
 
     /// <summary>
@@ -81,7 +81,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [ExtendObjectType(typeof(ModuleReferenceEvent))]
     public sealed class ModuleReferenceEventExtensions
     {
-        [UsePaging(IncludeTotalCount = true)]
+        [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
         public IList<LinkedContract> GetLinkedContracts([Parent] ModuleReferenceEvent moduleReferenceEvent)
         {
             var map = new Dictionary<(ulong, ulong), DateTimeOffset>();

@@ -2,7 +2,6 @@ import { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
 import { Contract } from '../types/generated'
 import { ComponentState } from '../composables/useComponentState'
-import { QueryVariables } from '../types/queryVariables'
 import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 const eventsFragment = `
@@ -172,18 +171,10 @@ const ContractQuery = gql`
 			contractRejectEvents(skip: $skipRejectEvent, take: $takeRejectEvent) {
 				items { ${rejectEventsFragment} }
 				totalCount
-				pageInfo {
-					hasPreviousPage
-					hasNextPage
-				}				
 			}
 			contractEvents(skip: $skipEvent, take: $takeEvent) {
 				items { ${eventsFragment} }
 				totalCount
-				pageInfo {
-					hasPreviousPage
-					hasNextPage
-				}
 			}
 		}
 	}

@@ -29,39 +29,38 @@
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
-						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
-						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
-						:go-to-page="goToPageLinkedContract"
+						v-if="moduleReferenceEvent.linkedContracts?.items?.length"
+						:total-count="moduleReferenceEvent.linkedContracts.totalCount"
+						:page-offset-info="paginationLinkedContracts"						
 					>
 						<ModuleDetailsLinkedContracts
-							:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
+							:linked-contracts="moduleReferenceEvent.linkedContracts!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
 					<DetailsTable
 						v-if="
-							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
-								?.length
+							moduleReferenceEvent.moduleReferenceContractLinkEvents?.items?.length
 						"
-						:page-info="moduleReferenceEvent.moduleReferenceContractLinkEvents!.pageInfo"
-						:go-to-page="goToPageEvents"
+						:total-count="moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount"
+						:page-offset-info="paginationLinkingEvents"
 					>
 						<ModuleDetailsContractLinkEvents
-							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
+							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-3>
 					<DetailsTable
 						v-if="
-							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
+							moduleReferenceEvent.moduleReferenceRejectEvents?.items?.length
 						"
-						:page-info="moduleReferenceEvent.moduleReferenceRejectEvents!.pageInfo"
-						:go-to-page="goToPageRejectEvents"
+						:total-count="moduleReferenceEvent.moduleReferenceRejectEvents.totalCount"
+						:page-offset-info="paginationRejectEvents"
 					>
 						<ModuleDetailsRejectEvents
-							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
+							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
@@ -79,20 +78,17 @@ import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
 import ModuleDetailsRejectEvents from './ModuleDetailsRejectEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { ModuleReferenceEvent, PageInfo } from '~~/src/types/generated'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import type { PaginationTarget } from '~/composables/usePagination'
+import { ModuleReferenceEvent } from '~~/src/types/generated'
+import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	moduleReferenceEvent: ModuleReferenceEvent
-	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageLinkedContract: (page: PageInfo) => (target: PaginationTarget) => void
+	paginationLinkingEvents: PaginationOffsetInfo
+	paginationRejectEvents: PaginationOffsetInfo
+	paginationLinkedContracts: PaginationOffsetInfo
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {

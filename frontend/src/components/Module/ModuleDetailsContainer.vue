@@ -6,9 +6,9 @@
 	<ModuleDetailsContent
 		v-else-if="componentState === 'success' && data?.moduleReferenceEvent"
 		:module-reference-event="data?.moduleReferenceEvent"
-		:go-to-page-events="goToPageEvent"
-		:go-to-page-reject-events="goToPageRejectEvent"
-		:go-to-page-linked-contract="goToPageLinkedContract"
+		:pagination-linked-contracts="pageOffsetInfoLinkedContracts"
+		:pagination-linking-events="pageOffsetInfoLinkingEvents"
+		:pagination-reject-events="pageOffsetInfoRejectedEvents"
 	/>
 </template>
 
@@ -17,34 +17,15 @@ import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import ModuleDetailsContent from '~/components/Module/ModuleDetailsContent.vue'
-import { usePagination } from '~/composables/usePagination'
 import { useModuleReferenceEventQuery } from '~~/src/queries/useModuleQuery'
 
 type Props = {
 	moduleReference: string
 }
 
-const {
-	first: firstEvent,
-	last: lastEvent,
-	after: afterEvent,
-	before: beforeEvent,
-	goToPage: goToPageEvent,
-} = usePagination()
-const {
-	first: firstRejectEvent,
-	last: lastRejectEvent,
-	after: afterRejectEvent,
-	before: beforeRejectEvent,
-	goToPage: goToPageRejectEvent,
-} = usePagination()
-const {
-	first: firstLinkedContract,
-	last: lastLinkedContract,
-	after: afterLinkedContract,
-	before: beforeLinkedContract,
-	goToPage: goToPageLinkedContract,
-} = usePagination()
+const pageOffsetInfoLinkingEvents = usePaginationOffset(2); // TODO make page size dynamic
+const pageOffsetInfoRejectedEvents = usePaginationOffset(2); // TODO make page size dynamic
+const pageOffsetInfoLinkedContracts = usePaginationOffset(2); // TODO make page size dynamic
 
 const props = defineProps<Props>()
 const moduleReference = ref(props.moduleReference)
@@ -52,22 +33,16 @@ const moduleReference = ref(props.moduleReference)
 const { data, error, componentState } = useModuleReferenceEventQuery({
 	moduleReference,
 	eventsVariables: {
-		first: firstEvent,
-		last: lastEvent,
-		after: afterEvent,
-		before: beforeEvent,
+		skip: pageOffsetInfoLinkingEvents.skip,
+		take: pageOffsetInfoLinkingEvents.take,
 	},
 	rejectEventsVariables: {
-		first: firstRejectEvent,
-		last: lastRejectEvent,
-		after: afterRejectEvent,
-		before: beforeRejectEvent,
+		skip: pageOffsetInfoRejectedEvents.skip,
+		take: pageOffsetInfoRejectedEvents.take,
 	},
 	linkedContract: {
-		first: firstLinkedContract,
-		last: lastLinkedContract,
-		after: afterLinkedContract,
-		before: beforeLinkedContract,
+		skip: pageOffsetInfoLinkedContracts.skip,
+		take: pageOffsetInfoLinkedContracts.take,
 	},
 })
 </script>
