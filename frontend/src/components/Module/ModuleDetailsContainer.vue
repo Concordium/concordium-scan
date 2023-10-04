@@ -9,6 +9,9 @@
 		:pagination-linked-contracts="pageOffsetInfoLinkedContracts"
 		:pagination-linking-events="pageOffsetInfoLinkingEvents"
 		:pagination-reject-events="pageOffsetInfoRejectedEvents"
+		:page-dropdown-events="pageDropdownEvents"
+		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
+		:page-dropdown-linked-contracts="pageDropdownLinkedContracts"
 	/>
 </template>
 
@@ -23,9 +26,13 @@ type Props = {
 	moduleReference: string
 }
 
-const pageOffsetInfoLinkingEvents = usePaginationOffset(2); // TODO make page size dynamic
-const pageOffsetInfoRejectedEvents = usePaginationOffset(2); // TODO make page size dynamic
-const pageOffsetInfoLinkedContracts = usePaginationOffset(2); // TODO make page size dynamic
+const pageDropdownEvents = usePageDropdown();
+const pageDropdownRejectedEvents = usePageDropdown();
+const pageDropdownLinkedContracts = usePageDropdown();
+
+const pageOffsetInfoLinkingEvents = usePaginationOffset(pageDropdownEvents.take);
+const pageOffsetInfoRejectedEvents = usePaginationOffset(pageDropdownRejectedEvents.take);
+const pageOffsetInfoLinkedContracts = usePaginationOffset(pageDropdownLinkedContracts.take);
 
 const props = defineProps<Props>()
 const moduleReference = ref(props.moduleReference)

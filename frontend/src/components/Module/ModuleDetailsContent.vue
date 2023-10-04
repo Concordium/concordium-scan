@@ -31,7 +31,8 @@
 					<DetailsTable
 						v-if="moduleReferenceEvent.linkedContracts?.items?.length"
 						:total-count="moduleReferenceEvent.linkedContracts.totalCount"
-						:page-offset-info="paginationLinkedContracts"						
+						:page-offset-info="paginationLinkedContracts"
+						:page-dropdown-info="pageDropdownLinkedContracts"
 					>
 						<ModuleDetailsLinkedContracts
 							:linked-contracts="moduleReferenceEvent.linkedContracts!.items"
@@ -45,6 +46,7 @@
 						"
 						:total-count="moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount"
 						:page-offset-info="paginationLinkingEvents"
+						:page-dropdown-info="pageDropdownEvents"
 					>
 						<ModuleDetailsContractLinkEvents
 							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.items"
@@ -58,6 +60,7 @@
 						"
 						:total-count="moduleReferenceEvent.moduleReferenceRejectEvents.totalCount"
 						:page-offset-info="paginationRejectEvents"
+						:page-dropdown-info="pageDropdownRejectedEvents"
 					>
 						<ModuleDetailsRejectEvents
 							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.items"
@@ -81,6 +84,7 @@ import DetailsCard from '~/components/DetailsCard.vue'
 import { ModuleReferenceEvent } from '~~/src/types/generated'
 import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 
 const { NOW } = useDateNow()
 
@@ -89,6 +93,9 @@ type Props = {
 	paginationLinkingEvents: PaginationOffsetInfo
 	paginationRejectEvents: PaginationOffsetInfo
 	paginationLinkedContracts: PaginationOffsetInfo
+	pageDropdownEvents: PageDropdownInfo
+	pageDropdownRejectedEvents: PageDropdownInfo
+	pageDropdownLinkedContracts: PageDropdownInfo		
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {
