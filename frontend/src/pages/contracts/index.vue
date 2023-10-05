@@ -8,28 +8,12 @@
 					<TableTh>Age</TableTh>
 					<TableTh align="right">
 						Creator
-						<Tooltip
-							text="Account address of contract creator"
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>
+						<InfoTooltip text="Account address of contract creator"/>
 					</TableTh>
 					<TableTh align="right">Initial Transaction</TableTh>
 					<TableTh align="right">
 						Module
-						<Tooltip
-							text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>
+						<InfoTooltip text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."/>
 					</TableTh>
 					<TableTh align="right"
 						>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh
@@ -90,6 +74,7 @@ import {
 	formatTimestamp,
 } from '~~/src/utils/format'
 import ModuleLink from '~~/src/components/molecules/ModuleLink.vue'
+import InfoTooltip from '~~/src/components/atoms/InfoTooltip.vue'
 
 const { NOW } = useDateNow()
 const { first, last, after, before, goToPage } = usePagination()
