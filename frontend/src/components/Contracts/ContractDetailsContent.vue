@@ -91,7 +91,7 @@ const props = defineProps<Props>()
 const tabList = computed(() => {
 	return [
 		`Event (${props.contract.contractEvents?.totalCount ?? 0})`,
-		`Rejected Events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
+		`Rejected events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
 	]
 })
 </script>

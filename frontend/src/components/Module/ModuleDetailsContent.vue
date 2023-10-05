@@ -100,14 +100,14 @@ type Props = {
 const props = defineProps<Props>()
 const tabList = computed(() => {
 	return [
-		`Linked Contracts (${
+		`Linked contracts (${
 			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
 		})`,
-		`Linking Events (${
+		`Linking events (${
 			props.moduleReferenceEvent.moduleReferenceContractLinkEvents
 				?.totalCount ?? 0
 		})`,
-		`Rejected Events (${
+		`Rejected events (${
 			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
 		})`,
 	]

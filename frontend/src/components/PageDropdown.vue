@@ -1,7 +1,7 @@
 <template>
 <div
 	:class="$style['drop-down']">
-	<div style="padding-right: 2px;">Rows: </div>
+	<div style="padding-right: 2px;">Show: </div>
 	<select
 		class="form-select"
 		:value="choosen"
@@ -16,6 +16,7 @@
 		{{ dropDown }}
 	</option>
 	</select>
+	<div style="padding-left: 5px;">Records</div>
 </div>
 </template>
 <script lang="ts" setup>

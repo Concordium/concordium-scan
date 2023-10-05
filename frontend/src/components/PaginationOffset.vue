@@ -1,50 +1,62 @@
 <template>
-    <div class="flex-container">
-        <div>
-            <button
-            type="button"
-            :disabled="isInFirstPage"
-            @click="onClickFirstPage"
-            >
-                <ChevronDoubleLeftCustomIcon/>
-            </button>
+	<div class="pagination-container">
+		<div style="display: flex; justify-content: flex-start;">
+            Total pages: {{ totalPages }}
         </div>
-        <div>
-            <button
-            type="button"
-            :disabled="isInFirstPage"
-            @click="onClickPreviousPage"
-            >
-                <ChevronLeftCustomIcon/>
-            </button>
-        </div>
+        <div style="display: grid; grid-template-columns: 35px 35px auto 35px 35px;">
+            <div>
+                <button
+                v-if="!isFirstPages"
+                type="button"
+                :disabled="isFirstPages"
+                @click="onClickFirstPage"
+                >
+                    <ChevronDoubleLeftCustomIcon/>
+                </button>
+            </div>
+            <div>
+                <button
+                v-if="!isFirstPages"
+                type="button"
+                :disabled="isFirstPages"
+                @click="onClickPreviousPage"
+                >
+                    <ChevronLeftCustomIcon/>
+                </button>
+            </div>            
             <div class="flex-container button-container">
-            <button
-                v-for="page in pages" :key="page.name"
-                type="button"
-                :class="{ active: !page.isDisabled }"
-                @click="onClickPage(page.name)"
-            > {{ page.name }}</button>
+                <button
+                    v-for="page in pages" :key="page.name"
+                    type="button"
+                    :class="{ active: !page.isDisabled }"
+                    @click="onClickPage(page.name)"
+                > {{ page.name }}</button>
+            </div>
+            <div>
+                <button
+                    v-if="!isLastPages"
+                    type="button"
+                    :disabled="isLastPages"
+                    @click="onClickNextPage"
+                >
+                    <ChevronRightCustomIcon/>
+                </button>
+            </div>
+            <div>
+                <button
+                    v-if="!isLastPages"
+                    type="button"
+                    :disabled="isLastPages"
+                    @click="onClickLastPage"
+                >
+                    <ChevronDoubleRightCustomIcon/>
+                </button>
+            </div>            
         </div>
-        <div>
-            <button
-                type="button"
-                :disabled="isInLastPage"
-                @click="onClickNextPage"
-            >
-                <ChevronRightCustomIcon/>
-            </button>
-        </div>
-        <div>
-            <button
-                type="button"
-                :disabled="isInLastPage"
-                @click="onClickLastPage"
-            >
-                <ChevronDoubleRightCustomIcon/>
-            </button>
-        </div>
-    </div>
+		<div style="display: flex; justify-content: flex-end;">
+			<div>Page search TBD</div>
+		</div>
+	</div>    
 </template>
 <script lang="ts" setup>
 import { NAVIGATION_SIZE, PaginationOffsetInfo } from '../composables/usePaginationOffset'
@@ -68,29 +80,32 @@ const currentPage = computed(() => {
     return Math.floor(props.info.skip.value / props.info.take.value) + 1
 })
 
+const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % NAVIGATION_SIZE));
+const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) + 1) *  NAVIGATION_SIZE, totalPages.value));
+
 const pages = computed(() => {
-    const from = Math.max(1, currentPage.value - NAVIGATION_SIZE);
-    const to = Math.min(currentPage.value + NAVIGATION_SIZE, totalPages.value);
     const range = [];
-    for (let i = from; i <= to; i++) {
+    for (let i = pageFrom.value; i <= pageTo.value; i++) {
         range.push({name: i, isDisabled: i !== currentPage.value})
     }
     return range;
 })
 
-const isInFirstPage = computed(() => currentPage.value === 1);
-const isInLastPage = computed(() => currentPage.value === totalPages.value);
+const isFirstPages = computed(() => Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) === 0);
+const isLastPages = computed(() => Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) === Math.floor((totalPages.value - 1) / NAVIGATION_SIZE));
 
 const onClickFirstPage = () => props.info.update(0);
+
 const onClickPreviousPage = () => {
-    const previous = Math.max(0, props.info.skip.value - props.info.take.value);
+    const previous = Math.max(0, pageFrom.value - NAVIGATION_SIZE - 1) * props.info.take.value;
     props.info.update(previous);
 }
 
 const onClickNextPage = () => {
-    const next = Math.max(0, props.info.skip.value + props.info.take.value);
+    const next = pageTo.value * props.info.take.value;
     props.info.update(next);
 }
+
 const onClickLastPage = () => {
     const remainder = props.totalCount % props.info.take.value;
     const toSkip = remainder === 0 ? 
@@ -106,6 +121,12 @@ const onClickPage = (page: number): void => {
 
 </script>
 <style>
+div.pagination-container {
+	display: grid;
+    margin: 30px 0 10px;
+	grid-template-columns: repeat(3, auto);
+}
+
 div.flex-container {
     display: flex;
     justify-content: center;
