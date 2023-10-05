@@ -6,9 +6,9 @@
         <div style="display: grid; grid-template-columns: 35px 35px auto 35px 35px;">
             <div>
                 <button
-                v-if="!isFirstPages"
                 type="button"
                 :disabled="isFirstPages"
+                :class="{disabled: isFirstPages}"
                 @click="onClickFirstPage"
                 >
                     <ChevronDoubleLeftCustomIcon/>
@@ -16,9 +16,9 @@
             </div>
             <div>
                 <button
-                v-if="!isFirstPages"
                 type="button"
                 :disabled="isFirstPages"
+                :class="{disabled: isFirstPages}"
                 @click="onClickPreviousPage"
                 >
                     <ChevronLeftCustomIcon/>
@@ -34,9 +34,9 @@
             </div>
             <div>
                 <button
-                    v-if="!isLastPages"
                     type="button"
                     :disabled="isLastPages"
+                    :class="{disabled: isLastPages}"
                     @click="onClickNextPage"
                 >
                     <ChevronRightCustomIcon/>
@@ -44,9 +44,9 @@
             </div>
             <div>
                 <button
-                    v-if="!isLastPages"
                     type="button"
                     :disabled="isLastPages"
+                    :class="{disabled: isLastPages}"
                     @click="onClickLastPage"
                 >
                     <ChevronDoubleRightCustomIcon/>
@@ -121,6 +121,9 @@ const onClickPage = (page: number): void => {
 
 </script>
 <style>
+.disabled {
+    opacity: 0.4;
+}
 div.pagination-container {
 	display: grid;
     margin: 30px 0 10px;

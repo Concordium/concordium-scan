@@ -1,6 +1,6 @@
 import { Ref } from "vue"
 
-export const NAVIGATION_SIZE = 2;
+export const NAVIGATION_SIZE = 10;
 
 export type PaginationOffsetQueryVariables = {
     skip: Ref<number|undefined>,
