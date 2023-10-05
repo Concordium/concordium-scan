@@ -6,12 +6,11 @@
 		y="50%"
 		tooltip-position="absolute"
 	>
-		<span style="padding-left: 10px;">
-            ?
-        </span>
+        <QuestionMarkCircleIcon class="inline w-5 h-5" />
 	</Tooltip>
 </template>
 <script lang="ts" setup>
+import { QuestionMarkCircleIcon } from '@heroicons/vue/outline';
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 
 type Props = {
