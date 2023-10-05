@@ -33,6 +33,7 @@
 import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractInitialized } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
+import ModuleLink from '../../molecules/ModuleLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {
