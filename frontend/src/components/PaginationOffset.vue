@@ -4,24 +4,24 @@
             Total pages: {{ totalPages }}
         </div>
         <div style="display: flex; justify-content: center;">
-            <div>
+            <div class="chevron-button">
                 <button
                 type="button"
                 :disabled="isFirstPages"
                 :class="{disabled: isFirstPages}"
                 @click="onClickFirstPage"
                 >
-                    <ChevronDoubleLeftCustomIcon/>
+                    <ChevronDoubleLeftCustomIcon class="chevron-icon"/>
                 </button>
             </div>
-            <div>
+            <div class="chevron-button">
                 <button
                 type="button"
                 :disabled="isFirstPages"
                 :class="{disabled: isFirstPages}"
                 @click="onClickPreviousPage"
                 >
-                    <ChevronLeftCustomIcon/>
+                    <ChevronLeftCustomIcon class="chevron-icon"/>
                 </button>
             </div>            
             <div class="flex-container button-container">
@@ -32,24 +32,24 @@
                     @click="onClickPage(page.name)"
                 > {{ page.name }}</button>
             </div>
-            <div>
+            <div class="chevron-button">
                 <button
                     type="button"
                     :disabled="isLastPages"
                     :class="{disabled: isLastPages}"
                     @click="onClickNextPage"
                 >
-                    <ChevronRightCustomIcon/>
+                    <ChevronRightCustomIcon class="chevron-icon"/>
                 </button>
             </div>
-            <div>
+            <div class="chevron-button">
                 <button
                     type="button"
                     :disabled="isLastPages"
                     :class="{disabled: isLastPages}"
                     @click="onClickLastPage"
                 >
-                    <ChevronDoubleRightCustomIcon/>
+                    <ChevronDoubleRightCustomIcon class="chevron-icon"/>
                 </button>
             </div>            
         </div>
@@ -121,9 +121,20 @@ const onClickPage = (page: number): void => {
 
 </script>
 <style>
+.chevron-button {
+    display: flex;
+    justify-content: center;
+}
+
+.chevron-icon {
+    height: 20px;
+    width: 20px;
+}
+
 .disabled {
     opacity: 0.4;
 }
+
 div.pagination-container {
 	display: grid;
     margin: 30px 0 10px;
