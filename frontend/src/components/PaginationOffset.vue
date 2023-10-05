@@ -54,7 +54,15 @@
             </div>            
         </div>
 		<div style="display: flex; justify-content: flex-end;">
-			<div>Page search TBD</div>
+			<div>Page search</div>
+            <input 
+                :value="inputPage"
+                :max="totalPages"
+                :min="1"
+                type="number"
+                style="color: black; text-align: right;"
+                @input="onInput"
+            />
 		</div>
 	</div>    
 </template>
@@ -68,6 +76,28 @@ import ChevronRightCustomIcon from '~/components/icons/ChevronRightCustomIcon.vu
 type Props = {
     info: PaginationOffsetInfo
     totalCount: number
+}
+
+const inputPage = ref();
+const timeoutId = ref();
+const onInput = (e: Event) => {
+    const inputElement = e.target as HTMLInputElement;
+    if (!inputElement?.value) {
+        e.preventDefault();
+        return;
+    }
+    const page = parseInt(inputElement.value);
+    if (page > totalPages.value || page < 1) {
+        e.preventDefault();
+        return;
+    }
+    if (timeoutId.value !== undefined) {
+        clearTimeout(timeoutId.value);
+    }
+    inputPage.value = page
+    timeoutId.value = setTimeout(() => {
+        console.log(page)
+    }, 1_000);
 }
 
 const props = defineProps<Props>();
