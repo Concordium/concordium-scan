@@ -16,15 +16,7 @@
 				<DetailsCard>
 					<template #title>
 						Module
-						<Tooltip
-							text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>
+						<InfoTooltip text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."/>
 					</template>
 					<template #default>
 						<ModuleLink :module-reference="contract.moduleReference" />
@@ -33,15 +25,7 @@
 				<DetailsCard>
 					<template #title>
 						Creator
-						<Tooltip
-							text="Account address of contract creator"
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>
+						<InfoTooltip text="Account address of contract creator"/>
 					</template>
 					<template #default>
 						<AccountLink :address="contract.creator.asString" />
@@ -86,10 +70,10 @@
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import { Contract, PageInfo } from '~~/src/types/generated'
@@ -99,6 +83,7 @@ import {
 } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import type { PaginationTarget } from '~/composables/usePagination'
+
 
 const { NOW } = useDateNow()
 

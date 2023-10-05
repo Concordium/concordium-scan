@@ -21,15 +21,7 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractEvent.event.__typename) }}
-				<Tooltip
-					:text="getEventTooltip(contractEvent.event.__typename!)"
-					position="bottom"
-					x="50%"
-					y="50%"
-					tooltip-position="absolute"
-				>
-					<span style="padding-left: 10px;">?</span>
-				</Tooltip>
+				<InfoTooltip :text="getEventTooltip(contractEvent.event.__typename!)"/>
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -94,6 +86,7 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import DetailsView from '../Details/DetailsView.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import LogsHEX from '../Details/LogsHEX.vue'
 import ContractInitialized from './Events/ContractInitialized.vue'
 import ContractCall from './Events/ContractCall.vue'

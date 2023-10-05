@@ -7,15 +7,7 @@
 	</div>
 	<div>
 		<div>Init name:
-			<Tooltip
-				text="Initial entrypoint of the contract."
-				position="bottom"
-				x="50%"
-				y="50%"
-				tooltip-position="absolute"
-			>
-				<span style="padding-left: 10px;">?</span>
-			</Tooltip>
+			<InfoTooltip text="Initial entrypoint of the contract."/>
 		</div>
 		<div>
 			{{ props.contractEvent.initName }}
@@ -23,15 +15,7 @@
 	</div>
 	<div>
 		<div>Module:
-			<Tooltip
-				text="Container which holds execution code for one-or-more contracts. This reference holds the execution code of the contract at the time of the activity."
-				position="bottom"
-				x="50%"
-				y="50%"
-				tooltip-position="absolute"
-			>
-				<span style="padding-left: 10px;">?</span>
-			</Tooltip>
+			<InfoTooltip text="Container which holds execution code for one-or-more contracts. This reference holds the execution code of the contract at the time of the activity."/>
 		</div>
 		<div>
 			<ModuleLink :module-reference="props.contractEvent.moduleRef" />
@@ -48,7 +32,7 @@
 <script lang="ts" setup>
 import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractInitialized } from '../../../../src/types/generated'
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
+import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {

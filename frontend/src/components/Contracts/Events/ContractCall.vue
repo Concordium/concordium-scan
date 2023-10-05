@@ -21,15 +21,7 @@
 	</div>
 	<div>
 		<div>Receive name of contract called:
-			<Tooltip
-				text="Entrypoint of the activity of the called contract."
-				position="bottom"
-				x="50%"
-				y="50%"
-				tooltip-position="absolute"
-			>
-				<span style="padding-left: 10px;">?</span>
-			</Tooltip>			
+			<InfoTooltip text="Entrypoint of the activity of the called contract."/>		
 		</div>
 		<div>
 			{{ props.contractEvent.contractUpdated.receiveName }}
@@ -50,6 +42,7 @@
 import MessageHEX from '../../Details/MessageHEX.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractCall } from '../../../../src/types/generated'
+import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import Amount from '~/components/atoms/Amount.vue'
 
 type Props = {

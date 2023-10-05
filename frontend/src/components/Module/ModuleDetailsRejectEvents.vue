@@ -26,42 +26,18 @@
 			</TableTd>
 			<TableTd>
 				{{ moduleRejectEvent.rejectedEvent.__typename }}
-				<Tooltip
-					:text="getEventTooltip(moduleRejectEvent.rejectedEvent.__typename!)"
-					position="bottom"
-					x="50%"
-					y="50%"
-					tooltip-position="absolute"
-				>
-					<span style="padding-left: 10px;">?</span>
-				</Tooltip>		
+				<InfoTooltip :text="getEventTooltip(moduleRejectEvent.rejectedEvent.__typename!)"/>
 			</TableTd>
 			<TableTd>
 				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidInitMethod'">
 					<div>Init name:
-						<Tooltip
-							text="Initial entrypoint of the contract."
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>						
+						<InfoTooltip text="Initial entrypoint of the contract."/>
 					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.initName }}</div>
 				</div>
 				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidReceiveMethod'">
 					<div>Receive name:
-						<Tooltip
-							text="Entrypoint of the activity of the contract."
-							position="bottom"
-							x="50%"
-							y="50%"
-							tooltip-position="absolute"
-						>
-							<span style="padding-left: 10px;">?</span>
-						</Tooltip>			
+						<InfoTooltip text="Entrypoint of the activity of the contract."/>
 					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.receiveName }}</div>
 				</div>
@@ -75,6 +51,7 @@
 
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import { ModuleReferenceRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'

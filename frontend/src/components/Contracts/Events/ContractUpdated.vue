@@ -7,15 +7,7 @@
 	</div>
 	<div>
 		<div>Instigator:
-			<Tooltip
-				text="Account or contract which initiated the activity."
-				position="bottom"
-				x="50%"
-				y="50%"
-				tooltip-position="absolute"
-			>
-				<span style="padding-left: 10px;">?</span>
-			</Tooltip>		
+			<InfoTooltip text="Account or contract which initiated the activity."/>
 		</div>
 		<div>
 			<ContractLink
@@ -34,15 +26,7 @@
 	</div>
 	<div>
 		<div>Receive name:
-			<Tooltip
-				text="Entrypoint of the activity of the contract."
-				position="bottom"
-				x="50%"
-				y="50%"
-				tooltip-position="absolute"
-			>
-				<span style="padding-left: 10px;">?</span>
-			</Tooltip>			
+			<InfoTooltip text="Entrypoint of the activity of the contract."/>
 		</div>
 		<div>
 			{{ props.contractEvent.receiveName }}
@@ -61,10 +45,10 @@
 import { ContractUpdated } from '../../../../src/types/generated'
 import MessageHEX from '../../Details/MessageHEX.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
+import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 
 type Props = {
 	contractEvent: ContractUpdated

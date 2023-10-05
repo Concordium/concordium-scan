@@ -24,15 +24,7 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractRejectEvent.rejectedEvent.__typename) }}
-				<Tooltip
-					:text="getEventTooltip(contractRejectEvent.rejectedEvent.__typename!)"
-					position="bottom"
-					x="50%"
-					y="50%"
-					tooltip-position="absolute"
-				>
-					<span style="padding-left: 10px;">?</span>
-				</Tooltip>				
+				<InfoTooltip :text="getEventTooltip(contractRejectEvent.rejectedEvent.__typename!)"/>
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -43,15 +35,7 @@
 				>
 					<div>
 						<div>Reject reason:
-							<Tooltip
-								text="Errors are present as enum in contract. TODO"
-								position="bottom"
-								x="50%"
-								y="50%"
-								tooltip-position="absolute"
-							>
-								<span style="padding-left: 10px;">?</span>
-							</Tooltip>
+							<InfoTooltip text="Errors are present as enum in contract. TODO"/>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
@@ -59,15 +43,7 @@
 					</div>
 					<div>
 						<div>Receive name:
-							<Tooltip
-								text="Entrypoint of the activity of the contract."
-								position="bottom"
-								x="50%"
-								y="50%"
-								tooltip-position="absolute"
-							>
-								<span style="padding-left: 10px;">?</span>
-							</Tooltip>				
+							<InfoTooltip text="Entrypoint of the activity of the contract."/>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.receiveName }}
@@ -86,6 +62,7 @@
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import MessageHEX from '../Details/MessageHEX.vue'
 import DetailsView from '../Details/DetailsView.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
