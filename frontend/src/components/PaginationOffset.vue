@@ -3,7 +3,7 @@
 		<div style="display: flex; justify-content: flex-start;">
             Total pages: {{ totalPages }}
         </div>
-        <div style="display: grid; grid-template-columns: 35px 35px auto 35px 35px;">
+        <div style="display: flex; justify-content: center;">
             <div>
                 <button
                 type="button"
