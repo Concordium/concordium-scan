@@ -108,7 +108,6 @@ const onClickPage = (page: number): void => {
 <style>
 div.flex-container {
     display: flex;
-    border: 2px dashed royalblue;
     justify-content: center;
     align-items: center;
 }
