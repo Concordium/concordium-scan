@@ -21,10 +21,10 @@
 			<ModuleLink :module-reference="props.contractEvent.moduleRef" />
 		</div>
 	</div>
-	<div>
+	<div v-if="props.contractEvent?.version">
 		<div>Version:</div>
 		<div>
-			{{ props.contractEvent?.version }}
+			{{ props.contractEvent.version }}
 		</div>
 	</div>
 	<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />

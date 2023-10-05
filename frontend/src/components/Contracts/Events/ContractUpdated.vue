@@ -32,10 +32,10 @@
 			{{ props.contractEvent.receiveName }}
 		</div>
 	</div>
-	<div>
+	<div v-if="props.contractEvent?.version">
 		<div>Version:</div>
 		<div>
-			{{ props.contractEvent?.version }}
+			{{ props.contractEvent.version }}
 		</div>
 	</div>
 	<MessageHEX :message-as-hex="props.contractEvent.messageAsHex" />
