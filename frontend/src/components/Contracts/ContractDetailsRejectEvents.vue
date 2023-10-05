@@ -74,10 +74,12 @@ type Props = {
 defineProps<Props>()
 
 function getEventTooltip(eventType: string) {
-	if (eventType === 'RejectedReceive') {
-		return "TODO"
+	switch(eventType) {
+		case 'RejectedReceive':
+			return "TODO"
+		default:
+			return "";
 	}
-	return ""
 }
 
 function trimTypeName(typeName: string | undefined) {

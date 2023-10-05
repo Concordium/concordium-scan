@@ -110,31 +110,24 @@ function getResumedLabel(resumed: boolean) : string {
 }
 
 function getEventTooltip(eventType: string) {
-	if (eventType === 'ContractInitialized') {
-		return "TODO"
-	}
-	if (eventType === 'ContractUpdated') {
-		return "TODO"
-	}
-	if (eventType === 'ContractModuleDeployed') {
-		return "TODO"
-	}
-	if (eventType === 'ContractUpdated') {
-		return "TODO"
-	}
-	if (eventType === 'ContractCall') {
-		return "TODO"
-	}
-	if (eventType === 'ContractUpgraded') {
-		return "TODO"
-	}
-	if (eventType === 'ContractResumed') {
-		return "TODO"
-	} 
-	if (eventType === 'Transferred') {
-		return "TODO"
-	} 
-	return ""
+	switch (eventType) {
+        case 'ContractInitialized':
+            return "TODO";
+        case 'ContractUpdated':
+            return "TODO";
+        case 'ContractModuleDeployed':
+            return "TODO";
+        case 'ContractCall':
+            return "TODO";
+        case 'ContractUpgraded':
+            return "TODO";
+        case 'ContractResumed':
+            return "TODO";
+        case 'Transferred':
+            return "TODO";
+        default:
+            return "";
+    }
 }
 
 function trimTypeName(typeName: string | undefined) {

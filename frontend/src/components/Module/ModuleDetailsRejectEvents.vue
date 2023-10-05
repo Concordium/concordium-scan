@@ -65,16 +65,16 @@ type Props = {
 defineProps<Props>()
 
 function getEventTooltip(eventType: string) {
-	if (eventType === 'InvalidInitMethod') {
-		return "TODO"
+	switch (eventType) {
+		case 'InvalidInitMethod':
+			return "TODO";
+		case 'InvalidReceiveMethod':
+			return "TODO";
+		case 'ModuleHashAlreadyExists':
+			return "TODO";
+		default:
+			return "";
 	}
-	if (eventType === 'InvalidReceiveMethod') {
-		return "TODO"
-	}
-	if (eventType === 'ModuleHashAlreadyExists') {
-		return "TODO"
-	}		
-	return ""
 }
 
 </script>
