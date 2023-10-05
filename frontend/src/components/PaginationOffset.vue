@@ -6,7 +6,7 @@
             :disabled="isInFirstPage"
             @click="onClickFirstPage"
             >
-                {{ '<<' }}
+                <ChevronDoubleLeftCustomIcon/>
             </button>
         </div>
         <div>
@@ -15,7 +15,7 @@
             :disabled="isInFirstPage"
             @click="onClickPreviousPage"
             >
-                {{ '<' }}
+                <ChevronLeftCustomIcon/>
             </button>
         </div>
             <div class="flex-container button-container">
@@ -32,7 +32,7 @@
                 :disabled="isInLastPage"
                 @click="onClickNextPage"
             >
-                >
+                <ChevronRightCustomIcon/>
             </button>
         </div>
         <div>
@@ -41,13 +41,17 @@
                 :disabled="isInLastPage"
                 @click="onClickLastPage"
             >
-                >>
+                <ChevronDoubleRightCustomIcon/>
             </button>
         </div>
     </div>
 </template>
 <script lang="ts" setup>
 import { NAVIGATION_SIZE, PaginationOffsetInfo } from '../composables/usePaginationOffset'
+import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
+import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
+import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightCustomIcon.vue'
+import ChevronRightCustomIcon from '~/components/icons/ChevronRightCustomIcon.vue'
 
 type Props = {
     info: PaginationOffsetInfo
@@ -97,7 +101,6 @@ const onClickLastPage = () => {
 
 const onClickPage = (page: number): void => {
     const toSkip = page * props.info.take.value - props.info.take.value;
-    console.log(toSkip)
     props.info.update(toSkip);
 };
 
