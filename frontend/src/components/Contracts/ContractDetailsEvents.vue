@@ -112,7 +112,7 @@ function getResumedLabel(resumed: boolean) : string {
 function getEventTooltip(eventType: string) {
 	switch (eventType) {
         case 'ContractInitialized':
-            return "Contract has been initialized on-chain";
+            return "Contract instance has been initialized on-chain";
         case 'ContractUpdated':
             return "Contract has been updated based on receive function";
         case 'ContractModuleDeployed':
