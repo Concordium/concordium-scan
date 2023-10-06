@@ -35,7 +35,7 @@
 				>
 					<div>
 						<div>Reject reason:
-							<InfoTooltip text="Errors are present as enum in contract. TODO"/>
+							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"./>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
@@ -76,7 +76,7 @@ defineProps<Props>()
 function getEventTooltip(eventType: string) {
 	switch(eventType) {
 		case 'RejectedReceive':
-			return "TODO"
+			return "Contract logic rejected. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"."
 		default:
 			return "";
 	}
