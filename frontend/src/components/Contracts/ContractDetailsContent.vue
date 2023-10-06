@@ -16,7 +16,7 @@
 				<DetailsCard>
 					<template #title>
 						Module
-						<InfoTooltip text="Container which holds execution code for one-or-more contracts. The below references holds the current execution code of the contract."/>
+						<InfoTooltip text="Container which holds execution code for one or more contracts. The below references hold the current execution code of the contract."/>
 					</template>
 					<template #default>
 						<ModuleLink :module-reference="contract.moduleReference" />
