@@ -25,7 +25,7 @@
 				<DetailsCard>
 					<template #title>
 						Creator
-						<InfoTooltip text="Account address of contract creator"/>
+						<InfoTooltip text="Account address of the contract instance creator."/>
 					</template>
 					<template #default>
 						<AccountLink :address="contract.creator.asString" />
