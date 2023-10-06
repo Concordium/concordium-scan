@@ -54,27 +54,15 @@
             </div>            
         </div>
 		<div style="display: flex; justify-content: flex-end;">
-            <div style="display: grid; grid-template-rows: auto 20px;">
-                <div>
-                <div style="display: inline-block;">Page search</div>
-                <input 
-                    :value="inputPage"
-                    :max="totalPages"
-                    :min="1"
-                    type="number"
-                    style="color: black; text-align: right; margin-left: 5px; border-radius: 5px;"
-                    @input="onInput"
-                />                
-                </div>
-                <div>
-                    <div 
-                        v-if="pageInputValidation"
-                        style="font-size: 0.75rem; text-wrap: wrap; color: red"
-                        >
-                        {{ pageInputValidation }}
-                    </div>
-                </div>            
-            </div>
+            <div style="display: inline-block;">Page</div>
+            <input 
+                :value="inputPage"
+                :max="totalPages"
+                :min="1"
+                type="number"
+                style="color: black; text-align: center; margin-left: 5px; border-radius: 5px;"
+                @input="onInput"
+            />                
 		</div>
 	</div>    
 </template>
@@ -84,12 +72,14 @@ import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCus
 import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
 import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightCustomIcon.vue'
 import ChevronRightCustomIcon from '~/components/icons/ChevronRightCustomIcon.vue'
+import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 
 type Props = {
     info: PaginationOffsetInfo
     totalCount: number
 }
 const props = defineProps<Props>();
+const { breakpoint } = useBreakpoint();
 
 const totalPages = computed(() => {
     const count = Math.floor(props.totalCount / props.info.take.value)
@@ -195,9 +185,11 @@ input[type=number] {
 }
 
 div.pagination-container {
-	display: grid;
+	display: flex;
     margin: 30px 0 10px;
-	grid-template-columns: repeat(3, auto);
+    justify-content: space-between;
+    flex-wrap: wrap;
+	/* grid-template-columns: repeat(3, auto); */
 }
 
 div.flex-container {
@@ -213,20 +205,25 @@ div.flex-container > div {
 div.button-container {
     background-color: var(--color-background-elevated);
     border-radius: 25px;
+    padding: 5px;
+
 }
 
 div.button-container button {
-    padding: 0 10px;
+    padding: 3px 10px 0;
 }
 
 div > button:hover {
-    background-color: var(--color-background-elevated);
     opacity: 0.4;
-    border-radius: 25px;
 }
 
 .active {
-    background-color: var(--color-background-elevated-hover);
+    background-color: hsl(247, 40%, 18%);
     border-radius: 25px;
+
+    &:hover {
+        opacity: 1;
+        cursor: default;
+    }
 }
 </style>
