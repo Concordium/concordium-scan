@@ -124,7 +124,7 @@ function getEventTooltip(eventType: string) {
         case 'ContractResumed':
             return "Contract continued execution after interrupt";
         case 'Transferred':
-            return "CCD balance reduced on contract by transfer to another contract or account";
+            return "Contract instance has transferred an amount of CCD balance to an account.";
         default:
             return "";
     }
