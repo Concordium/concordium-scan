@@ -1,7 +1,7 @@
 <template>
 	<div class="w-full">
-		<div>Logs (HEX):
-			<InfoTooltip text="Logs produced by contract execution. You can copy the hex string and decode the log if the contract uses a schema."/>
+		<div>Logs (hexadecimal):
+			<InfoTooltip text="Logs produced by contract execution."/>
 		</div>
 		<template v-if="eventsAsHex?.nodes?.length">
 			<div v-for="(event, i) in eventsAsHex.nodes" :key="i" class="flex">
@@ -10,7 +10,7 @@
 				</code>
 				<TextCopy
 					:text="event"
-					label="Click to copy events logs (HEX) to clipboard"
+					label="Click to copy events logs (hexadecimal) to clipboard"
 				/>
 			</div>
 		</template>

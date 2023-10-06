@@ -1,7 +1,7 @@
 <template>
 	<div class="w-full">
-		<div>Message (HEX):
-			<InfoTooltip text="Input parameters given to activity entrypoint. TODO (maybe something with HEX)"/>
+		<div>Message (hexadecimal):
+			<InfoTooltip text="Input parameters given to activity entrypoint. You can copy the hexadecimal string and decode the message if the contract uses a schema."/>
 		</div>
 		<div class="flex">
 			<code class="truncate w-36">
@@ -9,7 +9,7 @@
 			</code>
 			<TextCopy
 				:text="messageAsHex"
-				label="Click to copy message (HEX) to clipboard"
+				label="Click to copy message (hexadecimal) to clipboard"
 			/>
 		</div>
 	</div>
