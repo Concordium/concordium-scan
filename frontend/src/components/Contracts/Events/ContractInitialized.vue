@@ -7,7 +7,7 @@
 	</div>
 	<div>
 		<div>Init name:
-			<InfoTooltip text="Initial entrypoint of the contract."/>
+			<InfoTooltip :text="INIT_NAME"/>
 		</div>
 		<div>
 			{{ props.contractEvent.initName }}
@@ -15,7 +15,7 @@
 	</div>
 	<div>
 		<div>Module:
-			<InfoTooltip text="Container which holds execution code for one-or-more contracts. This reference holds the execution code of the contract at the time of the activity."/>
+			<InfoTooltip :text="`${MODULE} This reference holds the execution code of the contract at the time of the activity.`"/>
 		</div>
 		<div>
 			<ModuleLink :module-reference="props.contractEvent.moduleRef" />
@@ -35,6 +35,7 @@ import { ContractInitialized } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import ModuleLink from '../../molecules/ModuleLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import { INIT_NAME, MODULE } from '~~/src/utils/infoTooltips'
 
 type Props = {
 	contractEvent: ContractInitialized

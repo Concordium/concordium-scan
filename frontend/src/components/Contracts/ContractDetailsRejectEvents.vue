@@ -35,7 +35,7 @@
 				>
 					<div>
 						<div>Reject reason:
-							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"./>
+							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors ."/>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
@@ -43,7 +43,7 @@
 					</div>
 					<div>
 						<div>Receive name:
-							<InfoTooltip text="Entrypoint of the activity of the contract."/>
+							<InfoTooltip :text="RECEIVE_NAME"/>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.receiveName }}
@@ -67,6 +67,7 @@ import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { formatTimestamp } from '~~/src/utils/format'
+import { RECEIVE_NAME } from '~~/src/utils/infoTooltips'
 
 type Props = {
 	contractRejectEvents: ContractRejectEvent[]
@@ -76,7 +77,7 @@ defineProps<Props>()
 function getEventTooltip(eventType: string) {
 	switch(eventType) {
 		case 'RejectedReceive':
-			return "Contract logic rejected. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"."
+			return "Contract logic rejected. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors.";
 		default:
 			return "";
 	}

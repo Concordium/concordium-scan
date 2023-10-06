@@ -26,7 +26,7 @@
 	</div>
 	<div>
 		<div>Receive name:
-			<InfoTooltip text="Entrypoint of the activity of the contract."/>
+			<InfoTooltip :text="RECEIVE_NAME"/>
 		</div>
 		<div>
 			{{ props.contractEvent.receiveName }}
@@ -49,6 +49,7 @@ import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
+import { RECEIVE_NAME } from '~~/src/utils/infoTooltips'
 
 type Props = {
 	contractEvent: ContractUpdated

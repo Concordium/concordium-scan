@@ -31,13 +31,13 @@
 			<TableTd>
 				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidInitMethod'">
 					<div>Init name:
-						<InfoTooltip text="Initial entrypoint of the contract."/>
+						<InfoTooltip :text="INIT_NAME"/>
 					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.initName }}</div>
 				</div>
 				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidReceiveMethod'">
 					<div>Receive name:
-						<InfoTooltip text="Entrypoint of the activity of the contract."/>
+						<InfoTooltip :text="RECEIVE_NAME"/>
 					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.receiveName }}</div>
 				</div>
@@ -56,6 +56,7 @@ import { ModuleReferenceRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { convertTimestampToRelative } from '~~/src/utils/format'
+import { RECEIVE_NAME, INIT_NAME } from '~~/src/utils/infoTooltips'
 
 const { NOW } = useDateNow()
 
