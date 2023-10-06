@@ -1,7 +1,7 @@
 <template>
 	<div class="w-full">
 		<div>Logs (HEX):
-			<InfoTooltip text="Logs from contract in activity. TODO (maybe something with HEX)"/>
+			<InfoTooltip text="Logs from contract in activity. You can copy the HEX number and decode the log if the contract uses a schema."/>
 		</div>
 		<template v-if="eventsAsHex?.nodes?.length">
 			<div v-for="(event, i) in eventsAsHex.nodes" :key="i" class="flex">
