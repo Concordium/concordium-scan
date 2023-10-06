@@ -67,11 +67,11 @@ defineProps<Props>()
 function getEventTooltip(eventType: string) {
 	switch (eventType) {
 		case 'InvalidInitMethod':
-			return "TODO";
+			return "Initialize method failed or does not exist; check if contract name exists in module.";
 		case 'InvalidReceiveMethod':
-			return "TODO";
+			return "Receive method does not exist; check if contract name, receive name exists in module. ";
 		case 'ModuleHashAlreadyExists':
-			return "TODO";
+			return "Module already deployed on-chain.";
 		default:
 			return "";
 	}
