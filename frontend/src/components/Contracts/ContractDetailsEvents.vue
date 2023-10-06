@@ -112,19 +112,19 @@ function getResumedLabel(resumed: boolean) : string {
 function getEventTooltip(eventType: string) {
 	switch (eventType) {
         case 'ContractInitialized':
-            return "TODO";
+            return "Contract has been initialized on-chain";
         case 'ContractUpdated':
-            return "TODO";
+            return "Contract has been updated based on receive function";
         case 'ContractModuleDeployed':
-            return "TODO";
+            return "Contract module has been deployed on-chain";
         case 'ContractCall':
-            return "TODO";
+            return "Contract has read from or written to an entrypoint on another contract";
         case 'ContractUpgraded':
-            return "TODO";
+            return "Contract module has been upgraded";
         case 'ContractResumed':
-            return "TODO";
+            return "Contract continued execution after interrupt";
         case 'Transferred':
-            return "TODO";
+            return "CCD balance change has occurred";
         default:
             return "";
     }
