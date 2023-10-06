@@ -24,7 +24,15 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractRejectEvent.rejectedEvent.__typename) }}
-				<InfoTooltip :text="getEventTooltip(contractRejectEvent.rejectedEvent.__typename!)"/>
+				<InfoTooltip text="Contract logic rejected. For an explanation of the error code(s), see ">
+					<template #content>
+						<a
+							style="color: var(--color-text-faded);"
+							href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+							link
+						</a>
+					</template>
+				</InfoTooltip>				
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -35,7 +43,15 @@
 				>
 					<div>
 						<div>Reject reason:
-							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors ."/>
+							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see ">
+								<template #content>
+									<a
+										style="color: var(--color-text-faded);"
+										href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+										link
+									</a>
+								</template>
+							</InfoTooltip>
 						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
@@ -73,15 +89,6 @@ type Props = {
 	contractRejectEvents: ContractRejectEvent[]
 }
 defineProps<Props>()
-
-function getEventTooltip(eventType: string) {
-	switch(eventType) {
-		case 'RejectedReceive':
-			return "Contract logic rejected. For an explanation of the error code(s), see link https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors.";
-		default:
-			return "";
-	}
-}
 
 function trimTypeName(typeName: string | undefined) {
 	let name = typeName

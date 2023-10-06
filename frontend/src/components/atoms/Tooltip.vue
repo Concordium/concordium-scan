@@ -69,6 +69,7 @@ const handleOnMouseLeave = () => {
 	left: v-bind(tooltipX);
 	position: v-bind(tooltipPosition);
 	text-wrap: wrap;
+	pointer-events: auto;
 }
 
 /* Binding variables from a composable to a pseudo element does not work in Vue */
