@@ -54,15 +54,27 @@
             </div>            
         </div>
 		<div style="display: flex; justify-content: flex-end;">
-			<div>Page search</div>
-            <input 
-                :value="inputPage"
-                :max="totalPages"
-                :min="1"
-                type="number"
-                style="color: black; text-align: right;"
-                @input="onInput"
-            />
+            <div style="display: grid; grid-template-rows: auto 20px;">
+                <div>
+                <div style="display: inline-block;">Page search</div>
+                <input 
+                    :value="inputPage"
+                    :max="totalPages"
+                    :min="1"
+                    type="number"
+                    style="color: black; text-align: right; margin-left: 5px; border-radius: 5px;"
+                    @input="onInput"
+                />                
+                </div>
+                <div>
+                    <div 
+                        v-if="pageInputValidation"
+                        style="font-size: 0.75rem; text-wrap: wrap; color: red"
+                        >
+                        {{ pageInputValidation }}
+                    </div>
+                </div>            
+            </div>
 		</div>
 	</div>    
 </template>
@@ -77,29 +89,6 @@ type Props = {
     info: PaginationOffsetInfo
     totalCount: number
 }
-
-const inputPage = ref();
-const timeoutId = ref();
-const onInput = (e: Event) => {
-    const inputElement = e.target as HTMLInputElement;
-    if (!inputElement?.value) {
-        e.preventDefault();
-        return;
-    }
-    const page = parseInt(inputElement.value);
-    if (page > totalPages.value || page < 1) {
-        e.preventDefault();
-        return;
-    }
-    if (timeoutId.value !== undefined) {
-        clearTimeout(timeoutId.value);
-    }
-    inputPage.value = page
-    timeoutId.value = setTimeout(() => {
-        console.log(page)
-    }, 1_000);
-}
-
 const props = defineProps<Props>();
 
 const totalPages = computed(() => {
@@ -109,6 +98,34 @@ const totalPages = computed(() => {
 const currentPage = computed(() => {
     return Math.floor(props.info.skip.value / props.info.take.value) + 1
 })
+const inputPage = ref();
+
+watch(currentPage, (newCurrentPage, _ ) => {
+    inputPage.value = newCurrentPage;
+}, {immediate: true});
+
+const timeoutId = ref();
+const pageInputValidation = ref("");
+const onInput = (e: Event) => {
+    const inputElement = e.target as HTMLInputElement;
+    pageInputValidation.value = "";
+    if (!inputElement?.value) {
+        return;
+    }
+    const page = parseInt(inputElement.value);
+    if (page > totalPages.value || page < 1) {
+        pageInputValidation.value = `Page should be at least 0 and at most ${totalPages.value}`;
+        return;
+    }
+    if (timeoutId.value !== undefined) {
+        clearTimeout(timeoutId.value);
+    }
+    inputPage.value = page
+    timeoutId.value = setTimeout(() => {
+        const next = Math.max(0, inputPage.value - 1) * props.info.take.value;
+        props.info.update(next);
+    }, 1_000);
+}
 
 const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % NAVIGATION_SIZE));
 const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) + 1) *  NAVIGATION_SIZE, totalPages.value));
@@ -151,6 +168,18 @@ const onClickPage = (page: number): void => {
 
 </script>
 <style>
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 .chevron-button {
     display: flex;
     justify-content: center;
