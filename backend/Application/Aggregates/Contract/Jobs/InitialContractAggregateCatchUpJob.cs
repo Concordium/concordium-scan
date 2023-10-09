@@ -15,7 +15,7 @@ namespace Application.Aggregates.Contract.Jobs;
 /// <summary>
 /// Catch up contract aggregate state from existing data in database.
 /// </summary>
-public class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJobs
+public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJobs
 {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.

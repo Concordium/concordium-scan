@@ -16,7 +16,7 @@ namespace Application.Aggregates.Contract.Jobs;
 /// This class calls the input job in batches and parallel. Hence the order of block height processed is out of order.
 /// Because of this the jobs are expected to be stateless.
 /// </summary>
-internal class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob where TStatelessJob : IStatelessBlockHeightJobs
+internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob where TStatelessJob : IStatelessBlockHeightJobs
 {
     
     private readonly ContractHealthCheck _healthCheck;
