@@ -1017,10 +1017,8 @@ export type Contract = {
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents?: Maybe<ContractEventsCollectionSegment>;
-  contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
-  contractEvents?: Maybe<ContractEventsConnection>;
   contractName: Scalars['String'];
-  contractRejectEvents?: Maybe<ContractRejectEventsConnection>;
+  contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
