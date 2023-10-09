@@ -7,8 +7,8 @@
             <div class="chevron-button">
                 <button
                 type="button"
-                :disabled="isFirstPages"
-                :class="{disabled: isFirstPages}"
+                :disabled="currentPage === 1"
+                :class="{disabled: currentPage === 1}"
                 @click="onClickFirstPage"
                 >
                     <ChevronDoubleLeftCustomIcon class="chevron-icon"/>
@@ -45,24 +45,29 @@
             <div class="chevron-button">
                 <button
                     type="button"
-                    :disabled="isLastPages"
-                    :class="{disabled: isLastPages}"
+                    :disabled="currentPage === totalPages"
+                    :class="{disabled: currentPage === totalPages}"
                     @click="onClickLastPage"
                 >
                     <ChevronDoubleRightCustomIcon class="chevron-icon"/>
                 </button>
             </div>            
         </div>
-		<div style="display: flex; justify-content: flex-end;">
+		<div style="display: flex; justify-content: flex-end; align-items: center;">
             <div style="display: inline-block;">Page</div>
             <input 
-                :value="inputPage"
+                v-model="inputPage"
                 :max="totalPages"
                 :min="1"
                 type="number"
                 style="color: black; text-align: center; margin-left: 5px; border-radius: 5px;"
-                @input="onInput"
-            />                
+            />
+            <button
+                style="margin-left: 5px;"
+                @click="onSubmitInput"
+            >
+                Go
+            </button>
 		</div>
 	</div>    
 </template>
@@ -72,14 +77,12 @@ import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCus
 import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
 import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightCustomIcon.vue'
 import ChevronRightCustomIcon from '~/components/icons/ChevronRightCustomIcon.vue'
-import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 
 type Props = {
     info: PaginationOffsetInfo
     totalCount: number
 }
 const props = defineProps<Props>();
-const { breakpoint } = useBreakpoint();
 
 const totalPages = computed(() => {
     const count = Math.floor(props.totalCount / props.info.take.value)
@@ -88,33 +91,25 @@ const totalPages = computed(() => {
 const currentPage = computed(() => {
     return Math.floor(props.info.skip.value / props.info.take.value) + 1
 })
-const inputPage = ref();
 
+const inputPage = ref();
 watch(currentPage, (newCurrentPage, _ ) => {
     inputPage.value = newCurrentPage;
 }, {immediate: true});
-
-const timeoutId = ref();
 const pageInputValidation = ref("");
-const onInput = (e: Event) => {
-    const inputElement = e.target as HTMLInputElement;
+const onSubmitInput = () => {
     pageInputValidation.value = "";
-    if (!inputElement?.value) {
+    if (!inputPage.value) {
         return;
     }
-    const page = parseInt(inputElement.value);
+    const page = parseInt(inputPage.value);
     if (page > totalPages.value || page < 1) {
         pageInputValidation.value = `Page should be at least 0 and at most ${totalPages.value}`;
+        console.log(pageInputValidation) // TODO make better tool tip
         return;
     }
-    if (timeoutId.value !== undefined) {
-        clearTimeout(timeoutId.value);
-    }
-    inputPage.value = page
-    timeoutId.value = setTimeout(() => {
-        const next = Math.max(0, inputPage.value - 1) * props.info.take.value;
-        props.info.update(next);
-    }, 1_000);
+    const next = Math.max(0, inputPage.value - 1) * props.info.take.value;
+    props.info.update(next);
 }
 
 const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % NAVIGATION_SIZE));
