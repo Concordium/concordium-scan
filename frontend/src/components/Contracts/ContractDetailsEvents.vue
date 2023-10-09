@@ -21,6 +21,7 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractEvent.event.__typename) }}
+				<InfoTooltip :text="getEventTooltip(contractEvent.event.__typename!)"/>
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -34,15 +35,6 @@
 					:id="i"
 				>
 					<ContractUpdated :contract-event="contractEvent.event" />
-				</DetailsView>
-				<DetailsView
-					v-if="contractEvent.event.__typename === 'ContractModuleDeployed'"
-					:id="i"
-				>
-					<div>Module Reference:</div>
-					<div>
-						<ModuleLink :module-reference="contractEvent.event.moduleRef" />
-					</div>
 				</DetailsView>
 				<DetailsView
 					v-if="contractEvent.event.__typename === 'ContractCall'"
@@ -78,10 +70,7 @@
 					v-if="contractEvent.event.__typename === 'ContractResumed'"
 					:id="i"
 				>
-					<div>
-						<div>Successfully Resumed:</div>
-						<div>{{ contractEvent.event.success }}</div>
-					</div>
+					<div> {{ getResumedLabel(contractEvent.event.success) }}</div>
 				</DetailsView>
 				<DetailsView
 					v-if="contractEvent.event.__typename === 'Transferred'"
@@ -97,6 +86,7 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import DetailsView from '../Details/DetailsView.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import LogsHEX from '../Details/LogsHEX.vue'
 import ContractInitialized from './Events/ContractInitialized.vue'
 import ContractCall from './Events/ContractCall.vue'
@@ -114,6 +104,31 @@ type Props = {
 	contractEvents: ContractEvent[]
 }
 defineProps<Props>()
+
+function getResumedLabel(resumed: boolean) : string {
+	return resumed ? "Sucessfully resumed" : "Failed"
+}
+
+function getEventTooltip(eventType: string) {
+	switch (eventType) {
+        case 'ContractInitialized':
+            return "Contract instance has been initialized on-chain";
+        case 'ContractUpdated':
+            return "Contract has been updated based on receive function";
+        case 'ContractModuleDeployed':
+            return "Contract module has been deployed on-chain";
+        case 'ContractCall':
+            return "Contract has read from or written to an entrypoint on another contract";
+        case 'ContractUpgraded':
+            return "Contract module has been upgraded";
+        case 'ContractResumed':
+            return "Contract continued execution after interrupt";
+        case 'Transferred':
+            return "Contract instance has transferred an amount of CCD balance to an account.";
+        default:
+            return "";
+    }
+}
 
 function trimTypeName(typeName: string | undefined) {
 	let name = typeName

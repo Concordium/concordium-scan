@@ -114,6 +114,13 @@ public sealed class Contract : BaseIdentification
     [ExtendObjectType(typeof(Contract))]
     public sealed class ContractExtensions
     {
+        public string GetContractName([Parent] Contract contract)
+        {
+            var contractEvent = contract.ContractEvents
+                .First(e => e.Event is ContractInitialized);
+            return (contractEvent.Event as ContractInitialized)!.InitName[5..];
+        }
+        
         /// <summary>
         /// Returns the current linked module reference which is the latest added <see cref="ModuleReferenceContractLinkEvent"/>.
         /// </summary>

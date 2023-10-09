@@ -733,6 +733,7 @@ type Contract {
   source: ImportSource!
   blockSlotTime: DateTime!
   createdAt: DateTime!
+  contractName: String!
   moduleReference: String!
   amount: Float!
 }

@@ -3,7 +3,13 @@
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
 			<div class="flex flex-row gap-20 mb-12">
-				<ContractDetailsAmounts :contract="contract" />
+				<DetailsCard>
+					<template #title>Contract name</template>
+					<template #default>
+						{{ contract.contractName }}
+					</template>
+				</DetailsCard>				
+				<ContractDetailsAmounts :contract="contract" />				
 				<DetailsCard>
 					<template #title>Date</template>
 					<template #default>
@@ -14,13 +20,19 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Module</template>
+					<template #title>
+						Module
+						<InfoTooltip text="Container which holds execution code for one or more contracts. The below references hold the current execution code of the contract."/>
+					</template>
 					<template #default>
 						<ModuleLink :module-reference="contract.moduleReference" />
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Creator</template>
+					<template #title>
+						Creator
+						<InfoTooltip text="Account address of the contract instance creator."/>
+					</template>
 					<template #default>
 						<AccountLink :address="contract.creator.asString" />
 					</template>
@@ -66,6 +78,7 @@
 import Tabs from '../Tabs.vue'
 import ModuleLink from '../molecules/ModuleLink.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
@@ -76,6 +89,7 @@ import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+
 
 const { NOW } = useDateNow()
 

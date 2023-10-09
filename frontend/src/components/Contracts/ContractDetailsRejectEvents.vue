@@ -24,6 +24,15 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractRejectEvent.rejectedEvent.__typename) }}
+				<InfoTooltip text="Contract logic rejected. For an explanation of the error code(s), see ">
+					<template #content>
+						<a
+							style="color: #48a2ae;"
+							href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+							link
+						</a>
+					</template>
+				</InfoTooltip>				
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -33,13 +42,25 @@
 					:id="i"
 				>
 					<div>
-						<div>Reject Reason:</div>
+						<div>Reject reason:
+							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see ">
+								<template #content>
+									<a
+										style="color: #48a2ae;"
+										href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+										link
+									</a>
+								</template>
+							</InfoTooltip>
+						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.rejectReason }}
 						</div>
 					</div>
 					<div>
-						<div>Receive Name:</div>
+						<div>Receive name:
+							<InfoTooltip :text="RECEIVE_NAME"/>
+						</div>
 						<div>
 							{{ contractRejectEvent.rejectedEvent.receiveName }}
 						</div>
@@ -57,12 +78,12 @@
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import MessageHEX from '../Details/MessageHEX.vue'
 import DetailsView from '../Details/DetailsView.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
 import { formatTimestamp } from '~~/src/utils/format'
-
-const { NOW } = useDateNow()
+import { RECEIVE_NAME } from '~~/src/utils/infoTooltips'
 
 type Props = {
 	contractRejectEvents: ContractRejectEvent[]
