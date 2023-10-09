@@ -20,17 +20,17 @@
 		</div>
 	</div>
 	<div>
-		<div>Receive name of contract called:
+		<div>Entrypoint of contract called:
 			<InfoTooltip text="Entrypoint of the activity of the called contract."/>		
 		</div>
 		<div>
-			{{ props.contractEvent.contractUpdated.receiveName }}
+			{{ getEntrypoint(props.contractEvent.contractUpdated.receiveName) }}
 		</div>
 	</div>
-	<div>
+	<div v-if="props.contractEvent?.contractUpdated?.version">
 		<div>Version:</div>
 		<div>
-			{{ props.contractEvent?.contractUpdated.version }}
+			{{ props.contractEvent.contractUpdated.version }}
 		</div>
 	</div>
 	<MessageHEX
@@ -43,7 +43,9 @@ import MessageHEX from '../../Details/MessageHEX.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
 import { ContractCall } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
+import { getEntrypoint } from "./contractEvents";
 import Amount from '~/components/atoms/Amount.vue'
+import ContractLink from '~/components/molecules/ContractLink.vue'
 
 type Props = {
 	contractEvent: ContractCall

@@ -25,11 +25,11 @@
 		</div>
 	</div>
 	<div>
-		<div>Receive name:
+		<div>Entrypoint:
 			<InfoTooltip :text="RECEIVE_NAME"/>
 		</div>
 		<div>
-			{{ props.contractEvent.receiveName }}
+			{{ getEntrypoint(props.contractEvent.receiveName) }}
 		</div>
 	</div>
 	<div v-if="props.contractEvent?.version">
@@ -46,6 +46,7 @@ import { ContractUpdated } from '../../../../src/types/generated'
 import MessageHEX from '../../Details/MessageHEX.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
+import { getEntrypoint } from "./contractEvents";
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
@@ -55,4 +56,5 @@ type Props = {
 	contractEvent: ContractUpdated
 }
 const props = defineProps<Props>()
+
 </script>

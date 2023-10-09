@@ -8,6 +8,7 @@
 				{{ messageAsHex }}
 			</code>
 			<TextCopy
+				v-if="messageAsHex"
 				:text="messageAsHex"
 				label="Click to copy message (hexadecimal) to clipboard"
 			/>

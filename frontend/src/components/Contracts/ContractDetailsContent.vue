@@ -3,7 +3,13 @@
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
 			<div class="flex flex-row gap-20 mb-12">
-				<ContractDetailsAmounts :contract="contract" />
+				<DetailsCard>
+					<template #title>Contract name</template>
+					<template #default>
+						{{ contract.contractName }}
+					</template>
+				</DetailsCard>				
+				<ContractDetailsAmounts :contract="contract" />				
 				<DetailsCard>
 					<template #title>Date</template>
 					<template #default>

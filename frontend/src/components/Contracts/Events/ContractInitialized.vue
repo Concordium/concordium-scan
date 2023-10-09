@@ -6,14 +6,6 @@
 		</div>
 	</div>
 	<div>
-		<div>Init name:
-			<InfoTooltip :text="INIT_NAME"/>
-		</div>
-		<div>
-			{{ props.contractEvent.initName }}
-		</div>
-	</div>
-	<div>
 		<div>Module:
 			<InfoTooltip :text="`${MODULE} This reference holds the execution code of the contract at the time of the activity.`"/>
 		</div>
