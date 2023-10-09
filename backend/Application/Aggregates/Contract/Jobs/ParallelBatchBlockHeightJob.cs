@@ -52,7 +52,7 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
             var fromBatch = 0;
             while (!token.IsCancellationRequested)
             {
-                var finalHeight = await _statelessJob.GetFinalHeight(token);
+                var finalHeight = await _statelessJob.GetMaximumHeight(token);
 
                 if (finalHeight < fromBatch * _jobOptions.BatchSize)
                 {
