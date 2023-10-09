@@ -111,7 +111,7 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
     /// </summary>
     private async ValueTask RunBatch(long height, CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(nameof(RunBatch));
+        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
             
         var blockHeightTo = height * _jobOptions.BatchSize;
         var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
@@ -121,6 +121,6 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
         {
             return;
         };
-        _logger.Information("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
+        _logger.Information("Written heights {From} to {To} for job {}", blockHeightFrom, blockHeightTo, GetUniqueIdentifier());
     }
 }
