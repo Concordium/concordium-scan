@@ -68,8 +68,8 @@ const handleOnMouseLeave = () => {
 	top: v-bind(tooltipY);
 	left: v-bind(tooltipX);
 	position: v-bind(tooltipPosition);
-	text-wrap: wrap;
 	pointer-events: auto;
+	white-space: normal;
 	text-align: center;
 }
 
