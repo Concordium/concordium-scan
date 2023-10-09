@@ -27,7 +27,7 @@
 				<InfoTooltip text="Contract logic rejected. For an explanation of the error code(s), see ">
 					<template #content>
 						<a
-							style="color: var(--color-text-faded);"
+							style="color: #48a2ae;"
 							href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
 							link
 						</a>
@@ -46,7 +46,7 @@
 							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see ">
 								<template #content>
 									<a
-										style="color: var(--color-text-faded);"
+										style="color: #48a2ae;"
 										href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
 										link
 									</a>
