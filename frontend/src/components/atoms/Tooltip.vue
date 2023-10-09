@@ -7,7 +7,7 @@
 		<transition name="tooltip">
 			<span
 				v-show="isVisible"
-				class="text-sm left-1/2 top-0 w-max p-3 rounded-lg z-50 tooltip pointer-events-none"
+				class="text-sm left-1/2 top-0 p-3 rounded-lg z-50 tooltip pointer-events-none"
 				:class="textClass"
 			>
 				{{ text }}
@@ -68,6 +68,9 @@ const handleOnMouseLeave = () => {
 	top: v-bind(tooltipY);
 	left: v-bind(tooltipX);
 	position: v-bind(tooltipPosition);
+	text-wrap: wrap;
+	pointer-events: auto;
+	text-align: center;
 }
 
 /* Binding variables from a composable to a pseudo element does not work in Vue */

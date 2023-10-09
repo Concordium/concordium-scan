@@ -6,9 +6,15 @@
 				<TableRow>
 					<TableTh>Address</TableTh>
 					<TableTh>Age</TableTh>
-					<TableTh align="right">Creator</TableTh>
+					<TableTh align="right">
+						Creator
+						<InfoTooltip text="Account address of contract creator"/>
+					</TableTh>
 					<TableTh align="right">Initial Transaction</TableTh>
-					<TableTh align="right">Module</TableTh>
+					<TableTh align="right">
+						Module
+						<InfoTooltip :text="`${MODULE} The below references holds the current execution code of the contract.`"/>
+					</TableTh>
 					<TableTh align="right"
 						>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh
 					>
@@ -68,6 +74,8 @@ import {
 	formatTimestamp,
 } from '~~/src/utils/format'
 import ModuleLink from '~~/src/components/molecules/ModuleLink.vue'
+import InfoTooltip from '~~/src/components/atoms/InfoTooltip.vue'
+import { MODULE } from '~~/src/utils/infoTooltips'
 
 const { NOW } = useDateNow()
 const { first, last, after, before, goToPage } = usePagination()

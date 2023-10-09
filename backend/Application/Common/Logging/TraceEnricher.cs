@@ -9,6 +9,7 @@ public class TraceEnricher : ILogEventEnricher
     private const string Id = "Id";
     private const string TraceId = "TraceId";
     private const string SpanId = "SpanId";
+    private const string ParentId = "ParentId";
     
     public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
     {
@@ -20,5 +21,9 @@ public class TraceEnricher : ILogEventEnricher
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(Id, Activity.Current.Id));
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(TraceId, Activity.Current.TraceId));
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(SpanId, Activity.Current.SpanId));
+        if (Activity.Current.ParentId != null)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(ParentId, Activity.Current.ParentId));
+        }
     }
 }

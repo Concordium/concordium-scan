@@ -172,6 +172,7 @@ const ContractQuery = gql`
 			blockSlotTime
 			moduleReference
 			amount
+			contractName
 			creator {
 				asString
 			}

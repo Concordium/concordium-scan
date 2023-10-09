@@ -13,6 +13,27 @@ public sealed class ContractTests
     private readonly Application.Aggregates.Contract.Entities.Contract.ContractExtensions _contractExtensions = new();
 
     [Fact]
+    public void WhenGetContractName_ThenTrimInit()
+    {
+        // Arrange
+        const string contractNameExpected = "foo";
+        var contractEvent = ContractEventBuilder
+            .Create()
+            .WithEvent(new ContractInitialized("", new ContractAddress(1,0), 10, $"init_{contractNameExpected}", ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        var contract = ContractBuilder
+            .Create()
+            .WithContractEvents(new List<ContractEvent>{contractEvent})
+            .Build();
+        
+        // Act
+        var contractNameActual = _contractExtensions.GetContractName(contract);
+
+        // Assert
+        contractNameActual.Should().Be(contractNameExpected);
+    }
+    
+    [Fact]
     public void WhenGetModuleReference_ThenReturnLatestAdded()
     {
         // Arrange
