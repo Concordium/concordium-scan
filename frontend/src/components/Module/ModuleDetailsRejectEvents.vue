@@ -36,7 +36,7 @@
 					<div>{{ moduleRejectEvent.rejectedEvent.initName }}</div>
 				</div>
 				<div v-if="moduleRejectEvent.rejectedEvent.__typename === 'InvalidReceiveMethod'">
-					<div>Receive name:
+					<div>Entrypoint:
 						<InfoTooltip :text="RECEIVE_NAME"/>
 					</div>
 					<div>{{ moduleRejectEvent.rejectedEvent.receiveName }}</div>

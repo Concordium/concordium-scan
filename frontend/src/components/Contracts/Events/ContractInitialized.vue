@@ -27,7 +27,7 @@ import { ContractInitialized } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import ModuleLink from '../../molecules/ModuleLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
-import { INIT_NAME, MODULE } from '~~/src/utils/infoTooltips'
+import { MODULE } from '~~/src/utils/infoTooltips'
 
 type Props = {
 	contractEvent: ContractInitialized
