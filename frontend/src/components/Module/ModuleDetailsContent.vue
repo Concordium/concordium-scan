@@ -20,7 +20,9 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Creator</template>
+					<template #title>Creator					
+						<InfoTooltip text="Account address of module creator"/>
+					</template>
 					<template #default>
 						<AccountLink :address="moduleReferenceEvent.sender.asString" />
 					</template>
@@ -73,6 +75,7 @@
 <script lang="ts" setup>
 import Tabs from '../Tabs.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'

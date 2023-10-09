@@ -4,7 +4,9 @@
 			<TableTh>Transaction</TableTh>
 			<TableTh>Contract Address</TableTh>
 			<TableTh>Age</TableTh>
-			<TableTh>Action</TableTh>
+			<TableTh>Action
+				<InfoTooltip text="Action which defines if a contract was linked (added) or unlinked (removed) to the module execution code."/>							
+			</TableTh>
 		</TableRow>
 	</TableHead>
 	<TableBody>
@@ -27,7 +29,7 @@
 				</Tooltip>
 			</TableTd>
 			<TableTd>
-				{{ linkEvent.linkAction }}
+				{{ linkEvent.linkAction === 'ADDED' ? 'LINKED' : 'UNLINKED' }}
 			</TableTd>
 		</TableRow>
 	</TableBody>
@@ -36,17 +38,11 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import ContractLink from '../molecules/ContractLink.vue'
+import InfoTooltip from '../atoms/InfoTooltip.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import {
-	ModuleReferenceContractLinkEvent,
-	PageInfo,
-} from '~~/src/types/generated'
+import { ModuleReferenceContractLinkEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import { PaginationTarget } from '~~/src/composables/usePagination'
+import { convertTimestampToRelative } from '~~/src/utils/format'
 
 const { NOW } = useDateNow()
 

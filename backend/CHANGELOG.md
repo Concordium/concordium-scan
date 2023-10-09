@@ -1,4 +1,9 @@
 ## Unreleased changes
+
+## Unstable features
+- GraphQL endpoints for contracts and modules should currently be seen as unstable, indicating that the query models are likely to undergo changes.
+
+## 1.7.2
 - Added feature which fetched Contract data from node and store as events.
 - Added Prometheus metrics
     - Durations of imports, count of relevant processed transaction events and retry counts.

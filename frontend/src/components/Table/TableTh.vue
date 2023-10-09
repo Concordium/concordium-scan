@@ -1,6 +1,6 @@
 <template>
 	<th
-		class="px-6 py-3 font-normal whitespace-nowrap relative z-10"
+		class="px-6 py-3 font-normal whitespace-nowrap"
 		:class="$style.th"
 		align="left"
 	>
