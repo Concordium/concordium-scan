@@ -54,25 +54,34 @@
             </div>            
         </div>
 		<div style="display: flex; justify-content: flex-end; align-items: center;">
-            <div style="display: inline-block;">Page</div>
-            <input 
-                v-model="inputPage"
-                :max="totalPages"
-                :min="1"
-                type="number"
-                style="color: black; text-align: center; margin-left: 5px; border-radius: 5px;"
-            />
-            <button
-                style="margin-left: 5px;"
-                @click="onSubmitInput"
-            >
-                Go
-            </button>
+            <form novalidate="true" @submit.prevent="onSubmitInput">
+                <label for="inputPage" style="display: inline-block;">Page</label>
+                <input
+                  id="inputPage"
+                  v-model="inputPage"
+                  :max="totalPages"
+                  :min="1"
+                  type="number"
+                  style="color: black; text-align: center; margin-left: 5px; border-radius: 5px;"
+                />
+                <Validation 
+                    :text="`Page should be at least 0 and at most ${totalPages}`"
+                    :is-visible="isVisible">
+                  <button 
+                    type="submit"
+                    class="click-btn"
+                    style="margin-left: 5px;"
+                    >
+                        Go
+                    </button>
+                </Validation>                
+            </form>
 		</div>
 	</div>    
 </template>
 <script lang="ts" setup>
 import { PaginationOffsetInfo, useNavigotionSize } from '../composables/usePaginationOffset'
+import Validation from './atoms/Validation.vue'
 import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
 import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
 import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightCustomIcon.vue'
@@ -84,8 +93,7 @@ type Props = {
 }
 const props = defineProps<Props>();
 
-const navigationSize = useNavigotionSize();
-
+// Page computations
 const totalPages = computed(() => {
     const count = Math.floor(props.totalCount / props.info.take.value)
     return props.totalCount % props.info.take.value === 0 ? count : count + 1;
@@ -94,30 +102,35 @@ const currentPage = computed(() => {
     return Math.floor(props.info.skip.value / props.info.take.value) + 1
 })
 
+// Page go-to computation and validations
 const inputPage = ref();
 watch(currentPage, (newCurrentPage, _ ) => {
     inputPage.value = newCurrentPage;
 }, {immediate: true});
+const isVisible = ref(false);
 
-const pageInputValidation = ref("");
 const onSubmitInput = () => {
-    pageInputValidation.value = "";
+    isVisible.value = false;
     if (!inputPage.value) {
         return;
     }
     const page = parseInt(inputPage.value);
     if (page > totalPages.value || page < 1) {
-        pageInputValidation.value = `Page should be at least 0 and at most ${totalPages.value}`;
-        console.log(pageInputValidation) // TODO make better tool tip
+        isVisible.value = true;
+        setTimeout(() => {
+            isVisible.value = false;
+        }, 5_000);
         return;
     }
     const next = Math.max(0, inputPage.value - 1) * props.info.take.value;
     props.info.update(next);
 }
 
+// Page navigation computations
+const navigationSize = useNavigotionSize();
+
 const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % navigationSize.value));
 const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *  navigationSize.value, totalPages.value));
-
 const pages = computed(() => {
     const range = [];
     for (let i = pageFrom.value; i <= pageTo.value; i++) {
@@ -125,22 +138,19 @@ const pages = computed(() => {
     }
     return range;
 })
-
 const isFirstPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === 0);
 const isLastPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === Math.floor((totalPages.value - 1) / navigationSize.value));
 
+// Chevron click handlers
 const onClickFirstPage = () => props.info.update(0);
-
 const onClickPreviousPage = () => {
     const previous = Math.max(0, pageFrom.value - navigationSize.value - 1) * props.info.take.value;
     props.info.update(previous);
 }
-
 const onClickNextPage = () => {
     const next = pageTo.value * props.info.take.value;
     props.info.update(next);
 }
-
 const onClickLastPage = () => {
     const remainder = props.totalCount % props.info.take.value;
     const toSkip = remainder === 0 ? 
@@ -148,7 +158,6 @@ const onClickLastPage = () => {
         props.totalCount - remainder;
     props.info.update(toSkip)
 }
-
 const onClickPage = (page: number): void => {
     const toSkip = page * props.info.take.value - props.info.take.value;
     props.info.update(toSkip);

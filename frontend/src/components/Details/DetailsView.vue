@@ -6,7 +6,7 @@
 	>
 		<button
 			v-if="addButton"
-			class="detail-expand-btn"
+			class="click-btn detail-expand-btn"
 			:aria-expanded="isOpen"
 			:aria-controls="ID"
 			@click="toggleOpenState"
@@ -59,13 +59,6 @@ onMounted(() => {
 .detail-expand-btn {
 	width: 40px;
 	height: 40px;
-	border-radius: 8px;
-	background-color: var(--color-thead-bg);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	border: 1px solid #787594;
-	box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.2);
 	position: absolute;
 	right: 0;
 }
