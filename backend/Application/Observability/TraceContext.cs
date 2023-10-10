@@ -9,7 +9,7 @@ internal static class TraceContext
         return CreateActivity(name).Start();
     }
 
-    internal static Activity CreateActivity(string name)
+    private static Activity CreateActivity(string name)
     {
         if (Activity.Current?.ParentId != null)
         {

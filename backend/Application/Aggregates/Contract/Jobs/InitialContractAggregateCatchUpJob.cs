@@ -6,117 +6,38 @@ using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
-using Application.Observability;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Polly;
-using Polly.Retry;
 
 namespace Application.Aggregates.Contract.Jobs;
 
-internal class ContractDatabaseImportJob : IContractJob
+/// <summary>
+/// Catch up contract aggregate state from existing data in database.
+/// </summary>
+public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJobs
 {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
     private const string JobName = "ContractDatabaseImportJob";
     
-    private readonly ContractHealthCheck _healthCheck;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly ILogger _logger;
-    private readonly ContractAggregateJobOptions _jobOptions;
     private readonly ContractAggregateOptions _contractAggregateOptions;
 
-    public ContractDatabaseImportJob(
+    public InitialContractAggregateCatchUpJob(
         IContractRepositoryFactory repositoryFactory,
-        IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck
+        IOptions<ContractAggregateOptions> options
         )
     {
         _repositoryFactory = repositoryFactory;
-        _healthCheck = healthCheck;
-        _logger = Log.ForContext<ContractDatabaseImportJob>();
+        _logger = Log.ForContext<InitialContractAggregateCatchUpJob>();
         _contractAggregateOptions = options.Value;
-        var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(JobName, out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
     }
-
-    public async Task StartImport(CancellationToken token)
-    {
-        using var _ = TraceContext.StartActivity(nameof(ContractDatabaseImportJob));
-        
-        try
-        {
-            var fromBatch = 0;
-            while (!token.IsCancellationRequested)
-            {
-                var finalHeight = await GetFinalHeight(token);
-
-                if (finalHeight < fromBatch * _jobOptions.BatchSize)
-                {
-                    break;
-                }
-                var toBatch = (int)(finalHeight / _jobOptions.BatchSize);
-
-                var cycle = Parallel.ForEachAsync(
-                    Enumerable.Range(fromBatch, toBatch - fromBatch + 1),
-                    new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-                    },
-                    (height, batchToken) => RunBatch(height, batchToken));
-                
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                var metricUpdater = UpdateReadHeightMetric(cts.Token);
-
-                await cycle;
-                cts.Cancel();
-                await metricUpdater;
-
-                fromBatch = toBatch + 1;
-            }
-            
-            _logger.Information($"Done with job {nameof(ContractDatabaseImportJob)}");
-        }
-        catch (Exception e)
-        {
-            _logger.Fatal(e, $"{nameof(ContractDatabaseImportJob)} stopped due to exception.");
-            _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Database import job stopped due to exception.");
-            _logger.Fatal(e, $"{nameof(ContractDatabaseImportJob)} stopped due to exception.");
-            throw;
-        }
-    }
-
+    
     /// <inheritdoc/>
-    public string GetUniqueIdentifier()
-    {
-        return JobName;
-    }
-
-    private async Task UpdateReadHeightMetric(CancellationToken token)
-    {
-        try
-        {
-            while (!token.IsCancellationRequested)
-            {
-                var repository = await _repositoryFactory.CreateAsync();
-                var latest = await repository.GetReadOnlyLatestContractReadHeight();
-                if (latest != null)
-                {
-                    ContractMetrics.SetReadHeight(latest.BlockHeight, ImportSource.DatabaseImport);
-                }
-
-                await Task.Delay(_contractAggregateOptions.MetricDelay, token);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            // Thrown from `Task.Delay` when token is cancelled. We don't want to have this rethrown but just
-            // stop loop.
-        }
-    }
-
-    private async Task<long> GetFinalHeight(CancellationToken token)
+    public async Task<long> GetMaximumHeight(CancellationToken token)
     {
         await using var context = await _repositoryFactory.CreateAsync();
 
@@ -124,25 +45,23 @@ internal class ContractDatabaseImportJob : IContractJob
 
         return finalHeight;
     }
-    /// <summary>
-    /// Run a batch.
-    /// </summary>
-    private async ValueTask RunBatch(long height, CancellationToken token)
+
+    /// <inheritdoc/>
+    public async Task UpdateMetric(CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(nameof(RunBatch));
-            
-        var blockHeightTo = height * _jobOptions.BatchSize;
-        var blockHeightFrom = Math.Max((height - 1) * _jobOptions.BatchSize + 1, 0);
-        var affectedRows = await DatabaseBatchImportJob((ulong)blockHeightFrom, (ulong)blockHeightTo, token);
-
-        if (affectedRows == 0)
+        var repository = await _repositoryFactory.CreateAsync();
+        var latest = await repository.GetReadOnlyLatestContractReadHeight();
+        if (latest != null)
         {
-            return;
-        };
-        _logger.Information("Written heights {From} to {To}", blockHeightFrom, blockHeightTo);
+            ContractMetrics.SetReadHeight(latest.BlockHeight, ImportSource.DatabaseImport);
+        }
     }
-
-    private async Task<ulong> DatabaseBatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
+    
+    /// <inheritdoc/>
+    public string GetUniqueIdentifier() => JobName;
+    
+    /// <inheritdoc/>
+    public async Task<ulong> BatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
         return await GetTransientPolicy<ulong>()
             .ExecuteAsync(async () =>
@@ -178,8 +97,8 @@ internal class ContractDatabaseImportJob : IContractJob
                     throw;
                 }
             });
-    }
-
+    }    
+    
     private static async Task<uint> StoreRejected(IContractRepository repository, ICollection<ulong> alreadyReadHeights,
         ulong heightFrom, ulong heightTo)
     {
@@ -207,7 +126,8 @@ internal class ContractDatabaseImportJob : IContractJob
 
         return eventIndex;
     }
-
+    
+    
     private static async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
     {
         var addedEvents = 0u;
@@ -247,6 +167,7 @@ internal class ContractDatabaseImportJob : IContractJob
         return addedEvents;
     }
     
+
     /// <summary>
     /// Validates if a transactions should be used and is valid.
     /// </summary>
@@ -267,7 +188,8 @@ internal class ContractDatabaseImportJob : IContractJob
         }
 
         return true;
-    }
+    }    
+    
 
     /// <summary>
     /// Converts a sorted list of numbers into a list of tuple ranges, where each tuple indicates a
@@ -354,5 +276,5 @@ internal class ContractDatabaseImportJob : IContractJob
         }
 
         return policy;
-    }
+    }    
 }
