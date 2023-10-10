@@ -2,10 +2,10 @@
 	<span
 		class="relative"
 	>
-		<transition name="tooltip">
+		<transition name="validation-tooltip">
 			<span
 				v-show="isVisible"
-				class="text-sm p-3 rounded-lg tooltip"
+				class="text-sm p-3 rounded-lg validation-tooltip"
 				:class="textClass"
 			>
                 {{ text }}
@@ -32,7 +32,7 @@ const {
 
 </script>
 <style>
-.tooltip {
+.validation-tooltip {
 	color: hsl(var(--color-error));
 	background: var(--color-tooltip-bg);
 	transform: translate(-50%, calc(v-bind(tooltipTransformYTo)));
@@ -41,6 +41,16 @@ const {
 	position: absolute;
 	white-space: normal;
 	text-align: center;
+}
+
+.validation-tooltip-enter-active,
+.validation-tooltip-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.validation-tooltip-enter-from,
+.validation-tooltip-leave-to {
+  opacity: 0;
 }
 
 </style>

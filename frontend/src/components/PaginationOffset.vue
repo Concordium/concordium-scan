@@ -196,7 +196,6 @@ div.pagination-container {
     margin: 30px 0 10px;
     justify-content: space-between;
     flex-wrap: wrap;
-	/* grid-template-columns: repeat(3, auto); */
 }
 
 div.flex-container {
