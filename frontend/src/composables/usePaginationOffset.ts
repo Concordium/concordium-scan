@@ -1,8 +1,6 @@
 import { Ref } from "vue"
 import { Breakpoint } from "./useBreakpoint";
 
-export const NAVIGATION_SIZE = 10;
-
 export type PaginationOffsetQueryVariables = {
     skip: Ref<number|undefined>,
     take: Ref<number|undefined>,
@@ -15,7 +13,14 @@ export type PaginationOffsetInfo = {
 }
 
 const getNavigationSize = (breakpoint: Breakpoint) => {
-    return 10;
+    switch (true) {
+        case breakpoint >= Breakpoint.MD:
+            return 10;
+        case breakpoint > Breakpoint.XS:
+            return 5;
+        default:
+            return 3;
+    }
 }
 
 export const useNavigotionSize = () => {

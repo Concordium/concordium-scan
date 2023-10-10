@@ -72,7 +72,7 @@
 	</div>    
 </template>
 <script lang="ts" setup>
-import { NAVIGATION_SIZE, PaginationOffsetInfo } from '../composables/usePaginationOffset'
+import { PaginationOffsetInfo, useNavigotionSize } from '../composables/usePaginationOffset'
 import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
 import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
 import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightCustomIcon.vue'
@@ -83,6 +83,8 @@ type Props = {
     totalCount: number
 }
 const props = defineProps<Props>();
+
+const navigationSize = useNavigotionSize();
 
 const totalPages = computed(() => {
     const count = Math.floor(props.totalCount / props.info.take.value)
@@ -96,6 +98,7 @@ const inputPage = ref();
 watch(currentPage, (newCurrentPage, _ ) => {
     inputPage.value = newCurrentPage;
 }, {immediate: true});
+
 const pageInputValidation = ref("");
 const onSubmitInput = () => {
     pageInputValidation.value = "";
@@ -112,8 +115,8 @@ const onSubmitInput = () => {
     props.info.update(next);
 }
 
-const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % NAVIGATION_SIZE));
-const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) + 1) *  NAVIGATION_SIZE, totalPages.value));
+const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % navigationSize.value));
+const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *  navigationSize.value, totalPages.value));
 
 const pages = computed(() => {
     const range = [];
@@ -123,13 +126,13 @@ const pages = computed(() => {
     return range;
 })
 
-const isFirstPages = computed(() => Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) === 0);
-const isLastPages = computed(() => Math.floor((currentPage.value - 1) / NAVIGATION_SIZE) === Math.floor((totalPages.value - 1) / NAVIGATION_SIZE));
+const isFirstPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === 0);
+const isLastPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === Math.floor((totalPages.value - 1) / navigationSize.value));
 
 const onClickFirstPage = () => props.info.update(0);
 
 const onClickPreviousPage = () => {
-    const previous = Math.max(0, pageFrom.value - NAVIGATION_SIZE - 1) * props.info.take.value;
+    const previous = Math.max(0, pageFrom.value - navigationSize.value - 1) * props.info.take.value;
     props.info.update(previous);
 }
 
