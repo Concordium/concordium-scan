@@ -34,4 +34,9 @@ const props = defineProps<Props>()
 	border-bottom: 2px solid;
 	border-bottom-color: var(--color-thead-bg);
 }
+
+.table thead tr {
+	border-bottom: none;
+}
+
 </style>
