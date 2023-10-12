@@ -1,9 +1,9 @@
 <template>
 	<div class="pagination-container">
-		<div style="display: flex; justify-content: flex-start;">
+		<div>
             Total pages: {{ totalPages }}
         </div>
-        <div style="display: flex; justify-content: center;">
+        <div class="btn-container">
             <div class="chevron-button">
                 <button
                 type="button"
@@ -24,7 +24,7 @@
                     <ChevronLeftCustomIcon class="chevron-icon"/>
                 </button>
             </div>            
-            <div class="flex-container button-container">
+            <div class="flex-container btn-container">
                 <button
                     v-for="page in pages" :key="page.name"
                     type="button"
@@ -53,24 +53,23 @@
                 </button>
             </div>            
         </div>
-		<div style="display: flex; justify-content: flex-end; align-items: center;">
+		<div>
             <form novalidate="true" @submit.prevent="onSubmitInput">
-                <label for="inputPage" style="display: inline-block;">Page</label>
+                <label for="inputPage" style="display: inline-block;">Page:</label>
                 <input
                   id="inputPage"
                   v-model="inputPage"
                   :max="totalPages"
                   :min="1"
                   type="number"
-                  style="color: black; text-align: center; margin-left: 5px; border-radius: 5px;"
+                  class="page-search-input"
                 />
                 <Validation 
                     :text="`Page should be at least 0 and at most ${totalPages}`"
                     :is-visible="isVisible">
                   <button 
                     type="submit"
-                    class="click-btn"
-                    style="margin-left: 5px;"
+                    class="click-btn page-search-btn"
                     >
                         Go
                     </button>
@@ -163,6 +162,20 @@ const onClickPage = (page: number): void => {
     props.info.update(toSkip);
 };
 
+// Dynamic styling
+const minWidth = computed(() => {
+    if (pageFrom.value >= 10_000) {
+        return "70px"
+    }
+    if (pageFrom.value >= 1_000) {
+        return "60px"
+    }
+    if (pageFrom.value >= 100) {
+        return "50px"
+    }
+    return "40px";
+});
+
 </script>
 <style>
 /* Chrome, Safari, Edge, Opera */
@@ -180,6 +193,7 @@ input[type=number] {
 .chevron-button {
     display: flex;
     justify-content: center;
+    padding: 0 5px;
 }
 
 .chevron-icon {
@@ -187,16 +201,53 @@ input[type=number] {
     width: 20px;
 }
 
-.disabled {
-    opacity: 0.4;
+.pagination-container {
+    display: grid;
+    height: 100px;
+    align-items: center;
+    grid-template-columns: repeat(4, auto);
+    grid-template-rows: repeat(2, auto);
+
+    @media (max-width: 1024px) {
+        row-gap: 15px;
+        margin: 20px 0 5px 0;
+    }
 }
 
-div.pagination-container {
-	display: flex;
-    margin: 30px 0 10px;
-    justify-content: space-between;
-    flex-wrap: wrap;
+.pagination-container > div:nth-child(1) {
+        grid-column: 1 / 2;
+        grid-row: 1 / 3;
 }
+.pagination-container > div:nth-child(2) {
+    grid-column: 2 / 4;
+    grid-row: 1 / 3;
+}
+.pagination-container > div:nth-child(3) {
+    grid-column: 4 / 5;
+    grid-row: 1 / 3;
+    justify-self: end;
+}    
+@media (max-width: 1024px) {
+    .pagination-container > div:nth-child(1) {
+        grid-column: 1 / 3;
+        grid-row: 1 / 2;
+    }
+    .pagination-container > div:nth-child(2) {
+        grid-column: 2 / 4;
+        grid-row: 2 / 3;
+    }
+    .pagination-container > div:nth-child(3) {
+        grid-column: 3 / 5;
+        grid-row: 1 / 2;
+        justify-self: end;
+    }
+}
+
+.btn-container {
+    display: flex;
+    justify-content: center;
+}
+
 
 div.flex-container {
     display: flex;
@@ -208,19 +259,29 @@ div.flex-container > div {
     padding: 10px 10px;
 }
 
-div.button-container {
+div.btn-container {
     background-color: var(--color-background-elevated);
     border-radius: 25px;
     padding: 5px;
-
+    margin: 0 10px;
 }
 
-div.button-container button {
+div.btn-container button {
     padding: 3px 10px 0;
+    min-width: v-bind(minWidth);
 }
 
 div > button:hover {
     opacity: 0.4;
+}
+
+div > button.disabled:hover {
+    opacity: 0.1;
+    cursor: default;
+}
+
+.disabled {
+    opacity: 0.1;
 }
 
 .active {
@@ -231,5 +292,18 @@ div > button:hover {
         opacity: 1;
         cursor: default;
     }
+}
+
+.page-search-input {
+    color: black;
+    text-align: center;
+    margin: 0 10px;
+    border-radius: 5px;
+    height: 37px;
+}
+
+.page-search-btn {
+    height: 37px;
+    padding: 0 15px;
 }
 </style>
