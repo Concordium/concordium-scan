@@ -12,9 +12,9 @@ export type PaginationOffsetInfo = {
     update: (skip: number) => void
 }
 
-const getNavigationSize = (breakpoint: Breakpoint) => {
+const getNavigationSizeFromBreakpoint = (breakpoint: Breakpoint): number => {
     switch (true) {
-        case breakpoint >= Breakpoint.MD:
+        case breakpoint > Breakpoint.SM:
             return 10;
         case breakpoint > Breakpoint.XS:
             return 5;
@@ -23,9 +23,21 @@ const getNavigationSize = (breakpoint: Breakpoint) => {
     }
 }
 
-export const useNavigotionSize = () => {
+const getNavigationSizeFromCurrentPage = (currentPage: number): number => {
+    if (currentPage > 100) {
+        return 5;
+    }
+    return 10;
+}
+
+export const useNavigotionSize = (currentPage: Ref<number>): Ref<number> => {
     const { breakpoint } = useBreakpoint();
-    const navigationSize = computed(() => getNavigationSize(breakpoint.value));
+    const navigationSize = computed(() => {
+        const sizeFromCurrentPage = getNavigationSizeFromCurrentPage(currentPage.value);
+        const sizeFromBreakpoint = getNavigationSizeFromBreakpoint(breakpoint.value);
+        return Math.min(sizeFromBreakpoint, sizeFromCurrentPage);
+    });
+
     return navigationSize;
 }
 
