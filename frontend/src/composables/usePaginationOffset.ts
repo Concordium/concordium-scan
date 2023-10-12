@@ -30,7 +30,7 @@ const getNavigationSizeFromCurrentPage = (currentPage: number): number => {
     return 10;
 }
 
-export const useNavigotionSize = (currentPage: Ref<number>): Ref<number> => {
+export const useNavigationSize = (currentPage: Ref<number>): Ref<number> => {
     const { breakpoint } = useBreakpoint();
     const navigationSize = computed(() => {
         const sizeFromCurrentPage = getNavigationSizeFromCurrentPage(currentPage.value);

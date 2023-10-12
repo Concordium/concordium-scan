@@ -2,7 +2,7 @@
 	<div 
         v-if="totalCount > props.info.take.value"
         class="pagination-container">
-		<div>
+		<div class="total-pages-container {">
             {{ `${totalPagesText} ${totalPages}` }}
         </div>
         <div class="navigation-container">
@@ -55,9 +55,9 @@
                 </button>
             </div>            
         </div>
-		<div>
+		<div class="page-search-container">
             <form novalidate="true" @submit.prevent="onSubmitInput">
-                <label for="inputPage" style="display: inline-block;">Page:</label>
+                <label for="inputPage" class="page-search-label">Page:</label>
                 <input
                   id="inputPage"
                   v-model="inputPage"
@@ -81,7 +81,7 @@
 	</div>    
 </template>
 <script lang="ts" setup>
-import { PaginationOffsetInfo, useNavigotionSize } from '../composables/usePaginationOffset'
+import { PaginationOffsetInfo, useNavigationSize } from '../composables/usePaginationOffset'
 import { Breakpoint } from '../composables/useBreakpoint'
 import Validation from './atoms/Validation.vue'
 import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
@@ -139,7 +139,7 @@ const onSubmitInput = () => {
 }
 
 // Page navigation computations
-const navigationSize = useNavigotionSize(currentPage);
+const navigationSize = useNavigationSize(currentPage);
 
 const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % navigationSize.value));
 const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *  navigationSize.value, totalPages.value));
@@ -228,38 +228,37 @@ input[type=number] {
     }
 }
 
-.pagination-container > div:nth-child(1) {
-        grid-column: 1 / 2;
-        grid-row: 1 / 3;
-}
-.pagination-container > div:nth-child(2) {
-    grid-column: 2 / 4;
+.total-pages-container {
+    grid-column: 1 / 2;
     grid-row: 1 / 3;
-}
-.pagination-container > div:nth-child(3) {
-    grid-column: 4 / 5;
-    grid-row: 1 / 3;
-    justify-self: end;
-}    
-@media (max-width: 1024px) {
-    .pagination-container > div:nth-child(1) {
+
+    @media screen and (max-width: 1024px) {
         grid-column: 1 / 3;
         grid-row: 1 / 2;
-    }
-    .pagination-container > div:nth-child(2) {
-        grid-column: 1 / 5;
-        grid-row: 2 / 3;
-    }
-    .pagination-container > div:nth-child(3) {
-        grid-column: 3 / 5;
-        grid-row: 1 / 2;
-        justify-self: end;
-    }
+    }    
 }
 
 .navigation-container {
     display: flex;
     justify-content: center;
+    grid-column: 2 / 4;
+    grid-row: 1 / 3;
+
+    @media screen and (max-width: 1024px) {
+        grid-column: 1 / 5;
+        grid-row: 2 / 3;
+    }
+}
+
+.page-search-container {
+    justify-self: end;
+    grid-column: 4 / 5;
+    grid-row: 1 / 3;
+
+    @media screen and (max-width: 1024px) {
+        grid-column: 3 / 5;
+        grid-row: 1 / 2;
+    }
 }
 
 .page-number-btn-container {
@@ -307,6 +306,10 @@ div > button.disabled:hover {
     border-radius: 5px;
     height: 37px;
     width: 52px;
+}
+
+.page-search-label {
+    display: inline-block;
 }
 
 .page-search-btn {
