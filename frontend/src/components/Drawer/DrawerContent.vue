@@ -1,5 +1,5 @@
 <template>
-	<article class="flex-grow px-8" :class="$style.drawerContent">
+	<article class="flex-grow px-2 sm:px-8" :class="$style.drawerContent">
 		<slot />
 	</article>
 </template>

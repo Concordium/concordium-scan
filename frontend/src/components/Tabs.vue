@@ -80,7 +80,7 @@ defineProps({
 }
 
 .tabPanel {
-	padding: 20px;
+	padding: 20px 20px 10px;
 	border-radius: 0 16px 16px;
 	background-color: var(--color-background-elevated);
 }

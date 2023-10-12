@@ -1,9 +1,9 @@
 <template>
 	<div class="pagination-container">
 		<div>
-            Total pages: {{ totalPages }}
+            {{ `${totalPagesText} ${totalPages}` }}
         </div>
-        <div class="btn-container">
+        <div class="navigation-container">
             <div class="chevron-button">
                 <button
                 type="button"
@@ -24,7 +24,7 @@
                     <ChevronLeftCustomIcon class="chevron-icon"/>
                 </button>
             </div>            
-            <div class="flex-container btn-container">
+            <div class="flex-container page-number-btn-container">
                 <button
                     v-for="page in pages" :key="page.name"
                     type="button"
@@ -80,6 +80,7 @@
 </template>
 <script lang="ts" setup>
 import { PaginationOffsetInfo, useNavigotionSize } from '../composables/usePaginationOffset'
+import { Breakpoint } from '../composables/useBreakpoint'
 import Validation from './atoms/Validation.vue'
 import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
 import ChevronLeftCustomIcon from '~/components/icons/ChevronLeftCustomIcon.vue'
@@ -91,6 +92,16 @@ type Props = {
     totalCount: number
 }
 const props = defineProps<Props>();
+
+const { breakpoint } = useBreakpoint();
+
+// Text computations
+const totalPagesText = computed(() => {
+    if (breakpoint.value <= Breakpoint.XS) {
+        return "Pages: "
+    }
+    return "Total pages: "
+})
 
 // Page computations
 const totalPages = computed(() => {
@@ -233,7 +244,7 @@ input[type=number] {
         grid-row: 1 / 2;
     }
     .pagination-container > div:nth-child(2) {
-        grid-column: 2 / 4;
+        grid-column: 1 / 5;
         grid-row: 2 / 3;
     }
     .pagination-container > div:nth-child(3) {
@@ -243,30 +254,22 @@ input[type=number] {
     }
 }
 
-.btn-container {
+.navigation-container {
     display: flex;
     justify-content: center;
 }
 
-
-div.flex-container {
+.page-number-btn-container {
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-div.flex-container > div {
-    padding: 10px 10px;
-}
-
-div.btn-container {
     background-color: var(--color-background-elevated);
     border-radius: 25px;
     padding: 5px;
     margin: 0 10px;
 }
 
-div.btn-container button {
+.page-number-btn-container button {
     padding: 3px 10px 0;
     min-width: v-bind(minWidth);
 }
@@ -300,6 +303,7 @@ div > button.disabled:hover {
     margin: 0 10px;
     border-radius: 5px;
     height: 37px;
+    width: 52px;
 }
 
 .page-search-btn {

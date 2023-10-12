@@ -2,7 +2,7 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="flex flex-row gap-20 mb-12">
+			<div class="flex flex-row flex-wrap gap-20 mb-6 md:mb-12">
 				<DetailsCard>
 					<template #title>Contract name</template>
 					<template #default>
@@ -15,7 +15,9 @@
 					<template #default>
 						{{ formatTimestamp(contract.blockSlotTime) }}
 					</template>
-					<template #secondary>
+					<template 
+						v-if="breakpoint >= Breakpoint.LG"
+						#secondary>
 						({{ convertTimestampToRelative(contract.blockSlotTime, NOW) }})
 					</template>
 				</DetailsCard>
@@ -89,9 +91,12 @@ import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
 
 const { NOW } = useDateNow()
+
+const { breakpoint } = useBreakpoint();
 
 type Props = {
 	contract: Contract
