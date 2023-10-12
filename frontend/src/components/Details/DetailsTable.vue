@@ -31,6 +31,9 @@ const props = defineProps<Props>()
 <style>
 .contractDetail table td {
 	padding: 30px 20px 21px;
+	@media screen and (max-width: 640px) {
+		padding: 10px 20px;
+	}
 }
 .contractDetail table tr {
 	border-bottom: 2px solid;

@@ -2,7 +2,7 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="flex flex-row flex-wrap gap-20 mb-6 md:mb-12">
+			<div class="flex flex-row flex-wrap gap-5 md:gap-20 mb-6 md:mb-12">
 				<DetailsCard>
 					<template #title>Contract name</template>
 					<template #default>

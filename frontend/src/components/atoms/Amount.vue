@@ -1,7 +1,6 @@
 <template>
 	<span
 		class="inline-block"
-		:class="removeTopPadding ? '' : 'pt-1'"
 		data-testid="amount"
 	>
 		{{ symbol }}
@@ -18,7 +17,6 @@ import { formatNumber } from '~/utils/format'
 type Props = {
 	amount: number
 	showSymbol?: boolean
-	removeTopPadding?: boolean
 }
 
 const props = defineProps<Props>()

@@ -81,6 +81,9 @@ defineProps({
 
 .tabPanel {
 	padding: 20px 20px 10px;
+	@media screen and (max-width: 639px) {
+		padding: 20px 5px 10px;
+	}
 	border-radius: 0 16px 16px;
 	background-color: var(--color-background-elevated);
 }
