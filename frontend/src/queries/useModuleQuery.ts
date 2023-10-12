@@ -1,24 +1,18 @@
 import { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
-import { QueryVariables } from '../types/queryVariables'
 import { ComponentState } from '../composables/useComponentState'
 import { ModuleReferenceEvent } from '../types/generated'
+import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 const ContractQuery = gql`
 	query (
 		$moduleReference: String!
-		$afterEvent: String
-		$beforeEvent: String
-		$firstEvent: Int
-		$lastEvent: Int
-		$afterRejectEvent: String
-		$beforeRejectEvent: String
-		$firstRejectEvent: Int
-		$lastRejectEvent: Int
-		$afterLinkedContract: String
-		$beforeLinkedContract: String
-		$firstLinkedContract: Int
-		$lastLinkedContract: Int
+		$skipEvent: Int
+		$takeEvent: Int
+		$skipRejectEvent: Int
+		$takeRejectEvent: Int
+		$skipLinkedContract: Int
+		$takeLinkedContract: Int
 	) {
 		moduleReferenceEvent(moduleReference: $moduleReference) {
 			transactionHash
@@ -28,12 +22,10 @@ const ContractQuery = gql`
 				asString
 			}
 			linkedContracts(
-				after: $afterLinkedContract
-				before: $beforeLinkedContract
-				first: $firstLinkedContract
-				last: $lastLinkedContract
+				skip: $skipLinkedContract
+				take: $takeLinkedContract
 			) {
-				nodes {
+				items {
 					linkedDateTime
 					contractAddress {
 						asString
@@ -42,20 +34,12 @@ const ContractQuery = gql`
 					}
 				}
 				totalCount
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
 			}
 			moduleReferenceRejectEvents(
-				after: $afterRejectEvent
-				before: $beforeRejectEvent
-				first: $firstRejectEvent
-				last: $lastRejectEvent
+				skip: $skipRejectEvent
+				take: $takeRejectEvent
 			) {
-				nodes {
+				items {
 					blockSlotTime
 					transactionHash
 					rejectedEvent {
@@ -74,20 +58,12 @@ const ContractQuery = gql`
 					}
 				}
 				totalCount
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
 			}
 			moduleReferenceContractLinkEvents(
-				after: $afterEvent
-				before: $beforeEvent
-				first: $firstEvent
-				last: $lastEvent
+				skip: $skipEvent
+				take: $takeEvent
 			) {
-				nodes {
+				items {
 					blockSlotTime
 					transactionHash
 					linkAction
@@ -98,12 +74,6 @@ const ContractQuery = gql`
 					}
 				}
 				totalCount
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
 			}
 		}
 	}
@@ -111,9 +81,9 @@ const ContractQuery = gql`
 
 type QueryParams = {
 	moduleReference: Ref<string>
-	eventsVariables: QueryVariables
-	rejectEventsVariables: QueryVariables
-	linkedContract: QueryVariables
+	eventsVariables: PaginationOffsetQueryVariables
+	rejectEventsVariables: PaginationOffsetQueryVariables
+	linkedContract: PaginationOffsetQueryVariables
 }
 
 type ModuleReferenceEventResponse = {
@@ -135,24 +105,16 @@ export const useModuleReferenceEventQuery = ({
 		requestPolicy: 'cache-first',
 		variables: {
 			moduleReference: moduleReference.value,
-			firstEvent: eventsVariables.first,
-			lastEvent: eventsVariables.last,
-			afterEvent: eventsVariables.after,
-			beforeEvent: eventsVariables.before,
-			firstRejectEvent: rejectEventsVariables.first,
-			lastRejectEvent: rejectEventsVariables.last,
-			afterRejectEvent: rejectEventsVariables.after,
-			beforeRejectEvent: rejectEventsVariables.before,
-			firstLinkedContract: linkedContract.first,
-			lastLinkedContract: linkedContract.last,
-			afterLinkedContract: linkedContract.after,
-			beforeLinkedContract: linkedContract.before,
+			skipEvent: eventsVariables.skip,
+			takeEvent: eventsVariables.take,
+			skipRejectEvent: rejectEventsVariables.skip,
+			takeRejectEvent: rejectEventsVariables.take,
+			skipLinkedContract: linkedContract.skip,
+			takeLinkedContract: linkedContract.take,
 		},
 	})
 
-	const componentState = useComponentState<
-		ModuleReferenceEventResponse | undefined
-	>({
+	const componentState = useComponentState<ModuleReferenceEventResponse | undefined>({
 		fetching,
 		error,
 		data,

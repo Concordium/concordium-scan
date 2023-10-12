@@ -6,8 +6,10 @@
 	<ContractDetailsContent
 		v-else-if="componentState === 'success' && data?.contract"
 		:contract="data?.contract"
-		:go-to-page-events="goToPageEvent"
-		:go-to-page-reject-events="goToPageRejectEvent"
+		:pagination-events="pageOffsetInfoEvents"
+		:pagination-reject-events="pageOffsetInfoRejectedEvents"
+		:page-dropdown-events="pageDropdownEvents"
+		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
 	/>
 </template>
 
@@ -17,27 +19,19 @@ import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import ContractDetailsContent from '~/components/Contracts/ContractDetailsContent.vue'
 import { useContractQuery } from '~~/src/queries/useContractQuery'
-import { usePagination } from '~/composables/usePagination'
+import { usePaginationOffset } from '~~/src/composables/usePaginationOffset'
+import { usePageDropdown } from '~~/src/composables/usePageDropdown'
 
 type Props = {
 	contractAddressIndex: number
 	contractAddressSubIndex: number
 }
 
-const {
-	first: firstEvent,
-	last: lastEvent,
-	after: afterEvent,
-	before: beforeEvent,
-	goToPage: goToPageEvent,
-} = usePagination()
-const {
-	first: firstRejectEvent,
-	last: lastRejectEvent,
-	after: afterRejectEvent,
-	before: beforeRejectEvent,
-	goToPage: goToPageRejectEvent,
-} = usePagination()
+const pageDropdownEvents = usePageDropdown();
+const pageDropdownRejectedEvents = usePageDropdown();
+
+const pageOffsetInfoEvents = usePaginationOffset(pageDropdownEvents.take);
+const pageOffsetInfoRejectedEvents = usePaginationOffset(pageDropdownRejectedEvents.take);
 
 const props = defineProps<Props>()
 const contractAddressIndex = ref(props.contractAddressIndex)
@@ -47,16 +41,12 @@ const { data, error, componentState } = useContractQuery({
 	contractAddressIndex,
 	contractAddressSubIndex,
 	eventsVariables: {
-		first: firstEvent,
-		last: lastEvent,
-		after: afterEvent,
-		before: beforeEvent,
+		skip: pageOffsetInfoEvents.skip,
+		take: pageOffsetInfoEvents.take
 	},
 	rejectEventsVariables: {
-		first: firstRejectEvent,
-		last: lastRejectEvent,
-		after: afterRejectEvent,
-		before: beforeRejectEvent,
+		skip: pageOffsetInfoRejectedEvents.skip,
+		take: pageOffsetInfoRejectedEvents.take
 	},
 })
 </script>

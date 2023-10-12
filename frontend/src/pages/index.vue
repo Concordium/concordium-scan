@@ -168,7 +168,6 @@
 								class="numerical"
 							>
 								<Amount
-									:remove-top-padding="true"
 									:amount="transaction.ccdCost"
 								/>
 							</TableTd>

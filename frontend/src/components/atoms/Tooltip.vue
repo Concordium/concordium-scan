@@ -95,10 +95,6 @@ const handleOnMouseLeave = () => {
 	transition: transform 0.2s ease-out, opacity 0.1s ease-in;
 }
 
-.tooltip-leave-active {
-	transition: transform 0.1s ease-in, opacity 0.1s ease-in;
-}
-
 .tooltip-enter-from,
 .tooltip-leave-to {
 	transform: translate(-50%, calc(v-bind(tooltipTransformYFrom)));

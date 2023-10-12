@@ -1,6 +1,6 @@
 <template>
 	<header
-		class="z-20 flex-grow-0 sticky top-0 p-8 pr-16"
+		class="z-20 flex-grow-0 sticky top-0 p-4 md:p-8 pr-16"
 		:class="$style.drawerTitle"
 	>
 		<DrawerNavigation />

@@ -29,7 +29,7 @@ public class ContractNodeImportBackgroundServiceTests
     [Fact]
     public async Task WhenGetJobsToAwait_ThenReturnJobsNotFinished()
     {
-        // Assert
+        // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_jobs");
         const string done = "done";
         const string awaits = "await";

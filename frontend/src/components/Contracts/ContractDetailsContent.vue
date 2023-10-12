@@ -2,7 +2,7 @@
 	<div>
 		<ContractDetailsHeader :contract-address="contract.contractAddress" />
 		<DrawerContent>
-			<div class="flex flex-row gap-20 mb-12">
+			<div class="flex flex-row flex-wrap gap-5 md:gap-20 mb-6 md:mb-12">
 				<DetailsCard>
 					<template #title>Contract name</template>
 					<template #default>
@@ -15,7 +15,9 @@
 					<template #default>
 						{{ formatTimestamp(contract.blockSlotTime) }}
 					</template>
-					<template #secondary>
+					<template 
+						v-if="breakpoint >= Breakpoint.LG"
+						#secondary>
 						({{ convertTimestampToRelative(contract.blockSlotTime, NOW) }})
 					</template>
 				</DetailsCard>
@@ -42,28 +44,30 @@
 				<template #tabPanel-1>
 					<DetailsTable
 						v-if="
-							contract.contractEvents?.nodes?.length &&
-							contract.contractEvents?.nodes?.length > 0
+							contract.contractEvents?.items?.length &&
+							contract.contractEvents?.items?.length > 0
 						"
-						:page-info="contract.contractEvents!.pageInfo"
-						:go-to-page="goToPageEvents"
+						:total-count="contract.contractEvents.totalCount"
+						:page-offset-info="paginationEvents"
+						:page-dropdown-info="pageDropdownEvents"
 					>
 						<ContractDetailsEvents
-							:contract-events="contract.contractEvents!.nodes"
+							:contract-events="contract.contractEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
 					<DetailsTable
 						v-if="
-							contract.contractRejectEvents?.nodes?.length &&
-							contract.contractRejectEvents?.nodes?.length > 0
+							contract.contractRejectEvents?.items?.length &&
+							contract.contractRejectEvents?.items?.length > 0
 						"
-						:page-info="contract.contractRejectEvents!.pageInfo"
-						:go-to-page="goToPageRejectEvents"
+						:total-count="contract.contractRejectEvents.totalCount"
+						:page-offset-info="paginationRejectEvents"
+						:page-dropdown-info="pageDropdownRejectedEvents"
 					>
 						<ContractDetailsRejectEvents
-							:contract-reject-events="contract.contractRejectEvents!.nodes"
+							:contract-reject-events="contract.contractRejectEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
@@ -82,28 +86,31 @@ import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { Contract, PageInfo } from '~~/src/types/generated'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
+import { Contract } from '~~/src/types/generated'
+import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
-import type { PaginationTarget } from '~/composables/usePagination'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
 
 const { NOW } = useDateNow()
 
+const { breakpoint } = useBreakpoint();
+
 type Props = {
 	contract: Contract
-	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
+	paginationEvents: PaginationOffsetInfo
+	paginationRejectEvents: PaginationOffsetInfo
+	pageDropdownEvents: PageDropdownInfo
+	pageDropdownRejectedEvents: PageDropdownInfo
 }
 const props = defineProps<Props>()
 
 const tabList = computed(() => {
 	return [
 		`Event (${props.contract.contractEvents?.totalCount ?? 0})`,
-		`Rejected Events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
+		`Rejected events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
 	]
 })
 </script>

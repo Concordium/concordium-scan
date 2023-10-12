@@ -986,6 +986,15 @@ export type ChainUpdateEnqueued = {
 
 export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload;
 
+/** Information about the offset pagination. */
+export type CollectionSegmentInfo = {
+  __typename?: 'CollectionSegmentInfo';
+  /** Indicates whether more items exist following the set defined by the clients arguments. */
+  hasNextPage: Scalars['Boolean'];
+  /** Indicates whether more items exist prior the set defined by the clients arguments. */
+  hasPreviousPage: Scalars['Boolean'];
+};
+
 export type CommissionRange = {
   __typename?: 'CommissionRange';
   max: Scalars['Decimal'];
@@ -1007,9 +1016,9 @@ export type Contract = {
   contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  contractEvents?: Maybe<ContractEventsConnection>;
+  contractEvents?: Maybe<ContractEventsCollectionSegment>;
   contractName: Scalars['String'];
-  contractRejectEvents?: Maybe<ContractRejectEventsConnection>;
+  contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
   createdAt: Scalars['DateTime'];
   creator: AccountAddress;
   eventIndex: Scalars['UnsignedInt'];
@@ -1022,18 +1031,14 @@ export type Contract = {
 
 
 export type ContractContractEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 
 export type ContractContractRejectEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 export type ContractAddress = {
@@ -1063,26 +1068,14 @@ export type ContractEvent = {
   transactionIndex: Scalars['UnsignedLong'];
 };
 
-/** A connection to a list of items. */
-export type ContractEventsConnection = {
-  __typename?: 'ContractEventsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<ContractEventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<ContractEvent>>;
+/** A segment of a collection. */
+export type ContractEventsCollectionSegment = {
+  __typename?: 'ContractEventsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<ContractEvent>>;
   /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
+  pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** An edge in a connection. */
-export type ContractEventsEdge = {
-  __typename?: 'ContractEventsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: ContractEvent;
 };
 
 export type ContractInitialized = {
@@ -1136,26 +1129,14 @@ export type ContractRejectEvent = {
   transactionIndex: Scalars['UnsignedLong'];
 };
 
-/** A connection to a list of items. */
-export type ContractRejectEventsConnection = {
-  __typename?: 'ContractRejectEventsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<ContractRejectEventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<ContractRejectEvent>>;
+/** A segment of a collection. */
+export type ContractRejectEventsCollectionSegment = {
+  __typename?: 'ContractRejectEventsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<ContractRejectEvent>>;
   /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
+  pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** An edge in a connection. */
-export type ContractRejectEventsEdge = {
-  __typename?: 'ContractRejectEventsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: ContractRejectEvent;
 };
 
 export type ContractResumed = {
@@ -1188,13 +1169,6 @@ export type ContractUpgraded = {
   contractAddress: ContractAddress;
   from: Scalars['String'];
   to: Scalars['String'];
-  /**
-   * The below two are added maunally since this event are queried with below alias.
-   * 
-   * This is because their type conflicts with other fields with same name when query for events.
-   */
-  fromModule: Scalars['String'];
-  toModule: Scalars['String'];  
 };
 
 export enum ContractVersion {
@@ -1682,26 +1656,14 @@ export type LinkedContract = {
   linkedDateTime: Scalars['DateTime'];
 };
 
-/** A connection to a list of items. */
-export type LinkedContractsConnection = {
-  __typename?: 'LinkedContractsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<LinkedContractsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<LinkedContract>>;
+/** A segment of a collection. */
+export type LinkedContractsCollectionSegment = {
+  __typename?: 'LinkedContractsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<LinkedContract>>;
   /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
+  pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** An edge in a connection. */
-export type LinkedContractsEdge = {
-  __typename?: 'LinkedContractsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: LinkedContract;
 };
 
 export enum MetricsPeriod {
@@ -1799,26 +1761,14 @@ export type ModuleReferenceContractLinkEvent = {
   transactionIndex: Scalars['UnsignedLong'];
 };
 
-/** A connection to a list of items. */
-export type ModuleReferenceContractLinkEventsConnection = {
-  __typename?: 'ModuleReferenceContractLinkEventsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<ModuleReferenceContractLinkEventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<ModuleReferenceContractLinkEvent>>;
+/** A segment of a collection. */
+export type ModuleReferenceContractLinkEventsCollectionSegment = {
+  __typename?: 'ModuleReferenceContractLinkEventsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<ModuleReferenceContractLinkEvent>>;
   /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
+  pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** An edge in a connection. */
-export type ModuleReferenceContractLinkEventsEdge = {
-  __typename?: 'ModuleReferenceContractLinkEventsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: ModuleReferenceContractLinkEvent;
 };
 
 export type ModuleReferenceEvent = {
@@ -1827,10 +1777,10 @@ export type ModuleReferenceEvent = {
   blockSlotTime: Scalars['DateTime'];
   createdAt: Scalars['DateTime'];
   eventIndex: Scalars['UnsignedInt'];
-  linkedContracts?: Maybe<LinkedContractsConnection>;
+  linkedContracts?: Maybe<LinkedContractsCollectionSegment>;
   moduleReference: Scalars['String'];
-  moduleReferenceContractLinkEvents?: Maybe<ModuleReferenceContractLinkEventsConnection>;
-  moduleReferenceRejectEvents?: Maybe<ModuleReferenceRejectEventsConnection>;
+  moduleReferenceContractLinkEvents?: Maybe<ModuleReferenceContractLinkEventsCollectionSegment>;
+  moduleReferenceRejectEvents?: Maybe<ModuleReferenceRejectEventsCollectionSegment>;
   sender: AccountAddress;
   source: ImportSource;
   transactionHash: Scalars['String'];
@@ -1839,26 +1789,20 @@ export type ModuleReferenceEvent = {
 
 
 export type ModuleReferenceEventLinkedContractsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 
 export type ModuleReferenceEventModuleReferenceContractLinkEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 
 export type ModuleReferenceEventModuleReferenceRejectEventsArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 export type ModuleReferenceRejectEvent = {
@@ -1874,26 +1818,14 @@ export type ModuleReferenceRejectEvent = {
   transactionIndex: Scalars['UnsignedLong'];
 };
 
-/** A connection to a list of items. */
-export type ModuleReferenceRejectEventsConnection = {
-  __typename?: 'ModuleReferenceRejectEventsConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<ModuleReferenceRejectEventsEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<ModuleReferenceRejectEvent>>;
+/** A segment of a collection. */
+export type ModuleReferenceRejectEventsCollectionSegment = {
+  __typename?: 'ModuleReferenceRejectEventsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<ModuleReferenceRejectEvent>>;
   /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-  /** Identifies the total count of items in the connection. */
+  pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];
-};
-
-/** An edge in a connection. */
-export type ModuleReferenceRejectEventsEdge = {
-  __typename?: 'ModuleReferenceRejectEventsEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: ModuleReferenceRejectEvent;
 };
 
 /** A connection to a list of items. */

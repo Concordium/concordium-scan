@@ -31,39 +31,41 @@
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
-						v-if="moduleReferenceEvent.linkedContracts?.nodes?.length"
-						:page-info="moduleReferenceEvent.linkedContracts!.pageInfo"
-						:go-to-page="goToPageLinkedContract"
+						v-if="moduleReferenceEvent.linkedContracts?.items?.length"
+						:total-count="moduleReferenceEvent.linkedContracts.totalCount"
+						:page-offset-info="paginationLinkedContracts"
+						:page-dropdown-info="pageDropdownLinkedContracts"
 					>
 						<ModuleDetailsLinkedContracts
-							:linked-contracts="moduleReferenceEvent.linkedContracts!.nodes"
+							:linked-contracts="moduleReferenceEvent.linkedContracts!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-2>
 					<DetailsTable
 						v-if="
-							moduleReferenceEvent.moduleReferenceContractLinkEvents?.nodes
-								?.length
+							moduleReferenceEvent.moduleReferenceContractLinkEvents?.items?.length
 						"
-						:page-info="moduleReferenceEvent.moduleReferenceContractLinkEvents!.pageInfo"
-						:go-to-page="goToPageEvents"
+						:total-count="moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount"
+						:page-offset-info="paginationLinkingEvents"
+						:page-dropdown-info="pageDropdownEvents"
 					>
 						<ModuleDetailsContractLinkEvents
-							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.nodes"
+							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
 				<template #tabPanel-3>
 					<DetailsTable
 						v-if="
-							moduleReferenceEvent.moduleReferenceRejectEvents?.nodes?.length
+							moduleReferenceEvent.moduleReferenceRejectEvents?.items?.length
 						"
-						:page-info="moduleReferenceEvent.moduleReferenceRejectEvents!.pageInfo"
-						:go-to-page="goToPageRejectEvents"
+						:total-count="moduleReferenceEvent.moduleReferenceRejectEvents.totalCount"
+						:page-offset-info="paginationRejectEvents"
+						:page-dropdown-info="pageDropdownRejectedEvents"
 					>
 						<ModuleDetailsRejectEvents
-							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.nodes"
+							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.items"
 						/>
 					</DetailsTable>
 				</template>
@@ -82,32 +84,33 @@ import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
 import ModuleDetailsRejectEvents from './ModuleDetailsRejectEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { ModuleReferenceEvent, PageInfo } from '~~/src/types/generated'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import type { PaginationTarget } from '~/composables/usePagination'
+import { ModuleReferenceEvent } from '~~/src/types/generated'
+import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 
 const { NOW } = useDateNow()
 
 type Props = {
 	moduleReferenceEvent: ModuleReferenceEvent
-	goToPageEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageRejectEvents: (page: PageInfo) => (target: PaginationTarget) => void
-	goToPageLinkedContract: (page: PageInfo) => (target: PaginationTarget) => void
+	paginationLinkingEvents: PaginationOffsetInfo
+	paginationRejectEvents: PaginationOffsetInfo
+	paginationLinkedContracts: PaginationOffsetInfo
+	pageDropdownEvents: PageDropdownInfo
+	pageDropdownRejectedEvents: PageDropdownInfo
+	pageDropdownLinkedContracts: PageDropdownInfo		
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {
 	return [
-		`Linked Contracts (${
+		`Linked contracts (${
 			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
 		})`,
-		`Linking Events (${
+		`Linking events (${
 			props.moduleReferenceEvent.moduleReferenceContractLinkEvents
 				?.totalCount ?? 0
 		})`,
-		`Rejected Events (${
+		`Rejected events (${
 			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
 		})`,
 	]

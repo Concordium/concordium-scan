@@ -2,7 +2,7 @@ import { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
 import { Contract } from '../types/generated'
 import { ComponentState } from '../composables/useComponentState'
-import { QueryVariables } from '../types/queryVariables'
+import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 const eventsFragment = `
 blockSlotTime
@@ -44,9 +44,6 @@ event {
 			subIndex
 		}
 		success
-	}
-	... on ContractModuleDeployed {
-		moduleRef
 	}
 	... on ContractUpdated {
 		amount
@@ -152,14 +149,10 @@ rejectedEvent {
 
 const ContractQuery = gql`
 	query (
-		$afterEvent: String
-		$beforeEvent: String
-		$firstEvent: Int
-		$lastEvent: Int
-		$afterRejectEvent: String
-		$beforeRejectEvent: String
-		$firstRejectEvent: Int
-		$lastRejectEvent: Int
+		$skipEvent: Int
+		$takeEvent: Int
+		$skipRejectEvent: Int
+		$takeRejectEvent: Int
 		$contractAddressIndex: UnsignedLong!
 		$contractAddressSubIndex: UnsignedLong!
 	) {
@@ -176,25 +169,13 @@ const ContractQuery = gql`
 			creator {
 				asString
 			}
-			contractRejectEvents(after: $afterRejectEvent, before: $beforeRejectEvent, first: $firstRejectEvent, last: $lastRejectEvent) {
-				nodes { ${rejectEventsFragment} }
+			contractRejectEvents(skip: $skipRejectEvent, take: $takeRejectEvent) {
+				items { ${rejectEventsFragment} }
 				totalCount
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}				
 			}
-			contractEvents(after: $afterEvent, before: $beforeEvent, first: $firstEvent, last: $lastEvent) {
-				nodes { ${eventsFragment} }
+			contractEvents(skip: $skipEvent, take: $takeEvent) {
+				items { ${eventsFragment} }
 				totalCount
-				pageInfo {
-					startCursor
-					endCursor
-					hasPreviousPage
-					hasNextPage
-				}
 			}
 		}
 	}
@@ -203,8 +184,8 @@ const ContractQuery = gql`
 type QueryParams = {
 	contractAddressIndex: Ref<number>
 	contractAddressSubIndex: Ref<number>
-	eventsVariables: QueryVariables
-	rejectEventsVariables: QueryVariables
+	eventsVariables: PaginationOffsetQueryVariables
+	rejectEventsVariables: PaginationOffsetQueryVariables
 }
 
 type ContractQueryResponse = {
@@ -227,14 +208,10 @@ export const useContractQuery = ({
 		variables: {
 			contractAddressIndex: contractAddressIndex.value,
 			contractAddressSubIndex: contractAddressSubIndex.value,
-			firstEvent: eventsVariables.first,
-			lastEvent: eventsVariables.last,
-			afterEvent: eventsVariables.after,
-			beforeEvent: eventsVariables.before,
-			firstRejectEvent: rejectEventsVariables.first,
-			lastRejectEvent: rejectEventsVariables.last,
-			afterRejectEvent: rejectEventsVariables.after,
-			beforeRejectEvent: rejectEventsVariables.before,
+			skipEvent: eventsVariables.skip,
+			takeEvent: eventsVariables.take,
+			skipRejectEvent: rejectEventsVariables.skip,
+			takeRejectEvent: rejectEventsVariables.take,
 		},
 	})
 

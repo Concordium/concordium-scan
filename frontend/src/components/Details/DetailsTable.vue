@@ -1,34 +1,51 @@
 <template>
 	<div>
-		<Table :class="[$style.table, $style.contractDetail]">
+		<PageDropdown 
+			v-if="MIN_PAGE_SIZE < totalCount"
+			:page-dropdown-info="props.pageDropdownInfo"/>
+		<Table :class="['contractDetail', {'no-last': totalCount <= props.pageOffsetInfo.take.value}]">
 			<slot />
 		</Table>
-		<Pagination v-if="pageInfo" :page-info="pageInfo" :go-to-page="goToPage" />
+		<PaginationOffset 
+			:total-count="props.totalCount"
+			:info="pageOffsetInfo"
+		/>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { PageInfo } from '../../types/generated'
-import { PaginationTarget } from '../../composables/usePagination'
-import { useDateNow } from '../../composables/useDateNow'
-
-const { NOW } = useDateNow()
+import PaginationOffset from '../PaginationOffset.vue'
+import PageDropdown from '../PageDropdown.vue'
+import { MIN_PAGE_SIZE, PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
 type Props = {
-	pageInfo: PageInfo
-	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
+	totalCount: number
+	pageOffsetInfo: PaginationOffsetInfo
+	pageDropdownInfo: PageDropdownInfo
 }
+
 const props = defineProps<Props>()
+
 </script>
-<style module>
+<style>
 .contractDetail table td {
 	padding: 30px 20px 21px;
+	@media screen and (max-width: 640px) {
+		padding: 10px 20px;
+	}
 }
-.table tr {
+.contractDetail table tr {
 	border-bottom: 2px solid;
 	border-bottom-color: var(--color-thead-bg);
 }
-.table tr:last-child {
+
+.contractDetail table thead tr {
 	border-bottom: none;
 }
+
+.no-last table tr:last-child {
+	border-bottom: none;
+}
+
 </style>
