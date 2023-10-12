@@ -20,7 +20,7 @@
 </div>
 </template>
 <script lang="ts" setup>
-import { PageDropdownInfo } from '../composables/usePageDropdown'
+import { MIN_PAGE_SIZE, PageDropdownInfo } from '../composables/usePageDropdown'
 
 type Props = {
 	pageDropdownInfo: PageDropdownInfo
@@ -30,7 +30,7 @@ const props = defineProps<Props>()
 
 const choosen = ref(props.pageDropdownInfo.take.value)
 
-let dropDownValues = [5, 10, 25, 50, 100];
+let dropDownValues = [MIN_PAGE_SIZE, 10, 25, 50, 100];
 const dropdowns = computed(() => {
 	if (!dropDownValues.includes(props.pageDropdownInfo.take.value)) {
 	  dropDownValues.push(props.pageDropdownInfo.take.value);

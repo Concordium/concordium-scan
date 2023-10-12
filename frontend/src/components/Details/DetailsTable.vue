@@ -1,6 +1,8 @@
 <template>
 	<div>
-		<PageDropdown :page-dropdown-info="props.pageDropdownInfo"/>
+		<PageDropdown 
+			v-if="MIN_PAGE_SIZE < totalCount"
+			:page-dropdown-info="props.pageDropdownInfo"/>
 		<Table :class="['contractDetail', {'no-last': totalCount <= props.pageOffsetInfo.take.value}]">
 			<slot />
 		</Table>
@@ -14,7 +16,7 @@
 <script lang="ts" setup>
 import PaginationOffset from '../PaginationOffset.vue'
 import PageDropdown from '../PageDropdown.vue'
-import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import { MIN_PAGE_SIZE, PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
 type Props = {
