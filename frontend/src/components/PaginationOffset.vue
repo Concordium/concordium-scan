@@ -1,5 +1,7 @@
 <template>
-	<div class="pagination-container">
+	<div 
+        v-if="totalCount > props.info.take.value"
+        class="pagination-container">
 		<div>
             {{ `${totalPagesText} ${totalPages}` }}
         </div>
@@ -218,6 +220,7 @@ input[type=number] {
     align-items: center;
     grid-template-columns: repeat(4, auto);
     grid-template-rows: repeat(2, auto);
+    padding: 10px 20px 0;
 
     @media (max-width: 1024px) {
         row-gap: 15px;

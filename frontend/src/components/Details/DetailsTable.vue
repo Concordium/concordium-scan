@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<PageDropdown :page-dropdown-info="props.pageDropdownInfo"/>
-		<Table :class="[$style.table, $style.contractDetail]">
+		<Table :class="['contractDetail', {'no-last': totalCount <= props.pageOffsetInfo.take.value}]">
 			<slot />
 		</Table>
 		<PaginationOffset 
@@ -26,16 +26,20 @@ type Props = {
 const props = defineProps<Props>()
 
 </script>
-<style module>
+<style>
 .contractDetail table td {
 	padding: 30px 20px 21px;
 }
-.table tr {
+.contractDetail table tr {
 	border-bottom: 2px solid;
 	border-bottom-color: var(--color-thead-bg);
 }
 
-.table thead tr {
+.contractDetail table thead tr {
+	border-bottom: none;
+}
+
+.no-last table tr:last-child {
 	border-bottom: none;
 }
 
