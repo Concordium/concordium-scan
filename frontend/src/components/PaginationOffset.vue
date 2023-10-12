@@ -137,7 +137,7 @@ const onSubmitInput = () => {
 }
 
 // Page navigation computations
-const navigationSize = useNavigotionSize();
+const navigationSize = useNavigotionSize(currentPage);
 
 const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % navigationSize.value));
 const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *  navigationSize.value, totalPages.value));

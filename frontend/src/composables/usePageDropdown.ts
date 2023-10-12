@@ -1,6 +1,6 @@
 import { Ref } from "vue"
 
-export const DEFAULT_PAGE_SIZE = 2;
+export const DEFAULT_PAGE_SIZE = 5;
 
 export type PageDropdownInfo = {
     take: Ref<number>

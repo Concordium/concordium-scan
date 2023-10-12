@@ -41,6 +41,10 @@ const {
 	position: absolute;
 	white-space: normal;
 	text-align: center;
+	width: 200px;
+	@media screen and (max-width:400px) {
+		width: 150px;
+	}
 }
 
 .validation-tooltip-enter-active,
