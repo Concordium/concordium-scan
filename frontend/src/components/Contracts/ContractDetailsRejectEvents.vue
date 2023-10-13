@@ -58,11 +58,11 @@
 						</div>
 					</div>
 					<div>
-						<div>Receive name:
+						<div>Entrypoint:
 							<InfoTooltip :text="RECEIVE_NAME"/>
 						</div>
 						<div>
-							{{ contractRejectEvent.rejectedEvent.receiveName }}
+							{{ getEntrypoint(contractRejectEvent.rejectedEvent.receiveName) }}
 						</div>
 					</div>
 					<MessageHEX
@@ -79,6 +79,7 @@ import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import MessageHEX from '../Details/MessageHEX.vue'
 import DetailsView from '../Details/DetailsView.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
+import { getEntrypoint } from "./Events/contractEvents";
 import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
