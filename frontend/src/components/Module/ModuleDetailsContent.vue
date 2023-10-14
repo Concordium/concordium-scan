@@ -35,6 +35,7 @@
 						:total-count="moduleReferenceEvent.linkedContracts.totalCount"
 						:page-offset-info="paginationLinkedContracts"
 						:page-dropdown-info="pageDropdownLinkedContracts"
+						:fetching="fetching"
 					>
 						<ModuleDetailsLinkedContracts
 							:linked-contracts="moduleReferenceEvent.linkedContracts!.items"
@@ -49,6 +50,7 @@
 						:total-count="moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount"
 						:page-offset-info="paginationLinkingEvents"
 						:page-dropdown-info="pageDropdownEvents"
+						:fetching="fetching"
 					>
 						<ModuleDetailsContractLinkEvents
 							:link-events="moduleReferenceEvent.moduleReferenceContractLinkEvents!.items"
@@ -63,6 +65,7 @@
 						:total-count="moduleReferenceEvent.moduleReferenceRejectEvents.totalCount"
 						:page-offset-info="paginationRejectEvents"
 						:page-dropdown-info="pageDropdownRejectedEvents"
+						:fetching="fetching"
 					>
 						<ModuleDetailsRejectEvents
 							:module-reject-events="moduleReferenceEvent.moduleReferenceRejectEvents!.items"
@@ -98,7 +101,8 @@ type Props = {
 	paginationLinkedContracts: PaginationOffsetInfo
 	pageDropdownEvents: PageDropdownInfo
 	pageDropdownRejectedEvents: PageDropdownInfo
-	pageDropdownLinkedContracts: PageDropdownInfo		
+	pageDropdownLinkedContracts: PageDropdownInfo	
+	fetching: boolean	
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {

@@ -98,7 +98,8 @@ export const useModuleReferenceEventQuery = ({
 }: QueryParams): {
 	data: Ref<ModuleReferenceEventResponse | undefined>
 	error: Ref<CombinedError | undefined>
-	componentState: Ref<ComponentState | undefined>
+	componentState: Ref<ComponentState | undefined>,
+	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ModuleReferenceEventResponse>({
 		query: ContractQuery,
@@ -120,5 +121,5 @@ export const useModuleReferenceEventQuery = ({
 		data,
 	})
 
-	return { data, error, componentState }
+	return { data, error, componentState, fetching }
 }

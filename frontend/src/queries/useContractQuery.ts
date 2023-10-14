@@ -200,7 +200,8 @@ export const useContractQuery = ({
 }: QueryParams): {
 	data: Ref<ContractQueryResponse | undefined>
 	error: Ref<CombinedError | undefined>
-	componentState: Ref<ComponentState>
+	componentState: Ref<ComponentState>,
+	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ContractQueryResponse>({
 		query: ContractQuery,
@@ -221,5 +222,5 @@ export const useContractQuery = ({
 		data,
 	})
 
-	return { data, error, componentState }
+	return { data, error, componentState, fetching }
 }

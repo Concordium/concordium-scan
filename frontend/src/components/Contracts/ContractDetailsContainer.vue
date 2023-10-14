@@ -10,6 +10,7 @@
 		:pagination-reject-events="pageOffsetInfoRejectedEvents"
 		:page-dropdown-events="pageDropdownEvents"
 		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
+		:fetching="fetching"
 	/>
 </template>
 
@@ -37,7 +38,7 @@ const props = defineProps<Props>()
 const contractAddressIndex = ref(props.contractAddressIndex)
 const contractAddressSubIndex = ref(props.contractAddressSubIndex)
 
-const { data, error, componentState } = useContractQuery({
+const { data, error, componentState, fetching } = useContractQuery({
 	contractAddressIndex,
 	contractAddressSubIndex,
 	eventsVariables: {

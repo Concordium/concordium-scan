@@ -12,6 +12,7 @@
 		:page-dropdown-events="pageDropdownEvents"
 		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
 		:page-dropdown-linked-contracts="pageDropdownLinkedContracts"
+		:fetching="fetching"
 	/>
 </template>
 
@@ -37,7 +38,7 @@ const pageOffsetInfoLinkedContracts = usePaginationOffset(pageDropdownLinkedCont
 const props = defineProps<Props>()
 const moduleReference = ref(props.moduleReference)
 
-const { data, error, componentState } = useModuleReferenceEventQuery({
+const { data, error, componentState, fetching } = useModuleReferenceEventQuery({
 	moduleReference,
 	eventsVariables: {
 		skip: pageOffsetInfoLinkingEvents.skip,

@@ -50,6 +50,7 @@
 						:total-count="contract.contractEvents.totalCount"
 						:page-offset-info="paginationEvents"
 						:page-dropdown-info="pageDropdownEvents"
+						:fetching="fetching"
 					>
 						<ContractDetailsEvents
 							:contract-events="contract.contractEvents!.items"
@@ -65,6 +66,7 @@
 						:total-count="contract.contractRejectEvents.totalCount"
 						:page-offset-info="paginationRejectEvents"
 						:page-dropdown-info="pageDropdownRejectedEvents"
+						:fetching="fetching"
 					>
 						<ContractDetailsRejectEvents
 							:contract-reject-events="contract.contractRejectEvents!.items"
@@ -104,6 +106,7 @@ type Props = {
 	paginationRejectEvents: PaginationOffsetInfo
 	pageDropdownEvents: PageDropdownInfo
 	pageDropdownRejectedEvents: PageDropdownInfo
+	fetching: boolean
 }
 const props = defineProps<Props>()
 
