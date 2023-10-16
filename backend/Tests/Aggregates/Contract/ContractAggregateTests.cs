@@ -40,6 +40,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             transfer,
             new AccountAddress(""),
             1UL,
@@ -79,6 +80,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),
             1UL,
@@ -119,6 +121,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),
             1UL,

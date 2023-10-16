@@ -101,7 +101,7 @@ internal sealed class ContractAggregate
             }
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
-            totalEvents += await StoreEvents(repository, blockInfo, details, blockItemSummary);
+            totalEvents += await StoreEvents(repository, client, blockInfo, details, blockItemSummary);
             totalEvents += await StorePossibleRejectEvent(repository, blockInfo, details, blockItemSummary);
         }
 
@@ -200,7 +200,8 @@ internal sealed class ContractAggregate
     /// </summary>
     internal static async Task<uint> StoreEvent(
         ImportSource source,
-        IContractRepository repository,        
+        IContractRepository repository,
+        IContractNodeClient client,
         TransactionResultEvent transactionResultEvent,
         AccountAddress sender,
         ulong blockHeight, 
@@ -368,17 +369,16 @@ internal sealed class ContractAggregate
                 }
                 break;
             case ContractModuleDeployed contractModuleDeployed:
+                var moduleReferenceEvent = await ModuleReferenceEvent.Create(new ModuleReferenceEvent.ModuleReferenceEventInfo(blockHeight,
+                    transactionHash,
+                    transactionIndex,
+                    eventIndex,
+                    contractModuleDeployed.ModuleRef,
+                    sender,
+                    source,
+                    blockSlotTime), client);
                 await repository
-                    .AddAsync(new ModuleReferenceEvent(
-                        blockHeight,
-                        transactionHash,
-                        transactionIndex,
-                        eventIndex,
-                        contractModuleDeployed.ModuleRef,
-                        sender,
-                        source,
-                        blockSlotTime
-                    ));
+                    .AddAsync(moduleReferenceEvent);
                 break;
         }
 
@@ -447,7 +447,8 @@ internal sealed class ContractAggregate
     /// Store related events and return mapped events count.
     /// </summary>
     private static async Task<uint> StoreEvents(
-        IContractRepository repository, 
+        IContractRepository repository,
+        IContractNodeClient client,
         BlockInfo blockInfo, 
         AccountTransactionDetails details,
         BlockItemSummary blockItemSummary
@@ -460,6 +461,7 @@ internal sealed class ContractAggregate
             eventIndex = await StoreEvent(
                 ImportSource.NodeImport,
                 repository,
+                client,
                 transactionResultEvent,
                 AccountAddress.From(details.Sender),
                 blockInfo.BlockHeight,

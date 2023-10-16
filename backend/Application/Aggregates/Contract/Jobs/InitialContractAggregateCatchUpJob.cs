@@ -23,15 +23,18 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     private const string JobName = "ContractDatabaseImportJob";
     
     private readonly IContractRepositoryFactory _repositoryFactory;
+    private readonly IContractNodeClient _client;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
 
     public InitialContractAggregateCatchUpJob(
         IContractRepositoryFactory repositoryFactory,
+        IContractNodeClient client,
         IOptions<ContractAggregateOptions> options
         )
     {
         _repositoryFactory = repositoryFactory;
+        _client = client;
         _logger = Log.ForContext<InitialContractAggregateCatchUpJob>();
         _contractAggregateOptions = options.Value;
     }
@@ -128,7 +131,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     }
     
     
-    private static async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
+    private async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
     {
         var addedEvents = 0u;
         var events = await repository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
@@ -152,6 +155,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
             var latestEventIndex = await ContractAggregate.StoreEvent(
                 ImportSource.DatabaseImport,
                 repository,
+                _client,
                 eventDto.Event,
                 eventDto.TransactionSender!,
                 (ulong)eventDto.BlockHeight,
