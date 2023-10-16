@@ -33,15 +33,26 @@ public class ContractNodeImportBackgroundServiceTests
         await DatabaseFixture.TruncateTables("graphql_contract_jobs");
         const string done = "done";
         const string awaits = "await";
+        const string shouldNotAwait = "should_not_await";
         var services = new ServiceCollection();
         var first = new Mock<IContractJob>();
         first.Setup(j => j.GetUniqueIdentifier())
             .Returns(done);
+        first.Setup(j => j.ShouldNodeImportAwait())
+            .Returns(true);
         var second = new Mock<IContractJob>();
         second.Setup(j => j.GetUniqueIdentifier())
             .Returns(awaits);
+        second.Setup(j => j.ShouldNodeImportAwait())
+            .Returns(true);
+        var third = new Mock<IContractJob>();
+        third.Setup(j => j.GetUniqueIdentifier())
+            .Returns(shouldNotAwait);
+        third.Setup(j => j.ShouldNodeImportAwait())
+            .Returns(false);
         services.AddTransient<IContractJob>(_ => first.Object);
         services.AddTransient<IContractJob>(_ => second.Object);
+        services.AddTransient<IContractJob>(_ => third.Object);
         var factory = new Mock<IDbContextFactory<GraphQlDbContext>>();
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_fixture.CreateGraphQlDbContext()));

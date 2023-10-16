@@ -29,7 +29,7 @@ public sealed class ModuleReferenceEventTests
         var module = (await File.ReadAllTextAsync("./TestUtilities/TestData/module.wasm.hex")).Trim();
         
         // Act
-        var moduleSchema = await ModuleReferenceEvent.ModuleSchema.Create(client.Object, 0, Convert.ToHexString(new byte[32]));
+        var moduleSchema = await ModuleReferenceEvent.ModuleSourceInfo.Create(client.Object, 0, Convert.ToHexString(new byte[32]));
 
         // Assert
         moduleSchema.ModuleSource.Should().Be(load);

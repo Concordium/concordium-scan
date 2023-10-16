@@ -43,4 +43,9 @@ interface IStatelessBlockHeightJobs
     /// would be lower.
     /// </summary>
     Task<ulong> BatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default);
+    
+    /// <summary>
+    /// Returns if import from node should await job execution. 
+    /// </summary>
+    bool ShouldNodeImportAwait();
 }

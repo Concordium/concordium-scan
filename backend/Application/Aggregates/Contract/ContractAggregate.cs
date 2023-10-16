@@ -369,7 +369,7 @@ internal sealed class ContractAggregate
                 }
                 break;
             case ContractModuleDeployed contractModuleDeployed:
-                var moduleReferenceEvent = await ModuleReferenceEvent.Create(new ModuleReferenceEvent.ModuleReferenceEventInfo(blockHeight,
+                var moduleReferenceEvent = await ModuleReferenceEvent.Create(new ModuleReferenceEventInfo(blockHeight,
                     transactionHash,
                     transactionIndex,
                     eventIndex,

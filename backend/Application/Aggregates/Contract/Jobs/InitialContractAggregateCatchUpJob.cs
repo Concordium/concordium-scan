@@ -3,12 +3,11 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Observability;
+using Application.Aggregates.Contract.Resilience;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
 using Microsoft.Extensions.Options;
-using Npgsql;
-using Polly;
 
 namespace Application.Aggregates.Contract.Jobs;
 
@@ -66,7 +65,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     /// <inheritdoc/>
     public async Task<ulong> BatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
-        return await GetTransientPolicy<ulong>()
+        return await Policies.GetTransientPolicy<ulong>(_logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
@@ -100,8 +99,13 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
                     throw;
                 }
             });
-    }    
-    
+    }
+
+    public bool ShouldNodeImportAwait()
+    {
+        return true;
+    }
+
     private static async Task<uint> StoreRejected(IContractRepository repository, ICollection<ulong> alreadyReadHeights,
         ulong heightFrom, ulong heightTo)
     {
@@ -247,38 +251,4 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
 
         return intervals;
     }
-    
-    /// <summary>
-    /// Create a async retry policy which retries on all transient database errors.
-    /// </summary>
-    private AsyncPolicy<T> GetTransientPolicy<T>()
-    {
-        var policyBuilder = Policy<T>
-            .Handle<NpgsqlException>(ex => ex.IsTransient)
-            .OrInner<NpgsqlException>(ex => ex.IsTransient);
-        AsyncPolicy<T> policy;
-        if (_contractAggregateOptions.RetryCount == -1)
-        {
-            policy = policyBuilder
-                .WaitAndRetryForeverAsync((_, _, _) => _contractAggregateOptions.RetryDelay,
-                    (ex, retryCount, _, _) =>
-                    {
-                        _logger.Error(ex.Exception, $"Triggering retry policy with {retryCount} due to exception");
-                        return Task.CompletedTask;
-                    });
-        }
-        else
-        {
-            policy = policyBuilder
-                .WaitAndRetryAsync(_contractAggregateOptions.RetryCount,
-                    (_, _, _) => _contractAggregateOptions.RetryDelay,
-                    (ex, _, retryCount, _) =>
-                    {
-                        _logger.Error(ex.Exception, $"Triggering retry policy with {retryCount} due to exception");
-                        return Task.CompletedTask;
-                    });
-        }
-
-        return policy;
-    }    
 }

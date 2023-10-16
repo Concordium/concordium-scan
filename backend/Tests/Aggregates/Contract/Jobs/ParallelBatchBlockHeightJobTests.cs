@@ -74,4 +74,9 @@ internal sealed class MockStatelessBlockHeightJobs : IStatelessBlockHeightJobs
 
         return Task.FromResult(affected);
     }
+
+    public bool ShouldNodeImportAwait()
+    {
+        throw new NotImplementedException();
+    }
 }

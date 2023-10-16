@@ -41,11 +41,14 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
 
     /// <inheritdoc/>
     public string GetUniqueIdentifier() => _statelessJob.GetUniqueIdentifier();
-    
+
+    /// <inheritdoc/>
+    public bool ShouldNodeImportAwait() => _statelessJob.ShouldNodeImportAwait();
+
     public async Task StartImport(CancellationToken token)
     {
         using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
-        using var __ = LogContext.PushProperty(nameof(ParallelBatchBlockHeightJob<TStatelessJob>), GetUniqueIdentifier());
+        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
         
         try
         {
@@ -84,7 +87,6 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
         {
             _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
             _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Database import job stopped due to exception.");
-            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
             throw;
         }
     }
