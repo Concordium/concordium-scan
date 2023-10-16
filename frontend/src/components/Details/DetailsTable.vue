@@ -3,7 +3,13 @@
 		<PageDropdown 
 			v-if="MIN_PAGE_SIZE < totalCount"
 			:page-dropdown-info="props.pageDropdownInfo"/>
-		<Table :class="['contractDetail', {'no-last': totalCount <= props.pageOffsetInfo.take.value}]">
+		<Table 
+			:class="[
+				'contract-detail',
+				 {
+					'no-last': totalCount <= props.pageOffsetInfo.take.value,
+					'fetching': fetching
+				}]">
 			<slot />
 		</Table>
 		<PaginationOffset 
@@ -23,24 +29,29 @@ type Props = {
 	totalCount: number
 	pageOffsetInfo: PaginationOffsetInfo
 	pageDropdownInfo: PageDropdownInfo
+	fetching: boolean
 }
 
 const props = defineProps<Props>()
 
 </script>
 <style>
-.contractDetail table td {
+.contract-detail table td {
 	padding: 30px 20px 21px;
 	@media screen and (max-width: 640px) {
 		padding: 10px 20px;
 	}
 }
-.contractDetail table tr {
+.contract-detail table tr {
 	border-bottom: 2px solid;
 	border-bottom-color: var(--color-thead-bg);
 }
 
-.contractDetail table thead tr {
+.fetching table tr {
+	opacity: 0.4;
+}
+
+.contract-detail table thead tr {
 	border-bottom: none;
 }
 
