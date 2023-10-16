@@ -92,7 +92,7 @@ public class InitialModuleSourceCatchup : IContractJob
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-                }, (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.FinalizationCount, cancellationToken));
+                }, (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.LastFinalizedBlockHeight, cancellationToken));
             await cycle;
             
             _logger.Information($"Done with job {GetUniqueIdentifier()}");
