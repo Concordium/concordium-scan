@@ -106,7 +106,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         V3 = 3
     }
 
-    private sealed record ModuleSchema(string ModuleSource, string? Schema, ModuleSchemaVersion? ModuleSchemaVersion)
+    internal sealed record ModuleSchema(string ModuleSource, string? Schema, ModuleSchemaVersion? ModuleSchemaVersion)
     {
         internal static async Task<ModuleSchema> Create(IContractNodeClient client, ulong blockHeight, string moduleReference)
         {

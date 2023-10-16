@@ -265,7 +265,7 @@ public sealed class ContractAggregateTests
 
         // Assert
         contractEvents.Count.Should().Be(1);
-        var contractUpgraded = (contractEvents[0].Event as Application.Api.GraphQL.Transactions.ContractUpgraded)!;
+        var contractUpgraded = (contractEvents[0].Event as ContractUpgraded)!;
         contractUpgraded.From.Should().Be(moduleFrom);
         contractUpgraded.To.Should().Be(moduleTo);
 

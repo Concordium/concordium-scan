@@ -42,5 +42,8 @@
       <None Update="TestUtilities\TestData\module.wasm.hex">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="TestUtilities\TestData\module.schema_embedded.wasm.hex">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>
