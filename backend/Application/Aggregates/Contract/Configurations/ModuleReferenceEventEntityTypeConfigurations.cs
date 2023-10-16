@@ -29,6 +29,12 @@ public sealed class ModuleReferenceEventEntityTypeConfigurations : IEntityTypeCo
             .HasConversion<AccountAddressConverter>(); 
         builder.Property(x => x.Source)
             .HasColumnName("source");
+        builder.Property(x => x.ModuleSource)
+            .HasColumnName("module_source");
+        builder.Property(x => x.Schema)
+            .HasColumnName("schema");
+        builder.Property(x => x.SchemaVersion)
+            .HasColumnName("schema_version");
         builder.Property(x => x.BlockSlotTime)
             .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
