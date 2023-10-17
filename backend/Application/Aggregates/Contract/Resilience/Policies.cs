@@ -41,7 +41,7 @@ internal static class Policies
     }    
     
     /// <summary>
-    /// Create a async retry policy which retries on all transient database errors.
+    /// Create an async retry policy, which retries on all transient database errors.
     /// </summary>
     internal static AsyncPolicy<T> GetTransientPolicy<T>(ILogger logger, int retryCount, TimeSpan delay)
     {
