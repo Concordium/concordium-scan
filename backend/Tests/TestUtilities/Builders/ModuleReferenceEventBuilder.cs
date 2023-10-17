@@ -13,6 +13,7 @@ internal sealed class ModuleReferenceEventBuilder
     private const ulong TransactionIndex = 1;
     private const uint EventIndex = 1;
     private string _moduleReference = "";
+    private string moduleSource = "";
     private readonly AccountAddress _accountAddress = new("");
     private const ImportSource Source = ImportSource.DatabaseImport;
     private readonly DateTimeOffset _dateTimeOffset = DateTimeOffset.UtcNow;
@@ -34,6 +35,9 @@ internal sealed class ModuleReferenceEventBuilder
             EventIndex,
             _moduleReference,
             _accountAddress,
+            moduleSource,
+            null,
+            null,
             Source,
             _dateTimeOffset
         )

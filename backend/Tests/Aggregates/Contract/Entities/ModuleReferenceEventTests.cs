@@ -1,13 +1,49 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
-using Application.Api.GraphQL;
+using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using FluentAssertions;
+using Moq;
 using Tests.TestUtilities.Builders;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
 
 namespace Tests.Aggregates.Contract.Entities;
 
 public sealed class ModuleReferenceEventTests
 {
+    [Theory]
+    [InlineData("module.schema_embedded.wasm.hex", "FFFF03010000000C00000054657374436F6E7472616374000000000001150200000003000000466F6F020300000042617202")]
+    [InlineData("module.wasm.hex", null)]
+    public async Task WhenCreateModuleSchema_ThenSchemaPresent(string fileName, string? schema)
+    {
+        // Arrange
+        var client = new Mock<IContractNodeClient>();
+        var load = (await File.ReadAllTextAsync($"./TestUtilities/TestData/{fileName}")).Trim();
+        var queryResponseModuleSource = new QueryResponse<VersionedModuleSource>(BlockHash.From(new byte[32]), new ModuleV1(Convert.FromHexString(load)));
+        
+        client.Setup(c => c.GetModuleSourceAsync(It.IsAny<IBlockHashInput>(), It.IsAny<ModuleReference>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponseModuleSource));
+        var module = (await File.ReadAllTextAsync("./TestUtilities/TestData/module.wasm.hex")).Trim();
+        
+        // Act
+        var moduleSchema = await ModuleReferenceEvent.ModuleSourceInfo.Create(client.Object, 0, Convert.ToHexString(new byte[32]));
+
+        // Assert
+        moduleSchema.ModuleSource.Should().Be(load);
+        if (schema is not null)
+        {
+            moduleSchema.Schema.Should().NotBeNull();
+            moduleSchema.Schema.Should().Be(schema);
+        }
+        else
+        {
+            moduleSchema.Schema.Should().BeNull();
+        }
+    }
+    
     [Fact]
     public void WhenGetLinkedContract_ThenReturnThoseWhichHasNotBeenRemoved()
     {

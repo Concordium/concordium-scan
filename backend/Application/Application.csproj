@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
-        <Version>1.7.4</Version>
+        <Version>1.7.5</Version>
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="ConcordiumNetSdk" Version="4.1.0" />
@@ -25,6 +25,7 @@
       <PackageReference Include="Serilog.AspNetCore" Version="5.0.0" />
       <PackageReference Include="PeterO.Cbor" Version="4.5.2" />
       <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+      <PackageReference Include="WebAssembly" Version="1.2.1" />
     </ItemGroup>
 
     <ItemGroup>

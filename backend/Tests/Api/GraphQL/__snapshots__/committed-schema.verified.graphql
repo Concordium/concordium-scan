@@ -1285,6 +1285,7 @@ type ModuleReferenceEvent {
   sender: AccountAddress!
   moduleReferenceContractLinkEvents(skip: Int take: Int): ModuleReferenceContractLinkEventsCollectionSegment
   moduleReferenceRejectEvents(skip: Int take: Int): ModuleReferenceRejectEventsCollectionSegment
+  schema: String
   blockHeight: UnsignedLong!
   transactionHash: String!
   transactionIndex: UnsignedLong!

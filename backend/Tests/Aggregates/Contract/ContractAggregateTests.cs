@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 using Application.Aggregates.Contract;
@@ -40,6 +41,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             transfer,
             new AccountAddress(""),
             1UL,
@@ -79,6 +81,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),
             1UL,
@@ -119,6 +122,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),
             1UL,
@@ -261,7 +265,7 @@ public sealed class ContractAggregateTests
 
         // Assert
         contractEvents.Count.Should().Be(1);
-        var contractUpgraded = (contractEvents[0].Event as Application.Api.GraphQL.Transactions.ContractUpgraded)!;
+        var contractUpgraded = (contractEvents[0].Event as ContractUpgraded)!;
         contractUpgraded.From.Should().Be(moduleFrom);
         contractUpgraded.To.Should().Be(moduleTo);
 
@@ -300,11 +304,17 @@ public sealed class ContractAggregateTests
             .WithBlockHash(blockHash)
             .Build();
         var queryResponseBlockInfo = new QueryResponse<BlockInfo>(blockHash, blockInfo);
-        
+
+        var load = File.ReadAllText("./TestUtilities/TestData/module.wasm.hex").Trim();
+        var queryResponseModuleSource = new QueryResponse<VersionedModuleSource>(blockHash, new ModuleV1(Convert.FromHexString(load)));
+
         client.Setup(c => c.GetBlockTransactionEvents(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponse));
         client.Setup(c => c.GetBlockInfoAsync(It.IsAny<IBlockHashInput>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponseBlockInfo));
+        client.Setup(c => c.GetModuleSourceAsync(It.IsAny<IBlockHashInput>(), It.IsAny<ModuleReference>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(queryResponseModuleSource));
+        
         return client;
     }
 }

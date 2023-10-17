@@ -1,12 +1,14 @@
+using System.IO;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
-using Polly;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -32,6 +34,11 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; init; } = null!;
+    [GraphQLIgnore]
+    public string? ModuleSource { get; private set; }
+    public string? Schema { get; private set; }
+    [GraphQLIgnore]
+    public ModuleSchemaVersion? SchemaVersion { get; private set; }
 
     /// <summary>
     /// Needed for EF Core
@@ -39,13 +46,16 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     private ModuleReferenceEvent()
     {}
 
-    public ModuleReferenceEvent(
+    internal ModuleReferenceEvent(
         ulong blockHeight,
         string transactionHash,
         ulong transactionIndex,
         uint eventIndex,
         string moduleReference,
         AccountAddress sender,
+        string moduleSource,
+        string? schema,
+        ModuleSchemaVersion? version,
         ImportSource source,
         DateTimeOffset blockSlotTime) : 
         base(blockHeight, transactionHash, transactionIndex, source, blockSlotTime)
@@ -53,8 +63,101 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         EventIndex = eventIndex;
         ModuleReference = moduleReference;
         Sender = sender;
+        ModuleSource = moduleSource;
+        Schema = schema;
+        SchemaVersion = version;
     }
 
+    internal void UpdateWithModuleSourceInfo(ModuleSourceInfo info)
+    {
+        ModuleSource = info.ModuleSource;
+        Schema = info.Schema;
+        SchemaVersion = info.ModuleSchemaVersion;
+    }
+
+    internal static async Task<ModuleReferenceEvent> Create(ModuleReferenceEventInfo info, IContractNodeClient client)
+    {
+        var moduleSchema = await ModuleSourceInfo.Create(client, info.BlockHeight, info.ModuleReference);
+        return new ModuleReferenceEvent(
+            info.BlockHeight,
+            info.TransactionHash,
+            info.TransactionIndex,
+            info.EventIndex,
+            info.ModuleReference,
+            info.Sender,
+            moduleSchema.ModuleSource,
+            moduleSchema.Schema,
+            moduleSchema.ModuleSchemaVersion,
+            info.Source,
+            info.BlockSlotTime
+        );
+    } 
+
+    internal sealed record ModuleSourceInfo(string ModuleSource, string? Schema, ModuleSchemaVersion? ModuleSchemaVersion)
+    {
+        internal static async Task<ModuleSourceInfo> Create(IContractNodeClient client, ulong blockHeight, string moduleReference)
+        {
+            var (versionedModuleSource, moduleSource, module) = await GetWasmModule(client, blockHeight, moduleReference);
+            var schema = GetModuleSchema(module, versionedModuleSource);
+            return new ModuleSourceInfo(moduleSource, schema?.Schema, schema?.SchemaVersion);
+        }
+
+        private static async Task<(VersionedModuleSource VersionedModuleSource, string ModuleSource, WebAssembly.Module Module)> GetWasmModule(IContractNodeClient client, ulong blockHeight, string moduleReference)
+        {
+            var absolute = new Absolute(blockHeight);
+            var moduleRef = new ModuleReference(moduleReference);
+    
+            var moduleSourceAsync = await client.GetModuleSourceAsync(absolute, moduleRef);
+            var versionedModuleSource = moduleSourceAsync.Response;
+            var moduleSourceHex = Convert.ToHexString(versionedModuleSource.Source);
+        
+            using var stream = new MemoryStream(versionedModuleSource.Source);
+            var moduleWasm = WebAssembly.Module.ReadFromBinary(stream);
+            return (versionedModuleSource, moduleSourceHex, moduleWasm);
+        }
+
+        private static (string Schema, ModuleSchemaVersion SchemaVersion)? GetModuleSchema(WebAssembly.Module module, VersionedModuleSource moduleSource)
+        {
+            switch (moduleSource)
+            {
+                case ModuleV0:
+                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema", out var moduleV0SchemaUndefined))
+                    {
+                        return (moduleV0SchemaUndefined!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.Undefined); // always v0
+                    }
+                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v1", out var moduleV0SchemaV0))
+                    {
+                        return (moduleV0SchemaV0!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.V0); // v0 (not a typo)
+                    }
+                    return null;
+                case ModuleV1:
+                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema", out var moduleV1SchemaUndefined))
+                    {
+                        return (moduleV1SchemaUndefined!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.Undefined); // v1, v2, or v3
+                    }
+                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v1", out var moduleV1SchemaV1))
+                    {
+                        return (moduleV1SchemaV1!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.V1); // v1 (not a typo)
+                    }
+                    return null;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(moduleSource));
+            }
+        }
+        
+        private static bool GetSchemaFromWasmCustomSection(WebAssembly.Module module, string entryKey, out string? schema)
+        {
+            schema = null;
+            var customSection = module.CustomSections
+                .SingleOrDefault(section => section.Name.StartsWith(entryKey, StringComparison.InvariantCulture));
+
+            if (customSection == null) return false;
+            
+            schema = Convert.ToHexString(customSection.Content.ToArray());
+            return true;
+        }
+    }
+    
     [ExtendObjectType(typeof(Query))]
     public class ModuleReferenceEventQuery
     {

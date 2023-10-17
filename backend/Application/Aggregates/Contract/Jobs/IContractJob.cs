@@ -16,4 +16,9 @@ public interface IContractJob
     /// WARNING: changing this could result in already executed jobs rerunning.
     /// </summary>
     string GetUniqueIdentifier();
+
+    /// <summary>
+    /// Returns if import from node should await job execution. 
+    /// </summary>
+    bool ShouldNodeImportAwait();
 }

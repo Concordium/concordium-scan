@@ -94,6 +94,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     internal async Task<IList<string>> GetJobsToAwait(CancellationToken token = default)
     {
         var contractJobs = _jobFinder.GetJobs()
+            .Where(j => j.ShouldNodeImportAwait())
             .Select(j => j.GetUniqueIdentifier())
             .ToList();
         await using var context = await _dbContextFactory.CreateDbContextAsync(token);
