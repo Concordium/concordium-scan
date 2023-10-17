@@ -7,7 +7,7 @@ namespace Application.Aggregates.Contract.Resilience;
 internal static class Policies
 {
     /// <summary>
-    /// Create a async retry policy which retries on all transient database errors.
+    /// Create an async retry policy, which retries on all transient database errors.
     /// </summary>
     internal static AsyncPolicy GetTransientPolicy(ILogger logger, int retryCount, TimeSpan delay)
     {
