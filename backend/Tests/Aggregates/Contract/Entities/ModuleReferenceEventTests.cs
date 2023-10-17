@@ -15,9 +15,9 @@ namespace Tests.Aggregates.Contract.Entities;
 public sealed class ModuleReferenceEventTests
 {
     [Theory]
-    [InlineData("module.schema_embedded.wasm.hex", true)]
-    [InlineData("module.wasm.hex", false)]
-    public async Task WhenCreateModuleSchema_ThenSchemaPresent(string fileName, bool embedded)
+    [InlineData("module.schema_embedded.wasm.hex", "FFFF03010000000C00000054657374436F6E7472616374000000000001150200000003000000466F6F020300000042617202")]
+    [InlineData("module.wasm.hex", null)]
+    public async Task WhenCreateModuleSchema_ThenSchemaPresent(string fileName, string? schema)
     {
         // Arrange
         var client = new Mock<IContractNodeClient>();
@@ -33,9 +33,10 @@ public sealed class ModuleReferenceEventTests
 
         // Assert
         moduleSchema.ModuleSource.Should().Be(load);
-        if (embedded)
+        if (schema is not null)
         {
             moduleSchema.Schema.Should().NotBeNull();
+            moduleSchema.Schema.Should().Be(schema);
         }
         else
         {
