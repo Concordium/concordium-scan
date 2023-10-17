@@ -98,7 +98,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         internal static async Task<ModuleSourceInfo> Create(IContractNodeClient client, ulong blockHeight, string moduleReference)
         {
             var (versionedModuleSource, moduleSource, module) = await GetWasmModule(client, blockHeight, moduleReference);
-            var schema = CreateModuleSchema(module, versionedModuleSource);
+            var schema = GetModuleSchema(module, versionedModuleSource);
             return new ModuleSourceInfo(moduleSource, schema?.Schema, schema?.SchemaVersion);
         }
 
@@ -116,7 +116,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
             return (versionedModuleSource, moduleSourceHex, moduleWasm);
         }
 
-        private static (string Schema, ModuleSchemaVersion SchemaVersion)? CreateModuleSchema(WebAssembly.Module module, VersionedModuleSource moduleSource)
+        private static (string Schema, ModuleSchemaVersion SchemaVersion)? GetModuleSchema(WebAssembly.Module module, VersionedModuleSource moduleSource)
         {
             switch (moduleSource)
             {
