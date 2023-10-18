@@ -726,7 +726,6 @@ type Contract {
   creator: AccountAddress!
   contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
   contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
-  moduleReferenceContractLinkEvents: [ModuleReferenceContractLinkEvent!]!
   blockHeight: UnsignedLong!
   transactionHash: String!
   transactionIndex: UnsignedLong!

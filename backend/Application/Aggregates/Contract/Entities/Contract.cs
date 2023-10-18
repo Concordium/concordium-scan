@@ -4,6 +4,7 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Dapper;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
@@ -29,13 +30,14 @@ public sealed class Contract : BaseIdentification
     /// Hence pagination should only by used in cases where database query has executed like <see cref="Contract.ContractQuery.GetContract"/>.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ContractEvent> ContractEvents { get; init; } = null!;
+    public IList<ContractEvent> ContractEvents { get; internal set; } = null!;
     /// <summary>
     /// See pagination comment on above.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ContractRejectEvent> ContractRejectEvents { get; init; } = null!;
-    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
+    public IList<ContractRejectEvent> ContractRejectEvents { get; private set; } = null!;
+    [GraphQLIgnore]
+    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; internal set; } = null!;
     
     /// <summary>
     /// Needed for EF Core
@@ -61,49 +63,106 @@ public sealed class Contract : BaseIdentification
         Creator = creator;
     }
     
+    private const string ContractEventsSql = @"
+    SELECT 
+        g0.block_height as BlockHeight,
+        g0.transaction_index as TransactionIndex,
+        g0.event_index as EventIndex,
+        g0.contract_address_index as ContractAddressIndex,
+        g0.contract_address_subindex as ContractAddressSubIndex,
+        g0.block_slot_time as BlockSlotTime,
+        g0.created_at as CreatedAt,
+        g0.event as Event,
+        g0.sender as Creator,
+        g0.source as Source,
+        g0.transaction_hash as TransactionHash
+    FROM graphql_contract_events AS g0
+    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
+";
+    
+    private const string ModuleLinkEventsSql = @"
+    SELECT 
+        g0.block_height as BlockHeight,
+        g0.transaction_index as TransactionIndex,
+        g0.event_index as EventIndex,
+        g0.module_reference as ModuleReference,
+        g0.contract_address_index as ContractAddressIndex,
+        g0.contract_address_subindex as ContractAddressSubIndex,
+        g0.link_action as LinkAction,
+        g0.block_slot_time as BlockSlotTime,
+        g0.created_at as CreatedAt,
+        g0.sender as Sender, 
+        g0.source as Source,
+        g0.transaction_hash as TransactionHash
+    FROM graphql_module_reference_contract_link_events AS g0
+    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
+";
+    
+    private const string ContractRejectEventsSql = @"
+    SELECT 
+        g0.block_height as BlockHeight,
+        g0.transaction_index as TransactionIndex,
+        g0.contract_address_index as ContractAddressIndex,
+        g0.contract_address_subindex as ContractAddressSubIndex,
+        g0.block_slot_time as BlockSlotTime,
+        g0.created_at as CreatedAt,
+        g0.reject_event as RejectedEvent,
+        g0.sender as Sender, 
+        g0.source as Source,
+        g0.transaction_hash as TransactionHash
+    FROM graphql_contract_reject_events AS g0
+    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC;
+";
+    
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
-        public Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
+        public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
         {
-            return context.Contract
-                .AsSplitQuery()
+            var contract = await context.Contract
                 .AsNoTracking()
                 .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
-                .Include(c => c.ContractEvents
-                    .OrderByDescending(ce => ce.BlockHeight)
-                    .ThenByDescending(ce => ce.TransactionIndex)
-                    .ThenByDescending(ce => ce.EventIndex))
-                .Include(c => c.ContractRejectEvents
-                    .OrderByDescending(ce => ce.BlockHeight)
-                    .ThenByDescending(ce => ce.TransactionIndex))
-                .Include(c => c.ModuleReferenceContractLinkEvents
-                    .OrderByDescending(ce => ce.BlockHeight)
-                    .ThenByDescending(ce => ce.TransactionIndex)
-                    .ThenByDescending(ce => ce.EventIndex))
                 .SingleOrDefaultAsync();
+            if (contract == null)
+            {
+                return null;
+            }
+            
+            var connection = context.Database.GetDbConnection();
+            
+            var parameter = new { Index = (long)contract.ContractAddressIndex, Subindex = (long)contract.ContractAddressSubIndex};
+            var contractEvent = await connection.QueryAsync<ContractEvent>(ContractEventsSql, parameter);
+            var contractRejectEvent = await connection.QueryAsync<ContractRejectEvent>(ContractRejectEventsSql, parameter);
+            var moduleLinkEvent = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(ModuleLinkEventsSql, parameter);
+            
+            contract.ContractEvents = contractEvent.ToList();
+            contract.ContractRejectEvents = contractRejectEvent.ToList();
+            contract.ModuleReferenceContractLinkEvents = moduleLinkEvent.ToList();
+
+            return contract;
         }
         
         /// <summary>
         /// Get contracts with pagination support.
-        /// 
-        /// Currently contracts module reference are not updated for the lifetime of the contract. Hence often there will
-        /// be only one module link event for each contract.
-        ///
-        /// Because of this we are currently not using <see cref="Microsoft.EntityFrameworkCore.RelationalQueryableExtensions.AsSplitQuery"/>.
-        /// If performance issues on this query is seen and module reference links increases then look into using above splitting technique.
         /// </summary>
-        /// <remarks>
-        ///     See <see href="https://aka.ms/efcore-docs-split-queries">EF Core split queries</see> for more information.
-        /// </remarks> 
         [UsePaging(MaxPageSize = 100)]
         public IQueryable<Contract> GetContracts(
             GraphQlDbContext context) 
         {
             return context.Contract
+                .AsSplitQuery()
                 .AsNoTracking()
-                .Include(s => s.ContractEvents)
-                .Include(s => s.ModuleReferenceContractLinkEvents)
+                .Include(s => s.ContractEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
+                .Include(s => s.ModuleReferenceContractLinkEvents
+                    .OrderByDescending(ce => ce.BlockHeight)
+                    .ThenByDescending(ce => ce.TransactionIndex)
+                    .ThenByDescending(ce => ce.EventIndex))
                 .OrderByDescending(c => c.ContractAddressIndex);
         }
     }
@@ -137,6 +196,8 @@ public sealed class Contract : BaseIdentification
 
         /// <summary>
         /// Returns aggregated amount from events on contract.
+        ///
+        /// Events should be sorted descending by block height, transaction index and event index.
         /// </summary>
         public double GetAmount([Parent] Contract contract)
         {

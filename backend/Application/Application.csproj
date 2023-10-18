@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
-        <Version>1.7.5</Version>
+        <Version>1.7.6</Version>
     </PropertyGroup>
     <ItemGroup>
       <PackageReference Include="ConcordiumNetSdk" Version="4.1.0" />

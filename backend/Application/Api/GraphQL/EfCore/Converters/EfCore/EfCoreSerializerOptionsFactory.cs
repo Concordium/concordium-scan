@@ -5,6 +5,8 @@ namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
 
 public static class EfCoreJsonSerializerOptionsFactory 
 {
+    public static readonly JsonSerializerOptions Default = Create();
+    
     public static JsonSerializerOptions Create()
     {
         return new JsonSerializerOptions
