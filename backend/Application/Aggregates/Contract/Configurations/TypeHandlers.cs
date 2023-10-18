@@ -16,7 +16,7 @@ public class TransactionRejectReasonHandler : SqlMapper.TypeHandler<TransactionR
 
     public override TransactionRejectReason Parse(object value)
     {
-        return JsonSerializer.Deserialize<TransactionRejectReason>((value as string)!, EfCoreJsonSerializerOptionsFactory.Default)!;
+        return JsonSerializer.Deserialize<TransactionRejectReason>(value.ToString()!, EfCoreJsonSerializerOptionsFactory.Default)!;
     }
 }
 
@@ -29,7 +29,7 @@ public class TransactionResultEventHandler : SqlMapper.TypeHandler<TransactionRe
 
     public override TransactionResultEvent Parse(object value)
     {
-        return JsonSerializer.Deserialize<TransactionResultEvent>((value as string)!, EfCoreJsonSerializerOptionsFactory.Default)!;
+        return JsonSerializer.Deserialize<TransactionResultEvent>(value.ToString()!, EfCoreJsonSerializerOptionsFactory.Default)!;
     }
 }
     
