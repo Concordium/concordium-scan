@@ -123,7 +123,6 @@ public sealed class Contract : BaseIdentification
     {
         public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
         {
-            var startNew = Stopwatch.StartNew();
             var contract = await context.Contract
                 .AsNoTracking()
                 .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
