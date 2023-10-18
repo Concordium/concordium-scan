@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
