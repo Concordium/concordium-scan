@@ -48,5 +48,11 @@
       <None Update="TestUtilities\TestData\cis2_wCCD_sub">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="TestUtilities\TestData\cis2-nft-schema.bin">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestUtilities\TestData\cis2-nft-schema">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>

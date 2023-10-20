@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+// ReSharper disable InconsistentNaming
+// Disabling are because names should follow the names in rust code. 
 
 namespace Application.Interop;
 
@@ -17,6 +19,17 @@ internal static class InteropBinding
     
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_event_contract")]
     private static extern bool get_event_contract(string schema, FFIOption schema_version, string contract_name, string value, ref IntPtr result);
+    
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "test_option")]
+    private static extern IntPtr test_option(FFIOption schema_version);
+
+    internal static string TestOption(FFIOption option)
+    {
+        var pointerWith = test_option(option);
+        var stringWith = Marshal.PtrToStringAnsi(pointerWith);
+        Marshal.FreeHGlobal(pointerWith);
+        return stringWith!;
+    }
     
     internal static InteropResult SchemaDisplay(string schema, FFIOption schemaVersion)
     {
@@ -72,19 +85,18 @@ internal static class InteropBinding
             Marshal.FreeHGlobal(ptr);
         }
     }
-
-    [Serializable]
+    
     [StructLayout(LayoutKind.Sequential)]
     public struct FFIOption
     {
-        private ushort t;
-        private bool is_some;
+        internal byte t { get; private init; }
+        internal byte is_some { get; private init; }
 
-        public static FFIOption None() => new() { is_some = false };
-        public static FFIOption Some(ushort some) => new()
+        public static FFIOption None() => new() { is_some = 0 };
+        public static FFIOption Some(byte some) => new()
         {
             t = some,
-            is_some = true
+            is_some = 1
         };
     }
 }

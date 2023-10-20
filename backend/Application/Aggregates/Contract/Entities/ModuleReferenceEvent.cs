@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
@@ -184,6 +185,17 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [ExtendObjectType(typeof(ModuleReferenceEvent))]
     public sealed class ModuleReferenceEventExtensions
     {
+        public string? GetDisplaySchema([Parent] ModuleReferenceEvent module)
+        {
+            if (module.Schema == null)
+            {
+                return null;
+            }
+            var ffiOption = ModuleSchemaVersionExtensions.Into(module.SchemaVersion);
+            var schemaDisplay = InteropBinding.SchemaDisplay(module.Schema, ffiOption);
+            return schemaDisplay.Succeeded ? schemaDisplay.Message! : null;
+        }
+        
         [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
         public IList<LinkedContract> GetLinkedContracts([Parent] ModuleReferenceEvent moduleReferenceEvent)
         {

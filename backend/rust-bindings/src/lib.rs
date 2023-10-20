@@ -11,24 +11,37 @@ pub type HexString = String;
 pub type JsonString = String;
 
 #[repr(C)]
-pub struct FFIOption<T> {
-    t: T,
-    is_some: bool
+pub struct FFIOption {
+    pub t: u8,
+    pub is_some: u8
 }
 
-impl <T> FFIOption<T> {
-    pub fn into_option(self) -> Option<T> {
+impl FFIOption {
+    pub fn into_option(self) -> Option<u8> {
         match self.is_some {
-            true => Option::Some(self.t),
-            false => Option::None
+            1 => Option::Some(self.t),
+            _ => Option::None
         }
     }
 }
 
 #[no_mangle]
+pub extern "C" fn test_option(
+    schema_version: FFIOption,
+) -> *const c_char {
+    let mut schema_concat = "".to_string();
+    if let Some(option) = schema_version.into_option() {
+        schema_concat = format!("{schema_concat}-{option}")
+    } else {
+        schema_concat = format!("{schema_concat}-none")
+    }
+    CString::new(schema_concat).unwrap().into_raw()    
+} 
+
+#[no_mangle]
 pub extern "C" fn schema_display(
     schema: *const c_char,
-    schema_version: FFIOption<u8>,
+    schema_version: FFIOption,
     result: *mut *mut c_char) -> bool {
     
     let schema_hex = match get_str_from_pointer(schema, result) {
@@ -55,7 +68,7 @@ pub extern "C" fn schema_display(
 #[no_mangle]
 pub extern "C" fn get_receive_contract_parameter(
     schema: *const c_char,
-    schema_version: FFIOption<u8>,
+    schema_version: FFIOption,
     contract_name: *const c_char,
     entrypoint: *const c_char,
     value: *const c_char,
@@ -96,7 +109,7 @@ pub extern "C" fn get_receive_contract_parameter(
 #[no_mangle]
 pub extern "C" fn get_event_contract(
     schema: *const c_char,
-    schema_version: FFIOption<u8>,
+    schema_version: FFIOption,
     contract_name: *const c_char,
     value: *const c_char,
     result: *mut *mut c_char) -> bool {
@@ -254,4 +267,32 @@ mod test {
         assert_eq!(display, expected);
         Ok(())
     }
+
+    #[test]
+    fn test_display_module_versioned_schema() -> Result<()> {
+        // Arrange
+        let _expected = r#"Contract: TestContract
+  Event:
+    {
+      "Enum": [
+        {
+          "Foo": []
+        },
+        {
+          "Bar": []
+        }
+      ]
+    }
+"#;
+        let schema_version = Option::Some(1);
+        let schema = fs::read_to_string("./test-data/cis2-nft-schema")?;
+
+        // Act
+        let display = schema_display_aux(schema, schema_version)?;
+
+        // Assert
+        print!("{}", display);
+        // assert_eq!(display, expected);
+        Ok(())
+    }    
 }

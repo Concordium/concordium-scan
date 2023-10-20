@@ -9,13 +9,37 @@ namespace Tests.Interop;
 public class InteropBindingTests
 {
     [Fact]
+    public async Task What()
+    {
+        var testOption = InteropBinding.TestOption(InteropBinding.FFIOption.Some(1));
+
+        var hej = "hej";
+    }
+    [Fact]
+    public async Task GivenSchemaVersion_WhenSchemaDisplay_ThenReturnSchema()
+    {
+        // Arrange
+        var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2-nft-schema")).Trim();
+        var ffiOption = InteropBinding.FFIOption.Some(1);
+
+        // Act
+        var (message, succeeded) = InteropBinding.SchemaDisplay(schema, ffiOption);
+
+        // Assert
+        succeeded.Should().BeTrue();
+        await Verifier.Verify(message)
+            .UseFileName("module-versioned-schema")
+            .UseDirectory("__snapshots__");
+    }
+    
+    [Fact]
     public async Task WhenSchemaDisplay_ThenReturnSchema()
     {
         // Arrange
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
 
         // Act
-        var (message, succeeded) = InteropBinding.SchemaDisplay(schema, InteropBinding.FFIOption.None());
+        var (message, succeeded) = InteropBinding.SchemaDisplay(schema,  InteropBinding.FFIOption.None());
 
         // Assert
         succeeded.Should().BeTrue();
