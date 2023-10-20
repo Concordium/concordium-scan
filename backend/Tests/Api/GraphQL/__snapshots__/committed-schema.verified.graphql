@@ -722,16 +722,12 @@ type Contract {
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
   contractAddress: String!
-  eventIndex: UnsignedInt!
   creator: AccountAddress!
   contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
   contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
   contractName: String!
   moduleReference: String!
   amount: Float!
@@ -750,15 +746,11 @@ type ContractCall {
 type ContractEvent {
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
   sender: AccountAddress!
   event: Event!
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
 }
 
 "A segment of a collection."
@@ -795,10 +787,7 @@ type ContractRejectEvent {
   rejectedEvent: TransactionRejectReason!
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
 }
 
 "A segment of a collection."
@@ -1256,16 +1245,12 @@ type ModuleNotWf {
 type ModuleReferenceContractLinkEvent {
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
-  eventIndex: UnsignedInt!
   moduleReference: String!
   sender: AccountAddress!
   linkAction: ModuleReferenceContractLinkAction!
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
   contractAddress: ContractAddress!
 }
 
@@ -1279,18 +1264,14 @@ type ModuleReferenceContractLinkEventsCollectionSegment {
 }
 
 type ModuleReferenceEvent {
-  eventIndex: UnsignedInt!
   moduleReference: String!
   sender: AccountAddress!
   moduleReferenceContractLinkEvents(skip: Int take: Int): ModuleReferenceContractLinkEventsCollectionSegment
   moduleReferenceRejectEvents(skip: Int take: Int): ModuleReferenceRejectEventsCollectionSegment
-  schema: String
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
+  displaySchema: String
   linkedContracts(skip: Int take: Int): LinkedContractsCollectionSegment
 }
 
@@ -1300,10 +1281,7 @@ type ModuleReferenceRejectEvent {
   rejectedEvent: TransactionRejectReason!
   blockHeight: UnsignedLong!
   transactionHash: String!
-  transactionIndex: UnsignedLong!
-  source: ImportSource!
   blockSlotTime: DateTime!
-  createdAt: DateTime!
 }
 
 "A segment of a collection."
@@ -2068,11 +2046,6 @@ enum ContractVersion {
 enum CredentialDeploymentTransactionType {
   INITIAL
   NORMAL
-}
-
-enum ImportSource {
-  NODE_IMPORT
-  DATABASE_IMPORT
 }
 
 enum MetricsPeriod {

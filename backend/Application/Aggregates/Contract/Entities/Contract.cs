@@ -20,6 +20,7 @@ public sealed class Contract : BaseIdentification
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public string ContractAddress { get; init; } = null!;
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
  

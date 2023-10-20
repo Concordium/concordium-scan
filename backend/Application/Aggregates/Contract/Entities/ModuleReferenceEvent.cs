@@ -18,6 +18,7 @@ namespace Application.Aggregates.Contract.Entities;
 /// </summary>
 public sealed class ModuleReferenceEvent : BaseIdentification
 {
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public string ModuleReference { get; init; } = null!;
     public AccountAddress Sender { get; init; } = null!;
@@ -37,6 +38,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; init; } = null!;
     [GraphQLIgnore]
     public string? ModuleSource { get; private set; }
+    [GraphQLIgnore]
     public string? Schema { get; private set; }
     [GraphQLIgnore]
     public ModuleSchemaVersion? SchemaVersion { get; private set; }

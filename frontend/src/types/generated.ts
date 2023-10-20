@@ -1019,14 +1019,9 @@ export type Contract = {
   contractEvents?: Maybe<ContractEventsCollectionSegment>;
   contractName: Scalars['String'];
   contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
-  createdAt: Scalars['DateTime'];
   creator: AccountAddress;
-  eventIndex: Scalars['UnsignedInt'];
   moduleReference: Scalars['String'];
-  moduleReferenceContractLinkEvents: Array<ModuleReferenceContractLinkEvent>;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 
@@ -1059,13 +1054,9 @@ export type ContractEvent = {
   blockSlotTime: Scalars['DateTime'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  createdAt: Scalars['DateTime'];
   event: Event;
-  eventIndex: Scalars['UnsignedInt'];
   sender: AccountAddress;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 /** A segment of a collection. */
@@ -1121,12 +1112,9 @@ export type ContractRejectEvent = {
   blockSlotTime: Scalars['DateTime'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  createdAt: Scalars['DateTime'];
   rejectedEvent: TransactionRejectReason;
   sender: AccountAddress;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 /** A segment of a collection. */
@@ -1514,11 +1502,6 @@ export type GasRewardsCpv2 = {
   chainUpdate: Scalars['Decimal'];
 };
 
-export enum ImportSource {
-  DatabaseImport = 'DATABASE_IMPORT',
-  NodeImport = 'NODE_IMPORT'
-}
-
 export type ImportState = {
   __typename?: 'ImportState';
   cumulativeAccountsCreated: Scalars['Long'];
@@ -1751,14 +1734,10 @@ export type ModuleReferenceContractLinkEvent = {
   contractAddress: ContractAddress;
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
-  createdAt: Scalars['DateTime'];
-  eventIndex: Scalars['UnsignedInt'];
   linkAction: ModuleReferenceContractLinkAction;
   moduleReference: Scalars['String'];
   sender: AccountAddress;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 /** A segment of a collection. */
@@ -1775,16 +1754,13 @@ export type ModuleReferenceEvent = {
   __typename?: 'ModuleReferenceEvent';
   blockHeight: Scalars['UnsignedLong'];
   blockSlotTime: Scalars['DateTime'];
-  createdAt: Scalars['DateTime'];
-  eventIndex: Scalars['UnsignedInt'];
+  displaySchema?: Maybe<Scalars['String']>;
   linkedContracts?: Maybe<LinkedContractsCollectionSegment>;
   moduleReference: Scalars['String'];
   moduleReferenceContractLinkEvents?: Maybe<ModuleReferenceContractLinkEventsCollectionSegment>;
   moduleReferenceRejectEvents?: Maybe<ModuleReferenceRejectEventsCollectionSegment>;
   sender: AccountAddress;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 
@@ -1809,13 +1785,10 @@ export type ModuleReferenceRejectEvent = {
   __typename?: 'ModuleReferenceRejectEvent';
   blockHeight: Scalars['UnsignedLong'];
   blockSlotTime: Scalars['DateTime'];
-  createdAt: Scalars['DateTime'];
   moduleReference: Scalars['String'];
   rejectedEvent: TransactionRejectReason;
   sender: AccountAddress;
-  source: ImportSource;
   transactionHash: Scalars['String'];
-  transactionIndex: Scalars['UnsignedLong'];
 };
 
 /** A segment of a collection. */

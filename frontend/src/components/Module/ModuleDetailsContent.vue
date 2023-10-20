@@ -28,6 +28,22 @@
 					</template>
 				</DetailsCard>
 			</div>
+			<div
+				v-if="moduleReferenceEvent.displaySchema"
+				class="schema-section">
+				<Accordion>
+					<div>
+						Schema
+					</div>				
+					<template #content>
+						<div class="schema">
+							<code>
+								<pre>{{ moduleReferenceEvent.displaySchema }}</pre>
+							</code>
+						</div>
+					</template>
+				</Accordion>
+			</div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
@@ -81,6 +97,7 @@
 import Tabs from '../Tabs.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
+import Accordion from '../Accordion.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
@@ -120,3 +137,23 @@ const tabList = computed(() => {
 	]
 })
 </script>
+<style>
+.schema-section {
+	margin-bottom: 20px;
+	
+	@media screen and (max-width: 1024px) {
+		margin-bottom: 10px;
+    }	
+}
+.schema {
+	/* border: 2px dashed tomato; */
+	padding: 5px;
+	background-color: var(--color-background-elevated-hover);
+	font-size: 0.9rem;
+	border-radius: 0.5rem;
+	
+	@media screen and (max-width: 1024px) {
+        font-size: 1rem;
+    }
+}
+</style>
