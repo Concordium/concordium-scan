@@ -14,6 +14,14 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Build Rust Project
+      run: cargo build --manifest-path=./backend/rust-bindings/Cargo.toml --release
+      
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
