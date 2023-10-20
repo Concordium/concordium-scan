@@ -9,3 +9,5 @@ pgbackrest.conf
 
 # Snapshot test
 *.received.*
+
+target/

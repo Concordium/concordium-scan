@@ -1,0 +1,3 @@
+[workspace]
+members=["backend/rust-bindings"]
+resolver="2"

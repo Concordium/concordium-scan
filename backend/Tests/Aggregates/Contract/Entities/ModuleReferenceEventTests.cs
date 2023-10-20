@@ -26,7 +26,6 @@ public sealed class ModuleReferenceEventTests
         
         client.Setup(c => c.GetModuleSourceAsync(It.IsAny<IBlockHashInput>(), It.IsAny<ModuleReference>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(queryResponseModuleSource));
-        var module = (await File.ReadAllTextAsync("./TestUtilities/TestData/module.wasm.hex")).Trim();
         
         // Act
         var moduleSchema = await ModuleReferenceEvent.ModuleSourceInfo.Create(client.Object, 0, Convert.ToHexString(new byte[32]));
