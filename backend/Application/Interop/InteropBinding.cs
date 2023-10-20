@@ -20,17 +20,6 @@ internal static class InteropBinding
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_event_contract")]
     private static extern bool get_event_contract(string schema, FFIOption schema_version, string contract_name, string value, ref IntPtr result);
     
-    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "test_option")]
-    private static extern IntPtr test_option(FFIOption schema_version);
-
-    internal static string TestOption(FFIOption option)
-    {
-        var pointerWith = test_option(option);
-        var stringWith = Marshal.PtrToStringAnsi(pointerWith);
-        Marshal.FreeHGlobal(pointerWith);
-        return stringWith!;
-    }
-    
     internal static InteropResult SchemaDisplay(string schema, FFIOption schemaVersion)
     {
         var result = IntPtr.Zero;

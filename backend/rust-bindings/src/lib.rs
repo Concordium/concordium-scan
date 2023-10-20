@@ -26,19 +26,6 @@ impl FFIOption {
 }
 
 #[no_mangle]
-pub extern "C" fn test_option(
-    schema_version: FFIOption,
-) -> *const c_char {
-    let mut schema_concat = "".to_string();
-    if let Some(option) = schema_version.into_option() {
-        schema_concat = format!("{schema_concat}-{option}")
-    } else {
-        schema_concat = format!("{schema_concat}-none")
-    }
-    CString::new(schema_concat).unwrap().into_raw()    
-} 
-
-#[no_mangle]
 pub extern "C" fn schema_display(
     schema: *const c_char,
     schema_version: FFIOption,

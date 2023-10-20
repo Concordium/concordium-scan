@@ -9,13 +9,6 @@ namespace Tests.Interop;
 public class InteropBindingTests
 {
     [Fact]
-    public async Task What()
-    {
-        var testOption = InteropBinding.TestOption(InteropBinding.FFIOption.Some(1));
-
-        var hej = "hej";
-    }
-    [Fact]
     public async Task GivenSchemaVersion_WhenSchemaDisplay_ThenReturnSchema()
     {
         // Arrange
