@@ -26,6 +26,9 @@ jobs:
 
     - name: Build Rust Project
       run: cargo build --manifest-path=./backend/rust-bindings/Cargo.toml --release
+    
+    - name: Test Rust Project
+      run: cargo test --manifest-path=./backend/rust-bindings/Cargo.toml --release
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3

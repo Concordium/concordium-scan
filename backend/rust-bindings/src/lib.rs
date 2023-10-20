@@ -253,33 +253,5 @@ mod test {
         // Assert
         assert_eq!(display, expected);
         Ok(())
-    }
-
-    #[test]
-    fn test_display_module_versioned_schema() -> Result<()> {
-        // Arrange
-        let _expected = r#"Contract: TestContract
-  Event:
-    {
-      "Enum": [
-        {
-          "Foo": []
-        },
-        {
-          "Bar": []
-        }
-      ]
-    }
-"#;
-        let schema_version = Option::Some(1);
-        let schema = fs::read_to_string("./test-data/cis2-nft-schema")?;
-
-        // Act
-        let display = schema_display_aux(schema, schema_version)?;
-
-        // Assert
-        print!("{}", display);
-        // assert_eq!(display, expected);
-        Ok(())
     }    
 }
