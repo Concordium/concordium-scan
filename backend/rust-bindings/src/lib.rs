@@ -28,36 +28,6 @@ impl FFIOption {
     }
 }
 
-/// Compute result using the provided callback f, convert it into a C string and assign it to the provided target.
-///
-/// # Arguments
-///
-/// * 'target' - Pointer to a C String, which will be assigned the result / error message of f.
-/// * 'f' - callback function, which result should be assigned to target.
-///
-/// # Returns
-///
-/// A boolean, that indicates whether the computation was successful or not.
-///
-/// # Safety
-///
-/// This function is marked as unsafe because it deferences a raw pointer.
-unsafe fn assign_result<F: FnOnce() -> Result<T>, T: ToString>(
-    target: *mut *mut c_char,
-    f: F,
-) -> bool {
-    match f() {
-        Ok(output) => {
-            *target = CString::new(output.to_string()).unwrap().into_raw();
-            true
-        }
-        Err(e) => {
-            *target = CString::new(e.to_string()).unwrap().into_raw();
-            false
-        }
-    }
-}
-
 /// Get module schema in a human interpretable form.
 ///
 /// # Arguments
@@ -170,6 +140,36 @@ pub unsafe extern "C" fn get_event_contract(
             value_hex,
         )
     })
+}
+
+/// Compute result using the provided callback f, convert it into a C string and assign it to the provided target.
+///
+/// # Arguments
+///
+/// * 'target' - Pointer to a C String, which will be assigned the result / error message of f.
+/// * 'f' - callback function, which result should be assigned to target.
+///
+/// # Returns
+///
+/// A boolean, that indicates whether the computation was successful or not.
+///
+/// # Safety
+///
+/// This function is marked as unsafe because it deferences a raw pointer.
+unsafe fn assign_result<F: FnOnce() -> Result<T>, T: ToString>(
+    target: *mut *mut c_char,
+    f: F,
+) -> bool {
+    match f() {
+        Ok(output) => {
+            *target = CString::new(output.to_string()).unwrap().into_raw();
+            true
+        }
+        Err(e) => {
+            *target = CString::new(e.to_string()).unwrap().into_raw();
+            false
+        }
+    }
 }
 
 pub fn get_receive_contract_parameter_aux(
