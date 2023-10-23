@@ -50,7 +50,8 @@ In `./timescaledb-restore` a description is given how to spin up and restore CCD
 
 The CCD scan does interops to compiled code from rust. The `.csproj` file is dependent on compiled binaries which is why one manually needs to run below
 ```
-make rb
+make build-rust-bindings
+
 ```
 This is only needed to be done once. They will be recompiled on later changes as part of `dotnet build`.
 
