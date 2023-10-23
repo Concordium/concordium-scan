@@ -7,7 +7,7 @@ using Application.Aggregates.Contract.Types;
 namespace Application.Interop;
 
 /// <summary>
-/// Contains FFI bindings.
+/// Contains FFI bindings which can be compiled to work on platforms Linux, OSX and Windows.
 /// </summary>
 internal static class InteropBinding
 {
