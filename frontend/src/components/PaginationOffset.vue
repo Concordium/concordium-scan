@@ -1,87 +1,87 @@
 <template>
-	<div 
-        v-if="totalCount > props.info.take.value"
-        class="pagination-container">
+	<div v-if="totalCount > props.info.take.value" class="pagination-container">
 		<div class="total-pages-container {">
-            {{ `${totalPagesText} ${totalPages}` }}
-        </div>
-        <div class="navigation-container">
-            <div class="chevron-button">
-                <button
-                type="button"
-                :disabled="currentPage === 1"
-                :class="{disabled: currentPage === 1}"
-                @click="onClickFirstPage"
-                >
-                    <ChevronDoubleLeftCustomIcon class="chevron-icon"/>
-                </button>
-            </div>
-            <div class="chevron-button">
-                <button
-                type="button"
-                :disabled="isFirstPages"
-                :class="{disabled: isFirstPages}"
-                @click="onClickPreviousPage"
-                >
-                    <ChevronLeftCustomIcon class="chevron-icon"/>
-                </button>
-            </div>            
-            <div class="flex-container page-number-btn-container">
-                <button
-                    v-for="page in pages" :key="page.name"
-                    type="button"
-                    :class="{ active: !page.isDisabled }"
-                    @click="onClickPage(page.name)"
-                > {{ page.name }}</button>
-            </div>
-            <div class="chevron-button">
-                <button
-                    type="button"
-                    :disabled="isLastPages"
-                    :class="{disabled: isLastPages}"
-                    @click="onClickNextPage"
-                >
-                    <ChevronRightCustomIcon class="chevron-icon"/>
-                </button>
-            </div>
-            <div class="chevron-button">
-                <button
-                    type="button"
-                    :disabled="currentPage === totalPages"
-                    :class="{disabled: currentPage === totalPages}"
-                    @click="onClickLastPage"
-                >
-                    <ChevronDoubleRightCustomIcon class="chevron-icon"/>
-                </button>
-            </div>            
-        </div>
-		<div class="page-search-container">
-            <form novalidate="true" @submit.prevent="onSubmitInput">
-                <label for="inputPage" class="page-search-label">Page:</label>
-                <input
-                  id="inputPage"
-                  v-model="inputPage"
-                  :max="totalPages"
-                  :min="1"
-                  type="number"
-                  class="page-search-input"
-                />
-                <Validation 
-                    :text="`Page should be at least 0 and at most ${totalPages}`"
-                    :is-visible="isVisible">
-                  <button 
-                    type="submit"
-                    class="click-btn page-search-btn"
-                    >
-                        Go
-                    </button>
-                </Validation>                
-            </form>
+			{{ `${totalPagesText} ${totalPages}` }}
 		</div>
-	</div>    
+		<div class="navigation-container">
+			<div class="chevron-button">
+				<button
+					type="button"
+					:disabled="currentPage === 1"
+					:class="{ disabled: currentPage === 1 }"
+					@click="onClickFirstPage"
+				>
+					<ChevronDoubleLeftCustomIcon class="chevron-icon" />
+				</button>
+			</div>
+			<div class="chevron-button">
+				<button
+					type="button"
+					:disabled="isFirstPages"
+					:class="{ disabled: isFirstPages }"
+					@click="onClickPreviousPage"
+				>
+					<ChevronLeftCustomIcon class="chevron-icon" />
+				</button>
+			</div>
+			<div class="flex-container page-number-btn-container">
+				<button
+					v-for="page in pages"
+					:key="page.name"
+					type="button"
+					:class="{ active: !page.isDisabled }"
+					@click="onClickPage(page.name)"
+				>
+					{{ page.name }}
+				</button>
+			</div>
+			<div class="chevron-button">
+				<button
+					type="button"
+					:disabled="isLastPages"
+					:class="{ disabled: isLastPages }"
+					@click="onClickNextPage"
+				>
+					<ChevronRightCustomIcon class="chevron-icon" />
+				</button>
+			</div>
+			<div class="chevron-button">
+				<button
+					type="button"
+					:disabled="currentPage === totalPages"
+					:class="{ disabled: currentPage === totalPages }"
+					@click="onClickLastPage"
+				>
+					<ChevronDoubleRightCustomIcon class="chevron-icon" />
+				</button>
+			</div>
+		</div>
+		<div class="page-search-container">
+			<form novalidate="true" @submit.prevent="onSubmitInput">
+				<label for="inputPage" class="page-search-label">Page:</label>
+				<input
+					id="inputPage"
+					v-model="inputPage"
+					:max="totalPages"
+					:min="1"
+					type="number"
+					class="page-search-input"
+				/>
+				<Validation
+					:text="`Page should be at least 0 and at most ${totalPages}`"
+					:is-visible="isVisible"
+				>
+					<button type="submit" class="click-btn page-search-btn">Go</button>
+				</Validation>
+			</form>
+		</div>
+	</div>
 </template>
 <script lang="ts" setup>
-import { PaginationOffsetInfo, useNavigationSize } from '../composables/usePaginationOffset'
+import {
+	PaginationOffsetInfo,
+	useNavigationSize,
+} from '../composables/usePaginationOffset'
 import { Breakpoint } from '../composables/useBreakpoint'
 import Validation from './atoms/Validation.vue'
 import ChevronDoubleLeftCustomIcon from '~/components/icons/ChevronDoubleLeftCustomIcon.vue'
@@ -90,230 +90,252 @@ import ChevronDoubleRightCustomIcon from '~/components/icons/ChevronDoubleRightC
 import ChevronRightCustomIcon from '~/components/icons/ChevronRightCustomIcon.vue'
 
 type Props = {
-    info: PaginationOffsetInfo
-    totalCount: number
+	info: PaginationOffsetInfo
+	totalCount: number
 }
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const { breakpoint } = useBreakpoint();
+const { breakpoint } = useBreakpoint()
 
 // Text computations
 const totalPagesText = computed(() => {
-    if (breakpoint.value <= Breakpoint.XS) {
-        return "Pages: "
-    }
-    return "Total pages: "
+	if (breakpoint.value <= Breakpoint.XS) {
+		return 'Pages: '
+	}
+	return 'Total pages: '
 })
 
 // Page computations
 const totalPages = computed(() => {
-    const count = Math.floor(props.totalCount / props.info.take.value)
-    return props.totalCount % props.info.take.value === 0 ? count : count + 1;
-});
+	const count = Math.floor(props.totalCount / props.info.take.value)
+	return props.totalCount % props.info.take.value === 0 ? count : count + 1
+})
 const currentPage = computed(() => {
-    return Math.floor(props.info.skip.value / props.info.take.value) + 1
+	return Math.floor(props.info.skip.value / props.info.take.value) + 1
 })
 
 // Page go-to computation and validations
-const inputPage = ref();
-watch(currentPage, (newCurrentPage, _ ) => {
-    inputPage.value = newCurrentPage;
-}, {immediate: true});
-const isVisible = ref(false);
+const inputPage = ref()
+watch(
+	currentPage,
+	(newCurrentPage, _) => {
+		inputPage.value = newCurrentPage
+	},
+	{ immediate: true }
+)
+const isVisible = ref(false)
 
 const onSubmitInput = () => {
-    isVisible.value = false;
-    if (!inputPage.value) {
-        return;
-    }
-    const page = parseInt(inputPage.value);
-    if (page > totalPages.value || page < 1) {
-        isVisible.value = true;
-        setTimeout(() => {
-            isVisible.value = false;
-        }, 5_000);
-        return;
-    }
-    const next = Math.max(0, inputPage.value - 1) * props.info.take.value;
-    props.info.update(next);
+	isVisible.value = false
+	if (!inputPage.value) {
+		return
+	}
+	const page = parseInt(inputPage.value)
+	if (page > totalPages.value || page < 1) {
+		isVisible.value = true
+		setTimeout(() => {
+			isVisible.value = false
+		}, 5_000)
+		return
+	}
+	const next = Math.max(0, inputPage.value - 1) * props.info.take.value
+	props.info.update(next)
 }
 
 // Page navigation computations
-const navigationSize = useNavigationSize(currentPage);
+const navigationSize = useNavigationSize(currentPage)
 
-const pageFrom = computed(() => currentPage.value - Math.floor((currentPage.value - 1) % navigationSize.value));
-const pageTo = computed(() => Math.min((Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *  navigationSize.value, totalPages.value));
+const pageFrom = computed(
+	() =>
+		currentPage.value -
+		Math.floor((currentPage.value - 1) % navigationSize.value)
+)
+const pageTo = computed(() =>
+	Math.min(
+		(Math.floor((currentPage.value - 1) / navigationSize.value) + 1) *
+			navigationSize.value,
+		totalPages.value
+	)
+)
 const pages = computed(() => {
-    const range = [];
-    for (let i = pageFrom.value; i <= pageTo.value; i++) {
-        range.push({name: i, isDisabled: i !== currentPage.value})
-    }
-    return range;
+	const range = []
+	for (let i = pageFrom.value; i <= pageTo.value; i++) {
+		range.push({ name: i, isDisabled: i !== currentPage.value })
+	}
+	return range
 })
-const isFirstPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === 0);
-const isLastPages = computed(() => Math.floor((currentPage.value - 1) / navigationSize.value) === Math.floor((totalPages.value - 1) / navigationSize.value));
+const isFirstPages = computed(
+	() => Math.floor((currentPage.value - 1) / navigationSize.value) === 0
+)
+const isLastPages = computed(
+	() =>
+		Math.floor((currentPage.value - 1) / navigationSize.value) ===
+		Math.floor((totalPages.value - 1) / navigationSize.value)
+)
 
 // Chevron click handlers
-const onClickFirstPage = () => props.info.update(0);
+const onClickFirstPage = () => props.info.update(0)
 const onClickPreviousPage = () => {
-    const previous = Math.max(0, pageFrom.value - navigationSize.value - 1) * props.info.take.value;
-    props.info.update(previous);
+	const previous =
+		Math.max(0, pageFrom.value - navigationSize.value - 1) *
+		props.info.take.value
+	props.info.update(previous)
 }
 const onClickNextPage = () => {
-    const next = pageTo.value * props.info.take.value;
-    props.info.update(next);
+	const next = pageTo.value * props.info.take.value
+	props.info.update(next)
 }
 const onClickLastPage = () => {
-    const remainder = props.totalCount % props.info.take.value;
-    const toSkip = remainder === 0 ? 
-        props.totalCount - props.info.take.value :
-        props.totalCount - remainder;
-    props.info.update(toSkip)
+	const remainder = props.totalCount % props.info.take.value
+	const toSkip =
+		remainder === 0
+			? props.totalCount - props.info.take.value
+			: props.totalCount - remainder
+	props.info.update(toSkip)
 }
 const onClickPage = (page: number): void => {
-    const toSkip = page * props.info.take.value - props.info.take.value;
-    props.info.update(toSkip);
-};
+	const toSkip = page * props.info.take.value - props.info.take.value
+	props.info.update(toSkip)
+}
 
 // Dynamic styling
 const minWidth = computed(() => {
-    if (pageFrom.value >= 10_000) {
-        return "70px"
-    }
-    if (pageFrom.value >= 1_000) {
-        return "60px"
-    }
-    if (pageFrom.value >= 100) {
-        return "50px"
-    }
-    return "40px";
-});
-
+	if (pageFrom.value >= 10_000) {
+		return '70px'
+	}
+	if (pageFrom.value >= 1_000) {
+		return '60px'
+	}
+	if (pageFrom.value >= 100) {
+		return '50px'
+	}
+	return '40px'
+})
 </script>
 <style>
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+	-webkit-appearance: none;
+	margin: 0;
 }
 
 /* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
+input[type='number'] {
+	-moz-appearance: textfield;
 }
 
 .chevron-button {
-    display: flex;
-    justify-content: center;
-    padding: 0 5px;
+	display: flex;
+	justify-content: center;
+	padding: 0 5px;
 }
 
 .chevron-icon {
-    height: 20px;
-    width: 20px;
+	height: 20px;
+	width: 20px;
 }
 
 .pagination-container {
-    display: grid;
-    height: 100px;
-    align-items: center;
-    grid-template-columns: repeat(4, auto);
-    grid-template-rows: repeat(2, auto);
-    padding: 10px 20px 0;
+	display: grid;
+	height: 100px;
+	align-items: center;
+	grid-template-columns: repeat(4, auto);
+	grid-template-rows: repeat(2, auto);
+	padding: 10px 20px 0;
 
-    @media (max-width: 1024px) {
-        row-gap: 15px;
-        margin: 20px 0 5px 0;
-    }
+	@media (max-width: 1024px) {
+		row-gap: 15px;
+		margin: 20px 0 5px 0;
+	}
 }
 
 .total-pages-container {
-    grid-column: 1 / 2;
-    grid-row: 1 / 3;
+	grid-column: 1 / 2;
+	grid-row: 1 / 3;
 
-    @media screen and (max-width: 1024px) {
-        grid-column: 1 / 3;
-        grid-row: 1 / 2;
-    }    
+	@media screen and (max-width: 1024px) {
+		grid-column: 1 / 3;
+		grid-row: 1 / 2;
+	}
 }
 
 .navigation-container {
-    display: flex;
-    justify-content: center;
-    grid-column: 2 / 4;
-    grid-row: 1 / 3;
+	display: flex;
+	justify-content: center;
+	grid-column: 2 / 4;
+	grid-row: 1 / 3;
 
-    @media screen and (max-width: 1024px) {
-        grid-column: 1 / 5;
-        grid-row: 2 / 3;
-    }
+	@media screen and (max-width: 1024px) {
+		grid-column: 1 / 5;
+		grid-row: 2 / 3;
+	}
 }
 
 .page-search-container {
-    justify-self: end;
-    grid-column: 4 / 5;
-    grid-row: 1 / 3;
+	justify-self: end;
+	grid-column: 4 / 5;
+	grid-row: 1 / 3;
 
-    @media screen and (max-width: 1024px) {
-        grid-column: 3 / 5;
-        grid-row: 1 / 2;
-    }
+	@media screen and (max-width: 1024px) {
+		grid-column: 3 / 5;
+		grid-row: 1 / 2;
+	}
 }
 
 .page-number-btn-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: var(--color-background-elevated);
-    border-radius: 25px;
-    padding: 5px;
-    margin: 0 10px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: var(--color-background-elevated);
+	border-radius: 25px;
+	padding: 5px;
+	margin: 0 10px;
 }
 
 .page-number-btn-container button {
-    padding: 3px 10px 0;
-    min-width: v-bind(minWidth);
+	padding: 3px 10px 0;
+	min-width: v-bind(minWidth);
 }
 
-.navigation-container > div > button:hover {
-    opacity: 0.4;
+.navigation-container > button:hover {
+	opacity: 0.4;
 }
 
-.navigation-container > div > button.disabled:hover {
-    opacity: 0.1;
-    cursor: default;
+.navigation-container > button.disabled:hover {
+	opacity: 0.1;
+	cursor: default;
 }
 
 .disabled {
-    opacity: 0.1;
+	opacity: 0.1;
 }
 
 .active {
-    background-color: hsl(247, 40%, 18%);
-    border-radius: 25px;
+	background-color: hsl(247, 40%, 18%);
+	border-radius: 25px;
 
-    &:hover {
-        opacity: 1;
-        cursor: default;
-    }
+	&:hover {
+		opacity: 1;
+		cursor: default;
+	}
 }
 
 .page-search-input {
-    color: black;
-    text-align: center;
-    margin: 0 10px;
-    border-radius: 5px;
-    height: 37px;
-    width: 52px;
+	color: black;
+	text-align: center;
+	margin: 0 10px;
+	border-radius: 5px;
+	height: 37px;
+	width: 52px;
 }
 
 .page-search-label {
-    display: inline-block;
+	display: inline-block;
 }
 
 .page-search-btn {
-    height: 37px;
-    padding: 0 15px;
+	height: 37px;
+	padding: 0 15px;
 }
 </style>
