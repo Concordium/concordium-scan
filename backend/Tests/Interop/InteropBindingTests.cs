@@ -1,4 +1,5 @@
 using System.IO;
+using Application.Aggregates.Contract.Types;
 using Application.Interop;
 using FluentAssertions;
 using VerifyXunit;
@@ -13,10 +14,9 @@ public class InteropBindingTests
     {
         // Arrange
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2-nft-schema")).Trim();
-        var ffiOption = InteropBinding.FFIOption.Some(1);
 
         // Act
-        var (message, succeeded) = InteropBinding.SchemaDisplay(schema, ffiOption);
+        var (message, succeeded) = InteropBinding.SchemaDisplay(schema, ModuleSchemaVersion.V1);
 
         // Assert
         succeeded.Should().BeTrue();
@@ -32,7 +32,7 @@ public class InteropBindingTests
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
 
         // Act
-        var (message, succeeded) = InteropBinding.SchemaDisplay(schema,  InteropBinding.FFIOption.None());
+        var (message, succeeded) = InteropBinding.SchemaDisplay(schema,  ModuleSchemaVersion.Undefined);
 
         // Assert
         succeeded.Should().BeTrue();
@@ -51,7 +51,7 @@ public class InteropBindingTests
         const string value = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
         
         // Act
-        var (message, succeeded) = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, value,InteropBinding.FFIOption.None());
+        var (message, succeeded) = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, value,null);
 
         // Assert
         succeeded.Should().BeTrue();
@@ -69,7 +69,7 @@ public class InteropBindingTests
         const string value = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
         
         // Act
-        var (message, succeeded) = InteropBinding.GetEventContract(schema, contractName, value,InteropBinding.FFIOption.None());
+        var (message, succeeded) = InteropBinding.GetEventContract(schema, contractName, value, ModuleSchemaVersion.Undefined);
 
         // Assert
         succeeded.Should().BeTrue();

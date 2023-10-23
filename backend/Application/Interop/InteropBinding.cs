@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using Application.Aggregates.Contract.Types;
+
 // ReSharper disable InconsistentNaming
 // Disabling are because names should follow the names in rust code. 
 
@@ -26,12 +28,13 @@ internal static class InteropBinding
     /// <param name="schema">Module schema in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param> 
     /// <returns>Module schema in a human interpretable form</returns>
-    internal static InteropResult SchemaDisplay(string schema, FFIOption schemaVersion)
+    internal static InteropResult SchemaDisplay(string schema, ModuleSchemaVersion? schemaVersion)
     {
+        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
-            var schemaDisplay = schema_display(schema, schemaVersion, ref result);
+            var schemaDisplay = schema_display(schema, ffiOption, ref result);
             var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
             return new InteropResult(ptrToStringAnsi, schemaDisplay);
         }
@@ -52,12 +55,13 @@ internal static class InteropBinding
     /// <param name="value">Receive parameters in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param> 
     /// <returns>Receive parameters in a human interpretable form</returns>
-    internal static InteropResult GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, FFIOption schemaVersion)
+    internal static InteropResult GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, ModuleSchemaVersion? schemaVersion)
     {
+        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
-            var schemaDisplay = get_receive_contract_parameter(schema, schemaVersion, contractName, entrypoint, value, ref result);
+            var schemaDisplay = get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
             var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
             return new InteropResult(ptrToStringAnsi, schemaDisplay);
         }
@@ -75,12 +79,13 @@ internal static class InteropBinding
     /// <param name="value">Contract event in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param>
     /// <returns>Contract event in a human interpretable form</returns>
-    internal static InteropResult GetEventContract(string schema, string contractName, string value, FFIOption schemaVersion)
+    internal static InteropResult GetEventContract(string schema, string contractName, string value, ModuleSchemaVersion? schemaVersion)
     {
+        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
-            var schemaDisplay = get_event_contract(schema, schemaVersion, contractName, value, ref result);
+            var schemaDisplay = get_event_contract(schema, ffiOption, contractName, value, ref result);
             var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
             return new InteropResult(ptrToStringAnsi, schemaDisplay);
         }

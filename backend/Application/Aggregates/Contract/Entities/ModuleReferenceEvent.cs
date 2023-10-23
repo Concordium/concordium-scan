@@ -197,8 +197,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
             {
                 return null;
             }
-            var ffiOption = ModuleSchemaVersionExtensions.Into(module.SchemaVersion);
-            var schemaDisplay = InteropBinding.SchemaDisplay(module.Schema, ffiOption);
+            var schemaDisplay = InteropBinding.SchemaDisplay(module.Schema, module.SchemaVersion);
             return schemaDisplay.Succeeded ? schemaDisplay.Message! : null;
         }
         
