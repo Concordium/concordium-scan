@@ -31,18 +31,7 @@
 			<div
 				v-if="moduleReferenceEvent.displaySchema"
 				class="schema-section">
-				<Accordion>
-					<div>
-						Schema
-					</div>				
-					<template #content>
-						<div class="schema">
-							<code>
-								<pre>{{ moduleReferenceEvent.displaySchema }}</pre>
-							</code>
-						</div>
-					</template>
-				</Accordion>
+
 			</div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
@@ -88,6 +77,15 @@
 						/>
 					</DetailsTable>
 				</template>
+				<template
+					v-if="moduleReferenceEvent.displaySchema"
+				 	#tabPanel-4>
+					 <div class="schema">
+						<code>
+							<pre>{{ moduleReferenceEvent.displaySchema }}</pre>
+						</code>
+					</div>
+				</template>
 			</Tabs>
 		</DrawerContent>
 	</div>
@@ -97,7 +95,6 @@
 import Tabs from '../Tabs.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
-import Accordion from '../Accordion.vue'
 import ModuleDetailsHeader from './ModuleDetailsHeader.vue'
 import ModuleDetailsContractLinkEvents from './ModuleDetailsContractLinkEvents.vue'
 import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
@@ -123,7 +120,7 @@ type Props = {
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {
-	return [
+	const tabList = [
 		`Linked contracts (${
 			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
 		})`,
@@ -134,23 +131,20 @@ const tabList = computed(() => {
 		`Rejected events (${
 			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
 		})`,
-	]
+	];
+	if (props.moduleReferenceEvent.displaySchema) {
+		tabList.push(
+			"Schema"
+		)
+	}
+
+	return tabList;
 })
 </script>
 <style>
-.schema-section {
-	margin-bottom: 20px;
-	
-	@media screen and (max-width: 1024px) {
-		margin-bottom: 10px;
-    }	
-}
 .schema {
-	/* border: 2px dashed tomato; */
 	padding: 5px;
-	background-color: var(--color-background-elevated-hover);
 	font-size: 0.9rem;
-	border-radius: 0.5rem;
 	
 	@media screen and (max-width: 1024px) {
         font-size: 1rem;
