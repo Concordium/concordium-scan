@@ -29,7 +29,7 @@ jobs:
       run: cargo build --manifest-path=./backend/rust-bindings/Cargo.toml --release
     
     - name: Clippy Rust Project
-      run: cargo clippy --manifest-path=./backend/rust-bindings/Cargo.toml --tests
+      run: cargo clippy --manifest-path=./backend/rust-bindings/Cargo.toml --tests -- --no-deps
 
     - name: Format Rust Project
       run: cargo fmt --manifest-path=./backend/rust-bindings/Cargo.toml --check    

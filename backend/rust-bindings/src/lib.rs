@@ -4,7 +4,6 @@ use anyhow::{Result, anyhow};
 use concordium_base::contracts_common::{
         schema::{Type, VersionedModuleSchema}, Cursor,
     };
-use hex;
 use serde_json::to_string;
 
 pub type HexString = String;
@@ -36,8 +35,13 @@ impl FFIOption {
 /// # Returns
 /// 
 /// If the call succeeded or not.
+///
+/// # Safety
+///
+/// This function is marked as unsafe because it performs operations that are not checked by the
+/// Rust compiler.
 #[no_mangle]
-pub extern "C" fn schema_display(
+pub unsafe extern "C" fn schema_display(
     schema: *const c_char,
     schema_version: FFIOption,
     result: *mut *mut c_char) -> bool {
@@ -63,8 +67,29 @@ pub extern "C" fn schema_display(
     true
 }
 
+/// Get contract receive parameters in a human interpretable form.
+///
+/// Receive parameters are those given to a contract entrypoint on a update call.
+/// 
+/// # Arguments
+/// 
+/// * 'schema' - Module schema in hexadecimal
+/// * 'schem_version' - Optinal schema version
+/// * 'contract_name' - Contract name
+/// * 'entrypoint' - Entrypoint of contract
+/// * 'value' - Receive parameters in hexadecimal
+/// * 'result' - Parsed receive parameters if the call succeeded or the error message in case of failure.
+/// 
+/// # Returns
+/// 
+/// If the call succeeded or not.
+/// 
+/// # Safety
+///
+/// This function is marked as unsafe because it performs operations that are not checked by the
+/// Rust compiler.
 #[no_mangle]
-pub extern "C" fn get_receive_contract_parameter(
+pub unsafe extern "C" fn get_receive_contract_parameter(
     schema: *const c_char,
     schema_version: FFIOption,
     contract_name: *const c_char,
@@ -117,8 +142,13 @@ pub extern "C" fn get_receive_contract_parameter(
 /// # Returns
 /// 
 /// If the call succeeded or not.
+/// 
+/// # Safety
+///
+/// This function is marked as unsafe because it performs operations that are not checked by the
+/// Rust compiler.
 #[no_mangle]
-pub extern "C" fn get_event_contract(
+pub unsafe extern "C" fn get_event_contract(
     schema: *const c_char,
     schema_version: FFIOption,
     contract_name: *const c_char,
@@ -153,22 +183,7 @@ pub extern "C" fn get_event_contract(
     true
 }
 
-/// Get contract receive parameters in a human interpretable form.
-///
-/// Receive parameters are those given to a contract entrypoint on a update call.
-/// 
-/// # Arguments
-/// 
-/// * 'schema' - Module schema in hexadecimal
-/// * 'schem_version' - Optinal schema version
-/// * 'contract_name' - Contract name
-/// * 'entrypoint' - Entrypoint of contract
-/// * 'value' - Receive parameters in hexadecimal
-/// * 'result' - Parsed receive parameters if the call succeeded or the error message in case of failure.
-/// 
-/// # Returns
-/// 
-/// If the call succeeded or not.
+
 pub fn get_receive_contract_parameter_aux(
     schema: HexString,
     schema_version: Option<u8>,
