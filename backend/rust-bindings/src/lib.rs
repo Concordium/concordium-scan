@@ -25,18 +25,18 @@ impl FFIOption {
     }
 }
 
-fn handle_result<F, T>(result: *mut *mut c_char, f: F) -> bool where F: FnOnce() -> Result<T>, T: ToString {
-    match f() {
+fn assign_result<T: ToString>(target: *mut *mut c_char, src: Result<T>) -> bool {
+    match src {
         Ok(output) => {
             unsafe {
-                *result = CString::new(output.to_string()).unwrap().into_raw()
+                *target = CString::new(output.to_string()).unwrap().into_raw()
             }
 
             true
         },
         Err(e) => {
             unsafe {
-                *result = CString::new(e.to_string()).unwrap().into_raw()
+                *target = CString::new(e.to_string()).unwrap().into_raw()
             }
 
             false
@@ -61,10 +61,10 @@ pub extern "C" fn schema_display(
     schema_version: FFIOption,
     result: *mut *mut c_char) -> bool {
 
-    handle_result(result, || {
+    assign_result(result, (|| {
         let schema_hex = get_str_from_pointer(schema)?;
         schema_display_aux(schema_hex, schema_version.into_option())
-    })
+    })())
 }
 
 #[no_mangle]
@@ -76,15 +76,14 @@ pub extern "C" fn get_receive_contract_parameter(
     value: *const c_char,
     result: *mut *mut c_char) -> bool {
 
-    handle_result(result, || {
-
+    assign_result(result, (|| {
         let schema_hex = get_str_from_pointer(schema)?;
         let contract_name_str = get_str_from_pointer(contract_name)?;
         let entrypoint_str = get_str_from_pointer(entrypoint)?;
         let value_hex = get_str_from_pointer(value)?;
 
         get_receive_contract_parameter_aux(schema_hex, schema_version.into_option(), &contract_name_str, &entrypoint_str, value_hex)
-    })
+    })())
 }
 
 /// Get contract event in a human interpretable form.
@@ -108,14 +107,13 @@ pub extern "C" fn get_event_contract(
     value: *const c_char,
     result: *mut *mut c_char) -> bool {
 
-    handle_result(result, || {
-
+    assign_result(result, (|| {
         let schema_hex = get_str_from_pointer(schema)?;
         let contract_name_str = get_str_from_pointer(contract_name)?;
         let value_hex = get_str_from_pointer(value)?;
 
         get_event_contract_aux(schema_hex, schema_version.into_option(), &contract_name_str, value_hex)
-    })
+    })())
 }
 
 /// Get contract receive parameters in a human interpretable form.
