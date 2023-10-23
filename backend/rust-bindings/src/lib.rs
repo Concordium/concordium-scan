@@ -28,6 +28,36 @@ impl FFIOption {
     }
 }
 
+/// Compute result using the provided callback f, convert it into a C string and assign it to the provided target.
+///
+/// # Arguments
+///
+/// * 'target' - Pointer to a C String, which will be assigned the result / error message of f.
+/// * 'f' - callback function, which result should be assigned to target.
+///
+/// # Returns
+///
+/// A boolean, that indicates whether the computation was successful or not.
+///
+/// # Safety
+///
+/// This function is marked as unsafe because it deferences a raw pointer.
+unsafe fn assign_result<F: FnOnce() -> Result<T>, T: ToString>(
+    target: *mut *mut c_char,
+    f: F,
+) -> bool {
+    match f() {
+        Ok(output) => {
+            *target = CString::new(output.to_string()).unwrap().into_raw();
+            true
+        }
+        Err(e) => {
+            *target = CString::new(e.to_string()).unwrap().into_raw();
+            false
+        }
+    }
+}
+
 /// Get module schema in a human interpretable form.
 ///
 /// # Arguments
@@ -50,21 +80,10 @@ pub unsafe extern "C" fn schema_display(
     schema_version: FFIOption,
     result: *mut *mut c_char,
 ) -> bool {
-    let schema_hex = match get_str_from_pointer(schema, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-
-    let display = match schema_display_aux(schema_hex, schema_version.into_option()) {
-        Ok(display) => display,
-        Err(e) => {
-            unsafe { *result = CString::new(e.to_string()).unwrap().into_raw() }
-            return false;
-        }
-    };
-    unsafe { *result = CString::new(display.to_string()).unwrap().into_raw() }
-
-    true
+    assign_result(result, || {
+        let schema_hex = get_str_from_pointer(schema)?;
+        schema_display_aux(schema_hex, schema_version.into_option())
+    })
 }
 
 /// Get contract receive parameters in a human interpretable form.
@@ -97,38 +116,20 @@ pub unsafe extern "C" fn get_receive_contract_parameter(
     value: *const c_char,
     result: *mut *mut c_char,
 ) -> bool {
-    let schema_hex = match get_str_from_pointer(schema, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-    let contract_name_str = match get_str_from_pointer(contract_name, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-    let entrypoint_str = match get_str_from_pointer(entrypoint, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-    let value_hex = match get_str_from_pointer(value, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
+    assign_result(result, || {
+        let schema_hex = get_str_from_pointer(schema)?;
+        let contract_name_str = get_str_from_pointer(contract_name)?;
+        let entrypoint_str = get_str_from_pointer(entrypoint)?;
+        let value_hex = get_str_from_pointer(value)?;
 
-    let display = match get_receive_contract_parameter_aux(
-        schema_hex,
-        schema_version.into_option(),
-        &contract_name_str,
-        &entrypoint_str,
-        value_hex,
-    ) {
-        Ok(display) => display,
-        Err(e) => {
-            unsafe { *result = CString::new(e.to_string()).unwrap().into_raw() }
-            return false;
-        }
-    };
-    unsafe { *result = CString::new(display.to_string()).unwrap().into_raw() }
-    true
+        get_receive_contract_parameter_aux(
+            schema_hex,
+            schema_version.into_option(),
+            &contract_name_str,
+            &entrypoint_str,
+            value_hex,
+        )
+    })
 }
 
 /// Get contract event in a human interpretable form.
@@ -157,33 +158,18 @@ pub unsafe extern "C" fn get_event_contract(
     value: *const c_char,
     result: *mut *mut c_char,
 ) -> bool {
-    let schema_hex = match get_str_from_pointer(schema, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-    let contract_name_str = match get_str_from_pointer(contract_name, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
-    let value_hex = match get_str_from_pointer(value, result) {
-        Ok(out) => out,
-        Err(_) => return false,
-    };
+    assign_result(result, || {
+        let schema_hex = get_str_from_pointer(schema)?;
+        let contract_name_str = get_str_from_pointer(contract_name)?;
+        let value_hex = get_str_from_pointer(value)?;
 
-    let display = match get_event_contract_aux(
-        schema_hex,
-        schema_version.into_option(),
-        &contract_name_str,
-        value_hex,
-    ) {
-        Ok(display) => display,
-        Err(e) => {
-            unsafe { *result = CString::new(e.to_string()).unwrap().into_raw() }
-            return false;
-        }
-    };
-    unsafe { *result = CString::new(display.to_string()).unwrap().into_raw() }
-    true
+        get_event_contract_aux(
+            schema_hex,
+            schema_version.into_option(),
+            &contract_name_str,
+            value_hex,
+        )
+    })
 }
 
 pub fn get_receive_contract_parameter_aux(
@@ -230,15 +216,9 @@ fn deserialize_type_value(
     }
 }
 
-fn get_str_from_pointer(input: *const c_char, result: *mut *mut c_char) -> Result<String> {
+fn get_str_from_pointer(input: *const c_char) -> Result<String> {
     let c_str: &CStr = unsafe { CStr::from_ptr(input) };
-    let str_slice: &str = match c_str.to_str() {
-        Ok(r) => r,
-        Err(e) => {
-            unsafe { *result = CString::new(e.to_string()).unwrap().into_raw() }
-            return Err(anyhow!("not able to parse pointer to string"));
-        }
-    };
+    let str_slice: &str = c_str.to_str()?;
     Ok(str_slice.to_string())
 }
 
