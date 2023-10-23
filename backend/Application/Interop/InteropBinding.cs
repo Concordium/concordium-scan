@@ -15,13 +15,13 @@ internal static class InteropBinding
     private const string DllName = "librust_bindings";
     
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "schema_display")]
-    private static extern bool schema_display(string schema, FFIOption schema_version, ref IntPtr result);
+    private static extern bool schema_display(string schema, FFIByteOption schema_version, ref IntPtr result);
     
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_receive_contract_parameter")]
-    private static extern bool get_receive_contract_parameter(string schema, FFIOption schema_version, string contract_name, string entrypoint, string value, ref IntPtr result);
+    private static extern bool get_receive_contract_parameter(string schema, FFIByteOption schema_version, string contract_name, string entrypoint, string value, ref IntPtr result);
     
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_event_contract")]
-    private static extern bool get_event_contract(string schema, FFIOption schema_version, string contract_name, string value, ref IntPtr result);
+    private static extern bool get_event_contract(string schema, FFIByteOption schema_version, string contract_name, string value, ref IntPtr result);
     
     /// <summary>
     /// Get module schema in a human interpretable form.
@@ -126,7 +126,7 @@ internal static class InteropBinding
     /// A C# layout which compiled to a C interpretable structure. This is used as an optional parameter.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct FFIOption
+    public struct FFIByteOption
     {
         internal byte t { get; private init; }
         /// <summary>
@@ -137,8 +137,8 @@ internal static class InteropBinding
         /// </remarks>
         internal byte is_some { get; private init; }
 
-        public static FFIOption None() => new() { is_some = 0 };
-        public static FFIOption Some(byte some) => new()
+        public static FFIByteOption None() => new() { is_some = 0 };
+        public static FFIByteOption Some(byte some) => new()
         {
             t = some,
             is_some = 1

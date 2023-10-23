@@ -14,12 +14,12 @@ pub type HexString = String;
 pub type JsonString = String;
 
 #[repr(C)]
-pub struct FFIOption {
+pub struct FFIByteOption {
     pub t: u8,
     pub is_some: u8,
 }
 
-impl FFIOption {
+impl FFIByteOption {
     pub fn into_option(self) -> Option<u8> {
         match self.is_some {
             1 => Option::Some(self.t),
@@ -47,7 +47,7 @@ impl FFIOption {
 #[no_mangle]
 pub unsafe extern "C" fn schema_display(
     schema: *const c_char,
-    schema_version: FFIOption,
+    schema_version: FFIByteOption,
     result: *mut *mut c_char,
 ) -> bool {
     assign_result(result, || {
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn schema_display(
 #[no_mangle]
 pub unsafe extern "C" fn get_receive_contract_parameter(
     schema: *const c_char,
-    schema_version: FFIOption,
+    schema_version: FFIByteOption,
     contract_name: *const c_char,
     entrypoint: *const c_char,
     value: *const c_char,
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn get_receive_contract_parameter(
 #[no_mangle]
 pub unsafe extern "C" fn get_event_contract(
     schema: *const c_char,
-    schema_version: FFIOption,
+    schema_version: FFIByteOption,
     contract_name: *const c_char,
     value: *const c_char,
     result: *mut *mut c_char,

@@ -13,10 +13,10 @@ public enum ModuleSchemaVersion
 
 internal static class ModuleSchemaVersionExtensions
 {
-    internal static InteropBinding.FFIOption Into(ModuleSchemaVersion? version)
+    internal static InteropBinding.FFIByteOption Into(ModuleSchemaVersion? version)
     {
         return version is null or ModuleSchemaVersion.Undefined
-            ? InteropBinding.FFIOption.None()
-            : InteropBinding.FFIOption.Some((byte)version);
+            ? InteropBinding.FFIByteOption.None()
+            : InteropBinding.FFIByteOption.Some((byte)version);
     }
 }
