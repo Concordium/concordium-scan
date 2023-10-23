@@ -3,6 +3,9 @@
 ## Unstable features
 - GraphQL endpoints for contracts and modules should currently be seen as unstable, indicating that the query models are likely to undergo changes.
 
+## 1.7.7
+- Added endpoint to display module schema in a human interpretable form. The schema is present if it is embedded in the module source.
+
 ## 1.7.4
 - Change contract- and module queries to use offset pagination.
 
