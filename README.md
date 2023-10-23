@@ -53,3 +53,6 @@ The CCD scan does interops to compiled code from rust. The `.csproj` file is dep
 make rb
 ```
 This is only needed to be done once. They will be recompiled on later changes as part of `dotnet build`.
+
+## Unstable features
+- GraphQL endpoints for contracts and modules should currently be seen as unstable, indicating that the query models are likely to undergo changes.
