@@ -188,7 +188,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     public sealed class ModuleReferenceEventExtensions
     {
         /// <summary>
-        /// Returns module schema in a human interpretable form. Once present if the schema is embedded into the
+        /// Returns module schema in a human interpretable form. Only present if the schema is embedded into the
         /// Wasm module.
         /// </summary>
         public string? GetDisplaySchema([Parent] ModuleReferenceEvent module)
