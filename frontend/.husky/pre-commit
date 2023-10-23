@@ -1,3 +1,3 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
-cd ./frontend && npx lint-staged --allow-empty
+cd ./frontend && npx lint-staged
