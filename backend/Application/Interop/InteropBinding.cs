@@ -40,7 +40,7 @@ internal static class InteropBinding
         }
         finally
         {
-            Free(result);            
+            FreeIfNonzero(result);            
         }
     }
     
@@ -67,7 +67,7 @@ internal static class InteropBinding
         }
         finally
         {
-            Free(result);    
+            FreeIfNonzero(result);    
         }
     }
     
@@ -91,7 +91,7 @@ internal static class InteropBinding
         }
         finally
         {
-            Free(result);   
+            FreeIfNonzero(result);   
         }
     }
     
@@ -103,7 +103,7 @@ internal static class InteropBinding
     /// <param name="Succeeded">If the call succeeded.</param>
     internal readonly record struct InteropResult(string? Message, bool Succeeded);
     
-    private static void Free(IntPtr ptr)
+    private static void FreeIfNonzero(IntPtr ptr)
     {
         if (ptr != IntPtr.Zero)
         {
