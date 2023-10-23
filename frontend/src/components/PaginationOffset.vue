@@ -276,11 +276,11 @@ input[type=number] {
     min-width: v-bind(minWidth);
 }
 
-div > button:hover {
+.navigation-container > div > button:hover {
     opacity: 0.4;
 }
 
-div > button.disabled:hover {
+.navigation-container > div > button.disabled:hover {
     opacity: 0.1;
     cursor: default;
 }
