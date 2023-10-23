@@ -25,6 +25,17 @@ impl FFIOption {
     }
 }
 
+/// Get module schema in a human interpretable form.
+/// 
+/// # Arguments
+/// 
+/// * 'schema' - Module schema in hexadecimal
+/// * 'schem_version' - Optinal schema version
+/// * 'result' - Parsed schema if the call succeeded or the error message in case of failure.
+/// 
+/// # Returns
+/// 
+/// If the call succeeded or not.
 #[no_mangle]
 pub extern "C" fn schema_display(
     schema: *const c_char,
@@ -93,6 +104,19 @@ pub extern "C" fn get_receive_contract_parameter(
     true
 }
 
+/// Get contract event in a human interpretable form.
+///
+/// # Arguments
+/// 
+/// * 'schema' - Module schema in hexadecimal
+/// * 'schem_version' - Optinal schema version
+/// * 'contract_name' - Contract name
+/// * 'value' - Contract event in hexadecimal
+/// * 'result' - Parsed contract event if the call succeeded or the error message in case of failure.
+/// 
+/// # Returns
+/// 
+/// If the call succeeded or not.
 #[no_mangle]
 pub extern "C" fn get_event_contract(
     schema: *const c_char,
@@ -129,12 +153,22 @@ pub extern "C" fn get_event_contract(
     true
 }
 
-pub fn schema_display_aux(schema: HexString, schema_version: Option<u8>) -> Result<String> {
-    let decoded = hex::decode(schema)?;
-    let display = VersionedModuleSchema::new(&decoded, &schema_version)?;
-    Ok(display.to_string())
-}
-
+/// Get contract receive parameters in a human interpretable form.
+///
+/// Receive parameters are those given to a contract entrypoint on a update call.
+/// 
+/// # Arguments
+/// 
+/// * 'schema' - Module schema in hexadecimal
+/// * 'schem_version' - Optinal schema version
+/// * 'contract_name' - Contract name
+/// * 'entrypoint' - Entrypoint of contract
+/// * 'value' - Receive parameters in hexadecimal
+/// * 'result' - Parsed receive parameters if the call succeeded or the error message in case of failure.
+/// 
+/// # Returns
+/// 
+/// If the call succeeded or not.
 pub fn get_receive_contract_parameter_aux(
     schema: HexString,
     schema_version: Option<u8>,
@@ -148,7 +182,13 @@ pub fn get_receive_contract_parameter_aux(
     Ok(deserialized)
 }
 
-pub fn get_event_contract_aux(
+fn schema_display_aux(schema: HexString, schema_version: Option<u8>) -> Result<String> {
+    let decoded = hex::decode(schema)?;
+    let display = VersionedModuleSchema::new(&decoded, &schema_version)?;
+    Ok(display.to_string())
+}
+
+fn get_event_contract_aux(
     schema: HexString,
     schema_version: Option<u8>,
     contract_name: &str,

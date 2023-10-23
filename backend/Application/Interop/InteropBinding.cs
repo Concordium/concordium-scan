@@ -20,6 +20,12 @@ internal static class InteropBinding
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, EntryPoint = "get_event_contract")]
     private static extern bool get_event_contract(string schema, FFIOption schema_version, string contract_name, string value, ref IntPtr result);
     
+    /// <summary>
+    /// Get module schema in a human interpretable form.
+    /// </summary>
+    /// <param name="schema">Module schema in hexadecimal</param>
+    /// <param name="schemaVersion">Optional schema version if present from module</param> 
+    /// <returns>Module schema in a human interpretable form</returns>
     internal static InteropResult SchemaDisplay(string schema, FFIOption schemaVersion)
     {
         var result = IntPtr.Zero;
@@ -35,6 +41,17 @@ internal static class InteropBinding
         }
     }
     
+    /// <summary>
+    /// Get contract receive parameters in a human interpretable form.
+    ///
+    /// Receive parameters are those given to a contract entrypoint on a update call.
+    /// </summary>
+    /// <param name="schema">Module schema in hexadecimal</param>
+    /// <param name="contractName">Contract name</param>
+    /// <param name="entrypoint">Entrypoint of contract</param>
+    /// <param name="value">Receive parameters in hexadecimal</param>
+    /// <param name="schemaVersion">Optional schema version if present from module</param> 
+    /// <returns>Receive parameters in a human interpretable form</returns>
     internal static InteropResult GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, FFIOption schemaVersion)
     {
         var result = IntPtr.Zero;
@@ -50,6 +67,14 @@ internal static class InteropBinding
         }
     }
     
+    /// <summary>
+    /// Get contract event in a human interpretable form.
+    /// </summary>
+    /// <param name="schema">Module schema in hexadecimal</param>
+    /// <param name="contractName">Contract name</param>
+    /// <param name="value">Contract event in hexadecimal</param>
+    /// <param name="schemaVersion">Optional schema version if present from module</param>
+    /// <returns>Contract event in a human interpretable form</returns>
     internal static InteropResult GetEventContract(string schema, string contractName, string value, FFIOption schemaVersion)
     {
         var result = IntPtr.Zero;
@@ -65,6 +90,12 @@ internal static class InteropBinding
         }
     }
     
+    /// <summary>
+    /// Wrap a interop result. If the interop call <see cref="Succeeded"/> the <see cref="Message"/> contains the result.
+    /// If it failed the <see cref="Message"/> will contain the error message. 
+    /// </summary>
+    /// <param name="Message">Message from interop operation.</param>
+    /// <param name="Succeeded">If the call succeeded.</param>
     internal readonly record struct InteropResult(string? Message, bool Succeeded);
     
     private static void Free(IntPtr ptr)
@@ -75,10 +106,19 @@ internal static class InteropBinding
         }
     }
     
+    /// <summary>
+    /// A C# layout which compiled to a C interpretable structure. This is used as an optional parameter.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct FFIOption
     {
         internal byte t { get; private init; }
+        /// <summary>
+        /// 1 is interpreted as true. <see cref="Boolean"/> are not used since it isn't a blittable type.
+        /// </summary>
+        /// <remarks>
+        /// <see href="https://learn.microsoft.com/en-us/dotnet/framework/interop/blittable-and-non-blittable-types">Blittable and Non-Blittable Types</see>
+        /// </remarks>
         internal byte is_some { get; private init; }
 
         public static FFIOption None() => new() { is_some = 0 };
