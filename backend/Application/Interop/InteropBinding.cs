@@ -35,8 +35,8 @@ internal static class InteropBinding
         try
         {
             var schemaDisplay = schema_display(schema, ffiOption, ref result);
-            var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(ptrToStringAnsi, schemaDisplay);
+            var resultStringAnsi = Marshal.PtrToStringAnsi(result);
+            return new InteropResult(resultStringAnsi, schemaDisplay);
         }
         finally
         {
@@ -62,8 +62,8 @@ internal static class InteropBinding
         try
         {
             var schemaDisplay = get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
-            var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(ptrToStringAnsi, schemaDisplay);
+            var resultStringAnsi = Marshal.PtrToStringAnsi(result);
+            return new InteropResult(resultStringAnsi, schemaDisplay);
         }
         finally
         {
@@ -86,8 +86,8 @@ internal static class InteropBinding
         try
         {
             var schemaDisplay = get_event_contract(schema, ffiOption, contractName, value, ref result);
-            var ptrToStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(ptrToStringAnsi, schemaDisplay);
+            var resultStringAnsi = Marshal.PtrToStringAnsi(result);
+            return new InteropResult(resultStringAnsi, schemaDisplay);
         }
         finally
         {
