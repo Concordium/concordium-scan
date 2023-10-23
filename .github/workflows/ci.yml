@@ -30,6 +30,12 @@ jobs:
     - name: Test Rust Project
       run: cargo test --manifest-path=./backend/rust-bindings/Cargo.toml --release
 
+    - name: Clippy Rust Project
+      run: cargo clippy --manifest-path=./backend/rust-bindings/Cargo.toml --tests
+
+    - name: Format Rust Project
+      run: cargo fmt --manifest-path=./backend/rust-bindings/Cargo.toml --check
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
