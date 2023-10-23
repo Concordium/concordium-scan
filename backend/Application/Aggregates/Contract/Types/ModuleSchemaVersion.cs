@@ -1,5 +1,3 @@
-using Application.Interop;
-
 namespace Application.Aggregates.Contract.Types;
 
 public enum ModuleSchemaVersion
@@ -9,14 +7,4 @@ public enum ModuleSchemaVersion
     V1 = 1,
     V2 = 2,
     V3 = 3
-}
-
-internal static class ModuleSchemaVersionExtensions
-{
-    internal static InteropBinding.FFIByteOption Into(ModuleSchemaVersion? version)
-    {
-        return version is null or ModuleSchemaVersion.Undefined
-            ? InteropBinding.FFIByteOption.None()
-            : InteropBinding.FFIByteOption.Some((byte)version);
-    }
 }

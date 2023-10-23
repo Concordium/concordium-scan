@@ -31,7 +31,7 @@ internal static class InteropBinding
     /// <returns>Module schema in a human interpretable form</returns>
     internal static string? SchemaDisplay(string schema, ModuleSchemaVersion? schemaVersion)
     {
-        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
+        var ffiOption = FFIByteOption.Create(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
@@ -64,7 +64,7 @@ internal static class InteropBinding
     /// <returns>Receive parameters in a human interpretable form</returns>
     internal static string? GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, ModuleSchemaVersion? schemaVersion)
     {
-        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
+        var ffiOption = FFIByteOption.Create(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
@@ -94,7 +94,7 @@ internal static class InteropBinding
     /// <returns>Contract event in a human interpretable form</returns>
     internal static string? GetEventContract(string schema, string contractName, string value, ModuleSchemaVersion? schemaVersion)
     {
-        var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
+        var ffiOption = FFIByteOption.Create(schemaVersion);
         var result = IntPtr.Zero;
         try
         {
@@ -126,7 +126,7 @@ internal static class InteropBinding
     /// A C# layout which compiled to a C interpretable structure. This is used as an optional parameter.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct FFIByteOption
+    internal struct FFIByteOption
     {
         internal byte t { get; private init; }
         /// <summary>
@@ -137,11 +137,18 @@ internal static class InteropBinding
         /// </remarks>
         internal byte is_some { get; private init; }
 
-        public static FFIByteOption None() => new() { is_some = 0 };
-        public static FFIByteOption Some(byte some) => new()
+        internal static FFIByteOption None() => new() { is_some = 0 };
+        internal static FFIByteOption Some(byte some) => new()
         {
             t = some,
             is_some = 1
         };
+
+        public static FFIByteOption Create(ModuleSchemaVersion? version)
+        {
+            return version is null or ModuleSchemaVersion.Undefined
+                ? None()
+                : Some((byte)version);
+        }
     }
 }
