@@ -187,6 +187,8 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [ExtendObjectType(typeof(ModuleReferenceEvent))]
     public sealed class ModuleReferenceEventExtensions
     {
+        private readonly ILogger _logger = Log.ForContext<ModuleReferenceEventExtensions>();
+
         /// <summary>
         /// Returns module schema in a human interpretable form. Only present if the schema is embedded into the
         /// Wasm module.
@@ -197,8 +199,16 @@ public sealed class ModuleReferenceEvent : BaseIdentification
             {
                 return null;
             }
-            var schemaDisplay = InteropBinding.SchemaDisplay(module.Schema, module.SchemaVersion);
-            return schemaDisplay.Succeeded ? schemaDisplay.Message! : null;
+
+            try
+            {
+                return InteropBinding.SchemaDisplay(module.Schema, module.SchemaVersion);
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error when getting module schema to display");
+                return null;
+            }
         }
         
         [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]

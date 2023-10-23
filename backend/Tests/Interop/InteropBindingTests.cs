@@ -16,10 +16,9 @@ public class InteropBindingTests
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2-nft-schema")).Trim();
 
         // Act
-        var (message, succeeded) = InteropBinding.SchemaDisplay(schema, ModuleSchemaVersion.V1);
+        var message = InteropBinding.SchemaDisplay(schema, ModuleSchemaVersion.V1);
 
         // Assert
-        succeeded.Should().BeTrue();
         await Verifier.Verify(message)
             .UseFileName("module-versioned-schema")
             .UseDirectory("__snapshots__");
@@ -32,10 +31,9 @@ public class InteropBindingTests
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
 
         // Act
-        var (message, succeeded) = InteropBinding.SchemaDisplay(schema,  ModuleSchemaVersion.Undefined);
+        var message = InteropBinding.SchemaDisplay(schema,  ModuleSchemaVersion.Undefined);
 
         // Assert
-        succeeded.Should().BeTrue();
         await Verifier.Verify(message)
             .UseFileName("module-schema")
             .UseDirectory("__snapshots__");
@@ -51,10 +49,9 @@ public class InteropBindingTests
         const string value = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
         
         // Act
-        var (message, succeeded) = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, value,null);
+        var message = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, value,null);
 
         // Assert
-        succeeded.Should().BeTrue();
         await Verifier.Verify(message)
             .UseFileName("receive-params")
             .UseDirectory("__snapshots__");
@@ -69,10 +66,9 @@ public class InteropBindingTests
         const string value = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
         
         // Act
-        var (message, succeeded) = InteropBinding.GetEventContract(schema, contractName, value, ModuleSchemaVersion.Undefined);
+        var message = InteropBinding.GetEventContract(schema, contractName, value, ModuleSchemaVersion.Undefined);
 
         // Assert
-        succeeded.Should().BeTrue();
         await Verifier.Verify(message)
             .UseFileName("event")
             .UseDirectory("__snapshots__");

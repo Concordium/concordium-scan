@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Application.Aggregates.Contract.Types;
+using Application.Exceptions;
 
 // ReSharper disable InconsistentNaming
 // Disabling are because names should follow the names in rust code. 
@@ -28,7 +29,7 @@ internal static class InteropBinding
     /// <param name="schema">Module schema in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param> 
     /// <returns>Module schema in a human interpretable form</returns>
-    internal static InteropResult SchemaDisplay(string schema, ModuleSchemaVersion? schemaVersion)
+    internal static string? SchemaDisplay(string schema, ModuleSchemaVersion? schemaVersion)
     {
         var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
@@ -36,7 +37,13 @@ internal static class InteropBinding
         {
             var schemaDisplay = schema_display(schema, ffiOption, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(resultStringAnsi, schemaDisplay);
+            
+            if (!schemaDisplay)
+            {
+                throw InteropBindingException.Create(resultStringAnsi);
+            }
+            
+            return resultStringAnsi;
         }
         finally
         {
@@ -55,7 +62,7 @@ internal static class InteropBinding
     /// <param name="value">Receive parameters in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param> 
     /// <returns>Receive parameters in a human interpretable form</returns>
-    internal static InteropResult GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, ModuleSchemaVersion? schemaVersion)
+    internal static string? GetReceiveContractParameter(string schema, string contractName, string entrypoint, string value, ModuleSchemaVersion? schemaVersion)
     {
         var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
@@ -63,7 +70,13 @@ internal static class InteropBinding
         {
             var schemaDisplay = get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(resultStringAnsi, schemaDisplay);
+            
+            if (!schemaDisplay)
+            {
+                throw InteropBindingException.Create(resultStringAnsi);
+            }
+            
+            return resultStringAnsi;
         }
         finally
         {
@@ -79,7 +92,7 @@ internal static class InteropBinding
     /// <param name="value">Contract event in hexadecimal</param>
     /// <param name="schemaVersion">Optional schema version if present from module</param>
     /// <returns>Contract event in a human interpretable form</returns>
-    internal static InteropResult GetEventContract(string schema, string contractName, string value, ModuleSchemaVersion? schemaVersion)
+    internal static string? GetEventContract(string schema, string contractName, string value, ModuleSchemaVersion? schemaVersion)
     {
         var ffiOption = ModuleSchemaVersionExtensions.Into(schemaVersion);
         var result = IntPtr.Zero;
@@ -87,21 +100,19 @@ internal static class InteropBinding
         {
             var schemaDisplay = get_event_contract(schema, ffiOption, contractName, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-            return new InteropResult(resultStringAnsi, schemaDisplay);
+            
+            if (!schemaDisplay)
+            {
+                throw InteropBindingException.Create(resultStringAnsi);
+            }
+            
+            return resultStringAnsi;
         }
         finally
         {
             FreeIfNonzero(result);   
         }
     }
-    
-    /// <summary>
-    /// Wrap a interop result. If the interop call <see cref="Succeeded"/> the <see cref="Message"/> contains the result.
-    /// If it failed the <see cref="Message"/> will contain the error message. 
-    /// </summary>
-    /// <param name="Message">Message from interop operation.</param>
-    /// <param name="Succeeded">If the call succeeded.</param>
-    internal readonly record struct InteropResult(string? Message, bool Succeeded);
     
     private static void FreeIfNonzero(IntPtr ptr)
     {
