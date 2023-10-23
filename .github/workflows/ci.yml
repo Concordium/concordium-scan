@@ -23,18 +23,19 @@ jobs:
         profile: minimal
         toolchain: ${{ env.RUST_VERSION }}
         override: true
+        components: rustfmt, clippy
 
     - name: Build Rust Project
       run: cargo build --manifest-path=./backend/rust-bindings/Cargo.toml --release
     
-    - name: Test Rust Project
-      run: cargo test --manifest-path=./backend/rust-bindings/Cargo.toml --release
-
     - name: Clippy Rust Project
       run: cargo clippy --manifest-path=./backend/rust-bindings/Cargo.toml --tests
 
     - name: Format Rust Project
-      run: cargo fmt --manifest-path=./backend/rust-bindings/Cargo.toml --check
+      run: cargo fmt --manifest-path=./backend/rust-bindings/Cargo.toml --check    
+    
+    - name: Test Rust Project
+      run: cargo test --manifest-path=./backend/rust-bindings/Cargo.toml --release
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
