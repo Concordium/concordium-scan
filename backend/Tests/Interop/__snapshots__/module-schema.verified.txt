@@ -1,0 +1,1423 @@
+﻿Contract:   cis2_wCCD
+  Init:
+    Parameter:
+      {
+        "hash": {
+          "Enum": [
+            {
+              "None": []
+            },
+            {
+              "Some": [
+                [
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>",
+                  "<UInt8>"
+                ]
+              ]
+            }
+          ]
+        },
+        "url": "<String>"
+      }
+  Methods:
+    - "balanceOf"
+      Parameter:
+        [
+          {
+            "address": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      Return value:
+        [
+          "<String of size at most 74 containing an unsigned integer.>"
+        ]
+    - "operatorOf"
+      Parameter:
+        [
+          {
+            "address": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "owner": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      Return value:
+        [
+          "<Bool>"
+        ]
+    - "setImplementors"
+      Parameter:
+        {
+          "id": "<String>",
+          "implementors": [
+            {
+              "index": "<UInt64>",
+              "subindex": "<UInt64>"
+            }
+          ]
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "setMetadataUrl"
+      Parameter:
+        {
+          "hash": {
+            "Enum": [
+              {
+                "None": []
+              },
+              {
+                "Some": [
+                  [
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>",
+                    "<UInt8>"
+                  ]
+                ]
+              }
+            ]
+          },
+          "url": "<String>"
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "setPaused"
+      Parameter:
+        {
+          "paused": "<Bool>"
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "supports"
+      Parameter:
+        [
+          "<String>"
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      Return value:
+        [
+          {
+            "Enum": [
+              {
+                "NoSupport": []
+              },
+              {
+                "Support": []
+              },
+              {
+                "SupportBy": [
+                  [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+    - "tokenMetadata"
+      Parameter:
+        [
+          "<String with lowercase hex>"
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      Return value:
+        [
+          {
+            "hash": {
+              "Enum": [
+                {
+                  "None": []
+                },
+                {
+                  "Some": [
+                    [
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>"
+                    ]
+                  ]
+                }
+              ]
+            },
+            "url": "<String>"
+          }
+        ]
+    - "transfer"
+      Parameter:
+        [
+          {
+            "amount": "<String of size at most 74 containing an unsigned integer.>",
+            "data": "<String with lowercase hex>",
+            "from": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "to": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    },
+                    "<String>"
+                  ]
+                }
+              ]
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "unwrap"
+      Parameter:
+        {
+          "amount": "<String of size at most 74 containing an unsigned integer.>",
+          "data": "<String with lowercase hex>",
+          "owner": {
+            "Enum": [
+              {
+                "Account": [
+                  "<AccountAddress>"
+                ]
+              },
+              {
+                "Contract": [
+                  {
+                    "index": "<UInt64>",
+                    "subindex": "<UInt64>"
+                  }
+                ]
+              }
+            ]
+          },
+          "receiver": {
+            "Enum": [
+              {
+                "Account": [
+                  "<AccountAddress>"
+                ]
+              },
+              {
+                "Contract": [
+                  {
+                    "index": "<UInt64>",
+                    "subindex": "<UInt64>"
+                  },
+                  "<String>"
+                ]
+              }
+            ]
+          }
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "updateAdmin"
+      Parameter:
+        {
+          "Enum": [
+            {
+              "Account": [
+                "<AccountAddress>"
+              ]
+            },
+            {
+              "Contract": [
+                {
+                  "index": "<UInt64>",
+                  "subindex": "<UInt64>"
+                }
+              ]
+            }
+          ]
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "updateOperator"
+      Parameter:
+        [
+          {
+            "operator": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "update": {
+              "Enum": [
+                {
+                  "Remove": []
+                },
+                {
+                  "Add": []
+                }
+              ]
+            }
+          }
+        ]
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "upgrade"
+      Parameter:
+        {
+          "migrate": {
+            "Enum": [
+              {
+                "None": []
+              },
+              {
+                "Some": [
+                  [
+                    "<String>",
+                    "<String with lowercase hex>"
+                  ]
+                ]
+              }
+            ]
+          },
+          "module": "<String of size 64 containing lowercase hex characters.>"
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+    - "view"
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      Return value:
+        {
+          "admin": {
+            "Enum": [
+              {
+                "Account": [
+                  "<AccountAddress>"
+                ]
+              },
+              {
+                "Contract": [
+                  {
+                    "index": "<UInt64>",
+                    "subindex": "<UInt64>"
+                  }
+                ]
+              }
+            ]
+          },
+          "metadata_url": {
+            "hash": {
+              "Enum": [
+                {
+                  "None": []
+                },
+                {
+                  "Some": [
+                    [
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>"
+                    ]
+                  ]
+                }
+              ]
+            },
+            "url": "<String>"
+          },
+          "paused": "<Bool>"
+        }
+    - "wrap"
+      Parameter:
+        {
+          "data": "<String with lowercase hex>",
+          "to": {
+            "Enum": [
+              {
+                "Account": [
+                  "<AccountAddress>"
+                ]
+              },
+              {
+                "Contract": [
+                  {
+                    "index": "<UInt64>",
+                    "subindex": "<UInt64>"
+                  },
+                  "<String>"
+                ]
+              }
+            ]
+          }
+        }
+      Error:
+        {
+          "Enum": [
+            {
+              "InvalidTokenId": []
+            },
+            {
+              "InsufficientFunds": []
+            },
+            {
+              "Unauthorized": []
+            },
+            {
+              "Custom": [
+                {
+                  "Enum": [
+                    {
+                      "ParseParams": []
+                    },
+                    {
+                      "LogFull": []
+                    },
+                    {
+                      "LogMalformed": []
+                    },
+                    {
+                      "ContractPaused": []
+                    },
+                    {
+                      "InvokeContractError": []
+                    },
+                    {
+                      "InvokeTransferError": []
+                    },
+                    {
+                      "FailedUpgradeMissingModule": []
+                    },
+                    {
+                      "FailedUpgradeMissingContract": []
+                    },
+                    {
+                      "FailedUpgradeUnsupportedModuleVersion": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+  Event:
+    {
+      "Enum": [
+        {
+          "NewAdmin": {
+            "new_admin": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "TokenMetadata": {
+            "metadata_url": {
+              "hash": {
+                "Enum": [
+                  {
+                    "None": []
+                  },
+                  {
+                    "Some": [
+                      [
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>",
+                        "<UInt8>"
+                      ]
+                    ]
+                  }
+                ]
+              },
+              "url": "<String>"
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        },
+        {
+          "UpdateOperator": {
+            "operator": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "owner": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "update": {
+              "Enum": [
+                {
+                  "Remove": []
+                },
+                {
+                  "Add": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "Burn": {
+            "amount": "<String of size at most 74 containing an unsigned integer.>",
+            "owner": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        },
+        {
+          "Mint": {
+            "amount": "<String of size at most 74 containing an unsigned integer.>",
+            "owner": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        },
+        {
+          "Transfer": {
+            "amount": "<String of size at most 74 containing an unsigned integer.>",
+            "from": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "to": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": "<String with lowercase hex>"
+          }
+        }
+      ]
+    }

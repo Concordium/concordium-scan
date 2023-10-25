@@ -20,6 +20,7 @@ public sealed class Contract : BaseIdentification
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public string ContractAddress { get; init; } = null!;
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
  
@@ -63,7 +64,11 @@ public sealed class Contract : BaseIdentification
         Creator = creator;
     }
     
-    private const string ContractEventsSql = @"
+    
+    [ExtendObjectType(typeof(Query))]
+    public class ContractQuery
+    {
+        private const string ContractEventsSql = @"
     SELECT 
         g0.block_height as BlockHeight,
         g0.transaction_index as TransactionIndex,
@@ -81,7 +86,7 @@ public sealed class Contract : BaseIdentification
     ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
 ";
     
-    private const string ModuleLinkEventsSql = @"
+        private const string ModuleLinkEventsSql = @"
     SELECT 
         g0.block_height as BlockHeight,
         g0.transaction_index as TransactionIndex,
@@ -100,7 +105,7 @@ public sealed class Contract : BaseIdentification
     ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
 ";
     
-    private const string ContractRejectEventsSql = @"
+        private const string ContractRejectEventsSql = @"
     SELECT 
         g0.block_height as BlockHeight,
         g0.transaction_index as TransactionIndex,
@@ -116,10 +121,7 @@ public sealed class Contract : BaseIdentification
     WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
     ORDER BY g0.block_height DESC, g0.transaction_index DESC;
 ";
-    
-    [ExtendObjectType(typeof(Query))]
-    public class ContractQuery
-    {
+        
         public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
         {
             var contract = await context.Contract

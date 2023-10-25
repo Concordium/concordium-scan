@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
@@ -17,6 +18,7 @@ namespace Application.Aggregates.Contract.Entities;
 /// </summary>
 public sealed class ModuleReferenceEvent : BaseIdentification
 {
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public string ModuleReference { get; init; } = null!;
     public AccountAddress Sender { get; init; } = null!;
@@ -36,6 +38,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; init; } = null!;
     [GraphQLIgnore]
     public string? ModuleSource { get; private set; }
+    [GraphQLIgnore]
     public string? Schema { get; private set; }
     [GraphQLIgnore]
     public ModuleSchemaVersion? SchemaVersion { get; private set; }
@@ -184,6 +187,30 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [ExtendObjectType(typeof(ModuleReferenceEvent))]
     public sealed class ModuleReferenceEventExtensions
     {
+        private readonly ILogger _logger = Log.ForContext<ModuleReferenceEventExtensions>();
+
+        /// <summary>
+        /// Returns module schema in a human interpretable form. Only present if the schema is embedded into the
+        /// Wasm module.
+        /// </summary>
+        public string? GetDisplaySchema([Parent] ModuleReferenceEvent module)
+        {
+            if (module.Schema == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return InteropBinding.SchemaDisplay(module.Schema, module.SchemaVersion);
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error when getting module schema to display");
+                return null;
+            }
+        }
+        
         [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
         public IList<LinkedContract> GetLinkedContracts([Parent] ModuleReferenceEvent moduleReferenceEvent)
         {

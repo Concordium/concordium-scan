@@ -21,6 +21,7 @@ const ContractQuery = gql`
 			sender {
 				asString
 			}
+			displaySchema
 			linkedContracts(
 				skip: $skipLinkedContract
 				take: $takeLinkedContract

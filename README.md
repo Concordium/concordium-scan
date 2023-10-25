@@ -45,3 +45,15 @@ See the description of `CCDSCAN_BACKEND_PORT` for an explanation of why Mac user
 ## Database restore
 
 In `./timescaledb-restore` a description is given how to spin up and restore CCD scan database locally from Stage- or Testnet backups.
+
+## Rust-bindings
+
+The CCD scan does interops to compiled code from rust. The `.csproj` file is dependent on compiled binaries which is why one manually needs to run below
+```
+make build-rust-bindings
+
+```
+This is only needed to be done once. They will be recompiled on later changes as part of `dotnet build`.
+
+## Unstable features
+- GraphQL endpoints for contracts and modules should currently be seen as unstable, indicating that the query models are likely to undergo changes.
