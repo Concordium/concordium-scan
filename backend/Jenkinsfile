@@ -8,16 +8,6 @@ pipeline {
     image_name = "${image_repo}:${image_tag}"
   }
   stages {
-    stage('checkout-submodules') {
-      steps {
-        sh 'git submodule update --init --recursive'
-      }
-    }
-    stage('build-rust-binaries') {
-      steps {
-        sh 'make build-rust-bindings'
-      }
-    }
     stage('dockerhub-login') {
       environment {
         CRED = credentials('jenkins-dockerhub')
