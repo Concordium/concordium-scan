@@ -7,15 +7,12 @@ WORKDIR /src
 COPY rust-bindings/ rust-bindings/
 RUN cargo build  --manifest-path=./rust-bindings/Cargo.toml --release
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS restore
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS publish
 WORKDIR /src
 COPY --from=rust-builder /src/rust-bindings/target rust-bindings/target
 COPY Application/ Application/
 COPY DatabaseScripts/ DatabaseScripts/
-RUN dotnet restore "Application/Application.csproj" 
 WORKDIR "/src/Application"
-
-FROM restore AS publish
 RUN dotnet publish "Application.csproj" -c Release -o /app/publish -p:RunRustBuild=false
 
 FROM base AS final
