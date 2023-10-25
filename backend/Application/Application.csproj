@@ -45,15 +45,15 @@
     </ItemGroup>
     <ItemGroup>
             <!-- Include librust.dll on Windows -->
-            <None Include="../../target/release/librust_bindings.dll" Condition="'$(IsWindows)'=='true'">
+            <None Include="../rust-bindings/target/release/librust_bindings.dll" Condition="'$(IsWindows)'=='true'">
               <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
             <!-- Include librust.dylib on macOS -->
-            <None Include="../../target/release/librust_bindings.dylib" Condition="'$(IsOSX)'=='true'">
+            <None Include="../rust-bindings/target/release/librust_bindings.dylib" Condition="'$(IsOSX)'=='true'">
               <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
             <!-- Include librust.so on Linux -->
-            <None Include="../../target/release/librust_bindings.so" Condition="'$(IsLinux)'=='true'">
+            <None Include="../rust-bindings/target/release/librust_bindings.so" Condition="'$(IsLinux)'=='true'">
               <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             </None>
     </ItemGroup>

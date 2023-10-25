@@ -11,3 +11,5 @@ pgbackrest.conf
 *.received.*
 
 target/
+
+.vscode/
