@@ -2,15 +2,21 @@ FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 5000
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM rust:1.65 AS rust-builder
 WORKDIR /src
-COPY ["Application/Application.csproj", "Application/"]
-RUN dotnet restore "Application/Application.csproj" 
-COPY . .
-WORKDIR "/src/Application"
-RUN dotnet build "Application.csproj" -c Release -o /app/build
+COPY ../concordium-base ../concordium-base
+COPY rust-bindings/ rust-bindings/
+RUN cargo build  --manifest-path=./rust-bindings/Cargo.toml --release
 
-FROM build AS publish
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS restore
+WORKDIR /src
+COPY --from=rust-builder /src/rust-bindings/target rust-bindings/target
+COPY Application/ Application/
+COPY DatabaseScripts/ DatabaseScripts/
+RUN dotnet restore "Application/Application.csproj" 
+WORKDIR "/src/Application"
+
+FROM restore AS publish
 RUN dotnet publish "Application.csproj" -c Release -o /app/publish
 
 FROM base AS final
