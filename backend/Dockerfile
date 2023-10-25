@@ -16,7 +16,7 @@ RUN dotnet restore "Application/Application.csproj"
 WORKDIR "/src/Application"
 
 FROM restore AS publish
-RUN dotnet publish "Application.csproj" -c Release -o /app/publish
+RUN dotnet publish "Application.csproj" -c Release -o /app/publish -p:RunRustBuild=false
 
 FROM base AS final
 # Install 'ca-certificates' for supporting HTTPS.

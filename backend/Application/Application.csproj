@@ -7,7 +7,8 @@
         <Version>1.7.7</Version>
         <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
         <IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
-        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>        
+        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
+        <RunRustBuild>true</RunRustBuild>
     </PropertyGroup>
     
     <ItemGroup>
@@ -58,7 +59,7 @@
             </None>
     </ItemGroup>
 
-    <Target Name="BuildRustProject" BeforeTargets="Build">
+    <Target Name="BuildRustProject" BeforeTargets="Build" Condition="$(RunRustBuild)">
         <Exec Command="cargo build --manifest-path=../rust-bindings/Cargo.toml --release" />
     </Target>    
     
