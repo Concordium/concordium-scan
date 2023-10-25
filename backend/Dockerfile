@@ -4,7 +4,6 @@ EXPOSE 5000
 
 FROM rust:1.65 AS rust-builder
 WORKDIR /src
-COPY ../concordium-base ../concordium-base
 COPY rust-bindings/ rust-bindings/
 RUN cargo build  --manifest-path=./rust-bindings/Cargo.toml --release
 
