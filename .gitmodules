@@ -1,3 +1,0 @@
-[submodule "concordium-base"]
-	path = concordium-base
-	url = https://github.com/Concordium/concordium-base.git
