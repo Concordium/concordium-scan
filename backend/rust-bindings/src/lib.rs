@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use concordium_base::contracts_common::{
+use concordium_contracts_common::{
     schema::{Type, VersionedModuleSchema},
     Cursor,
 };
