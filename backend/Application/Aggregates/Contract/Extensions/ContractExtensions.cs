@@ -73,8 +73,7 @@ public static class ContractExtensions
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialFieldParsingCatchUpJob>>();
         collection.AddTransient<InitialFieldParsingCatchUpJob>();
         collection.AddTransient<IContractJob, UpdateModuleSourceCatchup>();
-        // Will be activated after UpdateModuleSourceCatchup has completed
-        // collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
-        // collection.AddTransient<InitialContractAggregateCatchUpJob>();
+        collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
+        collection.AddTransient<InitialContractAggregateCatchUpJob>();
     }
 }
