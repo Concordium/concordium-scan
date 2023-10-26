@@ -1,6 +1,10 @@
-﻿using Concordium.Sdk.Types;
+﻿using System.Threading.Tasks;
+using Application.Aggregates.Contract;
+using Application.Interop;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
+using Serilog.Context;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Application.Api.GraphQL.Transactions;
@@ -160,7 +164,47 @@ public record RejectedReceive(
     int RejectReason,
     ContractAddress ContractAddress,
     string ReceiveName,
-    string MessageAsHex) : TransactionRejectReason;
+    string MessageAsHex,
+    string? Message = null) : TransactionRejectReason {
+    
+    /// <summary>
+    /// Try parse hexadecimal <see cref="MessageAsHex"/> from module schema.
+    ///
+    /// If succeed a new <see cref="RejectedReceive"/> is returned.
+    ///
+    /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
+    /// </summary>
+    internal async Task<RejectedReceive?> TryUpdateMessage(
+        IContractRepository repository,
+        ulong blockHeight,
+        ulong transactionIndex
+    )
+    {
+        var logger = Log.ForContext<RejectedReceive>();
+        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
+        
+        var moduleReferenceEvent = await repository.GetReadOnlyModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, 0);
+        if (moduleReferenceEvent.Schema == null)
+        {
+            return null;
+        }
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(ContractAddress);
+        var contractName = initialized.GetName();
+        try
+        {
+            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, ReceiveName, MessageAsHex, moduleReferenceEvent.SchemaVersion);
+            
+            return message != null ? 
+                new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 
+                null;   
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Not able to parse {Message} from {Module}", MessageAsHex, moduleReferenceEvent.ModuleReference);
+            return null;
+        }
+    }
+}
 
 /// <summary>
 /// Reward account desired by the baker does not exist.

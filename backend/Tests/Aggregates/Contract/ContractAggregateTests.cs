@@ -66,7 +66,9 @@ public sealed class ContractAggregateTests
         var contractEvents = new List<ContractEvent>();
         var repository = new Mock<IContractRepository>();
         repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
-            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+            .Callback<ContractEvent[]>(e => contractEvents.AddRange(e));
+        repository.Setup(m => m.GetReadOnlyModuleReferenceEventAtAsync(It.IsAny<Application.Api.GraphQL.ContractAddress>(), It.IsAny<ulong>(), It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(Task.FromResult(ModuleReferenceEventBuilder.Create().Build()));
         var contractUpdated = new ContractUpdated(
             new Application.Api.GraphQL.ContractAddress(from, 0),
             new AccountAddress(""),
@@ -108,6 +110,8 @@ public sealed class ContractAggregateTests
         var repository = new Mock<IContractRepository>();
         repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
             .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        repository.Setup(m => m.GetReadOnlyModuleReferenceEventAtAsync(It.IsAny<Application.Api.GraphQL.ContractAddress>(), It.IsAny<ulong>(), It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(Task.FromResult(ModuleReferenceEventBuilder.Create().Build()));        
         var contractUpdated = new ContractUpdated(
             new Application.Api.GraphQL.ContractAddress(from, 0),
             new Application.Api.GraphQL.ContractAddress(to, 0),

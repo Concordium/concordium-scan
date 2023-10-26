@@ -15,6 +15,22 @@ internal static class ApplicationMetrics
         {
             LabelNames = new[] { "operation", "exception" }
         });
+
+    private static readonly Counter InteropExceptions = Metrics.CreateCounter(
+        "interop_exceptions_total",
+        "Number of exceptions from interop calls",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "method", "exception" }
+        }
+    );
+
+    internal static void IncInteropExceptions(string method, Exception exception)
+    {
+        InteropExceptions
+            .WithLabels(method, PrettyPrintException(exception))
+            .Inc();
+    }
     
     internal class GraphQlDurationMetric : IDisposable
     {

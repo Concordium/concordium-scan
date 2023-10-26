@@ -8,12 +8,12 @@ namespace Tests.TestUtilities.Builders;
 
 internal sealed class ModuleReferenceEventBuilder
 {
-    private const ulong BlockHeight = 1;
+    private ulong _blockHeight = 1;
     private const string TransactionHash = "";
-    private const ulong TransactionIndex = 1;
-    private const uint EventIndex = 1;
+    private ulong _transactionIndex = 1;
+    private uint _eventIndex = 1;
     private string _moduleReference = "";
-    private string moduleSource = "";
+    private const string ModuleSource = "";
     private readonly AccountAddress _accountAddress = new("");
     private const ImportSource Source = ImportSource.DatabaseImport;
     private readonly DateTimeOffset _dateTimeOffset = DateTimeOffset.UtcNow;
@@ -29,13 +29,13 @@ internal sealed class ModuleReferenceEventBuilder
     internal ModuleReferenceEvent Build()
     {
         return new ModuleReferenceEvent(
-            BlockHeight,
+            _blockHeight,
             TransactionHash,
-            TransactionIndex,
-            EventIndex,
+            _transactionIndex,
+            _eventIndex,
             _moduleReference,
             _accountAddress,
-            moduleSource,
+            ModuleSource,
             null,
             null,
             Source,
@@ -44,6 +44,24 @@ internal sealed class ModuleReferenceEventBuilder
         {
             ModuleReferenceContractLinkEvents = _moduleReferenceContractLinkEvents
         };
+    }
+    
+    internal ModuleReferenceEventBuilder WithBlockHeight(ulong blockHeight)
+    {
+        _blockHeight = blockHeight;
+        return this;
+    }
+    
+    internal ModuleReferenceEventBuilder WithTransactionIndex(ulong transactionIndex)
+    {
+        _transactionIndex = transactionIndex;
+        return this;
+    }
+    
+    internal ModuleReferenceEventBuilder WithEventIndex(uint eventIndex)
+    {
+        _eventIndex = eventIndex;
+        return this;
     }
     
     internal ModuleReferenceEventBuilder WithModuleReference(string moduleReference)

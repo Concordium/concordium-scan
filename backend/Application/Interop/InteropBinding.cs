@@ -45,6 +45,11 @@ internal static class InteropBinding
             
             return resultStringAnsi;
         }
+        catch (Exception e)
+        {
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), e);
+            throw;
+        }
         finally
         {
             FreeIfNonzero(result);            
@@ -68,15 +73,21 @@ internal static class InteropBinding
         var result = IntPtr.Zero;
         try
         {
-            var schemaDisplay = get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
+            var schemaDisplay =
+                get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-            
+
             if (!schemaDisplay)
             {
                 throw InteropBindingException.Create(resultStringAnsi);
             }
-            
+
             return resultStringAnsi;
+        }
+        catch (Exception e)
+        {
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(GetReceiveContractParameter), e);
+            throw;
         }
         finally
         {
@@ -108,6 +119,11 @@ internal static class InteropBinding
             
             return resultStringAnsi;
         }
+        catch (Exception e)
+        {
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(GetEventContract), e);
+            throw;
+        }
         finally
         {
             FreeIfNonzero(result);   
@@ -137,8 +153,9 @@ internal static class InteropBinding
         /// </remarks>
         internal byte is_some { get; private init; }
 
-        internal static FFIByteOption None() => new() { is_some = 0 };
-        internal static FFIByteOption Some(byte some) => new()
+        private static FFIByteOption None() => new() { is_some = 0 };
+
+        private static FFIByteOption Some(byte some) => new()
         {
             t = some,
             is_some = 1

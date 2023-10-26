@@ -5,12 +5,14 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using static Tests.TestUtilities.Stubs.TransactionResultEventStubs;
 
@@ -372,5 +374,260 @@ public sealed class ContractRepositoryTests
         contractReadHeight.Should().NotBeNull();
         contractReadHeight!.BlockHeight.Should().Be(blockHeight);
         contractReadHeight.Source.Should().Be(source);
+    }
+
+    [Fact]
+    public async Task GivenModuleEventsInDatabase_WhenGetReadOnlyModuleReferenceEventAtAsync_ThenReturnLatest()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_module_reference_events");
+        await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
+        const ulong blockHeight = 5UL;
+        const ulong transactionIndex = 5UL;
+        const uint eventIndex = 5U;
+        const string moduleRef = "foo";
+        const string moduleRefOther = "bar";
+        var contract = new ContractAddress(4, 2);
+        // Events before
+        var linkAddFirst = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 3)
+            .WithTransactionIndex(transactionIndex - 3)
+            .WithEventIndex(eventIndex - 3)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        // Latest added event
+        var linkAddSecond = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 2)
+            .WithTransactionIndex(transactionIndex - 2)
+            .WithEventIndex(eventIndex - 2)
+            .WithModuleReference(moduleRef)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var linkRemoveFirst = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 2)
+            .WithTransactionIndex(transactionIndex - 2)
+            .WithEventIndex(eventIndex - 2)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
+            .Build();
+        // Event closer to limit but another contract address
+        var linkAddOther = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(new ContractAddress(1,1))
+            .WithBlockHeight(blockHeight - 1)
+            .WithTransactionIndex(transactionIndex - 1)
+            .WithEventIndex(eventIndex - 1)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        // Events after
+        var linkRemoveSecond = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight + 3)
+            .WithTransactionIndex(transactionIndex + 3)
+            .WithEventIndex(eventIndex + 3)
+            .WithModuleReference(moduleRef)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
+            .Build();        
+        var linkAddThird = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight + 3)
+            .WithTransactionIndex(transactionIndex + 3)
+            .WithEventIndex(eventIndex + 3)      
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var module = ModuleReferenceEventBuilder
+            .Create()
+            .WithModuleReference(moduleRef)
+            .Build();
+        var moduleOther = ModuleReferenceEventBuilder
+            .Create()
+            .WithModuleReference(moduleRefOther)
+            .Build();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        await context.AddRangeAsync(linkAddFirst, linkAddSecond, linkAddThird, linkRemoveFirst, linkRemoveSecond, linkAddOther);
+        await context.AddRangeAsync(module, moduleOther);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var contractRepository = new ContractRepository(context);
+
+        // Act
+        var actualModule = await contractRepository.GetReadOnlyModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, eventIndex);
+        
+        // Assert
+        actualModule.ModuleReference.Should().Be(moduleRef);
+    }
+    
+    [Fact]
+    public async Task GivenModuleEventsInChangeTracker_WhenGetReadOnlyModuleReferenceEventAtAsync_ThenReturnLatestFromChangeTracker()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_module_reference_events");
+        await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        const ulong blockHeight = 5UL;
+        const ulong transactionIndex = 5UL;
+        const uint eventIndex = 5U;
+        const string moduleRef = "foo";
+        const string moduleRefOther = "bar";
+        var contract = new ContractAddress(4, 2);
+        // Events before
+        var linkAddFirst = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 3)
+            .WithTransactionIndex(transactionIndex - 3)
+            .WithEventIndex(eventIndex - 3)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        // Latest added event in database
+        var linkAddSecond = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 2)
+            .WithTransactionIndex(transactionIndex - 2)
+            .WithEventIndex(eventIndex - 2)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var linkRemoveFirst = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 2)
+            .WithTransactionIndex(transactionIndex - 2)
+            .WithEventIndex(eventIndex - 2)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
+            .Build();
+        // Events after
+        var linkRemoveSecond = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight + 3)
+            .WithTransactionIndex(transactionIndex + 3)
+            .WithEventIndex(eventIndex + 3)
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
+            .Build();        
+        var linkAddThird = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight + 3)
+            .WithTransactionIndex(transactionIndex + 3)
+            .WithEventIndex(eventIndex + 3)       
+            .WithModuleReference(moduleRefOther)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var module = ModuleReferenceEventBuilder
+            .Create()
+            .WithModuleReference(moduleRef)
+            .Build();
+        var moduleOther = ModuleReferenceEventBuilder
+            .Create()
+            .WithModuleReference(moduleRefOther)
+            .Build();
+        await context.AddRangeAsync(linkAddFirst, linkAddSecond, linkAddThird, linkRemoveFirst, linkRemoveSecond);
+        await context.AddRangeAsync(module, moduleOther);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        
+        // Event closer to limit
+        var linkAddOther = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contract)
+            .WithBlockHeight(blockHeight - 1)
+            .WithTransactionIndex(transactionIndex - 1)
+            .WithEventIndex(eventIndex - 1)
+            .WithModuleReference(moduleRef)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+
+        // Add but not yet committed
+        await context.AddAsync(linkAddOther);
+
+        var contractRepository = new ContractRepository(context);
+
+        // Act
+        var actualModule = await contractRepository.GetReadOnlyModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, eventIndex);
+        
+        // Assert
+        actualModule.ModuleReference.Should().Be(moduleRef);
+    }
+
+    [Fact]
+    public async Task GivenContractInitializedEventInDatabase_WhenGetReadonlyContractInitializedEventAsync_ThenReturnCorrect()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        var oneContract = new ContractAddress(1, 0);
+        const string oneContractName = "init_foo";
+        const string otherContractName = "init_bar";
+        var otherContract = new ContractAddress(2,0);
+
+        var first = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(1)
+            .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        var second = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(2)
+            .WithEvent(new Transferred(2, oneContract, new AccountAddress("")))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithContractAddress(otherContract)
+            .WithBlockHeight(3)
+            .WithEvent(new ContractInitialized("", otherContract, 10, otherContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddRangeAsync(first, second, third);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var repository = new ContractRepository(context);
+
+        // Act
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
+
+        // Assert
+        initialized.InitName.Should().Be(oneContractName);
+    }
+    
+    [Fact]
+    public async Task GivenContractInitializedEventInChangeTracker_WhenGetReadonlyContractInitializedEventAsync_ThenReturnCorrect()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        var oneContract = new ContractAddress(1, 0);
+        const string oneContractName = "init_foo";
+        const string otherContractName = "init_bar";
+        var otherContract = new ContractAddress(2,0);
+        
+        var second = ContractEventBuilder.Create()
+            .WithBlockHeight(1)
+            .WithEvent(new Transferred(2, oneContract, new AccountAddress("")))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithBlockHeight(2)
+            .WithEvent(new ContractInitialized("", otherContract, 10, otherContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddRangeAsync(second, third);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        
+        var first = ContractEventBuilder.Create()
+            .WithBlockHeight(3)
+            .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddAsync(first);
+        var repository = new ContractRepository(context);
+
+        // Act
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
+
+        // Assert
+        initialized.InitName.Should().Be(oneContractName);
     }
 }

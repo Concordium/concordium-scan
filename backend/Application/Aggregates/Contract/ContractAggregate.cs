@@ -181,6 +181,11 @@ internal sealed class ContractAggregate
                 ));
                 break;
             case RejectedReceive rejectedReceive:
+                var rejectedReceiveEvent = await rejectedReceive.TryUpdateMessage(repository, blockHeight, transactionIndex);
+                if (rejectedReceiveEvent != null)
+                {
+                    rejectedReceive = rejectedReceiveEvent;
+                }
                 await repository.AddAsync(new ContractRejectEvent(
                     blockHeight,
                     transactionHash,
@@ -214,6 +219,11 @@ internal sealed class ContractAggregate
         switch (transactionResultEvent)
         {
             case Api.GraphQL.Transactions.ContractInitialized contractInitialized:
+                var contractInitializedEvent = await contractInitialized.TryUpdateWithParsedEvents(repository);
+                if (contractInitializedEvent != null)
+                {
+                    contractInitialized = contractInitializedEvent;
+                }
                 await repository.AddAsync(new Entities.Contract(
                     blockHeight,
                     transactionHash,
@@ -251,6 +261,11 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
+                var contractInterruptedEvent = await contractInterrupted.TryUpdateWithParsedEvents(repository, blockHeight, transactionIndex, eventIndex);
+                if (contractInterruptedEvent != null)
+                {
+                    contractInterrupted = contractInterruptedEvent;
+                }
                 await repository
                     .AddAsync(new ContractEvent(
                         blockHeight,
@@ -279,6 +294,11 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractUpdated contractUpdated:
+                var contractUpdatedEvent = await contractUpdated.TryUpdate(repository, blockHeight, transactionIndex, eventIndex);
+                if (contractUpdatedEvent != null)
+                {
+                    contractUpdated = contractUpdatedEvent;
+                }
                 if (contractUpdated.Instigator is ContractAddress contractInstigator)
                 {
                     await repository
