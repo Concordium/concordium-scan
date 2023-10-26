@@ -4,7 +4,7 @@
 - Added
     - Endpoint to display module schema in a human interpretable form. The schema is present if it is embedded in the module source.
 - Bugfix
-    - Schema was was incorrent always mapped to undefined schema version. Fix implemented and job added which cleans up corrupted data.
+    - Schema was incorrectly always mapped to undefined schema version. Fix implemented and job added which cleans up corrupted data.
 
 ## 1.7.4
 - Change contract- and module queries to use offset pagination.
