@@ -70,10 +70,11 @@ public static class ContractExtensions
 
         collection.AddSingleton<IContractJobRepository, ContractJobRepository>();
         collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();
-        collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialFieldParsingCatchUpJob>>();
         collection.AddTransient<InitialFieldParsingCatchUpJob>();
-        collection.AddTransient<InitialContractAggregateCatchUpJob>();
-        collection.AddTransient<UpdateModuleSourceCatchup>();
+        collection.AddTransient<IContractJob, UpdateModuleSourceCatchup>();
+        // Will be activated after UpdateModuleSourceCatchup has completed
+        // collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
+        // collection.AddTransient<InitialContractAggregateCatchUpJob>();
     }
 }
