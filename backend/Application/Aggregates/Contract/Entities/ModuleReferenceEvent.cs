@@ -152,7 +152,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         {
             schema = null;
             var customSection = module.CustomSections
-                .SingleOrDefault(section => section.Name.StartsWith(entryKey, StringComparison.InvariantCulture));
+                .SingleOrDefault(section => section.Name.Equals(entryKey, StringComparison.InvariantCulture));
 
             if (customSection == null) return false;
             
