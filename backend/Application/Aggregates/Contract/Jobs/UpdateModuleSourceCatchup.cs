@@ -108,5 +108,5 @@ public class UpdateModuleSourceCatchup : IContractJob
 
     public string GetUniqueIdentifier() => JobName;
 
-    public bool ShouldNodeImportAwait() => true;
+    public bool ShouldNodeImportAwait() => false;
 }
