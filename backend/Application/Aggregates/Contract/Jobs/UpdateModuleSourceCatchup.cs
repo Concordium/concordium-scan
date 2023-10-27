@@ -12,6 +12,12 @@ using Serilog.Context;
 
 namespace Application.Aggregates.Contract.Jobs;
 
+/// <summary>
+/// Update all <see cref="ModuleReferenceEvent"/> where <see cref="ModuleReferenceEvent.Schema"/> isn't null.
+///
+/// Overrides existing <see cref="ModuleReferenceEvent.Schema"/> and <see cref="ModuleReferenceEvent.SchemaVersion"/>
+/// with logic from <see cref="ModuleReferenceEvent.ModuleSourceInfo.GetModuleSchema"/>.
+/// </summary>
 public class UpdateModuleSourceCatchup : IContractJob
 {
     private readonly IContractNodeClient _client;
@@ -35,7 +41,7 @@ public class UpdateModuleSourceCatchup : IContractJob
         _client = client;
         _dbContextFactory = dbContextFactory;
         _healthCheck = healthCheck;
-        _logger = Log.ForContext<InitialModuleSourceCatchup>();
+        _logger = Log.ForContext<UpdateModuleSourceCatchup>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();    
@@ -102,5 +108,5 @@ public class UpdateModuleSourceCatchup : IContractJob
 
     public string GetUniqueIdentifier() => JobName;
 
-    public bool ShouldNodeImportAwait() => true;
+    public bool ShouldNodeImportAwait() => false;
 }
