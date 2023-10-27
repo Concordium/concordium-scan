@@ -28,6 +28,11 @@
 					</template>
 				</DetailsCard>
 			</div>
+			<div
+				v-if="moduleReferenceEvent.displaySchema"
+				class="schema-section">
+
+			</div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
@@ -72,6 +77,15 @@
 						/>
 					</DetailsTable>
 				</template>
+				<template
+					v-if="moduleReferenceEvent.displaySchema"
+				 	#tabPanel-4>
+					 <div class="schema">
+						<code>
+							<pre>{{ moduleReferenceEvent.displaySchema }}</pre>
+						</code>
+					</div>
+				</template>
 			</Tabs>
 		</DrawerContent>
 	</div>
@@ -106,7 +120,7 @@ type Props = {
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {
-	return [
+	const tabList = [
 		`Linked contracts (${
 			props.moduleReferenceEvent.linkedContracts?.totalCount ?? 0
 		})`,
@@ -117,6 +131,23 @@ const tabList = computed(() => {
 		`Rejected events (${
 			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
 		})`,
-	]
+	];
+	if (props.moduleReferenceEvent.displaySchema) {
+		tabList.push(
+			"Schema"
+		)
+	}
+
+	return tabList;
 })
 </script>
+<style>
+.schema {
+	padding: 5px;
+	font-size: 0.9rem;
+	
+	@media screen and (max-width: 1024px) {
+        font-size: 1rem;
+    }
+}
+</style>

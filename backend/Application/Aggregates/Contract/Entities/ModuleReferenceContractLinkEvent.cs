@@ -15,6 +15,7 @@ public sealed class ModuleReferenceContractLinkEvent : BaseIdentification
 {
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public string ModuleReference { get; init; } = null!;
     public AccountAddress Sender { get; init; } = null!;

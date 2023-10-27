@@ -2,6 +2,7 @@ using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
+using HotChocolate;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -12,6 +13,7 @@ public sealed class ContractEvent : BaseIdentification
 {
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
+    [GraphQLIgnore]
     public uint EventIndex { get; init; }
     public AccountAddress Sender { get; init; } = null!;
     public TransactionResultEvent Event { get; init; } = null!;

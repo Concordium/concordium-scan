@@ -1,0 +1,306 @@
+﻿Contract:    CIS2-NFT
+  Methods:
+    - "balanceOf"
+      Parameter:
+        [
+          {
+            "address": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": [
+              "<UInt8>"
+            ]
+          }
+        ]
+      Return value:
+        [
+          [
+            "<UInt8>",
+            "<UInt8>"
+          ]
+        ]
+    - "mint"
+      Parameter:
+        {
+          "owner": {
+            "Enum": [
+              {
+                "Account": [
+                  "<AccountAddress>"
+                ]
+              },
+              {
+                "Contract": [
+                  {
+                    "index": "<UInt64>",
+                    "subindex": "<UInt64>"
+                  }
+                ]
+              }
+            ]
+          },
+          "tokens": [
+            [
+              "<UInt8>"
+            ]
+          ]
+        }
+    - "operatorOf"
+      Parameter:
+        [
+          {
+            "address": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "owner": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      Return value:
+        [
+          "<Bool>"
+        ]
+    - "tokenMetadata"
+      Parameter:
+        [
+          [
+            "<UInt8>"
+          ]
+        ]
+      Return value:
+        [
+          {
+            "hash": {
+              "Enum": [
+                {
+                  "None": []
+                },
+                {
+                  "Some": [
+                    [
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>",
+                      "<UInt8>"
+                    ]
+                  ]
+                }
+              ]
+            },
+            "url": "<String>"
+          }
+        ]
+    - "transfer"
+      Parameter:
+        [
+          {
+            "amount": [
+              "<UInt8>",
+              "<UInt8>"
+            ],
+            "data": [
+              "<UInt8>"
+            ],
+            "from": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "to": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    },
+                    {
+                      "contract": "<String>",
+                      "func": "<String>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "token_id": [
+              "<UInt8>"
+            ]
+          }
+        ]
+    - "updateOperator"
+      Parameter:
+        [
+          {
+            "operator": {
+              "Enum": [
+                {
+                  "Account": [
+                    "<AccountAddress>"
+                  ]
+                },
+                {
+                  "Contract": [
+                    {
+                      "index": "<UInt64>",
+                      "subindex": "<UInt64>"
+                    }
+                  ]
+                }
+              ]
+            },
+            "update": {
+              "Enum": [
+                {
+                  "Remove": []
+                },
+                {
+                  "Add": []
+                }
+              ]
+            }
+          }
+        ]
+    - "view"
+      Return value:
+        {
+          "all_tokens": [
+            [
+              "<UInt8>"
+            ]
+          ],
+          "state": [
+            [
+              {
+                "Enum": [
+                  {
+                    "Account": [
+                      "<AccountAddress>"
+                    ]
+                  },
+                  {
+                    "Contract": [
+                      {
+                        "index": "<UInt64>",
+                        "subindex": "<UInt64>"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "operators": [
+                  {
+                    "Enum": [
+                      {
+                        "Account": [
+                          "<AccountAddress>"
+                        ]
+                      },
+                      {
+                        "Contract": [
+                          {
+                            "index": "<UInt64>",
+                            "subindex": "<UInt64>"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                "owned_tokens": [
+                  [
+                    "<UInt8>"
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
