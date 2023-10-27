@@ -12,6 +12,12 @@ using Serilog.Context;
 
 namespace Application.Aggregates.Contract.Jobs;
 
+/// <summary>
+/// Update all <see cref="ModuleReferenceEvent"/> where <see cref="ModuleReferenceEvent.Schema"/> isn't null.
+///
+/// Overrides existing <see cref="ModuleReferenceEvent.Schema"/> and <see cref="ModuleReferenceEvent.SchemaVersion"/>
+/// with logic from <see cref="ModuleReferenceEvent.ModuleSourceInfo.GetModuleSchema"/>.
+/// </summary>
 public class UpdateModuleSourceCatchup : IContractJob
 {
     private readonly IContractNodeClient _client;

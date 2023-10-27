@@ -54,5 +54,17 @@
       <None Update="TestUtilities\TestData\cis2-nft-schema">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Update="TestUtilities\TestData\cis2-wccd-embedded-schema-v1-unversioned.wasm.v1">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestUtilities\TestData\cis2-wccd-embedded-schema-v1-versioned.wasm.v1">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestUtilities\TestData\cis1-wccd-embedded-schema-v0-unversioned.wasm">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestUtilities\TestData\cis1-wccd-embedded-schema-v0-versioned.wasm.v0">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 </Project>
