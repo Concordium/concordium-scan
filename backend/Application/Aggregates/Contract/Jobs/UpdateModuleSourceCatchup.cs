@@ -41,7 +41,7 @@ public class UpdateModuleSourceCatchup : IContractJob
         _client = client;
         _dbContextFactory = dbContextFactory;
         _healthCheck = healthCheck;
-        _logger = Log.ForContext<InitialModuleSourceCatchup>();
+        _logger = Log.ForContext<UpdateModuleSourceCatchup>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();    
