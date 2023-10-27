@@ -119,6 +119,17 @@ public sealed class ModuleReferenceEvent : BaseIdentification
             return (versionedModuleSource, moduleSourceHex, moduleWasm);
         }
 
+        /// <summary>
+        /// The module can contain a schema in one of two different custom sections.
+        /// The supported sections depend on the module version.
+        /// The schema version can be either defined by the section name or embedded into the actual schema:
+        /// - Both v0 and v1 modules support the section 'concordium-schema' where the schema includes the version.
+        ///   - For v0 modules this is always a v0 schema.
+        ///   - For v1 modules this can be a v1, v2, or v3 schema.
+        ///- V0 modules additionally support section 'concordium-schema-v1' which always contain a v0 schema (not a typo).
+        /// - V1 modules additionally support section 'concordium-schema-v2' which always contain a v1 schema (not a typo).
+        /// The section 'concordium-schema' is the most common and is what the current tooling produces.
+        /// </summary>
         private static (string Schema, ModuleSchemaVersion SchemaVersion)? GetModuleSchema(WebAssembly.Module module, VersionedModuleSource moduleSource)
         {
             switch (moduleSource)
@@ -138,7 +149,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
                     {
                         return (moduleV1SchemaUndefined!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.Undefined); // v1, v2, or v3
                     }
-                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v1", out var moduleV1SchemaV1))
+                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v2", out var moduleV1SchemaV1))
                     {
                         return (moduleV1SchemaV1!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.V1); // v1 (not a typo)
                     }
@@ -152,7 +163,7 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         {
             schema = null;
             var customSection = module.CustomSections
-                .SingleOrDefault(section => section.Name.StartsWith(entryKey, StringComparison.InvariantCulture));
+                .SingleOrDefault(section => section.Name.Equals(entryKey, StringComparison.InvariantCulture));
 
             if (customSection == null) return false;
             
