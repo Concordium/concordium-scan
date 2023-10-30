@@ -1,5 +1,7 @@
 ## Unreleased changes
-
+- Updated
+    - Modified module queries to use Dapper instead of Entity Framework to improve performance.
+    
 ## 1.7.7
 - Added
     - Endpoint to display module schema in a human interpretable form. The schema is present if it is embedded in the module source.

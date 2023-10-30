@@ -58,6 +58,44 @@ public sealed class ModuleReferenceContractLinkEvent : BaseIdentification
         Added,
         Removed
     }
+    
+    internal const string ModuleLinkEventsParameterContractSql = @"
+    SELECT 
+        g0.block_height as BlockHeight,
+        g0.transaction_index as TransactionIndex,
+        g0.event_index as EventIndex,
+        g0.module_reference as ModuleReference,
+        g0.contract_address_index as ContractAddressIndex,
+        g0.contract_address_subindex as ContractAddressSubIndex,
+        g0.link_action as LinkAction,
+        g0.block_slot_time as BlockSlotTime,
+        g0.created_at as CreatedAt,
+        g0.sender as Sender, 
+        g0.source as Source,
+        g0.transaction_hash as TransactionHash
+    FROM graphql_module_reference_contract_link_events AS g0
+    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
+";
+    
+    internal const string ModuleReferenceContractLinkEventsParameterModuleReferenceSql = @"
+SELECT 
+    g0.block_height as BlockHeight, 
+    g0.transaction_index as TransactionIndex, 
+    g0.event_index as EventIndex, 
+    g0.module_reference as ModuleReference, 
+    g0.contract_address_index as ContractAddressIndex, 
+    g0.contract_address_subindex as ContractAddressSubIndex, 
+    g0.link_action as LinkAction, 
+    g0.block_slot_time as BlockSlotTime, 
+    g0.created_at as CreatedAt, 
+    g0.sender as Sender, 
+    g0.source as Source, 
+    g0.transaction_hash as TransactionHash
+    FROM graphql_module_reference_contract_link_events AS g0
+    WHERE g0.module_reference = @ModuleReference
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC
+";    
 
     /// <summary>
     /// Adds additional fields to the GraphQL type <see cref="ModuleReferenceContractLinkEvent"/>.
