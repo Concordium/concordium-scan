@@ -31,12 +31,12 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     /// <see cref="ModuleReferenceEvent.ModuleReferenceEventQuery.GetModuleReferenceEvent"/>.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; private set; } = null!;
+    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; internal set; } = null!;
     /// <summary>
     /// See pagination comment on above.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; private set; } = null!;
+    public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; internal set; } = null!;
     [GraphQLIgnore]
     public string? ModuleSource { get; private set; }
     [GraphQLIgnore]
