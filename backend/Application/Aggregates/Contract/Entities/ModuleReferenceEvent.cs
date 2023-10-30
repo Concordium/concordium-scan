@@ -180,7 +180,6 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         public async Task<ModuleReferenceEvent?> GetModuleReferenceEvent(GraphQlDbContext context, string moduleReference)
         {
             var module = await context.ModuleReferenceEvents
-                .AsSplitQuery()
                 .AsNoTracking()
                 .Where(m => m.ModuleReference == moduleReference)
                 .SingleOrDefaultAsync();
