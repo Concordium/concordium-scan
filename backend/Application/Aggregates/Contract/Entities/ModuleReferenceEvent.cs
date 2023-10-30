@@ -5,6 +5,7 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Interop;
 using Concordium.Sdk.Types;
+using Dapper;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
@@ -30,12 +31,12 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     /// <see cref="ModuleReferenceEvent.ModuleReferenceEventQuery.GetModuleReferenceEvent"/>.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; init; } = null!;
+    public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; private set; } = null!;
     /// <summary>
     /// See pagination comment on above.
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
-    public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; init; } = null!;
+    public IList<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; private set; } = null!;
     [GraphQLIgnore]
     public string? ModuleSource { get; private set; }
     [GraphQLIgnore]
@@ -175,20 +176,29 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [ExtendObjectType(typeof(Query))]
     public class ModuleReferenceEventQuery
     {
-        public Task<ModuleReferenceEvent?> GetModuleReferenceEvent(GraphQlDbContext context, string moduleReference)
+        
+        public async Task<ModuleReferenceEvent?> GetModuleReferenceEvent(GraphQlDbContext context, string moduleReference)
         {
-            return context.ModuleReferenceEvents
+            var module = await context.ModuleReferenceEvents
                 .AsSplitQuery()
                 .AsNoTracking()
                 .Where(m => m.ModuleReference == moduleReference)
-                .Include(m => m.ModuleReferenceContractLinkEvents
-                    .OrderByDescending(me => me.BlockHeight)
-                    .ThenByDescending(me => me.TransactionIndex)
-                    .ThenByDescending(me => me.EventIndex))
-                .Include(m => m.ModuleReferenceRejectEvents
-                    .OrderByDescending(me => me.BlockHeight)
-                    .ThenByDescending(me => me.TransactionIndex))
                 .SingleOrDefaultAsync();
+            if (module == null)
+            {
+                return null;
+            }
+
+            var connection = context.Database.GetDbConnection();
+            var parameter = new { module.ModuleReference };
+            var moduleReferenceContractLinkEvents = await connection
+                .QueryAsync<ModuleReferenceContractLinkEvent>(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventsParameterModuleReferenceSql, parameter);
+            var moduleReferenceRejectEvents = await connection
+                .QueryAsync<ModuleReferenceRejectEvent>(ModuleReferenceRejectEvent.ModuleReferenceRejectEventsSql, parameter);
+            module.ModuleReferenceContractLinkEvents = moduleReferenceContractLinkEvents.ToList();
+            module.ModuleReferenceRejectEvents = moduleReferenceRejectEvents.ToList();
+
+            return module;
         }
     }
     

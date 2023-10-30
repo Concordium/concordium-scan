@@ -34,4 +34,20 @@ public sealed class ModuleReferenceRejectEvent : BaseIdentification
         Sender = sender;
         RejectedEvent = rejectedEvent;
     }
+    
+    internal const string ModuleReferenceRejectEventsSql = @"
+SELECT 
+    g0.block_height as BlockHeight, 
+    g0.transaction_index as TransactionIndex,
+    g0.module_reference as ModuleReference, 
+    g0.block_slot_time as BlockSlotTime, 
+    g0.created_at as CreatedAt, 
+    g0.reject_event as RejectedEvent, 
+    g0.sender as Sender, 
+    g0.source as Source, 
+    g0.transaction_hash as TransactionHash
+    FROM graphql_module_reference_reject_events AS g0
+    WHERE g0.module_reference = @ModuleReference
+    ORDER BY g0.block_height DESC, g0.transaction_index DESC
+";
 }
