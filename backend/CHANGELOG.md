@@ -1,8 +1,11 @@
 ## Unreleased changes
 
 ## 1.7.8
-- Added deserialization of events and parameters for contract (rejected) events where a module schema is present.
-
+- Added
+    - Deserialization of events and parameters for contract (rejected) events where a module schema is present.
+- Updated
+    - Modified module queries to use Dapper instead of Entity Framework to improve performance.
+    
 ## 1.7.7
 - Added
     - Endpoint to display module schema in a human interpretable form. The schema is present if it is embedded in the module source.

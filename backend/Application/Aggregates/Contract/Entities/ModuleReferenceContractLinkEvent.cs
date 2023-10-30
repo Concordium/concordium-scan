@@ -59,7 +59,7 @@ public sealed class ModuleReferenceContractLinkEvent : BaseIdentification
         Removed
     }
     
-    internal const string ModuleLinkEventsSql = @"
+    internal const string ModuleLinkEventsParameterContractSql = @"
     SELECT 
         g0.block_height as BlockHeight,
         g0.transaction_index as TransactionIndex,

@@ -83,7 +83,7 @@ public sealed class Contract : BaseIdentification
             var parameter = new { Index = (long)contract.ContractAddressIndex, Subindex = (long)contract.ContractAddressSubIndex};
             var contractEvent = await connection.QueryAsync<ContractEvent>(ContractEvent.ContractEventsSql, parameter);
             var contractRejectEvent = await connection.QueryAsync<ContractRejectEvent>(ContractRejectEvent.ContractRejectEventsSql, parameter);
-            var moduleLinkEvent = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(ModuleReferenceContractLinkEvent.ModuleLinkEventsSql, parameter);
+            var moduleLinkEvent = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(ModuleReferenceContractLinkEvent.ModuleLinkEventsParameterContractSql, parameter);
             
             contract.ContractEvents = contractEvent.ToList();
             contract.ContractRejectEvents = contractRejectEvent.ToList();
