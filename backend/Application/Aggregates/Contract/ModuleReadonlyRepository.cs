@@ -2,7 +2,6 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
-using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract;

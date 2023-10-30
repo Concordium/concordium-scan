@@ -566,7 +566,7 @@ public record ContractInitialized(
             return null;
         }
         var logger = Log.ForContext<ContractInitialized>();
-        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
+        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAsync(ModuleRef);
         if (moduleReferenceEvent.Schema == null)
@@ -649,7 +649,7 @@ public record ContractUpdated(
             return null;
         }
         var logger = Log.ForContext<ContractUpdated>();
-        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
+        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
         if (moduleReferenceEvent.Schema == null)
@@ -932,7 +932,7 @@ public record ContractInterrupted(
             return null;
         }
         var logger = Log.ForContext<ContractInterrupted>();
-        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
+        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
         if (moduleReferenceEvent.Schema == null)

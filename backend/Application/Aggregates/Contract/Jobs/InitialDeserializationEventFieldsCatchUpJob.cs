@@ -8,25 +8,25 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
 
-public sealed class InitialFieldParsingCatchUpJob : IStatelessBlockHeightJobs
+public sealed class InitialDeserializationEventFieldsCatchUpJob : IStatelessBlockHeightJobs
 {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "InitialFieldParsingCatchUpJob";
+    private const string JobName = "InitialDeserializationEventFieldsCatchUpJob";
     
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
     private long? _maximumHeight;
     
-    public InitialFieldParsingCatchUpJob(
+    public InitialDeserializationEventFieldsCatchUpJob(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IOptions<ContractAggregateOptions> options
     )
     {
         _contextFactory = contextFactory;
-        _logger = Log.ForContext<InitialFieldParsingCatchUpJob>();
+        _logger = Log.ForContext<InitialDeserializationEventFieldsCatchUpJob>();
         _contractAggregateOptions = options.Value;
     }
     
