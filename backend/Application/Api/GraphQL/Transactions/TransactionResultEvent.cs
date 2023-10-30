@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Bakers;
+using Application.Exceptions;
 using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate.Types;
@@ -215,9 +216,19 @@ public abstract record TransactionResultEvent
                 events[i] = eventContract;
             }
         }
-        catch (Exception e)
+        catch (InteropBindingException e)
         {
-            logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+            switch (e.Error)
+            {
+                case InteropError.EventNotSupported:
+                    logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
+                    break;
+                case InteropError.Undefined:
+                case InteropError.EmptyMessage:
+                default:
+                    logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                    break;
+            }
             return null;
         }
 
@@ -538,9 +549,9 @@ public record ContractInitialized(
     ///
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
-    internal async Task<ContractInitialized?> TryUpdateWithParsedEvents(IContractRepository repository)
+    internal async Task<ContractInitialized?> TryUpdateWithParsedEvents(IModuleReadonlyRepository moduleReadonlyRepository)
     {
-        var events = await ParseEvents(repository);
+        var events = await ParseEvents(moduleReadonlyRepository);
         return events != null ? 
             new ContractInitialized(ModuleRef, ContractAddress, Amount, InitName, Version, EventsAsHex, events) : 
             null;
@@ -548,7 +559,7 @@ public record ContractInitialized(
 
     internal string GetName() => InitName[5..];
     
-    private async Task<string[]?> ParseEvents(IContractRepository contractRepository)
+    private async Task<string[]?> ParseEvents(IModuleReadonlyRepository moduleReadonlyRepository)
     {
         if (EventsAsHex.Length == 0)
         { 
@@ -557,7 +568,7 @@ public record ContractInitialized(
         var logger = Log.ForContext<ContractInitialized>();
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
         
-        var moduleReferenceEvent = await contractRepository.GetReadOnlyModuleReferenceEventAsync(ModuleRef);
+        var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAsync(ModuleRef);
         if (moduleReferenceEvent.Schema == null)
         {
             return null;
@@ -627,6 +638,7 @@ public record ContractUpdated(
     /// </summary>
     internal async Task<ContractUpdated?> TryUpdate(
         IContractRepository repository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
         uint eventIndex
@@ -639,7 +651,7 @@ public record ContractUpdated(
         var logger = Log.ForContext<ContractUpdated>();
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
         
-        var moduleReferenceEvent = await repository.GetReadOnlyModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
+        var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
         if (moduleReferenceEvent.Schema == null)
         {
             return null;
@@ -649,15 +661,16 @@ public record ContractUpdated(
         var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
         try
         {
-            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, ReceiveName, MessageAsHex, moduleReferenceEvent.SchemaVersion);
+            var entrypoint = ReceiveName[(ReceiveName.IndexOf('.') + 1)..];
+            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, entrypoint, MessageAsHex, moduleReferenceEvent.SchemaVersion);
             
             return events != null || message != null ? 
                 new ContractUpdated(ContractAddress, Instigator, Amount, MessageAsHex, ReceiveName, Version, EventsAsHex, events, message) : 
-                null;   
+                null;
         }
-        catch (Exception e)
+        catch (InteropBindingException e)
         {
-            logger.Error(e, "Not able to parse {Message} from {Module}", MessageAsHex, moduleReferenceEvent.ModuleReference);
+            logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
             return null;
         }
     }
@@ -683,13 +696,14 @@ public record ContractCall(ContractUpdated ContractUpdated) : TransactionResultE
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<ContractCall?> TryUpdate(
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
         uint eventIndex
     )
     {
-        var contractUpdated = await ContractUpdated.TryUpdate(repository, blockHeight, transactionIndex, eventIndex);
+        var contractUpdated = await ContractUpdated.TryUpdate(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
         return contractUpdated != null ? new ContractCall(contractUpdated) : null;
     }
 }
@@ -894,19 +908,21 @@ public record ContractInterrupted(
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<ContractInterrupted?> TryUpdateWithParsedEvents(
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
         uint eventIndex)
     {
-        var events = await ParseEvents(repository, blockHeight, transactionIndex, eventIndex);
+        var events = await ParseEvents(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
         return events != null ? 
             new ContractInterrupted(ContractAddress, events) : 
             null;
     }
     
     private async Task<string[]?> ParseEvents(
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
         uint eventIndex)
@@ -918,12 +934,12 @@ public record ContractInterrupted(
         var logger = Log.ForContext<ContractInterrupted>();
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
         
-        var moduleReferenceEvent = await repository.GetReadOnlyModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
+        var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
         if (moduleReferenceEvent.Schema == null)
         {
             return null;
         }
-        var initialized = await repository.GetReadonlyContractInitializedEventAsync(ContractAddress);
+        var initialized = await contractRepository.GetReadonlyContractInitializedEventAsync(ContractAddress);
         var contractName = initialized.GetName();
         return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
     }

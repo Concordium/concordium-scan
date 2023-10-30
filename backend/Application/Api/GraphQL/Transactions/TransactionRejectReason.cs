@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Aggregates.Contract;
+using Application.Exceptions;
 using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate;
@@ -175,7 +176,8 @@ public record RejectedReceive(
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<RejectedReceive?> TryUpdateMessage(
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex
     )
@@ -183,24 +185,25 @@ public record RejectedReceive(
         var logger = Log.ForContext<RejectedReceive>();
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress);
         
-        var moduleReferenceEvent = await repository.GetReadOnlyModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, 0);
+        var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, 0);
         if (moduleReferenceEvent.Schema == null)
         {
             return null;
         }
-        var initialized = await repository.GetReadonlyContractInitializedEventAsync(ContractAddress);
+        var initialized = await contractRepository.GetReadonlyContractInitializedEventAsync(ContractAddress);
         var contractName = initialized.GetName();
         try
         {
-            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, ReceiveName, MessageAsHex, moduleReferenceEvent.SchemaVersion);
+            var entrypoint = ReceiveName[(ReceiveName.IndexOf('.') + 1)..];
+            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, entrypoint, MessageAsHex, moduleReferenceEvent.SchemaVersion);
             
             return message != null ? 
                 new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 
                 null;   
         }
-        catch (Exception e)
+        catch (InteropBindingException e)
         {
-            logger.Error(e, "Not able to parse {Message} from {Module}", MessageAsHex, moduleReferenceEvent.ModuleReference);
+            logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
             return null;
         }
     }

@@ -49,24 +49,27 @@ public sealed class ContractEvent : BaseIdentification
     /// <summary>
     /// Try parse hexadecimal events and parameters in <see cref="Event"/>. If parsing succeeds the event is overriden.
     /// </summary>
-    internal async Task ParseEvent(IContractRepository contractRepository)
+    internal async Task ParseEvent(IContractRepository contractRepository, IModuleReadonlyRepository moduleReadonlyRepository)
     {
         var updated = Event switch
         {
             ContractCall contractCall => await contractCall.TryUpdate(
                     contractRepository,
+                    moduleReadonlyRepository,
                     BlockHeight,
                     TransactionIndex,
                     EventIndex
                 ),
-            ContractInitialized contractInitialized => await contractInitialized.TryUpdateWithParsedEvents(contractRepository),
+            ContractInitialized contractInitialized => await contractInitialized.TryUpdateWithParsedEvents(moduleReadonlyRepository),
             ContractInterrupted contractInterrupted => await contractInterrupted.TryUpdateWithParsedEvents(
                     contractRepository,
+                    moduleReadonlyRepository,
                     BlockHeight,
                     TransactionIndex,
                     EventIndex),
             ContractUpdated contractUpdated => await contractUpdated.TryUpdate(
                     contractRepository,
+                    moduleReadonlyRepository,
                     BlockHeight,
                     TransactionIndex,
                     EventIndex

@@ -70,6 +70,7 @@ public sealed class InitialFieldParsingCatchUpJob : IStatelessBlockHeightJobs
                 var context = await _contextFactory.CreateDbContextAsync(token);
 
                 var contractRepository = new ContractRepository(context);
+                var moduleReadonlyRepository = new ModuleReadonlyRepository(context);
 
                 var contractEvents = await context.ContractEvents
                     .Where(ce => heightFrom <= ce.BlockHeight && ce.BlockHeight <= heightTo)
@@ -78,7 +79,7 @@ public sealed class InitialFieldParsingCatchUpJob : IStatelessBlockHeightJobs
                 foreach (var contractEvent in contractEvents
                              .Where(contractEvent => !contractEvent.IsParsed()))
                 {
-                    await contractEvent.ParseEvent(contractRepository);
+                    await contractEvent.ParseEvent(contractRepository, moduleReadonlyRepository);
                 }
 
                 var contractRejectEvents = await context.ContractRejectEvents
@@ -88,7 +89,7 @@ public sealed class InitialFieldParsingCatchUpJob : IStatelessBlockHeightJobs
                 foreach (var contractRejectEvent in contractRejectEvents
                              .Where(contractRejectEvent => !contractRejectEvent.IsParsed()))
                 {
-                    await contractRejectEvent.ParseEvent(contractRepository);
+                    await contractRejectEvent.ParseEvent(contractRepository, moduleReadonlyRepository);
                 }
 
                 await context.SaveChangesAsync(token);

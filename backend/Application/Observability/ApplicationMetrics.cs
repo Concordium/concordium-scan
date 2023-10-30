@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Application.Exceptions;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
 using Prometheus;
@@ -21,14 +22,14 @@ internal static class ApplicationMetrics
         "Number of exceptions from interop calls",
         new CounterConfiguration
         {
-            LabelNames = new[] { "method", "exception" }
+            LabelNames = new[] { "method", "error" }
         }
     );
 
-    internal static void IncInteropExceptions(string method, Exception exception)
+    internal static void IncInteropExceptions(string method, InteropBindingException exception)
     {
         InteropExceptions
-            .WithLabels(method, PrettyPrintException(exception))
+            .WithLabels(method, exception.Error.ToStringCached())
             .Inc();
     }
     

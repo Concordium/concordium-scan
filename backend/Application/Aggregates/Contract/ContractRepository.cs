@@ -31,30 +31,14 @@ public interface IContractRepository : IAsyncDisposable
     /// <summary>
     /// Returns latest smart contract read height ordered descending by block height. 
     /// </summary>
-    Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight();
+    Task<ContractReadHeight?> GetReadonlyLatestContractReadHeight();
     /// <summary>
     /// Get latest import state of block- and transactions ordered by
     /// block slot time.
     ///
     /// Should return zero (default) is no entity is present.
     /// </summary>
-    Task<long> GetReadOnlyLatestImportState(CancellationToken token = default);
-    /// <summary>
-    /// Get <see cref="ModuleReferenceEvent"/> from module reference.
-    ///
-    /// Entity is read only and changes on entity will not be persisted.
-    /// </summary>
-    /// <exception cref="Exception">
-    /// Throws exception if module doesn't exists.
-    /// </exception>
-    Task<ModuleReferenceEvent> GetReadOnlyModuleReferenceEventAsync(string moduleReference);
-    /// <summary>
-    /// Get references module for the given <see cref="contractAddress"/> at
-    /// <see cref="blockHeight"/>, <see cref="transactionIndex"/>, <see cref="eventIndex"/>.
-    ///
-    /// Entity is read only and changes on entity will not be persisted.
-    /// </summary>
-    Task<ModuleReferenceEvent> GetReadOnlyModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex, uint eventIndex);
+    Task<long> GetReadonlyLatestImportState(CancellationToken token = default);
     /// <summary>
     /// Get contract initialization event for <see cref="contractAddress"/>.
     ///
@@ -160,7 +144,7 @@ WHERE
     }
     
     /// <inheritdoc/>
-    public async Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight()
+    public async Task<ContractReadHeight?> GetReadonlyLatestContractReadHeight()
     {
         return await _context.ContractReadHeights
             .AsNoTracking()
@@ -169,62 +153,13 @@ WHERE
     }
     
     /// <inheritdoc/>
-    public async Task<long> GetReadOnlyLatestImportState(CancellationToken token)
+    public async Task<long> GetReadonlyLatestImportState(CancellationToken token)
     {
         return await _context.ImportState
             .AsNoTracking()
             .OrderByDescending(s => s.LastBlockSlotTime)
             .Select(s => s.MaxImportedBlockHeight)
             .FirstOrDefaultAsync(token);
-    }
-
-    /// <inheritdoc/>
-    public Task<ModuleReferenceEvent> GetReadOnlyModuleReferenceEventAsync(string moduleReference)
-    {
-        return _context.ModuleReferenceEvents
-            .AsNoTracking()
-            .FirstAsync(m => m.ModuleReference == moduleReference);
-    }
-
-    /// <summary>
-    /// Starts by looking after <see cref="ModuleReferenceContractLinkEvent"/> with <see cref="ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added"/>
-    /// for the given <see cref="contractAddress"/> in the change provider of Entity Framework. These are the entity which has been added in the current transaction
-    /// but are not yet committed to the database.
-    ///
-    /// If none is present the database is queried.
-    /// </summary>
-    public async Task<ModuleReferenceEvent> GetReadOnlyModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,
-        uint eventIndex)
-    {
-        var link = _context.ChangeTracker
-            .Entries<ModuleReferenceContractLinkEvent>()
-            .Select(e => e.Entity)
-            .Where(l => 
-                l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                l.BlockHeight <= blockHeight && l.TransactionIndex <= transactionIndex && l.EventIndex <= eventIndex &&
-                l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-            .OrderByDescending(l => l.BlockHeight)
-            .ThenByDescending(l => l.TransactionIndex)
-            .ThenByDescending(l => l.EventIndex)
-            .FirstOrDefault();
-
-        if (link == null)
-        {
-          link = await _context.ModuleReferenceContractLinkEvents
-                .Where(l => 
-                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                    l.BlockHeight <= blockHeight && l.TransactionIndex <= transactionIndex && l.EventIndex <= eventIndex &&
-                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                .OrderByDescending(l => l.BlockHeight)
-                .ThenByDescending(l => l.TransactionIndex)
-                .ThenByDescending(l => l.EventIndex)
-                .FirstAsync();    
-        }
-
-        var module = await _context.ModuleReferenceEvents
-            .FirstAsync(m => m.ModuleReference == link.ModuleReference);
-        
-        return module;
     }
     
     /// <summary>

@@ -37,18 +37,12 @@ internal static class InteropBinding
         {
             var schemaDisplay = schema_display(schema, ffiOption, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
+
+            if (schemaDisplay) return resultStringAnsi;
             
-            if (!schemaDisplay)
-            {
-                throw InteropBindingException.Create(resultStringAnsi);
-            }
-            
-            return resultStringAnsi;
-        }
-        catch (Exception e)
-        {
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), e);
-            throw;
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            throw interopException;
         }
         finally
         {
@@ -76,18 +70,12 @@ internal static class InteropBinding
             var schemaDisplay =
                 get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-
-            if (!schemaDisplay)
-            {
-                throw InteropBindingException.Create(resultStringAnsi);
-            }
-
-            return resultStringAnsi;
-        }
-        catch (Exception e)
-        {
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(GetReceiveContractParameter), e);
-            throw;
+            
+            if (schemaDisplay) return resultStringAnsi;
+            
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            throw interopException;
         }
         finally
         {
@@ -112,17 +100,11 @@ internal static class InteropBinding
             var schemaDisplay = get_event_contract(schema, ffiOption, contractName, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
             
-            if (!schemaDisplay)
-            {
-                throw InteropBindingException.Create(resultStringAnsi);
-            }
+            if (schemaDisplay) return resultStringAnsi;
             
-            return resultStringAnsi;
-        }
-        catch (Exception e)
-        {
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(GetEventContract), e);
-            throw;
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            throw interopException;
         }
         finally
         {
