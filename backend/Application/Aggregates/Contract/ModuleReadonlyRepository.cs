@@ -58,133 +58,24 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
     /// but are not yet committed to the database.
     ///
     /// If none is present the database is queried.
-    ///
-    /// The query use find the first event which has a <see cref="blockHeight"/> equal to or less than the input.
-    /// If the event returned equals in block height another query is invoked which filters for <see cref="transactionIndex"/>
-    /// equal or below.
-    /// If the event returned equals in transaction index a last query is invoked which filter for <see cref="eventIndex"/>.
-    ///
-    /// In most cases there will be a difference in <see cref="blockHeight"/> and the main execution path will only introduce one query.
     /// </summary>
     public async Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,
         uint eventIndex)
     {
-        #region Change Provider
-
         var link = _context.ChangeTracker
             .Entries<ModuleReferenceContractLinkEvent>()
             .Select(e => e.Entity)
             .Where(l => 
                 l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                l.BlockHeight <= blockHeight &&
+                (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                 l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                 l.BlockHeight < blockHeight
+                 ) &&
                 l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
             .OrderByDescending(l => l.BlockHeight)
             .ThenByDescending(l => l.TransactionIndex)
             .ThenByDescending(l => l.EventIndex)
             .FirstOrDefault();
-
-        // If block height is the same we need to make a query which only finds transaction index below input.
-        if (link != null && link.BlockHeight == blockHeight)
-        {
-            // First see if there are events on same block height with lower transaction index
-            link = _context.ChangeTracker
-                .Entries<ModuleReferenceContractLinkEvent>()
-                .Select(e => e.Entity)
-                .Where(l => 
-                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                    l.BlockHeight == blockHeight && l.TransactionIndex <= transactionIndex &&
-                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                .OrderByDescending(l => l.BlockHeight)
-                .ThenByDescending(l => l.TransactionIndex)
-                .ThenByDescending(l => l.EventIndex)
-                .FirstOrDefault();
-
-            if (link == null)
-            {
-                // If there wasn't any on same transaction index then find below and choose first by ordered transaction index
-                link = _context.ChangeTracker
-                    .Entries<ModuleReferenceContractLinkEvent>()
-                    .Select(e => e.Entity)
-                    .Where(l =>
-                        l.ContractAddressIndex == contractAddress.Index &&
-                        l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                        l.BlockHeight < blockHeight &&
-                        l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                    .OrderByDescending(l => l.BlockHeight)
-                    .ThenByDescending(l => l.TransactionIndex)
-                    .ThenByDescending(l => l.EventIndex)
-                    .FirstOrDefault();
-            }
-        }
-        
-        // If transaction index is the same we need to make a query which only finds event index below input.
-        if (link != null && link.TransactionIndex == transactionIndex)
-        {
-            // First see if there are events on same transaction index with lower event index
-            link = _context.ChangeTracker
-                .Entries<ModuleReferenceContractLinkEvent>()
-                .Select(e => e.Entity)
-                .Where(l => 
-                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                    l.BlockHeight <= blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex &&
-                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                .OrderByDescending(l => l.BlockHeight)
-                .ThenByDescending(l => l.TransactionIndex)
-                .ThenByDescending(l => l.EventIndex)
-                .FirstOrDefault();
-            
-            // If there wasn't any on same transaction index then find below and choose first by ordered event index
-            if (link == null)
-            {
-                link = _context.ChangeTracker
-                    .Entries<ModuleReferenceContractLinkEvent>()
-                    .Select(e => e.Entity)
-                    .Where(l => 
-                        l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                        l.BlockHeight <= blockHeight && l.TransactionIndex < transactionIndex &&
-                        l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                    .OrderByDescending(l => l.BlockHeight)
-                    .ThenByDescending(l => l.TransactionIndex)
-                    .ThenByDescending(l => l.EventIndex)
-                    .FirstOrDefault();
-            }
-        }
-
-        #endregion
-
-        #region Database
-
-//         var connection = _context.Database.GetDbConnection();
-//
-//         var sql = @"
-// with grouped as (
-//     select block_height, transaction_index, event_index
-//     from graphql_module_reference_contract_link_events
-//     where contract_address_index = @Index and contract_address_subindex = @Subindex
-//     group by block_height, transaction_index, event_index
-//     having block_height <= @BlockHeight
-//        and transaction_index <= @TransactionIndex
-//        and event_index <= @EventIndex
-//     order by block_height desc, transaction_index desc, event_index desc   
-// )
-// select module_reference as ModuleReference
-// from graphql_module_reference_contract_link_events as parent
-// join grouped on grouped.block_height = parent.block_height and
-//     grouped.transaction_index = parent.transaction_index and
-//                 grouped.event_index = parent.event_index
-// where parent.contract_address_index = @Index and parent.contract_address_subindex = @Subindex
-// limit 1;
-// ";
-//
-//         var moduleReferenceContractLinkEvents = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(sql, new
-//         {
-//             Index = (long)contractAddress.Index,
-//             Subindex = (long)contractAddress.SubIndex,
-//             BlockHeight = (long)blockHeight,
-//             TransactionIndex = (long)transactionIndex,
-//             EventIndex = (int)eventIndex
-//         });
-//         var moduleReferenceContractLinkEvent = moduleReferenceContractLinkEvents.ToList().FirstOrDefault()!;
 
         if (link == null)
         {
@@ -193,68 +84,15 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
                 link = await _context.ModuleReferenceContractLinkEvents
                     .Where(l => 
                         l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                        l.BlockHeight <= blockHeight &&
+                        (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                         l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                         l.BlockHeight < blockHeight
+                        ) &&
                         l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
                     .OrderByDescending(l => l.BlockHeight)
                     .ThenByDescending(l => l.TransactionIndex)
                     .ThenByDescending(l => l.EventIndex)
                     .FirstAsync();   
-                
-                // If block height is the same we need to make a query which only finds transaction index below input.
-                if (link.BlockHeight == blockHeight)
-                {
-                    // First see if there are events on same block height with lower transaction index
-                    link = await _context.ModuleReferenceContractLinkEvents
-                        .Where(l => 
-                            l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                            l.BlockHeight == blockHeight && l.TransactionIndex <= transactionIndex &&
-                            l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                        .OrderByDescending(l => l.BlockHeight)
-                        .ThenByDescending(l => l.TransactionIndex)
-                        .ThenByDescending(l => l.EventIndex)
-                        .FirstOrDefaultAsync();
-        
-                    if (link == null)
-                    {
-                        // If there wasn't any on same transaction index then find below and choose first by ordered transaction index
-                        link = await _context.ModuleReferenceContractLinkEvents
-                            .Where(l => 
-                                l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                                l.BlockHeight < blockHeight &&
-                                l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                            .OrderByDescending(l => l.BlockHeight)
-                            .ThenByDescending(l => l.TransactionIndex)
-                            .ThenByDescending(l => l.EventIndex)
-                            .FirstAsync();
-                    }
-                }
-                
-                // If transaction index is the same we need to make a query which only finds event index below input.
-                if (link.TransactionIndex == transactionIndex)
-                {
-                    link = await _context.ModuleReferenceContractLinkEvents
-                        .Where(l => 
-                            l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                            l.BlockHeight <= blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex &&
-                            l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                        .OrderByDescending(l => l.BlockHeight)
-                        .ThenByDescending(l => l.TransactionIndex)
-                        .ThenByDescending(l => l.EventIndex)
-                        .FirstOrDefaultAsync();
-        
-                    if (link == null)
-                    {
-                        link = await _context.ModuleReferenceContractLinkEvents
-                            .Where(l => 
-                                l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                                l.BlockHeight <= blockHeight && l.TransactionIndex < transactionIndex &&
-                                l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                            .OrderByDescending(l => l.BlockHeight)
-                            .ThenByDescending(l => l.TransactionIndex)
-                            .ThenByDescending(l => l.EventIndex)
-                            .FirstAsync();
-                    }
-                }
             }
             catch (Exception e)
             {
@@ -262,8 +100,6 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
                 throw;
             }
         }
-        
-        #endregion
 
         var module = await _context.ModuleReferenceEvents
             .FirstAsync(m => m.ModuleReference == link.ModuleReference);
