@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract;
@@ -70,7 +71,7 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
     {
         #region Change Provider
 
-                var link = _context.ChangeTracker
+        var link = _context.ChangeTracker
             .Entries<ModuleReferenceContractLinkEvent>()
             .Select(e => e.Entity)
             .Where(l => 
@@ -152,7 +153,39 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
         #endregion
 
         #region Database
-        
+
+//         var connection = _context.Database.GetDbConnection();
+//
+//         var sql = @"
+// with grouped as (
+//     select block_height, transaction_index, event_index
+//     from graphql_module_reference_contract_link_events
+//     where contract_address_index = @Index and contract_address_subindex = @Subindex
+//     group by block_height, transaction_index, event_index
+//     having block_height <= @BlockHeight
+//        and transaction_index <= @TransactionIndex
+//        and event_index <= @EventIndex
+//     order by block_height desc, transaction_index desc, event_index desc   
+// )
+// select module_reference as ModuleReference
+// from graphql_module_reference_contract_link_events as parent
+// join grouped on grouped.block_height = parent.block_height and
+//     grouped.transaction_index = parent.transaction_index and
+//                 grouped.event_index = parent.event_index
+// where parent.contract_address_index = @Index and parent.contract_address_subindex = @Subindex
+// limit 1;
+// ";
+//
+//         var moduleReferenceContractLinkEvents = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(sql, new
+//         {
+//             Index = (long)contractAddress.Index,
+//             Subindex = (long)contractAddress.SubIndex,
+//             BlockHeight = (long)blockHeight,
+//             TransactionIndex = (long)transactionIndex,
+//             EventIndex = (int)eventIndex
+//         });
+//         var moduleReferenceContractLinkEvent = moduleReferenceContractLinkEvents.ToList().FirstOrDefault()!;
+
         if (link == null)
         {
             try
@@ -180,7 +213,7 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
                         .ThenByDescending(l => l.TransactionIndex)
                         .ThenByDescending(l => l.EventIndex)
                         .FirstOrDefaultAsync();
-
+        
                     if (link == null)
                     {
                         // If there wasn't any on same transaction index then find below and choose first by ordered transaction index
@@ -208,7 +241,7 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
                         .ThenByDescending(l => l.TransactionIndex)
                         .ThenByDescending(l => l.EventIndex)
                         .FirstOrDefaultAsync();
-
+        
                     if (link == null)
                     {
                         link = await _context.ModuleReferenceContractLinkEvents
