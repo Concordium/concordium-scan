@@ -68,60 +68,6 @@ public sealed class Contract : BaseIdentification
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
-        private const string ContractEventsSql = @"
-    SELECT 
-        g0.block_height as BlockHeight,
-        g0.transaction_index as TransactionIndex,
-        g0.event_index as EventIndex,
-        g0.contract_address_index as ContractAddressIndex,
-        g0.contract_address_subindex as ContractAddressSubIndex,
-        g0.block_slot_time as BlockSlotTime,
-        g0.created_at as CreatedAt,
-        g0.event as Event,
-        g0.sender as Creator,
-        g0.source as Source,
-        g0.transaction_hash as TransactionHash
-    FROM graphql_contract_events AS g0
-    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
-    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
-";
-    
-        private const string ModuleLinkEventsSql = @"
-    SELECT 
-        g0.block_height as BlockHeight,
-        g0.transaction_index as TransactionIndex,
-        g0.event_index as EventIndex,
-        g0.module_reference as ModuleReference,
-        g0.contract_address_index as ContractAddressIndex,
-        g0.contract_address_subindex as ContractAddressSubIndex,
-        g0.link_action as LinkAction,
-        g0.block_slot_time as BlockSlotTime,
-        g0.created_at as CreatedAt,
-        g0.sender as Sender, 
-        g0.source as Source,
-        g0.transaction_hash as TransactionHash
-    FROM graphql_module_reference_contract_link_events AS g0
-    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
-    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
-";
-    
-        private const string ContractRejectEventsSql = @"
-    SELECT 
-        g0.block_height as BlockHeight,
-        g0.transaction_index as TransactionIndex,
-        g0.contract_address_index as ContractAddressIndex,
-        g0.contract_address_subindex as ContractAddressSubIndex,
-        g0.block_slot_time as BlockSlotTime,
-        g0.created_at as CreatedAt,
-        g0.reject_event as RejectedEvent,
-        g0.sender as Sender, 
-        g0.source as Source,
-        g0.transaction_hash as TransactionHash
-    FROM graphql_contract_reject_events AS g0
-    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
-    ORDER BY g0.block_height DESC, g0.transaction_index DESC;
-";
-        
         public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
         {
             var contract = await context.Contract
@@ -136,9 +82,9 @@ public sealed class Contract : BaseIdentification
             var connection = context.Database.GetDbConnection();
             
             var parameter = new { Index = (long)contract.ContractAddressIndex, Subindex = (long)contract.ContractAddressSubIndex};
-            var contractEvent = await connection.QueryAsync<ContractEvent>(ContractEventsSql, parameter);
-            var contractRejectEvent = await connection.QueryAsync<ContractRejectEvent>(ContractRejectEventsSql, parameter);
-            var moduleLinkEvent = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(ModuleLinkEventsSql, parameter);
+            var contractEvent = await connection.QueryAsync<ContractEvent>(ContractEvent.ContractEventsSql, parameter);
+            var contractRejectEvent = await connection.QueryAsync<ContractRejectEvent>(ContractRejectEvent.ContractRejectEventsSql, parameter);
+            var moduleLinkEvent = await connection.QueryAsync<ModuleReferenceContractLinkEvent>(ModuleReferenceContractLinkEvent.ModuleLinkEventsParameterContractSql, parameter);
             
             contract.ContractEvents = contractEvent.ToList();
             contract.ContractRejectEvents = contractRejectEvent.ToList();
