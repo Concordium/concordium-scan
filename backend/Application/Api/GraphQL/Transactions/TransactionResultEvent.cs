@@ -221,7 +221,7 @@ public abstract record TransactionResultEvent
             switch (e.Error)
             {
                 case InteropError.EventNotSupported:
-                    logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
+                    //logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
                     break;
                 case InteropError.Undefined:
                 case InteropError.EmptyMessage:

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.IO;
+using System.Threading.Tasks;
 using Application.Aggregates.Contract;
 using Application.Exceptions;
 using Application.Interop;
@@ -207,7 +208,27 @@ public record RejectedReceive(
         }
         catch (InteropBindingException e)
         {
-            logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
+            switch (e.Error)
+            {
+                case InteropError.Deserialization:
+                    // logger.Debug(e, "Possible parse error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
+                    break;
+                case InteropError.NoReceiveInContract:
+                    // logger.Debug(e, "{Entrypoint} not found in schema. Issue when parsing {Message} from {ContractName} on {Module}", ReceiveName, MessageAsHex, contractName, moduleReferenceEvent.ModuleReference);
+                    break;
+                case InteropError.NoParamsInReceive:
+                    // logger.Debug(e, "{Entrypoint} does not contain parameter in schema. Issue when parsing {Message} from {ContractName} on {Module}", ReceiveName, MessageAsHex, contractName, moduleReferenceEvent.ModuleReference);
+                    break;
+                case InteropError.NoContractInModule:
+                    // logger.Debug(e, "{ContractName} not in {Module}. Issue when parsing {Message} on {Entrypoint}", contractName, moduleReferenceEvent.ModuleReference, MessageAsHex, ReceiveName);
+                    break;
+                case InteropError.Undefined:
+                case InteropError.EmptyMessage:
+                case InteropError.EventNotSupported:
+                default:
+                    logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
+                    break;
+            }
             return null;
         }
     }
