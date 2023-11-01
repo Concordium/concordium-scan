@@ -17,19 +17,35 @@ internal static class ApplicationMetrics
             LabelNames = new[] { "operation", "exception" }
         });
 
-    private static readonly Counter InteropExceptions = Metrics.CreateCounter(
-        "interop_exceptions_total",
-        "Number of exceptions from interop calls",
+    private static readonly Counter InteropErrors = Metrics.CreateCounter(
+        "interop_errors_total",
+        "Number of errors from interop calls",
         new CounterConfiguration
         {
-            LabelNames = new[] { "method", "error" }
+            LabelNames = new[] { "method", "exception" }
         }
     );
 
-    internal static void IncInteropExceptions(string method, InteropBindingException exception)
+    private static readonly Counter RetryPolicyExceptions = Metrics.CreateCounter(
+        "retry_policy_exceptions_total",
+        "Number of retry policies triggered with the exception triggering it",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "process", "exception" }
+        }
+    );
+
+    internal static void IncInteropErrors(string method, InteropBindingException exception)
     {
-        InteropExceptions
+        InteropErrors
             .WithLabels(method, exception.Error.ToStringCached())
+            .Inc();
+    }
+
+    internal static void IncRetryPolicyExceptions(string process, Exception exception)
+    {
+        RetryPolicyExceptions
+            .WithLabels(process, PrettyPrintException(exception))
             .Inc();
     }
     

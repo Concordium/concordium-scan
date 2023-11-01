@@ -54,7 +54,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     /// </summary>
     public async ValueTask Process(int batch, CancellationToken token)
     {
-        await Policies.GetTransientPolicy(_logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
+        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 var take = _jobOptions.BatchSize;

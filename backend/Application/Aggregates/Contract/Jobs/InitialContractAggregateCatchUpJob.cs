@@ -65,7 +65,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     /// <inheritdoc/>
     public async Task<ulong> BatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
-        return await Policies.GetTransientPolicy<ulong>(_logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
+        return await Policies.GetTransientPolicy<ulong>(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);

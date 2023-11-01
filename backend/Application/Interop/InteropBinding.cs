@@ -41,7 +41,7 @@ internal static class InteropBinding
             if (schemaDisplay) return resultStringAnsi;
             
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
@@ -74,7 +74,7 @@ internal static class InteropBinding
             if (schemaDisplay) return resultStringAnsi;
             
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
@@ -103,7 +103,7 @@ internal static class InteropBinding
             if (schemaDisplay) return resultStringAnsi;
             
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropExceptions(nameof(SchemaDisplay), interopException);
+            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
