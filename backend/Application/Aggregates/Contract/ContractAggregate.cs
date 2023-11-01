@@ -300,7 +300,7 @@ internal sealed class ContractAggregate
                 break;
             case ContractUpdated contractUpdated:
                 var contractUpdatedEvent = await contractUpdated
-                    .TryUpdate(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
+                    .TryUpdate(moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
                 if (contractUpdatedEvent != null)
                 {
                     contractUpdated = contractUpdatedEvent;

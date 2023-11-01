@@ -19,11 +19,11 @@ using Tests.TestUtilities;
 namespace Tests.Aggregates.Contract.Jobs;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public class InitialContractEventDeserializationEventFieldsCatchUpJobTests
+public class InitialContractRejectEventDeserializationEventFieldsCatchUpJobTests
 {
     private readonly DatabaseFixture _databaseFixture;
 
-    public InitialContractEventDeserializationEventFieldsCatchUpJobTests(DatabaseFixture databaseFixture)
+    public InitialContractRejectEventDeserializationEventFieldsCatchUpJobTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture;
     }
@@ -44,16 +44,17 @@ public class InitialContractEventDeserializationEventFieldsCatchUpJobTests
             Jobs = new Dictionary<string, ContractAggregateJobOptions>
             {
                 {
-                    InitialContractRejectEventDeserializationEventFieldsCatchUpJob.JobName,
+                    InitialContractRejectEventDeserializationFieldsCatchUpJob.JobName,
                     new ContractAggregateJobOptions
                     {
-                        BatchSize = 3
+                        BatchSize = 5,
+                        MaxParallelTasks = 1
                     }
                 }
             }
         });
-        var job = new InitialContractEventDeserializationEventFieldsCatchUpJob(dbFactory.Object, options);
-        var parallelBatchJob = new ParallelBatchJob<InitialContractEventDeserializationEventFieldsCatchUpJob>(job, options, new ContractHealthCheck());
+        var job = new InitialContractRejectEventDeserializationFieldsCatchUpJob(dbFactory.Object, options);
+        var parallelBatchJob = new ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>(job, options, new ContractHealthCheck());
         
         // Act
         await parallelBatchJob.StartImport(CancellationToken.None);
@@ -64,15 +65,13 @@ public class InitialContractEventDeserializationEventFieldsCatchUpJobTests
 
     private async Task ValidateEventsHasBeenUpdated(GraphQlDbContext context)
     {
-        const string expectedMessage = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
-        const string expectedEvent = "{\"Mint\":{\"amount\":\"1000000\",\"owner\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]},\"token_id\":\"\"}}";
+        const string expected = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
 
-        await foreach (var contextContractRejectEvent in context.ContractEvents)
+        await foreach (var contextContractRejectEvent in context.ContractRejectEvents)
         {
-            var updateEvent = (contextContractRejectEvent.Event as ContractUpdated)!;
-            updateEvent.Message.Should().NotBeNull();
-            updateEvent.Message.Should().Be(expectedMessage);
-            updateEvent.Events![0].Should().Be(expectedEvent);
+            var message = (contextContractRejectEvent.RejectedEvent as RejectedReceive)!.Message;
+            message.Should().NotBeNull();
+            message.Should().Be(expected);
         }
     }
 
@@ -80,10 +79,10 @@ public class InitialContractEventDeserializationEventFieldsCatchUpJobTests
     {
         await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
-        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        await DatabaseFixture.TruncateTables("graphql_contract_reject_events");
         var contractAddress = new ContractAddress(1,0);
         await AddModule(context, contractAddress);
-        await AddContractEvents(context, contractAddress);
+        await AddContractRejectEvents(context, contractAddress);
     }
 
     private async Task AddModule(
@@ -122,33 +121,29 @@ public class InitialContractEventDeserializationEventFieldsCatchUpJobTests
         await context.SaveChangesAsync();
     }
 
-    private async Task AddContractEvents(
+    private async Task AddContractRejectEvents(
         GraphQlDbContext context,
         ContractAddress contractAddress
         )
     {
         const string contractName = "cis2_wCCD";
         const string entrypoint = "wrap";
-        const string message = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
-        const string eventMessage = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
+        const string value = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
         
         for (var i = 1UL; i <= 20; i++)
         {
-            var contractRejectEvent = new ContractEvent(
+            var contractRejectEvent = new ContractRejectEvent(
                 i,
                 "",
                 1,
-                1,
                 contractAddress,
                 new AccountAddress(""),
-                new ContractUpdated(
+                new RejectedReceive(
+                    1,
                     contractAddress,
-                    new AccountAddress(""),
-                    42,
-                    message,
                     $"{contractName}.{entrypoint}",
-                    ContractVersion.V0,
-                    new []{eventMessage}),
+                    value, null
+                ),
                 ImportSource.NodeImport,
                 DateTimeOffset.UtcNow
             );

@@ -637,7 +637,6 @@ public record ContractUpdated(
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<ContractUpdated?> TryUpdate(
-        IContractRepository repository,
         IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
@@ -695,14 +694,13 @@ public record ContractCall(ContractUpdated ContractUpdated) : TransactionResultE
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<ContractCall?> TryUpdate(
-        IContractRepository contractRepository,
         IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex,
         uint eventIndex
     )
     {
-        var contractUpdated = await ContractUpdated.TryUpdate(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
+        var contractUpdated = await ContractUpdated.TryUpdate(moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
         return contractUpdated != null ? new ContractCall(contractUpdated) : null;
     }
 }
@@ -915,7 +913,7 @@ public record ContractInterrupted(
     {
         var events = await ParseEvents(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
         return events != null ? 
-            new ContractInterrupted(ContractAddress, events) : 
+            new ContractInterrupted(ContractAddress, EventsAsHex, events) : 
             null;
     }
     

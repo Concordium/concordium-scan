@@ -13,7 +13,7 @@ public sealed class InitialContractEventDeserializationEventFieldsCatchUpJob : I
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "InitialContractEventDeserializationEventFieldsCatchUpJob";
+    private const string JobName = "InitialContractEventDeserializationFieldsCatchUpJobTests";
     
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ILogger _logger;

@@ -22,7 +22,7 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
         )
     {
         _statelessJob = statelessJob;
-        _logger = Log.ForContext<InitialContractRejectEventDeserializationEventFieldsCatchUpJob>();
+        _logger = Log.ForContext<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
         _healthCheck = healthCheck;
         var gotJobOptions = options.Value.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();

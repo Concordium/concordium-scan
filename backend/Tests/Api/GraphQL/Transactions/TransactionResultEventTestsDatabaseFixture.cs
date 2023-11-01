@@ -1,6 +1,4 @@
-using System.Text.Json;
 using Application.Api.GraphQL;
-using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
@@ -13,7 +11,6 @@ namespace Tests.Api.GraphQL.Transactions;
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
 public class TransactionResultEventTestsDatabaseFixture
 {
-    private readonly JsonSerializerOptions _serializerOptions = EfCoreJsonSerializerOptionsFactory.Create();
     private readonly DatabaseFixture _databaseFixture;
     
     public TransactionResultEventTestsDatabaseFixture(DatabaseFixture databaseFixture)
