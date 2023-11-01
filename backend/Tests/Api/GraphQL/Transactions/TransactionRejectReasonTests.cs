@@ -20,7 +20,6 @@ public sealed class TransactionRejectReasonTests
         const string entrypoint = "wrap";
         const string message = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
         const string expectedMessage = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
-
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
         
         var moduleReferenceEvent = new ModuleReferenceEvent(

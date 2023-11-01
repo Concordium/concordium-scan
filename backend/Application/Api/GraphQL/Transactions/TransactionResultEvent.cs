@@ -14,6 +14,7 @@ using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using BakerStakeUpdatedData = Concordium.Sdk.Types.BakerStakeUpdatedData;
 using EncryptedAmountRemovedEvent = Concordium.Sdk.Types.EncryptedAmountRemovedEvent;
 using NewEncryptedAmountEvent = Concordium.Sdk.Types.NewEncryptedAmountEvent;
+using ReceiveName = Application.Types.ReceiveName;
 using UpdateDetails = Concordium.Sdk.Types.UpdateDetails;
 
 namespace Application.Api.GraphQL.Transactions;
@@ -225,6 +226,10 @@ public abstract record TransactionResultEvent
                     break;
                 case InteropError.Undefined:
                 case InteropError.EmptyMessage:
+                case InteropError.Deserialization:
+                case InteropError.NoReceiveInContract:
+                case InteropError.NoParamsInReceive:
+                case InteropError.NoContractInModule:
                 default:
                     logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
                     break;
@@ -657,20 +662,18 @@ public record ContractUpdated(
         }
         var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
         var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
-        try
-        {
-            var entrypoint = ReceiveName[(ReceiveName.IndexOf('.') + 1)..];
-            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, entrypoint, MessageAsHex, moduleReferenceEvent.SchemaVersion);
-            
-            return events != null || message != null ? 
-                new ContractUpdated(ContractAddress, Instigator, Amount, MessageAsHex, ReceiveName, Version, EventsAsHex, events, message) : 
-                null;
-        }
-        catch (InteropBindingException e)
-        {
-            logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
-            return null;
-        }
+        
+        var receiveName = new ReceiveName(ReceiveName);
+        var message = receiveName.DeserializeMessage(
+            MessageAsHex,
+            moduleReferenceEvent.Schema,
+            moduleReferenceEvent.SchemaVersion,
+            logger,
+            moduleReferenceEvent.ModuleReference
+        );
+        return events != null || message != null ? 
+            new ContractUpdated(ContractAddress, Instigator, Amount, MessageAsHex, ReceiveName, Version, EventsAsHex, events, message) : 
+            null;
     }
 }
 

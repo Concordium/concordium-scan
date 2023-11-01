@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract;
+using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
 using Application.Interop;
 using Concordium.Sdk.Types;
@@ -8,6 +9,7 @@ using HotChocolate;
 using HotChocolate.Types;
 using Serilog.Context;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ReceiveName = Application.Types.ReceiveName;
 
 namespace Application.Api.GraphQL.Transactions;
 
@@ -194,41 +196,18 @@ public record RejectedReceive(
         {
             return null;
         }
-        var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
-        try
-        {
-            var entrypoint = ReceiveName[(ReceiveName.IndexOf('.') + 1)..];
-            var message = InteropBinding.GetReceiveContractParameter(moduleReferenceEvent.Schema, contractName, entrypoint, MessageAsHex, moduleReferenceEvent.SchemaVersion);
-            
-            return message != null ? 
-                new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 
-                null;   
-        }
-        catch (InteropBindingException e)
-        {
-            switch (e.Error)
-            {
-                case InteropError.Deserialization:
-                    logger.Debug(e, "Possible parse error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
-                    break;
-                case InteropError.NoReceiveInContract:
-                    logger.Debug(e, "{Entrypoint} not found in schema. Issue when parsing {Message} from {ContractName} on {Module}", ReceiveName, MessageAsHex, contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.NoParamsInReceive:
-                    logger.Debug(e, "{Entrypoint} does not contain parameter in schema. Issue when parsing {Message} from {ContractName} on {Module}", ReceiveName, MessageAsHex, contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.NoContractInModule:
-                    logger.Debug(e, "{ContractName} not in {Module}. Issue when parsing {Message} on {Entrypoint}", contractName, moduleReferenceEvent.ModuleReference, MessageAsHex, ReceiveName);
-                    break;
-                case InteropError.Undefined:
-                case InteropError.EmptyMessage:
-                case InteropError.EventNotSupported:
-                default:
-                    logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", MessageAsHex, contractName, moduleReferenceEvent.ModuleReference, ReceiveName);
-                    break;
-            }
-            return null;
-        }
+
+        var receiveName = new ReceiveName(ReceiveName);
+        var message = receiveName.DeserializeMessage(
+            MessageAsHex,
+            moduleReferenceEvent.Schema,
+            moduleReferenceEvent.SchemaVersion,
+            logger,
+            moduleReferenceEvent.ModuleReference
+        );
+        return message != null ? 
+            new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 
+            null;
     }
     
     /// <summary>
