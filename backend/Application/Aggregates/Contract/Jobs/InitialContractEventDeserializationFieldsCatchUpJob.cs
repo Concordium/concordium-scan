@@ -44,7 +44,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         var eventCount = await GetEventCount(cancellationToken);
         var batchCount = eventCount / _jobOptions.BatchSize + 1;
         
-        _logger.Debug($"Should process {eventCount} contract reject events in {batchCount} batches");
+        _logger.Debug($"Should process {eventCount} contract events in {batchCount} batches");
 
         return Enumerable.Range(0, batchCount);
     }
