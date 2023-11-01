@@ -656,8 +656,7 @@ public record ContractUpdated(
         {
             return null;
         }
-        var initialized = await repository.GetReadonlyContractInitializedEventAsync(ContractAddress);
-        var contractName = initialized.GetName();
+        var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
         var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
         try
         {
