@@ -177,7 +177,6 @@ public record RejectedReceive(
     /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
     /// </summary>
     internal async Task<RejectedReceive?> TryUpdateMessage(
-        IContractRepository contractRepository,
         IModuleReadonlyRepository moduleReadonlyRepository,
         ulong blockHeight,
         ulong transactionIndex
@@ -195,8 +194,7 @@ public record RejectedReceive(
         {
             return null;
         }
-        var initialized = await contractRepository.GetReadonlyContractInitializedEventAsync(ContractAddress);
-        var contractName = initialized.GetName();
+        var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
         try
         {
             var entrypoint = ReceiveName[(ReceiveName.IndexOf('.') + 1)..];

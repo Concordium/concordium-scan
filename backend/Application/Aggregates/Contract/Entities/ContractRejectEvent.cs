@@ -45,12 +45,11 @@ public sealed class ContractRejectEvent : BaseIdentification
     /// <summary>
     /// Try parse hexadecimal events and parameters in <see cref="RejectedEvent"/> and override existing stored event with result.
     /// </summary>
-    internal async Task ParseEvent(IContractRepository contractRepository, IModuleReadonlyRepository moduleReadonlyRepository)
+    internal async Task ParseEvent(IModuleReadonlyRepository moduleReadonlyRepository)
     {
         var updated = RejectedEvent switch
         {
             RejectedReceive rejectedReceive => await rejectedReceive.TryUpdateMessage(
-                contractRepository,
                 moduleReadonlyRepository,
                 BlockHeight,
                 TransactionIndex),

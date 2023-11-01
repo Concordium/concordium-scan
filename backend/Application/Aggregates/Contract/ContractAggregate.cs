@@ -184,7 +184,7 @@ internal sealed class ContractAggregate
                 break;
             case RejectedReceive rejectedReceive:
                 var rejectedReceiveEvent = await rejectedReceive
-                    .TryUpdateMessage(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex);
+                    .TryUpdateMessage(moduleReadonlyRepository, blockHeight, transactionIndex);
                 if (rejectedReceiveEvent != null)
                 {
                     rejectedReceive = rejectedReceiveEvent;

@@ -13,7 +13,7 @@ public sealed class InitialContractRejectEventDeserializationEventFieldsCatchUpJ
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "InitialContractRejectEventDeserializationEventFieldsCatchUpJob";
+    internal const string JobName = "InitialContractRejectEventDeserializationEventFieldsCatchUpJob";
     
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ILogger _logger;
@@ -62,9 +62,8 @@ public sealed class InitialContractRejectEventDeserializationEventFieldsCatchUpJ
                 _logger.Debug("Start parsing events skip {Skip} and take to {Last}", skip, skip + take);
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
-
-                await using var contractRepository = new ContractRepository(context);
-                await using var moduleReadonlyRepository = new ModuleReadonlyRepository(context);
+                
+                await using var moduleReadonlyRepository = new ModuleReadonlyRepository(await _contextFactory.CreateDbContextAsync(token));
                 
                 var contractRejectEvents = await context.ContractRejectEvents
                     .OrderBy(ce => ce.BlockHeight)
@@ -76,7 +75,7 @@ public sealed class InitialContractRejectEventDeserializationEventFieldsCatchUpJ
                 foreach (var contractRejectEvent in contractRejectEvents
                              .Where(contractRejectEvent => !contractRejectEvent.IsParsed()))
                 {
-                    await contractRejectEvent.ParseEvent(contractRepository, moduleReadonlyRepository);
+                    await contractRejectEvent.ParseEvent(moduleReadonlyRepository);
                 }
                 
                 await context.SaveChangesAsync(token);
