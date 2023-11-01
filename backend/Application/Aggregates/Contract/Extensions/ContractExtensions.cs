@@ -73,9 +73,10 @@ public static class ContractExtensions
         collection.AddTransient<InitialContractAggregateCatchUpJob>();
         collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();
         collection.AddTransient<IContractJob, UpdateModuleSourceCatchup>();
-        collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractEventDeserializationEventFieldsCatchUpJob>>();
-        collection.AddTransient<InitialContractEventDeserializationEventFieldsCatchUpJob>();
-        collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractRejectEventDeserializationEventFieldsCatchUpJob>>();
-        collection.AddTransient<InitialContractRejectEventDeserializationEventFieldsCatchUpJob>();
+        collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractEventDeserializationFieldsCatchUpJob>>();
+        collection.AddTransient<InitialContractEventDeserializationFieldsCatchUpJob>();
+        // Await `Display` fix https://github.com/Concordium/concordium-base/pull/468
+        // collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>>();
+        // collection.AddTransient<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
     }
 }
