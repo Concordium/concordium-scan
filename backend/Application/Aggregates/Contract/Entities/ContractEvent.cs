@@ -54,7 +54,6 @@ public sealed class ContractEvent : BaseIdentification
         var updated = Event switch
         {
             ContractCall contractCall => await contractCall.TryUpdate(
-                    contractRepository,
                     moduleReadonlyRepository,
                     BlockHeight,
                     TransactionIndex,
@@ -68,7 +67,6 @@ public sealed class ContractEvent : BaseIdentification
                     TransactionIndex,
                     EventIndex),
             ContractUpdated contractUpdated => await contractUpdated.TryUpdate(
-                    contractRepository,
                     moduleReadonlyRepository,
                     BlockHeight,
                     TransactionIndex,
