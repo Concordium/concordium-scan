@@ -8,25 +8,25 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
 
-public sealed class InitialContractEventDeserializationEventFieldsCatchUpJob : IStatelessJob
+public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IStatelessJob
 {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "InitialContractEventDeserializationFieldsCatchUpJobTests";
+    private const string JobName = "InitialContractEventDeserializationFieldsCatchUpJob";
     
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
     private readonly ContractAggregateJobOptions _jobOptions;
 
-    public InitialContractEventDeserializationEventFieldsCatchUpJob(
+    public InitialContractEventDeserializationFieldsCatchUpJob(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IOptions<ContractAggregateOptions> options
     )
     {
         _contextFactory = contextFactory;
-        _logger = Log.ForContext<InitialContractEventDeserializationEventFieldsCatchUpJob>();
+        _logger = Log.ForContext<InitialContractEventDeserializationFieldsCatchUpJob>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
         _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();    

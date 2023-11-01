@@ -52,8 +52,8 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
                 }
             }
         });
-        var job = new InitialContractEventDeserializationEventFieldsCatchUpJob(dbFactory.Object, options);
-        var parallelBatchJob = new ParallelBatchJob<InitialContractEventDeserializationEventFieldsCatchUpJob>(job, options, new ContractHealthCheck());
+        var job = new InitialContractEventDeserializationFieldsCatchUpJob(dbFactory.Object, options);
+        var parallelBatchJob = new ParallelBatchJob<InitialContractEventDeserializationFieldsCatchUpJob>(job, options, new ContractHealthCheck());
         
         // Act
         await parallelBatchJob.StartImport(CancellationToken.None);
