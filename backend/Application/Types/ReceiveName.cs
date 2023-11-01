@@ -54,6 +54,7 @@ internal sealed class ReceiveName
                 case InteropError.Undefined:
                 case InteropError.EmptyMessage:
                 case InteropError.EventNotSupported:
+                case InteropError.NoEventInContract:
                 default:
                     logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
                     break;

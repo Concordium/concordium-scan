@@ -1,9 +1,5 @@
-﻿using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Application.Aggregates.Contract;
-using Application.Aggregates.Contract.Types;
-using Application.Exceptions;
-using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;

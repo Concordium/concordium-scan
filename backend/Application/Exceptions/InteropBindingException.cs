@@ -7,16 +7,13 @@ internal sealed class InteropBindingException : Exception
 {
     internal const string EmptyErrorMessage = "Empty error message returned";
     
-    internal bool IsFatal { get; init; }
-    internal InteropError Error { get; init; }
+    internal InteropError Error { get; }
 
     private InteropBindingException(string message) : base(message)
     {
         var interopError = InteropErrorExtensions.From(message);
-        var isInteropErrorFatal = InteropErrorExtensions.IsInteropErrorFatal(interopError);
 
         Error = interopError;
-        IsFatal = isInteropErrorFatal;
     }
 
     internal static InteropBindingException Create(string? message) => 
