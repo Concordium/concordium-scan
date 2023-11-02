@@ -86,7 +86,6 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                             contractRejectEvent.ContractAddressSubIndex,
                             contractRejectEvent.BlockHeight,
                             contractRejectEvent.TransactionIndex);
-                        Console.WriteLine(e);
                         throw;
                     }
                 }
