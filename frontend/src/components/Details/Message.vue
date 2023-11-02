@@ -5,7 +5,7 @@
 			<InfoTooltip text="Input parameters given to activity entrypoint." />
 		</div>
 		<div class="flex">
-			<code class="truncate w-36">
+			<code class="whitespace-pre-line">
 				{{ message }}
 			</code>
 			<TextCopy

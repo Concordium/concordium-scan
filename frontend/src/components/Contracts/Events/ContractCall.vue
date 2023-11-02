@@ -57,7 +57,7 @@
 </template>
 <script lang="ts" setup>
 import MessageHEX from '../../Details/MessageHEX.vue'
-import Message from '../Details/Message.vue'
+import Message from '../../Details/Message.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
 import Logs from '../../Details/Logs.vue'
 import { ContractCall } from '../../../../src/types/generated'

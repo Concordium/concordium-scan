@@ -60,7 +60,7 @@
 <script lang="ts" setup>
 import { ContractUpdated } from '../../../../src/types/generated'
 import MessageHEX from '../../Details/MessageHEX.vue'
-import Message from '../Details/Message.vue'
+import Message from '../../Details/Message.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
 import Logs from '../../Details/Logs.vue'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'

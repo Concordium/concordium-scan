@@ -6,7 +6,7 @@
 		</div>
 		<template v-if="events?.nodes?.length">
 			<div v-for="(event, i) in events.nodes" :key="i" class="flex">
-				<code class="truncate w-36">
+				<code class="whitespace-pre-line">
 					{{ event }}
 				</code>
 				<TextCopy
