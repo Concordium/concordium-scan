@@ -98,7 +98,6 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     
     private async Task<int> GetEventCount(CancellationToken token)
     {
-        
         await using var context = await _contextFactory.CreateDbContextAsync(token);
         var readHeight = await context.ContractRejectEvents
             .CountAsync(cancellationToken: token);

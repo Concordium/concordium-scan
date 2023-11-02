@@ -203,9 +203,9 @@ public abstract record TransactionResultEvent
             return null;
         }
         var events = new string[eventsAsHex.Length];
-        try
+        for (var i = 0; i < eventsAsHex.Length; i++)
         {
-            for (var i = 0; i < eventsAsHex.Length; i++)
+            try
             {
                 var eventAsHex = eventsAsHex[i];
                 var eventContract = InteropBinding.GetEventContract(moduleReferenceEvent.Schema, contractName, eventAsHex, moduleReferenceEvent.SchemaVersion);
@@ -216,29 +216,31 @@ public abstract record TransactionResultEvent
                 }
                 events[i] = eventContract;
             }
-        }
-        catch (InteropBindingException e)
-        {
-            switch (e.Error)
+            catch (InteropBindingException e)
             {
-                case InteropError.EventNotSupported:
-                    logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.NoEventInContract:
-                    logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.Undefined:
-                case InteropError.EmptyMessage:
-                case InteropError.Deserialization:
-                case InteropError.NoReceiveInContract:
-                case InteropError.NoParamsInReceive:
-                case InteropError.NoContractInModule:
-                default:
-                    logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
+                switch (e.Error)
+                {
+                    case InteropError.EventNotSupported:
+                        // logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.NoEventInContract:
+                        // logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.Deserialization:
+                        // logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.Undefined:
+                    case InteropError.EmptyMessage:
+                    case InteropError.NoReceiveInContract:
+                    case InteropError.NoParamsInReceive:
+                    case InteropError.NoContractInModule:
+                    default:
+                        logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                }
+                return null;
             }
-            return null;
-        }
+        }    
 
         return events;
     }
