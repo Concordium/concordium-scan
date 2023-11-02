@@ -78,7 +78,20 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                 foreach (var contractEvent in contractEvents
                              .Where(contractEvent => !contractEvent.IsParsed()))
                 {
-                    await contractEvent.ParseEvent(contractRepository, moduleReadonlyRepository);
+                    try
+                    {
+                        await contractEvent.ParseEvent(contractRepository, moduleReadonlyRepository);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error(e, "Exception when processing <{ContractAddressIndex},{ContractAddressSubIndex}> contract event at {BlockHeight}, {TransactionIndex}, {EventIndex}",
+                            contractEvent.ContractAddressIndex,
+                            contractEvent.ContractAddressSubIndex,
+                            contractEvent.BlockHeight,
+                            contractEvent.TransactionIndex,
+                            contractEvent.EventIndex);
+                        throw;
+                    }
                 }
                 
                 await context.SaveChangesAsync(token);

@@ -40,7 +40,7 @@ internal sealed class ReceiveName
             switch (e.Error)
             {
                 case InteropError.Deserialization:
-                    logger.Debug(e, "Possible parse error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
+                    logger.Debug(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
                     break;
                 case InteropError.NoReceiveInContract:
                     logger.Debug(e, "{Entrypoint} not found in schema. Issue when parsing {Message} from {ContractName} on {Module}", entrypoint, messageAsHex, contractName, moduleReference);
