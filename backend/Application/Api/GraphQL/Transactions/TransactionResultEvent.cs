@@ -221,13 +221,13 @@ public abstract record TransactionResultEvent
                 switch (e.Error)
                 {
                     case InteropError.EventNotSupported:
-                        // logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
+                        logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
                         break;
                     case InteropError.NoEventInContract:
-                        // logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                        logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
                         break;
                     case InteropError.Deserialization:
-                        // logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
+                        logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
                         break;
                     case InteropError.Undefined:
                     case InteropError.EmptyMessage:
