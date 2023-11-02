@@ -91,15 +91,11 @@ public sealed class ContractEvent : BaseIdentification
     {
         return Event switch
         {
-            ContractCall contractCall => contractCall.ContractUpdated.Message != null ||
+            ContractCall contractCall => contractCall.ContractUpdated.Message != null &&
                                          contractCall.ContractUpdated.Events != null,
-            ContractInitialized contractInitialized => contractInitialized.Events != null ||
-                                                       contractInitialized.Events == null ||
-                                                       contractInitialized.Events.Length == 0,
-            ContractInterrupted contractInterrupted => contractInterrupted.Events != null ||
-                                                       contractInterrupted.Events == null ||
-                                                       contractInterrupted.Events.Length == 0,
-            ContractUpdated contractUpdated => contractUpdated.Message != null || contractUpdated.Events != null,
+            ContractInitialized contractInitialized => contractInitialized.Events != null,
+            ContractInterrupted contractInterrupted => contractInterrupted.Events != null,
+            ContractUpdated contractUpdated => contractUpdated.Message != null && contractUpdated.Events != null,
             _ => true
         };
     }
