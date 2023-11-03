@@ -78,29 +78,23 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
 
         if (link == null)
         {
-            try
-            {
-                link = await _context.ModuleReferenceContractLinkEvents
-                    .Where(l => 
-                        l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
-                        (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
-                         l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
-                         l.BlockHeight < blockHeight
-                        ) &&
-                        l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-                    .OrderByDescending(l => l.BlockHeight)
-                    .ThenByDescending(l => l.TransactionIndex)
-                    .ThenByDescending(l => l.EventIndex)
-                    .FirstAsync();   
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
+            link = await _context.ModuleReferenceContractLinkEvents
+                .AsNoTracking()
+                .Where(l => 
+                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
+                    (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                     l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                     l.BlockHeight < blockHeight
+                    ) &&
+                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+                .OrderByDescending(l => l.BlockHeight)
+                .ThenByDescending(l => l.TransactionIndex)
+                .ThenByDescending(l => l.EventIndex)
+                .FirstAsync();
         }
 
         var module = await _context.ModuleReferenceEvents
+            .AsNoTracking()
             .FirstAsync(m => m.ModuleReference == link.ModuleReference);
         
         return module;
