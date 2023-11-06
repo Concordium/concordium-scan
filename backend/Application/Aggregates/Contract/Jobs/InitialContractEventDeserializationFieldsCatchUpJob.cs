@@ -46,9 +46,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         var batchCount = eventCount / _jobOptions.BatchSize + 1;
         
         _logger.Debug($"Should process {eventCount} contract events in {batchCount} batches");
-
-        const int start = 161_030;
-        return Enumerable.Range(start / _jobOptions.BatchSize, batchCount - start / _jobOptions.BatchSize);
+        
         return Enumerable.Range(0, batchCount);
     }
     

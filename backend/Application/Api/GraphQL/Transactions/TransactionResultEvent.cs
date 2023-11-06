@@ -587,12 +587,10 @@ public record ContractInitialized(
         {
             return null;
         }
-        var contractName = GetName(InitName);
+        var contractName = GetName();
 
         return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInitialized));
     }
-    
-    private static string GetName(string initName) => initName[5..];
 }
 
 /// <summary>
