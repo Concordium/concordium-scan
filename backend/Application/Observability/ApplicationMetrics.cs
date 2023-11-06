@@ -19,10 +19,10 @@ internal static class ApplicationMetrics
 
     private static readonly Counter InteropErrors = Metrics.CreateCounter(
         "interop_errors_total",
-        "Number of errors from interop calls",
+        "Number of errors from interop calls. Instigator is used to partition which process initiated the call.",
         new CounterConfiguration
         {
-            LabelNames = new[] { "method", "exception" }
+            LabelNames = new[] { "instigator", "exception" }
         }
     );
 
@@ -35,10 +35,10 @@ internal static class ApplicationMetrics
         }
     );
 
-    internal static void IncInteropErrors(string method, InteropBindingException exception)
+    internal static void IncInteropErrors(string instigator, InteropBindingException exception)
     {
         InteropErrors
-            .WithLabels(method, exception.Error.ToStringCached())
+            .WithLabels(instigator, exception.Error.ToStringCached())
             .Inc();
     }
 

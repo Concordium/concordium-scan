@@ -190,12 +190,15 @@ public abstract record TransactionResultEvent
 
     /// <summary>
     /// Try parse hexadecimal events from module schema.
+    ///
+    /// <see cref="instigator"/> is used to identify the instigator and are used for metric labelling.
     /// </summary>
     protected string[]? GetParsedEvents(
         ModuleReferenceEvent moduleReferenceEvent,
         string contractName,
         string[] eventsAsHex,
-        ILogger logger
+        ILogger logger,
+        string instigator
         )
     {
         if (moduleReferenceEvent.Schema == null)
@@ -218,6 +221,7 @@ public abstract record TransactionResultEvent
             }
             catch (InteropBindingException e)
             {
+                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", e);
                 switch (e.Error)
                 {
                     case InteropError.EventNotSupported:
@@ -585,7 +589,7 @@ public record ContractInitialized(
         }
         var contractName = GetName(InitName);
 
-        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInitialized));
     }
     
     private static string GetName(string initName) => initName[5..];
@@ -666,7 +670,7 @@ public record ContractUpdated(
             return null;
         }
         var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
-        var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractUpdated));
         
         var receiveName = new ReceiveName(ReceiveName);
         var message = receiveName.DeserializeMessage(
@@ -674,7 +678,8 @@ public record ContractUpdated(
             moduleReferenceEvent.Schema,
             moduleReferenceEvent.SchemaVersion,
             logger,
-            moduleReferenceEvent.ModuleReference
+            moduleReferenceEvent.ModuleReference,
+            nameof(ContractUpdated)
         );
         return events != null || message != null ? 
             new ContractUpdated(ContractAddress, Instigator, Amount, MessageAsHex, ReceiveName, Version, EventsAsHex, events, message) : 
@@ -946,7 +951,7 @@ public record ContractInterrupted(
         }
         var initialized = await contractRepository.GetReadonlyContractInitializedEventAsync(ContractAddress);
         var contractName = initialized.GetName();
-        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInterrupted));
     }
 }
 

@@ -199,7 +199,8 @@ public record RejectedReceive(
             moduleReferenceEvent.Schema,
             moduleReferenceEvent.SchemaVersion,
             logger,
-            moduleReferenceEvent.ModuleReference
+            moduleReferenceEvent.ModuleReference,
+            nameof(RejectedReceive)
         );
         return message != null ? 
             new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 

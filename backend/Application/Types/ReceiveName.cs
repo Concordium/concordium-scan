@@ -24,7 +24,8 @@ internal sealed class ReceiveName
         string schema, 
         ModuleSchemaVersion? schemaVersion,
         ILogger logger,
-        string moduleReference
+        string moduleReference,
+        string instigator
         )
     {
         var contractName = _receiveName.Receive[.._receiveName.Receive.IndexOf('.')];
@@ -37,6 +38,7 @@ internal sealed class ReceiveName
         }
         catch (InteropBindingException e)
         {
+            Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(DeserializeMessage)}", e);
             switch (e.Error)
             {
                 case InteropError.Deserialization:

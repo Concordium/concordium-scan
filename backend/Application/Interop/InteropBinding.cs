@@ -44,7 +44,6 @@ internal static class InteropBinding
             }
 
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
@@ -80,7 +79,6 @@ internal static class InteropBinding
             }
 
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
@@ -112,7 +110,6 @@ internal static class InteropBinding
             }
 
             var interopException = InteropBindingException.Create(resultStringAnsi);
-            Observability.ApplicationMetrics.IncInteropErrors(nameof(SchemaDisplay), interopException);
             throw interopException;
         }
         finally
