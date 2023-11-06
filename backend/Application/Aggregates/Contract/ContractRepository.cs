@@ -164,7 +164,7 @@ WHERE
     
     /// <summary>
     /// Looking after <see cref="ContractInitialized"/> event for <see cref="contractAddress"/>. First the event is searched
-    /// for in the change provider of Entity Framework. These are the entity which has been added in the current transaction
+    /// for in the change provider of Entity Framework. These are the entities which have been added in the current transaction
     /// but are not yet committed to the database.
     ///
     /// If <see cref="ContractInitialized"/> has been added in this transaction the database it queried for the event.
