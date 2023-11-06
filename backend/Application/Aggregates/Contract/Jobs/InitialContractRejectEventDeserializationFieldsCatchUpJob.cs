@@ -1,8 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
 using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -75,7 +77,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                     .ToListAsync(token);
 
                 foreach (var contractRejectEvent in contractRejectEvents
-                             .Where(contractRejectEvent => !contractRejectEvent.IsParsed()))
+                             .Where(contractRejectEvent => !IsParsed(contractRejectEvent)))
                 {
                     try
                     {
@@ -97,6 +99,20 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                 _logger.Debug($"Successfully parsed contract reject events in range {skip + 1} to {skip + take}");
             });
     }
+    
+    /// <summary>
+    /// Check if <see cref="ContractRejectEvent"/> has been parsed.
+    ///
+    /// Also returns true if there is nothing to parse.
+    /// </summary>
+    private static bool IsParsed(ContractRejectEvent contractRejectEvent)
+    {
+        return contractRejectEvent.RejectedEvent switch
+        {
+            RejectedReceive rejectedReceive => rejectedReceive.Message != null,
+            _ => true
+        };
+    }    
     
     private async Task<int> GetEventCount(CancellationToken token)
     {

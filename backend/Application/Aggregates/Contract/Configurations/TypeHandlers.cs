@@ -24,7 +24,7 @@ public class TransactionResultEventHandler : SqlMapper.TypeHandler<TransactionRe
 {
     public override void SetValue(IDbDataParameter parameter, TransactionResultEvent value)
     {
-        throw new NotImplementedException();
+        parameter.Value = JsonSerializer.Serialize(value, EfCoreJsonSerializerOptionsFactory.Default);
     }
 
     public override TransactionResultEvent Parse(object value)
