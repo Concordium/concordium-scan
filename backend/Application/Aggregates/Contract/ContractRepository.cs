@@ -164,10 +164,10 @@ WHERE
     
     /// <summary>
     /// Looking after <see cref="ContractInitialized"/> event for <see cref="contractAddress"/>. First the event is searched
-    /// for in the change provider of Entity Framework. These are the entity which has been added in the current transaction
+    /// for in the change provider of Entity Framework. These are the entities which have been added in the current transaction
     /// but are not yet committed to the database.
     ///
-    /// If <see cref="ContractInitialized"/> has been added in this transaction the database it queried for the event.
+    /// If <see cref="ContractInitialized"/> has not been added in this transaction the database it queried for the event.
     ///
     /// The <see cref="ContractInitialized"/> event is expected to exist, and an exception will be thrown if no event
     /// is found. An exception will also be thrown if multiple events are returned, as this should not be possible and
