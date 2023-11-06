@@ -92,5 +92,5 @@ public sealed class ContractRejectEvent : BaseIdentification
     FROM graphql_contract_reject_events AS g0
     WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
     ORDER BY g0.block_height DESC, g0.transaction_index DESC;
-";    
+";
 }

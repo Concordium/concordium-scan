@@ -76,7 +76,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     .ToListAsync(token);
 
                 foreach (var contractEvent in contractEvents
-                             .Where(contractEvent => !contractEvent.IsParsed()))
+                             .Where(contractEvent => !contractEvent.IsHexadecimalFieldsParsed()))
                 {
                     try
                     {

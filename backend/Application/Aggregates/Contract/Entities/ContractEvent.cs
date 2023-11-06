@@ -83,11 +83,9 @@ public sealed class ContractEvent : BaseIdentification
     }
 
     /// <summary>
-    /// Check if <see cref="ContractEvent"/> needs to be parsed.
-    ///
-    /// Also returns true if there is nothing to parse.
+    /// Check if hexadecimal fields in <see cref="ContractEvent"/>'s has been parsed or there is nothing to parse.
     /// </summary>
-    internal bool IsParsed()
+    internal bool IsHexadecimalFieldsParsed()
     {
         return Event switch
         {

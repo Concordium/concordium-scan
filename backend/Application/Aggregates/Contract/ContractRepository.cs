@@ -168,6 +168,10 @@ WHERE
     /// but are not yet committed to the database.
     ///
     /// If <see cref="ContractInitialized"/> has been added in this transaction the database it queried for the event.
+    ///
+    /// The <see cref="ContractInitialized"/> event is expected to exist, and an exception will be thrown if no event
+    /// is found. An exception will also be thrown if multiple events are returned, as this should not be possible and
+    /// would indicate data corruption.
     /// </summary>
     public async Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress)
     {
