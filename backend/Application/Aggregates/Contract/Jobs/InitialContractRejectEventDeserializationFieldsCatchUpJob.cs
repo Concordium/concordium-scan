@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
+using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -57,9 +58,10 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
+                using var _ = TraceContext.StartActivity($"{nameof(InitialContractRejectEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
                 var skip = batch * _jobOptions.BatchSize;
-                _logger.Debug("Start parsing events skip {Skip} and take to {Last}", skip, skip + take);
+                _logger.Debug($"Start parsing events in range {skip + 1} to {skip + take}");
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
                 
@@ -92,7 +94,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                 
                 await context.SaveChangesAsync(token);
 
-                _logger.Debug("Successfully parsed events from {Skip} to {Last}", skip, skip + take);
+                _logger.Debug($"Successfully parsed events in range {skip + 1} to {skip + take}");
             });
     }
     
