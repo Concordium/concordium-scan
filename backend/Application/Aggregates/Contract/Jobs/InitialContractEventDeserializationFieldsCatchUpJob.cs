@@ -40,7 +40,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
     public bool ShouldNodeImportAwait() => false;
     
     /// <inheritdoc/>
-    public async Task<IEnumerable<int>> GetBatches(CancellationToken cancellationToken)
+    public async Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
     {
         var eventCount = await GetEventCount(cancellationToken);
         var batchCount = eventCount / _jobOptions.BatchSize + 1;
@@ -55,15 +55,15 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractEvent"/> with hexadecimal fields parsed. 
     /// </summary>
-    public async ValueTask Process(int batch, CancellationToken token)
+    public async ValueTask Process(int identifier, CancellationToken token)
     {
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 using var _ = TraceContext.StartActivity($"{nameof(InitialContractEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
-                var skip = batch * take;
-                _logger.Debug($"Start parsing events in range {skip + 1} to {skip + take}");
+                var skip = identifier * take;
+                _logger.Debug($"Start parsing contract events events in range {skip + 1} to {skip + take}");
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
 
@@ -99,7 +99,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                 
                 await context.SaveChangesAsync(token);
 
-                _logger.Debug($"Successfully parsed events in range {skip + 1} to {skip + take}");
+                _logger.Debug($"Successfully parsed contract events in range {skip + 1} to {skip + take}");
             });
     }    
     

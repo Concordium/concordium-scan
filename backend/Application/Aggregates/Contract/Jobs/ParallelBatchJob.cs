@@ -36,7 +36,7 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
         try
         {
             _logger.Information($"Start processing {GetUniqueIdentifier()}");
-            var batches = await _statelessJob.GetBatches(token);
+            var batches = await _statelessJob.GetIdentifierSequence(token);
 
             var cycle = Parallel.ForEachAsync(batches,
                 new ParallelOptions

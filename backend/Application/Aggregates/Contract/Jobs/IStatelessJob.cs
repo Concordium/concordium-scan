@@ -17,15 +17,15 @@ public interface IStatelessJob
     string GetUniqueIdentifier();
 
     /// <summary>
-    /// Get an enumerable with batch identifiers.
+    /// Get an enumerable with identifiers which can be used by parallel processes to identify
+    /// what work needs to be done.
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    Task<IEnumerable<int>> GetBatches(CancellationToken cancellationToken);
+    Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Process batch.
+    /// Process identifier.
     /// </summary>
-    ValueTask Process(int batch, CancellationToken token = default);
+    ValueTask Process(int identifier, CancellationToken token = default);
     
     /// <summary>
     /// Returns if import from node should await job execution. 

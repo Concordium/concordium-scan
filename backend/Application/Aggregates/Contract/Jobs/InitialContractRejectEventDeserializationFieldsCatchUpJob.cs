@@ -37,7 +37,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     public string GetUniqueIdentifier() => JobName;
     
     /// <inheritdoc/>
-    public async Task<IEnumerable<int>> GetBatches(CancellationToken cancellationToken)
+    public async Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
     {
         var eventCount = await GetEventCount(cancellationToken);
         var batchCount = eventCount / _jobOptions.BatchSize + 1;
@@ -53,15 +53,15 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractRejectEvent"/> with hexadecimal fields parsed. 
     /// </summary>
-    public async ValueTask Process(int batch, CancellationToken token)
+    public async ValueTask Process(int identifier, CancellationToken token)
     {
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 using var _ = TraceContext.StartActivity($"{nameof(InitialContractRejectEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
-                var skip = batch * _jobOptions.BatchSize;
-                _logger.Debug($"Start parsing events in range {skip + 1} to {skip + take}");
+                var skip = identifier * _jobOptions.BatchSize;
+                _logger.Debug($"Start parsing contract reject events in range {skip + 1} to {skip + take}");
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
                 
@@ -94,7 +94,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                 
                 await context.SaveChangesAsync(token);
 
-                _logger.Debug($"Successfully parsed events in range {skip + 1} to {skip + take}");
+                _logger.Debug($"Successfully parsed contract reject events in range {skip + 1} to {skip + take}");
             });
     }
     
