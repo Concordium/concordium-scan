@@ -167,7 +167,7 @@ WHERE
     /// for in the change provider of Entity Framework. These are the entities which have been added in the current transaction
     /// but are not yet committed to the database.
     ///
-    /// If <see cref="ContractInitialized"/> has been added in this transaction the database it queried for the event.
+    /// If <see cref="ContractInitialized"/> has not been added in this transaction the database it queried for the event.
     /// </summary>
     public async Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress)
     {
