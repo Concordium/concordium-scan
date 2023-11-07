@@ -1,5 +1,5 @@
 <template>
-	<span> Baker <BakerLink :id="event.bakerId" /> keys were updated</span>
+	<span> Validator <BakerLink :id="event.bakerId" /> keys were updated</span>
 </template>
 
 <script setup lang="ts">

@@ -20,7 +20,7 @@
 				<template #content>
 					<div>
 						<span class="legend"></span>
-						Baker:
+						Validator:
 						<Amount
 							:amount="totalAmounts.baker"
 							class="pt-0 pl-2"

@@ -28,14 +28,14 @@
 			class="text-right mb-2"
 			aria-labelledby="bakeraccordion-removedat"
 		>
-			The baker was removed at
+			The validator was removed at
 			{{ formatTimestamp(baker.state.removedAt) }}
 		</dd>
 	</dl>
 </template>
 
 <script lang="ts" setup>
-import { convertMicroCcdToCcd, formatTimestamp } from '~/utils/format'
+import { formatTimestamp } from '~/utils/format'
 import type { Baker } from '~/types/generated'
 import BakerLink from '~/components/molecules/BakerLink.vue'
 import Amount from '~/components/atoms/Amount.vue'

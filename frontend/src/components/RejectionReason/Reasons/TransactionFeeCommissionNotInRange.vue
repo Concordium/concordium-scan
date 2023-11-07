@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		Transaction fee commission is not in the valid range for a baker
+		Transaction fee commission is not in the valid range for a validator
 	</span>
 </template>
 

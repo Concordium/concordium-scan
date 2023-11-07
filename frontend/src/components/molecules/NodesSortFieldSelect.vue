@@ -18,7 +18,7 @@
 				:selected="refVal === NodeSortField.ConsensusBakerId"
 				:value="NodeSortField.ConsensusBakerId"
 			>
-				Baker Id
+				Validator Id
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"

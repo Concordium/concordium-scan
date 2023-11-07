@@ -57,7 +57,7 @@
 				class="grid gap-8 grid-cols-3 mb-16 commission-rates rounded-lg px-8 py-4"
 			>
 				<DetailsCard>
-					<template #title>Baking commission</template>
+					<template #title>Validation commission</template>
 					<template #default>
 						<span class="numerical">
 							{{

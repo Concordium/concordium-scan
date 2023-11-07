@@ -25,7 +25,7 @@
 				:selected="refVal == RewardTakerTypes.Baker"
 				:value="RewardTakerTypes.Baker"
 			>
-				Baker
+				Validator
 			</option>
 		</select>
 	</div>

@@ -3,7 +3,7 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh width="20%">Baker ID</TableTh>
+					<TableTh width="20%">Validator ID</TableTh>
 					<TableTh
 						v-if="!hasPoolData && breakpoint >= Breakpoint.SM"
 						width="20%"
@@ -14,7 +14,7 @@
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
-						Baker APY <span class="text-theme-faded">(30 days)</span>
+						Validator APY <span class="text-theme-faded">(30 days)</span>
 					</TableTh>
 					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"

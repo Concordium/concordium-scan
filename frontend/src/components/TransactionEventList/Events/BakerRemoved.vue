@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> was scheduled to be removed
+		Validator <BakerLink :id="event.bakerId" /> was scheduled to be removed
 	</span>
 </template>
 

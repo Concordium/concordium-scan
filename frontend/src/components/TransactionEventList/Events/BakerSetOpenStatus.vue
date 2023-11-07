@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> set open status to
+		Validator <BakerLink :id="event.bakerId" /> set open status to
 		{{ translateBakerPoolOpenStatus(event.openStatus) }}</span
 	>
 </template>

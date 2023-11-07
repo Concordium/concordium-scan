@@ -1,7 +1,7 @@
 ﻿<template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> set finalization reward commission
-		to {{ event.finalizationRewardCommission * 100 }}%</span
+		Validator <BakerLink :id="event.bakerId" /> set finalization reward
+		commission to {{ event.finalizationRewardCommission * 100 }}%</span
 	>
 </template>
 

@@ -42,7 +42,7 @@
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
-						Baker pools
+						Validator pools
 					</TabBarItem>
 					<TabBarItem
 						tab-id="topDelegators"

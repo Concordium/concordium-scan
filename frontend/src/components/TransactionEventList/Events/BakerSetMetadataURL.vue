@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> set metadata url to
+		Validator <BakerLink :id="event.bakerId" /> set metadata url to
 		<ExternalLink :href="event.metadataUrl">{{
 			event.metadataUrl
 		}}</ExternalLink></span

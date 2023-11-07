@@ -29,7 +29,7 @@
 			"
 			class="text-theme-faded"
 		>
-			Update baker stake threshold to
+			Update validator stake threshold to
 			{{ convertMicroCcdToCcd(event.payload.amount) }}Ͼ
 		</span>
 
@@ -79,7 +79,7 @@
 					</template>
 				</DescriptionListItem>
 				<DescriptionListItem>
-					Baker
+					Validator
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.baker }}
@@ -198,7 +198,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Baker account
+					Validator account
 					<template #content>
 						<span class="numerical"> {{ event.payload.baker }}% </span>
 					</template>
@@ -312,7 +312,7 @@
 				</DescriptionListItem>
 
 				<DescriptionListItem>
-					Min. baker stake
+					Min. validator stake
 					<template #content>
 						<Amount
 							:amount="event.payload.minimumEquityCapital"

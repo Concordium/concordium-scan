@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> modified to
+		Validator <BakerLink :id="event.bakerId" /> modified to
 		{{
 			event.restakeEarnings
 				? ' restake earnings'

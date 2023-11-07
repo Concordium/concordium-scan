@@ -82,7 +82,7 @@
 				</DetailsCard>
 
 				<DetailsCard v-if="baker.state.pool.rankingByTotalStake">
-					<template #title>Baker rank</template>
+					<template #title>Validator rank</template>
 					<template #default>
 						# {{ baker.state.pool.rankingByTotalStake.rank
 						}}<span class="text-theme-faded text-sm">

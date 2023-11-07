@@ -10,7 +10,7 @@
 		:label-formatter="formatLabel"
 	>
 		<template #topRight></template>
-		<template #title>Bakers</template>
+		<template #title>Validators</template>
 		<template #icon><BakerIcon /></template>
 		<template #value>{{
 			formatNumber(bakerMetricsData?.bakerMetrics?.lastBakerCount || 0)

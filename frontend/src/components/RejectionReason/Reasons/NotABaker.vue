@@ -1,5 +1,7 @@
 <template>
-	<span> <Hash :hash="reason.accountAddress.asString" /> is not a baker </span>
+	<span>
+		<Hash :hash="reason.accountAddress.asString" /> is not a validator
+	</span>
 </template>
 
 <script setup lang="ts">

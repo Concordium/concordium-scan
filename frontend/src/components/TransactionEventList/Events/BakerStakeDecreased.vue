@@ -1,6 +1,6 @@
 <template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> decreased stake to
+		Validator <BakerLink :id="event.bakerId" /> decreased stake to
 		{{ convertMicroCcdToCcd(event.newStakedAmount) }}Ͼ
 	</span>
 </template>

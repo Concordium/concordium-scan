@@ -1,6 +1,6 @@
 ﻿<template>
 	<span
-		>Finalization reward commission is not in the valid range for a baker
+		>Finalization reward commission is not in the valid range for a validator
 	</span>
 </template>
 

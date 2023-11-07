@@ -1,5 +1,7 @@
 <template>
-	<span> Baker <BakerLink :id="reason.bakerId" /> is already a baker </span>
+	<span>
+		Validator <BakerLink :id="reason.bakerId" /> is already a validator
+	</span>
 </template>
 
 <script setup lang="ts">
