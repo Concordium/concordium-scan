@@ -11,5 +11,7 @@ public enum BakerSort
     DelegatorCountAsc,
     DelegatorCountDesc,
     BakerApy30DaysDesc,
-    DelegatorApy30DaysDesc
+    DelegatorApy30DaysDesc,
+    ValidationCommissionsAsc,
+    ValidationCommissionsDesc
 }

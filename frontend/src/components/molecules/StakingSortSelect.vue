@@ -48,6 +48,20 @@
 			>
 				Lowest validator ID
 			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.ValidationCommissionsDesc"
+				:value="BakerSort.ValidationCommissionsDesc"
+			>
+				Highest validation commission
+			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.ValidationCommissionsAsc"
+				:value="BakerSort.ValidationCommissionsAsc"
+			>
+				Lowest validation commission
+			</option>
 		</select>
 	</div>
 </template>

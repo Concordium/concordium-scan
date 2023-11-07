@@ -642,7 +642,9 @@ export enum BakerSort {
   DelegatorCountAsc = 'DELEGATOR_COUNT_ASC',
   DelegatorCountDesc = 'DELEGATOR_COUNT_DESC',
   TotalStakedAmountAsc = 'TOTAL_STAKED_AMOUNT_ASC',
-  TotalStakedAmountDesc = 'TOTAL_STAKED_AMOUNT_DESC'
+  TotalStakedAmountDesc = 'TOTAL_STAKED_AMOUNT_DESC',
+  ValidationCommissionsAsc = 'VALIDATION_COMMISSIONS_ASC',
+  ValidationCommissionsDesc = 'VALIDATION_COMMISSIONS_DESC'
 }
 
 export type BakerStakeDecreased = {
