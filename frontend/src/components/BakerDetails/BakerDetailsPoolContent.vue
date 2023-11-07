@@ -109,7 +109,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking commission</template>
+					<template #title>Validation commission</template>
 					<template #default>
 						<span class="numerical">
 							{{

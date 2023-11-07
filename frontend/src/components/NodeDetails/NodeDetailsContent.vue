@@ -49,9 +49,9 @@
 					>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking Committee</template>
+					<template #title>Validation Committee</template>
 					<template #default
-						>{{ translateBakingCommittee(node.bakingCommitteeMember) }}
+						>{{ translateValidationCommittee(node.bakingCommitteeMember) }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -140,7 +140,7 @@
 <script lang="ts" setup>
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { translateBakingCommittee } from '~/utils/translateBakingCommittee'
+import { translateValidationCommittee } from '~/utils/translateValidationCommittee'
 import {
 	formatNumber,
 	formatUptime,
@@ -167,3 +167,4 @@ type Props = {
 
 defineProps<Props>()
 </script>
+~~/src/utils/translateValidationCommittee

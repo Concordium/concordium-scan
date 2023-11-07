@@ -1,5 +1,7 @@
 ﻿<template>
-	<span> Baking reward commission is not in the valid range for a baker </span>
+	<span>
+		Validation reward commission is not in the valid range for a baker
+	</span>
 </template>
 
 <script setup lang="ts">

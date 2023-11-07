@@ -146,7 +146,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Baking reward account
+					Validation reward account
 					<template #content>
 						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
 					</template>
@@ -250,7 +250,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Baking commission range
+					Validation commission range
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.bakingCommissionRange.min * 100 }} </span
@@ -284,7 +284,7 @@
 				</DescriptionListItem>
 
 				<DescriptionListItem>
-					Passive baking commission
+					Passive validation commission
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveBakingCommission * 100
@@ -378,7 +378,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Baking reward account
+					Validation reward account
 					<template #content>
 						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
 					</template>

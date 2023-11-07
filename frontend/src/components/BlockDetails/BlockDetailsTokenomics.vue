@@ -29,7 +29,7 @@
 				:go-to-page="goToPageBlockRewards"
 			/>
 
-			<BakingRewards
+			<ValidationRewards
 				v-if="data.block.bakingRewards.nodes.length"
 				:data="data.block.bakingRewards"
 				:go-to-page="goToPageBakingRewards"
@@ -71,7 +71,7 @@ import PaydayPoolReward from '~/components/Tokenomics/PaydayPoolReward.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockAccrueRewards from '~/components/Tokenomics/BlockAccrueRewards.vue'
-import BakingRewards from '~/components/Tokenomics/BakingRewards.vue'
+import ValidationRewards from '~/components/Tokenomics/ValidationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'

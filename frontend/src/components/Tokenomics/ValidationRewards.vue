@@ -1,11 +1,11 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Baking rewards</template>
+		<template #title>Validation rewards</template>
 		<template #content>
 			<Table v-for="bakingRewards in data.nodes" :key="bakingRewards.id">
 				<TableHead>
 					<TableRow>
-						<TableTh>Baker</TableTh>
+						<TableTh>Validator</TableTh>
 						<TableTh align="right">Reward (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
