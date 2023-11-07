@@ -6,7 +6,7 @@
 				<TableHead>
 					<TableRow>
 						<TableTh>Pool</TableTh>
-						<TableTh align="right">Validator reward (Ͼ)</TableTh>
+						<TableTh align="right">Block reward (Ͼ)</TableTh>
 						<TableTh align="right">Finalization reward (Ͼ)</TableTh>
 						<TableTh align="right">Transaction fees (Ͼ)</TableTh>
 					</TableRow>

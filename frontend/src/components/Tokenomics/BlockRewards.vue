@@ -11,7 +11,7 @@
 				</DescriptionListItem>
 
 				<DescriptionListItem>
-					Validator reward
+					Block reward
 					<template #content>
 						<Amount :amount="event.bakerReward" :show-symbol="true" />
 					</template>
