@@ -17,7 +17,19 @@
 			/>
 
 			<FinalizationRewards
-				v-if="data.block.finalizationRewards.nodes.length"
+				v-if="
+					data.block.finalizationRewards.nodes.length &&
+					data.block.finalizationRewards.nodes.reduce((acc, current) => {
+						console.log(current)
+						return (
+							acc +
+							(current.finalizationRewards?.nodes?.reduce(
+								(acci, currenti) => acci + currenti.amount,
+								0
+							) ?? 0)
+						)
+					}, 0)
+				"
 				:data="data.block.finalizationRewards"
 				:go-to-page="goToPageFinalizationRewards"
 				:go-to-sub-page="goToSubPageFinalizationRewards"

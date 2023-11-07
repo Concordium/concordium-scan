@@ -121,18 +121,6 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Finalization commission</template>
-					<template #default>
-						<span class="numerical">
-							{{
-								formatPercentage(
-									baker.state.pool.commissionRates.finalizationCommission
-								)
-							}}%
-						</span>
-					</template>
-				</DetailsCard>
-				<DetailsCard>
 					<template #title>Transaction commission</template>
 					<template #default>
 						<span class="numerical">

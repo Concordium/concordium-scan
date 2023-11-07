@@ -7,7 +7,9 @@
 					<TableRow>
 						<TableTh>Pool</TableTh>
 						<TableTh align="right">Block reward (Ͼ)</TableTh>
-						<TableTh align="right">Finalization reward (Ͼ)</TableTh>
+						<TableTh v-if="showFinalization" align="right"
+							>Finalization reward (Ͼ)</TableTh
+						>
 						<TableTh align="right">Transaction fees (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
@@ -30,7 +32,7 @@
 						<TableTd align="right" class="numerical">
 							<Amount :amount="rewards.bakerReward" />
 						</TableTd>
-						<TableTd align="right" class="numerical">
+						<TableTd v-if="showFinalization" align="right" class="numerical">
 							<Amount :amount="rewards.finalizationReward" />
 						</TableTd>
 						<TableTd align="right" class="numerical">
@@ -70,5 +72,12 @@ type Props = {
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const showFinalization = computed(() => {
+	return props.data.nodes.reduce(
+		(acc, current) => acc + current.finalizationReward,
+		0
+	)
+})
 </script>

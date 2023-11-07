@@ -83,7 +83,7 @@
 						</template>
 					</DescriptionListItem>
 
-					<DescriptionListItem>
+					<DescriptionListItem v-if="reward.finalizationReward.totalAmount">
 						<span class="float-left inline-block pt-2"
 							>Finalization rewards</span
 						>
