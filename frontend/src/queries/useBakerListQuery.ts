@@ -62,6 +62,11 @@ const BakerQuery = gql<BakerListResponse>`
 								bakerApy
 								delegatorsApy
 							}
+							commissionRates {
+								transactionCommission
+								finalizationCommission
+								bakingCommission
+							}
 						}
 					}
 					... on RemovedBakerState {
