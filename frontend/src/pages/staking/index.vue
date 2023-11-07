@@ -42,7 +42,7 @@
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
-						Validator pools
+						Staking pools
 					</TabBarItem>
 					<TabBarItem
 						tab-id="topDelegators"
