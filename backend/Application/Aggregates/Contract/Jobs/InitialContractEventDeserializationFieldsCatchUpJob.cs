@@ -111,6 +111,8 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                         throw;
                     }
                 }
+                
+                _logger.Debug($"Updating {eventUpdates.Count} contract events");
 
                 await context.Database.GetDbConnection()
                     .ExecuteAsync(
