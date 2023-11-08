@@ -87,18 +87,17 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     try
                     {
                         var transactionResultEvent = await TryParseEvent(contractEvent, contractRepository, moduleReadonlyRepository);
-                        if (transactionResultEvent == null)
+                        if (transactionResultEvent != null)
                         {
-                            continue;
+                            eventUpdates.Add(new Update(
+                                transactionResultEvent,
+                                DateTimeOffset.UtcNow,
+                                (long)contractEvent.ContractAddressIndex,
+                                (long)contractEvent.ContractAddressSubIndex,
+                                (long)contractEvent.BlockHeight,
+                                (long)contractEvent.TransactionIndex,
+                                (int)contractEvent.EventIndex));
                         }
-                        eventUpdates.Add(new Update(
-                            transactionResultEvent,
-                            DateTimeOffset.UtcNow,
-                            (long)contractEvent.ContractAddressIndex,
-                            (long)contractEvent.ContractAddressSubIndex,
-                            (long)contractEvent.BlockHeight,
-                            (long)contractEvent.TransactionIndex,
-                            (int)contractEvent.EventIndex));
                     }
                     catch (Exception e)
                     {
