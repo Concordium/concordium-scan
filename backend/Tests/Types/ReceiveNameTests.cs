@@ -34,7 +34,7 @@ public sealed class ReceiveNameTests
         var receiveName = new ReceiveName($"{contractName}.{entrypoint}");
         
         // Act
-        var deserializeMessage = receiveName.DeserializeMessage(message, schema, null, Mock.Of<ILogger>(), "");
+        var deserializeMessage = receiveName.DeserializeMessage(message, schema, null, Mock.Of<ILogger>(), "", "");
 
         // Assert
         deserializeMessage.Should().Be(expectedMessage);

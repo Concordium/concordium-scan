@@ -63,20 +63,6 @@ public sealed class ContractRejectEvent : BaseIdentification
         UpdatedAt = DateTimeOffset.UtcNow;
     }
     
-    /// <summary>
-    /// Check if <see cref="ContractRejectEvent"/> has been parsed.
-    ///
-    /// Also returns true if there is nothing to parse.
-    /// </summary>
-    internal bool IsParsed()
-    {
-        return RejectedEvent switch
-        {
-            RejectedReceive rejectedReceive => rejectedReceive.Message != null,
-            _ => true
-        };
-    }
-    
     internal const string ContractRejectEventsSql = @"
     SELECT 
         g0.block_height as BlockHeight,
@@ -92,5 +78,5 @@ public sealed class ContractRejectEvent : BaseIdentification
     FROM graphql_contract_reject_events AS g0
     WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
     ORDER BY g0.block_height DESC, g0.transaction_index DESC;
-";    
+";
 }

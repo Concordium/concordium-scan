@@ -190,12 +190,15 @@ public abstract record TransactionResultEvent
 
     /// <summary>
     /// Try parse hexadecimal events from module schema.
+    ///
+    /// <see cref="instigator"/> is used to identify the instigator and are used for metric labelling.
     /// </summary>
     protected string[]? GetParsedEvents(
         ModuleReferenceEvent moduleReferenceEvent,
         string contractName,
         string[] eventsAsHex,
-        ILogger logger
+        ILogger logger,
+        string instigator
         )
     {
         if (moduleReferenceEvent.Schema == null)
@@ -203,9 +206,9 @@ public abstract record TransactionResultEvent
             return null;
         }
         var events = new string[eventsAsHex.Length];
-        try
+        for (var i = 0; i < eventsAsHex.Length; i++)
         {
-            for (var i = 0; i < eventsAsHex.Length; i++)
+            try
             {
                 var eventAsHex = eventsAsHex[i];
                 var eventContract = InteropBinding.GetEventContract(moduleReferenceEvent.Schema, contractName, eventAsHex, moduleReferenceEvent.SchemaVersion);
@@ -216,29 +219,32 @@ public abstract record TransactionResultEvent
                 }
                 events[i] = eventContract;
             }
-        }
-        catch (InteropBindingException e)
-        {
-            switch (e.Error)
+            catch (InteropBindingException e)
             {
-                case InteropError.EventNotSupported:
-                    logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.NoEventInContract:
-                    logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
-                case InteropError.Undefined:
-                case InteropError.EmptyMessage:
-                case InteropError.Deserialization:
-                case InteropError.NoReceiveInContract:
-                case InteropError.NoParamsInReceive:
-                case InteropError.NoContractInModule:
-                default:
-                    logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
-                    break;
+                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", e);
+                switch (e.Error)
+                {
+                    case InteropError.EventNotSupported:
+                        logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.NoEventInContract:
+                        logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.Deserialization:
+                        logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                    case InteropError.Undefined:
+                    case InteropError.EmptyMessage:
+                    case InteropError.NoReceiveInContract:
+                    case InteropError.NoParamsInReceive:
+                    case InteropError.NoContractInModule:
+                    default:
+                        logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
+                        break;
+                }
+                return null;
             }
-            return null;
-        }
+        }    
 
         return events;
     }
@@ -581,12 +587,10 @@ public record ContractInitialized(
         {
             return null;
         }
-        var contractName = GetName(InitName);
+        var contractName = GetName();
 
-        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInitialized));
     }
-    
-    private static string GetName(string initName) => initName[5..];
 }
 
 /// <summary>
@@ -664,7 +668,7 @@ public record ContractUpdated(
             return null;
         }
         var contractName = ReceiveName[..ReceiveName.IndexOf('.')];
-        var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        var events = GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractUpdated));
         
         var receiveName = new ReceiveName(ReceiveName);
         var message = receiveName.DeserializeMessage(
@@ -672,7 +676,8 @@ public record ContractUpdated(
             moduleReferenceEvent.Schema,
             moduleReferenceEvent.SchemaVersion,
             logger,
-            moduleReferenceEvent.ModuleReference
+            moduleReferenceEvent.ModuleReference,
+            nameof(ContractUpdated)
         );
         return events != null || message != null ? 
             new ContractUpdated(ContractAddress, Instigator, Amount, MessageAsHex, ReceiveName, Version, EventsAsHex, events, message) : 
@@ -944,7 +949,7 @@ public record ContractInterrupted(
         }
         var initialized = await contractRepository.GetReadonlyContractInitializedEventAsync(ContractAddress);
         var contractName = initialized.GetName();
-        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger);
+        return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInterrupted));
     }
 }
 

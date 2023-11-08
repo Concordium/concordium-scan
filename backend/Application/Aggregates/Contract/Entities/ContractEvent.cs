@@ -83,23 +83,17 @@ public sealed class ContractEvent : BaseIdentification
     }
 
     /// <summary>
-    /// Check if <see cref="ContractEvent"/> needs to be parsed.
-    ///
-    /// Also returns true if there is nothing to parse.
+    /// Check if hexadecimal fields in <see cref="ContractEvent"/>'s has been parsed or there is nothing to parse.
     /// </summary>
-    internal bool IsParsed()
+    internal bool IsHexadecimalFieldsParsed()
     {
         return Event switch
         {
-            ContractCall contractCall => contractCall.ContractUpdated.Message != null ||
+            ContractCall contractCall => contractCall.ContractUpdated.Message != null &&
                                          contractCall.ContractUpdated.Events != null,
-            ContractInitialized contractInitialized => contractInitialized.Events != null ||
-                                                       contractInitialized.Events == null ||
-                                                       contractInitialized.Events.Length == 0,
-            ContractInterrupted contractInterrupted => contractInterrupted.Events != null ||
-                                                       contractInterrupted.Events == null ||
-                                                       contractInterrupted.Events.Length == 0,
-            ContractUpdated contractUpdated => contractUpdated.Message != null || contractUpdated.Events != null,
+            ContractInitialized contractInitialized => contractInitialized.Events != null,
+            ContractInterrupted contractInterrupted => contractInterrupted.Events != null,
+            ContractUpdated contractUpdated => contractUpdated.Message != null && contractUpdated.Events != null,
             _ => true
         };
     }

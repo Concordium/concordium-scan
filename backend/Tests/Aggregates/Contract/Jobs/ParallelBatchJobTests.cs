@@ -42,14 +42,14 @@ public sealed class ParallelBatchJobTests
 
         public string GetUniqueIdentifier() => nameof(StatelessMockJob);
 
-        public Task<IEnumerable<int>> GetBatches(CancellationToken cancellationToken)
+        public Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
         {
             return Task.FromResult(Enumerable.Range(0, 42));
         }
 
-        public ValueTask Process(int batch, CancellationToken token = default)
+        public ValueTask Process(int identifier, CancellationToken token = default)
         {
-            _state.Add(batch);
+            _state.Add(identifier);
             return ValueTask.CompletedTask;
         }
 

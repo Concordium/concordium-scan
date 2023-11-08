@@ -1,8 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
+using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -36,7 +39,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     public string GetUniqueIdentifier() => JobName;
     
     /// <inheritdoc/>
-    public async Task<IEnumerable<int>> GetBatches(CancellationToken cancellationToken)
+    public async Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
     {
         var eventCount = await GetEventCount(cancellationToken);
         var batchCount = eventCount / _jobOptions.BatchSize + 1;
@@ -52,14 +55,15 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractRejectEvent"/> with hexadecimal fields parsed. 
     /// </summary>
-    public async ValueTask Process(int batch, CancellationToken token)
+    public async ValueTask Process(int identifier, CancellationToken token)
     {
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
+                using var _ = TraceContext.StartActivity($"{nameof(InitialContractRejectEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
-                var skip = batch * _jobOptions.BatchSize;
-                _logger.Debug("Start parsing events skip {Skip} and take to {Last}", skip, skip + take);
+                var skip = identifier * take;
+                _logger.Debug($"Start parsing contract reject events in range {skip + 1} to {skip + take}");
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
                 
@@ -73,20 +77,45 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
                     .ToListAsync(token);
 
                 foreach (var contractRejectEvent in contractRejectEvents
-                             .Where(contractRejectEvent => !contractRejectEvent.IsParsed()))
+                             .Where(contractRejectEvent => !IsParsed(contractRejectEvent)))
                 {
-                    await contractRejectEvent.ParseEvent(moduleReadonlyRepository);
+                    try
+                    {
+                        await contractRejectEvent.ParseEvent(moduleReadonlyRepository);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Error(e, "Exception when processing <{ContractAddressIndex},{ContractAddressSubIndex}> contract reject event at {BlockHeight}, {TransactionIndex}",
+                            contractRejectEvent.ContractAddressIndex,
+                            contractRejectEvent.ContractAddressSubIndex,
+                            contractRejectEvent.BlockHeight,
+                            contractRejectEvent.TransactionIndex);
+                        throw;
+                    }
                 }
                 
                 await context.SaveChangesAsync(token);
 
-                _logger.Debug("Successfully parsed events from {Skip} to {Last}", skip, skip + take);
+                _logger.Debug($"Successfully parsed contract reject events in range {skip + 1} to {skip + take}");
             });
     }
     
+    /// <summary>
+    /// Check if <see cref="ContractRejectEvent"/> has been parsed.
+    ///
+    /// Also returns true if there is nothing to parse.
+    /// </summary>
+    private static bool IsParsed(ContractRejectEvent contractRejectEvent)
+    {
+        return contractRejectEvent.RejectedEvent switch
+        {
+            RejectedReceive rejectedReceive => rejectedReceive.Message != null,
+            _ => true
+        };
+    }    
+    
     private async Task<int> GetEventCount(CancellationToken token)
     {
-        
         await using var context = await _contextFactory.CreateDbContextAsync(token);
         var readHeight = await context.ContractRejectEvents
             .CountAsync(cancellationToken: token);

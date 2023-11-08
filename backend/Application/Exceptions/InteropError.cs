@@ -31,6 +31,10 @@ internal static class InteropErrorExtensions
         // https://github.com/Concordium/concordium-rust-smart-contracts/blob/673d09236b40e4583e60b8aa2cd7b6849b1c6189/concordium-std/src/lib.rs#L202
         // mapped to a custom error like
         // https://github.com/Concordium/concordium-rust-smart-contracts/blob/673d09236b40e4583e60b8aa2cd7b6849b1c6189/examples/cis2-wccd/src/lib.rs#L211
+        // It can also be the case that the schema isn't one-to-one with actual types in the contract.
+        // One example is logging an event in the contract, `logger.log(..)`, where the type logged isn't the same as
+        // the event type defined in the contract init header, `event = "SomeEventType"`. This is possible since
+        // the only restriction on the logger is the type is serializable.
         if (message.StartsWith("Failed to deserialize"))
         {
             return InteropError.Deserialization;
