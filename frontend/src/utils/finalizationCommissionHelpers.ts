@@ -6,13 +6,13 @@
  * the will always be zero after the tokenomic changes.
  */
 
-import {
-	FinalizationRewardsSpecialEvent,
-	PaydayAccountRewardSpecialEvent,
-	PaydayPoolRewardSpecialEvent,
-} from '../types/generated'
+import { FinalizationRewardsSpecialEvent, Scalars } from '../types/generated'
 
-export const showFinalizationReward = (
+interface FinalizationReward {
+	finalizationReward: Scalars['UnsignedLong']
+}
+
+export const showFinalizationFromFinalizationReward = (
 	finalizationRewards: FinalizationRewardsSpecialEvent[]
 ): boolean => {
 	return (
@@ -28,19 +28,8 @@ export const showFinalizationReward = (
 	)
 }
 
-export const showFinalizationFromPaydayAccountReward = (
-	finalizationRewards: PaydayAccountRewardSpecialEvent[]
-): boolean => {
-	return (
-		finalizationRewards.reduce(
-			(acc, current) => acc + current.finalizationReward,
-			0
-		) > 0
-	)
-}
-
-export const showFinalizationFromPaydayPoolReward = (
-	finalizationRewards: PaydayPoolRewardSpecialEvent[]
+export const showFinalizationFromReward = (
+	finalizationRewards: FinalizationReward[]
 ): boolean => {
 	return (
 		finalizationRewards.reduce(

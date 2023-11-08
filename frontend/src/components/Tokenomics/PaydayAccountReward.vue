@@ -57,7 +57,7 @@ import type {
 	PageInfo,
 	PaydayAccountRewardSpecialEvent,
 } from '~/types/generated'
-import { showFinalizationFromPaydayAccountReward } from '~~/src/utils/finalizationCommissionHelpers'
+import { showFinalizationFromReward } from '~~/src/utils/finalizationCommissionHelpers'
 
 type Props = {
 	data: FilteredSpecialEvent<PaydayAccountRewardSpecialEvent>
@@ -66,6 +66,6 @@ type Props = {
 const props = defineProps<Props>()
 
 const showFinalization = computed(() =>
-	showFinalizationFromPaydayAccountReward(props.data.nodes)
+	showFinalizationFromReward(props.data.nodes)
 )
 </script>
