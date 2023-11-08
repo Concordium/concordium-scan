@@ -66,7 +66,7 @@ import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { PageInfo, PaydayPoolRewardSpecialEvent } from '~/types/generated'
 import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
-import { showFinalizationFromPaydayPoolReward } from '~~/src/utils/finalizationCommissionHelpers'
+import { showFinalizationFromReward } from '~~/src/utils/finalizationCommissionHelpers'
 
 type Props = {
 	data: FilteredSpecialEvent<PaydayPoolRewardSpecialEvent>
@@ -76,6 +76,6 @@ type Props = {
 const props = defineProps<Props>()
 
 const showFinalization = computed(() =>
-	showFinalizationFromPaydayPoolReward(props.data.nodes)
+	showFinalizationFromReward(props.data.nodes)
 )
 </script>
