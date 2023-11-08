@@ -32,7 +32,7 @@ type ModuleDrawerItem = {
 }
 
 type BakerDrawerItem = {
-	entityTypeName: 'baker'
+	entityTypeName: 'validator'
 	bakerId: number
 }
 type NodeDrawerItem = {
@@ -112,7 +112,7 @@ export const isItemOnTop = (
 			item.moduleReference === currentTopItem.value.moduleReference
 		)
 	if (
-		item.entityTypeName === 'baker' &&
+		item.entityTypeName === 'validator' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	) {
 		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
@@ -157,7 +157,7 @@ export const pushToRouter =
 						? drawerItem.hash
 						: undefined,
 				did:
-					drawerItem.entityTypeName === 'baker'
+					drawerItem.entityTypeName === 'validator'
 						? drawerItem.bakerId
 						: drawerItem.entityTypeName === 'node'
 						? encodeURIComponent(drawerItem.nodeId)
@@ -240,10 +240,10 @@ export const useDrawer = () => {
 				},
 				false
 			)
-		} else if (route.query.dentity === 'baker' && route.query.did) {
+		} else if (route.query.dentity === 'validator' && route.query.did) {
 			push(
 				{
-					entityTypeName: 'baker',
+					entityTypeName: 'validator',
 					bakerId: parseInt(route.query.did.toString()),
 				},
 				false
