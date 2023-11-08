@@ -60,7 +60,7 @@ public class UpdateModuleSourceCatchup : IContractJob
 
     private async ValueTask Process(string moduleReference, ulong lastFinalized, CancellationToken token)
     {
-        await Policies.GetTransientPolicy(_logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
+        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 await using var context = await _dbContextFactory.CreateDbContextAsync(token);

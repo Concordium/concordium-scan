@@ -41,5 +41,7 @@ public sealed class ContractRejectEventEntityTypeConfigurations : IEntityTypeCon
             .HasColumnName("block_slot_time");        
         builder.Property(x => x.CreatedAt)
             .HasColumnName("created_at");
+        builder.Property(x => x.UpdatedAt)
+            .HasColumnName("updated_at");        
     }
 }

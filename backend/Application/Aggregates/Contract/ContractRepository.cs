@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Dapper;
@@ -30,14 +31,20 @@ public interface IContractRepository : IAsyncDisposable
     /// <summary>
     /// Returns latest smart contract read height ordered descending by block height. 
     /// </summary>
-    Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight();
+    Task<ContractReadHeight?> GetReadonlyLatestContractReadHeight();
     /// <summary>
     /// Get latest import state of block- and transactions ordered by
     /// block slot time.
     ///
     /// Should return zero (default) is no entity is present.
     /// </summary>
-    Task<long> GetReadOnlyLatestImportState(CancellationToken token = default);
+    Task<long> GetReadonlyLatestImportState(CancellationToken token = default);
+    /// <summary>
+    /// Get contract initialization event for <see cref="contractAddress"/>.
+    ///
+    /// Entity is read only and changes on entity will not be persisted.
+    /// </summary>
+    Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress);    
     /// <summary>
     /// Adds entity to repository.
     /// </summary>
@@ -137,7 +144,7 @@ WHERE
     }
     
     /// <inheritdoc/>
-    public async Task<ContractReadHeight?> GetReadOnlyLatestContractReadHeight()
+    public async Task<ContractReadHeight?> GetReadonlyLatestContractReadHeight()
     {
         return await _context.ContractReadHeights
             .AsNoTracking()
@@ -146,7 +153,7 @@ WHERE
     }
     
     /// <inheritdoc/>
-    public async Task<long> GetReadOnlyLatestImportState(CancellationToken token)
+    public async Task<long> GetReadonlyLatestImportState(CancellationToken token)
     {
         return await _context.ImportState
             .AsNoTracking()
@@ -155,6 +162,40 @@ WHERE
             .FirstOrDefaultAsync(token);
     }
     
+    /// <summary>
+    /// Looking after <see cref="ContractInitialized"/> event for <see cref="contractAddress"/>. First the event is searched
+    /// for in the change provider of Entity Framework. These are the entities which have been added in the current transaction
+    /// but are not yet committed to the database.
+    ///
+    /// If <see cref="ContractInitialized"/> has not been added in this transaction the database it queried for the event.
+    ///
+    /// The <see cref="ContractInitialized"/> event is expected to exist, and an exception will be thrown if no event
+    /// is found. An exception will also be thrown if multiple events are returned, as this should not be possible and
+    /// would indicate data corruption.
+    /// </summary>
+    public async Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress)
+    {
+        var contractInitialized = _context.ChangeTracker
+            .Entries<ContractEvent>()
+            .Select(e => e.Entity)
+            .Where(e => e.ContractAddressIndex == contractAddress.Index && e.ContractAddressSubIndex == contractAddress.SubIndex)
+            .Where(e => e.Event is ContractInitialized)
+            .Select(e => (e.Event as ContractInitialized)!)
+            .FirstOrDefault();
+
+        if (contractInitialized != null)
+        {
+            return contractInitialized;
+        }
+
+        var connection = _context.Database.GetDbConnection();
+        var parameter = new { Index = (long)contractAddress.Index, Subindex = (long)contractAddress.SubIndex};
+        var contractEvents = (await connection.QueryAsync<ContractEvent>(ContractEvent.ContractInitializedEventSql, parameter))
+            .First();
+        
+        return (contractEvents!.Event as ContractInitialized)!;
+    }
+
     /// <inheritdoc/>
     public Task AddAsync<T>(params T[] entities) where T : class
     {

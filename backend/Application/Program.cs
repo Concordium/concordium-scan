@@ -32,6 +32,7 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.With<SourceClassNameEnricher>()
     .Enrich.With<TraceEnricher>()
+    .Enrich.FromLogContext()
     .CreateLogger();
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(Log.Logger);

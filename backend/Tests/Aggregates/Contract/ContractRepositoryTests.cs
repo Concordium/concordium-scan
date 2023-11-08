@@ -5,12 +5,14 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
+using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
 using static Tests.TestUtilities.Stubs.TransactionResultEventStubs;
 
@@ -281,7 +283,7 @@ public sealed class ContractRepositoryTests
         var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await contractRepository.GetReadOnlyLatestContractReadHeight();
+        var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
 
         // Assert
         latest.Should().NotBeNull();
@@ -298,7 +300,7 @@ public sealed class ContractRepositoryTests
         var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await contractRepository.GetReadOnlyLatestContractReadHeight();
+        var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
 
         // Assert
         latest.Should().BeNull();
@@ -329,7 +331,7 @@ public sealed class ContractRepositoryTests
         var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await contractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
+        var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
 
         // Assert
         latest.Should().Be(maxBlockHeight);
@@ -344,7 +346,7 @@ public sealed class ContractRepositoryTests
         var contractRepository = new ContractRepository(graphQlDbContext);
         
         // Act
-        var latest = await contractRepository.GetReadOnlyLatestImportState(CancellationToken.None);
+        var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
 
         // Assert
         latest.Should().Be(0);
@@ -372,5 +374,82 @@ public sealed class ContractRepositoryTests
         contractReadHeight.Should().NotBeNull();
         contractReadHeight!.BlockHeight.Should().Be(blockHeight);
         contractReadHeight.Source.Should().Be(source);
+    }
+
+    [Fact]
+    public async Task GivenContractInitializedEventInDatabase_WhenGetReadonlyContractInitializedEventAsync_ThenReturnCorrect()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        var oneContract = new ContractAddress(1, 0);
+        const string oneContractName = "init_foo";
+        const string otherContractName = "init_bar";
+        var otherContract = new ContractAddress(2,0);
+
+        var first = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(1)
+            .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        var second = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(2)
+            .WithEvent(new Transferred(2, oneContract, new AccountAddress("")))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithContractAddress(otherContract)
+            .WithBlockHeight(3)
+            .WithEvent(new ContractInitialized("", otherContract, 10, otherContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddRangeAsync(first, second, third);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var repository = new ContractRepository(context);
+
+        // Act
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
+
+        // Assert
+        initialized.InitName.Should().Be(oneContractName);
+    }
+    
+    [Fact]
+    public async Task GivenContractInitializedEventInChangeTracker_WhenGetReadonlyContractInitializedEventAsync_ThenReturnCorrect()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        var oneContract = new ContractAddress(1, 0);
+        const string oneContractName = "init_foo";
+        const string otherContractName = "init_bar";
+        var otherContract = new ContractAddress(2,0);
+        
+        var second = ContractEventBuilder.Create()
+            .WithBlockHeight(1)
+            .WithEvent(new Transferred(2, oneContract, new AccountAddress("")))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithBlockHeight(2)
+            .WithEvent(new ContractInitialized("", otherContract, 10, otherContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddRangeAsync(second, third);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        
+        var first = ContractEventBuilder.Create()
+            .WithBlockHeight(3)
+            .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddAsync(first);
+        var repository = new ContractRepository(context);
+
+        // Act
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
+
+        // Assert
+        initialized.InitName.Should().Be(oneContractName);
     }
 }

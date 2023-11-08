@@ -41,6 +41,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            Mock.Of<IModuleReadonlyRepository>(),
             Mock.Of<IContractNodeClient>(),
             transfer,
             new AccountAddress(""),
@@ -65,8 +66,11 @@ public sealed class ContractAggregateTests
         var messageAsHex = Convert.ToHexString(Encoding.UTF8.GetBytes("Foo"));
         var contractEvents = new List<ContractEvent>();
         var repository = new Mock<IContractRepository>();
+        var moduleRepository = new Mock<IModuleReadonlyRepository>();
         repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
-            .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+            .Callback<ContractEvent[]>(e => contractEvents.AddRange(e));
+        moduleRepository.Setup(m => m.GetModuleReferenceEventAtAsync(It.IsAny<Application.Api.GraphQL.ContractAddress>(), It.IsAny<ulong>(), It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(Task.FromResult(ModuleReferenceEventBuilder.Create().Build()));
         var contractUpdated = new ContractUpdated(
             new Application.Api.GraphQL.ContractAddress(from, 0),
             new AccountAddress(""),
@@ -81,6 +85,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            moduleRepository.Object,
             Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),
@@ -106,8 +111,11 @@ public sealed class ContractAggregateTests
         var messageAsHex = Convert.ToHexString(Encoding.UTF8.GetBytes("Foo"));
         var contractEvents = new List<ContractEvent>();
         var repository = new Mock<IContractRepository>();
+        var moduleRepository = new Mock<IModuleReadonlyRepository>();
         repository.Setup(m => m.AddAsync(It.IsAny<ContractEvent[]>()))
             .Callback<ContractEvent[]>((e) => contractEvents.AddRange(e));
+        moduleRepository.Setup(m => m.GetModuleReferenceEventAtAsync(It.IsAny<Application.Api.GraphQL.ContractAddress>(), It.IsAny<ulong>(), It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(Task.FromResult(ModuleReferenceEventBuilder.Create().Build()));        
         var contractUpdated = new ContractUpdated(
             new Application.Api.GraphQL.ContractAddress(from, 0),
             new Application.Api.GraphQL.ContractAddress(to, 0),
@@ -122,6 +130,7 @@ public sealed class ContractAggregateTests
         await ContractAggregate.StoreEvent(
             ImportSource.NodeImport,
             repository.Object,
+            moduleRepository.Object,
             Mock.Of<IContractNodeClient>(),
             contractUpdated,
             new AccountAddress(""),

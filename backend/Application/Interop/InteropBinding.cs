@@ -37,13 +37,14 @@ internal static class InteropBinding
         {
             var schemaDisplay = schema_display(schema, ffiOption, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
-            
-            if (!schemaDisplay)
+
+            if (schemaDisplay)
             {
-                throw InteropBindingException.Create(resultStringAnsi);
+                return resultStringAnsi;
             }
-            
-            return resultStringAnsi;
+
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            throw interopException;
         }
         finally
         {
@@ -68,15 +69,17 @@ internal static class InteropBinding
         var result = IntPtr.Zero;
         try
         {
-            var schemaDisplay = get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
+            var schemaDisplay =
+                get_receive_contract_parameter(schema, ffiOption, contractName, entrypoint, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
             
-            if (!schemaDisplay)
+            if (schemaDisplay)
             {
-                throw InteropBindingException.Create(resultStringAnsi);
+                return resultStringAnsi;
             }
-            
-            return resultStringAnsi;
+
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            throw interopException;
         }
         finally
         {
@@ -101,12 +104,13 @@ internal static class InteropBinding
             var schemaDisplay = get_event_contract(schema, ffiOption, contractName, value, ref result);
             var resultStringAnsi = Marshal.PtrToStringAnsi(result);
             
-            if (!schemaDisplay)
+            if (schemaDisplay)
             {
-                throw InteropBindingException.Create(resultStringAnsi);
+                return resultStringAnsi;
             }
-            
-            return resultStringAnsi;
+
+            var interopException = InteropBindingException.Create(resultStringAnsi);
+            throw interopException;
         }
         finally
         {
@@ -137,8 +141,9 @@ internal static class InteropBinding
         /// </remarks>
         internal byte is_some { get; private init; }
 
-        internal static FFIByteOption None() => new() { is_some = 0 };
-        internal static FFIByteOption Some(byte some) => new()
+        private static FFIByteOption None() => new() { is_some = 0 };
+
+        private static FFIByteOption Some(byte some) => new()
         {
             t = some,
             is_some = 1
