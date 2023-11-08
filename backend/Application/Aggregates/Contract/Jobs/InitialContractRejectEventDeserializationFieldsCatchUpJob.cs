@@ -5,6 +5,8 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Aggregates.Contract.Resilience;
+using Application.Api.GraphQL.EfCore;
 using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;

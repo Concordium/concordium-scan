@@ -63,6 +63,20 @@ public sealed class ContractRejectEvent : BaseIdentification
         UpdatedAt = DateTimeOffset.UtcNow;
     }
     
+    /// <summary>
+    /// Check if <see cref="ContractRejectEvent"/> has been parsed.
+    ///
+    /// Also returns true if there is nothing to parse.
+    /// </summary>
+    internal bool IsParsed()
+    {
+        return RejectedEvent switch
+        {
+            RejectedReceive rejectedReceive => rejectedReceive.Message != null,
+            _ => true
+        };
+    }
+    
     internal const string ContractRejectEventsSql = @"
     SELECT 
         g0.block_height as BlockHeight,

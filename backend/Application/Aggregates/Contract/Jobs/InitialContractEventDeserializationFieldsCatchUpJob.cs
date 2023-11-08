@@ -7,6 +7,9 @@ using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Observability;
 using Dapper;
+using Application.Aggregates.Contract.Resilience;
+using Application.Api.GraphQL.EfCore;
+using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -183,7 +186,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
             _ => true
         };
     }
-    
+        
     private async Task<int> GetEventCount(CancellationToken token)
     {
         

@@ -45,6 +45,58 @@ public sealed class ContractEvent : BaseIdentification
         Sender = sender;
         Event = @event;
     }
+
+    /// <summary>
+    /// Try parse hexadecimal events and parameters in <see cref="Event"/>. If parsing succeeds the event is overriden.
+    /// </summary>
+    internal async Task ParseEvent(IContractRepository contractRepository, IModuleReadonlyRepository moduleReadonlyRepository)
+    {
+        var updated = Event switch
+        {
+            ContractCall contractCall => await contractCall.TryUpdate(
+                    moduleReadonlyRepository,
+                    BlockHeight,
+                    TransactionIndex,
+                    EventIndex
+                ),
+            ContractInitialized contractInitialized => await contractInitialized.TryUpdateWithParsedEvents(moduleReadonlyRepository),
+            ContractInterrupted contractInterrupted => await contractInterrupted.TryUpdateWithParsedEvents(
+                    contractRepository,
+                    moduleReadonlyRepository,
+                    BlockHeight,
+                    TransactionIndex,
+                    EventIndex),
+            ContractUpdated contractUpdated => await contractUpdated.TryUpdate(
+                    moduleReadonlyRepository,
+                    BlockHeight,
+                    TransactionIndex,
+                    EventIndex
+                ),
+            _ => Event
+        };
+        if (updated == null)
+        {
+            return;
+        }
+        Event = updated;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    /// Check if hexadecimal fields in <see cref="ContractEvent"/>'s has been parsed or there is nothing to parse.
+    /// </summary>
+    internal bool IsHexadecimalFieldsParsed()
+    {
+        return Event switch
+        {
+            ContractCall contractCall => contractCall.ContractUpdated.Message != null &&
+                                         contractCall.ContractUpdated.Events != null,
+            ContractInitialized contractInitialized => contractInitialized.Events != null,
+            ContractInterrupted contractInterrupted => contractInterrupted.Events != null,
+            ContractUpdated contractUpdated => contractUpdated.Message != null && contractUpdated.Events != null,
+            _ => true
+        };
+    }
     
     internal const string ContractEventsSql = @"
     SELECT 
