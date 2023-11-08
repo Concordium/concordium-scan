@@ -17,6 +17,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
+using static Application.Aggregates.Contract.Jobs.InitialContractEventDeserializationFieldsCatchUpJob;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
@@ -36,6 +37,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
     public async Task WhenUpdateEvent_ThenUpdateInDatabase()
     {
         // Arrange
+        ContractExtensions.AddDapperTypeHandlers();
         var dbFactory = new Mock<IDbContextFactory<GraphQlDbContext>>();
         await using (var context = _databaseFixture.CreateGraphQlDbContext())
         {
@@ -242,7 +244,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, eventIndex);
@@ -316,7 +318,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, expected.BlockHeight, transactionIndex, eventIndex);
@@ -390,7 +392,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, expected.EventIndex);
@@ -451,7 +453,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, expected.EventIndex);
@@ -512,7 +514,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
         
-        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, expected.BlockHeight, transactionIndex, eventIndex);
@@ -551,7 +553,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.AddRangeAsync(first, second, third);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
-        var repository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryContractRepository.Create(context);
+        var repository = InMemoryContractRepository.Create(context);
 
         // Act
         var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
