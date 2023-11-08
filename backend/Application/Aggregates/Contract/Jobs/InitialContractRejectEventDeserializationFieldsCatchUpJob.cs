@@ -60,7 +60,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
             {
                 using var _ = TraceContext.StartActivity($"{nameof(InitialContractRejectEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
-                var skip = identifier * _jobOptions.BatchSize;
+                var skip = identifier * take;
                 _logger.Debug($"Start parsing contract reject events in range {skip + 1} to {skip + take}");
 
                 var context = await _contextFactory.CreateDbContextAsync(token);

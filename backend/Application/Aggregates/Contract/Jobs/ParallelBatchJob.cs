@@ -38,12 +38,11 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
             _logger.Information($"Start processing {GetUniqueIdentifier()}");
             var batches = await _statelessJob.GetIdentifierSequence(token);
 
-            var cycle = Parallel.ForEachAsync(batches,
+            await Parallel.ForEachAsync(batches,
                 new ParallelOptions
                 {
                     MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
                 }, _statelessJob.Process);
-            await cycle;
             
             _logger.Information($"Done with job {GetUniqueIdentifier()}");
         }
