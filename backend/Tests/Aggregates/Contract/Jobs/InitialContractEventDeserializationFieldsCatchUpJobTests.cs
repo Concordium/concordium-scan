@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
@@ -241,7 +242,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = await InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, eventIndex);
@@ -315,7 +316,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = await InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, expected.BlockHeight, transactionIndex, eventIndex);
@@ -389,7 +390,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = await InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, expected.EventIndex);
@@ -450,7 +451,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
-        var moduleReadonlyRepository = await InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, blockHeight, transactionIndex, expected.EventIndex);
@@ -511,12 +512,51 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
         
-        var moduleReadonlyRepository = await InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
+        var moduleReadonlyRepository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryModuleRepository.Create(context);
 
         // Act
         var actualModule = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(contract, expected.BlockHeight, transactionIndex, eventIndex);
         
         // Assert
         actualModule.ModuleReference.Should().Be(moduleRef);
+    }
+    
+    [Fact]
+    public async Task GivenContractInitializedEventInMemory_WhenGetReadonlyContractInitializedEventAsync_ThenReturnCorrect()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        var context = _databaseFixture.CreateGraphQlDbContext();
+        var oneContract = new ContractAddress(1, 0);
+        const string oneContractName = "init_foo";
+        const string otherContractName = "init_bar";
+        var otherContract = new ContractAddress(2,0);
+
+        var first = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(1)
+            .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        var second = ContractEventBuilder.Create()
+            .WithContractAddress(oneContract)
+            .WithBlockHeight(2)
+            .WithEvent(new Transferred(2, oneContract, new AccountAddress("")))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithContractAddress(otherContract)
+            .WithBlockHeight(3)
+            .WithEvent(new ContractInitialized("", otherContract, 10, otherContractName, ContractVersion.V0, Array.Empty<string>()))
+            .Build();
+        await context.AddRangeAsync(first, second, third);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var repository = InitialContractEventDeserializationFieldsCatchUpJob.InMemoryContractRepository.Create(context);
+
+        // Act
+        var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
+
+        // Assert
+        initialized.InitName.Should().Be(oneContractName);
     }
 }

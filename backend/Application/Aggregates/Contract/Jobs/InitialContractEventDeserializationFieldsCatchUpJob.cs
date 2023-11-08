@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL;
@@ -54,22 +55,6 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         
         return Enumerable.Range(0, batchCount);
     }
-
-    private static readonly object ModuleRepositoryLock = new();
-    private InMemoryModuleRepository? _inMemoryModuleRepository;
-
-    private InMemoryModuleRepository GetModuleRepository(GraphQlDbContext context)
-    {
-        if (_inMemoryModuleRepository != null)
-        {
-            return _inMemoryModuleRepository;
-        }
-
-        lock (ModuleRepositoryLock)
-        {
-            return _inMemoryModuleRepository ??= InMemoryModuleRepository.Create(context);
-        }
-    }
     
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractEvent"/> with hexadecimal fields parsed. 
@@ -86,8 +71,8 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
 
                 var context = await _contextFactory.CreateDbContextAsync(token);
 
-                await using var contractRepository = new ContractRepository(context);
-                await using var moduleReadonlyRepository = GetModuleRepository(context);
+                await using var contractRepository = InMemoryContractRepository.Create(context);
+                await using var moduleReadonlyRepository = InMemoryModuleRepository.Create(context);
 
                 var contractEvents = await context.ContractEvents
                     .AsNoTracking()
@@ -217,11 +202,117 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         
         return readHeight;
     }
+
+    internal sealed class InMemoryContractRepository : IContractRepository
+    {
+        private static readonly object Lock = new();
+        private static InMemoryContractRepository? _inMemoryContractRepository;
+        
+        private readonly IList<ContractInitialized> _contractInitialized;
+        
+        /// <summary>
+        /// Returns contract initialized event(s) for contracts. There should always be only one.
+        ///
+        /// <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> has event mapping.
+        /// </summary>
+        private const string ContractInitializedEventSql = @"
+SELECT
+    g0.block_height as BlockHeight,
+    g0.transaction_index as TransactionIndex,
+    g0.event_index as EventIndex,
+    g0.contract_address_index as ContractAddressIndex,
+    g0.contract_address_subindex as ContractAddressSubIndex,
+    g0.block_slot_time as BlockSlotTime,
+    g0.created_at as CreatedAt,
+    g0.event as Event,
+    g0.sender as Creator,
+    g0.source as Source,
+    g0.transaction_hash as TransactionHash
+FROM graphql_contract_events AS g0
+WHERE g0.event ->> 'tag' = '16' 
+";
+        
+        private InMemoryContractRepository(IList<ContractInitialized> contractInitialized)
+        {
+            _contractInitialized = contractInitialized;
+        }
+
+        internal static InMemoryContractRepository Create(GraphQlDbContext context)
+        {
+            if (_inMemoryContractRepository != null)
+            {
+                return _inMemoryContractRepository;
+            }
+
+            lock (Lock)
+            {
+                if (_inMemoryContractRepository == null)
+                {
+                    var dbConnection = context.Database.GetDbConnection();
+                    var initializations = dbConnection.Query<ContractEvent>(ContractInitializedEventSql)
+                        .Select(e => (e.Event as ContractInitialized)!)
+                        .ToList();
+            
+                    _inMemoryContractRepository = new InMemoryContractRepository(initializations);
+                }
+                return _inMemoryContractRepository;
+            }
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        public Task<IList<TransactionRejectEventDto>> FromBlockHeightRangeGetContractRelatedRejections(ulong heightFrom, ulong heightTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IList<TransactionResultEventDto>> FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(ulong heightFrom, ulong heightTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<List<ulong>> FromBlockHeightRangeGetBlockHeightsReadOrdered(ulong heightFrom, ulong heightTo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ContractReadHeight?> GetReadonlyLatestContractReadHeight()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<long> GetReadonlyLatestImportState(CancellationToken token = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress) => 
+            Task.FromResult(_contractInitialized.First(c => c.ContractAddress == contractAddress));
+
+        public Task AddAsync<T>(params T[] entities) where T : class
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddRangeAsync<T>(IEnumerable<T> heights) where T : class
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SaveChangesAsync(CancellationToken token)
+        {
+            throw new NotImplementedException();
+        }
+    }
     
     internal sealed class InMemoryModuleRepository : IModuleReadonlyRepository
     {
+        private static readonly object ModuleRepositoryLock = new();
+        private static InMemoryModuleRepository? _inMemoryModuleRepository;
+        
         private readonly IList<ModuleReferenceEvent> _moduleReferenceEvents;
         private readonly IList<ModuleReferenceContractLinkEvent> _moduleReferenceContractLinkEvents;
+        
         private InMemoryModuleRepository(
             IList<ModuleReferenceEvent> moduleReferenceEvents, 
             IList<ModuleReferenceContractLinkEvent> moduleReferenceContractLinkEvents)
@@ -232,9 +323,21 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
 
         internal static InMemoryModuleRepository Create(GraphQlDbContext context)
         {
-            var moduleReferenceContractLinkEvents = context.ModuleReferenceContractLinkEvents.AsNoTracking().ToList();
-            var moduleReferenceEvents = context.ModuleReferenceEvents.AsNoTracking().ToList();
-            return new InMemoryModuleRepository(moduleReferenceEvents, moduleReferenceContractLinkEvents);
+            if (_inMemoryModuleRepository != null)
+            {
+                return _inMemoryModuleRepository;
+            }
+
+            lock (ModuleRepositoryLock)
+            {
+                if (_inMemoryModuleRepository == null)
+                {
+                    var moduleReferenceContractLinkEvents = context.ModuleReferenceContractLinkEvents.AsNoTracking().ToList();
+                    var moduleReferenceEvents = context.ModuleReferenceEvents.AsNoTracking().ToList();
+                    _inMemoryModuleRepository = new InMemoryModuleRepository(moduleReferenceEvents, moduleReferenceContractLinkEvents);       
+                }   
+                return _inMemoryModuleRepository;
+            }
         }
         
         public ValueTask DisposeAsync()
