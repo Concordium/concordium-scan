@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
+using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Observability;
@@ -52,6 +54,22 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         
         return Enumerable.Range(0, batchCount);
     }
+
+    private static readonly object ModuleRepositoryLock = new();
+    private InMemoryModuleRepository? _inMemoryModuleRepository;
+
+    private InMemoryModuleRepository GetModuleRepository(GraphQlDbContext context)
+    {
+        if (_inMemoryModuleRepository != null)
+        {
+            return _inMemoryModuleRepository;
+        }
+
+        lock (ModuleRepositoryLock)
+        {
+            return _inMemoryModuleRepository ??= InMemoryModuleRepository.Create(context);
+        }
+    }
     
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractEvent"/> with hexadecimal fields parsed. 
@@ -69,7 +87,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                 var context = await _contextFactory.CreateDbContextAsync(token);
 
                 await using var contractRepository = new ContractRepository(context);
-                await using var moduleReadonlyRepository = new ModuleReadonlyRepository(context);
+                await using var moduleReadonlyRepository = GetModuleRepository(context);
 
                 var contractEvents = await context.ContractEvents
                     .AsNoTracking()
@@ -80,6 +98,8 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     .Take(take)
                     .ToListAsync(token);
 
+                var startNew = Stopwatch.StartNew();
+                
                 var eventUpdates = new List<Update>();
                 foreach (var contractEvent in contractEvents
                              .Where(contractEvent => !IsHexadecimalFieldsParsed(contractEvent)))
@@ -111,7 +131,10 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     }
                 }
                 
-                _logger.Debug($"Updating {eventUpdates.Count} contract events");
+                _logger.Information($"Process: {{Time}} contract events events in range {skip + 1} to {skip + take}", startNew.Elapsed);
+                startNew.Restart();
+                
+                _logger.Debug($"Updating {eventUpdates.Count} contract events contract events events in range {skip + 1} to {skip + take}");
 
                 await context.Database.GetDbConnection()
                     .ExecuteAsync(
@@ -123,6 +146,8 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                       AND event_index = @EventIndex 
                       AND transaction_index = @TransactionIndex;", eventUpdates);
 
+                _logger.Information($"Save: {{Time}} contract events events in range {skip + 1} to {skip + take}", startNew.Elapsed);
+                
                 _logger.Debug($"Successfully parsed contract events in range {skip + 1} to {skip + take}");
             });
     }
@@ -191,5 +216,54 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
             .CountAsync(cancellationToken: token);
         
         return readHeight;
+    }
+    
+    internal sealed class InMemoryModuleRepository : IModuleReadonlyRepository
+    {
+        private readonly IList<ModuleReferenceEvent> _moduleReferenceEvents;
+        private readonly IList<ModuleReferenceContractLinkEvent> _moduleReferenceContractLinkEvents;
+        private InMemoryModuleRepository(
+            IList<ModuleReferenceEvent> moduleReferenceEvents, 
+            IList<ModuleReferenceContractLinkEvent> moduleReferenceContractLinkEvents)
+        {
+            _moduleReferenceEvents = moduleReferenceEvents;
+            _moduleReferenceContractLinkEvents = moduleReferenceContractLinkEvents;
+        }
+
+        internal static InMemoryModuleRepository Create(GraphQlDbContext context)
+        {
+            var moduleReferenceContractLinkEvents = context.ModuleReferenceContractLinkEvents.AsNoTracking().ToList();
+            var moduleReferenceEvents = context.ModuleReferenceEvents.AsNoTracking().ToList();
+            return new InMemoryModuleRepository(moduleReferenceEvents, moduleReferenceContractLinkEvents);
+        }
+        
+        public ValueTask DisposeAsync()
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference)
+        {
+            return Task.FromResult(_moduleReferenceEvents.First(m => m.ModuleReference == moduleReference));
+        }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,
+            uint eventIndex)
+        {
+            var link = _moduleReferenceContractLinkEvents
+                .Where(l => 
+                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
+                    (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                     l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                     l.BlockHeight < blockHeight
+                    ) &&
+                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+                .OrderByDescending(l => l.BlockHeight)
+                .ThenByDescending(l => l.TransactionIndex)
+                .ThenByDescending(l => l.EventIndex)
+                .First();
+            
+            return Task.FromResult(_moduleReferenceEvents.First(m => m.ModuleReference == link.ModuleReference));
+        }
     }
 }
