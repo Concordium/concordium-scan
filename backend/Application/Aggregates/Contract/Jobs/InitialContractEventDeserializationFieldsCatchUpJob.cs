@@ -82,8 +82,6 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     .Skip(skip)
                     .Take(take)
                     .ToListAsync(token);
-
-                var startNew = Stopwatch.StartNew();
                 
                 var eventUpdates = new List<Update>();
                 foreach (var contractEvent in contractEvents
@@ -116,10 +114,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                     }
                 }
                 
-                _logger.Information($"Process: {{Time}} contract events events in range {skip + 1} to {skip + take}", startNew.Elapsed);
-                startNew.Restart();
-                
-                _logger.Debug($"Updating {eventUpdates.Count} contract events contract events events in range {skip + 1} to {skip + take}");
+                _logger.Debug($"Updating {eventUpdates.Count} contract events in range {skip + 1} to {skip + take}");
 
                 await context.Database.GetDbConnection()
                     .ExecuteAsync(
@@ -130,8 +125,6 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
                       AND contract_address_subindex = @ContractAddressSubIndex 
                       AND event_index = @EventIndex 
                       AND transaction_index = @TransactionIndex;", eventUpdates);
-
-                _logger.Information($"Save: {{Time}} contract events events in range {skip + 1} to {skip + take}", startNew.Elapsed);
                 
                 _logger.Debug($"Successfully parsed contract events in range {skip + 1} to {skip + take}");
             });
