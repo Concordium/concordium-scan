@@ -1,7 +1,7 @@
 /**
  * @file
  * This file contain helper functions related to finalization commissions.
- * Finalization comissions has been removed from the beginning of December 2023.
+ * Finalization commissions has been removed from the beginning of December 2023.
  * The frontend should only render these if they contain non zero values, since
  * the will always be zero after the tokenomic changes.
  */

@@ -31,10 +31,21 @@ type ModuleDrawerItem = {
 	moduleReference: string
 }
 
+/**
+ * This type is kept such that links like
+ * https://ccdscan.io/staking?dcount=1&dentity=baker&did=SOME_ID stills works after
+ * tokenomic change from 'baker' to 'validator'.
+ */
 type BakerDrawerItem = {
-	entityTypeName: 'validator'
-	bakerId: number
+	entityTypeName: 'baker'
+	id: number
 }
+
+type ValidatorDrawerItem = {
+	entityTypeName: 'validator'
+	id: number
+}
+
 type NodeDrawerItem = {
 	entityTypeName: 'node'
 	nodeId: string
@@ -48,6 +59,7 @@ export type DrawerItem = (
 	| AccountDrawerItem
 	| ContractDrawerItem
 	| ModuleDrawerItem
+	| ValidatorDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
@@ -115,7 +127,7 @@ export const isItemOnTop = (
 		item.entityTypeName === 'validator' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	) {
-		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
+		return !!(item.id && item.id === currentTopItem.value.id)
 	}
 	if (
 		item.entityTypeName === 'node' &&
@@ -158,7 +170,7 @@ export const pushToRouter =
 						: undefined,
 				did:
 					drawerItem.entityTypeName === 'validator'
-						? drawerItem.bakerId
+						? drawerItem.id
 						: drawerItem.entityTypeName === 'node'
 						? encodeURIComponent(drawerItem.nodeId)
 						: undefined,
@@ -240,11 +252,15 @@ export const useDrawer = () => {
 				},
 				false
 			)
-		} else if (route.query.dentity === 'validator' && route.query.did) {
+		} else if (
+			(route.query.dentity === 'validator' ||
+				route.query.dentity === 'baker') &&
+			route.query.did
+		) {
 			push(
 				{
 					entityTypeName: 'validator',
-					bakerId: parseInt(route.query.did.toString()),
+					id: parseInt(route.query.did.toString()),
 				},
 				false
 			)
