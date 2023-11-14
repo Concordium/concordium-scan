@@ -48,6 +48,20 @@
 			>
 				Lowest validator ID
 			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.BlockCommissionsDesc"
+				:value="BakerSort.BlockCommissionsDesc"
+			>
+				Highest block commission
+			</option>
+			<option
+				class="bg-theme-background-table text-theme-white"
+				:selected="refVal === BakerSort.BlockCommissionsAsc"
+				:value="BakerSort.BlockCommissionsAsc"
+			>
+				Lowest block commission
+			</option>
 		</select>
 	</div>
 </template>
