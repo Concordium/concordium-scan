@@ -322,7 +322,7 @@ const { first, last, after, before, goToPage, resetPagination } =
 
 type Props = {
 	openStatusFilter: BakerPoolOpenStatus | undefined
-	includeRemoved: boolean | undefined
+	includeRemoved: boolean
 	sort: BakerSort
 }
 
