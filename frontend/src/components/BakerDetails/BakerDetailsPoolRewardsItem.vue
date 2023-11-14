@@ -77,7 +77,7 @@
 			<div class="block">
 				<DescriptionList class="text-sm text-theme-faded">
 					<DescriptionListItem>
-						<span class="float-left inline-block pt-2">Validation rewards</span>
+						<span class="float-left inline-block pt-2">Block rewards</span>
 						<template #content>
 							<BakerDetailsPoolAmounts :amounts="reward.bakerReward" />
 						</template>
