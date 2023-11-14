@@ -64,7 +64,6 @@ public sealed class Contract : BaseIdentification
         Creator = creator;
     }
     
-    
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
@@ -125,7 +124,7 @@ public sealed class Contract : BaseIdentification
         {
             var contractEvent = contract.ContractEvents
                 .First(e => e.Event is ContractInitialized);
-            return (contractEvent.Event as ContractInitialized)!.InitName[5..];
+            return (contractEvent.Event as ContractInitialized)!.GetName();
         }
         
         /// <summary>

@@ -41,9 +41,9 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     /// <inheritdoc/>
     public async Task<long> GetMaximumHeight(CancellationToken token)
     {
-        await using var context = await _repositoryFactory.CreateAsync();
+        await using var context = await _repositoryFactory.CreateContractRepositoryAsync();
 
-        var finalHeight = await context.GetReadOnlyLatestImportState(token);
+        var finalHeight = await context.GetReadonlyLatestImportState(token);
 
         return finalHeight;
     }
@@ -51,8 +51,8 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     /// <inheritdoc/>
     public async Task UpdateMetric(CancellationToken token)
     {
-        var repository = await _repositoryFactory.CreateAsync();
-        var latest = await repository.GetReadOnlyLatestContractReadHeight();
+        var repository = await _repositoryFactory.CreateContractRepositoryAsync();
+        var latest = await repository.GetReadonlyLatestContractReadHeight();
         if (latest != null)
         {
             ContractMetrics.SetReadHeight(latest.BlockHeight, ImportSource.DatabaseImport);
@@ -65,13 +65,14 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     /// <inheritdoc/>
     public async Task<ulong> BatchImportJob(ulong heightFrom, ulong heightTo, CancellationToken token = default)
     {
-        return await Policies.GetTransientPolicy<ulong>(_logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
+        return await Policies.GetTransientPolicy<ulong>(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
                 using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
                 try
                 {
-                    await using var repository = await _repositoryFactory.CreateAsync();
+                    await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
+                    await using var moduleReadonlyRepository = await _repositoryFactory.CreateModuleReadonlyRepository();
                     var alreadyReadHeights = await repository.FromBlockHeightRangeGetBlockHeightsReadOrdered(heightFrom, heightTo);
                     if (alreadyReadHeights.Count > 0)
                     {
@@ -85,8 +86,8 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
                     }
 
                     var totalEvents = 0u;
-                    totalEvents += await StoreEvents(repository, alreadyReadHeights, heightFrom, heightTo);
-                    totalEvents += await StoreRejected(repository, alreadyReadHeights, heightFrom, heightTo);
+                    totalEvents += await StoreEvents(repository, moduleReadonlyRepository, alreadyReadHeights, heightFrom, heightTo);
+                    totalEvents += await StoreRejected(repository, moduleReadonlyRepository, alreadyReadHeights, heightFrom, heightTo);
 
                     await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
                     await repository.SaveChangesAsync(token);
@@ -106,11 +107,15 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
         return true;
     }
 
-    private static async Task<uint> StoreRejected(IContractRepository repository, ICollection<ulong> alreadyReadHeights,
-        ulong heightFrom, ulong heightTo)
+    private static async Task<uint> StoreRejected(
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
+        ICollection<ulong> alreadyReadHeights,
+        ulong heightFrom,
+        ulong heightTo)
     {
         var eventIndex = 0u;
-        var rejections = await repository.FromBlockHeightRangeGetContractRelatedRejections(heightFrom, heightTo);
+        var rejections = await contractRepository.FromBlockHeightRangeGetContractRelatedRejections(heightFrom, heightTo);
         foreach (var rejectEventDto in rejections.Where(r => !alreadyReadHeights.Contains((ulong)r.BlockHeight)))
         {
             if (!IsUsableTransaction(rejectEventDto.TransactionType, rejectEventDto.TransactionSender, rejectEventDto.TransactionHash))
@@ -120,7 +125,8 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
 
             await ContractAggregate.StoreReject(
                 ImportSource.DatabaseImport,
-                repository,
+                contractRepository,
+                moduleReadonlyRepository,
                 rejectEventDto.RejectedEvent,
                 rejectEventDto.TransactionSender!,
                 (ulong)rejectEventDto.BlockHeight,
@@ -135,10 +141,15 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
     }
     
     
-    private async Task<uint> StoreEvents(IContractRepository repository, ICollection<ulong> alreadyReadHeights, ulong heightFrom, ulong heightTo)
+    private async Task<uint> StoreEvents(
+        IContractRepository contractRepository, 
+        IModuleReadonlyRepository moduleReadonlyRepository,
+        ICollection<ulong> alreadyReadHeights, 
+        ulong heightFrom, 
+        ulong heightTo)
     {
         var addedEvents = 0u;
-        var events = await repository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
+        var events = await contractRepository.FromBlockHeightRangeGetContractRelatedTransactionResultEventRelations(heightFrom, heightTo);
         var eventIndexMap = new Dictionary<(int BlockHeight, uint TransactionIndex), uint>();
         foreach (var eventDto in events
                      .Where(e => !alreadyReadHeights.Contains((ulong)e.BlockHeight))
@@ -158,7 +169,8 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
             
             var latestEventIndex = await ContractAggregate.StoreEvent(
                 ImportSource.DatabaseImport,
-                repository,
+                contractRepository,
+                moduleReadonlyRepository,
                 _client,
                 eventDto.Event,
                 eventDto.TransactionSender!,

@@ -284,7 +284,7 @@
 				</DescriptionListItem>
 
 				<DescriptionListItem>
-					Passive validation commission
+					Passive block commission
 					<template #content>
 						<span class="numerical">{{
 							event.payload.passiveBakingCommission * 100

@@ -15,11 +15,11 @@ public static class ContractExtensions
 {
     public static void AddContractAggregate(this IServiceCollection collection, IConfiguration configuration)
     {
-        collection.Configure<ContractAggregate>(configuration.GetSection("ContractAggregate"));
+        collection.Configure<ContractAggregateOptions>(configuration.GetSection("ContractAggregate"));
 
         collection.AddHostedService<ContractNodeImportBackgroundService>();
         
-        collection.AddTransient<IContractRepositoryFactory, ContractRepositoryFactory>();
+        collection.AddTransient<IContractRepositoryFactory, RepositoryFactory>();
         collection.AddTransient<IContractNodeClient, ContractNodeClient>();
         
         collection.AddContractJobs();
@@ -69,9 +69,13 @@ public static class ContractExtensions
         collection.AddTransient<IContractJobFinder, ContractJobFinder>();
 
         collection.AddSingleton<IContractJobRepository, ContractJobRepository>();
-        collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();
-        collection.AddTransient<IContractJob, UpdateModuleSourceCatchup>();
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
         collection.AddTransient<InitialContractAggregateCatchUpJob>();
+        collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();
+        collection.AddTransient<IContractJob, UpdateModuleSourceCatchup>();
+        collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractEventDeserializationFieldsCatchUpJob>>();
+        collection.AddTransient<InitialContractEventDeserializationFieldsCatchUpJob>();
+        collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>>();
+        collection.AddTransient<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
     }
 }

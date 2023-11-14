@@ -1,6 +1,6 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Validation rewards</template>
+		<template #title>Block rewards</template>
 		<template #content>
 			<Table v-for="bakingRewards in data.nodes" :key="bakingRewards.id">
 				<TableHead>

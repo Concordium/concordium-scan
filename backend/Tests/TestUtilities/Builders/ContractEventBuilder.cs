@@ -8,11 +8,11 @@ namespace Tests.TestUtilities.Builders;
 
 internal sealed class ContractEventBuilder
 {
-    private readonly ulong _blockHeight = 1;
+    private ulong _blockHeight = 1;
     private readonly string _transactionHash = "";
     private readonly ulong _transactionIndex = 1;
     private readonly uint _eventIndex = 1;
-    private readonly ContractAddress _contractAddress = new(1, 0);
+    private ContractAddress _contractAddress = new(1, 0);
     private readonly AccountAddress _accountAddress = new("");
     private TransactionResultEvent _event =
         new Transferred(1, new ContractAddress(1, 0), new ContractAddress(2, 0));
@@ -42,6 +42,18 @@ internal sealed class ContractEventBuilder
             _source,
             _dateTimeOffset
         );
+    }
+
+    internal ContractEventBuilder WithContractAddress(ContractAddress contractAddress)
+    {
+        _contractAddress = contractAddress;
+        return this;
+    }
+    
+    internal ContractEventBuilder WithBlockHeight(ulong blockHeight)
+    {
+        _blockHeight = blockHeight;
+        return this;
     }
 
     internal ContractEventBuilder WithEvent(TransactionResultEvent @event)

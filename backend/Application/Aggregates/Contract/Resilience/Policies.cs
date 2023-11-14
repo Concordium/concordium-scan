@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Application.Observability;
 using Npgsql;
 using Polly;
 
@@ -9,7 +10,7 @@ internal static class Policies
     /// <summary>
     /// Create an async retry policy, which retries on all transient database errors.
     /// </summary>
-    internal static AsyncPolicy GetTransientPolicy(ILogger logger, int retryCount, TimeSpan delay)
+    internal static AsyncPolicy GetTransientPolicy(string process, ILogger logger, int retryCount, TimeSpan delay)
     {
         var policyBuilder = Policy
             .Handle<NpgsqlException>(ex => ex.IsTransient)
@@ -22,6 +23,7 @@ internal static class Policies
                     (ex, currentRetryCount, _, _) =>
                     {
                         logger.Error(ex, $"Triggering retry policy with {currentRetryCount} due to exception");
+                        ApplicationMetrics.IncRetryPolicyExceptions(process, ex);
                         return Task.CompletedTask;
                     });
         }
@@ -33,6 +35,7 @@ internal static class Policies
                     (ex, _, currentRetryCount, _) =>
                     {
                         logger.Error(ex, $"Triggering retry policy with {currentRetryCount} due to exception");
+                        ApplicationMetrics.IncRetryPolicyExceptions(process, ex);
                         return Task.CompletedTask;
                     });
         }
@@ -43,7 +46,7 @@ internal static class Policies
     /// <summary>
     /// Create an async retry policy, which retries on all transient database errors.
     /// </summary>
-    internal static AsyncPolicy<T> GetTransientPolicy<T>(ILogger logger, int retryCount, TimeSpan delay)
+    internal static AsyncPolicy<T> GetTransientPolicy<T>(string process, ILogger logger, int retryCount, TimeSpan delay)
     {
         var policyBuilder = Policy<T>
             .Handle<NpgsqlException>(ex => ex.IsTransient)
@@ -56,6 +59,7 @@ internal static class Policies
                     (ex, currentRetryCount, _, _) =>
                     {
                         logger.Error(ex.Exception, $"Triggering retry policy with {currentRetryCount} due to exception");
+                        ApplicationMetrics.IncRetryPolicyExceptions(process, ex.Exception);
                         return Task.CompletedTask;
                     });
         }
@@ -67,6 +71,7 @@ internal static class Policies
                     (ex, _, currentRetryCount, _) =>
                     {
                         logger.Error(ex.Exception, $"Triggering retry policy with {currentRetryCount} due to exception");
+                        ApplicationMetrics.IncRetryPolicyExceptions(process, ex.Exception);
                         return Task.CompletedTask;
                     });
         }
