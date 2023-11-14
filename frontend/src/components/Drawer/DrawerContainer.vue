@@ -54,7 +54,7 @@
 							v-else-if="
 								drawerItem && drawerItem.entityTypeName === 'validator'
 							"
-							:baker-id="drawerItem.bakerId"
+							:baker-id="drawerItem.id"
 						/>
 						<PassiveDelegationContainer
 							v-else-if="

@@ -38,12 +38,12 @@ type ModuleDrawerItem = {
  */
 type BakerDrawerItem = {
 	entityTypeName: 'baker'
-	bakerId: number
+	id: number
 }
 
 type ValidatorDrawerItem = {
 	entityTypeName: 'validator'
-	bakerId: number
+	id: number
 }
 
 type NodeDrawerItem = {
@@ -127,7 +127,7 @@ export const isItemOnTop = (
 		item.entityTypeName === 'validator' &&
 		item.entityTypeName === currentTopItem.value.entityTypeName
 	) {
-		return !!(item.bakerId && item.bakerId === currentTopItem.value.bakerId)
+		return !!(item.id && item.id === currentTopItem.value.id)
 	}
 	if (
 		item.entityTypeName === 'node' &&
@@ -170,7 +170,7 @@ export const pushToRouter =
 						: undefined,
 				did:
 					drawerItem.entityTypeName === 'validator'
-						? drawerItem.bakerId
+						? drawerItem.id
 						: drawerItem.entityTypeName === 'node'
 						? encodeURIComponent(drawerItem.nodeId)
 						: undefined,
@@ -260,7 +260,7 @@ export const useDrawer = () => {
 			push(
 				{
 					entityTypeName: 'validator',
-					bakerId: parseInt(route.query.did.toString()),
+					id: parseInt(route.query.did.toString()),
 				},
 				false
 			)
