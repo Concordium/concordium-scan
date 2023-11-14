@@ -53,6 +53,14 @@ const translations = {
 		UPDATE_TIME_PARAMETERS: 'Update time parameters',
 		UPDATE_LEVEL1_KEYS: 'Update level1 keys',
 		UPDATE_LEVEL2_KEYS: 'Update level2 keys',
+		BLOCK_ENERGY_LIMIT_UPDATE: 'Update block energy limit',
+		FINALIZATION_COMMITTEE_PARAMETERS_UPDATE:
+			'Update finalization committee parameters',
+		GAS_REWARDS_CPV2_UPDATE: 'Update gas reward chain parameters version 2',
+		MINT_DISTRIBUTION_CPV1_UPDATE:
+			'Update mint distribution chain parameters version 1',
+		MIN_BLOCK_TIME_UPDATE: 'Update min block time',
+		TIMEOUT_PARAMETERS_UPDATE: 'Update timeout parameters',
 		UNKNOWN: 'Unknown update transaction',
 	} as Record<UpdateTransactionType | 'UNKNOWN', string>,
 }
