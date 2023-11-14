@@ -250,7 +250,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Validation commission range
+					Block commission range
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.bakingCommissionRange.min * 100 }} </span
