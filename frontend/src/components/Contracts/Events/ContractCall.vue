@@ -47,7 +47,7 @@
 		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
 	/>
 	<Logs
-		v-if="props.contractEvent.contractUpdated.events"
+		v-if="props.contractEvent.contractUpdated.events?.nodes?.length"
 		:events="props.contractEvent.contractUpdated.events"
 	/>
 	<LogsHEX

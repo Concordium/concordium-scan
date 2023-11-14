@@ -67,7 +67,7 @@
 				>
 					<div>Expand to see logs</div>
 					<Logs
-						v-if="contractEvent.event.events"
+						v-if="contractEvent.event.events?.nodes?.length"
 						:events="contractEvent.event.events"
 					/>
 					<LogsHEX

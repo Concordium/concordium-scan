@@ -23,11 +23,11 @@
 		</div>
 	</div>
 	<Logs
-		v-if="props.contractEvent.events"
+		v-if="props.contractEvent.events?.nodes?.length"
 		:events="props.contractEvent.events"
 	/>
 	<LogsHEX
-		v-else-if="eventsAsHex?.nodes?.length"
+		v-else-if="props.contractEvent.eventsAsHex?.nodes?.length"
 		:events-as-hex="props.contractEvent.eventsAsHex"
 	/>
 </template>
