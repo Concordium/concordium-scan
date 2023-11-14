@@ -24,15 +24,18 @@
 			</TableTd>
 			<TableTd>
 				{{ trimTypeName(contractRejectEvent.rejectedEvent.__typename) }}
-				<InfoTooltip text="Contract logic rejected. For an explanation of the error code(s), see ">
+				<InfoTooltip
+					text="Contract logic rejected. For an explanation of the error code(s), see "
+				>
 					<template #content>
 						<a
-							style="color: #48a2ae;"
-							href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+							style="color: #48a2ae"
+							href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"
+						>
 							link
 						</a>
 					</template>
-				</InfoTooltip>				
+				</InfoTooltip>
 			</TableTd>
 			<TableTd>
 				<DetailsView
@@ -42,12 +45,16 @@
 					:id="i"
 				>
 					<div>
-						<div>Reject reason:
-							<InfoTooltip text="Errors are present as enum in contract. For an explanation of the error code(s), see ">
+						<div>
+							Reject reason:
+							<InfoTooltip
+								text="Errors are present as enum in contract. For an explanation of the error code(s), see "
+							>
 								<template #content>
 									<a
-										style="color: #48a2ae;"
-										href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors">
+										style="color: #48a2ae"
+										href="https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/piggy-bank/deploying.html#smart-contract-errors"
+									>
 										link
 									</a>
 								</template>
@@ -58,14 +65,20 @@
 						</div>
 					</div>
 					<div>
-						<div>Entrypoint:
-							<InfoTooltip :text="RECEIVE_NAME"/>
+						<div>
+							Entrypoint:
+							<InfoTooltip :text="RECEIVE_NAME" />
 						</div>
 						<div>
 							{{ getEntrypoint(contractRejectEvent.rejectedEvent.receiveName) }}
 						</div>
 					</div>
+					<Message
+						v-if="contractRejectEvent.rejectedEvent.message"
+						:message="contractRejectEvent.rejectedEvent.message"
+					/>
 					<MessageHEX
+						v-else-if="contractRejectEvent.rejectedEvent.messageAsHex"
 						:message-as-hex="contractRejectEvent.rejectedEvent.messageAsHex"
 					/>
 				</DetailsView>
@@ -77,9 +90,10 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import MessageHEX from '../Details/MessageHEX.vue'
+import Message from '../Details/Message.vue'
 import DetailsView from '../Details/DetailsView.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
-import { getEntrypoint } from "./Events/contractEvents";
+import { getEntrypoint } from './Events/contractEvents'
 import { ContractRejectEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
