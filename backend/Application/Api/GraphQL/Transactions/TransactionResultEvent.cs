@@ -655,7 +655,7 @@ public record ContractUpdated(
         uint eventIndex
         )
     {
-        if (EventsAsHex.Length == 0)
+        if (EventsAsHex.Length == 0 && string.IsNullOrEmpty(MessageAsHex))
         { 
             return null;
         }
