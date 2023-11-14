@@ -1,6 +1,6 @@
 ﻿<template>
 	<span>
-		Validation reward commission is not in the valid range for a validator
+		Block reward commission is not in the valid range for a validator
 	</span>
 </template>
 
