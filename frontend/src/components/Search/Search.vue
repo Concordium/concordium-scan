@@ -331,8 +331,8 @@ const gotoSearchResult = () => {
 		})
 	else if (data.value.search.bakers.nodes[0])
 		drawer.push({
-			entityTypeName: 'baker',
-			bakerId: data.value.search.bakers.nodes[0].bakerId,
+			entityTypeName: 'validator',
+			id: data.value.search.bakers.nodes[0].bakerId,
 		})
 	else if (data.value.search.nodeStatuses.nodes[0])
 		drawer.push({

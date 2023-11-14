@@ -19,16 +19,9 @@
 			<FinalizationRewards
 				v-if="
 					data.block.finalizationRewards.nodes.length &&
-					data.block.finalizationRewards.nodes.reduce((acc, current) => {
-						console.log(current)
-						return (
-							acc +
-							(current.finalizationRewards?.nodes?.reduce(
-								(acci, currenti) => acci + currenti.amount,
-								0
-							) ?? 0)
-						)
-					}, 0)
+					showFinalizationFromFinalizationReward(
+						data.block.finalizationRewards.nodes
+					)
 				"
 				:data="data.block.finalizationRewards"
 				:go-to-page="goToPageFinalizationRewards"
@@ -90,6 +83,7 @@ import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import { useSpecialEventsPagination } from '~/composables/useSpecialEventsPagination'
 import type { Block } from '~/types/generated'
+import { showFinalizationFromFinalizationReward } from '~~/src/utils/finalizationCommissionHelpers'
 
 // finalization rewards pagination variables
 const {

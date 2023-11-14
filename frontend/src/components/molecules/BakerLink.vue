@@ -21,7 +21,7 @@ defineProps<Props>()
 
 const drawer = useDrawer()
 
-const handleOnClick = (bakerId: number) => {
-	drawer.push({ entityTypeName: 'baker', bakerId })
+const handleOnClick = (id: number) => {
+	drawer.push({ entityTypeName: 'validator', id })
 }
 </script>
