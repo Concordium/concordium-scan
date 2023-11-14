@@ -1,7 +1,7 @@
 ﻿<template>
 	<span>
-		Baker <BakerLink :id="event.bakerId" /> set transaction fee commission to
-		{{ event.transactionFeeCommission * 100 }}%</span
+		Validator <BakerLink :id="event.bakerId" /> set transaction fee commission
+		to {{ event.transactionFeeCommission * 100 }}%</span
 	>
 </template>
 

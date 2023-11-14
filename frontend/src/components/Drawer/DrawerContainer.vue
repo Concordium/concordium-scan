@@ -51,8 +51,10 @@
 							:module-reference="drawerItem.moduleReference"
 						/>
 						<BakerDetailsContainer
-							v-else-if="drawerItem && drawerItem.entityTypeName === 'baker'"
-							:baker-id="drawerItem.bakerId"
+							v-else-if="
+								drawerItem && drawerItem.entityTypeName === 'validator'
+							"
+							:baker-id="drawerItem.id"
 						/>
 						<PassiveDelegationContainer
 							v-else-if="

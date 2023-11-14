@@ -15,7 +15,7 @@
 					}}</template>
 				</DetailsCard>
 				<DetailsCard v-if="props.block.bakerId">
-					<template #title>Baker id</template>
+					<template #title>Validator id</template>
 					<template #default>
 						<BakerLink
 							:id="props.block.bakerId"

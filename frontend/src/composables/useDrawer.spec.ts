@@ -194,14 +194,14 @@ describe('useDrawer', () => {
 			it('should match a baker drawer by bakerId', () => {
 				const currentTopItem = ref<DrawerItem>({
 					entityTypeName: 'baker',
-					bakerId: 666,
+					id: 666,
 				})
 
 				expect(
-					isItemOnTop({ entityTypeName: 'baker', bakerId: 42 }, currentTopItem)
+					isItemOnTop({ entityTypeName: 'baker', id: 42 }, currentTopItem)
 				).toBe(false)
 				expect(
-					isItemOnTop({ entityTypeName: 'baker', bakerId: 666 }, currentTopItem)
+					isItemOnTop({ entityTypeName: 'baker', id: 666 }, currentTopItem)
 				).toBe(true)
 			})
 		})
@@ -346,7 +346,7 @@ describe('useDrawer', () => {
 
 			const item = {
 				entityTypeName: 'baker',
-				bakerId: 123,
+				id: 123,
 			} as DrawerItem
 
 			const state = ref<DrawerList>({ items: [item] })

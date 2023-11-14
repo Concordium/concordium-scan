@@ -68,7 +68,7 @@
 							<TableTh width="25%">Height</TableTh>
 							<TableTh width="25%">Block hash</TableTh>
 							<TableTh v-if="breakpoint >= Breakpoint.MD" width="25%"
-								>Baker</TableTh
+								>Validator</TableTh
 							>
 							<TableTh
 								v-if="breakpoint >= Breakpoint.SM"
@@ -167,9 +167,7 @@
 								align="right"
 								class="numerical"
 							>
-								<Amount
-									:amount="transaction.ccdCost"
-								/>
+								<Amount :amount="transaction.ccdCost" />
 							</TableTd>
 						</TableRow>
 					</TransitionGroup>

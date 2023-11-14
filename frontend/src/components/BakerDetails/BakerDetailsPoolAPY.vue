@@ -36,7 +36,7 @@
 		</template>
 	</DetailsCard>
 	<DetailsCard>
-		<template #title>Baker APY ({{ periodText }})</template>
+		<template #title>Validator APY ({{ periodText }})</template>
 		<template #default>
 			<span v-if="data && Number.isFinite(data.bakerApy)" class="numerical">
 				{{formatPercentage(data.bakerApy!)}}%

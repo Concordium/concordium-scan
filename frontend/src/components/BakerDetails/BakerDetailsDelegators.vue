@@ -52,7 +52,7 @@
 		<NotFound v-else-if="componentState === 'empty'">
 			No delegators
 			<template #secondary>
-				There are no delegators for this baker pool
+				There are no delegators for this staking pool
 			</template>
 		</NotFound>
 		<Error v-else-if="componentState === 'error'" :error="error" />

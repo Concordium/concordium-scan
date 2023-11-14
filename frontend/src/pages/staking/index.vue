@@ -42,7 +42,7 @@
 						:selected-tab="selectedTab"
 						:on-click="handleSelectTab"
 					>
-						Baker pools
+						Staking pools
 					</TabBarItem>
 					<TabBarItem
 						tab-id="topDelegators"

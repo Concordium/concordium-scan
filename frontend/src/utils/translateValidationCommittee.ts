@@ -6,7 +6,7 @@
 		NotInCommittee: 'Not a member',
 	} as Record<string, string>,
 }
-export const translateBakingCommittee = (bakingCommittee: string) => {
+export const translateValidationCommittee = (bakingCommittee: string) => {
 	const translationKey = bakingCommittee
 	if (translations.entryTypes[translationKey])
 		return translations.entryTypes[translationKey]

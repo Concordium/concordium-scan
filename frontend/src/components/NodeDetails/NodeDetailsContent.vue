@@ -4,7 +4,7 @@
 		<DrawerContent>
 			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8 mb-8">
 				<DetailsCard>
-					<template #title>Baker</template>
+					<template #title>Validator</template>
 					<template #default
 						><BakerLink
 							v-if="Number.isInteger(node.consensusBakerId)"
@@ -49,9 +49,9 @@
 					>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking Committee</template>
+					<template #title>Validation Committee</template>
 					<template #default
-						>{{ translateBakingCommittee(node.bakingCommitteeMember) }}
+						>{{ translateValidationCommittee(node.bakingCommitteeMember) }}
 					</template>
 				</DetailsCard>
 			</div>
@@ -140,7 +140,7 @@
 <script lang="ts" setup>
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { translateBakingCommittee } from '~/utils/translateBakingCommittee'
+import { translateValidationCommittee } from '~/utils/translateValidationCommittee'
 import {
 	formatNumber,
 	formatUptime,
@@ -167,3 +167,4 @@ type Props = {
 
 defineProps<Props>()
 </script>
+~~/src/utils/translateValidationCommittee

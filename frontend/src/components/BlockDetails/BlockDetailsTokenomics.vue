@@ -17,7 +17,12 @@
 			/>
 
 			<FinalizationRewards
-				v-if="data.block.finalizationRewards.nodes.length"
+				v-if="
+					data.block.finalizationRewards.nodes.length &&
+					showFinalizationFromFinalizationReward(
+						data.block.finalizationRewards.nodes
+					)
+				"
 				:data="data.block.finalizationRewards"
 				:go-to-page="goToPageFinalizationRewards"
 				:go-to-sub-page="goToSubPageFinalizationRewards"
@@ -29,7 +34,7 @@
 				:go-to-page="goToPageBlockRewards"
 			/>
 
-			<BakingRewards
+			<ValidationRewards
 				v-if="data.block.bakingRewards.nodes.length"
 				:data="data.block.bakingRewards"
 				:go-to-page="goToPageBakingRewards"
@@ -71,13 +76,14 @@ import PaydayPoolReward from '~/components/Tokenomics/PaydayPoolReward.vue'
 import MintDistribution from '~/components/Tokenomics/MintDistribution.vue'
 import FinalizationRewards from '~/components/Tokenomics/FinalizationRewards.vue'
 import BlockAccrueRewards from '~/components/Tokenomics/BlockAccrueRewards.vue'
-import BakingRewards from '~/components/Tokenomics/BakingRewards.vue'
+import ValidationRewards from '~/components/Tokenomics/ValidationRewards.vue'
 import BlockRewards from '~/components/Tokenomics/BlockRewards.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import { useSpecialEventsPagination } from '~/composables/useSpecialEventsPagination'
 import type { Block } from '~/types/generated'
+import { showFinalizationFromFinalizationReward } from '~~/src/utils/finalizationCommissionHelpers'
 
 // finalization rewards pagination variables
 const {

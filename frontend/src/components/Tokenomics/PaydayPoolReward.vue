@@ -6,8 +6,10 @@
 				<TableHead>
 					<TableRow>
 						<TableTh>Pool</TableTh>
-						<TableTh align="right">Baker reward (Ͼ)</TableTh>
-						<TableTh align="right">Finalization reward (Ͼ)</TableTh>
+						<TableTh align="right">Block reward (Ͼ)</TableTh>
+						<TableTh v-if="showFinalization" align="right"
+							>Finalization reward (Ͼ)</TableTh
+						>
 						<TableTh align="right">Transaction fees (Ͼ)</TableTh>
 					</TableRow>
 				</TableHead>
@@ -30,7 +32,7 @@
 						<TableTd align="right" class="numerical">
 							<Amount :amount="rewards.bakerReward" />
 						</TableTd>
-						<TableTd align="right" class="numerical">
+						<TableTd v-if="showFinalization" align="right" class="numerical">
 							<Amount :amount="rewards.finalizationReward" />
 						</TableTd>
 						<TableTd align="right" class="numerical">
@@ -64,11 +66,16 @@ import type { FilteredSpecialEvent } from '~/queries/useBlockSpecialEventsQuery'
 import type { PaginationTarget } from '~/composables/usePagination'
 import type { PageInfo, PaydayPoolRewardSpecialEvent } from '~/types/generated'
 import PassiveDelegationLink from '~/components/molecules/PassiveDelegationLink.vue'
+import { showFinalizationFromReward } from '~~/src/utils/finalizationCommissionHelpers'
 
 type Props = {
 	data: FilteredSpecialEvent<PaydayPoolRewardSpecialEvent>
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const showFinalization = computed(() =>
+	showFinalizationFromReward(props.data.nodes)
+)
 </script>

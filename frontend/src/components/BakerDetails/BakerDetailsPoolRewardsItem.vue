@@ -20,7 +20,7 @@
 				<template #content>
 					<div>
 						<span class="legend"></span>
-						Baker:
+						Validator:
 						<Amount
 							:amount="totalAmounts.baker"
 							class="pt-0 pl-2"
@@ -77,13 +77,13 @@
 			<div class="block">
 				<DescriptionList class="text-sm text-theme-faded">
 					<DescriptionListItem>
-						<span class="float-left inline-block pt-2">Baking rewards</span>
+						<span class="float-left inline-block pt-2">Block rewards</span>
 						<template #content>
 							<BakerDetailsPoolAmounts :amounts="reward.bakerReward" />
 						</template>
 					</DescriptionListItem>
 
-					<DescriptionListItem>
+					<DescriptionListItem v-if="reward.finalizationReward.totalAmount">
 						<span class="float-left inline-block pt-2"
 							>Finalization rewards</span
 						>

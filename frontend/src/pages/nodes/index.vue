@@ -17,7 +17,7 @@
 			<TableHead>
 				<TableRow>
 					<TableTh>Node name</TableTh>
-					<TableTh>Baker ID</TableTh>
+					<TableTh>Validator ID</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.SM">Uptime</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.SM" align="right">
 						Node version

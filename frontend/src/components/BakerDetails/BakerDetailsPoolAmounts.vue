@@ -3,7 +3,7 @@
 		<template #content>
 			<div class="text-theme-body text-sm">
 				<span class="legend"></span>
-				Baker:
+				Validator:
 				<Amount
 					:amount="amounts.bakerAmount"
 					class="pt-0 pl-2"

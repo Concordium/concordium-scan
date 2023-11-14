@@ -82,7 +82,7 @@
 				</DetailsCard>
 
 				<DetailsCard v-if="baker.state.pool.rankingByTotalStake">
-					<template #title>Baker rank</template>
+					<template #title>Validator rank</template>
 					<template #default>
 						# {{ baker.state.pool.rankingByTotalStake.rank
 						}}<span class="text-theme-faded text-sm">
@@ -109,24 +109,12 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Baking commission</template>
+					<template #title>Block commission</template>
 					<template #default>
 						<span class="numerical">
 							{{
 								formatPercentage(
 									baker.state.pool.commissionRates.bakingCommission
-								)
-							}}%
-						</span>
-					</template>
-				</DetailsCard>
-				<DetailsCard>
-					<template #title>Finalization commission</template>
-					<template #default>
-						<span class="numerical">
-							{{
-								formatPercentage(
-									baker.state.pool.commissionRates.finalizationCommission
 								)
 							}}%
 						</span>

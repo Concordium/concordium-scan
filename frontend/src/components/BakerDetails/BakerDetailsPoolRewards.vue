@@ -51,7 +51,7 @@
 
 		<NotFound v-else-if="componentState === 'empty'">
 			No rewards
-			<template #secondary> There are no rewards for this baker </template>
+			<template #secondary> There are no rewards for this validator </template>
 		</NotFound>
 		<Error v-else-if="componentState === 'error'" :error="error" />
 

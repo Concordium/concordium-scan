@@ -1,5 +1,5 @@
 ﻿<template>
-	<span> Delegation target is not a baker (id: {{ reason.bakerId }}) </span>
+	<span> Delegation target is not a validator (id: {{ reason.bakerId }}) </span>
 </template>
 
 <script setup lang="ts">

@@ -12,7 +12,7 @@
 				v-model="searchValue"
 				:class="$style.input"
 				class="rounded p-2 w-full focus:ring-2 focus:ring-pink-500 outline-none md:block pl-9"
-				placeholder="Search for account, baker, block or transaction &hellip;"
+				placeholder="Search for account, validator, block or transaction &hellip;"
 				type="search"
 				@blur="lostFocusOnSearch"
 				@keyup.enter="gotoSearchResult"
@@ -201,7 +201,7 @@
 
 					<SearchResultCategory
 						v-if="resultCount.bakers"
-						title="Bakers"
+						title="Validators"
 						:has-more-results="data.search.bakers.pageInfo.hasNextPage"
 					>
 						<div
@@ -331,8 +331,8 @@ const gotoSearchResult = () => {
 		})
 	else if (data.value.search.bakers.nodes[0])
 		drawer.push({
-			entityTypeName: 'baker',
-			bakerId: data.value.search.bakers.nodes[0].bakerId,
+			entityTypeName: 'validator',
+			id: data.value.search.bakers.nodes[0].bakerId,
 		})
 	else if (data.value.search.nodeStatuses.nodes[0])
 		drawer.push({

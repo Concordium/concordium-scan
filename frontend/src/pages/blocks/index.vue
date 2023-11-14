@@ -32,7 +32,7 @@
 						Age
 					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.LG" width="10%">
-						Baker
+						Validator
 					</TableTh>
 					<TableTh v-if="breakpoint >= Breakpoint.SM" width="10%" align="right">
 						Transactions

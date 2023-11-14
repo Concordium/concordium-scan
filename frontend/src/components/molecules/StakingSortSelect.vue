@@ -25,7 +25,7 @@
 				:selected="refVal === BakerSort.BakerApy30DaysDesc"
 				:value="BakerSort.BakerApy30DaysDesc"
 			>
-				Highest 30-day baker APY
+				Highest 30-day validator APY
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
@@ -39,14 +39,14 @@
 				:selected="refVal === BakerSort.BakerIdDesc"
 				:value="BakerSort.BakerIdDesc"
 			>
-				Highest baker ID
+				Highest validator ID
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
 				:selected="refVal === BakerSort.BakerIdAsc"
 				:value="BakerSort.BakerIdAsc"
 			>
-				Lowest baker ID
+				Lowest validator ID
 			</option>
 		</select>
 	</div>

@@ -3,7 +3,7 @@
 const translations = {
 	entryTypes: {
 		FOUNDATION_REWARD: 'Foundation reward',
-		BAKER_REWARD: 'Baker reward',
+		BAKER_REWARD: 'Block reward',
 		FINALIZATION_REWARD: 'Finalization reward',
 		TRANSACTION_FEE_REWARD: 'Transaction fee reward',
 		UNKNOWN: 'Unknown',

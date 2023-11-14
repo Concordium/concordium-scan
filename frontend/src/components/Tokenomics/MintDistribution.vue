@@ -4,7 +4,7 @@
 		<template #content>
 			<DescriptionList v-for="event in data.nodes" :key="event.id">
 				<DescriptionListItem>
-					Baking reward account
+					Block reward account
 					<template #content>
 						<Amount :amount="event.bakingReward" :show-symbol="true" />
 					</template>

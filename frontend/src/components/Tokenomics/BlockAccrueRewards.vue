@@ -4,14 +4,14 @@
 		<template #content>
 			<DescriptionList v-for="event in data.nodes" :key="event.id">
 				<DescriptionListItem>
-					Baker
+					Validator
 					<template #content>
 						<BakerLink :id="event.bakerId" />
 					</template>
 				</DescriptionListItem>
 
 				<DescriptionListItem>
-					Baker reward
+					Block reward
 					<template #content>
 						<Amount :amount="event.bakerReward" :show-symbol="true" />
 					</template>

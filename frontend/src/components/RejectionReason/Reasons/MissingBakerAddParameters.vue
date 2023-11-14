@@ -1,7 +1,7 @@
 ﻿<template>
 	<span>
-		A configure baker transaction is missing one or more arguments in order to
-		add a baker
+		A configure validator transaction is missing one or more arguments in order
+		to add a validator
 	</span>
 </template>
 

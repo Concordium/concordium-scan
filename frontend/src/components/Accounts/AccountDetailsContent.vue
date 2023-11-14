@@ -128,7 +128,7 @@
 				</template>
 			</Accordion>
 			<Accordion v-if="account.baker">
-				Baker
+				Validator
 				<template #content>
 					<AccountDetailsBaker :baker="account.baker" />
 				</template>
