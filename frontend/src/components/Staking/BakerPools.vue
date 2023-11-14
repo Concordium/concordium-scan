@@ -11,6 +11,12 @@
 						Account
 					</TableTh>
 					<TableTh
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						align="right"
+					>
+						Commission
+					</TableTh>
+					<TableTh
 						v-if="hasPoolData && breakpoint >= Breakpoint.LG"
 						align="right"
 					>
@@ -59,6 +65,22 @@
 
 					<TableTd v-if="!hasPoolData && breakpoint >= Breakpoint.SM">
 						<AccountLink :address="baker.account.address.asString" />
+					</TableTd>
+
+					<TableTd
+						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
+						align="right"
+					>
+						<span
+							v-if="baker.state.__typename === 'ActiveBakerState'"
+							class="numerical"
+						>
+							{{
+								formatPercentage(
+									baker.state.pool?.commissionRates.bakingCommission
+								)
+							}}%
+						</span>
 					</TableTd>
 
 					<TableTd
