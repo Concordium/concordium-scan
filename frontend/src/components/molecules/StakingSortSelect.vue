@@ -50,17 +50,17 @@
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.ValidationCommissionsDesc"
-				:value="BakerSort.ValidationCommissionsDesc"
+				:selected="refVal === BakerSort.BlockCommissionsDesc"
+				:value="BakerSort.BlockCommissionsDesc"
 			>
-				Highest validation commission
+				Highest block commission
 			</option>
 			<option
 				class="bg-theme-background-table text-theme-white"
-				:selected="refVal === BakerSort.ValidationCommissionsAsc"
-				:value="BakerSort.ValidationCommissionsAsc"
+				:selected="refVal === BakerSort.BlockCommissionsAsc"
+				:value="BakerSort.BlockCommissionsAsc"
 			>
-				Lowest validation commission
+				Lowest block commission
 			</option>
 		</select>
 	</div>
