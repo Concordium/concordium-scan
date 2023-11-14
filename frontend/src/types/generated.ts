@@ -1075,10 +1075,19 @@ export type ContractInitialized = {
   __typename?: 'ContractInitialized';
   amount: Scalars['UnsignedLong'];
   contractAddress: ContractAddress;
+  events?: Maybe<StringConnection>;
   eventsAsHex?: Maybe<StringConnection>;
   initName: Scalars['String'];
   moduleRef: Scalars['String'];
   version?: Maybe<ContractVersion>;
+};
+
+
+export type ContractInitializedEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -1092,7 +1101,16 @@ export type ContractInitializedEventsAsHexArgs = {
 export type ContractInterrupted = {
   __typename?: 'ContractInterrupted';
   contractAddress: ContractAddress;
+  events?: Maybe<StringConnection>;
   eventsAsHex?: Maybe<StringConnection>;
+};
+
+
+export type ContractInterruptedEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -1139,11 +1157,21 @@ export type ContractUpdated = {
   __typename?: 'ContractUpdated';
   amount: Scalars['UnsignedLong'];
   contractAddress: ContractAddress;
+  events?: Maybe<StringConnection>;
   eventsAsHex?: Maybe<StringConnection>;
   instigator: Address;
+  message?: Maybe<Scalars['String']>;
   messageAsHex: Scalars['String'];
   receiveName: Scalars['String'];
   version?: Maybe<ContractVersion>;
+};
+
+
+export type ContractUpdatedEventsArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -2476,6 +2504,7 @@ export type RejectedReceive = {
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
   _: Scalars['Boolean'];
   contractAddress: ContractAddress;
+  message?: Maybe<Scalars['String']>;
   messageAsHex: Scalars['String'];
   receiveName: Scalars['String'];
   rejectReason: Scalars['Int'];

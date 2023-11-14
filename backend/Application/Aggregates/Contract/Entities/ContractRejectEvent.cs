@@ -1,7 +1,9 @@
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
+using HotChocolate;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -13,8 +15,10 @@ public sealed class ContractRejectEvent : BaseIdentification
     public ulong ContractAddressIndex { get; init; }
     public ulong ContractAddressSubIndex { get; init; }
     public AccountAddress Sender { get; init; } = null!;
-    public TransactionRejectReason RejectedEvent { get; init; } = null!;
-
+    public TransactionRejectReason RejectedEvent { get; private set; } = null!;
+    [GraphQLIgnore] 
+    public DateTimeOffset? UpdatedAt { get; private set; }
+    
     /// <summary>
     /// Needed for EF Core
     /// </summary>
@@ -36,6 +40,27 @@ public sealed class ContractRejectEvent : BaseIdentification
         ContractAddressSubIndex = contractAddress.SubIndex;
         Sender = sender;
         RejectedEvent = rejectedEvent;
+    }
+    
+    /// <summary>
+    /// Try parse hexadecimal events and parameters in <see cref="RejectedEvent"/> and override existing stored event with result.
+    /// </summary>
+    internal async Task ParseEvent(IModuleReadonlyRepository moduleReadonlyRepository)
+    {
+        var updated = RejectedEvent switch
+        {
+            RejectedReceive rejectedReceive => await rejectedReceive.TryUpdateMessage(
+                moduleReadonlyRepository,
+                BlockHeight,
+                TransactionIndex),
+            _ => RejectedEvent
+        };
+        if (updated == null)
+        {
+            return;
+        }
+        RejectedEvent = updated;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
     
     internal const string ContractRejectEventsSql = @"

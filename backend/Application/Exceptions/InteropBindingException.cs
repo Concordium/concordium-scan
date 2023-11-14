@@ -5,11 +5,20 @@ namespace Application.Exceptions;
 /// </summary>
 internal sealed class InteropBindingException : Exception
 {
+    internal const string EmptyErrorMessage = "Empty error message returned";
+    
+    internal InteropError Error { get; }
+
     private InteropBindingException(string message) : base(message)
-    {}
+    {
+        var interopError = InteropErrorExtensions.From(message);
+
+        Error = interopError;
+    }
 
     internal static InteropBindingException Create(string? message) => 
         message != null ? new InteropBindingException(message) : Empty();
 
-    private static InteropBindingException Empty() => new("Empty error message returned");
+    private static InteropBindingException Empty() => new(EmptyErrorMessage);
 }
+

@@ -6,8 +6,9 @@
 		</div>
 	</div>
 	<div>
-		<div>Instigator:
-			<InfoTooltip text="Account or contract which initiated the activity."/>
+		<div>
+			Instigator:
+			<InfoTooltip text="Account or contract which initiated the activity." />
 		</div>
 		<div>
 			<ContractLink
@@ -21,12 +22,13 @@
 					props.contractEvent.instigator.__typename === 'AccountAddress'
 				"
 				:address="props.contractEvent.instigator.asString"
-			/>	
+			/>
 		</div>
 	</div>
 	<div>
-		<div>Entrypoint:
-			<InfoTooltip :text="RECEIVE_NAME"/>
+		<div>
+			Entrypoint:
+			<InfoTooltip :text="RECEIVE_NAME" />
 		</div>
 		<div>
 			{{ getEntrypoint(props.contractEvent.receiveName) }}
@@ -38,15 +40,31 @@
 			{{ props.contractEvent.version }}
 		</div>
 	</div>
-	<MessageHEX :message-as-hex="props.contractEvent.messageAsHex" />
-	<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />
+	<Message
+		v-if="props.contractEvent.message"
+		:message="props.contractEvent.message"
+	/>
+	<MessageHEX
+		v-else-if="props.contractEvent.messageAsHex"
+		:message-as-hex="props.contractEvent.messageAsHex"
+	/>
+	<Logs
+		v-if="props.contractEvent.events?.nodes?.length"
+		:events="props.contractEvent.events"
+	/>
+	<LogsHEX
+		v-else-if="props.contractEvent.eventsAsHex?.nodes?.length"
+		:events-as-hex="props.contractEvent.eventsAsHex"
+	/>
 </template>
 <script lang="ts" setup>
 import { ContractUpdated } from '../../../../src/types/generated'
 import MessageHEX from '../../Details/MessageHEX.vue'
+import Message from '../../Details/Message.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
+import Logs from '../../Details/Logs.vue'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
-import { getEntrypoint } from "./contractEvents";
+import { getEntrypoint } from './contractEvents'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import Amount from '~/components/atoms/Amount.vue'
@@ -56,5 +74,4 @@ type Props = {
 	contractEvent: ContractUpdated
 }
 const props = defineProps<Props>()
-
 </script>

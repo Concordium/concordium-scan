@@ -20,8 +20,9 @@
 		</div>
 	</div>
 	<div>
-		<div>Entrypoint of contract called:
-			<InfoTooltip text="Entrypoint of the activity of the called contract."/>		
+		<div>
+			Entrypoint of contract called:
+			<InfoTooltip text="Entrypoint of the activity of the called contract." />
 		</div>
 		<div>
 			{{ getEntrypoint(props.contractEvent.contractUpdated.receiveName) }}
@@ -37,13 +38,31 @@
 		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
 	/>
 	<LogsHEX :events-as-hex="props.contractEvent.contractUpdated.eventsAsHex" />
+	<Message
+		v-if="props.contractEvent.contractUpdated.message"
+		:message="props.contractEvent.contractUpdated.message"
+	/>
+	<MessageHEX
+		v-else-if="props.contractEvent.contractUpdated.messageAsHex"
+		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
+	/>
+	<Logs
+		v-if="props.contractEvent.contractUpdated.events?.nodes?.length"
+		:events="props.contractEvent.contractUpdated.events"
+	/>
+	<LogsHEX
+		v-else-if="props.contractEvent.contractUpdated.eventsAsHex?.nodes?.length"
+		:events-as-hex="props.contractEvent.contractUpdated.eventsAsHex"
+	/>
 </template>
 <script lang="ts" setup>
 import MessageHEX from '../../Details/MessageHEX.vue'
+import Message from '../../Details/Message.vue'
 import LogsHEX from '../../Details/LogsHEX.vue'
+import Logs from '../../Details/Logs.vue'
 import { ContractCall } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
-import { getEntrypoint } from "./contractEvents";
+import { getEntrypoint } from './contractEvents'
 import Amount from '~/components/atoms/Amount.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 

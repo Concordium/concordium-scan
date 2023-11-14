@@ -6,8 +6,11 @@
 		</div>
 	</div>
 	<div>
-		<div>Module:
-			<InfoTooltip :text="`${MODULE} This reference holds the execution code of the contract at the time of the activity.`"/>
+		<div>
+			Module:
+			<InfoTooltip
+				:text="`${MODULE} This reference holds the execution code of the contract at the time of the activity.`"
+			/>
 		</div>
 		<div>
 			<ModuleLink :module-reference="props.contractEvent.moduleRef" />
@@ -19,10 +22,18 @@
 			{{ props.contractEvent.version }}
 		</div>
 	</div>
-	<LogsHEX :events-as-hex="props.contractEvent.eventsAsHex" />
+	<Logs
+		v-if="props.contractEvent.events?.nodes?.length"
+		:events="props.contractEvent.events"
+	/>
+	<LogsHEX
+		v-else-if="props.contractEvent.eventsAsHex?.nodes?.length"
+		:events-as-hex="props.contractEvent.eventsAsHex"
+	/>
 </template>
 <script lang="ts" setup>
 import LogsHEX from '../../Details/LogsHEX.vue'
+import Logs from '../../Details/Logs.vue'
 import { ContractInitialized } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import ModuleLink from '../../molecules/ModuleLink.vue'
