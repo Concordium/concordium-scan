@@ -31,10 +31,21 @@ type ModuleDrawerItem = {
 	moduleReference: string
 }
 
+/**
+ * This type is kept such that links like
+ * https://ccdscan.io/staking?dcount=1&dentity=baker&did=SOME_ID stills works after
+ * tokenomic change from 'baker' to 'validator'.
+ */
 type BakerDrawerItem = {
+	entityTypeName: 'baker'
+	bakerId: number
+}
+
+type ValidatorDrawerItem = {
 	entityTypeName: 'validator'
 	bakerId: number
 }
+
 type NodeDrawerItem = {
 	entityTypeName: 'node'
 	nodeId: string
@@ -48,6 +59,7 @@ export type DrawerItem = (
 	| AccountDrawerItem
 	| ContractDrawerItem
 	| ModuleDrawerItem
+	| ValidatorDrawerItem
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
@@ -240,7 +252,11 @@ export const useDrawer = () => {
 				},
 				false
 			)
-		} else if (route.query.dentity === 'validator' && route.query.did) {
+		} else if (
+			(route.query.dentity === 'validator' ||
+				route.query.dentity === 'baker') &&
+			route.query.did
+		) {
 			push(
 				{
 					entityTypeName: 'validator',
