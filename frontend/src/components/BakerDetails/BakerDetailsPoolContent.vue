@@ -109,7 +109,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Validation commission</template>
+					<template #title>Block commission</template>
 					<template #default>
 						<span class="numerical">
 							{{

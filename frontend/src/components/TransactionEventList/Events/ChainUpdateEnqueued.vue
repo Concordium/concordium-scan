@@ -146,7 +146,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Validation reward account
+					Block reward account
 					<template #content>
 						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
 					</template>
@@ -250,7 +250,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Validation commission range
+					Block commission range
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.bakingCommissionRange.min * 100 }} </span
@@ -378,7 +378,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Validation reward account
+					Block reward account
 					<template #content>
 						<span class="numerical"> {{ event.payload.bakingReward }}% </span>
 					</template>

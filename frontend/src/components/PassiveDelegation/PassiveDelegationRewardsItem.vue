@@ -20,7 +20,7 @@
 				<template #content>
 					<div v-if="reward.bakerReward.totalAmount">
 						<span class="legend"></span>
-						Validation reward:
+						Block reward:
 						<Amount
 							:amount="reward.bakerReward.totalAmount"
 							class="pt-0 pl-2"
