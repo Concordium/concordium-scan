@@ -1,7 +1,11 @@
-﻿using Concordium.Sdk.Types;
+﻿using System.Threading.Tasks;
+using Application.Aggregates.Contract;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
+using Serilog.Context;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ReceiveName = Application.Types.ReceiveName;
 
 namespace Application.Api.GraphQL.Transactions;
 
@@ -160,7 +164,60 @@ public record RejectedReceive(
     int RejectReason,
     ContractAddress ContractAddress,
     string ReceiveName,
-    string MessageAsHex) : TransactionRejectReason;
+    string MessageAsHex,
+    string? Message = null) : TransactionRejectReason {
+    
+    /// <summary>
+    /// Try parse hexadecimal <see cref="MessageAsHex"/> from module schema.
+    ///
+    /// If succeed a new <see cref="RejectedReceive"/> is returned.
+    ///
+    /// If no module schema exist or the parsing fails null will be returned. In case of error the error will be logged.
+    /// </summary>
+    internal async Task<RejectedReceive?> TryUpdateMessage(
+        IModuleReadonlyRepository moduleReadonlyRepository,
+        ulong blockHeight,
+        ulong transactionIndex
+    )
+    {
+        if (IsParseError())
+        {
+            return null;
+        }
+        var logger = Log.ForContext<RejectedReceive>();
+        using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
+        
+        var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, 0);
+        if (moduleReferenceEvent.Schema == null)
+        {
+            return null;
+        }
+
+        var receiveName = new ReceiveName(ReceiveName);
+        var message = receiveName.DeserializeMessage(
+            MessageAsHex,
+            moduleReferenceEvent.Schema,
+            moduleReferenceEvent.SchemaVersion,
+            logger,
+            moduleReferenceEvent.ModuleReference,
+            nameof(RejectedReceive)
+        );
+        return message != null ? 
+            new RejectedReceive(RejectReason, ContractAddress, ReceiveName, MessageAsHex, message) : 
+            null;
+    }
+    
+    /// <summary>
+    /// Don't deserialize the message if the error is exactly an error related to parsing.
+    /// </summary>
+    /// <remarks>
+    /// <see href="https://github.com/Concordium/concordium-rust-smart-contracts/blob/673d09236b40e4583e60b8aa2cd7b6849b1c6189/concordium-std/src/lib.rs#L202">Common error cases</see>
+    /// </remarks>
+    private bool IsParseError()
+    {
+        return RejectReason == -2_147_483_646;
+    }
+}
 
 /// <summary>
 /// Reward account desired by the baker does not exist.

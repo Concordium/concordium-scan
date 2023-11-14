@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Application.Exceptions;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
 using Prometheus;
@@ -15,6 +16,38 @@ internal static class ApplicationMetrics
         {
             LabelNames = new[] { "operation", "exception" }
         });
+
+    private static readonly Counter InteropErrors = Metrics.CreateCounter(
+        "interop_errors_total",
+        "Number of errors from interop calls. Instigator is used to partition which process initiated the call.",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "instigator", "exception" }
+        }
+    );
+
+    private static readonly Counter RetryPolicyExceptions = Metrics.CreateCounter(
+        "retry_policy_exceptions_total",
+        "Number of retry policies triggered with the exception triggering it",
+        new CounterConfiguration
+        {
+            LabelNames = new[] { "process", "exception" }
+        }
+    );
+
+    internal static void IncInteropErrors(string instigator, InteropBindingException exception)
+    {
+        InteropErrors
+            .WithLabels(instigator, exception.Error.ToStringCached())
+            .Inc();
+    }
+
+    internal static void IncRetryPolicyExceptions(string process, Exception exception)
+    {
+        RetryPolicyExceptions
+            .WithLabels(process, PrettyPrintException(exception))
+            .Inc();
+    }
     
     internal class GraphQlDurationMetric : IDisposable
     {

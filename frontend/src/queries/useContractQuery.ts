@@ -4,6 +4,10 @@ import { Contract } from '../types/generated'
 import { ComponentState } from '../composables/useComponentState'
 import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
+// Uses alias in `ContractUpgraded` since fields `to` and `from`
+// since they in this event refers to modules, and in event `Transferred`
+// refers to address. Fields with same name but different types are not
+// allowed in GraphQL.
 const eventsFragment = `
 blockSlotTime
 transactionHash
@@ -24,6 +28,9 @@ event {
 		eventsAsHex {
 			nodes
 		}
+		events {
+			nodes
+		}
 	}
 	... on ContractInterrupted {
 		contractAddress {
@@ -33,6 +40,9 @@ event {
 			subIndex
 		}
 		eventsAsHex {
+			nodes
+		}
+		events {
 			nodes
 		}
 	}
@@ -49,6 +59,7 @@ event {
 		amount
 		receiveName
 		messageAsHex
+		message
 		version
 		instigator {
 			__typename
@@ -69,7 +80,10 @@ event {
 		}
 		eventsAsHex {
 			nodes
-		}		
+		}
+		events {
+			nodes
+		}
 	}
 	... on ContractCall {
 		contractUpdated {
@@ -139,6 +153,7 @@ rejectedEvent {
 		rejectReason
 		receiveName
 		messageAsHex
+		message
 		contractAddress {
 			index
 			subIndex
@@ -200,7 +215,7 @@ export const useContractQuery = ({
 }: QueryParams): {
 	data: Ref<ContractQueryResponse | undefined>
 	error: Ref<CombinedError | undefined>
-	componentState: Ref<ComponentState>,
+	componentState: Ref<ComponentState>
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ContractQueryResponse>({

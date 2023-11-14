@@ -91,6 +91,7 @@ internal sealed class ContractAggregate
         var (blockHash, transactionEvents) = await client.GetBlockTransactionEvents(blockHashInput, token);
         _logger.Debug("Reading block {BlockHash}, at height {BlockHeight}", blockHash.ToString(), height);
         
+        await using var moduleReadonlyRepository = await _repositoryFactory.CreateModuleReadonlyRepository();
         BlockInfo? blockInfo = null;
         var totalEvents = 0u;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))
@@ -101,8 +102,8 @@ internal sealed class ContractAggregate
             }
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
-            totalEvents += await StoreEvents(repository, client, blockInfo, details, blockItemSummary);
-            totalEvents += await StorePossibleRejectEvent(repository, blockInfo, details, blockItemSummary);
+            totalEvents += await StoreEvents(repository, moduleReadonlyRepository, client, blockInfo, details, blockItemSummary);
+            totalEvents += await StorePossibleRejectEvent(repository, moduleReadonlyRepository, blockInfo, details, blockItemSummary);
         }
 
         return totalEvents;
@@ -133,7 +134,8 @@ internal sealed class ContractAggregate
 
     internal static async Task StoreReject(
         ImportSource source,
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         TransactionRejectReason rejectEvent,
         AccountAddress sender,
         ulong blockHeight,
@@ -145,7 +147,7 @@ internal sealed class ContractAggregate
         switch (rejectEvent)
         {
             case InvalidInitMethod invalidInitMethod:
-                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                await contractRepository.AddAsync(new ModuleReferenceRejectEvent(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
@@ -157,7 +159,7 @@ internal sealed class ContractAggregate
                 ));
                 break;
             case InvalidReceiveMethod invalidReceiveMethod:
-                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                await contractRepository.AddAsync(new ModuleReferenceRejectEvent(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
@@ -169,7 +171,7 @@ internal sealed class ContractAggregate
                 ));
                 break;
             case ModuleHashAlreadyExists moduleHashAlreadyExists:
-                await repository.AddAsync(new ModuleReferenceRejectEvent(
+                await contractRepository.AddAsync(new ModuleReferenceRejectEvent(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
@@ -181,7 +183,13 @@ internal sealed class ContractAggregate
                 ));
                 break;
             case RejectedReceive rejectedReceive:
-                await repository.AddAsync(new ContractRejectEvent(
+                var rejectedReceiveEvent = await rejectedReceive
+                    .TryUpdateMessage(moduleReadonlyRepository, blockHeight, transactionIndex);
+                if (rejectedReceiveEvent != null)
+                {
+                    rejectedReceive = rejectedReceiveEvent;
+                }
+                await contractRepository.AddAsync(new ContractRejectEvent(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
@@ -200,7 +208,8 @@ internal sealed class ContractAggregate
     /// </summary>
     internal static async Task<uint> StoreEvent(
         ImportSource source,
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         IContractNodeClient client,
         TransactionResultEvent transactionResultEvent,
         AccountAddress sender,
@@ -214,7 +223,12 @@ internal sealed class ContractAggregate
         switch (transactionResultEvent)
         {
             case Api.GraphQL.Transactions.ContractInitialized contractInitialized:
-                await repository.AddAsync(new Entities.Contract(
+                var contractInitializedEvent = await contractInitialized.TryUpdateWithParsedEvents(moduleReadonlyRepository);
+                if (contractInitializedEvent != null)
+                {
+                    contractInitialized = contractInitializedEvent;
+                }
+                await contractRepository.AddAsync(new Entities.Contract(
                     blockHeight,
                     transactionHash,
                     transactionIndex,
@@ -224,7 +238,7 @@ internal sealed class ContractAggregate
                     source,
                     blockSlotTime
                 ));
-                await repository
+                await contractRepository
                     .AddAsync(new ContractEvent(
                         blockHeight,
                         transactionHash,
@@ -236,7 +250,7 @@ internal sealed class ContractAggregate
                         source,
                         blockSlotTime
                     ));
-                await repository
+                await contractRepository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
                         blockHeight,
                         transactionHash,
@@ -251,7 +265,13 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractInterrupted contractInterrupted:
-                await repository
+                var contractInterruptedEvent = await contractInterrupted
+                    .TryUpdateWithParsedEvents(contractRepository, moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
+                if (contractInterruptedEvent != null)
+                {
+                    contractInterrupted = contractInterruptedEvent;
+                }
+                await contractRepository
                     .AddAsync(new ContractEvent(
                         blockHeight,
                         transactionHash,
@@ -265,7 +285,7 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractResumed contractResumed:
-                await repository
+                await contractRepository
                     .AddAsync(new ContractEvent(
                         blockHeight,
                         transactionHash,
@@ -279,9 +299,15 @@ internal sealed class ContractAggregate
                     ));
                 break;
             case ContractUpdated contractUpdated:
+                var contractUpdatedEvent = await contractUpdated
+                    .TryUpdate(moduleReadonlyRepository, blockHeight, transactionIndex, eventIndex);
+                if (contractUpdatedEvent != null)
+                {
+                    contractUpdated = contractUpdatedEvent;
+                }
                 if (contractUpdated.Instigator is ContractAddress contractInstigator)
                 {
-                    await repository
+                    await contractRepository
                         .AddAsync(new ContractEvent(
                             blockHeight,
                             transactionHash,
@@ -298,7 +324,7 @@ internal sealed class ContractAggregate
                     // Possible a contract has called itself.
                     eventIndex += 1;
                 }
-                await repository
+                await contractRepository
                     .AddAsync(new ContractEvent(
                         blockHeight,
                         transactionHash,
@@ -312,7 +338,7 @@ internal sealed class ContractAggregate
                         ));
                 break;
             case ContractUpgraded contractUpgraded:
-                await repository
+                await contractRepository
                     .AddAsync(new ContractEvent(
                         blockHeight,
                         transactionHash,
@@ -324,7 +350,7 @@ internal sealed class ContractAggregate
                         source,
                         blockSlotTime
                     ));
-                await repository
+                await contractRepository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
                         blockHeight,
                         transactionHash,
@@ -337,7 +363,7 @@ internal sealed class ContractAggregate
                         ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added,
                         blockSlotTime
                     ));
-                await repository
+                await contractRepository
                     .AddAsync(new ModuleReferenceContractLinkEvent(
                         blockHeight,
                         transactionHash,
@@ -354,7 +380,7 @@ internal sealed class ContractAggregate
             case Transferred transferred:
                 if (transferred.From is ContractAddress contractAddressFrom)
                 {
-                    await repository
+                    await contractRepository
                         .AddAsync(new ContractEvent(
                             blockHeight,
                             transactionHash,
@@ -377,7 +403,7 @@ internal sealed class ContractAggregate
                     sender,
                     source,
                     blockSlotTime), client);
-                await repository
+                await contractRepository
                     .AddAsync(moduleReferenceEvent);
                 break;
         }
@@ -391,7 +417,8 @@ internal sealed class ContractAggregate
     /// Return 1 if a rejected event was created.
     /// </summary>
     private static async Task<uint> StorePossibleRejectEvent(
-        IContractRepository repository, 
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         BlockInfo blockInfo, 
         AccountTransactionDetails details,
         BlockItemSummary blockItemSummary
@@ -404,7 +431,8 @@ internal sealed class ContractAggregate
         
         await StoreReject(
             ImportSource.NodeImport,
-            repository,
+            contractRepository,
+            moduleReadonlyRepository,
             rejectReason!,
             AccountAddress.From(details.Sender),
             blockInfo.BlockHeight,
@@ -447,7 +475,8 @@ internal sealed class ContractAggregate
     /// Store related events and return mapped events count.
     /// </summary>
     private static async Task<uint> StoreEvents(
-        IContractRepository repository,
+        IContractRepository contractRepository,
+        IModuleReadonlyRepository moduleReadonlyRepository,
         IContractNodeClient client,
         BlockInfo blockInfo, 
         AccountTransactionDetails details,
@@ -460,7 +489,8 @@ internal sealed class ContractAggregate
         {
             eventIndex = await StoreEvent(
                 ImportSource.NodeImport,
-                repository,
+                contractRepository,
+                moduleReadonlyRepository,
                 client,
                 transactionResultEvent,
                 AccountAddress.From(details.Sender),
@@ -490,7 +520,7 @@ internal sealed class ContractAggregate
             using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
             try
             {
-                await using var repository = await _repositoryFactory.CreateAsync();
+                await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
 
                 var affectedEvents = await NodeImport(repository, client, height, token);
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
@@ -510,8 +540,8 @@ internal sealed class ContractAggregate
     
     private async Task<ulong> GetNextBlockHeight()
     {
-        await using var repository = await _repositoryFactory.CreateAsync();
-        var importState = await repository.GetReadOnlyLatestContractReadHeight();
+        await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
+        var importState = await repository.GetReadonlyLatestContractReadHeight();
         return importState != null ? importState.BlockHeight + 1 : 0;
     }
 

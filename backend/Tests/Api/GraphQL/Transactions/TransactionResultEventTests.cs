@@ -1,8 +1,14 @@
+using System.IO;
 using System.Text.Json;
+using Application.Aggregates.Contract;
+using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
+using Moq;
 using Tests.TestUtilities.Stubs;
 
 namespace Tests.Api.GraphQL.Transactions;
@@ -11,6 +17,132 @@ public class TransactionResultEventTests
 {
     private readonly JsonSerializerOptions _serializerOptions = EfCoreJsonSerializerOptionsFactory.Create();
 
+    private async Task<ModuleReferenceEvent> CreateModuleReferenceEventWithCis2WccdSchema()
+    {
+        var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
+        
+        return new ModuleReferenceEvent(
+            0,
+            "",
+            0,
+            0,
+            "foo",
+            new AccountAddress(""),
+            "",
+            schema,
+            null,
+            ImportSource.NodeImport,
+            DateTimeOffset.UtcNow
+        );
+    }
+    [Fact]
+    public async Task GivenContractUpdated_WhenParseMessageAndEvents_ThenParsed()
+    {
+        // Arrange
+        const string contractName = "cis2_wCCD";
+        const string entrypoint = "wrap";
+        const string message = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
+        const string eventMessage = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
+        const string expectedMessage = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
+        const string expectedEvent = "{\"Mint\":{\"amount\":\"1000000\",\"owner\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]},\"token_id\":\"\"}}";
+
+        var moduleReferenceEvent = await CreateModuleReferenceEventWithCis2WccdSchema();
+        
+        var contractUpdated = new ContractUpdated(
+            new ContractAddress(1,0),
+            new AccountAddress(""),
+            42,
+            message,
+            $"{contractName}.{entrypoint}",
+            ContractVersion.V0,
+            new []{eventMessage});
+
+        var moduleRepositoryMock = new Mock<IModuleReadonlyRepository>();
+        moduleRepositoryMock.Setup(m => m.GetModuleReferenceEventAtAsync(It.IsAny<ContractAddress>(), It.IsAny<ulong>(),
+            It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(Task.FromResult(moduleReferenceEvent));
+
+        // Act
+        var updated = await contractUpdated.TryUpdate(moduleRepositoryMock.Object, 0, 0, 0);
+        
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.Message.Should().Be(expectedMessage);
+        updated.Events![0].Should().Be(expectedEvent);
+    }
+    
+        [Fact]
+    public async Task GivenContractInitialized_WhenParseEvents_ThenParsed()
+    {
+        // Arrange
+        const string contractName = "cis2_wCCD";
+        const string eventMessage = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
+        const string expectedEvent = "{\"Mint\":{\"amount\":\"1000000\",\"owner\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]},\"token_id\":\"\"}}";
+        
+        var moduleReferenceEvent = await CreateModuleReferenceEventWithCis2WccdSchema();
+
+        var contractInitialized = new ContractInitialized(
+            "",
+            new ContractAddress(1, 0),
+            10,
+            $"init_{contractName}",
+            ContractVersion.V0,
+            new[]{eventMessage});
+        
+        var moduleRepositoryMock = new Mock<IModuleReadonlyRepository>();
+        moduleRepositoryMock.Setup(m => m.GetModuleReferenceEventAsync(It.IsAny<string>()))
+            .Returns(Task.FromResult(moduleReferenceEvent));
+
+        // Act
+        var updated = await contractInitialized.TryUpdateWithParsedEvents(moduleRepositoryMock.Object);
+        
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.Events![0].Should().Be(expectedEvent);
+    }
+    
+    [Fact]
+    public async Task GivenContractInterrupted_WhenParseEvents_ThenParsed()
+    {
+        // Arrange
+        const string contractName = "cis2_wCCD";
+        const string eventMessage = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
+        const string expectedEvent = "{\"Mint\":{\"amount\":\"1000000\",\"owner\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]},\"token_id\":\"\"}}";
+        
+        var moduleReferenceEvent = await CreateModuleReferenceEventWithCis2WccdSchema();
+
+        var contractInitialized = new ContractInitialized(
+            "",
+            new ContractAddress(1, 0),
+            10,
+            $"init_{contractName}",
+            ContractVersion.V0,
+            Array.Empty<string>());
+        var contractInterrupted = new ContractInterrupted(
+            new ContractAddress(1, 0),
+            new[]{eventMessage});
+        
+        var moduleRepositoryMock = new Mock<IModuleReadonlyRepository>();
+        moduleRepositoryMock.Setup(m => m.GetModuleReferenceEventAtAsync(It.IsAny<ContractAddress>(), It.IsAny<ulong>(),
+                It.IsAny<ulong>(), It.IsAny<uint>()))
+            .Returns(() => Task.FromResult(moduleReferenceEvent));
+        var contractRepositoryMock = new Mock<IContractRepository>();
+        contractRepositoryMock.Setup(m => m.GetReadonlyContractInitializedEventAsync(It.IsAny<ContractAddress>()))
+            .Returns(Task.FromResult(contractInitialized));
+
+        // Act
+        var updated = await contractInterrupted.TryUpdateWithParsedEvents(
+            contractRepositoryMock.Object,
+            moduleRepositoryMock.Object,
+            0,
+            0,
+            0);
+        
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.Events![0].Should().Be(expectedEvent);
+    }
+    
     [Fact]
     public void GivenInvokedContract_WhenDeserializeAndSerialize_ThenParse()
     {

@@ -769,11 +769,13 @@ type ContractInitialized {
   initName: String!
   version: ContractVersion
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+  events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
 type ContractInterrupted {
   contractAddress: ContractAddress!
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+  events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
 }
 
 type ContractModuleDeployed {
@@ -812,6 +814,8 @@ type ContractUpdated {
   receiveName: String!
   version: ContractVersion
   eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+  events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+  message: String
 }
 
 type ContractUpgraded {
@@ -1697,6 +1701,7 @@ type RejectedReceive {
   contractAddress: ContractAddress!
   receiveName: String!
   messageAsHex: String!
+  message: String
 }
 
 type RemoveFirstCredential {
