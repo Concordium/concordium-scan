@@ -246,7 +246,7 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         ///
         /// <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> has event mapping.
         /// </summary>
-        internal const string ContractInitializedEventSql = @"
+        private const string ContractInitializedEventSql = @"
 SELECT
     g0.block_height as BlockHeight,
     g0.transaction_index as TransactionIndex,

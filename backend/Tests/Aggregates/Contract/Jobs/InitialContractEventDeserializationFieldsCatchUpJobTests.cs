@@ -68,7 +68,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         await ValidateEventsHasBeenUpdated(_databaseFixture.CreateGraphQlDbContext());
     }
 
-    private async Task ValidateEventsHasBeenUpdated(GraphQlDbContext context)
+    private static async Task ValidateEventsHasBeenUpdated(GraphQlDbContext context)
     {
         const string expectedMessage = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
         const string expectedEvent = "{\"Mint\":{\"amount\":\"1000000\",\"owner\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]},\"token_id\":\"\"}}";
@@ -82,7 +82,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
         }
     }
 
-    private async Task InsertEvents(GraphQlDbContext context)
+    private static async Task InsertEvents(GraphQlDbContext context)
     {
         await DatabaseFixture.TruncateTables("graphql_module_reference_contract_link_events");
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
@@ -255,7 +255,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
     
     [Fact]
     public async Task
-        GivenModuleEventAtSameTransactionIndexInMemory_WithDifferentEventIndex_WhenGetModuleReferenceEventAtAsync_ThenReturnLatestFromDatabase()
+        GivenModuleEventAtSameTransactionIndexInMemory_WithDifferentEventIndex_WhenGetModuleReferenceEventAtAsync_ThenReturnLatest()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
@@ -329,7 +329,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
 
     [Fact]
     public async Task
-        GivenModuleEventAtSameBlockHeightInMemory_WithDifferentTransactionIndex_WhenGetModuleReferenceEventAtAsync_ThenReturnLatestFromDatabase()
+        GivenModuleEventAtSameBlockHeightInMemory_WithDifferentTransactionIndex_WhenGetModuleReferenceEventAtAsync_ThenReturnLatest()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
@@ -403,7 +403,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
     
     [Fact]
     public async Task
-        GivenModuleEventWithHigherAbsoluteTransactionIndexInMemory_WhenGetModuleReferenceEventAtAsync_ThenReturnLatestFromDatabase()
+        GivenModuleEventWithHigherAbsoluteTransactionIndexInMemory_WhenGetModuleReferenceEventAtAsync_ThenReturnLatest()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
@@ -464,7 +464,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
     
     [Fact]
     public async Task
-        GivenModuleEventWithHigherAbsoluteEventIndexInMemory_WhenGetModuleReferenceEventAtAsync_ThenReturnLatestFromDatabase()
+        GivenModuleEventWithHigherAbsoluteEventIndexInMemory_WhenGetModuleReferenceEventAtAsync_ThenReturnLatest()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_module_reference_events");
