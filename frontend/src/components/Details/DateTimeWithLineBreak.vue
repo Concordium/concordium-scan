@@ -4,7 +4,6 @@
 </template>
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
-import { formatTimestamp } from '../../utils/format'
 type Props = {
 	dateTime: string
 }
@@ -15,8 +14,15 @@ const timePartRef = ref('')
 watch(
 	props,
 	newProps => {
-		const formattedDate = formatTimestamp(newProps.dateTime)
-		const [datePart, timePart] = formattedDate.split(',')
+		const datePart = new Intl.DateTimeFormat('default', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+		}).format(new Date(newProps.dateTime))
+		const timePart = new Intl.DateTimeFormat('default', {
+			hour: 'numeric',
+			minute: 'numeric',
+		}).format(new Date(newProps.dateTime))
 		datePartRef.value = datePart
 		timePartRef.value = timePart
 	},
