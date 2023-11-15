@@ -29,10 +29,10 @@ public class ChainParametersWriter
             .FirstOrDefaultAsync();
 
         var lastWritten = importState.LatestWrittenChainParameters;
+        var mappedWithLatest = ChainParameters.From(chainParameters);
         if (lastWritten != null)
         {
-            var mappedWithLatestId = ChainParameters.From(chainParameters, lastWritten.Id);
-            if (lastWritten.Equals(mappedWithLatestId))
+            if (lastWritten.Equals(mappedWithLatest))
                 return new ChainParametersState(lastWritten);
         }
 

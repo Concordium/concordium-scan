@@ -20,7 +20,7 @@ public class ChainParametersV2 : ChainParameters, IEquatable<ChainParametersV2>
     public decimal CapitalBound { get; init; }
     public LeverageFactor LeverageBound { get; init; }
     
-    internal static ChainParametersV2 From(Concordium.Sdk.Types.ChainParametersV2 input, int id = default)
+    internal static ChainParametersV2 From(Concordium.Sdk.Types.ChainParametersV2 input)
     {
         var rewardParameters = new RewardParametersV2
         {
@@ -44,7 +44,6 @@ public class ChainParametersV2 : ChainParameters, IEquatable<ChainParametersV2>
         
         return new ChainParametersV2
         {
-            Id = id,
             EuroPerEnergy = ExchangeRate.From(input.EuroPerEnergy),
             MicroCcdPerEuro = ExchangeRate.From(input.MicroCcdPerEuro),
             PoolOwnerCooldown = (ulong)input.CooldownParameters.PoolOwnerCooldown.TotalSeconds,

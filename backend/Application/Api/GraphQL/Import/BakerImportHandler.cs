@@ -254,11 +254,12 @@ public class BakerImportHandler
 
     private async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParametersState)
     {
-        if(ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+        if(chainParametersState is ChainParametersChangedState changedState &&
+            ChainParameters.TryGetCommissionRanges(changedState.Current,
                out var currentFinalizationCommissionRange,
                out var currentBakingCommissionRange,
                out var currentTransactionCommissionRange) && 
-           ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+           ChainParameters.TryGetCommissionRanges(changedState.Previous,
                out var previousFinalizationCommissionRange,
                out var previousBakingCommissionRange,
                out var previousTransactionCommissionRange))
