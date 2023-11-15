@@ -114,7 +114,7 @@ import {
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const tableSort = ref<BakerSort>(BakerSort.TotalStakedAmountDesc)
 const openStatusFilter = ref<BakerPoolOpenStatus | undefined>(undefined)
-const includeRemoved = ref<boolean | undefined>(undefined)
+const includeRemoved = ref<boolean>(false)
 const selectedTab = ref('bakerPools')
 
 const { data: bakerMetricsData, fetching: bakerMetricsFetching } =
@@ -129,7 +129,7 @@ const handleTogglePoolFilter = (checked: boolean) => {
 }
 
 const handleToggleIncludeRemoveFilter = (value: boolean) => {
-	includeRemoved.value = value ? true : undefined
+	includeRemoved.value = value
 }
 
 const handleSelectTab = (tabId: string) => (selectedTab.value = tabId)
