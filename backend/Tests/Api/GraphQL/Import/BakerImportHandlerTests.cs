@@ -1,9 +1,15 @@
 using System.Collections.Generic;
+using System.Threading;
+using Application.Api.GraphQL;
+using Application.Api.GraphQL.Bakers;
+using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Extensions;
 using Application.Api.GraphQL.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Builders.GraphQL;
@@ -13,8 +19,10 @@ using AccountIndex = Concordium.Sdk.Types.AccountIndex;
 using BakerId = Concordium.Sdk.Types.BakerId;
 using BakerKeysEvent = Concordium.Sdk.Types.BakerKeysEvent;
 using BakerPoolInfo = Concordium.Sdk.Types.BakerPoolInfo;
+using BakerPoolOpenStatus = Concordium.Sdk.Types.BakerPoolOpenStatus;
 using BlockItemSummary = Concordium.Sdk.Types.BlockItemSummary;
 using ChainParametersV1Builder = Tests.TestUtilities.Builders.GraphQL.ChainParametersV1Builder;
+using ChainParametersV2 = Application.Api.GraphQL.ChainParametersV2;
 using CommissionRates = Concordium.Sdk.Types.CommissionRates;
 using ProtocolVersion = Concordium.Sdk.Types.ProtocolVersion;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
@@ -24,24 +32,68 @@ namespace Tests.Api.GraphQL.Import;
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
 public class BakerImportHandlerTest
 {
-    private GraphQlDbContextFactoryStub _dbContextFactory;
-    private BakerImportHandler _target;
-
+    private readonly DatabaseFixture _dbFixture;
+    
     public BakerImportHandlerTest(DatabaseFixture dbFixture)
     {
-        _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
-        _target = new BakerImportHandler(_dbContextFactory, new NullMetrics());
+        _dbFixture = dbFixture;
+    }
+    
+    [Theory]
+    [InlineData(0.42, 0.42)]
+    [InlineData(0.52, 0.5)]
+    public async Task WhenGetChainParameterUpdate_ThenOnlyAffectValidatorCommissionWhenBelow(decimal newMaxLimit, decimal expected)
+    {
+        // Arrange
+        TruncateTables();
+        var factoryMock = new Mock<IDbContextFactory<GraphQlDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(_dbFixture.CreateGraphQlDbContext()));
+        var target = new BakerImportHandler(factoryMock.Object, new NullMetrics());
+        const decimal currentCommissions = 0.5m;
+        var defaultBakerPool = BakerPool.CreateDefaultBakerPool();
+        defaultBakerPool.CommissionRates.BakingCommission = currentCommissions;
+        var activeBakerState = new ActiveBakerStateBuilder()
+            .WithPool(defaultBakerPool)
+            .Build();
+        var build = new BakerBuilder()
+            .WithState(activeBakerState)
+            .Build();
+        var graphQlDbContext = _dbFixture.CreateGraphQlDbContext();
+        await graphQlDbContext.Bakers.AddAsync(build);
+        await graphQlDbContext.SaveChangesAsync();
+        graphQlDbContext.ChangeTracker.Clear();
+        
+        // Act
+        await target.MaybeApplyCommissionRangeChanges(new ChainParametersChangedState
+        (
+            Previous: new ChainParametersV2
+            {
+                BakingCommissionRange = new CommissionRange { Min = 0, Max = currentCommissions },
+                FinalizationCommissionRange = new CommissionRange(),
+                TransactionCommissionRange = new CommissionRange()
+            },
+            Current: new ChainParametersV2
+            {
+                BakingCommissionRange = new CommissionRange { Min = 0, Max = newMaxLimit },
+                FinalizationCommissionRange = new CommissionRange(),
+                TransactionCommissionRange = new CommissionRange()
+            }
+        ));
 
-        using var connection = DatabaseFixture.GetOpenConnection();
-        connection.Execute("TRUNCATE TABLE graphql_accounts");
-        connection.Execute("TRUNCATE TABLE graphql_bakers");
-        connection.Execute("TRUNCATE TABLE graphql_account_release_schedule");
-        connection.Execute("TRUNCATE TABLE graphql_account_statement_entries");
+        // Assert
+        var singleAsync = await graphQlDbContext.Bakers.SingleAsync();
+        singleAsync.ActiveState.Pool!.CommissionRates.BakingCommission.Should().Be(expected);
     }
 
     [Fact]
     public async Task TestFirstBlockAfterPaydayBakerAddition()
     {
+        TruncateTables();
+        var factoryMock = new Mock<IDbContextFactory<GraphQlDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(_dbFixture.CreateGraphQlDbContext()));
+        var target = new BakerImportHandler(factoryMock.Object, new NullMetrics());
         var address = AccountAddress.From("3rViPc7mHzabc586rt6HJ2bgSc3CJxAtnjh759hiefpVQoVTUs");
         const ProtocolVersion protocolVersion = ProtocolVersion.P4;
         var bakerId = new BakerId(new AccountIndex(1));
@@ -115,7 +167,7 @@ public class BakerImportHandlerTest
             .WithPassiveDelegationPoolStatusFunc(passiveDelegationPoolStatusFunc)
             .Build();
         
-        var result = await _target.HandleBakerUpdates(
+        var result = await target.HandleBakerUpdates(
             blockDataPayload,
             new RewardsSummary(Array.Empty<AccountRewardSummary>()),
             new ChainParametersState(new ChainParametersV1Builder().Build()),
@@ -123,8 +175,17 @@ public class BakerImportHandlerTest
         new ImportStateBuilder().Build()
         );
 
-        var dbContext = _dbContextFactory.CreateDbContext();
+        var dbContext = _dbFixture.CreateGraphQlDbContext();
         var bakers = dbContext.Bakers.AsList();
         bakers.Count.Should().Be(1);
+    }
+    
+    private static void TruncateTables()
+    {
+        using var connection = DatabaseFixture.GetOpenConnection();
+        connection.Execute("TRUNCATE TABLE graphql_accounts");
+        connection.Execute("TRUNCATE TABLE graphql_bakers");
+        connection.Execute("TRUNCATE TABLE graphql_account_release_schedule");
+        connection.Execute("TRUNCATE TABLE graphql_account_statement_entries");
     }
 }
