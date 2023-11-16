@@ -127,7 +127,7 @@ const isVisible = ref(false)
 
 const onSubmitInput = () => {
 	isVisible.value = false
-	if (!inputPage.value) {
+	if (inputPage.value === undefined) {
 		return
 	}
 	const page = parseInt(inputPage.value)
