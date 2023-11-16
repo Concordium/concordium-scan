@@ -252,13 +252,14 @@ public class BakerImportHandler
         _logger.Information("Migration completed!");
     }
 
-    private async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParametersState)
+    internal async Task MaybeApplyCommissionRangeChanges(ChainParametersState chainParametersState)
     {
-        if(ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+        if(chainParametersState is ChainParametersChangedState changedState &&
+            ChainParameters.TryGetCommissionRanges(changedState.Current,
                out var currentFinalizationCommissionRange,
                out var currentBakingCommissionRange,
                out var currentTransactionCommissionRange) && 
-           ChainParameters.TryGetCommissionRanges(chainParametersState.Current,
+           ChainParameters.TryGetCommissionRanges(changedState.Previous,
                out var previousFinalizationCommissionRange,
                out var previousBakingCommissionRange,
                out var previousTransactionCommissionRange))
@@ -283,7 +284,7 @@ public class BakerImportHandler
         }
     }
 
-    private decimal AdjustValueToRange(decimal currentValue, CommissionRange allowedRange)
+    private static decimal AdjustValueToRange(decimal currentValue, CommissionRange allowedRange)
     {
         if (currentValue < allowedRange.Min)
             return allowedRange.Min;

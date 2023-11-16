@@ -6,7 +6,7 @@ using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 namespace Application.Api.GraphQL;
 
 [InterfaceType]
-public abstract class ChainParameters : IEquatable<ChainParameters>
+public abstract class ChainParameters
 {
     [GraphQLIgnore]
     public int Id { get; init; }
@@ -18,13 +18,12 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
     public int AccountCreationLimit { get; init; }
 
     public AccountAddress FoundationAccountAddress { get; init; }
-
-    public bool Equals(ChainParameters? other)
+    
+    private bool Equals(ChainParameters? other)
     {
         return
             other != null &&
             GetType() == other.GetType() &&
-            Id == other.Id &&
             EuroPerEnergy.Equals(other.EuroPerEnergy) &&
             MicroCcdPerEuro.Equals(other.MicroCcdPerEuro) &&
             AccountCreationLimit == other.AccountCreationLimit &&
@@ -53,15 +52,13 @@ public abstract class ChainParameters : IEquatable<ChainParameters>
         return !Equals(left, right);
     }
     
-    internal static ChainParameters From(
-        IChainParameters chainParameters,
-        int id = default)
+    internal static ChainParameters From(IChainParameters chainParameters)
     {
         return chainParameters switch
         {
-            Concordium.Sdk.Types.ChainParametersV0 chainParametersV0 => ChainParametersV0.From(chainParametersV0, id),
-            Concordium.Sdk.Types.ChainParametersV1 chainParametersV1 => ChainParametersV1.From(chainParametersV1, id),
-            Concordium.Sdk.Types.ChainParametersV2 chainParametersV2 => ChainParametersV2.From(chainParametersV2, id),
+            Concordium.Sdk.Types.ChainParametersV0 chainParametersV0 => ChainParametersV0.From(chainParametersV0),
+            Concordium.Sdk.Types.ChainParametersV1 chainParametersV1 => ChainParametersV1.From(chainParametersV1),
+            Concordium.Sdk.Types.ChainParametersV2 chainParametersV2 => ChainParametersV2.From(chainParametersV2),
             _ => throw new NotImplementedException()
         };
     }

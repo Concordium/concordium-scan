@@ -42,7 +42,7 @@ public class ChainParametersV0 : ChainParameters, IEquatable<ChainParametersV0>
         return !Equals(left, right);
     }
     
-    internal static ChainParametersV0 From(Concordium.Sdk.Types.ChainParametersV0 input, int id = default)
+    internal static ChainParametersV0 From(Concordium.Sdk.Types.ChainParametersV0 input)
     {
         var mintDistribution = input.MintDistribution;
         var transactionFeeDistribution = input.TransactionFeeDistribution;
@@ -72,7 +72,6 @@ public class ChainParametersV0 : ChainParameters, IEquatable<ChainParametersV0>
 
         return new ChainParametersV0
         {
-            Id = id,
             ElectionDifficulty = input.ElectionDifficulty.AsDecimal(),
             EuroPerEnergy = ExchangeRate.From(input.EuroPerEnergy),
             MicroCcdPerEuro = ExchangeRate.From(input.MicroCcdPerEuro),
