@@ -68,7 +68,7 @@
 					class="page-search-input"
 				/>
 				<Validation
-					:text="`Page should be at least 0 and at most ${totalPages}`"
+					:text="`Page should be at least 1 and at most ${totalPages}`"
 					:is-visible="isVisible"
 				>
 					<button type="submit" class="click-btn page-search-btn">Go</button>
@@ -127,7 +127,7 @@ const isVisible = ref(false)
 
 const onSubmitInput = () => {
 	isVisible.value = false
-	if (!inputPage.value) {
+	if (inputPage.value === undefined) {
 		return
 	}
 	const page = parseInt(inputPage.value)

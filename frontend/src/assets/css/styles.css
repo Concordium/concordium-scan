@@ -99,7 +99,7 @@ body {
 
 .deserialized-message {
 	white-space: pre-line;
-	max-width: 790px;
+	max-width: 775px;
 	overflow-wrap: break-word;
 
 	@media screen and (max-width: 900px) {
