@@ -27,7 +27,7 @@ type Props = {
 	id: number
 }
 const props = defineProps<Props>()
-const ID = `details-view-${props.id}`
+const ID = `details-view-${props.id}-${Math.floor(Math.random() * 1000)}`
 
 const addButton = ref(false)
 const isOpen = ref(false)
