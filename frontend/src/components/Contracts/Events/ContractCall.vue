@@ -34,10 +34,6 @@
 			{{ props.contractEvent.contractUpdated.version }}
 		</div>
 	</div>
-	<MessageHEX
-		:message-as-hex="props.contractEvent.contractUpdated.messageAsHex"
-	/>
-	<LogsHEX :events-as-hex="props.contractEvent.contractUpdated.eventsAsHex" />
 	<Message
 		v-if="props.contractEvent.contractUpdated.message"
 		:message="props.contractEvent.contractUpdated.message"
