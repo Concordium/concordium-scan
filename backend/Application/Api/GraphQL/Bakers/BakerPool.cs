@@ -1,5 +1,6 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Payday;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -17,6 +18,12 @@ public class BakerPool
     public ActiveBakerState Owner { get; private set; } = null!;
 
     public BakerPoolOpenStatus OpenStatus { get; set; }
+    /// <summary>
+    /// This holds the latest update to commission rates and are not necessarily those which are used at the
+    /// current payday.
+    /// The commissions rates which are in effect the current payday are at
+    /// <see cref="CurrentPaydayStatus.CommissionRates"/>.
+    /// </summary>
     public CommissionRates CommissionRates { get; init; }
     public string MetadataUrl { get; set; }
 
@@ -39,12 +46,17 @@ public class BakerPool
     {
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
     }
-
+    
     public decimal? GetLotteryPower()
     {
         return PaydayStatus?.LotteryPower;
     }
-    
+
+    /// <summary>
+    /// Returns the active commissions rate in the current payday.  
+    /// </summary>
+    public CommissionRates? GetPaydayCommissionRates() => PaydayStatus?.CommissionRates;
+
     public PoolApy GetApy(ApyPeriod period)
     {
         return period switch

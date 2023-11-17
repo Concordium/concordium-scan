@@ -1,9 +1,47 @@
-﻿namespace Application.Api.GraphQL.Bakers;
+﻿using Concordium.Sdk.Types;
 
-public class CurrentPaydayStatus
+namespace Application.Api.GraphQL.Bakers;
+
+/// <summary>
+/// Holds current payday active values for an given baker.
+/// </summary>
+public sealed record CurrentPaydayStatus
 {
-    public ulong BakerStake { get; set; }
-    public ulong DelegatedStake { get; set; }
-    public ulong EffectiveStake { get; set; }
-    public decimal LotteryPower { get; set; }
+    public ulong BakerStake { get; private init; }
+    public ulong DelegatedStake { get; private init; }
+    public ulong EffectiveStake { get; private init; }
+    public decimal LotteryPower { get; private init; }
+    /// <summary>
+    /// Holds the current payday active commission rates.
+    /// </summary>
+    public CommissionRates CommissionRates { get; private init; }
+
+    /// <summary>
+    /// Needed for EF
+    /// </summary>
+    private CurrentPaydayStatus() {}
+    
+    /// <summary>
+    /// Create an initial payday status for account bakers given a genesis block.
+    /// </summary>
+    internal CurrentPaydayStatus(CcdAmount stakedAmount, Concordium.Sdk.Types.CommissionRates commissionRates)
+    {
+        BakerStake = stakedAmount.Value;
+        DelegatedStake = 0;
+        EffectiveStake = 0;
+        LotteryPower = 0;
+        CommissionRates = CommissionRates.From(commissionRates);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="CurrentPaydayStatus"/> from data fetched by the node.
+    /// </summary>
+    internal CurrentPaydayStatus(CurrentPaydayBakerPoolStatus source, Concordium.Sdk.Types.CommissionRates rates)
+    {
+        BakerStake = source.BakerEquityCapital.Value;
+        DelegatedStake = source.DelegatedCapital.Value;
+        EffectiveStake = source.EffectiveStake.Value;
+        LotteryPower = source.LotteryPower;
+        CommissionRates = CommissionRates.From(rates);
+    }
 }

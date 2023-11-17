@@ -44,6 +44,12 @@ public class BakerConfiguration :
                     paydayStatusBuilder.Property(x => x.DelegatedStake).HasColumnName("active_pool_payday_status_delegated_stake");
                     paydayStatusBuilder.Property(x => x.EffectiveStake).HasColumnName("active_pool_payday_status_effective_stake");
                     paydayStatusBuilder.Property(x => x.LotteryPower).HasColumnName("active_pool_payday_status_lottery_power");
+                    paydayStatusBuilder.OwnsOne(x => x.CommissionRates, commissionRatesBuilder =>
+                    {
+                        commissionRatesBuilder.Property(x => x.TransactionCommission).HasColumnName("active_pool_payday_status_transaction_commission");
+                        commissionRatesBuilder.Property(x => x.FinalizationCommission).HasColumnName("active_pool_payday_status_finalization_commission");
+                        commissionRatesBuilder.Property(x => x.BakingCommission).HasColumnName("active_pool_payday_status_baking_commission");
+                    });
                 });
             });
 

@@ -1,4 +1,5 @@
 ﻿using Application.Api.GraphQL.Bakers;
+using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,8 @@ using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 using Tests.TestUtilities.Stubs;
 using Xunit.Abstractions;
+using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
+using CommissionRates = Concordium.Sdk.Types.CommissionRates;
 
 namespace Tests.Api.GraphQL.EfCore;
 
@@ -99,24 +102,38 @@ public class BakerTest
     [Fact]
     public async Task WriteAndReadBaker_ActiveState_PoolNotNull()
     {
+        var currentPaydayBakerPoolStatus = new CurrentPaydayBakerPoolStatus(
+            0,
+            false,
+            CcdAmount.FromMicroCcd(0),
+            CcdAmount.FromMicroCcd(20_000),
+            0.13m,
+            CcdAmount.FromMicroCcd(21_000),
+            CcdAmount.FromMicroCcd(23_000));
+        var commissionRates = new CommissionRates(
+            AmountFraction.From(0.1m),
+            AmountFraction.From(0.2m),
+            AmountFraction.From(0.3m)
+        );
         var entity = new BakerBuilder()
             .WithId(0)
             .WithState(new ActiveBakerStateBuilder()
                 .WithPool(new BakerPoolBuilder()
                     .WithOpenStatus(BakerPoolOpenStatus.ClosedForAll)
                     .WithMetadataUrl("https://example.com/ccd-baker-metadata")
-                    .WithCommissionRates(0.1m, 0.2m, 0.3m)
+                    .WithCommissionRates(
+                        commissionRates.TransactionCommission.AsDecimal(),
+                        commissionRates.FinalizationCommission.AsDecimal(),
+                        commissionRates.BakingCommission.AsDecimal()
+                        )
                     .WithDelegatedStake(1234)
                     .WithDelegatedStakeCap(2233)
                     .WithTotalStake(2000)
                     .WithDelegatorCount(42)
-                    .WithPaydayStatus(new CurrentPaydayStatus
-                    {
-                        BakerStake = 21000, 
-                        DelegatedStake = 23000,
-                        EffectiveStake = 20000,
-                        LotteryPower = 0.13m
-                    })
+                    .WithPaydayStatus(new CurrentPaydayStatus(
+                        currentPaydayBakerPoolStatus,
+                        commissionRates
+                        ))
                     .Build())
                 .Build())
             .Build();
@@ -129,9 +146,9 @@ public class BakerTest
         activeBakerState.Pool.Should().NotBeNull();
         activeBakerState.Pool!.OpenStatus.Should().Be(BakerPoolOpenStatus.ClosedForAll);
         activeBakerState.Pool.MetadataUrl.Should().Be("https://example.com/ccd-baker-metadata");
-        activeBakerState.Pool.CommissionRates.TransactionCommission.Should().Be(0.1m);
-        activeBakerState.Pool.CommissionRates.FinalizationCommission.Should().Be(0.2m);
-        activeBakerState.Pool.CommissionRates.BakingCommission.Should().Be(0.3m);
+        activeBakerState.Pool.CommissionRates.TransactionCommission.Should().Be(commissionRates.TransactionCommission.AsDecimal());
+        activeBakerState.Pool.CommissionRates.FinalizationCommission.Should().Be(commissionRates.FinalizationCommission.AsDecimal());
+        activeBakerState.Pool.CommissionRates.BakingCommission.Should().Be(commissionRates.BakingCommission.AsDecimal());
         activeBakerState.Pool.DelegatedStake.Should().Be(1234);
         activeBakerState.Pool.DelegatedStakeCap.Should().Be(2233);
         activeBakerState.Pool.TotalStake.Should().Be(2000);
@@ -141,6 +158,9 @@ public class BakerTest
         activeBakerState.Pool.PaydayStatus.DelegatedStake.Should().Be(23000);
         activeBakerState.Pool.PaydayStatus.EffectiveStake.Should().Be(20000);
         activeBakerState.Pool.PaydayStatus.LotteryPower.Should().Be(0.13m);
+        activeBakerState.Pool.PaydayStatus.CommissionRates.TransactionCommission.Should().Be(commissionRates.TransactionCommission.AsDecimal());
+        activeBakerState.Pool.PaydayStatus.CommissionRates.FinalizationCommission.Should().Be(commissionRates.FinalizationCommission.AsDecimal());
+        activeBakerState.Pool.PaydayStatus.CommissionRates.BakingCommission.Should().Be(commissionRates.BakingCommission.AsDecimal());          
     }
     
     [Fact]

@@ -370,21 +370,70 @@ public class BakerWriterTest
     [Fact]
     public async Task GetPaydayPoolStakeSnapshot()
     {
+        var firstBakerStake = CcdAmount.FromMicroCcd(100);
+        var firstBakerDelegatedStake = CcdAmount.FromMicroCcd(50);
+        var firstBaker = new CurrentPaydayBakerPoolStatus(
+            0,
+            false,
+            CcdAmount.Zero,
+            CcdAmount.Zero,
+            0m,
+            firstBakerStake,
+            firstBakerDelegatedStake);
+        var secondBakerStake = CcdAmount.FromMicroCcd(300);
+        var secondBakerDelegatedStake = CcdAmount.FromMicroCcd(200);
+        var secondBaker = new CurrentPaydayBakerPoolStatus(
+            0,
+            false,
+            CcdAmount.Zero, 
+            CcdAmount.Zero, 
+            0m,
+            secondBakerStake,
+            secondBakerDelegatedStake
+            );
+        var commissionRates = new Concordium.Sdk.Types.CommissionRates(
+            AmountFraction.From(0m),
+            AmountFraction.From(0m),
+            AmountFraction.From(0m)
+        );
         await AddBakers(
-            new BakerBuilder().WithId(1).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().WithPaydayStatus(new CurrentPaydayStatus { BakerStake = 100, DelegatedStake = 50 }).Build()).Build()).Build(),
-            new BakerBuilder().WithId(2).WithState(new ActiveBakerStateBuilder().WithPool(new BakerPoolBuilder().WithPaydayStatus(new CurrentPaydayStatus { BakerStake = 300, DelegatedStake = 200 }).Build()).Build()).Build(),
-            new BakerBuilder().WithId(3).WithState(new ActiveBakerStateBuilder().WithPool(null).Build()).Build(),
-            new BakerBuilder().WithId(4).WithState(new RemovedBakerStateBuilder().Build()).Build());
+            new BakerBuilder()
+                .WithId(1)
+                .WithState(new ActiveBakerStateBuilder()
+                    .WithPool(new BakerPoolBuilder()
+                        .WithPaydayStatus(new CurrentPaydayStatus(firstBaker, commissionRates))
+                        .Build())
+                    .Build())
+                .Build(),
+            new BakerBuilder()
+                .WithId(2)
+                .WithState(new ActiveBakerStateBuilder()
+                    .WithPool(new BakerPoolBuilder()
+                        .WithPaydayStatus(new CurrentPaydayStatus(secondBaker, commissionRates))
+                        .Build())
+                    .Build())
+                .Build(),
+            new BakerBuilder()
+                .WithId(3)
+                .WithState(new ActiveBakerStateBuilder()
+                    .WithPool(null)
+                    .Build())
+                .Build(),
+            new BakerBuilder()
+                .WithId(4)
+                .WithState(new RemovedBakerStateBuilder()
+                    .Build())
+                .Build());
         
         var result = await _target.GetPaydayPoolStakeSnapshot();
         result.Items.Length.Should().Be(2);
         var items = result.Items.OrderBy(x => x.BakerId).ToArray();
         items[0].BakerId.Should().Be(1);
-        items[0].BakerStake.Should().Be(100);
-        items[0].DelegatedStake.Should().Be(50);
+        items[0].BakerStake.Should().Be((long)firstBakerStake.Value);
+        items[0].DelegatedStake.Should().Be((long)firstBakerDelegatedStake.Value);
         items[1].BakerId.Should().Be(2);
-        items[1].BakerStake.Should().Be(300);
-        items[1].DelegatedStake.Should().Be(200);
+        items[1].BakerStake.Should().Be((long)secondBakerStake.Value);
+        items[1].DelegatedStake.Should().Be((long)secondBakerDelegatedStake.Value);
     }
 
     private async Task AddBakers(params long[] bakerIds)
