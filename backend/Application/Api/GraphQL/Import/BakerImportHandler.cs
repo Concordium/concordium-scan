@@ -170,7 +170,7 @@ public class BakerImportHandler
         // This should happen after the bakers from current block has been added to the database
         if (isFirstBlockAfterPayday)
         {
-            await UpdateCurrentPaydayStatusOnAllBakers(payload);
+            await UpdateCurrentPaydayStatusOnAllBakers(payload.ReadAllBakerPoolStatuses);
         }
 
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
@@ -180,11 +180,11 @@ public class BakerImportHandler
     /// Updates <see cref="BakerPool.PaydayStatus"/> from <see cref="BakerPoolStatus"/> fetched from the node on all
     /// validators.
     /// </summary>
-    private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
+    internal async Task UpdateCurrentPaydayStatusOnAllBakers(Func<Task<BakerPoolStatus[]>> bakerPoolStatuses)
     {
         await _writer.CreateTemporaryBakerPoolPaydayStatuses();
         
-        var poolStatuses = await payload.ReadAllBakerPoolStatuses();
+        var poolStatuses = await bakerPoolStatuses();
         foreach (var poolStatus in poolStatuses)
         {
             await _writer.UpdateBaker(poolStatus, src => src.BakerId.Id.Index, (src, dst) =>
