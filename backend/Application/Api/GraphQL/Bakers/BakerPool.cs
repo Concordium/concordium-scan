@@ -101,6 +101,18 @@ public class BakerPool
             .OrderByDescending(x => x.Index);
     }
     
+    /// <summary>
+    /// Creates a new default pool.
+    ///
+    /// <see cref="CommissionRates"/> will be overwritten in later events from same transaction. When a validator is
+    /// created multiple events are generated, where <see cref="Concordium.Sdk.Types.BakerAddedEvent"/> is the first.
+    ///
+    /// <see cref="PaydayStatus"/> is set to null since the validator will first be active on the next payday. On payday
+    /// blocks <see cref="PaydayStatus"/> is overwritten with values fetched from the chain.
+    /// <remarks>
+    /// <see href="https://learn.microsoft.com/en-us/dotnet/framework/interop/blittable-and-non-blittable-types">Events when adding a validator.</see>
+    /// </remarks> 
+    /// </summary>
     internal static BakerPool CreateDefaultBakerPool()
     {
         return new BakerPool
