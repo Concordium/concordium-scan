@@ -122,12 +122,12 @@ public class BakerImportHandler
     }
 
     /// <summary>
-    /// Map a <see cref="BakerPool"/> given a genesis block.
+    /// Map a <see cref="BakerPool"/> from a genesis block.
     ///
     /// Should only by called if <see cref="accountBaker"/> is an active baker. 
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if <see cref="AccountBaker.BakerPoolInfo"/> is null since
-    /// the <see cref="accountBaker"/> is expected to be a active baker..</exception>
+    /// the <see cref="accountBaker"/> is expected to be a active baker.</exception>
     private static BakerPool MapBakerPool(AccountBaker accountBaker)
     {
         var poolInfo = accountBaker.BakerPoolInfo;
@@ -177,10 +177,9 @@ public class BakerImportHandler
     }
 
     /// <summary>
-    /// Given <see cref="BakerPoolStatus"/> fetch from the node 
+    /// Updates <see cref="BakerPool.PaydayStatus"/> from <see cref="BakerPoolStatus"/> fetched from the node on all
+    /// validators.
     /// </summary>
-    /// <param name="payload"></param>
-    /// <exception cref="InvalidOperationException"></exception>
     private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
     {
         await _writer.CreateTemporaryBakerPoolPaydayStatuses();

@@ -3,7 +3,7 @@
 namespace Application.Api.GraphQL.Bakers;
 
 /// <summary>
-/// Holds current payday active values for an given baker.
+/// Holds current payday values for an given baker.
 /// </summary>
 public sealed record CurrentPaydayStatus
 {
@@ -12,7 +12,7 @@ public sealed record CurrentPaydayStatus
     public ulong EffectiveStake { get; private init; }
     public decimal LotteryPower { get; private init; }
     /// <summary>
-    /// Holds the current payday active commission rates.
+    /// Holds the current payday commission rates.
     /// </summary>
     public CommissionRates CommissionRates { get; private init; }
 
@@ -22,7 +22,7 @@ public sealed record CurrentPaydayStatus
     private CurrentPaydayStatus() {}
     
     /// <summary>
-    /// Create an initial payday status for account bakers given a genesis block.
+    /// Create an initial payday status from a genesis block.
     /// </summary>
     internal CurrentPaydayStatus(CcdAmount stakedAmount, Concordium.Sdk.Types.CommissionRates commissionRates)
     {
@@ -34,7 +34,7 @@ public sealed record CurrentPaydayStatus
     }
 
     /// <summary>
-    /// Creates an <see cref="CurrentPaydayStatus"/> from data fetched by the node.
+    /// Creates a <see cref="CurrentPaydayStatus"/> from data fetched by the node.
     /// </summary>
     internal CurrentPaydayStatus(CurrentPaydayBakerPoolStatus source, Concordium.Sdk.Types.CommissionRates rates)
     {

@@ -1,5 +1,8 @@
 ## Unreleased changes
 
+## 1.8.0
+- Added current payday commissions for validators such that pending commission changes can be identified.
+
 ## 1.7.9
 - Added functionality to sort validators based on their block commissions.
 
