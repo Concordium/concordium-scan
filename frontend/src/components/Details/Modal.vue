@@ -10,11 +10,6 @@
 		<span v-if="isVisible">
 			<div class="modal-backdrop">
 				<div class="modal">
-					<header class="modal-header">
-						<button type="button" class="btn-close" @click="closeModal">
-							x
-						</button>
-					</header>
 					<section class="modal-body">
 						<slot name="body" />
 					</section>
@@ -74,17 +69,9 @@ const closeModal = () => {
 	flex-direction: column;
 }
 
-.modal-header,
 .modal-footer {
-	color: var(--color-thead-bg);
 	padding: 15px;
 	display: flex;
-}
-
-.modal-header {
-	position: relative;
-	border-bottom: 1px solid #eeeeee;
-	justify-content: space-between;
 }
 
 .modal-footer {
@@ -97,19 +84,6 @@ const closeModal = () => {
 	color: #4aae9b;
 	position: relative;
 	padding: 20px 10px;
-}
-
-.btn-close {
-	position: absolute;
-	top: 0;
-	right: 0;
-	border: none;
-	font-size: 20px;
-	padding: 10px;
-	cursor: pointer;
-	font-weight: bold;
-	color: #4aae9b;
-	background: transparent;
 }
 
 .btn-green {

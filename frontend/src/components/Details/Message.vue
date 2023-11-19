@@ -8,24 +8,18 @@
 			<code class="truncate w-36">
 				{{ message }}
 			</code>
-			<Tooltip text="">
+			<Tooltip>
 				<ArrowsPointingOut class="inline align-text-top h-4" />
 				<template #content>
 					<code style="text-align: left">
-						<pre style="white-space: pre-wrap">
-							{{ JSON.stringify(JSON.parse(message), null, 2) }}
-						</pre
-						>
+						<pre>{{ JSON.stringify(JSON.parse(message), null, 2) }}</pre>
 					</code>
 				</template>
 			</Tooltip>
 			<Modal>
 				<template #body>
 					<code style="text-align: left">
-						<pre style="white-space: pre-wrap">
-							{{ JSON.stringify(JSON.parse(message), null, 2) }}
-						</pre
-						>
+						<pre>{{ JSON.stringify(JSON.parse(message), null, 2) }}</pre>
 					</code>
 				</template>
 			</Modal>
