@@ -5,17 +5,10 @@
 			<InfoTooltip text="Input parameters given to activity entrypoint." />
 		</div>
 		<div class="flex">
-			<code class="deserialized-message">
+			<code class="truncate w-36">
 				{{ message }}
 			</code>
-			<button
-				class="relative transition-colors text-theme-faded hover:text-theme-interactiveHover inline"
-				style="width: 24px"
-				@click="toggleModalVisible"
-			>
-				<ArrowsPointingOut class="inline align-text-top h-4" />
-			</button>
-			<Modal v-show="isVisible" @close="closeModal" />
+			<Modal />
 			<TextCopy
 				v-if="message"
 				:text="message"
@@ -28,18 +21,9 @@
 import InfoTooltip from '../atoms/InfoTooltip.vue'
 import TextCopy from '../atoms/TextCopy.vue'
 import Modal from './Modal.vue'
-import ArrowsPointingOut from '~/components/icons/ArrowsPointingOut.vue'
 
 type Props = {
 	message: string
 }
 defineProps<Props>()
-
-const isVisible = ref(false)
-const toggleModalVisible = () => {
-	isVisible.value = !isVisible.value
-}
-const closeModal = () => {
-	isVisible.value = false
-}
 </script>

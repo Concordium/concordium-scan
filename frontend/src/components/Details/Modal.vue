@@ -1,28 +1,44 @@
 <template>
+	<button
+		class="relative transition-colors text-theme-faded hover:text-theme-interactiveHover inline"
+		style="width: 24px"
+		@click="toggleModalVisible"
+	>
+		<ArrowsPointingOut class="inline align-text-top h-4" />
+	</button>
 	<transition name="modal-fade">
-		<div class="modal-backdrop">
-			<div class="modal">
-				<header class="modal-header">
-					<slot name="header"> This is the default title! </slot>
-					<button type="button" class="btn-close" @click="close">x</button>
-				</header>
-				<section class="modal-body">
-					<slot name="body"> This is the default body! </slot>
-				</section>
-				<footer class="modal-footer">
-					<slot name="footer"> This is the default footer! </slot>
-					<button type="button" class="btn-green" @click="close">
-						Close Modal
-					</button>
-				</footer>
+		<span v-if="isVisible">
+			<div class="modal-backdrop">
+				<div class="modal">
+					<header class="modal-header">
+						<slot name="header"> This is the default title! </slot>
+						<button type="button" class="btn-close" @click="closeModal">
+							x
+						</button>
+					</header>
+					<section class="modal-body">
+						<slot name="body"> This is the default body! </slot>
+					</section>
+					<footer class="modal-footer">
+						<slot name="footer"> This is the default footer! </slot>
+						<button type="button" class="btn-green" @click="closeModal">
+							Close Modal
+						</button>
+					</footer>
+				</div>
 			</div>
-		</div>
+		</span>
 	</transition>
 </template>
 <script setup lang="ts">
-const emit = defineEmits(['close'])
-const close = () => {
-	emit('close')
+import ArrowsPointingOut from '~/components/icons/ArrowsPointingOut.vue'
+
+const isVisible = ref(false)
+const toggleModalVisible = () => {
+	isVisible.value = !isVisible.value
+}
+const closeModal = () => {
+	isVisible.value = false
 }
 </script>
 <style>
@@ -34,21 +50,27 @@ const close = () => {
 .modal-fade-leave-active {
 	transition: opacity 0.5s ease;
 }
+.modal-fade-enter-to,
+.modal-fade-leave-from {
+	opacity: 1;
+}
 .modal-backdrop {
 	position: fixed;
 	top: 0;
 	bottom: 0;
 	left: 0;
 	right: 0;
-	background-color: rgba(0, 0, 0, 0.3);
 	display: flex;
 	justify-content: center;
 	align-items: center;
 }
 
 .modal {
-	background: #ffffff;
-	box-shadow: 2px 2px 20px 1px;
+	background-color: hsla(245, 24%, 51%, 100%);
+	/* background-color: var(--color-background-elevated); // Doesn't work */
+	opacity: 1;
+	border: 1px solid #787594;
+	box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.2);
 	overflow-x: auto;
 	display: flex;
 	flex-direction: column;
@@ -56,6 +78,7 @@ const close = () => {
 
 .modal-header,
 .modal-footer {
+	color: var(--color-thead-bg);
 	padding: 15px;
 	display: flex;
 }
@@ -63,7 +86,6 @@ const close = () => {
 .modal-header {
 	position: relative;
 	border-bottom: 1px solid #eeeeee;
-	color: #4aae9b;
 	justify-content: space-between;
 }
 
