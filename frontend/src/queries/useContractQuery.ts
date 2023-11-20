@@ -90,6 +90,7 @@ event {
 			amount
 			receiveName
 			messageAsHex
+			message
 			version
 			instigator {
 				__typename
@@ -110,7 +111,10 @@ event {
 			}
 			eventsAsHex {
 				nodes
-			}			
+			}
+			events {
+				nodes
+			}
 		}
 	}
 	... on ContractUpgraded {
