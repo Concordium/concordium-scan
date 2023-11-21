@@ -3,7 +3,7 @@
 namespace Application.Api.GraphQL.Bakers;
 
 /// <summary>
-/// Holds current payday values for an given baker.
+/// Holds current payday values for a given baker.
 /// </summary>
 public sealed record CurrentPaydayStatus
 {
