@@ -1,6 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Payday;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -127,5 +128,26 @@ public class BakerPool
             },
             PaydayStatus = null,
         };
+    }
+    
+    /// <summary>
+    /// Apply payday updates to pool.
+    /// </summary>
+    /// <param name="source">Current payday status fetched from node.</param>
+    /// <param name="rates">Current payday commissions fetched from node.</param>
+    internal void ApplyPaydayStatus(CurrentPaydayBakerPoolStatus? source, Concordium.Sdk.Types.CommissionRates rates)
+    {
+        if (source != null && PaydayStatus != null)
+        {
+            PaydayStatus.Update(source, rates);
+        } 
+        else if (source != null)
+        {
+            PaydayStatus = new CurrentPaydayStatus(source, rates);
+        }
+        else
+        {
+            PaydayStatus = null;
+        }
     }
 }

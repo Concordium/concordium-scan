@@ -190,16 +190,12 @@ public class BakerImportHandler
             await _writer.UpdateBaker(poolStatus, src => src.BakerId.Id.Index, (src, dst) =>
             {
                 var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
-                
-                ApplyPaydayStatus(pool, src.CurrentPaydayStatus, src.PoolInfo.CommissionRates);
+                pool.ApplyPaydayStatus(src.CurrentPaydayStatus, src.PoolInfo.CommissionRates);
             });
         }
     }
 
-    private static void ApplyPaydayStatus(BakerPool pool, CurrentPaydayBakerPoolStatus? source, Concordium.Sdk.Types.CommissionRates rates)
-    {
-        pool.PaydayStatus = source != null ? new CurrentPaydayStatus(source, rates) : null;
-    }
+    
 
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
     {
@@ -233,7 +229,7 @@ public class BakerImportHandler
                     DelegatedStakeCap = source.DelegatedCapitalCap.Value,
                     TotalStake = source.BakerEquityCapital.Value + source.DelegatedCapital.Value
                 };
-                ApplyPaydayStatus(pool, source.CurrentPaydayStatus, source.PoolInfo.CommissionRates);
+                pool.ApplyPaydayStatus(source.CurrentPaydayStatus, source.PoolInfo.CommissionRates);
                 
                 baker.ActiveState!.Pool = pool;
             },
