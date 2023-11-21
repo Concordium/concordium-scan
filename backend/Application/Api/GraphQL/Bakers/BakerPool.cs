@@ -110,7 +110,7 @@ public class BakerPool
     /// <see cref="PaydayStatus"/> is set to null since the validator will first be active on the next payday. On payday
     /// blocks <see cref="PaydayStatus"/> is overwritten with values fetched from the chain.
     /// <remarks>
-    /// <see href="https://learn.microsoft.com/en-us/dotnet/framework/interop/blittable-and-non-blittable-types">Events when adding a validator.</see>
+    /// <see href="https://testnet.ccdscan.io/staking?dcount=1&amp;dentity=transaction&amp;dhash=c7357fe0d11ec8e6c6a7f410971624845cd19c2034cd4bd44df7cfd759344026">Events when adding a validator.</see>
     /// </remarks> 
     /// </summary>
     internal static BakerPool CreateDefaultBakerPool()
