@@ -202,6 +202,9 @@ public class MetricsWriter
         conn.Close();
     }
 
+    /// <summary>
+    /// Adds payday events for each bakers, which contains baker- fees, rewards and calculated metrics. 
+    /// </summary>
     public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary,
         PaydaySummary? paydaySummary, PaydayPoolStakeSnapshot? paydayPoolStakeSnapshot,
         PaydayPassiveDelegationStakeSnapshot? paydayPassiveDelegationStakeSnapshot)

@@ -121,6 +121,13 @@ public class BakerImportHandler
         return Baker.CreateNewBaker(src.BakerInfo.BakerId, src.StakedAmount, src.RestakeEarnings, pool);
     }
 
+    /// <summary>
+    /// Map a <see cref="BakerPool"/> from a genesis block.
+    ///
+    /// Should only by called if <see cref="accountBaker"/> is an active baker. 
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if <see cref="AccountBaker.BakerPoolInfo"/> is null since
+    /// the <see cref="accountBaker"/> is expected to be a active baker.</exception>
     private static BakerPool MapBakerPool(AccountBaker accountBaker)
     {
         var poolInfo = accountBaker.BakerPoolInfo;
@@ -130,17 +137,8 @@ public class BakerImportHandler
         {
             OpenStatus = poolInfo.OpenStatus.MapToGraphQlEnum(),
             MetadataUrl = poolInfo.MetadataUrl,
-            CommissionRates = new CommissionRates
-            {
-                TransactionCommission = poolInfo.CommissionRates.TransactionCommission.AsDecimal(),
-                FinalizationCommission = poolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
-                BakingCommission = poolInfo.CommissionRates.BakingCommission.AsDecimal()
-            },
-            PaydayStatus = new CurrentPaydayStatus()
-            {
-                BakerStake = accountBaker.StakedAmount.Value,
-                DelegatedStake = 0
-            }
+            CommissionRates = CommissionRates.From(poolInfo.CommissionRates),
+            PaydayStatus = new CurrentPaydayStatus(accountBaker.StakedAmount, poolInfo.CommissionRates)
         };
     }
 
@@ -172,43 +170,32 @@ public class BakerImportHandler
         // This should happen after the bakers from current block has been added to the database
         if (isFirstBlockAfterPayday)
         {
-            await UpdateCurrentPaydayStatusOnAllBakers(payload);
+            await UpdateCurrentPaydayStatusOnAllBakers(payload.ReadAllBakerPoolStatuses);
         }
 
         await _writer.UpdateStakeIfBakerActiveRestakingEarnings(rewardsSummary.AggregatedAccountRewards);
     }
 
-    private async Task UpdateCurrentPaydayStatusOnAllBakers(BlockDataPayload payload)
+    /// <summary>
+    /// Updates <see cref="BakerPool.PaydayStatus"/> from <see cref="BakerPoolStatus"/> fetched from the node on all
+    /// validators.
+    /// </summary>
+    internal async Task UpdateCurrentPaydayStatusOnAllBakers(Func<Task<BakerPoolStatus[]>> bakerPoolStatuses)
     {
         await _writer.CreateTemporaryBakerPoolPaydayStatuses();
         
-        var poolStatuses = await payload.ReadAllBakerPoolStatuses();
+        var poolStatuses = await bakerPoolStatuses();
         foreach (var poolStatus in poolStatuses)
         {
             await _writer.UpdateBaker(poolStatus, src => src.BakerId.Id.Index, (src, dst) =>
             {
                 var pool = dst.ActiveState!.Pool ?? throw new InvalidOperationException("Did not expect this bakers pool property to be null");
-
-                var status = src.CurrentPaydayStatus;
-                ApplyPaydayStatus(pool, status);
+                pool.ApplyPaydayStatus(src.CurrentPaydayStatus, src.PoolInfo.CommissionRates);
             });
         }
     }
 
-    private static void ApplyPaydayStatus(BakerPool pool, CurrentPaydayBakerPoolStatus? source)
-    {
-        if (source != null)
-        {
-            if (pool.PaydayStatus == null) 
-                pool.PaydayStatus = new CurrentPaydayStatus();
-            pool.PaydayStatus.BakerStake = source.BakerEquityCapital.Value;
-            pool.PaydayStatus.DelegatedStake = source.DelegatedCapital.Value;
-            pool.PaydayStatus.EffectiveStake = source.EffectiveStake.Value;
-            pool.PaydayStatus.LotteryPower = source.LotteryPower;
-        }
-        else
-            pool.PaydayStatus = null;
-    }
+    
 
     private async Task MaybeMigrateToBakerPools(BlockDataPayload payload, ImportState importState)
     {
@@ -242,7 +229,7 @@ public class BakerImportHandler
                     DelegatedStakeCap = source.DelegatedCapitalCap.Value,
                     TotalStake = source.BakerEquityCapital.Value + source.DelegatedCapital.Value
                 };
-                ApplyPaydayStatus(pool, source.CurrentPaydayStatus);
+                pool.ApplyPaydayStatus(source.CurrentPaydayStatus, source.PoolInfo.CommissionRates);
                 
                 baker.ActiveState!.Pool = pool;
             },
