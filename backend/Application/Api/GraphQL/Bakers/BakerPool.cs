@@ -1,5 +1,7 @@
 ﻿using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Payday;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Data;
 using HotChocolate.Types;
@@ -17,6 +19,12 @@ public class BakerPool
     public ActiveBakerState Owner { get; private set; } = null!;
 
     public BakerPoolOpenStatus OpenStatus { get; set; }
+    /// <summary>
+    /// This holds the latest update to commission rates and are not necessarily those which are used at the
+    /// current payday.
+    /// The commissions rates which are in effect the current payday are at
+    /// <see cref="CurrentPaydayStatus.CommissionRates"/>.
+    /// </summary>
     public CommissionRates CommissionRates { get; init; }
     public string MetadataUrl { get; set; }
 
@@ -39,12 +47,17 @@ public class BakerPool
     {
         return Owner.Owner.Statistics?.PoolTotalStakePercentage;
     }
-
+    
     public decimal? GetLotteryPower()
     {
         return PaydayStatus?.LotteryPower;
     }
-    
+
+    /// <summary>
+    /// Returns the active commissions rate in the current payday.  
+    /// </summary>
+    public CommissionRates? GetPaydayCommissionRates() => PaydayStatus?.CommissionRates;
+
     public PoolApy GetApy(ApyPeriod period)
     {
         return period switch
@@ -89,6 +102,18 @@ public class BakerPool
             .OrderByDescending(x => x.Index);
     }
     
+    /// <summary>
+    /// Creates a new default pool.
+    ///
+    /// <see cref="CommissionRates"/> will be overwritten in later events from same transaction. When a validator is
+    /// created multiple events are generated, where <see cref="Concordium.Sdk.Types.BakerAddedEvent"/> is the first.
+    ///
+    /// <see cref="PaydayStatus"/> is set to null since the validator will first be active on the next payday. On payday
+    /// blocks <see cref="PaydayStatus"/> is overwritten with values fetched from the chain.
+    /// <remarks>
+    /// <see href="https://testnet.ccdscan.io/staking?dcount=1&amp;dentity=transaction&amp;dhash=c7357fe0d11ec8e6c6a7f410971624845cd19c2034cd4bd44df7cfd759344026">Events when adding a validator.</see>
+    /// </remarks> 
+    /// </summary>
     internal static BakerPool CreateDefaultBakerPool()
     {
         return new BakerPool
@@ -103,5 +128,26 @@ public class BakerPool
             },
             PaydayStatus = null,
         };
+    }
+    
+    /// <summary>
+    /// Apply payday updates to pool.
+    /// </summary>
+    /// <param name="source">Current payday status fetched from node.</param>
+    /// <param name="rates">Current payday commissions fetched from node.</param>
+    internal void ApplyPaydayStatus(CurrentPaydayBakerPoolStatus? source, Concordium.Sdk.Types.CommissionRates rates)
+    {
+        if (source != null && PaydayStatus != null)
+        {
+            PaydayStatus.Update(source, rates);
+        } 
+        else if (source != null)
+        {
+            PaydayStatus = new CurrentPaydayStatus(source, rates);
+        }
+        else
+        {
+            PaydayStatus = null;
+        }
     }
 }

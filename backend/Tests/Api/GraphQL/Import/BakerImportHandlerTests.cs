@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Extensions;
 using Application.Api.GraphQL.Import;
+using Application.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
@@ -37,6 +38,85 @@ public class BakerImportHandlerTest
     public BakerImportHandlerTest(DatabaseFixture dbFixture)
     {
         _dbFixture = dbFixture;
+    }
+
+    [Fact]
+    public async Task WhenUpdateCurrentPaydayStatusOnAllBakers_ThenBakersUpdates()
+    {
+        // Arrange
+        TruncateTables();
+        var beforeStatus = new CurrentPaydayBakerPoolStatus(
+            0,
+            false,
+            CcdAmount.Zero,
+            CcdAmount.FromMicroCcd(1),
+            0.2m,
+            CcdAmount.FromMicroCcd(3),
+            CcdAmount.FromMicroCcd(4));
+        var beforeRates = new CommissionRates(
+            AmountFraction.From(0.1m),
+            AmountFraction.From(0.2m),
+            AmountFraction.From(0.3m)
+        );
+        var currentPaydayStatus = new CurrentPaydayStatus(
+            beforeStatus,
+            beforeRates
+        );
+        var afterStatus = new CurrentPaydayBakerPoolStatus(
+            0,
+            false,
+            CcdAmount.Zero,
+            CcdAmount.FromMicroCcd(11),
+            0.12m,
+            CcdAmount.FromMicroCcd(13),
+            CcdAmount.FromMicroCcd(14));
+        var afterRates = new CommissionRates(
+            AmountFraction.From(0.11m),
+            AmountFraction.From(0.12m),
+            AmountFraction.From(0.13m)
+        );
+        var factoryMock = new Mock<IDbContextFactory<GraphQlDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(_dbFixture.CreateGraphQlDbContext()));
+        var target = new BakerImportHandler(factoryMock.Object, new NullMetrics());
+        var bakerPool = new BakerPoolBuilder()
+            .WithPaydayStatus(currentPaydayStatus)
+            .Build();
+        var activeBakerState = new ActiveBakerStateBuilder()
+            .WithPool(bakerPool)
+            .Build();
+        var build = new BakerBuilder()
+            .WithState(activeBakerState)
+            .Build();
+        var graphQlDbContext = _dbFixture.CreateGraphQlDbContext();
+        var entityEntry = await graphQlDbContext.Bakers.AddAsync(build);
+        await graphQlDbContext.SaveChangesAsync();
+        graphQlDbContext.ChangeTracker.Clear();
+        var bakerPoolStatus = new BakerPoolStatus(
+            new BakerId(new AccountIndex((ulong)entityEntry.Entity.Id)),
+            AccountAddress.From(AccountAddressHelper.GetUniqueAddress()),
+            CcdAmount.Zero,
+            CcdAmount.Zero,
+            CcdAmount.Zero,
+            new BakerPoolInfo(
+                afterRates,
+                BakerPoolOpenStatus.OpenForAll,
+                ""
+                ),
+            afterStatus,
+            CcdAmount.Zero,
+            null
+            );
+        var bakerPoolStatuses = () => Task.FromResult(new[] { bakerPoolStatus });
+        
+        // Act
+        await target.UpdateCurrentPaydayStatusOnAllBakers(bakerPoolStatuses);
+
+        // Assert
+        var baker = await graphQlDbContext.Bakers.SingleAsync();
+        baker.ActiveState.Pool.PaydayStatus.CommissionRates.BakingCommission.Should().Be(afterRates.BakingCommission.AsDecimal());
+        baker.ActiveState.Pool.PaydayStatus.CommissionRates.FinalizationCommission.Should().Be(afterRates.FinalizationCommission.AsDecimal());
+        baker.ActiveState.Pool.PaydayStatus.CommissionRates.TransactionCommission.Should().Be(afterRates.TransactionCommission.AsDecimal());
     }
     
     [Theory]
