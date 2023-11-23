@@ -252,6 +252,33 @@ __typename
 				numerator
 			}
 		}
+		...on GasRewardsCpv2Update {
+			accountCreation
+			baker
+			chainUpdate
+		}
+		...on MinBlockTimeUpdate {
+			durationSeconds
+		}
+		...on TimeoutParametersUpdate {
+			decrease {
+				denominator
+				numerator
+			}
+			increase {
+				denominator
+				numerator
+			}
+			durationSeconds
+		}
+		...on FinalizationCommitteeParametersUpdate {
+			finalizersRelativeStakeThreshold
+			maxFinalizers
+			minFinalizers
+		}
+		... on BlockEnergyLimitUpdate {
+			energyLimit
+		}
 	}
 }
 ... on Transferred {

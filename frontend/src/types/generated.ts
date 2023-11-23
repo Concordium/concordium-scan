@@ -543,6 +543,7 @@ export type BakerPool = {
   lotteryPower?: Maybe<Scalars['Decimal']>;
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
+  paydayCommissionRates?: Maybe<CommissionRates>;
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
@@ -810,6 +811,11 @@ export type BlockAccrueRewardSpecialEvent = {
   transactionFees: Scalars['UnsignedLong'];
 };
 
+export type BlockEnergyLimitUpdate = {
+  __typename?: 'BlockEnergyLimitUpdate';
+  energyLimit: Scalars['UnsignedLong'];
+};
+
 export type BlockMetrics = {
   __typename?: 'BlockMetrics';
   /** The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period. */
@@ -986,7 +992,7 @@ export type ChainUpdateEnqueued = {
   payload: ChainUpdatePayload;
 };
 
-export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload;
+export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload;
 
 /** Information about the offset pagination. */
 export type CollectionSegmentInfo = {
@@ -1434,6 +1440,13 @@ export type ExchangeRate = {
   numerator: Scalars['UnsignedLong'];
 };
 
+export type FinalizationCommitteeParametersUpdate = {
+  __typename?: 'FinalizationCommitteeParametersUpdate';
+  finalizersRelativeStakeThreshold: Scalars['Decimal'];
+  maxFinalizers: Scalars['UnsignedInt'];
+  minFinalizers: Scalars['UnsignedInt'];
+};
+
 export type FinalizationRewardCommissionNotInRange = {
   __typename?: 'FinalizationRewardCommissionNotInRange';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -1527,6 +1540,13 @@ export type GasRewardsChainUpdatePayload = {
 
 export type GasRewardsCpv2 = {
   __typename?: 'GasRewardsCpv2';
+  accountCreation: Scalars['Decimal'];
+  baker: Scalars['Decimal'];
+  chainUpdate: Scalars['Decimal'];
+};
+
+export type GasRewardsCpv2Update = {
+  __typename?: 'GasRewardsCpv2Update';
   accountCreation: Scalars['Decimal'];
   baker: Scalars['Decimal'];
   chainUpdate: Scalars['Decimal'];
@@ -1690,6 +1710,11 @@ export enum MetricsPeriod {
 export type MicroCcdPerEuroChainUpdatePayload = {
   __typename?: 'MicroCcdPerEuroChainUpdatePayload';
   exchangeRate: ExchangeRate;
+};
+
+export type MinBlockTimeUpdate = {
+  __typename?: 'MinBlockTimeUpdate';
+  durationSeconds: Scalars['UnsignedLong'];
 };
 
 export type MintDistributionChainUpdatePayload = {
@@ -2487,6 +2512,12 @@ export type Ranking = {
   total: Scalars['Int'];
 };
 
+export type Ratio = {
+  __typename?: 'Ratio';
+  denominator: Scalars['UnsignedLong'];
+  numerator: Scalars['UnsignedLong'];
+};
+
 export type Rejected = {
   __typename?: 'Rejected';
   reason: TransactionRejectReason;
@@ -2756,6 +2787,13 @@ export type TimeParametersChainUpdatePayload = {
   __typename?: 'TimeParametersChainUpdatePayload';
   mintPerPayday: Scalars['Decimal'];
   rewardPeriodLength: Scalars['UnsignedLong'];
+};
+
+export type TimeoutParametersUpdate = {
+  __typename?: 'TimeoutParametersUpdate';
+  decrease: Ratio;
+  durationSeconds: Scalars['UnsignedLong'];
+  increase: Ratio;
 };
 
 export type TimestampedAmount = {

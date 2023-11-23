@@ -393,6 +393,147 @@
 				</DescriptionListItem>
 			</DescriptionList>
 		</span>
+		<span
+			v-else-if="event.payload.__typename === 'GasRewardsCpv2Update'"
+			class="text-theme-faded"
+		>
+			Update gas rewards to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Account creation
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.accountCreation }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Validator
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.baker }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Chain update
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.chainUpdate }}
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+		<span
+			v-else-if="event.payload.__typename === 'BlockEnergyLimitUpdate'"
+			class="text-theme-faded"
+		>
+			Updated block energy limit to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Energy Limit
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.energyLimit }}
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+		<span
+			v-else-if="
+				event.payload.__typename === 'FinalizationCommitteeParametersUpdate'
+			"
+			class="text-theme-faded"
+		>
+			Updated finalization committee parameters to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Minimum finalizers
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.minFinalizers }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Maximum finalizers
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.maxFinalizers }}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Finalizers relative stake threshold
+					<template #content>
+						<span class="numerical">
+							{{ event.payload.finalizersRelativeStakeThreshold }}
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+		<span
+			v-else-if="event.payload.__typename === 'TimeoutParametersUpdate'"
+			class="text-theme-faded"
+		>
+			Updated timeout parameters to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Increase
+					<template #content>
+						<span class="numerical">
+							{{
+								event.payload.increase.numerator /
+								event.payload.increase.denominator
+							}}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Decrease
+					<template #content>
+						<span class="numerical">
+							{{
+								event.payload.decrease.numerator /
+								event.payload.decrease.denominator
+							}}
+						</span>
+					</template>
+				</DescriptionListItem>
+				<DescriptionListItem>
+					Duration
+					<template #content>
+						<span class="numerical">
+							{{ formatNumber(event.payload.durationSeconds) }}s
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
+		<span
+			v-else-if="event.payload.__typename === 'MinBlockTimeUpdate'"
+			class="text-theme-faded"
+		>
+			Updated min block time to:
+
+			<DescriptionList class="mt-4 ml-8">
+				<DescriptionListItem>
+					Duration
+					<template #content>
+						<span class="numerical">
+							{{ formatNumber(event.payload.durationSeconds) }}s
+						</span>
+					</template>
+				</DescriptionListItem>
+			</DescriptionList>
+		</span>
 	</span>
 </template>
 
