@@ -30,16 +30,70 @@ public abstract record ChainUpdatePayload
             RootUpdate rootUpdate => RootKeysChainUpdatePayload.From(rootUpdate),
             TimeParametersCpv1Update timeParametersCpv1Update => TimeParametersChainUpdatePayload.From(timeParametersCpv1Update),
             TransactionFeeDistributionUpdate transactionFeeDistributionUpdate => TransactionFeeDistributionChainUpdatePayload.From(transactionFeeDistributionUpdate),
-            GasRewardsCpv2Update => null,
-            BlockEnergyLimitUpdate => null,
-            FinalizationCommitteeParametersUpdate => null,
-            TimeoutParametersUpdate => null,
-            MinBlockTimeUpdate => null,
+            Concordium.Sdk.Types.GasRewardsCpv2Update update => GasRewardsCpv2Update.From(update),
+            Concordium.Sdk.Types.BlockEnergyLimitUpdate update => BlockEnergyLimitUpdate.From(update),
+            Concordium.Sdk.Types.FinalizationCommitteeParametersUpdate update => FinalizationCommitteeParametersUpdate.From(update),
+            Concordium.Sdk.Types.TimeoutParametersUpdate update => TimeoutParametersUpdate.From(update),
+            Concordium.Sdk.Types.MinBlockTimeUpdate update => MinBlockTimeUpdate.From(update),
             _ => throw new ArgumentOutOfRangeException(nameof(payload))
         };
         
         return chainUpdatePayload != null;
     }
+}
+
+public sealed record MinBlockTimeUpdate(ulong DurationSeconds) : ChainUpdatePayload
+{
+    internal static MinBlockTimeUpdate From(Concordium.Sdk.Types.MinBlockTimeUpdate update) =>
+        new((ulong)update.Duration.TotalSeconds);
+
+}
+
+public sealed record TimeoutParametersUpdate(
+    ulong DurationSeconds, Ratio Increase, Ratio Decrease
+    ) : ChainUpdatePayload
+{
+    internal static TimeoutParametersUpdate From(Concordium.Sdk.Types.TimeoutParametersUpdate update) =>
+        new(
+            (ulong)update.TimeoutParameters.Duration.TotalSeconds,
+            Ratio.From(update.TimeoutParameters.Increase),
+            Ratio.From(update.TimeoutParameters.Decrease)
+        );
+}
+
+public sealed record FinalizationCommitteeParametersUpdate(
+    uint MinFinalizers,
+    uint MaxFinalizers,
+    decimal FinalizersRelativeStakeThreshold
+    ) : ChainUpdatePayload
+{
+    internal static FinalizationCommitteeParametersUpdate From(
+        Concordium.Sdk.Types.FinalizationCommitteeParametersUpdate update) =>
+        new FinalizationCommitteeParametersUpdate(
+            update.FinalizationCommitteeParameters.MinFinalizers,
+            update.FinalizationCommitteeParameters.MaxFinalizers,
+            update.FinalizationCommitteeParameters.FinalizersRelativeStakeThreshold.AsDecimal()
+        );
+}
+
+public sealed record BlockEnergyLimitUpdate(
+    ulong EnergyLimit) : ChainUpdatePayload
+{
+    internal static BlockEnergyLimitUpdate From(Concordium.Sdk.Types.BlockEnergyLimitUpdate update) => 
+        new(update.EnergyLimit.Value);
+}
+
+public sealed record GasRewardsCpv2Update(
+    decimal Baker,
+    decimal AccountCreation,
+    decimal ChainUpdate) : ChainUpdatePayload
+{
+    internal static GasRewardsCpv2Update From(Concordium.Sdk.Types.GasRewardsCpv2Update update) =>
+        new(
+            update.Baker.AsDecimal(),
+            update.AccountCreation.AsDecimal(),
+            update.ChainUpdate.AsDecimal()
+        );
 }
 
 public record ProtocolChainUpdatePayload(

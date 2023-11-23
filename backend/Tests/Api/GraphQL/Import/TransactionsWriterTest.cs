@@ -6,6 +6,7 @@ using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
@@ -15,6 +16,7 @@ using AlreadyADelegator = Concordium.Sdk.Types.AlreadyADelegator;
 using AmountTooLarge = Concordium.Sdk.Types.AmountTooLarge;
 using BakerInCooldown = Concordium.Sdk.Types.BakerInCooldown;
 using BakingRewardCommissionNotInRange = Concordium.Sdk.Types.BakingRewardCommissionNotInRange;
+using BlockEnergyLimitUpdate = Application.Api.GraphQL.Transactions.BlockEnergyLimitUpdate;
 using ContractAddress = Concordium.Sdk.Types.ContractAddress;
 using CredentialHolderDidNotSign = Concordium.Sdk.Types.CredentialHolderDidNotSign;
 using DelegationAdded = Concordium.Sdk.Types.DelegationAdded;
@@ -28,8 +30,10 @@ using DelegatorInCooldown = Concordium.Sdk.Types.DelegatorInCooldown;
 using DuplicateAggregationKey = Concordium.Sdk.Types.DuplicateAggregationKey;
 using DuplicateCredIds = Concordium.Sdk.Types.DuplicateCredIds;
 using EncryptedAmountSelfTransfer = Concordium.Sdk.Types.EncryptedAmountSelfTransfer;
+using FinalizationCommitteeParametersUpdate = Application.Api.GraphQL.Transactions.FinalizationCommitteeParametersUpdate;
 using FinalizationRewardCommissionNotInRange = Concordium.Sdk.Types.FinalizationRewardCommissionNotInRange;
 using FirstScheduledReleaseExpired = Concordium.Sdk.Types.FirstScheduledReleaseExpired;
+using GasRewardsCpv2Update = Application.Api.GraphQL.Transactions.GasRewardsCpv2Update;
 using InsufficientBalanceForBakerStake = Concordium.Sdk.Types.InsufficientBalanceForBakerStake;
 using InsufficientBalanceForDelegationStake = Concordium.Sdk.Types.InsufficientBalanceForDelegationStake;
 using InsufficientDelegationStake = Concordium.Sdk.Types.InsufficientDelegationStake;
@@ -46,6 +50,7 @@ using InvalidProof = Concordium.Sdk.Types.InvalidProof;
 using InvalidReceiveMethod = Concordium.Sdk.Types.InvalidReceiveMethod;
 using InvalidTransferToPublicProof = Concordium.Sdk.Types.InvalidTransferToPublicProof;
 using KeyIndexAlreadyInUse = Concordium.Sdk.Types.KeyIndexAlreadyInUse;
+using MinBlockTimeUpdate = Application.Api.GraphQL.Transactions.MinBlockTimeUpdate;
 using MissingBakerAddParameters = Concordium.Sdk.Types.MissingBakerAddParameters;
 using MissingDelegationAddParameters = Application.Api.GraphQL.Transactions.MissingDelegationAddParameters;
 using ModuleHashAlreadyExists = Concordium.Sdk.Types.ModuleHashAlreadyExists;
@@ -61,6 +66,7 @@ using NotAllowedToReceiveEncrypted = Concordium.Sdk.Types.NotAllowedToReceiveEnc
 using OutOfEnergy = Concordium.Sdk.Types.OutOfEnergy;
 using PoolClosed = Concordium.Sdk.Types.PoolClosed;
 using PoolWouldBecomeOverDelegated = Concordium.Sdk.Types.PoolWouldBecomeOverDelegated;
+using Ratio = Application.Api.GraphQL.Ratio;
 using RejectedInit = Concordium.Sdk.Types.RejectedInit;
 using RejectedReceive = Concordium.Sdk.Types.RejectedReceive;
 using RemoveFirstCredential = Concordium.Sdk.Types.RemoveFirstCredential;
@@ -69,6 +75,7 @@ using ScheduledSelfTransfer = Concordium.Sdk.Types.ScheduledSelfTransfer;
 using SerializationFailure = Concordium.Sdk.Types.SerializationFailure;
 using StakeOverMaximumThresholdForPool = Concordium.Sdk.Types.StakeOverMaximumThresholdForPool;
 using StakeUnderMinimumThresholdForBaking = Concordium.Sdk.Types.StakeUnderMinimumThresholdForBaking;
+using TimeoutParametersUpdate = Application.Api.GraphQL.Transactions.TimeoutParametersUpdate;
 using TransactionFeeCommissionNotInRange = Concordium.Sdk.Types.TransactionFeeCommissionNotInRange;
 using TransactionHash = Concordium.Sdk.Types.TransactionHash;
 using TransferredWithSchedule = Concordium.Sdk.Types.TransferredWithSchedule;
@@ -895,6 +902,146 @@ public class TransactionsWriterTest
         second.Entity.Should().BeOfType<TransferMemo>();
         var transferMemo = second.Entity as TransferMemo;
         transferMemo!.RawHex.Should().Be(data);
+    }
+
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_MinBlockTimeUpdate()
+    {
+        // Arrange
+        const int seconds = 1624630671;
+        var duration = TimeSpan.FromSeconds(42);
+        var update = new Concordium.Sdk.Types.MinBlockTimeUpdate(duration);
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        var item = Assert.IsType<MinBlockTimeUpdate>(result.Payload);
+        item.DurationSeconds.Should().Be((ulong)duration.TotalSeconds);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_TimeoutParametersUpdate()
+    {
+        // Arrange
+        const int seconds = 1624630671;
+        var duration = TimeSpan.FromSeconds(42);
+        var increase = new Concordium.Sdk.Types.Ratio(1, 2);
+        var decrease = new Concordium.Sdk.Types.Ratio(3, 4);
+        var update = new Concordium.Sdk.Types.TimeoutParametersUpdate(new TimeoutParameters(duration, increase, decrease));
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        var item = Assert.IsType<TimeoutParametersUpdate>(result.Payload);
+        item.Decrease.Denominator.Should().Be(decrease.Denominator);
+        item.Decrease.Numerator.Should().Be(decrease.Numerator);
+        item.Increase.Denominator.Should().Be(increase.Denominator);
+        item.Increase.Numerator.Should().Be(increase.Numerator);
+        item.DurationSeconds.Should().Be((ulong)duration.TotalSeconds);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_FinalizationCommitteeParametersUpdate()
+    {
+        // Arrange
+        const int seconds = 1624630671;
+        const uint minFinalizers = 42;
+        const uint maxFinalizers = 24;
+        const decimal threshold = 0.42m;
+        var update = new Concordium.Sdk.Types.FinalizationCommitteeParametersUpdate(
+            new FinalizationCommitteeParameters(
+                minFinalizers, maxFinalizers, AmountFraction.From(threshold)));
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        var item = Assert.IsType<FinalizationCommitteeParametersUpdate>(result.Payload);
+        item.MinFinalizers.Should().Be(minFinalizers);
+        item.MaxFinalizers.Should().Be(maxFinalizers);
+        item.FinalizersRelativeStakeThreshold.Should().Be(threshold);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_BlockEnergyLimitUpdate()
+    {
+        // Arrange
+        const int seconds = 1624630671;
+        const ulong energyAmount = 42;
+        var update = new Concordium.Sdk.Types.BlockEnergyLimitUpdate(new EnergyAmount(42));
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        var item = Assert.IsType<BlockEnergyLimitUpdate>(result.Payload);
+        item.EnergyLimit.Should().Be(energyAmount);
+    }
+    
+    [Fact]
+    public async Task TransactionEvents_ChainUpdateEnqueued_GasRewardsCpv2Update()
+    {
+        // Arrange
+        const int seconds = 1624630671;
+        const decimal baker = 0.42m;
+        const decimal accountCreation = 0.43m;
+        const decimal chainUpdate = 0.44m;
+        var update = new Concordium.Sdk.Types.GasRewardsCpv2Update(
+            AmountFraction.From(baker), 
+            AmountFraction.From(accountCreation),
+            AmountFraction.From(chainUpdate));
+        
+        var updateDetails = new UpdateDetailsBuilder(update)
+            .WithEffectiveTime(DateTimeOffset.FromUnixTimeSeconds(seconds))
+            .Build();
+        
+        var blockItemSummary = new BlockItemSummaryBuilder(updateDetails)
+            .Build();
+        
+        // Act
+        await WriteData(new List<BlockItemSummary>{blockItemSummary});
+        
+        // Assert
+        var result = await ReadSingleTransactionEventType<ChainUpdateEnqueued>();
+        result.EffectiveTime.Should().Be(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        var item = Assert.IsType<GasRewardsCpv2Update>(result.Payload);
+        item.Baker.Should().Be(baker);
+        item.AccountCreation.Should().Be(accountCreation);
+        item.ChainUpdate.Should().Be(chainUpdate);
     }
 
     [Fact]
