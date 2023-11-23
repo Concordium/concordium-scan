@@ -1,5 +1,13 @@
 ## Unreleased changes
 
+## 1.8.1
+- Added mapping for chain update events
+    - `MinBlockTimeUpdate`
+    - `TimeoutParametersUpdate`
+    - `FinalizationCommitteeParametersUpdate`
+    - `BlockEnergyLimitUpdate`
+    - `GasRewardsCpv2Update`
+
 ## 1.8.0
 - Added current payday commissions for validators such that pending commission changes can be identified.
 
