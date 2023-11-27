@@ -1,7 +1,8 @@
 <template>
 	<Tooltip
 		v-if="
-			props.nextPaydayCommission &&
+			props.nextPaydayCommission !== undefined &&
+			props.nextPaydayCommission !== null &&
 			props.nextPaydayCommission !== props.currentPaydayCommission
 		"
 		:text="`Rates will change to ${formatPercentage(
@@ -27,7 +28,8 @@
 	</Tooltip>
 	<span v-else class="numerical">
 		{{
-			props.currentPaydayCommission
+			props.currentPaydayCommission !== undefined &&
+			props.currentPaydayCommission !== null
 				? formatPercentage(props.currentPaydayCommission)
 				: 'unknown'
 		}}%
