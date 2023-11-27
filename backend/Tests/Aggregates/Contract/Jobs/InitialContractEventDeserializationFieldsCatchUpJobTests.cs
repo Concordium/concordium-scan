@@ -11,6 +11,7 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Configurations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -47,11 +48,11 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
             .Returns(() => Task.FromResult(_databaseFixture.CreateGraphQlDbContext()));
         var options = Options.Create(new ContractAggregateOptions
         {
-            Jobs = new Dictionary<string, ContractAggregateJobOptions>
+            Jobs = new Dictionary<string, JobOptions>
             {
                 {
                     InitialContractRejectEventDeserializationFieldsCatchUpJob.JobName,
-                    new ContractAggregateJobOptions
+                    new JobOptions
                     {
                         BatchSize = 3
                     }

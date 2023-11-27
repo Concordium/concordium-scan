@@ -5,6 +5,7 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
+using Application.Configurations;
 using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -19,7 +20,7 @@ public class InitialModuleSourceCatchup : IContractJob
     private readonly ContractHealthCheck _healthCheck;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
-    private readonly ContractAggregateJobOptions _jobOptions;
+    private readonly JobOptions _jobOptions;
 
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
@@ -38,7 +39,7 @@ public class InitialModuleSourceCatchup : IContractJob
         _logger = Log.ForContext<InitialModuleSourceCatchup>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();    
+        _jobOptions = gotJobOptions ? jobOptions! : new JobOptions();    
     }
 
     private async Task<IList<string>> GetModuleReferences()

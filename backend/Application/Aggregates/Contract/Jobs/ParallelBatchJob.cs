@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Observability;
+using Application.Configurations;
 using Application.Observability;
 using Microsoft.Extensions.Options;
 using Serilog.Context;
@@ -12,7 +13,7 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
 {
     private readonly TStatelessJob _statelessJob;
     private readonly ILogger _logger;
-    private readonly ContractAggregateJobOptions _jobOptions;
+    private readonly JobOptions _jobOptions;
     private readonly ContractHealthCheck _healthCheck;
     
     public ParallelBatchJob(
@@ -25,7 +26,7 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
         _logger = Log.ForContext<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
         _healthCheck = healthCheck;
         var gotJobOptions = options.Value.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
+        _jobOptions = gotJobOptions ? jobOptions! : new JobOptions();
     }
     
     public async Task StartImport(CancellationToken token)

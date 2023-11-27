@@ -5,6 +5,7 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Configurations;
 using Application.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -21,7 +22,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
-    private readonly ContractAggregateJobOptions _jobOptions;
+    private readonly JobOptions _jobOptions;
 
     public InitialContractRejectEventDeserializationFieldsCatchUpJob(
         IDbContextFactory<GraphQlDbContext> contextFactory,
@@ -32,7 +33,7 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
         _logger = Log.ForContext<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();    
+        _jobOptions = gotJobOptions ? jobOptions! : new JobOptions();    
     }
 
     /// <inheritdoc/>

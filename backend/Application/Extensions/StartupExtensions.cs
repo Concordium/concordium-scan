@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Application.Configurations;
+using Application.Database.MigrationJobs;
 using Application.NodeApi;
 using Concordium.Sdk.Client;
 using Microsoft.AspNetCore.Builder;
@@ -17,6 +18,17 @@ namespace Application.Extensions;
 
 internal static class StartupExtensions
 {
+    internal static void AddMainMigrationJobs(this IServiceCollection collection, IConfiguration configuration)
+    {
+        collection.Configure<MainMigrationJobOptions>(configuration.GetSection("MainMigrationJobs"));
+        
+        collection.AddHostedService<MigrationJobsBackgroundService>();
+        collection.AddTransient<IMainMigrationJobFinder, MainMigrationJobFinder>();
+        collection.AddSingleton<IMainMigrationJobRepository, MainMigrationJobRepository>();
+
+        collection.AddTransient<IMainMigrationJob, _00_FixValidatorCommissionRates>();
+    }
+    
     internal static void AddConcordiumClient(this IServiceCollection services, IConfiguration configuration)
     {
         var grpcNodeClientSettings = configuration.GetSection("ConcordiumNodeGrpc").Get<GrpcNodeClientSettings>();

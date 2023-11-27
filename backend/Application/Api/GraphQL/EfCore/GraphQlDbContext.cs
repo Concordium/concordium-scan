@@ -7,6 +7,7 @@ using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
+using Application.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.EfCore;
@@ -51,6 +52,8 @@ public class GraphQlDbContext : DbContext
     public DbSet<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; private set; }
     public DbSet<ContractReadHeight> ContractReadHeights { get; private set; }
     public DbSet<ContractJob> ContractJobs { get; private set; }
+    
+    public DbSet<MainMigrationJob> MainMigrationJobs { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Observability;
+using Application.Configurations;
 using Application.Observability;
 using Microsoft.Extensions.Options;
 using Serilog.Context;
@@ -23,7 +24,7 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
     private readonly IStatelessBlockHeightJobs _statelessJob;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
-    private readonly ContractAggregateJobOptions _jobOptions;
+    private readonly JobOptions _jobOptions;
 
     public ParallelBatchBlockHeightJob(
         TStatelessJob statelessJob,
@@ -36,7 +37,7 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
         _logger = Log.ForContext<ParallelBatchBlockHeightJob<TStatelessJob>>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();     
+        _jobOptions = gotJobOptions ? jobOptions! : new JobOptions();     
     }
 
     /// <inheritdoc/>
