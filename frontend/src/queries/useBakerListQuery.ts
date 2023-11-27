@@ -67,6 +67,11 @@ const BakerQuery = gql<BakerListResponse>`
 								finalizationCommission
 								bakingCommission
 							}
+							paydayCommissionRates {
+								transactionCommission
+								finalizationCommission
+								bakingCommission
+							}
 						}
 					}
 					... on RemovedBakerState {

@@ -80,6 +80,11 @@ const BakerQuery = gql<BakerResponse>`
 							rank
 							total
 						}
+						paydayCommissionRates {
+							transactionCommission
+							finalizationCommission
+							bakingCommission
+						}
 						commissionRates {
 							transactionCommission
 							finalizationCommission
