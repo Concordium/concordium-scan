@@ -2,6 +2,7 @@
 	<Tooltip
 		v-if="
 			props.currentPaydayCommission &&
+			props.nextPaydayCommission &&
 			props.nextPaydayCommission !== props.currentPaydayCommission
 		"
 		:text="`Rates will change to ${
@@ -16,7 +17,12 @@
 					? formatPercentage(props.currentPaydayCommission)
 					: 'unknown'
 			}}%
-			<WarningIcon class="h-4 inline align-text-top" />
+			<ArrowUpIcon
+				v-if="props.nextPaydayCommission > props.currentPaydayCommission"
+				class="h-4 align-middle"
+			/>
+			<ArrowDownIcon v-else class="h-4 align-middle" />
+			<WarningIcon class="h-4 align-middle" />
 		</span>
 	</Tooltip>
 	<span v-else class="numerical">
@@ -30,6 +36,8 @@
 <script lang="ts" setup>
 import WarningIcon from '../icons/WarningIcon.vue'
 import Tooltip from '../atoms/Tooltip.vue'
+import ArrowUpIcon from '../icons/ArrowUpIcon.vue'
+import ArrowDownIcon from '../icons/ArrowDownIcon.vue'
 import { formatPercentage } from '~/utils/format'
 
 type Props = {
