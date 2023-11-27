@@ -64,12 +64,10 @@ const BakerQuery = gql<BakerListResponse>`
 							}
 							commissionRates {
 								transactionCommission
-								finalizationCommission
 								bakingCommission
 							}
 							paydayCommissionRates {
 								transactionCommission
-								finalizationCommission
 								bakingCommission
 							}
 						}
