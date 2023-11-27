@@ -37,7 +37,7 @@
 								/>
 								<div class="inline">
 									<Chip class="inline-block ml-4 px-0" variant="secondary">
-										Baker
+										Validator
 									</Chip>
 								</div>
 							</div>
