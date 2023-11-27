@@ -7,7 +7,7 @@
 		"
 		:text="`Rates will change to ${formatPercentage(
 			props.nextPaydayCommission
-		)}% on the next pay day.`"
+		)}% on the next payday.`"
 	>
 		<span class="numerical change">
 			{{
