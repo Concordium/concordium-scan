@@ -80,9 +80,12 @@ const BakerQuery = gql<BakerResponse>`
 							rank
 							total
 						}
+						paydayCommissionRates {
+							transactionCommission
+							bakingCommission
+						}
 						commissionRates {
 							transactionCommission
-							finalizationCommission
 							bakingCommission
 						}
 						apy7days: apy(period: LAST7_DAYS) {

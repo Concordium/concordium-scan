@@ -4,7 +4,7 @@
 
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<div class="flex flex-col">
-				<h3 class="w-full text-sm text-theme-faded">Baker</h3>
+				<h3 class="w-full text-sm text-theme-faded">Validator</h3>
 
 				<h1 class="inline-block text-2xl numerical">
 					{{ baker.bakerId }}
