@@ -1,24 +1,24 @@
 <template>
 	<Tooltip
 		v-if="
-			props.currentPaydayCommission &&
 			props.nextPaydayCommission &&
 			props.nextPaydayCommission !== props.currentPaydayCommission
 		"
-		:text="`Rates will change to ${
+		:text="`Rates will change to ${formatPercentage(
 			props.nextPaydayCommission
-				? formatPercentage(props.nextPaydayCommission)
-				: 'unknown'
-		}% on the next pay day.`"
+		)}% on the next pay day.`"
 	>
 		<span class="numerical change">
 			{{
-				props.nextPaydayCommission
+				props.currentPaydayCommission
 					? formatPercentage(props.currentPaydayCommission)
 					: 'unknown'
 			}}%
 			<ArrowUpIcon
-				v-if="props.nextPaydayCommission > props.currentPaydayCommission"
+				v-if="
+					!props.currentPaydayCommission ||
+					props.nextPaydayCommission > props.currentPaydayCommission
+				"
 				class="h-4 align-middle"
 			/>
 			<ArrowDownIcon v-else class="h-4 align-middle" />
