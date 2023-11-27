@@ -11,10 +11,11 @@
 	>
 		<span class="numerical change">
 			{{
-				props.currentPaydayCommission
-					? formatPercentage(props.currentPaydayCommission)
+				props.currentPaydayCommission !== undefined &&
+				props.currentPaydayCommission !== null
+					? `${formatPercentage(props.currentPaydayCommission)}%`
 					: 'unknown'
-			}}%
+			}}
 			<ArrowUpIcon
 				v-if="
 					!props.currentPaydayCommission ||
@@ -30,9 +31,9 @@
 		{{
 			props.currentPaydayCommission !== undefined &&
 			props.currentPaydayCommission !== null
-				? formatPercentage(props.currentPaydayCommission)
+				? `${formatPercentage(props.currentPaydayCommission)}%`
 				: 'unknown'
-		}}%
+		}}
 	</span>
 </template>
 <script lang="ts" setup>
