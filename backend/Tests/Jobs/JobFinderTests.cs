@@ -1,8 +1,11 @@
 using System.Threading;
+using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Application.Database.MigrationJobs;
 using Application.Entities;
+using Application.Jobs;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,19 +13,40 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Tests.TestUtilities;
 
-namespace Tests.Database.MigrationJobs;
+namespace Tests.Jobs;
 
 [Collection(DatabaseCollectionFixture.DatabaseCollection)]
-public sealed class MainJobFinderTests
+public sealed class JobFinderTests
 {
-        private readonly DatabaseFixture _fixture;
-
-    public MainJobFinderTests(DatabaseFixture fixture)
+    private readonly DatabaseFixture _fixture;
+    
+    public JobFinderTests(DatabaseFixture fixture)
     {
         _fixture = fixture;
     }
     
     [Fact]
+    public void WhenJobsRegistered_ThenReturnAllJobs()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTransient<IContractJob>(_ => Mock.Of<IContractJob>());
+        services.AddTransient<IContractJob>(_ => Mock.Of<IContractJob>());
+        services.AddTransient<IContractJob>(_ => Mock.Of<IContractJob>());
+        var provider = services.BuildServiceProvider();
+        var contractJobFinder = new JobFinder<IContractJob, ContractJob>(
+            provider,
+            Options.Create(new GeneralJobOption()),
+            Mock.Of<IDbContextFactory<GraphQlDbContext>>());
+
+        // Act
+        var contractJobs = contractJobFinder.GetJobs();
+
+        // Assert
+        contractJobs.Count().Should().Be(3);
+    }
+    
+        [Fact]
     public async Task WhenGetJobsToAwait_ThenReturnJobsNotFinished()
     {
         // Arrange
@@ -53,9 +77,9 @@ public sealed class MainJobFinderTests
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_fixture.CreateGraphQlDbContext()));
         var provider = services.BuildServiceProvider();
-        var contractJobFinder = new MainMigrationJobFinder(
+        var contractJobFinder = new JobFinder<IMainMigrationJob, MainMigrationJob>(
             provider,
-            Options.Create(new MainMigrationJobOptions()),
+            Options.Create(new GeneralJobOption()),
             factory.Object
             );
         await using (var context = _fixture.CreateGraphQlDbContext())

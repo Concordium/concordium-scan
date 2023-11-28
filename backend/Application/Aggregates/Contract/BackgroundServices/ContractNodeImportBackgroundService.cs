@@ -1,11 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Observability;
 using Application.Configurations;
+using Application.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -17,7 +19,7 @@ namespace Application.Aggregates.Contract.BackgroundServices;
 /// </summary>
 internal class ContractNodeImportBackgroundService : BackgroundService
 {
-    private readonly IContractJobFinder _jobFinder;
+    private readonly IJobFinder<IContractJob, ContractJob> _jobFinder;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly IContractNodeClient _client;
@@ -27,7 +29,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     private readonly ILogger _logger;
 
     public ContractNodeImportBackgroundService(
-        IContractJobFinder jobFinder,
+        IJobFinder<IContractJob, ContractJob> jobFinder,
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         IContractRepositoryFactory repositoryFactory,
         IContractNodeClient client,

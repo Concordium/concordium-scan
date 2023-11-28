@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.Database.MigrationJobs;
+using Application.Entities;
+using Application.Jobs;
 using Application.NodeApi;
 using Application.Observability;
 using Concordium.Sdk.Client;
@@ -22,14 +24,14 @@ public class ImportReadController : BackgroundService
     private readonly ILogger _logger;
     private readonly ImportChannel _channel;
     private readonly IMetrics _metrics;
-    private readonly IMainMigrationJobFinder _migrationJobFinder;
+    private readonly IJobFinder<IMainMigrationJob, MainMigrationJob> _migrationJobFinder;
 
     public ImportReadController(
         ConcordiumClient client,
         IOptions<FeatureFlagOptions> featureFlagsOptions,
         ImportChannel channel,
         IMetrics metrics,
-        IMainMigrationJobFinder migrationJobFinder
+        IJobFinder<IMainMigrationJob, MainMigrationJob> migrationJobFinder
         )
     {
         _client = client;

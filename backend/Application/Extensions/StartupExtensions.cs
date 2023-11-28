@@ -20,14 +20,12 @@ namespace Application.Extensions;
 
 internal static class StartupExtensions
 {
-    internal static void AddMainMigrationJobs(this IServiceCollection collection, IConfiguration configuration)
+    internal static void AddMainMigrationJobs(this IServiceCollection collection)
     {
-        collection.Configure<MainMigrationJobOptions>(configuration.GetSection("MainMigrationJobs"));
-        
-        collection.AddHostedService<MigrationJobsBackgroundService>();
-        collection.AddTransient<IMainMigrationJobFinder, MainMigrationJobFinder>();
+        collection.AddHostedService<JobsBackgroundService<IMainMigrationJob, MainMigrationJob>>();
+        collection.AddTransient<IJobFinder<IMainMigrationJob, MainMigrationJob>, JobFinder<IMainMigrationJob, MainMigrationJob>>();
         collection.AddSingleton<IJobRepository<MainMigrationJob>, JobRepository<MainMigrationJob>>();
-
+        
         collection.AddTransient<IMainMigrationJob, _00_FixValidatorCommissionRates>();
     }
     

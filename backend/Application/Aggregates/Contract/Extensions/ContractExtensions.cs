@@ -54,23 +54,21 @@ public static class ContractExtensions
         builder
             .AddType<Entities.Contract.ContractQuery>()
             .AddTypeExtension<Entities.Contract.ContractExtensions>()
-            .AddType<Entities.ModuleReferenceEvent.ModuleReferenceEventQuery>()
-            .AddTypeExtension<Entities.ModuleReferenceEvent.ModuleReferenceEventExtensions>()
-            .AddTypeExtension<Entities.ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>();
+            .AddType<ModuleReferenceEvent.ModuleReferenceEventQuery>()
+            .AddTypeExtension<ModuleReferenceEvent.ModuleReferenceEventExtensions>()
+            .AddTypeExtension<ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>();
         return builder;
     }
 
     /// <summary>
     /// Background service which executes all jobs related to Smart Contracts.
-    ///
-    /// When new is implemented they should be added to the <see cref="ContractJobsBackgroundService"/>.
     /// </summary>
     private static void AddContractJobs(this IServiceCollection collection)
     {
-        collection.AddHostedService<ContractJobsBackgroundService>();
-        collection.AddTransient<IContractJobFinder, ContractJobFinder>();
-
+        collection.AddHostedService<JobsBackgroundService<IContractJob, ContractJob>>();
+        collection.AddTransient<IJobFinder<IContractJob, ContractJob>, JobFinder<IContractJob, ContractJob>>();
         collection.AddSingleton<IJobRepository<ContractJob>, JobRepository<ContractJob>>();
+        
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
         collection.AddTransient<InitialContractAggregateCatchUpJob>();
         collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();

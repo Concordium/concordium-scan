@@ -1,41 +1,42 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Configurations;
-using Application.Entities;
-using Application.Jobs;
 using Application.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Application.Database.MigrationJobs;
+namespace Application.Jobs;
 
 /// <summary>
-/// Background service which executes migration jobs for main process.
+/// Background service which executes background jobs related to <see cref="TEntity"/>
+/// from jobs which inherits from <see cref="TJob"/>.
 ///
 /// When new jobs are added they should be dependency injected and added to the constructor of this service.
 /// </summary>
-internal sealed class MigrationJobsBackgroundService : BackgroundService
+internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
+    where TJob : IJob
+    where TEntity : class, IJobEntity<TEntity>, new()
 {
-    private readonly IMainMigrationJobFinder _jobFinder;
-    private readonly IJobRepository<MainMigrationJob> _mainMigrationJobRepository;
+    private readonly IJobFinder<IJob, TEntity> _jobFinder;
+    private readonly IJobRepository<TEntity> _jobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
-    public MigrationJobsBackgroundService(
-        IMainMigrationJobFinder jobFinder,
-        IJobRepository<MainMigrationJob> mainMigrationJobRepository,
+    public JobsBackgroundService(
+        IJobFinder<IJob, TEntity> jobFinder,
+        IJobRepository<TEntity> jobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {
         _jobFinder = jobFinder;
-        _mainMigrationJobRepository = mainMigrationJobRepository;
+        _jobRepository = jobRepository;
         _featureFlags = featureFlagsOptions.Value;
-        _logger = Log.ForContext<MigrationJobsBackgroundService>();
+        _logger = Log.ForContext<JobsBackgroundService<TJob, TEntity>>();
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var _ = TraceContext.StartActivity(nameof(MigrationJobsBackgroundService));
+        using var _ = TraceContext.StartActivity(nameof(JobsBackgroundService<TJob, TEntity>));
         
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
@@ -49,26 +50,26 @@ internal sealed class MigrationJobsBackgroundService : BackgroundService
         {
             await Task.WhenAll(jobs.Select(j => RunJob(j, stoppingToken)));
             
-            _logger.Information($"{nameof(MigrationJobsBackgroundService)} done.");
+            _logger.Information($"{nameof(JobsBackgroundService<TJob, TEntity>)} done.");
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"{nameof(MigrationJobsBackgroundService)} didn't succeed successfully due to exception.");
+            _logger.Error(e, $"{nameof(JobsBackgroundService<TJob, TEntity>)} didn't succeed successfully due to exception.");
         }
     }
 
-    private async Task RunJob(IMainMigrationJob job, CancellationToken token)
+    private async Task RunJob(IJob job, CancellationToken token)
     {
         try
         {
-            if (await _mainMigrationJobRepository.DoesExistingJobExist(job, token))
+            if (await _jobRepository.DoesExistingJobExist(job, token))
             {
                 return;
             }
             
             await job.StartImport(token);
 
-            await _mainMigrationJobRepository.SaveSuccessfullyExecutedJob(job, token);
+            await _jobRepository.SaveSuccessfullyExecutedJob(job, token);
             _logger.Information($"{job.GetUniqueIdentifier()} finished successfully.");
         }
         catch (Exception e)

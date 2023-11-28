@@ -10,7 +10,9 @@ using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.Database;
 using Application.Database.MigrationJobs;
+using Application.Entities;
 using Application.Import;
+using Application.Jobs;
 using Application.Observability;
 using Concordium.Sdk.Types;
 using HotChocolate.Subscriptions;
@@ -37,7 +39,7 @@ public class ImportWriteController : BackgroundService
     private readonly AccountImportHandler _accountHandler;
     private readonly EventLogHandler _eventLogHandler;
     private readonly NonCirculatingAccounts _nonCirculatingAccounts;
-    private readonly IMainMigrationJobFinder _migrationJobFinder;
+    private readonly IJobFinder<IMainMigrationJob, MainMigrationJob> _migrationJobFinder;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -60,7 +62,7 @@ public class ImportWriteController : BackgroundService
         IMetrics metrics,
         MetricsListener metricsListener,
         NonCirculatingAccounts nonCirculatingAccounts,
-        IMainMigrationJobFinder migrationJobFinder)
+        IJobFinder<IMainMigrationJob, MainMigrationJob> migrationJobFinder)
     {
         _featureFlags = featureFlagsOptions.Value;
         _accountLookup = accountLookup;

@@ -7,6 +7,7 @@ using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
+using Application.Jobs;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,7 +58,10 @@ public class ContractNodeImportBackgroundServiceTests
         factory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(_fixture.CreateGraphQlDbContext()));
         var provider = services.BuildServiceProvider();
-        var contractJobFinder = new ContractJobFinder(provider);
+        var contractJobFinder = new JobFinder<IContractJob, ContractJob>(
+            provider,
+            Options.Create(new GeneralJobOption()),
+            factory.Object);
         await using (var context = _fixture.CreateGraphQlDbContext())
         {
             await context.AddAsync(new ContractJob(done));

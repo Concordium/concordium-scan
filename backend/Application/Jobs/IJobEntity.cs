@@ -3,7 +3,7 @@ namespace Application.Jobs;
 /// <summary>
 /// Base interface which job entities should inherit from.
 /// </summary>
-internal interface IJobEntity<T>
+public interface IJobEntity<T>
 {
     /// <summary>
     /// Identifier of job.
