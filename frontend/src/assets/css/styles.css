@@ -96,13 +96,3 @@ body {
 	border: 1px solid #787594;
 	box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.2);	
 }
-
-.deserialized-message {
-	white-space: pre-line;
-	max-width: 775px;
-	overflow-wrap: break-word;
-
-	@media screen and (max-width: 900px) {
-		max-width: 240px;
-	}
-}

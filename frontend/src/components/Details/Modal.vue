@@ -1,30 +1,39 @@
 <template>
 	<button
-		class="relative transition-colors text-theme-faded hover:text-theme-interactiveHover inline"
+		class="transition-colors text-theme-faded hover:text-theme-interactiveHover inline"
 		style="width: 24px"
 		@click="toggleModalVisible"
 	>
-		<ArrowsPointingOut class="inline align-text-top h-4" />
+		<OverlayIcon class="inline align-text-top h-4" />
 	</button>
 	<transition name="modal-fade">
 		<span v-if="isVisible">
 			<div class="modal-backdrop">
 				<div class="modal">
+					<header class="modal-header">
+						<h3 class="text-2xl">
+							{{ props.headerTitle }}
+						</h3>
+						<button type="button" @click="closeModal">
+							<XIcon class="h-6" />
+						</button>
+					</header>
 					<section class="modal-body">
 						<slot name="body" />
 					</section>
-					<footer class="modal-footer">
-						<button type="button" class="btn-green" @click="closeModal">
-							Close Modal
-						</button>
-					</footer>
 				</div>
 			</div>
 		</span>
 	</transition>
 </template>
 <script setup lang="ts">
-import ArrowsPointingOut from '~/components/icons/ArrowsPointingOut.vue'
+import { XIcon } from '@heroicons/vue/solid'
+import OverlayIcon from '../icons/OverlayIcon.vue'
+
+type Props = {
+	headerTitle: string
+}
+const props = defineProps<Props>()
 
 const isVisible = ref(false)
 const toggleModalVisible = () => {
@@ -35,61 +44,60 @@ const closeModal = () => {
 }
 </script>
 <style>
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-	opacity: 0;
+.modal-body pre {
+	white-space: pre-wrap; /* Since CSS 2.1 */
+	white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+	white-space: -pre-wrap; /* Opera 4-6 */
+	white-space: -o-pre-wrap; /* Opera 7 */
+	word-wrap: break-word; /* Internet Explorer 5.5+ */
 }
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-	transition: opacity 0.5s ease;
-}
-.modal-fade-enter-to,
-.modal-fade-leave-from {
-	opacity: 1;
-}
+
 .modal-backdrop {
-	position: fixed;
 	top: 0;
 	bottom: 0;
 	left: 0;
 	right: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 100;
+	background-color: rgba(0, 0, 0, 0.8);
+	position: fixed;
 	display: flex;
 	justify-content: center;
 	align-items: center;
 }
 
 .modal {
-	background-color: hsla(245, 24%, 51%, 100%);
-	/* background-color: var(--color-background-elevated); // Doesn't work */
-	opacity: 1;
-	border: 1px solid #787594;
-	box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.2);
+	background-color: var(--color-background-elevated-nontrans);
+	width: 1000px;
+	height: 90%;
+	border-radius: 16px;
+	box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.5);
 	overflow-x: auto;
 	display: flex;
 	flex-direction: column;
 }
 
-.modal-footer {
-	padding: 15px;
+.modal-header {
 	display: flex;
-}
+	flex-direction: row;
+	padding: 30px;
+	justify-content: space-between;
 
-.modal-footer {
-	border-top: 1px solid #eeeeee;
-	flex-direction: column;
-	justify-content: flex-end;
+	@media screen and (max-width: 640px) {
+		padding: 20px;
+	}
 }
 
 .modal-body {
+	height: 76vh;
+	overflow-x: hidden;
+	overflow-y: scroll;
 	color: #4aae9b;
-	position: relative;
-	padding: 20px 10px;
-}
+	padding: 0 40px 40px;
 
-.btn-green {
-	color: white;
-	background: #4aae9b;
-	border: 1px solid #4aae9b;
-	border-radius: 2px;
+	@media screen and (max-width: 640px) {
+		padding: 0 10px 10px;
+	}
 }
 </style>

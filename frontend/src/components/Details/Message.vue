@@ -5,18 +5,10 @@
 			<InfoTooltip text="Input parameters given to activity entrypoint." />
 		</div>
 		<div class="flex">
-			<code class="truncate w-36">
+			<code class="truncate w-96">
 				{{ message }}
 			</code>
-			<Tooltip>
-				<ArrowsPointingOut class="inline align-text-top h-4" />
-				<template #content>
-					<code style="text-align: left">
-						<pre>{{ JSON.stringify(JSON.parse(message), null, 2) }}</pre>
-					</code>
-				</template>
-			</Tooltip>
-			<Modal>
+			<Modal :header-title="'Message'">
 				<template #body>
 					<code style="text-align: left">
 						<pre>{{ JSON.stringify(JSON.parse(message), null, 2) }}</pre>
@@ -34,8 +26,6 @@
 <script lang="ts" setup>
 import InfoTooltip from '../atoms/InfoTooltip.vue'
 import TextCopy from '../atoms/TextCopy.vue'
-import Tooltip from '../atoms/Tooltip.vue'
-import ArrowsPointingOut from '../icons/ArrowsPointingOut.vue'
 import Modal from './Modal.vue'
 
 type Props = {
