@@ -5,7 +5,7 @@ namespace Application.Aggregates.Contract.Entities;
 /// <summary>
 /// Jobs related to smart contracts, which has successfully executed.
 /// </summary>
-public sealed class ContractJob : IJobEntity<ContractJob>
+public sealed class ContractJob : IJobEntity
 {
     public string Job { get; init; } = null!;
 

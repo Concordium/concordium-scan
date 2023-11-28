@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Jobs;
 
-internal interface IJobRepository<T> where T : class, IJobEntity<T>, new()
+internal interface IJobRepository<T> where T : class, IJobEntity, new()
 {
     /// <summary>
     /// Checks in storage if a job has been executed.
@@ -21,7 +21,7 @@ internal interface IJobRepository<T> where T : class, IJobEntity<T>, new()
     Task SaveSuccessfullyExecutedJob(IJob job, CancellationToken token = default);
 }
 
-internal class JobRepository<T> : IJobRepository<T> where T : class, IJobEntity<T>, new()
+internal class JobRepository<T> : IJobRepository<T> where T : class, IJobEntity, new()
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
 

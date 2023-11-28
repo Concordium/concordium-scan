@@ -23,7 +23,7 @@ internal static class StartupExtensions
     internal static void AddMainMigrationJobs(this IServiceCollection collection)
     {
         collection.AddHostedService<JobsBackgroundService<IMainMigrationJob, MainMigrationJob>>();
-        collection.AddTransient<IJobFinder<IMainMigrationJob, MainMigrationJob>, JobFinder<IMainMigrationJob, MainMigrationJob>>();
+        collection.AddTransient<IJobFinder<IMainMigrationJob>, JobFinder<IMainMigrationJob, MainMigrationJob>>();
         collection.AddSingleton<IJobRepository<MainMigrationJob>, JobRepository<MainMigrationJob>>();
         
         collection.AddTransient<IMainMigrationJob, _00_FixValidatorCommissionRates>();

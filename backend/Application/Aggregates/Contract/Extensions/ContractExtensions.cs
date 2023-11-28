@@ -66,7 +66,7 @@ public static class ContractExtensions
     private static void AddContractJobs(this IServiceCollection collection)
     {
         collection.AddHostedService<JobsBackgroundService<IContractJob, ContractJob>>();
-        collection.AddTransient<IJobFinder<IContractJob, ContractJob>, JobFinder<IContractJob, ContractJob>>();
+        collection.AddTransient<IJobFinder<IContractJob>, JobFinder<IContractJob, ContractJob>>();
         collection.AddSingleton<IJobRepository<ContractJob>, JobRepository<ContractJob>>();
         
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();

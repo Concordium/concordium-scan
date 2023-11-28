@@ -8,9 +8,8 @@ using Microsoft.Extensions.Options;
 
 namespace Application.Jobs;
 
-public interface IJobFinder<out T, TEntity> 
+public interface IJobFinder<out T> 
     where T : IJob
-    where TEntity : class, IJobEntity<TEntity>, new()
 {
     /// <summary>
     /// Get jobs which inherits from <see cref="T"/>.
@@ -23,9 +22,9 @@ public interface IJobFinder<out T, TEntity>
     Task AwaitJobsAsync(CancellationToken token = default);
 }
 
-internal sealed class JobFinder<T, TEntity> : IJobFinder<T, TEntity> 
+internal sealed class JobFinder<T, TEntity> : IJobFinder<T> 
     where T : IJob
-    where TEntity : class, IJobEntity<TEntity>, new()
+    where TEntity : class, IJobEntity, new()
 {
     private readonly IServiceProvider _provider;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;

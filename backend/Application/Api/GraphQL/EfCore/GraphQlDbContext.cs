@@ -52,7 +52,6 @@ public class GraphQlDbContext : DbContext
     public DbSet<ModuleReferenceRejectEvent> ModuleReferenceRejectEvents { get; private set; }
     public DbSet<ContractReadHeight> ContractReadHeights { get; private set; }
     public DbSet<ContractJob> ContractJobs { get; private set; }
-    
     public DbSet<MainMigrationJob> MainMigrationJobs { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)

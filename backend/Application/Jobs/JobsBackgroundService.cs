@@ -15,15 +15,15 @@ namespace Application.Jobs;
 /// </summary>
 internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
     where TJob : IJob
-    where TEntity : class, IJobEntity<TEntity>, new()
+    where TEntity : class, IJobEntity, new()
 {
-    private readonly IJobFinder<IJob, TEntity> _jobFinder;
+    private readonly IJobFinder<IJob> _jobFinder;
     private readonly IJobRepository<TEntity> _jobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public JobsBackgroundService(
-        IJobFinder<IJob, TEntity> jobFinder,
+        IJobFinder<IJob> jobFinder,
         IJobRepository<TEntity> jobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )

@@ -39,7 +39,7 @@ public class ImportWriteController : BackgroundService
     private readonly AccountImportHandler _accountHandler;
     private readonly EventLogHandler _eventLogHandler;
     private readonly NonCirculatingAccounts _nonCirculatingAccounts;
-    private readonly IJobFinder<IMainMigrationJob, MainMigrationJob> _migrationJobFinder;
+    private readonly IJobFinder<IMainMigrationJob> _migrationJobFinder;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -62,7 +62,7 @@ public class ImportWriteController : BackgroundService
         IMetrics metrics,
         MetricsListener metricsListener,
         NonCirculatingAccounts nonCirculatingAccounts,
-        IJobFinder<IMainMigrationJob, MainMigrationJob> migrationJobFinder)
+        IJobFinder<IMainMigrationJob> migrationJobFinder)
     {
         _featureFlags = featureFlagsOptions.Value;
         _accountLookup = accountLookup;
