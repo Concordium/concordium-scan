@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
@@ -9,6 +10,14 @@ namespace Application.Observability;
 
 internal static class ApplicationMetrics
 {
+    private static readonly Gauge ProcessReadHeight = Metrics.CreateGauge(
+        "import_process_read_height",
+        "Max height read by an import process",
+        new GaugeConfiguration
+        {
+            LabelNames = new []{"process", "data_source"}
+        });
+    
     private static readonly Histogram GraphQlRequestDuration = Metrics.CreateHistogram(
         "graphql_request_duration_seconds",
         "Duration of GraphQl in seconds",
@@ -34,6 +43,13 @@ internal static class ApplicationMetrics
             LabelNames = new[] { "process", "exception" }
         }
     );
+    
+    internal static void SetReadHeight(double value, string processIdentifier, ImportSource source)
+    {
+        ProcessReadHeight
+            .WithLabels(processIdentifier, source.ToStringCached())
+            .Set(value);
+    }
 
     internal static void IncInteropErrors(string instigator, InteropBindingException exception)
     {

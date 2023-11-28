@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.EventLogs;
@@ -189,6 +190,8 @@ public class ImportWriteController : BackgroundService
             using (_metrics.MeasureDuration(nameof(ImportWriteController), "WriteDataDisposeTx"))
                 txScope.Dispose(); // this is where the actual commit or rollback is performed
         }
+        
+        ApplicationMetrics.SetReadHeight(result.Block.BlockHeight, "main", ImportSource.NodeImport);
 
         _importStateController.SavedChangesCommitted();
         return result;

@@ -12,6 +12,12 @@ using Serilog.Context;
 
 namespace Application.Database.MigrationJobs;
 
+/// <summary>
+/// Some validators have not have their commission rates updated whenever a chain update would affect their commissions.
+/// This is due to a bug where commission rates from chain updates was not compared correctly.
+/// This job loop through all bakers with commission rates set, and updates those values to data fetched directly
+/// from the chain.
+/// </summary>
 public class _00_FixValidatorCommissionRates : IMainMigrationJob {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ConcordiumClient _client;
