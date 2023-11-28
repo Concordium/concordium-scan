@@ -11,6 +11,7 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
+using Application.Observability;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -55,7 +56,7 @@ public class InitialContractRejectEventDeserializationEventFieldsCatchUpJobTests
             }
         });
         var job = new InitialContractRejectEventDeserializationFieldsCatchUpJob(dbFactory.Object, options);
-        var parallelBatchJob = new ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>(job, options, new ContractHealthCheck());
+        var parallelBatchJob = new ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>(job, options, new JobHealthCheck());
         
         // Act
         await parallelBatchJob.StartImport(CancellationToken.None);

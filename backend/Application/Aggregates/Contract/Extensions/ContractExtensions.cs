@@ -2,8 +2,8 @@ using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
-using Application.Aggregates.Contract.Observability;
 using Application.Jobs;
+using Application.Observability;
 using Dapper;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -25,17 +25,8 @@ public static class ContractExtensions
         collection.AddTransient<IContractNodeClient, ContractNodeClient>();
         
         collection.AddContractJobs();
-        collection.AddObservability();
         
         AddDapperTypeHandlers();
-    }
-
-    private static void AddObservability(this IServiceCollection collection)
-    {
-        collection.AddSingleton<ContractHealthCheck>();
-        collection.AddHealthChecks()
-            .AddCheck<ContractHealthCheck>("Contract", HealthStatus.Unhealthy)
-            .ForwardToPrometheus();
     }
     
     /// <summary>

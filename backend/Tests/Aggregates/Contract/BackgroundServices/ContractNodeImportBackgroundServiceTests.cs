@@ -8,6 +8,7 @@ using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Application.Jobs;
+using Application.Observability;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,7 +76,7 @@ public class ContractNodeImportBackgroundServiceTests
             Mock.Of<IContractRepositoryFactory>(),
             Mock.Of<IContractNodeClient>(),
             Options.Create(new ContractAggregateOptions()),
-            new ContractHealthCheck(),
+            new JobHealthCheck(),
             Mock.Of<IOptions<FeatureFlagOptions>>());
         
         // Act

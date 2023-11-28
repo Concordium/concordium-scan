@@ -64,8 +64,10 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
         {
             if (await _jobRepository.DoesExistingJobExist(job, token))
             {
+                _logger.Information($"{job.GetUniqueIdentifier()} already done.");
                 return;
             }
+            _logger.Information($"{job.GetUniqueIdentifier()} starts.");
             
             await job.StartImport(token);
 

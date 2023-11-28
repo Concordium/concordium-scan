@@ -2,11 +2,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
-using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
 using Application.Observability;
+using Application.Resilience;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 

@@ -84,7 +84,7 @@ builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorSer
 builder.Services.AddScoped<NodeStatusSnapshot>();
 builder.Services.AddDefaultHealthChecks();
 builder.Services.AddContractAggregate(builder.Configuration);
-builder.Services.AddMainMigrationJobs();
+builder.Services.AddMainMigrationJobs(builder.Configuration);
 
 builder.Services.Configure<GeneralJobOption>(builder.Configuration.GetSection("GeneralJobOptions"));
 

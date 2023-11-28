@@ -2,16 +2,23 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
+using Application.Observability;
+using Application.Resilience;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Serilog.Context;
 
 namespace Application.Database.MigrationJobs;
 
 public class _00_FixValidatorCommissionRates : IMainMigrationJob {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ConcordiumClient _client;
-
+    private readonly JobHealthCheck _jobHealthCheck;
+    private readonly ILogger _logger;
+    private readonly MainMigrationJobOptions _mainMigrationJobOptions;
+    
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
@@ -19,35 +26,57 @@ public class _00_FixValidatorCommissionRates : IMainMigrationJob {
 
     public _00_FixValidatorCommissionRates(
         IDbContextFactory<GraphQlDbContext> contextFactory,
-        ConcordiumClient client
+        ConcordiumClient client,
+        JobHealthCheck jobHealthCheck,
+        IOptions<MainMigrationJobOptions> options
         )
     {
         _contextFactory = contextFactory;
         _client = client;
+        _jobHealthCheck = jobHealthCheck;
+        _logger = Log.ForContext<_00_FixValidatorCommissionRates>();
+        _mainMigrationJobOptions = options.Value;
     }
     
     public async Task StartImport(CancellationToken token)
     {
-        await using var context =  await _contextFactory.CreateDbContextAsync(token);
+        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
+        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
 
-        await foreach (var contextBaker in context.Bakers)
+        try
         {
-            if (contextBaker.State is not ActiveBakerState activeBakerState)
-            {
-                continue;
-            }
+            await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
+                .ExecuteAsync(async () =>
+                {
+                    await using var context =  await _contextFactory.CreateDbContextAsync(token);
 
-            if (activeBakerState.Pool == null)
-            {
-                continue;
-            }
+                    await foreach (var contextBaker in context.Bakers)
+                    {
+                        if (contextBaker.State is not ActiveBakerState activeBakerState)
+                        {
+                            continue;
+                        }
 
-            var poolInfo = await _client.GetPoolInfoAsync(new BakerId(new AccountIndex((ulong)contextBaker.BakerId)), new LastFinal(), token);
+                        if (activeBakerState.Pool == null)
+                        {
+                            continue;
+                        }
+
+                        var poolInfo = await _client.GetPoolInfoAsync(new BakerId(new AccountIndex((ulong)contextBaker.BakerId)), new LastFinal(), token);
             
-            activeBakerState.Pool.CommissionRates.Update(poolInfo.Response.PoolInfo.CommissionRates);
-        }
+                        activeBakerState.Pool.CommissionRates.Update(poolInfo.Response.PoolInfo.CommissionRates);
+                    }
 
-        await context.SaveChangesAsync(token);
+                    await context.SaveChangesAsync(token);
+                });
+            
+        }
+        catch (Exception e)
+        {
+            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
+            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
+            throw;
+        }
     }
 
     public string GetUniqueIdentifier() => JobName;

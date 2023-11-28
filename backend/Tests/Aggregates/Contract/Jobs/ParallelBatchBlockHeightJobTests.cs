@@ -5,6 +5,7 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Configurations;
+using Application.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +29,7 @@ public sealed class ParallelBatchBlockHeightJobTests
             }
         });
         var parallelBatchBlockHeightJob = new ParallelBatchBlockHeightJob<MockStatelessBlockHeightJobs>(
-            statelessJob, options, new ContractHealthCheck()
+            statelessJob, options, new JobHealthCheck()
             );
         
         // Act

@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Observability;
-using Application.Aggregates.Contract.Resilience;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Application.Observability;
+using Application.Resilience;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Serilog.Context;
@@ -23,7 +23,7 @@ public class UpdateModuleSourceCatchup : IContractJob
 {
     private readonly IContractNodeClient _client;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-    private readonly ContractHealthCheck _healthCheck;
+    private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
     private readonly JobOptions _jobOptions;
@@ -37,11 +37,11 @@ public class UpdateModuleSourceCatchup : IContractJob
         IContractNodeClient client,
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck)
+        JobHealthCheck jobHealthCheck)
     {
         _client = client;
         _dbContextFactory = dbContextFactory;
-        _healthCheck = healthCheck;
+        _jobHealthCheck = jobHealthCheck;
         _logger = Log.ForContext<UpdateModuleSourceCatchup>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
@@ -101,7 +101,7 @@ public class UpdateModuleSourceCatchup : IContractJob
         }
         catch (Exception e)
         {
-            _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
+            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
             _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
             throw;
         }
