@@ -543,6 +543,7 @@ export type BakerPool = {
   lotteryPower?: Maybe<Scalars['Decimal']>;
   metadataUrl: Scalars['String'];
   openStatus: BakerPoolOpenStatus;
+  paydayCommissionRates?: Maybe<CommissionRates>;
   poolRewards?: Maybe<PaydayPoolRewardConnection>;
   /** Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition. */
   rankingByTotalStake?: Maybe<Ranking>;
