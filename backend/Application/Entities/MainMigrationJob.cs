@@ -1,17 +1,16 @@
+using Application.Jobs;
+
 namespace Application.Entities;
 
 /// <summary>
 /// Jobs related to migration jobs of main process, which has successfully executed.
 /// </summary>
-public sealed class MainMigrationJob
+public sealed class MainMigrationJob : IJobEntity<MainMigrationJob>
 {
-    public string Job { get; set; } = null!;
-    public DateTimeOffset CreatedAt { get; init; } = DateTime.UtcNow;
+    public string Job { get; init; } = null!;
+    public DateTimeOffset CreatedAt { get; } = DateTime.UtcNow;
     
-    /// <summary>
-    /// Needed for EF Core
-    /// </summary>
-    private MainMigrationJob()
+    public MainMigrationJob()
     {}
 
     public MainMigrationJob(string job)

@@ -1,8 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Observability;
 using Application.Configurations;
+using Application.Jobs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -16,13 +18,13 @@ namespace Application.Aggregates.Contract.BackgroundServices;
 internal sealed class ContractJobsBackgroundService : BackgroundService
 {
     private readonly IContractJobFinder _jobFinder;
-    private readonly IContractJobRepository _contractJobRepository;
+    private readonly IJobRepository<ContractJob> _contractJobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public ContractJobsBackgroundService(
         IContractJobFinder jobFinder,
-        IContractJobRepository contractJobRepository,
+        IJobRepository<ContractJob> contractJobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {

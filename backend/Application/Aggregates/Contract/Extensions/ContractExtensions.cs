@@ -1,7 +1,9 @@
 using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
+using Application.Jobs;
 using Dapper;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -68,7 +70,7 @@ public static class ContractExtensions
         collection.AddHostedService<ContractJobsBackgroundService>();
         collection.AddTransient<IContractJobFinder, ContractJobFinder>();
 
-        collection.AddSingleton<IContractJobRepository, ContractJobRepository>();
+        collection.AddSingleton<IJobRepository<ContractJob>, JobRepository<ContractJob>>();
         collection.AddTransient<IContractJob, ParallelBatchBlockHeightJob<InitialContractAggregateCatchUpJob>>();
         collection.AddTransient<InitialContractAggregateCatchUpJob>();
         collection.AddTransient<IContractJob, InitialModuleSourceCatchup>();

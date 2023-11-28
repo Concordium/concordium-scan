@@ -1,6 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Configurations;
+using Application.Entities;
+using Application.Jobs;
 using Application.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -15,13 +17,13 @@ namespace Application.Database.MigrationJobs;
 internal sealed class MigrationJobsBackgroundService : BackgroundService
 {
     private readonly IMainMigrationJobFinder _jobFinder;
-    private readonly IMainMigrationJobRepository _mainMigrationJobRepository;
+    private readonly IJobRepository<MainMigrationJob> _mainMigrationJobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public MigrationJobsBackgroundService(
         IMainMigrationJobFinder jobFinder,
-        IMainMigrationJobRepository mainMigrationJobRepository,
+        IJobRepository<MainMigrationJob> mainMigrationJobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {
