@@ -1,3 +1,5 @@
+using Application.Configurations;
+
 namespace Application.Aggregates.Contract.Configurations;
 
 public class ContractAggregateOptions
@@ -8,8 +10,8 @@ public class ContractAggregateOptions
     /// Done as dictionary such that it can be changed from configurations. Key is unique identifier of job and
     /// it defined within the jobs class.
     /// </summary>
-    public IDictionary<string, ContractAggregateJobOptions> Jobs { get; set; } =
-        new Dictionary<string, ContractAggregateJobOptions>();
+    public IDictionary<string, JobOptions> Jobs { get; set; } =
+        new Dictionary<string, JobOptions>();
     /// <summary>
     /// Delay which is used by the node importer between validation if all jobs has succeeded.
     /// </summary>

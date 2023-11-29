@@ -37,7 +37,7 @@
 								/>
 								<div class="inline">
 									<Chip class="inline-block ml-4 px-0" variant="secondary">
-										Baker
+										Validator
 									</Chip>
 								</div>
 							</div>
@@ -111,25 +111,27 @@
 				<DetailsCard>
 					<template #title>Block commission</template>
 					<template #default>
-						<span class="numerical">
-							{{
-								formatPercentage(
-									baker.state.pool.commissionRates.bakingCommission
-								)
-							}}%
-						</span>
+						<CommissionRates
+							:current-payday-commission="
+								baker.state.pool.paydayCommissionRates?.bakingCommission
+							"
+							:next-payday-commission="
+								baker.state.pool.commissionRates.bakingCommission
+							"
+						/>
 					</template>
 				</DetailsCard>
 				<DetailsCard>
 					<template #title>Transaction commission</template>
 					<template #default>
-						<span class="numerical">
-							{{
-								formatPercentage(
-									baker.state.pool.commissionRates.transactionCommission
-								)
-							}}%
-						</span>
+						<CommissionRates
+							:current-payday-commission="
+								baker.state.pool.paydayCommissionRates?.transactionCommission
+							"
+							:next-payday-commission="
+								baker.state.pool.commissionRates.transactionCommission
+							"
+						/>
 					</template>
 				</DetailsCard>
 			</div>
@@ -223,6 +225,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue'
+import CommissionRates from '../Staking/CommissionRates.vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
@@ -236,7 +239,6 @@ import StatusCircle from '~/components/icons/StatusCircle.vue'
 import Accordion from '~/components/Accordion.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
-import type { Baker } from '~/types/generated'
 import { formatPercentage, formatNumber, formatUptime } from '~/utils/format'
 import BakerDetailsPoolRewards from '~/components/BakerDetails/BakerDetailsPoolRewards.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'

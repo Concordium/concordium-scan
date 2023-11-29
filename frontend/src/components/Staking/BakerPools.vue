@@ -71,16 +71,16 @@
 						v-if="hasPoolData && breakpoint >= Breakpoint.SM"
 						align="right"
 					>
-						<span
-							v-if="baker.state.__typename === 'ActiveBakerState'"
-							class="numerical"
-						>
-							{{
-								formatPercentage(
+						<template v-if="baker.state.__typename === 'ActiveBakerState'">
+							<CommissionRates
+								:current-payday-commission="
+									baker.state.pool?.paydayCommissionRates?.bakingCommission
+								"
+								:next-payday-commission="
 									baker.state.pool?.commissionRates.bakingCommission
-								)
-							}}%
-						</span>
+								"
+							/>
+						</template>
 					</TableTd>
 
 					<TableTd
@@ -290,6 +290,7 @@
 </template>
 <script lang="ts" setup>
 import { toRef } from 'vue'
+import CommissionRates from './CommissionRates.vue'
 import { composeBakerStatus } from '~/utils/composeBakerStatus'
 import { usePagination } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'

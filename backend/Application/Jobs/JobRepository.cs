@@ -1,12 +1,11 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Aggregates.Contract.Jobs;
+namespace Application.Jobs;
 
-interface IContractJobRepository
+internal interface IJobRepository<T> where T : class, IJobEntity, new()
 {
     /// <summary>
     /// Checks in storage if a job has been executed.
@@ -14,28 +13,28 @@ interface IContractJobRepository
     /// If the job identifier is in the storage this function is expected to return true.
     /// Hence only successfully executed jobs should be placed in storage.
     /// </summary>
-    Task<bool> DoesExistingJobExist(IContractJob job, CancellationToken token = default);
+    Task<bool> DoesExistingJobExist(IJob job, CancellationToken token = default);
 
     /// <summary>
     /// Saves identifier of successfully executed job to storage.
     /// </summary>
-    Task SaveSuccessfullyExecutedJob(IContractJob job, CancellationToken token = default);
+    Task SaveSuccessfullyExecutedJob(IJob job, CancellationToken token = default);
 }
 
-internal class ContractJobRepository : IContractJobRepository
+internal class JobRepository<T> : IJobRepository<T> where T : class, IJobEntity, new()
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
 
-    public ContractJobRepository(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    public JobRepository(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
     }
     
     /// <inheritdoc/>
-    public async Task<bool> DoesExistingJobExist(IContractJob job, CancellationToken token = default)
+    public async Task<bool> DoesExistingJobExist(IJob job, CancellationToken token = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(token);
-        var existingJob = await context.ContractJobs
+        var existingJob = await context.Set<T>()
             .AsNoTracking()
             .Where(j => j.Job == job.GetUniqueIdentifier())
             .FirstOrDefaultAsync(token);
@@ -44,10 +43,12 @@ internal class ContractJobRepository : IContractJobRepository
     }
     
     /// <inheritdoc/>
-    public async Task SaveSuccessfullyExecutedJob(IContractJob job, CancellationToken token = default)
+    public async Task SaveSuccessfullyExecutedJob(IJob job, CancellationToken token = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(token);
-        await context.ContractJobs.AddAsync(new ContractJob(job.GetUniqueIdentifier()), token);
+        await context
+            .Set<T>()
+            .AddAsync( new T {Job = job.GetUniqueIdentifier()}, token);
         await context.SaveChangesAsync(token);
     }
 }

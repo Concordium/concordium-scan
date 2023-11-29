@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Observability;
+using Application.Configurations;
 using Application.Observability;
 using Microsoft.Extensions.Options;
 using Serilog.Context;
@@ -12,20 +13,20 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
 {
     private readonly TStatelessJob _statelessJob;
     private readonly ILogger _logger;
-    private readonly ContractAggregateJobOptions _jobOptions;
-    private readonly ContractHealthCheck _healthCheck;
+    private readonly JobOptions _jobOptions;
+    private readonly JobHealthCheck _jobHealthCheck;
     
     public ParallelBatchJob(
         TStatelessJob statelessJob,
         IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck
+        JobHealthCheck jobHealthCheck
         )
     {
         _statelessJob = statelessJob;
         _logger = Log.ForContext<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
-        _healthCheck = healthCheck;
+        _jobHealthCheck = jobHealthCheck;
         var gotJobOptions = options.Value.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
-        _jobOptions = gotJobOptions ? jobOptions! : new ContractAggregateJobOptions();
+        _jobOptions = gotJobOptions ? jobOptions! : new JobOptions();
     }
     
     public async Task StartImport(CancellationToken token)
@@ -48,7 +49,7 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
         }
         catch (Exception e)
         {
-            _healthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
+            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
             _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
             throw;
         }

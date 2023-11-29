@@ -1,40 +1,42 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.Contract.Jobs;
-using Application.Observability;
 using Application.Configurations;
+using Application.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Application.Aggregates.Contract.BackgroundServices;
+namespace Application.Jobs;
 
 /// <summary>
-/// Background service which executes background jobs related to Contracts.
+/// Background service which executes background jobs related to <see cref="TEntity"/>
+/// from jobs which inherits from <see cref="TJob"/>.
 ///
 /// When new jobs are added they should be dependency injected and added to the constructor of this service.
 /// </summary>
-internal sealed class ContractJobsBackgroundService : BackgroundService
+internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
+    where TJob : IJob
+    where TEntity : class, IJobEntity, new()
 {
-    private readonly IContractJobFinder _jobFinder;
-    private readonly IContractJobRepository _contractJobRepository;
+    private readonly IJobFinder<TJob> _jobFinder;
+    private readonly IJobRepository<TEntity> _jobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
-    public ContractJobsBackgroundService(
-        IContractJobFinder jobFinder,
-        IContractJobRepository contractJobRepository,
+    public JobsBackgroundService(
+        IJobFinder<TJob> jobFinder,
+        IJobRepository<TEntity> jobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )
     {
         _jobFinder = jobFinder;
-        _contractJobRepository = contractJobRepository;
+        _jobRepository = jobRepository;
         _featureFlags = featureFlagsOptions.Value;
-        _logger = Log.ForContext<ContractJobsBackgroundService>();
+        _logger = Log.ForContext<JobsBackgroundService<TJob, TEntity>>();
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var _ = TraceContext.StartActivity(nameof(ContractJobsBackgroundService));
+        using var _ = TraceContext.StartActivity(nameof(JobsBackgroundService<TJob, TEntity>));
         
         if (!_featureFlags.ConcordiumNodeImportEnabled)
         {
@@ -48,26 +50,28 @@ internal sealed class ContractJobsBackgroundService : BackgroundService
         {
             await Task.WhenAll(jobs.Select(j => RunJob(j, stoppingToken)));
             
-            _logger.Information($"{nameof(ContractJobsBackgroundService)} done.");
+            _logger.Information($"{nameof(JobsBackgroundService<TJob, TEntity>)} done.");
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"{nameof(ContractJobsBackgroundService)} didn't succeed successfully due to exception.");
+            _logger.Error(e, $"{nameof(JobsBackgroundService<TJob, TEntity>)} didn't succeed successfully due to exception.");
         }
     }
 
-    private async Task RunJob(IContractJob job, CancellationToken token)
+    private async Task RunJob(TJob job, CancellationToken token)
     {
         try
         {
-            if (await _contractJobRepository.DoesExistingJobExist(job, token))
+            if (await _jobRepository.DoesExistingJobExist(job, token))
             {
+                _logger.Information($"{job.GetUniqueIdentifier()} already done.");
                 return;
             }
+            _logger.Information($"{job.GetUniqueIdentifier()} starts.");
             
             await job.StartImport(token);
 
-            await _contractJobRepository.SaveSuccessfullyExecutedJob(job, token);
+            await _jobRepository.SaveSuccessfullyExecutedJob(job, token);
             _logger.Information($"{job.GetUniqueIdentifier()} finished successfully.");
         }
         catch (Exception e)

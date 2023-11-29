@@ -9,6 +9,7 @@ using Application.Api.GraphQL.Network;
 using Application.Common;
 using Application.Common.Diagnostics;
 using Application.Common.Logging;
+using Application.Configurations;
 using Application.Database;
 using Application.Extensions;
 using Application.Import;
@@ -30,7 +31,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.With<SourceClassNameEnricher>()
     .Enrich.With<TraceEnricher>()
     .Enrich.FromLogContext()
     .CreateLogger();
@@ -83,6 +83,9 @@ builder.Services.AddSingleton(builder.Configuration.GetSection("NodeCollectorSer
 builder.Services.AddScoped<NodeStatusSnapshot>();
 builder.Services.AddDefaultHealthChecks();
 builder.Services.AddContractAggregate(builder.Configuration);
+builder.Services.AddMainMigrationJobs(builder.Configuration);
+
+builder.Services.Configure<GeneralJobOption>(builder.Configuration.GetSection("GeneralJobOptions"));
 
 builder.Host.UseSystemd();
 var app = builder.Build();
