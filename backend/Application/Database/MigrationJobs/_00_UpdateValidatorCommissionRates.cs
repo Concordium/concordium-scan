@@ -20,7 +20,7 @@ public class _00_UpdateValidatorCommissionRates : IMainMigrationJob {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "_00_FixValidatorCommissionRates";
+    private const string JobName = "_00_UpdateValidatorCommissionRates";
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
     private readonly ILogger _logger;
