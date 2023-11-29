@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Import.ConcordiumNode.ConcordiumClientWrappers;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 
@@ -10,7 +11,7 @@ namespace Application.Import.ConcordiumNode;
 /// </summary>
 public interface IConcordiumNodeClient
 {
-    Task<ITransactionStatus> GetBlockItemStatusAsync(TransactionHash transactionHash, CancellationToken token = default);
+    Task<IBlockItemSummaryWrapper> GetBlockItemStatusAsync(TransactionHash transactionHash, CancellationToken token = default);
     
     Task<BakerPoolStatus> GetPoolInfoAsync(BakerId bakerId, IBlockHashInput blockHashInput,
         CancellationToken token = default);
@@ -31,6 +32,10 @@ internal sealed class ConcordiumNodeClient : IConcordiumNodeClient
         return poolInfoAsync.Response;
     }
 
-    public Task<ITransactionStatus> GetBlockItemStatusAsync(TransactionHash transactionHash, CancellationToken token = default) => 
-        _client.GetBlockItemStatusAsync(transactionHash, token);
+    public async Task<IBlockItemSummaryWrapper> GetBlockItemStatusAsync(TransactionHash transactionHash,
+        CancellationToken token = default)
+    {
+        var blockItemSummary = await _client.GetBlockItemStatusAsync(transactionHash, token);
+        return new BlockItemSummaryWrapper(blockItemSummary);
+    }
 }

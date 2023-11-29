@@ -6,10 +6,12 @@ using Application.Api.GraphQL.Transactions;
 using Application.Exceptions;
 using Application.Import.ConcordiumNode;
 using Application.Observability;
+using Application.Resilience;
 using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Serilog.Context;
 
 namespace Application.Database.MigrationJobs;
 
@@ -74,48 +76,62 @@ WHERE transaction_type IN ('2.22', '2.21', '2.20', '2.19', '2.18');
     /// <summary>
     /// Start import of missing transaction events.
     /// </summary>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="JobException">If the transaction fetched from the node isn't
+    /// <see cref="TransactionStatusFinalized"/> or the transaction isn't of type <see cref="UpdateDetails"/>
+    /// </exception>
     public async Task StartImport(CancellationToken token)
     {
-        await using var context = await _contextFactory.CreateDbContextAsync(token);
-        var connection = context.Database.GetDbConnection();
-        
-        var transactions = await connection.QueryAsync<Transaction>(AffectedTransactionTypesSql);
-        
-        foreach (var transaction in transactions)
+        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
+        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
+
+        try
         {
-            var count = await context.TransactionResultEvents
-                .Where(te => te.TransactionId == transaction.Id)
-                .CountAsync(cancellationToken: token);
-            // Conditions true since one to one relation between transaction and update event.
-            if (count > 0)
-            {
-                continue;
-            }
+            await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
+                .ExecuteAsync(async () =>
+                {
+                    await using var context = await _contextFactory.CreateDbContextAsync(token);
+                    var connection = context.Database.GetDbConnection();
+        
+                    var transactions = await connection.QueryAsync<Transaction>(AffectedTransactionTypesSql);
+        
+                    foreach (var transaction in transactions)
+                    {
+                        var count = await context.TransactionResultEvents
+                            .Where(te => te.TransactionId == transaction.Id)
+                            .CountAsync(cancellationToken: token);
+                        // If a transaction event exist the event has already been generated. 
+                        if (count > 0)
+                        {
+                            continue;
+                        }
 
-            var blockItemStatus = await _client.GetBlockItemStatusAsync(TransactionHash.From(transaction.TransactionHash), token);
+                        var blockItemStatus = await _client.GetBlockItemStatusAsync(TransactionHash.From(transaction.TransactionHash), token);
 
-            if (blockItemStatus is not TransactionStatusFinalized finalized)
-            {
-                throw JobException.Create(GetUniqueIdentifier(),
-                    $"Transaction was of wrong type {blockItemStatus.GetType()}");
-            }
-            if (finalized.State.Summary.Details is not UpdateDetails updateDetails)
-            {
-                throw JobException.Create(GetUniqueIdentifier(),
-                    $"Transaction details was of wrong type {finalized.State.Summary.Details.GetType()}");
-            }
+                        var finalized = blockItemStatus.GetFinalizedBlockItemSummary();
+                        
+                        if (finalized.Details is not UpdateDetails updateDetails)
+                        {
+                            throw JobException.Create(GetUniqueIdentifier(),
+                                $"Transaction details was of wrong type {finalized.Details.GetType()}");
+                        }
 
-            var block = await context
-                .Blocks
-                .SingleAsync(b => b.Id == transaction.BlockId, cancellationToken: token);
+                        var block = await context
+                            .Blocks
+                            .SingleAsync(b => b.Id == transaction.BlockId, cancellationToken: token);
 
-            var chainUpdateEnqueued = ChainUpdateEnqueued.From(updateDetails, block.BlockSlotTime);
+                        var chainUpdateEnqueued = ChainUpdateEnqueued.From(updateDetails, block.BlockSlotTime);
 
-
-            var transactionRelated = new TransactionRelated<TransactionResultEvent>(transaction.Id, 0, chainUpdateEnqueued);
-            await context.TransactionResultEvents.AddAsync(transactionRelated, token);
-            await context.SaveChangesAsync(token);
+                        var transactionRelated = new TransactionRelated<TransactionResultEvent>(transaction.Id, 0, chainUpdateEnqueued);
+                        await context.TransactionResultEvents.AddAsync(transactionRelated, token);
+                        await context.SaveChangesAsync(token);
+                    }
+                });
+        }
+        catch (Exception e)
+        {
+            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
+            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
+            throw;
         }
     }
 

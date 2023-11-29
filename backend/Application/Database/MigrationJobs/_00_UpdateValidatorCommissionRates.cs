@@ -1,12 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Application.Aggregates.Contract;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Import.ConcordiumNode;
 using Application.Observability;
 using Application.Resilience;
-using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;

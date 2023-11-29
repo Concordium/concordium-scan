@@ -10,6 +10,8 @@ public class TransactionBuilder
     private string _transactionHash = "42b83d2be10b86bd6df5c102c4451439422471bc4443984912a832052ff7485b";
     private long _blockId = 1;
     private TransactionRejectReason? _rejectReason = null;
+    private TransactionTypeUnion _transactionType = new AccountTransaction
+        { AccountTransactionType = TransactionType.Transfer };
 
     public Transaction Build()
     {
@@ -22,11 +24,17 @@ public class TransactionBuilder
             SenderAccountAddress = new AccountAddress("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd"),
             CcdCost = 241,
             EnergyCost = 422,
-            TransactionType = new AccountTransaction { AccountTransactionType = TransactionType.Transfer },
+            TransactionType = _transactionType,
             RejectReason = _rejectReason
         };
     }
 
+    public TransactionBuilder WithTransactionType(TransactionTypeUnion transactionType)
+    {
+        _transactionType = transactionType;
+        return this;
+    }
+    
     public TransactionBuilder WithRejectReason(TransactionRejectReason rejectReason)
     {
         _rejectReason = rejectReason;
