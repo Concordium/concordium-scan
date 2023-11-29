@@ -54,7 +54,9 @@ public class ImportReadController : BackgroundService
         
         try
         {
+            _logger.Information("Awaiting migration jobs.");
             await _migrationJobFinder.AwaitJobsAsync(stoppingToken);
+            
             _logger.Information("Awaiting initial import state...");
             var initialState = await _channel.GetInitialImportStateAsync();
 
