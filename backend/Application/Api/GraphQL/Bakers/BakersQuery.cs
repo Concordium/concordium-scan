@@ -61,8 +61,8 @@ public class BakersQuery
             BakerSort.DelegatorCountDesc => result.OrderBy(x => x.ActiveState.Pool.DelegatorCount == null).ThenByDescending(x => x.ActiveState!.Pool!.DelegatorCount),
             BakerSort.BakerApy30DaysDesc => result.OrderBy(x => x.RemovedState.RemovedAt != null).ThenBy(x => x.PoolApys.Apy30Days.BakerApy == null).ThenByDescending(x => x.PoolApys!.Apy30Days.BakerApy),
             BakerSort.DelegatorApy30DaysDesc => result.OrderBy(x => x.RemovedState.RemovedAt != null).ThenBy(x => x.PoolApys.Apy30Days.DelegatorsApy == null).ThenByDescending(x => x.PoolApys!.Apy30Days.DelegatorsApy),
-            BakerSort.BlockCommissionsAsc => result.OrderBy(x => x.ActiveState!.Pool!.CommissionRates.BakingCommission),
-            BakerSort.BlockCommissionsDesc => result.OrderByDescending(x => x.ActiveState!.Pool!.CommissionRates.BakingCommission),
+            BakerSort.BlockCommissionsAsc => result.OrderBy(x => x.ActiveState!.Pool!.PaydayStatus.CommissionRates.BakingCommission != null).ThenBy(x => x.ActiveState!.Pool!.PaydayStatus.CommissionRates.BakingCommission),
+            BakerSort.BlockCommissionsDesc => result.OrderByDescending(x => x.ActiveState!.Pool!.PaydayStatus.CommissionRates.BakingCommission != null).ThenByDescending(x => x.ActiveState!.Pool!.PaydayStatus.CommissionRates.BakingCommission),
             _ => throw new NotImplementedException()
         };
 
