@@ -21,16 +21,15 @@ namespace Application.Database.MigrationJobs;
 /// from the chain.
 /// </summary>
 public class _00_UpdateValidatorCommissionRates : IMainMigrationJob {
+    /// <summary>
+    /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
+    /// </summary>
+    private const string JobName = "_00_FixValidatorCommissionRates";
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
     private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly MainMigrationJobOptions _mainMigrationJobOptions;
-    
-    /// <summary>
-    /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
-    /// </summary>
-    private const string JobName = "_00_FixValidatorCommissionRates";
 
     public _00_UpdateValidatorCommissionRates(
         IDbContextFactory<GraphQlDbContext> contextFactory,

@@ -9,9 +9,8 @@ namespace Application.Api.GraphQL.Transactions;
 [UnionType]
 public abstract record ChainUpdatePayload
 {
-    internal static bool TryFrom(IUpdatePayload payload, out ChainUpdatePayload? chainUpdatePayload)
-    {
-        chainUpdatePayload = payload switch
+    internal static ChainUpdatePayload From(IUpdatePayload payload) =>
+        payload switch
         {
             AddAnonymityRevokerUpdate addAnonymityRevokerUpdate => AddAnonymityRevokerChainUpdatePayload.From(addAnonymityRevokerUpdate),
             AddIdentityProviderUpdate addIdentityProviderUpdate => AddIdentityProviderChainUpdatePayload.From(addIdentityProviderUpdate),
@@ -37,9 +36,6 @@ public abstract record ChainUpdatePayload
             Concordium.Sdk.Types.MinBlockTimeUpdate update => MinBlockTimeUpdate.From(update),
             _ => throw new ArgumentOutOfRangeException(nameof(payload))
         };
-        
-        return chainUpdatePayload != null;
-    }
 }
 
 public sealed record MinBlockTimeUpdate(ulong DurationSeconds) : ChainUpdatePayload
