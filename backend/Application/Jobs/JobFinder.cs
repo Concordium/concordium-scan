@@ -37,7 +37,7 @@ internal sealed class JobFinder<T, TEntity> : IJobFinder<T>
         IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         _provider = provider;
-        this._dbContextFactory = dbContextFactory;
+        _dbContextFactory = dbContextFactory;
         _options = options.Value;
         _logger = Log.ForContext<JobFinder<T, TEntity>>();
     }

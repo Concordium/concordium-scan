@@ -17,13 +17,13 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
     where TJob : IJob
     where TEntity : class, IJobEntity, new()
 {
-    private readonly IJobFinder<IJob> _jobFinder;
+    private readonly IJobFinder<TJob> _jobFinder;
     private readonly IJobRepository<TEntity> _jobRepository;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public JobsBackgroundService(
-        IJobFinder<IJob> jobFinder,
+        IJobFinder<TJob> jobFinder,
         IJobRepository<TEntity> jobRepository,
         IOptions<FeatureFlagOptions> featureFlagsOptions
     )
@@ -58,7 +58,7 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
         }
     }
 
-    private async Task RunJob(IJob job, CancellationToken token)
+    private async Task RunJob(TJob job, CancellationToken token)
     {
         try
         {
