@@ -72,7 +72,6 @@ public sealed class _01_AddMissingChainUpdateEventsTests
         var job = new _01_AddMissingChainUpdateEvents(
             _fixture.CreateDbContractFactoryMock().Object,
             clientMock.Object,
-            new JobHealthCheck(),
             Options.Create(new MainMigrationJobOptions()));
         
         // Act

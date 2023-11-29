@@ -64,7 +64,6 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
-                using var _ = TraceContext.StartActivity($"{nameof(InitialContractEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
                 var skip = identifier * take;
                 _logger.Debug($"Start parsing contract events events in range {skip + 1} to {skip + take}");

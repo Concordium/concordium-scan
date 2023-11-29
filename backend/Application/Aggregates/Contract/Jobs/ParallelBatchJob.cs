@@ -31,28 +31,16 @@ internal sealed class ParallelBatchJob<TStatelessJob> : IContractJob where TStat
     
     public async Task StartImport(CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
-        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
-        
-        try
-        {
-            _logger.Information($"Start processing {GetUniqueIdentifier()}");
-            var batches = await _statelessJob.GetIdentifierSequence(token);
+        _logger.Information($"Start processing {GetUniqueIdentifier()}");
+        var batches = await _statelessJob.GetIdentifierSequence(token);
 
-            await Parallel.ForEachAsync(batches,
-                new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-                }, _statelessJob.Process);
+        await Parallel.ForEachAsync(batches,
+            new ParallelOptions
+            {
+                MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
+            }, _statelessJob.Process);
             
-            _logger.Information($"Done with job {GetUniqueIdentifier()}");
-        }
-        catch (Exception e)
-        {
-            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
-            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
-            throw;
-        }
+        _logger.Information($"Done with job {GetUniqueIdentifier()}");
     }
 
     public string GetUniqueIdentifier() => _statelessJob.GetUniqueIdentifier();

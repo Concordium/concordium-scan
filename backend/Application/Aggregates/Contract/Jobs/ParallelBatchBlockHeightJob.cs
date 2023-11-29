@@ -48,48 +48,36 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
 
     public async Task StartImport(CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
-        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
-        
-        try
+        var fromBatch = 0;
+        while (!token.IsCancellationRequested)
         {
-            var fromBatch = 0;
-            while (!token.IsCancellationRequested)
+            var finalHeight = await _statelessJob.GetMaximumHeight(token);
+
+            if (finalHeight < fromBatch * _jobOptions.BatchSize)
             {
-                var finalHeight = await _statelessJob.GetMaximumHeight(token);
-
-                if (finalHeight < fromBatch * _jobOptions.BatchSize)
-                {
-                    break;
-                }
-                var toBatch = (int)(finalHeight / _jobOptions.BatchSize);
-
-                var cycle = Parallel.ForEachAsync(
-                    Enumerable.Range(fromBatch, toBatch - fromBatch + 1),
-                    new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-                    },
-                    (height, batchToken) => RunBatch(height, batchToken));
-                
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                var metricUpdater = UpdateReadHeightMetric(cts.Token);
-
-                await cycle;
-                cts.Cancel();
-                await metricUpdater;
-
-                fromBatch = toBatch + 1;
+                break;
             }
+            var toBatch = (int)(finalHeight / _jobOptions.BatchSize);
+
+            var cycle = Parallel.ForEachAsync(
+                Enumerable.Range(fromBatch, toBatch - fromBatch + 1),
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
+                },
+                (height, batchToken) => RunBatch(height, batchToken));
+                
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            var metricUpdater = UpdateReadHeightMetric(cts.Token);
+
+            await cycle;
+            cts.Cancel();
+            await metricUpdater;
+
+            fromBatch = toBatch + 1;
+        }
             
-            _logger.Information($"Done with job {GetUniqueIdentifier()}");
-        }
-        catch (Exception e)
-        {
-            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
-            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Database import job stopped due to exception.");
-            throw;
-        }
+        _logger.Information($"Done with job {GetUniqueIdentifier()}");
     }
 
     private async Task UpdateReadHeightMetric(CancellationToken token)
