@@ -41,7 +41,7 @@ public class _01_AddMissingChainUpdateEvents : IMainMigrationJob {
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "_00_FixValidatorCommissionRates";
+    private const string JobName = "_01_AddMissingChainUpdateEvents";
     
     /// <summary>
     /// The mapping between the <see cref="Transaction.TransactionType"/> and the string value stored in the database

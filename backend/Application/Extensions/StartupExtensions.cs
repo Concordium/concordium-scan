@@ -31,7 +31,7 @@ internal static class StartupExtensions
         collection.AddSingleton<IJobRepository<MainMigrationJob>, JobRepository<MainMigrationJob>>();
         
         collection.AddTransient<IMainMigrationJob, _00_UpdateValidatorCommissionRates>();
-        collection.AddSingleton<IConcordiumNodeClient, ConcordiumNodeClient>();
+        collection.AddTransient<IMainMigrationJob, _01_AddMissingChainUpdateEvents>();
     }
     
     internal static void AddConcordiumClient(this IServiceCollection services, IConfiguration configuration)
@@ -40,6 +40,7 @@ internal static class StartupExtensions
         var concordiumClientOptions = configuration.GetSection("ConcordiumNodeGrpc").Get<ConcordiumClientOptions>();
         var uri = new Uri(grpcNodeClientSettings.Address);
         services.AddSingleton(new ConcordiumClient(uri, concordiumClientOptions));
+        services.AddSingleton<IConcordiumNodeClient, ConcordiumNodeClient>();
     }
 
     internal static void AddDefaultHealthChecks(this IServiceCollection services)
