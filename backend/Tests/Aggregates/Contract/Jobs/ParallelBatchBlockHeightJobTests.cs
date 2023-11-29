@@ -4,6 +4,8 @@ using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
+using Application.Configurations;
+using Application.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
@@ -18,16 +20,16 @@ public sealed class ParallelBatchBlockHeightJobTests
         var statelessJob = new MockStatelessBlockHeightJobs();
         var options = Options.Create(new ContractAggregateOptions
         {
-            Jobs = new Dictionary<string, ContractAggregateJobOptions>
+            Jobs = new Dictionary<string, JobOptions>
             {
-                { statelessJob.GetUniqueIdentifier(), new ContractAggregateJobOptions
+                { statelessJob.GetUniqueIdentifier(), new JobOptions
                 {
                     BatchSize = 5
                 }}
             }
         });
         var parallelBatchBlockHeightJob = new ParallelBatchBlockHeightJob<MockStatelessBlockHeightJobs>(
-            statelessJob, options, new ContractHealthCheck()
+            statelessJob, options, new JobHealthCheck()
             );
         
         // Act

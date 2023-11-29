@@ -3,7 +3,7 @@ using Application.Observability;
 using Npgsql;
 using Polly;
 
-namespace Application.Aggregates.Contract.Resilience;
+namespace Application.Resilience;
 
 internal static class Policies
 {

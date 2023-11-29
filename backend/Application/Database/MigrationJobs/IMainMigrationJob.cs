@@ -1,10 +1,10 @@
 using Application.Jobs;
 
-namespace Application.Aggregates.Contract.Jobs;
+namespace Application.Database.MigrationJobs;
 
 /// <summary>
 /// Interfaces which should be used for all jobs relevant for
-/// Smart Contracts. 
+/// main import flow.
 /// </summary>
-public interface IContractJob : IJob
+public interface IMainMigrationJob : IJob
 {}

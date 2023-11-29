@@ -3,7 +3,12 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Application.Configurations;
+using Application.Database.MigrationJobs;
+using Application.Entities;
+using Application.Import.ConcordiumNode;
+using Application.Jobs;
 using Application.NodeApi;
+using Application.Observability;
 using Concordium.Sdk.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -17,6 +22,18 @@ namespace Application.Extensions;
 
 internal static class StartupExtensions
 {
+    internal static void AddMainMigrationJobs(this IServiceCollection collection, IConfiguration configuration)
+    {
+        collection.Configure<MainMigrationJobOptions>(configuration.GetSection("MainMigrationJobs"));
+        
+        collection.AddHostedService<JobsBackgroundService<IMainMigrationJob, MainMigrationJob>>();
+        collection.AddTransient<IJobFinder<IMainMigrationJob>, JobFinder<IMainMigrationJob, MainMigrationJob>>();
+        collection.AddSingleton<IJobRepository<MainMigrationJob>, JobRepository<MainMigrationJob>>();
+        
+        collection.AddTransient<IMainMigrationJob, _00_UpdateValidatorCommissionRates>();
+        collection.AddSingleton<IConcordiumNodeClient, ConcordiumNodeClient>();
+    }
+    
     internal static void AddConcordiumClient(this IServiceCollection services, IConfiguration configuration)
     {
         var grpcNodeClientSettings = configuration.GetSection("ConcordiumNodeGrpc").Get<GrpcNodeClientSettings>();
@@ -27,8 +44,11 @@ internal static class StartupExtensions
 
     internal static void AddDefaultHealthChecks(this IServiceCollection services)
     {
+        services.AddSingleton<JobHealthCheck>();
+        
         services.AddHealthChecks()
             .AddCheck("live", () => HealthCheckResult.Healthy("Application is running"))
+            .AddCheck<JobHealthCheck>("Jobs", HealthStatus.Unhealthy)
             .ForwardToPrometheus();
     }
 

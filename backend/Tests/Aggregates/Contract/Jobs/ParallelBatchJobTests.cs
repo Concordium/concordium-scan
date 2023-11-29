@@ -5,6 +5,7 @@ using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
+using Application.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
@@ -22,7 +23,7 @@ public sealed class ParallelBatchJobTests
         var parallelBatchJob = new ParallelBatchJob<StatelessMockJob>(
             statelessMockJob,
             Options.Create(new ContractAggregateOptions()),
-            new ContractHealthCheck()
+            new JobHealthCheck()
             );
         
         // Act

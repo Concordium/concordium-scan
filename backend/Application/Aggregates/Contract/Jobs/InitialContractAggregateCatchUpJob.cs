@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Exceptions;
 using Application.Aggregates.Contract.Observability;
-using Application.Aggregates.Contract.Resilience;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
+using Application.Resilience;
 using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;

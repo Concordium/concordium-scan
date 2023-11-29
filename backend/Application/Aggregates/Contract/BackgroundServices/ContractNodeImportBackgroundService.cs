@@ -1,11 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Observability;
 using Application.Configurations;
+using Application.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -17,29 +19,29 @@ namespace Application.Aggregates.Contract.BackgroundServices;
 /// </summary>
 internal class ContractNodeImportBackgroundService : BackgroundService
 {
-    private readonly IContractJobFinder _jobFinder;
+    private readonly IJobFinder<IContractJob> _jobFinder;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly IContractNodeClient _client;
-    private readonly ContractHealthCheck _healthCheck;
+    private readonly JobHealthCheck _jobHealthCheck;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
 
     public ContractNodeImportBackgroundService(
-        IContractJobFinder jobFinder,
+        IJobFinder<IContractJob> jobFinder,
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
         IContractRepositoryFactory repositoryFactory,
         IContractNodeClient client,
         IOptions<ContractAggregateOptions> options,
-        ContractHealthCheck healthCheck,
+        JobHealthCheck jobHealthCheck,
         IOptions<FeatureFlagOptions> featureFlagsOptions)
     {
         _jobFinder = jobFinder;
         _dbContextFactory = dbContextFactory;
         _repositoryFactory = repositoryFactory;
         _client = client;
-        _healthCheck = healthCheck;
+        _jobHealthCheck = jobHealthCheck;
         _featureFlags = featureFlagsOptions.Value;
         _options = options.Value;
         _logger = Log.ForContext<ContractNodeImportBackgroundService>();
@@ -67,7 +69,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         catch (Exception e)
         {
             _logger.Fatal(e, $"{nameof(ContractNodeImportBackgroundService)} stopped due to exception.");
-            _healthCheck.AddUnhealthyJobWithMessage(nameof(ContractNodeImportBackgroundService), "Stopped due to exception.");
+            _jobHealthCheck.AddUnhealthyJobWithMessage(nameof(ContractNodeImportBackgroundService), "Stopped due to exception.");
             _logger.Fatal(e, $"{nameof(ContractNodeImportBackgroundService)} stopped due to exception.");
         }
     }

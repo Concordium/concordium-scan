@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Application.Aggregates.Contract.Types;
+using Application.Observability;
 using Prometheus;
 using static Application.Observability.ApplicationMetrics;
 
@@ -7,15 +8,6 @@ namespace Application.Aggregates.Contract.Observability;
 
 internal static class ContractMetrics
 {
-    private static readonly Gauge SmartReadHeight = Metrics.CreateGauge(
-        "contract_read_height",
-        "Max height read by any contract import job",
-        new GaugeConfiguration
-        {
-            LabelNames = new []{"data_source"}
-        });
-
-
     private static readonly Histogram ReadDuration = Metrics.CreateHistogram(
         "contract_read_duration_seconds",
         "Duration of import in seconds",
@@ -42,9 +34,7 @@ internal static class ContractMetrics
 
     internal static void SetReadHeight(double value, ImportSource source)
     {
-        SmartReadHeight
-            .WithLabels(source.ToStringCached())
-            .Set(value);
+        ApplicationMetrics.SetReadHeight(value, "contract", source);
     }
     
     internal class DurationMetric : IDisposable

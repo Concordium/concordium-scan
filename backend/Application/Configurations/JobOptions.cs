@@ -1,6 +1,6 @@
-namespace Application.Aggregates.Contract.Configurations;
+namespace Application.Configurations;
 
-public class ContractAggregateJobOptions
+public class JobOptions
 {
     /// <summary>
     /// Number of tasks which should be used for parallelism.

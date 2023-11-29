@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import.EventLogs;
@@ -9,7 +10,10 @@ using Application.Common;
 using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.Database;
+using Application.Database.MigrationJobs;
+using Application.Entities;
 using Application.Import;
+using Application.Jobs;
 using Application.Observability;
 using Concordium.Sdk.Types;
 using HotChocolate.Subscriptions;
@@ -36,6 +40,7 @@ public class ImportWriteController : BackgroundService
     private readonly AccountImportHandler _accountHandler;
     private readonly EventLogHandler _eventLogHandler;
     private readonly NonCirculatingAccounts _nonCirculatingAccounts;
+    private readonly IJobFinder<IMainMigrationJob> _migrationJobFinder;
     private readonly BakerImportHandler _bakerHandler;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
@@ -57,7 +62,8 @@ public class ImportWriteController : BackgroundService
         IAccountLookup accountLookup,
         IMetrics metrics,
         MetricsListener metricsListener,
-        NonCirculatingAccounts nonCirculatingAccounts)
+        NonCirculatingAccounts nonCirculatingAccounts,
+        IJobFinder<IMainMigrationJob> migrationJobFinder)
     {
         _featureFlags = featureFlagsOptions.Value;
         _accountLookup = accountLookup;
@@ -82,6 +88,7 @@ public class ImportWriteController : BackgroundService
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
         _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
         _nonCirculatingAccounts = nonCirculatingAccounts;
+        _migrationJobFinder = migrationJobFinder;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -96,6 +103,8 @@ public class ImportWriteController : BackgroundService
 
         try
         {
+            await _migrationJobFinder.AwaitJobsAsync(stoppingToken);
+            
             await ReadAndPublishInitialState();
 
             var waitCounter = _metrics.MeasureDuration(nameof(ImportWriteController), "Wait");
@@ -181,6 +190,8 @@ public class ImportWriteController : BackgroundService
             using (_metrics.MeasureDuration(nameof(ImportWriteController), "WriteDataDisposeTx"))
                 txScope.Dispose(); // this is where the actual commit or rollback is performed
         }
+        
+        ApplicationMetrics.SetReadHeight(result.Block.BlockHeight, "main", ImportSource.NodeImport);
 
         _importStateController.SavedChangesCommitted();
         return result;
