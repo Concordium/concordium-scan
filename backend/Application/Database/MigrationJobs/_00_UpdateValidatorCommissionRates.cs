@@ -1,7 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Aggregates.Contract;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
+using Application.Import.ConcordiumNode;
 using Application.Observability;
 using Application.Resilience;
 using Concordium.Sdk.Client;
@@ -18,9 +20,9 @@ namespace Application.Database.MigrationJobs;
 /// This job loop through all bakers with commission rates set, and updates those values to data fetched directly
 /// from the chain.
 /// </summary>
-public class _00_FixValidatorCommissionRates : IMainMigrationJob {
+public class _00_UpdateValidatorCommissionRates : IMainMigrationJob {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
-    private readonly ConcordiumClient _client;
+    private readonly IConcordiumNodeClient _client;
     private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly MainMigrationJobOptions _mainMigrationJobOptions;
@@ -30,9 +32,9 @@ public class _00_FixValidatorCommissionRates : IMainMigrationJob {
     /// </summary>
     private const string JobName = "_00_FixValidatorCommissionRates";
 
-    public _00_FixValidatorCommissionRates(
+    public _00_UpdateValidatorCommissionRates(
         IDbContextFactory<GraphQlDbContext> contextFactory,
-        ConcordiumClient client,
+        IConcordiumNodeClient client,
         JobHealthCheck jobHealthCheck,
         IOptions<MainMigrationJobOptions> options
         )
@@ -40,7 +42,7 @@ public class _00_FixValidatorCommissionRates : IMainMigrationJob {
         _contextFactory = contextFactory;
         _client = client;
         _jobHealthCheck = jobHealthCheck;
-        _logger = Log.ForContext<_00_FixValidatorCommissionRates>();
+        _logger = Log.ForContext<_00_UpdateValidatorCommissionRates>();
         _mainMigrationJobOptions = options.Value;
     }
     
@@ -70,7 +72,7 @@ public class _00_FixValidatorCommissionRates : IMainMigrationJob {
 
                         var poolInfo = await _client.GetPoolInfoAsync(new BakerId(new AccountIndex((ulong)contextBaker.BakerId)), new LastFinal(), token);
             
-                        activeBakerState.Pool.CommissionRates.Update(poolInfo.Response.PoolInfo.CommissionRates);
+                        activeBakerState.Pool.CommissionRates.Update(poolInfo.PoolInfo.CommissionRates);
                     }
 
                     await context.SaveChangesAsync(token);

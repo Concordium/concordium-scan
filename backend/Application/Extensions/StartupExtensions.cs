@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Application.Configurations;
 using Application.Database.MigrationJobs;
 using Application.Entities;
+using Application.Import.ConcordiumNode;
 using Application.Jobs;
 using Application.NodeApi;
 using Application.Observability;
@@ -29,7 +30,8 @@ internal static class StartupExtensions
         collection.AddTransient<IJobFinder<IMainMigrationJob>, JobFinder<IMainMigrationJob, MainMigrationJob>>();
         collection.AddSingleton<IJobRepository<MainMigrationJob>, JobRepository<MainMigrationJob>>();
         
-        collection.AddTransient<IMainMigrationJob, _00_FixValidatorCommissionRates>();
+        collection.AddTransient<IMainMigrationJob, _00_UpdateValidatorCommissionRates>();
+        collection.AddSingleton<IConcordiumNodeClient, ConcordiumNodeClient>();
     }
     
     internal static void AddConcordiumClient(this IServiceCollection services, IConfiguration configuration)

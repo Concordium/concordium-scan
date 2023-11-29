@@ -7,6 +7,7 @@ using Dapper;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Npgsql;
 using Tests.TestUtilities.Stubs;
 
@@ -65,13 +66,12 @@ public sealed class DatabaseFixture : IDisposable
 
     internal GraphQlDbContext CreateGraphQlDbContext() => new(_dbContextOptions);
 
-    internal async Task AddListAsync<T>(IEnumerable<T> entity) where T : class
+    internal Mock<IDbContextFactory<GraphQlDbContext>> CreateDbContractFactoryMock()
     {
-        await using var context = new GraphQlDbContext(_dbContextOptions);
-        
-        await context.Set<T>()
-            .AddRangeAsync(entity);
-        await context.SaveChangesAsync();
+        var dbFactory = new Mock<IDbContextFactory<GraphQlDbContext>>();
+        dbFactory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateGraphQlDbContext);
+        return dbFactory;
     }
     
     internal async Task AddAsync<T>(params T[] entity) where T : class
