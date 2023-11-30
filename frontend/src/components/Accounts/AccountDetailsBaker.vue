@@ -1,6 +1,6 @@
 <template>
 	<dl class="grid grid-cols-2 col-span-2 px-4">
-		<dt id="bakeraccordion-bakerid">Baker ID</dt>
+		<dt id="bakeraccordion-bakerid">Validator ID</dt>
 		<dd class="text-right mb-2" aria-labelledby="bakeraccordion-bakerid">
 			<BakerLink :id="baker.bakerId" />
 		</dd>
