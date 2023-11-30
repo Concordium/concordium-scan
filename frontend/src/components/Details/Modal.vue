@@ -27,7 +27,7 @@
 	</transition>
 </template>
 <script setup lang="ts">
-import { XIcon } from '@heroicons/vue/solid'
+import { XIcon } from '@heroicons/vue/solid/index.js'
 import OverlayIcon from '../icons/OverlayIcon.vue'
 
 type Props = {
