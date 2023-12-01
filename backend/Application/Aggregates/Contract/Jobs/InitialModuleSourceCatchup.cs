@@ -78,32 +78,21 @@ public class InitialModuleSourceCatchup : IContractJob
     
     public async Task StartImport(CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
-        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
-        
-        try
+        var moduleReferences = await GetModuleReferences();
+            
+        _logger.Information($"Starts process {moduleReferences.Count} modules");
+            
+        var consensusInfo = await _client.GetConsensusInfoAsync(token);
+        var parallelOptions = new ParallelOptions
         {
-            var moduleReferences = await GetModuleReferences();
+            MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
+        };
+        var cycle = Parallel.ForEachAsync(moduleReferences,
+            parallelOptions, 
+            (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.LastFinalizedBlockHeight, cancellationToken));
+        await cycle;
             
-            _logger.Information($"Starts process {moduleReferences.Count} modules");
-            
-            var consensusInfo = await _client.GetConsensusInfoAsync(token);
-            
-            var cycle = Parallel.ForEachAsync(moduleReferences,
-                new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-                }, (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.LastFinalizedBlockHeight, cancellationToken));
-            await cycle;
-            
-            _logger.Information($"Done with job {GetUniqueIdentifier()}");
-        }
-        catch (Exception e)
-        {
-            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
-            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
-            throw;
-        }
+        _logger.Information($"Done with job {GetUniqueIdentifier()}");
     }
 
     public string GetUniqueIdentifier() => JobName;

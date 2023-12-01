@@ -3,12 +3,10 @@ using System.Threading.Tasks;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Import.ConcordiumNode;
-using Application.Observability;
 using Application.Resilience;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Serilog.Context;
 
 namespace Application.Database.MigrationJobs;
 
@@ -25,63 +23,47 @@ public class _00_UpdateValidatorCommissionRates : IMainMigrationJob {
     private const string JobName = "_00_UpdateValidatorCommissionRates";
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
-    private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly MainMigrationJobOptions _mainMigrationJobOptions;
 
     public _00_UpdateValidatorCommissionRates(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IConcordiumNodeClient client,
-        JobHealthCheck jobHealthCheck,
         IOptions<MainMigrationJobOptions> options
         )
     {
         _contextFactory = contextFactory;
         _client = client;
-        _jobHealthCheck = jobHealthCheck;
         _logger = Log.ForContext<_00_UpdateValidatorCommissionRates>();
         _mainMigrationJobOptions = options.Value;
     }
     
     public async Task StartImport(CancellationToken token)
     {
-        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
-        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
+        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
+            .ExecuteAsync(async () =>
+            {
+                await using var context =  await _contextFactory.CreateDbContextAsync(token);
 
-        try
-        {
-            await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
-                .ExecuteAsync(async () =>
+                await foreach (var contextBaker in context.Bakers)
                 {
-                    await using var context =  await _contextFactory.CreateDbContextAsync(token);
-
-                    await foreach (var contextBaker in context.Bakers)
+                    if (contextBaker.State is not ActiveBakerState activeBakerState)
                     {
-                        if (contextBaker.State is not ActiveBakerState activeBakerState)
-                        {
-                            continue;
-                        }
-
-                        if (activeBakerState.Pool == null)
-                        {
-                            continue;
-                        }
-
-                        var poolInfo = await _client.GetPoolInfoAsync(new BakerId(new AccountIndex((ulong)contextBaker.BakerId)), new LastFinal(), token);
-            
-                        activeBakerState.Pool.CommissionRates.Update(poolInfo.PoolInfo.CommissionRates);
+                        continue;
                     }
 
-                    await context.SaveChangesAsync(token);
-                });
+                    if (activeBakerState.Pool == null)
+                    {
+                        continue;
+                    }
+
+                    var poolInfo = await _client.GetPoolInfoAsync(new BakerId(new AccountIndex((ulong)contextBaker.BakerId)), new LastFinal(), token);
             
-        }
-        catch (Exception e)
-        {
-            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
-            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
-            throw;
-        }
+                    activeBakerState.Pool.CommissionRates.Update(poolInfo.PoolInfo.CommissionRates);
+                }
+
+                await context.SaveChangesAsync(token);
+            });
     }
 
     public string GetUniqueIdentifier() => JobName;

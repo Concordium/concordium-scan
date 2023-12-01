@@ -4,6 +4,7 @@ using Application.Configurations;
 using Application.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Serilog.Context;
 
 namespace Application.Jobs;
 
@@ -19,17 +20,20 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
 {
     private readonly IJobFinder<TJob> _jobFinder;
     private readonly IJobRepository<TEntity> _jobRepository;
+    private readonly JobHealthCheck _jobHealthCheck;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ILogger _logger;
 
     public JobsBackgroundService(
         IJobFinder<TJob> jobFinder,
         IJobRepository<TEntity> jobRepository,
-        IOptions<FeatureFlagOptions> featureFlagsOptions
+        IOptions<FeatureFlagOptions> featureFlagsOptions,
+        JobHealthCheck jobHealthCheck
     )
     {
         _jobFinder = jobFinder;
         _jobRepository = jobRepository;
+        _jobHealthCheck = jobHealthCheck;
         _featureFlags = featureFlagsOptions.Value;
         _logger = Log.ForContext<JobsBackgroundService<TJob, TEntity>>();
     }
@@ -69,6 +73,9 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
             }
             _logger.Information($"{job.GetUniqueIdentifier()} starts.");
             
+            using var _ = TraceContext.StartActivity(job.GetUniqueIdentifier());
+            using var __ = LogContext.PushProperty("Job", job.GetUniqueIdentifier());
+            
             await job.StartImport(token);
 
             await _jobRepository.SaveSuccessfullyExecutedJob(job, token);
@@ -76,7 +83,8 @@ internal sealed class JobsBackgroundService<TJob, TEntity> : BackgroundService
         }
         catch (Exception e)
         {
-            _logger.Error(e, $"{job.GetUniqueIdentifier()} didn't succeed successfully due to exception.");
+            _jobHealthCheck.AddUnhealthyJobWithMessage(job.GetUniqueIdentifier(), "Job stopped due to exception.");
+            _logger.Fatal(e, $"{job.GetUniqueIdentifier()} stopped due to exception.");_logger.Error(e, $"{job.GetUniqueIdentifier()} didn't succeed successfully due to exception.");
             throw;
         }
     }

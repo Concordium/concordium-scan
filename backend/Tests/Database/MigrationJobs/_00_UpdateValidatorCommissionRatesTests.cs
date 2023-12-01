@@ -62,7 +62,6 @@ public sealed class _00_UpdateValidatorCommissionRatesTests
         var job = new _00_UpdateValidatorCommissionRates(
             dbFactory.Object,
             clientMock.Object,
-            new JobHealthCheck(),
             Options.Create(new MainMigrationJobOptions())
         );
 

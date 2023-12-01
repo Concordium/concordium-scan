@@ -5,7 +5,6 @@ using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
-using Application.Observability;
 using Application.Resilience;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -61,7 +60,6 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
-                using var _ = TraceContext.StartActivity($"{nameof(InitialContractRejectEventDeserializationFieldsCatchUpJob)}.{nameof(Process)}");
                 var take = _jobOptions.BatchSize;
                 var skip = identifier * take;
                 _logger.Debug($"Start parsing contract reject events in range {skip + 1} to {skip + take}");
