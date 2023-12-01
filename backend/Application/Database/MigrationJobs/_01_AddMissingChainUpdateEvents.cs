@@ -5,11 +5,13 @@ using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Application.Exceptions;
 using Application.Import.ConcordiumNode;
+using Application.Observability;
 using Application.Resilience;
 using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Serilog.Context;
 
 namespace Application.Database.MigrationJobs;
 
@@ -53,17 +55,20 @@ WHERE transaction_type IN ('2.22', '2.21', '2.20', '2.19', '2.18');
     
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
+    private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly MainMigrationJobOptions _mainMigrationJobOptions;
     
     public _01_AddMissingChainUpdateEvents(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IConcordiumNodeClient client,
+        JobHealthCheck jobHealthCheck,
         IOptions<MainMigrationJobOptions> options
     )
     {
         _contextFactory = contextFactory;
         _client = client;
+        _jobHealthCheck = jobHealthCheck;
         _logger = Log.ForContext<_00_UpdateValidatorCommissionRates>();
         _mainMigrationJobOptions = options.Value;
     }
@@ -76,7 +81,12 @@ WHERE transaction_type IN ('2.22', '2.21', '2.20', '2.19', '2.18');
     /// </exception>
     public async Task StartImport(CancellationToken token)
     {
-        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
+        using var _ = TraceContext.StartActivity(GetUniqueIdentifier());
+        using var __ = LogContext.PushProperty("Job", GetUniqueIdentifier());
+
+        try
+        {
+            await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _mainMigrationJobOptions.RetryCount, _mainMigrationJobOptions.RetryDelay)
                 .ExecuteAsync(async () =>
                 {
                     await using var context = await _contextFactory.CreateDbContextAsync(token);
@@ -116,6 +126,13 @@ WHERE transaction_type IN ('2.22', '2.21', '2.20', '2.19', '2.18');
                         await context.SaveChangesAsync(token);
                     }
                 });
+        }
+        catch (Exception e)
+        {
+            _jobHealthCheck.AddUnhealthyJobWithMessage(GetUniqueIdentifier(), "Job stopped due to exception.");
+            _logger.Fatal(e, $"{GetUniqueIdentifier()} stopped due to exception.");
+            throw;
+        }
     }
 
     public string GetUniqueIdentifier() => JobName;
