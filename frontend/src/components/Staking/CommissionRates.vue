@@ -1,21 +1,21 @@
 <template>
-	<Tooltip
+	<span
 		v-if="
-			props.nextPaydayCommission !== undefined &&
-			props.nextPaydayCommission !== null &&
-			props.nextPaydayCommission !== props.currentPaydayCommission
+			props.currentPaydayCommission === undefined ||
+			props.currentPaydayCommission === null
 		"
+		class="numerical"
+	>
+		{{ `${formatPercentage(props.nextPaydayCommission)}%` }}
+	</span>
+	<Tooltip
+		v-else-if="props.nextPaydayCommission !== props.currentPaydayCommission"
 		:text="`Rates will change to ${formatPercentage(
 			props.nextPaydayCommission
 		)}% on the next payday.`"
 	>
 		<span class="numerical change">
-			{{
-				props.currentPaydayCommission !== undefined &&
-				props.currentPaydayCommission !== null
-					? `${formatPercentage(props.currentPaydayCommission)}%`
-					: 'unknown'
-			}}
+			{{ `${formatPercentage(props.currentPaydayCommission)}%` }}
 			<ArrowUpIcon
 				v-if="
 					!props.currentPaydayCommission ||
@@ -28,12 +28,7 @@
 		</span>
 	</Tooltip>
 	<span v-else class="numerical">
-		{{
-			props.currentPaydayCommission !== undefined &&
-			props.currentPaydayCommission !== null
-				? `${formatPercentage(props.currentPaydayCommission)}%`
-				: 'unknown'
-		}}
+		{{ `${formatPercentage(props.currentPaydayCommission)}%` }}
 	</span>
 </template>
 <script lang="ts" setup>
@@ -45,7 +40,7 @@ import { formatPercentage } from '~/utils/format'
 
 type Props = {
 	currentPaydayCommission: number | null
-	nextPaydayCommission: number | null
+	nextPaydayCommission: number
 }
 const props = defineProps<Props>()
 </script>

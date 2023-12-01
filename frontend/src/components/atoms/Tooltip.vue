@@ -71,6 +71,10 @@ const handleOnMouseLeave = () => {
 	pointer-events: auto;
 	white-space: normal;
 	text-align: center;
+	width: 200px;
+	@media screen and (max-width: 640px) {
+		width: 150px;
+	}
 }
 
 /* Binding variables from a composable to a pseudo element does not work in Vue */
