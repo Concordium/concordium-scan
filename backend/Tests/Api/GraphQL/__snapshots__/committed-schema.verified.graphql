@@ -543,6 +543,10 @@ type BlockAccrueRewardSpecialEvent {
   id: ID!
 }
 
+type BlockEnergyLimitUpdate {
+  energyLimit: UnsignedLong!
+}
+
 type BlockMetrics {
   "The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero)."
   lastBlockHeight: Long!
@@ -1018,6 +1022,12 @@ type ExchangeRate {
   denominator: UnsignedLong!
 }
 
+type FinalizationCommitteeParametersUpdate {
+  minFinalizers: UnsignedInt!
+  maxFinalizers: UnsignedInt!
+  finalizersRelativeStakeThreshold: Decimal!
+}
+
 type FinalizationRewardCommissionNotInRange {
   _: Boolean! @deprecated(reason: "Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields)")
 }
@@ -1082,6 +1092,12 @@ type GasRewardsChainUpdatePayload {
 }
 
 type GasRewardsCpv2 {
+  baker: Decimal!
+  accountCreation: Decimal!
+  chainUpdate: Decimal!
+}
+
+type GasRewardsCpv2Update {
   baker: Decimal!
   accountCreation: Decimal!
   chainUpdate: Decimal!
@@ -1198,6 +1214,10 @@ type LinkedContractsCollectionSegment {
 
 type MicroCcdPerEuroChainUpdatePayload {
   exchangeRate: ExchangeRate!
+}
+
+type MinBlockTimeUpdate {
+  durationSeconds: UnsignedLong!
 }
 
 type MintDistributionChainUpdatePayload {
@@ -1687,6 +1707,11 @@ type Ranking {
   total: Int!
 }
 
+type Ratio {
+  numerator: UnsignedLong!
+  denominator: UnsignedLong!
+}
+
 type Rejected {
   reason: TransactionRejectReason!
 }
@@ -1831,6 +1856,12 @@ type TimeParametersChainUpdatePayload {
   mintPerPayday: Decimal!
 }
 
+type TimeoutParametersUpdate {
+  durationSeconds: UnsignedLong!
+  increase: Ratio!
+  decrease: Ratio!
+}
+
 type TimestampedAmount {
   timestamp: DateTime!
   amount: UnsignedLong!
@@ -1944,7 +1975,7 @@ union BakerState = ActiveBakerState | RemovedBakerState
 
 union BlockOrTransaction = Transaction | Block
 
-union ChainUpdatePayload = ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 

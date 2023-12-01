@@ -125,10 +125,7 @@ public abstract record TransactionResultEvent
                 
                 break;
             case UpdateDetails updateDetails:
-                if (ChainUpdateEnqueued.TryFrom(updateDetails, blockSlotTime, out var chainUpdateEnqueued))
-                {
-                    yield return chainUpdateEnqueued!;
-                }
+                yield return ChainUpdateEnqueued.From(updateDetails, blockSlotTime);
                 break;
         }
     }
@@ -878,20 +875,14 @@ public record ChainUpdateEnqueued(
     bool EffectiveImmediately,
     ChainUpdatePayload Payload) : TransactionResultEvent
 {
-    internal static bool TryFrom(
+    internal static ChainUpdateEnqueued From(
         UpdateDetails updateDetails,
-        DateTimeOffset blockSlotTime,
-        out ChainUpdateEnqueued? chainUpdateEnqueued)
+        DateTimeOffset blockSlotTime)
     {
-        if (!ChainUpdatePayload.TryFrom(updateDetails.Payload, out var chainUpdatePayload))
-        {
-            chainUpdateEnqueued = null;
-            return false;
-        } 
+        var chainUpdatePayload = ChainUpdatePayload.From(updateDetails.Payload);
         var isEffectiveImmediately = updateDetails.EffectiveTime.ToUnixTimeSeconds() == 0;
         var effectiveTime = isEffectiveImmediately ? blockSlotTime : updateDetails.EffectiveTime;
-        chainUpdateEnqueued = new ChainUpdateEnqueued(effectiveTime, isEffectiveImmediately, chainUpdatePayload!);
-        return true;
+        return new ChainUpdateEnqueued(effectiveTime, isEffectiveImmediately, chainUpdatePayload!);
     }
 }
 

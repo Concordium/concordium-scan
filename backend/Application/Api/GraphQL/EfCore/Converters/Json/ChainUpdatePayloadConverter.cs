@@ -23,6 +23,11 @@ public class ChainUpdatePayloadConverter : PolymorphicJsonConverter<ChainUpdateP
         { typeof(PoolParametersChainUpdatePayload), 15 },
         { typeof(TimeParametersChainUpdatePayload), 16 },
         { typeof(MintDistributionV1ChainUpdatePayload), 17 },
+        { typeof(GasRewardsCpv2Update), 18 },
+        { typeof(BlockEnergyLimitUpdate), 19 },
+        { typeof(FinalizationCommitteeParametersUpdate), 20 },
+        { typeof(TimeoutParametersUpdate), 21 },
+        { typeof(MinBlockTimeUpdate), 22 },
     };
         
     public ChainUpdatePayloadConverter() : base(SerializeMap)
