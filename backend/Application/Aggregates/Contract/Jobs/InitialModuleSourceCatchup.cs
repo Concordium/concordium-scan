@@ -83,12 +83,13 @@ public class InitialModuleSourceCatchup : IContractJob
         _logger.Information($"Starts process {moduleReferences.Count} modules");
             
         var consensusInfo = await _client.GetConsensusInfoAsync(token);
-            
+        var parallelOptions = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
+        };
         var cycle = Parallel.ForEachAsync(moduleReferences,
-            new ParallelOptions
-            {
-                MaxDegreeOfParallelism = _jobOptions.MaxParallelTasks
-            }, (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.LastFinalizedBlockHeight, cancellationToken));
+            parallelOptions, 
+            (moduleRef, cancellationToken) => Process(moduleRef, consensusInfo.LastFinalizedBlockHeight, cancellationToken));
         await cycle;
             
         _logger.Information($"Done with job {GetUniqueIdentifier()}");

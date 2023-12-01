@@ -17,12 +17,12 @@ namespace Application.Database.MigrationJobs;
 
 /// <summary>
 /// Some transaction events hasn't been mapped to the database. Those missing are
-/// <see cref="Concordium.Sdk.Types.UpdateType"/> of one of below values
-/// - <see cref="Concordium.Sdk.Types.UpdateType.GasRewardsCpv2Update"/>
-/// - <see cref="Concordium.Sdk.Types.UpdateType.TimeoutParametersUpdate"/>
-/// - <see cref="Concordium.Sdk.Types.UpdateType.MinBlockTimeUpdate"/>
-/// - <see cref="Concordium.Sdk.Types.UpdateType.BlockEnergyLimitUpdate"/>
-/// - <see cref="Concordium.Sdk.Types.UpdateType.FinalizationCommitteeParametersUpdate"/>
+/// <see cref="UpdateType"/> of one of below values
+/// - <see cref="UpdateType.GasRewardsCpv2Update"/>
+/// - <see cref="UpdateType.TimeoutParametersUpdate"/>
+/// - <see cref="UpdateType.MinBlockTimeUpdate"/>
+/// - <see cref="UpdateType.BlockEnergyLimitUpdate"/>
+/// - <see cref="UpdateType.FinalizationCommitteeParametersUpdate"/>
 ///
 /// The events are mapped to <see cref="ChainUpdateEnqueued"/>. This migration job adds missing events.
 ///
