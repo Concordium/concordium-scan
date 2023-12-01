@@ -10,6 +10,15 @@ namespace Application.Observability;
 
 internal static class ApplicationMetrics
 {
+    private static readonly Histogram ProcessDuration = Metrics.CreateHistogram(
+        "process_duration_seconds",
+        "Duration of a process in seconds",
+        new HistogramConfiguration
+        {
+            LabelNames = new[] { "process", "source", "exception" }
+        }
+    );
+    
     private static readonly Gauge ProcessReadHeight = Metrics.CreateGauge(
         "import_process_read_height",
         "Max height read by an import process",
@@ -43,6 +52,15 @@ internal static class ApplicationMetrics
             LabelNames = new[] { "process", "exception" }
         }
     );
+
+    private static void AddProcessDuration(TimeSpan elapsed, string process, ImportSource source, Exception? exception)
+    {
+        var exceptionName = exception != null ? PrettyPrintException(exception) : "";
+        var elapsedSeconds = elapsed.TotalMilliseconds / 1_000d;
+        ProcessDuration
+            .WithLabels(process, source.ToStringCached(), exceptionName)
+            .Observe(elapsedSeconds);
+    }
     
     internal static void SetReadHeight(double value, string processIdentifier, ImportSource source)
     {
@@ -63,6 +81,31 @@ internal static class ApplicationMetrics
         RetryPolicyExceptions
             .WithLabels(process, PrettyPrintException(exception))
             .Inc();
+    }
+    
+    internal class DurationMetric : IDisposable
+    {
+        private Exception? _exception;
+        private readonly Stopwatch _time;
+        private readonly ImportSource _source;
+        private readonly string _process;
+
+        public DurationMetric(string process, ImportSource source)
+        {
+            _process = process;
+            _source = source;
+            _time = Stopwatch.StartNew();
+        }
+
+        internal void SetException(Exception ex)
+        {
+            _exception = ex;
+        }
+
+        public void Dispose()
+        {
+            AddProcessDuration(_time.Elapsed, _process, _source, _exception);
+        }
     }
     
     internal class GraphQlDurationMetric : IDisposable
@@ -155,8 +198,8 @@ internal static class ApplicationMetrics
             }
         }
     }
-    
-    internal static string PrettyPrintException(Exception ex)
+
+    private static string PrettyPrintException(Exception ex)
     {
         var type = ex.GetType();
         if (type.GenericTypeArguments.Length == 0)

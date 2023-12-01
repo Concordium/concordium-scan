@@ -68,7 +68,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
         return await Policies.GetTransientPolicy<ulong>(GetUniqueIdentifier(), _logger, _contractAggregateOptions.RetryCount, _contractAggregateOptions.RetryDelay)
             .ExecuteAsync(async () =>
             {
-                using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.DatabaseImport);
+                using var durationMetric =ContractMetrics.CreateContractReadDurationMetric(ImportSource.DatabaseImport);
                 try
                 {
                     await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
