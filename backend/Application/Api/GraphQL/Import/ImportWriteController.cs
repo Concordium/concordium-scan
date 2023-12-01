@@ -11,7 +11,6 @@ using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.Database;
 using Application.Database.MigrationJobs;
-using Application.Entities;
 using Application.Import;
 using Application.Jobs;
 using Application.Observability;
@@ -159,7 +158,7 @@ public class ImportWriteController : BackgroundService
     private async Task<BlockWriteResult> WriteData(BlockDataPayload payload, ConsensusInfo consensusStatus, CancellationToken stoppingToken)
     {
         using var counter = _metrics.MeasureDuration(nameof(ImportWriteController), nameof(WriteData));
-        
+        using var durationMetric = new ApplicationMetrics.DurationMetric("main_import", ImportSource.NodeImport);
         var txScope = CreateTransactionScope();
 
         BlockWriteResult result;
@@ -168,7 +167,7 @@ public class ImportWriteController : BackgroundService
             var importState = payload switch
             {
                 GenesisBlockDataPayload genesisPayload => ImportState.CreateGenesisState(
-                    genesisPayload, 
+                    genesisPayload,
                     (int)consensusStatus.EpochDuration.TotalMilliseconds
                 ),
                 _ => await _importStateController.GetState()
@@ -184,6 +183,11 @@ public class ImportWriteController : BackgroundService
             await _importStateController.SaveChanges(importState);
 
             txScope.Complete();
+        }
+        catch (Exception exception)
+        {
+            durationMetric.SetException(exception);
+            throw;
         }
         finally
         {

@@ -517,7 +517,7 @@ internal sealed class ContractAggregate
         for (var height = fromBlockHeight; height <= toBlockHeight; height++)
         {
             using var __ = TraceContext.StartActivity(NodeImportJobLoopActivity);
-            using var durationMetric = new ContractMetrics.DurationMetric(ImportSource.NodeImport);
+            using var durationMetric = ContractMetrics.CreateContractReadDurationMetric(ImportSource.NodeImport);
             try
             {
                 await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
