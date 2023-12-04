@@ -1,13 +1,16 @@
 <template>
-	<span
+	<Tooltip
 		v-if="
 			props.currentPaydayCommission === undefined ||
 			props.currentPaydayCommission === null
 		"
-		class="numerical"
+		:text="`Validator is new and rates will be active on next payday.`"
 	>
-		{{ `${formatPercentage(props.nextPaydayCommission)}%` }}
-	</span>
+		<span class="numerical change">
+			{{ `${formatPercentage(props.nextPaydayCommission)}%` }}
+			<WarningIcon class="h-4 align-middle" />
+		</span>
+	</Tooltip>
 	<Tooltip
 		v-else-if="props.nextPaydayCommission !== props.currentPaydayCommission"
 		:text="`Rates will change to ${formatPercentage(
