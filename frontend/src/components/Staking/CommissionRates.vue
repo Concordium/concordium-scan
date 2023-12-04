@@ -4,7 +4,7 @@
 			props.currentPaydayCommission === undefined ||
 			props.currentPaydayCommission === null
 		"
-		:text="`Validator is new and commissions rates will be active on next payday.`"
+		:text="`Validator is new and rates will be active on next payday.`"
 	>
 		<span class="numerical change">
 			{{ `${formatPercentage(props.nextPaydayCommission)}%` }}
