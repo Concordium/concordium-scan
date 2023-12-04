@@ -208,7 +208,7 @@
 							<template #content>
 								<div>
 									<span class="legend"></span>
-									Baker
+									Validator
 									<span class="text-theme-faded"
 										>({{
 											formatPercentage(

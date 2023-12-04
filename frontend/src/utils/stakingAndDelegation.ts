@@ -26,7 +26,7 @@ export const formatDelegationAvailableTooltip = (
 	amount: number,
 	cap: number
 ) => {
-	if (cap === 0) return 'Baker stake exceeds capital bounds'
+	if (cap === 0) return 'Validator stake exceeds capital bounds'
 
 	if (amount === cap) return 'Delegation cap filled exactly'
 
