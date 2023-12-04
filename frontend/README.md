@@ -35,7 +35,7 @@ You can build and run the production image locally.
 
 To build the image run
 ```sh
-docker build -t IMAGE_NAME:VERSION --build-arg ENVIRONMENT=CHAIN_ENVIRONMENT .
+docker build -t IMAGE_NAME:VERSION --build-arg ENVIRONMENT=<ENVIRONMENT> .
 ```
 where `IMAGE_NAME` and `VERSION` are some container name and version of your choice and `CHAIN_ENVIRONMENT` is which environment to run agains (`stagenet`, `testnet` or `mainnet`).
 
