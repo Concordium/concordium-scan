@@ -25,6 +25,6 @@ FROM base
 ENV PORT=$PORT
 ENV HOST=$HOST
 
-COPY --from=build /src/.output /src/.output
+COPY --from=build /src/.output .
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "server/index.mjs"]
