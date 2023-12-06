@@ -28,8 +28,6 @@ const isVisible = ref(false)
 type Props = {
 	text?: string
 	textClass?: string
-	x?: string
-	y?: string
 	tooltipPosition?: string
 	onMouseEnter?: () => void
 	onMouseLeave?: () => void
@@ -44,7 +42,7 @@ const {
 	tooltipX,
 	tooltipY,
 	calculateCoordinates,
-} = useTooltip(props.x, props.y)
+} = useTooltip()
 
 const handleOnMouseEnter = (event: MouseEvent) => {
 	calculateCoordinates(event)
