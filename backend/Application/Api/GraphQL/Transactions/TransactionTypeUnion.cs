@@ -1,4 +1,5 @@
-﻿using Concordium.Sdk.Types;
+﻿using Application.Observability;
+using Concordium.Sdk.Types;
 using HotChocolate;
 using HotChocolate.Types;
 
@@ -15,6 +16,7 @@ public abstract class TransactionTypeUnion
                 var _ = TransactionTypeFactory.TryFrom(x.Effects, out var transactionType);
                 return new AccountTransaction { AccountTransactionType = transactionType };
             case AccountCreationDetails x:
+                ApplicationMetrics.IncAccountCreated(x.CredentialType);
                 return new CredentialDeploymentTransaction { CredentialDeploymentTransactionType = x.CredentialType };
             case UpdateDetails x:
                 return new UpdateTransaction { UpdateTransactionType = UpdatePayloadFactory.From(x.Payload) };

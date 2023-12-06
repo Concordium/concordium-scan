@@ -71,9 +71,12 @@ const handleOnMouseLeave = () => {
 	pointer-events: auto;
 	white-space: normal;
 	text-align: center;
-	width: 200px;
+	overflow-wrap: break-word;
+	line-height: 1em;
+	max-height: 100px;
+	max-inline-size: 200px;
 	@media screen and (max-width: 640px) {
-		width: 150px;
+		max-inline-size: 150px;
 	}
 }
 
