@@ -56,11 +56,7 @@ internal static class ApplicationMetrics
 
     private static readonly Counter TotalAccountCreated = Metrics.CreateCounter(
         "accounts_created_total",
-        "Total number of accounts created",
-        new CounterConfiguration
-        {
-            LabelNames = new[] { "credential_type" }
-        });
+        "Total number of accounts created");
 
     private static void AddProcessDuration(TimeSpan elapsed, string process, ImportSource source, Exception? exception)
     {
@@ -71,11 +67,10 @@ internal static class ApplicationMetrics
             .Observe(elapsedSeconds);
     }
 
-    internal static void IncAccountCreated(CredentialType credentialType)
+    internal static void IncAccountCreated(int accountsCreated)
     {
         TotalAccountCreated
-            .WithLabels(credentialType.ToString())
-            .Inc();
+            .Inc(accountsCreated);
     }
     
     internal static void SetReadHeight(double value, string processIdentifier, ImportSource source)
