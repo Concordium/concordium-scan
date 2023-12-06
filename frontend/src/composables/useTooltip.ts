@@ -4,7 +4,7 @@ import { ref } from 'vue'
  * Hook to control tooltip position values
  * Returns CSS values for triangle position, tooltip position and animation
  */
-export const useTooltip = (xOverride?: string, yOverride?: string) => {
+export const useTooltip = () => {
 	const TOOLTIP_OFFSET = 10
 
 	// Drawing of the triangle
@@ -23,11 +23,10 @@ export const useTooltip = (xOverride?: string, yOverride?: string) => {
 
 		const { x, y } = target.getBoundingClientRect()
 
-		tooltipX.value = xOverride || x + 'px'
+		tooltipX.value = x + 'px'
 		triangleShift.value = 10 + 'px'
 
-		tooltipY.value =
-			yOverride || y + target.offsetHeight + TOOLTIP_OFFSET + 'px'
+		tooltipY.value = y + target.offsetHeight + TOOLTIP_OFFSET + 'px'
 	}
 
 	return {
