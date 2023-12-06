@@ -8,23 +8,24 @@
 					<template #default>
 						{{ contract.contractName }}
 					</template>
-				</DetailsCard>				
-				<ContractDetailsAmounts :contract="contract" />				
+				</DetailsCard>
+				<ContractDetailsAmounts :contract="contract" />
 				<DetailsCard>
 					<template #title>Date</template>
 					<template #default>
 						{{ formatTimestamp(contract.blockSlotTime) }}
 					</template>
-					<template 
-						v-if="breakpoint >= Breakpoint.LG"
-						#secondary>
+					<template v-if="breakpoint >= Breakpoint.LG" #secondary>
 						({{ convertTimestampToRelative(contract.blockSlotTime, NOW) }})
 					</template>
 				</DetailsCard>
 				<DetailsCard>
 					<template #title>
 						Module
-						<InfoTooltip text="Container which holds execution code for one or more contracts. The below references hold the current execution code of the contract."/>
+						<InfoTooltip
+							text="Container which holds execution code for one or more contracts. The below references hold the current execution code of the contract."
+							position="bottom"
+						/>
 					</template>
 					<template #default>
 						<ModuleLink :module-reference="contract.moduleReference" />
@@ -33,7 +34,9 @@
 				<DetailsCard>
 					<template #title>
 						Creator
-						<InfoTooltip text="Account address of the contract instance creator."/>
+						<InfoTooltip
+							text="Account address of the contract instance creator."
+						/>
 					</template>
 					<template #default>
 						<AccountLink :address="contract.creator.asString" />
@@ -89,16 +92,18 @@ import ContractDetailsEvents from './ContractDetailsEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import { Contract } from '~~/src/types/generated'
-import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
+import {
+	convertTimestampToRelative,
+	formatTimestamp,
+} from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
-
 const { NOW } = useDateNow()
 
-const { breakpoint } = useBreakpoint();
+const { breakpoint } = useBreakpoint()
 
 type Props = {
 	contract: Contract

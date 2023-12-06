@@ -22,14 +22,12 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { useTooltip } from '~/composables/useTooltip'
-import type { Position } from '~/composables/useTooltip'
 
 const isVisible = ref(false)
 
 type Props = {
 	text?: string
 	textClass?: string
-	position?: Position
 	x?: string
 	y?: string
 	tooltipPosition?: string
@@ -40,15 +38,13 @@ const props = defineProps<Props>()
 const tooltipPosition = ref(props.tooltipPosition || 'fixed')
 
 const {
-	triangleTopBorder,
 	triangleBottomBorder,
 	trianglePosTop,
+	triangleShift,
 	tooltipX,
 	tooltipY,
-	tooltipTransformYFrom,
-	tooltipTransformYTo,
 	calculateCoordinates,
-} = useTooltip(props.position, props.x, props.y)
+} = useTooltip(props.x, props.y)
 
 const handleOnMouseEnter = (event: MouseEvent) => {
 	calculateCoordinates(event)
@@ -64,7 +60,6 @@ const handleOnMouseLeave = () => {
 <style>
 .tooltip {
 	background: var(--color-tooltip-bg);
-	transform: translate(-50%, calc(v-bind(tooltipTransformYTo)));
 	top: v-bind(tooltipY);
 	left: v-bind(tooltipX);
 	position: v-bind(tooltipPosition);
@@ -72,8 +67,6 @@ const handleOnMouseLeave = () => {
 	white-space: normal;
 	text-align: center;
 	overflow-wrap: break-word;
-	line-height: 1em;
-	max-height: 100px;
 	max-inline-size: 200px;
 	@media screen and (max-width: 640px) {
 		max-inline-size: 150px;
@@ -87,30 +80,11 @@ const handleOnMouseLeave = () => {
 	width: 10px;
 	border-width: 0 10px 0;
 	border-color: transparent;
-	border-top: v-bind(triangleTopBorder) solid;
 	border-bottom: v-bind(triangleBottomBorder) solid;
 	border-bottom-color: var(--color-tooltip-bg);
 	border-top-color: var(--color-tooltip-bg);
 	position: absolute;
 	top: v-bind(trianglePosTop);
-	left: 50%;
-	transform: translate(-10px, 0);
-}
-
-.tooltip-enter-active,
-.tooltip-leave-active {
-	transition: transform 0.2s ease-out, opacity 0.1s ease-in;
-}
-
-.tooltip-enter-from,
-.tooltip-leave-to {
-	transform: translate(-50%, calc(v-bind(tooltipTransformYFrom)));
-	opacity: 0;
-}
-
-.tooltip-enter-to,
-.tooltip-leave-from {
-	transform: translate(-50%, calc(v-bind(tooltipTransformYTo)));
-	opacity: 1;
+	left: v-bind(triangleShift);
 }
 </style>
