@@ -8,7 +8,7 @@ ARG HOST=0.0.0.0
 
 ENV ENVIRONMENT=$ENVIRONMENT
 
-WORKDIR /src
+WORKDIR /app
 
 # Build
 FROM base as build
@@ -25,6 +25,6 @@ FROM base
 ENV PORT=$PORT
 ENV HOST=$HOST
 
-COPY --from=build /src/.output .
+COPY --from=build /app/.output .
 
 CMD ["node", "server/index.mjs"]
