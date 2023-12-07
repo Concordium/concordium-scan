@@ -43,7 +43,7 @@
 						:has-more-results="!!data.search.blocks.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="(block, index) in data.search.blocks.nodes"
+							v-for="block in data.search.blocks.nodes"
 							:key="block.blockHash"
 							:class="$style.searchColumns"
 						>
@@ -58,10 +58,7 @@
 							<div :class="$style.threeColumns">@ {{ block.blockHeight }}</div>
 							<div :class="$style.twoColumns">
 								Age
-								<Tooltip
-									:text="formatTimestamp(block.blockSlotTime)"
-									:position="getTooltipPosition(index)"
-								>
+								<Tooltip :text="formatTimestamp(block.blockSlotTime)">
 									{{
 										convertTimestampToRelative(block.blockSlotTime || '', NOW)
 									}}
@@ -76,7 +73,7 @@
 						:has-more-results="!!data.search.transactions.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="(transaction, index) in data.search.transactions.nodes"
+							v-for="transaction in data.search.transactions.nodes"
 							:key="transaction.transactionHash"
 							:class="$style.searchColumns"
 						>
@@ -98,7 +95,6 @@
 								Age
 								<Tooltip
 									:text="formatTimestamp(transaction.block.blockSlotTime)"
-									:position="getTooltipPosition(index)"
 								>
 									{{
 										convertTimestampToRelative(
@@ -117,7 +113,7 @@
 						:has-more-results="data.search.accounts.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="(account, index) in data.search.accounts.nodes"
+							v-for="account in data.search.accounts.nodes"
 							:key="account.address.asString"
 							:class="$style.searchColumns"
 						>
@@ -129,10 +125,7 @@
 							<div :class="$style.threeColumns"></div>
 							<div :class="$style.twoColumns">
 								Age
-								<Tooltip
-									:text="formatTimestamp(account.createdAt)"
-									:position="getTooltipPosition(index)"
-								>
+								<Tooltip :text="formatTimestamp(account.createdAt)">
 									{{ convertTimestampToRelative(account.createdAt || '', NOW) }}
 								</Tooltip>
 							</div>
@@ -145,7 +138,7 @@
 						:has-more-results="!!data.search.contracts.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="(contract, index) in data.search.contracts.nodes"
+							v-for="contract in data.search.contracts.nodes"
 							:key="contract.contractAddress"
 							:class="$style.searchColumns"
 						>
@@ -162,10 +155,7 @@
 							/>
 							<div :class="$style.twoColumns">
 								Age
-								<Tooltip
-									:text="formatTimestamp(contract.blockSlotTime)"
-									:position="getTooltipPosition(index)"
-								>
+								<Tooltip :text="formatTimestamp(contract.blockSlotTime)">
 									{{ convertTimestampToRelative(contract.blockSlotTime, NOW) }}
 								</Tooltip>
 							</div>
@@ -177,7 +167,7 @@
 						:has-more-results="data.search.modules.pageInfo.hasNextPage"
 					>
 						<div
-							v-for="(module, index) in data.search.modules.nodes"
+							v-for="module in data.search.modules.nodes"
 							:key="module.moduleReference"
 							:class="$style.searchColumns"
 						>
@@ -189,10 +179,7 @@
 							<div :class="$style.threeColumns"></div>
 							<div :class="$style.twoColumns">
 								Age
-								<Tooltip
-									:text="formatTimestamp(module.blockSlotTime)"
-									:position="getTooltipPosition(index)"
-								>
+								<Tooltip :text="formatTimestamp(module.blockSlotTime)">
 									{{ convertTimestampToRelative(module.blockSlotTime, NOW) }}
 								</Tooltip>
 							</div>
@@ -262,14 +249,11 @@ import BakerLink from '~/components/molecules/BakerLink.vue'
 import AccountLink from '~/components/molecules/AccountLink.vue'
 import ContractLink from '~/components/molecules/ContractLink.vue'
 import { useDateNow } from '~/composables/useDateNow'
-import type { Position } from '~/composables/useTooltip'
 import NodeLink from '~/components/molecules/NodeLink.vue'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
 
-const tooltipPositionBottom = 'bottom' as Position
-const tooltipPositionTop = 'top' as Position
 const searchValue = ref('')
 const delayedSearchValue = ref('')
 const isMaskVisible = ref(false)
@@ -360,10 +344,6 @@ const lostFocusOnSearch = (x: FocusEvent) => {
 		searchValue.value = ''
 		status.value = 'idle'
 	}, 100)
-}
-
-const getTooltipPosition = (index: number) => {
-	return index === 0 ? tooltipPositionBottom : tooltipPositionTop
 }
 
 const resultCount = computed(() => ({

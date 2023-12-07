@@ -2,6 +2,7 @@
 using Application.Api.GraphQL.Blocks;
 using Application.Common.Diagnostics;
 using Application.Import;
+using Application.Observability;
 using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
@@ -27,7 +28,8 @@ public class AccountImportHandler
         ulong blockHeight)
     {
         if (createdAccounts.Length == 0) return;
-        
+        ApplicationMetrics.IncAccountCreated(createdAccounts.Length);
+
         var accounts = _changeCalculator.MapCreatedAccounts(createdAccounts, blockSlotTime, blockHeight).ToArray();
         await _writer.InsertAccounts(accounts);
 

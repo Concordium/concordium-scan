@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
+using Concordium.Sdk.Types;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
 using Prometheus;
@@ -53,6 +54,10 @@ internal static class ApplicationMetrics
         }
     );
 
+    private static readonly Counter TotalAccountCreated = Metrics.CreateCounter(
+        "accounts_created_total",
+        "Total number of accounts created");
+
     private static void AddProcessDuration(TimeSpan elapsed, string process, ImportSource source, Exception? exception)
     {
         var exceptionName = exception != null ? PrettyPrintException(exception) : "";
@@ -60,6 +65,12 @@ internal static class ApplicationMetrics
         ProcessDuration
             .WithLabels(process, source.ToStringCached(), exceptionName)
             .Observe(elapsedSeconds);
+    }
+
+    internal static void IncAccountCreated(int accountsCreated)
+    {
+        TotalAccountCreated
+            .Inc(accountsCreated);
     }
     
     internal static void SetReadHeight(double value, string processIdentifier, ImportSource source)
