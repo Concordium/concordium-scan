@@ -2,6 +2,7 @@
 	<Tooltip
 		:text="statusText || label"
 		:on-mouse-enter="handleOnMouseEnter"
+		:position="position"
 		:text-class="tooltipClass"
 	>
 		<button
@@ -22,6 +23,7 @@
 import { ref } from 'vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import ClipboardIcon from '~/components/icons/ClipboardIcon.vue'
+import { Position } from '~~/src/composables/useTooltip'
 
 type Props = {
 	text: string
@@ -29,6 +31,7 @@ type Props = {
 	tooltipClass?: string
 	iconSize?: string
 }
+const position = 'bottom' as Position
 
 const props = defineProps<Props>()
 
