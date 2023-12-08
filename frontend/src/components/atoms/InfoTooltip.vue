@@ -1,5 +1,5 @@
 <template>
-	<Tooltip :text="text">
+	<Tooltip :text="text" :position="position">
 		<svg
 			class="icon"
 			viewBox="0 0 20 20"
@@ -26,9 +26,11 @@
 </template>
 <script lang="ts" setup>
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
+import { Position } from '~~/src/composables/useTooltip'
 
 type Props = {
 	text: string
+	position?: Position
 }
 defineProps<Props>()
 </script>
