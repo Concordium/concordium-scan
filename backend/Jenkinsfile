@@ -1,11 +1,11 @@
 // Params in JobDSL file
 // 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/docker_image_ccdscan.groovy':
-// - image_tag (default: "latest")
+// - VERSION (default: "latest")
 pipeline {
   agent any
   environment {
     image_repo = 'concordium/ccdscan'
-    image_name = "${image_repo}:${image_tag}"
+    image_name = "${image_repo}:${VERSION}"
   }
   stages {
     stage('dockerhub-login') {

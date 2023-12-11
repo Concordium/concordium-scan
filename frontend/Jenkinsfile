@@ -1,5 +1,5 @@
 // Params in JobDSL file
-// 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/ccdscan_frontend.groovy':
+// 'https://github.com/Concordium/concordium-infra-jenkins-jobs/blob/master/ccdscan_frontend.groovy':
 // - VERSION
 // - TARGET_NET
 pipeline {
