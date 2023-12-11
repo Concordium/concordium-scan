@@ -25,8 +25,12 @@ pipeline {
             -f "frontend/Dockerfile" \
             -t "$image_name" \
             ./frontend
-          docker push "${image_name}"
         '''.stripIndent()
+      }
+    }
+    stage('push') {
+      steps {
+        sh 'docker push "$image_name"'
       }
     }
   }
