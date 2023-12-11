@@ -13,7 +13,7 @@ WORKDIR /app
 # Build
 FROM base as build
 
-COPY package.json yarn.lock .
+COPY package.json yarn.lock /app/
 RUN yarn
 
 COPY . .
