@@ -4,10 +4,6 @@
 // - TARGET_NET
 pipeline {
   agent any
-  environment {
-		image_repo = 'concordium/ccdscan-frontend'
-		image_name = "${image_repo}:${image_tag}"
-  }
   stages {
     stage('dockerhub-login') {
       environment {
@@ -18,6 +14,10 @@ pipeline {
       }
     }
     stage('build') {
+			environment {
+				image_repo = 'concordium/ccdscan-frontend'
+				image_name = "${image_repo}:${image_tag}"
+			}
       steps {
         sh '''\
           docker build \
@@ -25,12 +25,8 @@ pipeline {
             -f "frontend/Dockerfile" \
             -t "$image_name" \
             ./frontend
+          docker push "${image_name}"
         '''.stripIndent()
-      }
-    }
-    stage('push') {
-      steps {
-        sh 'docker push "$image_name"'
       }
     }
   }
