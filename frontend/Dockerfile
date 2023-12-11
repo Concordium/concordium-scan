@@ -1,29 +1,25 @@
 ARG NODE_VERSION=17.0.0
 
-FROM node:${NODE_VERSION}-slim as base
+FROM node:${NODE_VERSION} as build
 
 ARG ENVIRONMENT
-ARG PORT=3000
-ARG HOST=0.0.0.0
 
 ENV ENVIRONMENT=$ENVIRONMENT
 
 WORKDIR /app
 
-# Build
-FROM base as build
-
-COPY package.json yarn.lock /app/
+COPY package.json yarn.lock ./
 RUN yarn
 
 COPY . .
 RUN yarn build
 
-# Run
-FROM base
+FROM node:${NODE_VERSION}-slim
 
-ENV PORT=$PORT
-ENV HOST=$HOST
+ENV PORT=3000
+ENV HOST=0.0.0.0
+
+EXPOSE 3000
 
 COPY --from=build /app/.output .
 
