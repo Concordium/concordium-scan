@@ -23,14 +23,14 @@ pipeline {
           docker build \
             --build-arg ENVIRONMENT=${TARGET_NET} \
             -f "frontend/Dockerfile" \
-            -t "$image_name" \
+            -t "${image_name}" \
             ./frontend
         '''.stripIndent()
       }
     }
     stage('push') {
       steps {
-        sh 'docker push "$image_name"'
+        sh 'docker push "${image_name}"'
       }
     }
   }
