@@ -1,44 +1,36 @@
 // Params in JobDSL file
-// 'https://gitlab.com/Concordium/infra/jenkins-jobs/-/blob/master/ccdscan_frontend.groovy':
+// 'https://github.com/Concordium/concordium-infra-jenkins-jobs/blob/master/ccdscan_frontend.groovy':
 // - VERSION
 // - TARGET_NET
 pipeline {
   agent any
-  environment {
-    OUTFILE = "s3://ccdscan.concordium.com/${TARGET_NET}/ccdscan-frontend-${VERSION}.tar.gz"
-  }
+	environment {
+		image_repo = 'concordium/ccdscan-frontend'
+		image_name = "${image_repo}:${VERSION}"
+	}
   stages {
-    stage('build') {
-      agent {
-        docker {
-          image 'node:16'
-          // Run the container on the node specified at the
-          // top-level of the Pipeline, in the same workspace,
-          // rather than on a new node entirely:
-          reuseNode true
-        }
+    stage('dockerhub-login') {
+      environment {
+        CRED = credentials('jenkins-dockerhub')
       }
       steps {
+        sh 'echo $CRED_PSW | docker login --username $CRED_USR --password-stdin'
+      }
+    }
+    stage('build') {
+      steps {
         sh '''\
-          cd frontend
-          
-          # Install dependencies
-          yarn install
-
-          # Run linting
-          yarn lint
-
-          # Build application bundle
-          env ENVIRONMENT="${TARGET_NET}" yarn build
-
-          # Package
-          tar cvzf out.tar.gz firebase.json .output
+          docker build \
+            --build-arg ENVIRONMENT=${TARGET_NET} \
+            -f "frontend/Dockerfile" \
+            -t "${image_name}" \
+            ./frontend
         '''.stripIndent()
       }
     }
     stage('push') {
       steps {
-        sh 'aws s3 cp frontend/out.tar.gz "${OUTFILE}"'
+        sh 'docker push "${image_name}"'
       }
     }
   }
