@@ -44,34 +44,5 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Tests" />
     </ItemGroup>
-    <ItemGroup>
-            <!-- Include librust.dll on Windows -->
-            <None Include="../rust-bindings/target/release/librust_bindings.dll" Condition="'$(IsWindows)'=='true'">
-              <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <!-- Include librust.dylib on macOS -->
-            <None Include="../rust-bindings/target/release/librust_bindings.dylib" Condition="'$(IsOSX)'=='true'">
-              <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-            <!-- Include librust.so on Linux -->
-            <None Include="../rust-bindings/target/release/librust_bindings.so" Condition="'$(IsLinux)'=='true'">
-              <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            </None>
-    </ItemGroup>
 
-    <Target Name="BuildRustProject" BeforeTargets="Build" Condition="$(RunRustBuild)">
-        <Exec Command="cargo build --manifest-path=../rust-bindings/Cargo.toml --release" />
-    </Target>    
-    
-    <ItemGroup>
-      <Content Include="..\rust-bindings\Cargo.toml">
-        <Link>rust-bindings\Cargo.toml</Link>
-      </Content>
-      <Content Include="..\rust-bindings\src\lib.rs">
-        <Link>rust-bindings\src\lib.rs</Link>
-      </Content>
-      <Content Include="..\rust-bindings\test-data\cis2_wCCD_sub">
-        <Link>rust-bindings\test-data\cis2_wCCD_sub</Link>
-      </Content>
-    </ItemGroup>
 </Project>
