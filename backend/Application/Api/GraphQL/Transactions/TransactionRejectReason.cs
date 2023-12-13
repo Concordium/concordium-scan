@@ -188,7 +188,8 @@ public record RejectedReceive(
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, 0);
-        if (moduleReferenceEvent.Schema == null)
+        var versionedModuleSchema = moduleReferenceEvent.GetVersionedModuleSchema();
+        if (versionedModuleSchema == null)
         {
             return null;
         }
@@ -196,8 +197,7 @@ public record RejectedReceive(
         var receiveName = new ReceiveName(ReceiveName);
         var message = receiveName.DeserializeMessage(
             MessageAsHex,
-            moduleReferenceEvent.Schema,
-            moduleReferenceEvent.SchemaVersion,
+            versionedModuleSchema,
             logger,
             moduleReferenceEvent.ModuleReference,
             nameof(RejectedReceive)

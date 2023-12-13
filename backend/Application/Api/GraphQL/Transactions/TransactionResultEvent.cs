@@ -3,7 +3,6 @@ using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Bakers;
 using Application.Exceptions;
-using Application.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate.Types;
 using Serilog.Context;
@@ -12,6 +11,7 @@ using AccountCreationDetails = Concordium.Sdk.Types.AccountCreationDetails;
 using AccountTransactionDetails = Concordium.Sdk.Types.AccountTransactionDetails;
 using BakerPoolOpenStatus = Application.Api.GraphQL.Bakers.BakerPoolOpenStatus;
 using BakerStakeUpdatedData = Concordium.Sdk.Types.BakerStakeUpdatedData;
+using ContractEvent = Concordium.Sdk.Types.ContractEvent;
 using EncryptedAmountRemovedEvent = Concordium.Sdk.Types.EncryptedAmountRemovedEvent;
 using NewEncryptedAmountEvent = Concordium.Sdk.Types.NewEncryptedAmountEvent;
 using ReceiveName = Application.Types.ReceiveName;
@@ -198,7 +198,8 @@ public abstract record TransactionResultEvent
         string instigator
         )
     {
-        if (moduleReferenceEvent.Schema == null)
+        var versionedModuleSchema = moduleReferenceEvent.GetVersionedModuleSchema();
+        if (versionedModuleSchema == null)
         {
             return null;
         }
@@ -208,13 +209,8 @@ public abstract record TransactionResultEvent
             try
             {
                 var eventAsHex = eventsAsHex[i];
-                var eventContract = InteropBinding.GetEventContract(moduleReferenceEvent.Schema, contractName, eventAsHex, moduleReferenceEvent.SchemaVersion);
-                if (eventContract == null)
-                {
-                    logger.Warning("{ContractName} on {Module} got null returned when parsing hexadecimal event {EventAsHex}", contractName, moduleReferenceEvent.ModuleReference, eventAsHex);
-                    return null;
-                }
-                events[i] = eventContract;
+                var deserializeEvent = new ContractEvent(Convert.FromHexString(eventAsHex)).GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName));
+                events[i] = deserializeEvent.ToString();
             }
             catch (InteropBindingException e)
             {
@@ -580,10 +576,7 @@ public record ContractInitialized(
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAsync(ModuleRef);
-        if (moduleReferenceEvent.Schema == null)
-        {
-            return null;
-        }
+        
         var contractName = GetName();
 
         return GetParsedEvents(moduleReferenceEvent, contractName, EventsAsHex, logger, nameof(ContractInitialized));
@@ -660,7 +653,8 @@ public record ContractUpdated(
         using var _ = LogContext.PushProperty("ContractAddress", ContractAddress.AsString);
         
         var moduleReferenceEvent = await moduleReadonlyRepository.GetModuleReferenceEventAtAsync(ContractAddress, blockHeight, transactionIndex, eventIndex);
-        if (moduleReferenceEvent.Schema == null)
+        var versionedModuleSchema = moduleReferenceEvent.GetVersionedModuleSchema();
+        if (versionedModuleSchema == null)
         {
             return null;
         }
@@ -670,8 +664,7 @@ public record ContractUpdated(
         var receiveName = new ReceiveName(ReceiveName);
         var message = receiveName.DeserializeMessage(
             MessageAsHex,
-            moduleReferenceEvent.Schema,
-            moduleReferenceEvent.SchemaVersion,
+            versionedModuleSchema,
             logger,
             moduleReferenceEvent.ModuleReference,
             nameof(ContractUpdated)

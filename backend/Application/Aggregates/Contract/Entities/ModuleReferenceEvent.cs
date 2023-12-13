@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
-using Application.Interop;
 using Concordium.Sdk.Types;
 using Dapper;
 using HotChocolate;
@@ -43,6 +42,16 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     public string? Schema { get; private set; }
     [GraphQLIgnore]
     public ModuleSchemaVersion? SchemaVersion { get; private set; }
+
+    internal VersionedModuleSchema? GetVersionedModuleSchema()
+    {
+        if (Schema == null || SchemaVersion == null)
+        {
+            return null;
+        }
+
+        return new VersionedModuleSchema(Convert.FromHexString(Schema), SchemaVersion.Value);
+    }
 
     /// <summary>
     /// Needed for EF Core
@@ -101,75 +110,21 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     {
         internal static async Task<ModuleSourceInfo> Create(IContractNodeClient client, ulong blockHeight, string moduleReference)
         {
-            var (versionedModuleSource, moduleSource, module) = await GetWasmModule(client, blockHeight, moduleReference);
-            var schema = GetModuleSchema(module, versionedModuleSource);
-            return new ModuleSourceInfo(moduleSource, schema?.Schema, schema?.SchemaVersion);
+            var (versionedModuleSource, moduleSource) = await GetVersionedModuleSchema(client, blockHeight, moduleReference);
+            return new ModuleSourceInfo(moduleSource, versionedModuleSource?.Schema != null ? Convert.ToHexString(versionedModuleSource.Schema) : null, versionedModuleSource?.Version);
         }
 
-        private static async Task<(VersionedModuleSource VersionedModuleSource, string ModuleSource, WebAssembly.Module Module)> GetWasmModule(IContractNodeClient client, ulong blockHeight, string moduleReference)
+        private static async Task<(VersionedModuleSchema? versionedModuleSchema, string ModuleSource)> GetVersionedModuleSchema(IContractNodeClient client, ulong blockHeight, string moduleReference)
         {
             var absolute = new Absolute(blockHeight);
             var moduleRef = new ModuleReference(moduleReference);
     
             var moduleSourceAsync = await client.GetModuleSourceAsync(absolute, moduleRef);
             var versionedModuleSource = moduleSourceAsync.Response;
+            var versionedModuleSchema = versionedModuleSource.GetModuleSchema();
             var moduleSourceHex = Convert.ToHexString(versionedModuleSource.Source);
-        
-            using var stream = new MemoryStream(versionedModuleSource.Source);
-            var moduleWasm = WebAssembly.Module.ReadFromBinary(stream);
-            return (versionedModuleSource, moduleSourceHex, moduleWasm);
-        }
-
-        /// <summary>
-        /// The module can contain a schema in one of two different custom sections.
-        /// The supported sections depend on the module version.
-        /// The schema version can be either defined by the section name or embedded into the actual schema:
-        /// - Both v0 and v1 modules support the section 'concordium-schema' where the schema includes the version.
-        ///   - For v0 modules this is always a v0 schema.
-        ///   - For v1 modules this can be a v1, v2, or v3 schema.
-        ///- V0 modules additionally support section 'concordium-schema-v1' which always contain a v0 schema (not a typo).
-        /// - V1 modules additionally support section 'concordium-schema-v2' which always contain a v1 schema (not a typo).
-        /// The section 'concordium-schema' is the most common and is what the current tooling produces.
-        /// </summary>
-        private static (string Schema, ModuleSchemaVersion SchemaVersion)? GetModuleSchema(WebAssembly.Module module, VersionedModuleSource moduleSource)
-        {
-            switch (moduleSource)
-            {
-                case ModuleV0:
-                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema", out var moduleV0SchemaUndefined))
-                    {
-                        return (moduleV0SchemaUndefined!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.Undefined); // always v0
-                    }
-                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v1", out var moduleV0SchemaV0))
-                    {
-                        return (moduleV0SchemaV0!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.V0); // v0 (not a typo)
-                    }
-                    return null;
-                case ModuleV1:
-                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema", out var moduleV1SchemaUndefined))
-                    {
-                        return (moduleV1SchemaUndefined!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.Undefined); // v1, v2, or v3
-                    }
-                    if (GetSchemaFromWasmCustomSection(module, "concordium-schema-v2", out var moduleV1SchemaV1))
-                    {
-                        return (moduleV1SchemaV1!, Application.Aggregates.Contract.Types.ModuleSchemaVersion.V1); // v1 (not a typo)
-                    }
-                    return null;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(moduleSource));
-            }
-        }
-        
-        private static bool GetSchemaFromWasmCustomSection(WebAssembly.Module module, string entryKey, out string? schema)
-        {
-            schema = null;
-            var customSection = module.CustomSections
-                .SingleOrDefault(section => section.Name.Equals(entryKey, StringComparison.InvariantCulture));
-
-            if (customSection == null) return false;
             
-            schema = Convert.ToHexString(customSection.Content.ToArray());
-            return true;
+            return (versionedModuleSchema, moduleSourceHex);
         }
     }
     
@@ -215,14 +170,15 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         /// </summary>
         public string? GetDisplaySchema([Parent] ModuleReferenceEvent module)
         {
-            if (module.Schema == null)
+            if (module.Schema == null || module.SchemaVersion == null)
             {
                 return null;
             }
 
             try
             {
-                return InteropBinding.SchemaDisplay(module.Schema, module.SchemaVersion);
+                var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(module.Schema), module.SchemaVersion.Value);
+                return versionedModuleSchema.GetDeserializedSchema().ToString();
             }
             catch (Exception e)
             {

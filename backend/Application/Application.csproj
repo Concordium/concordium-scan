@@ -12,7 +12,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="ConcordiumNetSdk" Version="4.1.0" />
+      <PackageReference Include="ConcordiumNetSdk" Version="4.2.0" />
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="dbup-postgresql" Version="4.5.0" />
       <PackageReference Include="HotChocolate.AspNetCore" Version="13.5.1" />
