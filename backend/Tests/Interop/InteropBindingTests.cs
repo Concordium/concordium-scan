@@ -15,7 +15,7 @@ public class InteropBindingTests
         var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.V1);
         
         // Act
-        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema();
+        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema().ToString();
 
         // Assert
         await Verifier.Verify(schemaDisplayed)
@@ -31,7 +31,7 @@ public class InteropBindingTests
         var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
         
         // Act
-        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema();
+        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema().ToString();
 
         // Assert
         await Verifier.Verify(schemaDisplayed)
@@ -52,7 +52,7 @@ public class InteropBindingTests
         
         // Act
         var message = Updated.GetDeserializeMessage(versionedModuleSchema, new ContractIdentifier(contractName),
-            new EntryPoint(entrypoint), new Parameter(Convert.FromHexString(value)));
+            new EntryPoint(entrypoint), new Parameter(Convert.FromHexString(value))).ToString();
 
         // Assert
         await Verifier.Verify(message)
@@ -71,7 +71,7 @@ public class InteropBindingTests
         var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
         
         // Act
-        var deserializeEvent = contractEvent.GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName));
+        var deserializeEvent = contractEvent.GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName)).ToString();
 
         // Assert
         await Verifier.Verify(deserializeEvent)

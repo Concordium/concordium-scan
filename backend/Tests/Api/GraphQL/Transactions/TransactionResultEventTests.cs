@@ -3,13 +3,16 @@ using System.Text.Json;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
 using FluentAssertions;
 using Moq;
 using Tests.TestUtilities.Stubs;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
+using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
+using ContractVersion = Application.Api.GraphQL.ContractVersion;
 
 namespace Tests.Api.GraphQL.Transactions;
 
@@ -30,7 +33,7 @@ public class TransactionResultEventTests
             new AccountAddress(""),
             "",
             schema,
-            null,
+            ModuleSchemaVersion.Undefined,
             ImportSource.NodeImport,
             DateTimeOffset.UtcNow
         );
