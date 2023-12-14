@@ -1,9 +1,10 @@
 using System.IO;
 using Application.Aggregates.Contract.Exceptions;
-using Application.Types;
+using Concordium.Sdk.Types;
 using FluentAssertions;
 using Moq;
 using Serilog;
+using ReceiveName = Application.Types.ReceiveName;
 
 namespace Tests.Types;
 
@@ -32,9 +33,10 @@ public sealed class ReceiveNameTests
         const string expectedMessage = "{\"data\":\"\",\"to\":{\"Account\":[\"3fpkgmKcGDKGgsDhUQEBAQXbFZJQw97JmbuhzmvujYuG1sQxtV\"]}}";
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
         var receiveName = new ReceiveName($"{contractName}.{entrypoint}");
+        var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
         
         // Act
-        var deserializeMessage = receiveName.DeserializeMessage(message, schema, null, Mock.Of<ILogger>(), "", "");
+        var deserializeMessage = receiveName.DeserializeMessage(message, versionedModuleSchema, Mock.Of<ILogger>(), "", "");
 
         // Assert
         deserializeMessage.Should().Be(expectedMessage);

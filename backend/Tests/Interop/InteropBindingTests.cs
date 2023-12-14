@@ -1,7 +1,5 @@
 using System.IO;
-using Application.Aggregates.Contract.Types;
-using Application.Interop;
-using FluentAssertions;
+using Concordium.Sdk.Types;
 using VerifyXunit;
 
 namespace Tests.Interop;
@@ -14,12 +12,13 @@ public class InteropBindingTests
     {
         // Arrange
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2-nft-schema")).Trim();
-
+        var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.V1);
+        
         // Act
-        var message = InteropBinding.SchemaDisplay(schema, ModuleSchemaVersion.V1);
+        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema();
 
         // Assert
-        await Verifier.Verify(message)
+        await Verifier.Verify(schemaDisplayed)
             .UseFileName("module-versioned-schema")
             .UseDirectory("__snapshots__");
     }
@@ -29,12 +28,13 @@ public class InteropBindingTests
     {
         // Arrange
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
-
+        var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
+        
         // Act
-        var message = InteropBinding.SchemaDisplay(schema,  ModuleSchemaVersion.Undefined);
+        var schemaDisplayed = versionedModuleSchema.GetDeserializedSchema();
 
         // Assert
-        await Verifier.Verify(message)
+        await Verifier.Verify(schemaDisplayed)
             .UseFileName("module-schema")
             .UseDirectory("__snapshots__");
     }
@@ -44,12 +44,15 @@ public class InteropBindingTests
     {
         // Arrange
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
+        var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
+        
         const string contractName = "cis2_wCCD";
         const string entrypoint = "wrap";
         const string value = "005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc790000";
         
         // Act
-        var message = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, value,null);
+        var message = Updated.GetDeserializeMessage(versionedModuleSchema, new ContractIdentifier(contractName),
+            new EntryPoint(entrypoint), new Parameter(Convert.FromHexString(value)));
 
         // Assert
         await Verifier.Verify(message)
@@ -64,36 +67,15 @@ public class InteropBindingTests
         var schema = (await File.ReadAllTextAsync("./TestUtilities/TestData/cis2_wCCD_sub")).Trim();
         const string contractName = "cis2_wCCD";
         const string value = "fe00c0843d005f8b99a3ea8089002291fd646554848b00e7a0cd934e5bad6e6e93a4d4f4dc79";
+        var contractEvent = new ContractEvent(Convert.FromHexString(value));
+        var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(schema), ModuleSchemaVersion.Undefined);
         
         // Act
-        var message = InteropBinding.GetEventContract(schema, contractName, value, ModuleSchemaVersion.Undefined);
+        var deserializeEvent = contractEvent.GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName));
 
         // Assert
-        await Verifier.Verify(message)
+        await Verifier.Verify(deserializeEvent)
             .UseFileName("event")
             .UseDirectory("__snapshots__");
-    }
-    
-    [Theory]
-    [InlineData(ModuleSchemaVersion.V0, (byte)0)]
-    [InlineData(ModuleSchemaVersion.V2, (byte)2)]
-    public void GivenVersion_WhenMapModuleSchemaVersionToFFIOption_ThenOptionContainsVersion(ModuleSchemaVersion version, byte mapped)
-    {
-        // Act
-        var ffiOption = InteropBinding.FFIByteOption.Create(version);
-
-        // Assert
-        ffiOption.is_some.Should().Be(1);
-        ffiOption.t.Should().Be(mapped);
-    }
-    
-    [Fact]
-    public void GivenUndefinedVersion_WhenMapModuleSchemaVersionToFFIOption_ThenOptionEmpty()
-    {
-        // Act
-        var ffiOption = InteropBinding.FFIByteOption.Create(ModuleSchemaVersion.Undefined);
-
-        // Assert
-        ffiOption.is_some.Should().Be(0);
     }
 }
