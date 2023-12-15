@@ -43,16 +43,6 @@ public sealed class ModuleReferenceEvent : BaseIdentification
     [GraphQLIgnore]
     public ModuleSchemaVersion? SchemaVersion { get; private set; }
 
-    internal VersionedModuleSchema? GetVersionedModuleSchema()
-    {
-        if (Schema == null || SchemaVersion == null)
-        {
-            return null;
-        }
-
-        return new VersionedModuleSchema(Convert.FromHexString(Schema), SchemaVersion.Value);
-    }
-
     /// <summary>
     /// Needed for EF Core
     /// </summary>
@@ -128,6 +118,17 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         }
     }
     
+    internal VersionedModuleSchema? GetVersionedModuleSchema()
+    {
+        return HasSchema() ? new VersionedModuleSchema(Convert.FromHexString(Schema!), SchemaVersion!.Value): null;
+    }
+
+    /// <summary>
+    /// Checks both <see cref="Schema"/> and <see cref="SchemaVersion"/> is not null.
+    /// </summary>
+    private bool HasSchema() => Schema != null && SchemaVersion != null;
+    
+    
     [ExtendObjectType(typeof(Query))]
     public class ModuleReferenceEventQuery
     {
@@ -170,15 +171,9 @@ public sealed class ModuleReferenceEvent : BaseIdentification
         /// </summary>
         public string? GetDisplaySchema([Parent] ModuleReferenceEvent module)
         {
-            if (module.Schema == null || module.SchemaVersion == null)
-            {
-                return null;
-            }
-
             try
             {
-                var versionedModuleSchema = new VersionedModuleSchema(Convert.FromHexString(module.Schema), module.SchemaVersion.Value);
-                return versionedModuleSchema.GetDeserializedSchema().ToString();
+                return module.GetVersionedModuleSchema()?.GetDeserializedSchema().ToString();
             }
             catch (Exception e)
             {
