@@ -2,14 +2,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 5000
 
-FROM rust:1.65 AS rust-builder
-WORKDIR /src
-COPY rust-bindings/ rust-bindings/
-RUN cargo build  --manifest-path=./rust-bindings/Cargo.toml --release
-
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS publish
 WORKDIR /src
-COPY --from=rust-builder /src/rust-bindings/target rust-bindings/target
 COPY Application/ Application/
 COPY DatabaseScripts/ DatabaseScripts/
 WORKDIR "/src/Application"

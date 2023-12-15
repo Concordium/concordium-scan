@@ -6,17 +6,18 @@ using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
 using Application.Observability;
+using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
 using Tests.TestUtilities;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
+using RejectedReceive = Application.Api.GraphQL.Transactions.RejectedReceive;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
@@ -114,7 +115,7 @@ public class InitialContractRejectEventDeserializationEventFieldsCatchUpJobTests
             new AccountAddress(""),
             "",
             schema,
-            null,
+            ModuleSchemaVersion.Undefined,
             ImportSource.NodeImport,
             DateTimeOffset.UtcNow
         );

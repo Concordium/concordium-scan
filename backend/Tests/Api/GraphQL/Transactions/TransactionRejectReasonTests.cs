@@ -2,11 +2,12 @@ using System.IO;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
-using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
 using FluentAssertions;
 using Moq;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
+using RejectedReceive = Application.Api.GraphQL.Transactions.RejectedReceive;
 
 namespace Tests.Api.GraphQL.Transactions;
 
@@ -31,7 +32,7 @@ public sealed class TransactionRejectReasonTests
             new AccountAddress(""),
             "",
             schema,
-            null,
+            ModuleSchemaVersion.Undefined,
             ImportSource.NodeImport,
             DateTimeOffset.UtcNow
         );

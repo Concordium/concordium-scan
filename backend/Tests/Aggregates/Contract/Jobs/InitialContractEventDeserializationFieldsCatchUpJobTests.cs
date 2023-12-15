@@ -7,12 +7,11 @@ using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
-using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
 using Application.Observability;
+using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -20,6 +19,12 @@ using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using static Application.Aggregates.Contract.Jobs.InitialContractEventDeserializationFieldsCatchUpJob;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
+using ContractEvent = Application.Aggregates.Contract.Entities.ContractEvent;
+using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
+using ContractVersion = Application.Api.GraphQL.ContractVersion;
+using Transferred = Application.Api.GraphQL.Transactions.Transferred;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
@@ -121,7 +126,7 @@ public class InitialContractEventDeserializationFieldsCatchUpJobTests
             new AccountAddress(""),
             "",
             schema,
-            null,
+            ModuleSchemaVersion.Undefined,
             ImportSource.NodeImport,
             DateTimeOffset.UtcNow
         );

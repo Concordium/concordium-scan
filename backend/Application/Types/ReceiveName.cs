@@ -1,7 +1,6 @@
 using Application.Aggregates.Contract.Exceptions;
-using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
-using Application.Interop;
+using Concordium.Sdk.Types;
 
 namespace Application.Types;
 
@@ -21,8 +20,7 @@ internal sealed class ReceiveName
 
     internal string? DeserializeMessage(
         string messageAsHex,
-        string schema, 
-        ModuleSchemaVersion? schemaVersion,
+        VersionedModuleSchema schema,
         ILogger logger,
         string moduleReference,
         string instigator
@@ -32,9 +30,10 @@ internal sealed class ReceiveName
         var entrypoint = _receiveName.Receive[(_receiveName.Receive.IndexOf('.') + 1)..];
         try
         {
-            var message = InteropBinding.GetReceiveContractParameter(schema, contractName, entrypoint, messageAsHex, schemaVersion);
+            var message = Updated.GetDeserializeMessage(schema, new ContractIdentifier(contractName),
+                new EntryPoint(entrypoint), new Parameter(Convert.FromHexString(messageAsHex)));
             
-            return message;   
+            return message.ToString();   
         }
         catch (InteropBindingException e)
         {
