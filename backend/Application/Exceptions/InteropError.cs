@@ -56,7 +56,6 @@ internal static class InteropErrorExtensions
             // Versioned Schema Error
             // https://github.com/Concordium/concordium-base/blob/0fbae087195589bce53d39944d340c7df5106d64/smart-contracts/contracts-common/concordium-contracts-common/src/schema.rs#L1060            
             "Event schema not found in contract schema" => InteropError.NoEventInContract,
-            InteropBindingException.EmptyErrorMessage => InteropError.EmptyMessage,
             _ => InteropError.Undefined
         };
     }

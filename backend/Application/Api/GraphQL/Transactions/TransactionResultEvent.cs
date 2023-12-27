@@ -212,10 +212,15 @@ public abstract record TransactionResultEvent
                 var deserializeEvent = new ContractEvent(Convert.FromHexString(eventAsHex)).GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName));
                 events[i] = deserializeEvent.ToString();
             }
-            catch (InteropBindingException e)
+            catch (Exception e)
             {
-                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", e);
-                switch (e.Error)
+                var error = InteropErrorExtensions.From(e.Message);
+                if (error == InteropError.Undefined)
+                {
+                    throw;
+                }
+                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", error);
+                switch (error)
                 {
                     case InteropError.EventNotSupported:
                         logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
@@ -226,11 +231,11 @@ public abstract record TransactionResultEvent
                     case InteropError.Deserialization:
                         logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
                         break;
-                    case InteropError.Undefined:
                     case InteropError.EmptyMessage:
                     case InteropError.NoReceiveInContract:
                     case InteropError.NoParamsInReceive:
                     case InteropError.NoContractInModule:
+                    case InteropError.Undefined:
                     default:
                         logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
                         break;

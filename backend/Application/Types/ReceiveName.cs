@@ -35,10 +35,15 @@ internal sealed class ReceiveName
             
             return message.ToString();   
         }
-        catch (InteropBindingException e)
+        catch (Exception e)
         {
-            Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(DeserializeMessage)}", e);
-            switch (e.Error)
+            var error = InteropErrorExtensions.From(e.Message);
+            if (error == InteropError.Undefined)
+            {
+                throw;
+            }
+            Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(DeserializeMessage)}", error);
+            switch (error)
             {
                 case InteropError.Deserialization:
                     logger.Debug(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
