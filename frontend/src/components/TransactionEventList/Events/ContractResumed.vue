@@ -1,16 +1,26 @@
 <template>
 	<span v-if="event.success">
 		Smart contract instance
-		<Contract :address="event.contractAddress" /> was successfully resumed
+		<ContractLink
+			:address="event.contractAddress.asString"
+			:contract-address-index="event.contractAddress.index"
+			:contract-address-sub-index="event.contractAddress.subIndex"
+		/>
+		was successfully resumed
 	</span>
 	<span v-else>
 		Smart contract instance
-		<Contract :address="event.contractAddress" /> was not resumed successfully
+		<ContractLink
+			:address="event.contractAddress.asString"
+			:contract-address-index="event.contractAddress.index"
+			:contract-address-sub-index="event.contractAddress.subIndex"
+		/>
+		was not resumed successfully
 	</span>
 </template>
 
 <script setup lang="ts">
-import Contract from '~/components/molecules/Contract.vue'
+import ContractLink from '../../molecules/ContractLink.vue'
 import type { ContractResumed } from '~/types/generated'
 
 type Props = {
