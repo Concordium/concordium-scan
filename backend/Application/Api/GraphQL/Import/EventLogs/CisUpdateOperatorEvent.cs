@@ -16,7 +16,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public BaseAddress Owner { get; set; }
         public BaseAddress Operator { get; set; }
 
-        public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
+        public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {
             return new CisUpdateOperatorEvent()
             {
@@ -24,7 +24,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 ContractSubIndex = address.SubIndex,
                 Update = ParseOperatorUpdate(st),
                 Owner = CommonParsers.ParseAddress(st),
-                Operator = CommonParsers.ParseAddress(st)
+                Operator = CommonParsers.ParseAddress(st),
+                TransactionId = txnId
             };
         }
 

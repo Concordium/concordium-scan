@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.ChainParametersGraphql;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Extensions.ScalarTypes;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Metrics;
@@ -13,6 +14,7 @@ using Application.Api.GraphQL.Pagination;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
 using Application.Api.GraphQL.Search;
+using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
 using Application.Api.GraphQL.Versions;
 using Application.Observability;
@@ -72,7 +74,8 @@ public static class GraphQlConfiguration
             .AddType<PaydayQuery>()
             .AddType<ChainParametersQuery>()
             .AddType<ImportStateQuery>()
-            .AddType<NetworkQuery>();
+            .AddType<NetworkQuery>()
+            .AddType<TokenQuery>();
 
         builder.AddSubscriptionType<Subscription>();
         
@@ -104,7 +107,8 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<PendingBakerChange>(builder);
         AddAllTypesDerivedFrom<DelegationTarget>(builder);
         AddAllTypesDerivedFrom<PendingDelegationChange>(builder);
-        AddAllTypesDerivedFrom<PoolRewardTarget>(builder);        
+        AddAllTypesDerivedFrom<PoolRewardTarget>(builder);
+        AddAllTypesDerivedFrom<CisEventData>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

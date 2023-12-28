@@ -6,10 +6,9 @@ namespace Application.Api.GraphQL.Import.EventLogs
     /// </summary>
     public abstract class BaseAddress
     {
-
-        public BaseAddress(CisEventAddressType type)
+        protected BaseAddress(CisEventAddressType type)
         {
-            this.Type = type;
+            Type = type;
         }
 
         public CisEventAddressType Type { get; private set; }

@@ -20,5 +20,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// Id of the CIS Token.
         /// </summary>
         public string TokenId { get; set; }
+        
+        /// <summary>
+        /// Transaction Id of the transaction that emitted this event.
+        /// </summary>
+        public long TransactionId { get; init; }        
     }
 }

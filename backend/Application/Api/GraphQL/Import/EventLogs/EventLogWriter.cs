@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Numerics;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Tokens;
 using Application.Common.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -149,6 +150,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
             connection.Close();
 
             return updates;
+        }
+
+        public void ApplyTokenTransactions(IEnumerable<TokenTransaction> tokenTransactions)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            context.TokenTransactions.AddRange(tokenTransactions);
+            context.SaveChanges();
         }
     }
 }
