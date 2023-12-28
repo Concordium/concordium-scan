@@ -38,8 +38,7 @@ public class AccountStatementEntry
     [GraphQLIgnore]
     public long? TransactionId { get; set; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public async Task<IBlockOrTransactionUnion> GetReference([ScopedService] GraphQlDbContext dbContext)
+    public async Task<IBlockOrTransactionUnion> GetReference(GraphQlDbContext dbContext)
     {
         if (TransactionId.HasValue)
             return await dbContext.Transactions.AsNoTracking()

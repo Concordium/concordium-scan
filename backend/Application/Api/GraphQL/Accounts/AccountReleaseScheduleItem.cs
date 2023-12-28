@@ -36,9 +36,8 @@ public class AccountReleaseScheduleItem
     /// </summary>
     [GraphQLIgnore]
     public long FromAccountId { get; set; }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public async Task<Transaction> GetTransaction([ScopedService] GraphQlDbContext dbContext)
+    
+    public async Task<Transaction> GetTransaction(GraphQlDbContext dbContext)
     {
         return await dbContext.Transactions.AsNoTracking()
             .SingleAsync(x => x.Id == TransactionId);

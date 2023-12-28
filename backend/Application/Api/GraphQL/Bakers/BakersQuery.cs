@@ -10,26 +10,23 @@ namespace Application.Api.GraphQL.Bakers;
 [ExtendObjectType(typeof(Query))]
 public class BakersQuery
 {
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Baker? GetBaker([ScopedService] GraphQlDbContext dbContext, [ID] long id)
+    public Baker? GetBaker(GraphQlDbContext dbContext, [ID] long id)
     {
         return dbContext.Bakers
             .AsNoTracking()
             .SingleOrDefault(baker => baker.Id == id);
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Baker? GetBakerByBakerId([ScopedService] GraphQlDbContext dbContext, long bakerId)
+    public Baker? GetBakerByBakerId(GraphQlDbContext dbContext, long bakerId)
     {
         return dbContext.Bakers
             .AsNoTracking()
             .SingleOrDefault(baker => baker.Id == bakerId);
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
     public IQueryable<Baker> GetBakers(
-        [ScopedService] GraphQlDbContext dbContext,
+        GraphQlDbContext dbContext,
         BakerSort sort = BakerSort.BakerIdAsc,
         BakerFilter? filter = null)
     {

@@ -25,10 +25,9 @@ public class Block : IBlockOrTransactionUnion
     public BalanceStatistics BalanceStatistics { get; init; }
     public BlockStatistics BlockStatistics { get; init; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
     public IQueryable<SpecialEvent> GetSpecialEvents(
-        [ScopedService] GraphQlDbContext dbContext,
+        GraphQlDbContext dbContext,
         [GraphQLDescription("Filter special events by special event type. Set to null to return all special events (no filtering).")]
         SpecialEventTypeFilter[]? includeFilter = null)
     {
@@ -66,9 +65,8 @@ public class Block : IBlockOrTransactionUnion
         };
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IEnumerable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    public IEnumerable<Transaction> GetTransactions(GraphQlDbContext dbContext)
     {
         return dbContext.Transactions
             .AsNoTracking()
@@ -78,8 +76,7 @@ public class Block : IBlockOrTransactionUnion
     [GraphQLIgnore]
     public int ChainParametersId { get; init; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Task<ChainParameters> GetChainParameters([ScopedService] GraphQlDbContext dbContext)
+    public Task<ChainParameters> GetChainParameters(GraphQlDbContext dbContext)
     {
         return dbContext.ChainParameters
             .AsNoTracking()

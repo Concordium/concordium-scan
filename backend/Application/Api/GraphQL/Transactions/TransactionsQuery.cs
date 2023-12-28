@@ -12,25 +12,22 @@ public class TransactionsQuery
 {
     private const int DefaultPageSize = 20;
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Transaction? GetTransaction([ScopedService] GraphQlDbContext dbContext, [ID] long id)
+    public Transaction? GetTransaction(GraphQlDbContext dbContext, [ID] long id)
     {
         return dbContext.Transactions
             .AsNoTracking()
             .SingleOrDefault(tx => tx.Id == id);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Transaction? GetTransactionByTransactionHash([ScopedService] GraphQlDbContext dbContext, string transactionHash)
+    public Transaction? GetTransactionByTransactionHash(GraphQlDbContext dbContext, string transactionHash)
     {
         return dbContext.Transactions
             .AsNoTracking()
             .SingleOrDefault(tx => tx.TransactionHash == transactionHash);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "transaction_by_descending_id")]
-    public IQueryable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<Transaction> GetTransactions(GraphQlDbContext dbContext)
     {
         return dbContext.Transactions
             .AsNoTracking()

@@ -9,8 +9,7 @@ namespace Application.Api.GraphQL.PassiveDelegations;
 [ExtendObjectType(typeof(Query))]
 public class PassiveDelegationQuery
 {
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public PassiveDelegation? GetPassiveDelegation([ScopedService] GraphQlDbContext dbContext)
+    public PassiveDelegation? GetPassiveDelegation(GraphQlDbContext dbContext)
     {
         var result = dbContext.PassiveDelegations
             .AsNoTracking()

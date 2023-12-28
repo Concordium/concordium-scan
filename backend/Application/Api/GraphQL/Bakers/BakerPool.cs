@@ -79,9 +79,8 @@ public class BakerPool
         return null;
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
-    public IQueryable<DelegationSummary> GetDelegators([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<DelegationSummary> GetDelegators(GraphQlDbContext dbContext)
     {
         var bakerId = Owner.Owner.BakerId;
 
@@ -91,9 +90,8 @@ public class BakerPool
             .Select(x => new DelegationSummary(x.CanonicalAddress, x.Delegation!.StakedAmount, x.Delegation.RestakeEarnings));
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
-    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<PaydayPoolReward> GetPoolRewards(GraphQlDbContext dbContext)
     {
         var pool = new BakerPoolRewardTarget(Owner.Owner.BakerId);
 

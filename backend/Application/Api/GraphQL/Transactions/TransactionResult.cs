@@ -13,9 +13,8 @@ public class Success : TransactionResult
 {
     private readonly Transaction _owner;
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(IncludeTotalCount = true)]
-    public IEnumerable<TransactionResultEvent> GetEvents([ScopedService] GraphQlDbContext dbContext)
+    public IEnumerable<TransactionResultEvent> GetEvents(GraphQlDbContext dbContext)
     {
         return dbContext.TransactionResultEvents
             .AsNoTracking()

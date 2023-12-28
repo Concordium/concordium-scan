@@ -10,16 +10,14 @@ namespace Application.Api.GraphQL.Accounts;
 [ExtendObjectType(typeof(Query))]
 public class AccountsQuery
 {
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Account? GetAccount([ScopedService] GraphQlDbContext dbContext, [ID] long id)
+    public Account? GetAccount(GraphQlDbContext dbContext, [ID] long id)
     {
         return dbContext.Accounts
             .AsNoTracking()
             .SingleOrDefault(account => account.Id == id);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Account? GetAccountByAddress([ScopedService] GraphQlDbContext dbContext, string accountAddress)
+    public Account? GetAccountByAddress(GraphQlDbContext dbContext, string accountAddress)
     {
         if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed)) 
             return null;
@@ -30,9 +28,8 @@ public class AccountsQuery
             .SingleOrDefault(account => account.BaseAddress == baseAddress);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]  // NOTE: Sorting will cause pages to be unstable (if account is updated between page loads it might have shifted between pages)  
-    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext, AccountSort sort = AccountSort.AgeDesc, AccountFilter? filter = null)
+    public IQueryable<Account> GetAccounts(GraphQlDbContext dbContext, AccountSort sort = AccountSort.AgeDesc, AccountFilter? filter = null)
     {
         var result = dbContext.Accounts
             .AsNoTracking();

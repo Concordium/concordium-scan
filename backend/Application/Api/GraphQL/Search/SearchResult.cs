@@ -59,9 +59,8 @@ public class SearchResult
             .ThenByDescending(module => module.EventIndex); 
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<Block> GetBlocks(GraphQlDbContext dbContext)
     {
         if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString)) 
             return new List<Block>().AsQueryable();
@@ -73,9 +72,8 @@ public class SearchResult
             .OrderByDescending(block => block.Id);
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Transaction> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<Transaction> GetTransactions(GraphQlDbContext dbContext)
     {
         if (string.IsNullOrEmpty(_queryString) || !HashRegex.IsMatch(_queryString)) 
             return new List<Transaction>().AsQueryable();
@@ -86,9 +84,8 @@ public class SearchResult
             .OrderByDescending(transaction => transaction.Id);
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IQueryable<Account> GetAccounts([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<Account> GetAccounts(GraphQlDbContext dbContext)
     {
         if (string.IsNullOrEmpty(_queryString) || !AccountAddressRegex.IsMatch(_queryString)) 
             return new List<Account>().AsQueryable();
@@ -107,10 +104,9 @@ public class SearchResult
             .Where(account => EF.Functions.Like((string)account.CanonicalAddress, _queryString + "%"))
             .OrderByDescending(account => account.Id);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
+    
     [UsePaging]
-    public async Task<IEnumerable<Baker>> GetBakers([ScopedService] GraphQlDbContext dbContext)
+    public async Task<IEnumerable<Baker>> GetBakers(GraphQlDbContext dbContext)
     {
         if (_queryNumeric.HasValue)
         {

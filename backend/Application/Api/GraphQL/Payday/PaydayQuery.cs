@@ -10,8 +10,7 @@ namespace Application.Api.GraphQL.Payday;
 [ExtendObjectType(typeof(Query))]
 public class PaydayQuery
 {
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Task<PaydayStatus?> GetPaydayStatus([ScopedService] GraphQlDbContext dbContext)
+    public Task<PaydayStatus?> GetPaydayStatus(GraphQlDbContext dbContext)
     {
         return dbContext.PaydayStatuses.AsNoTracking().SingleOrDefaultAsync();
     }
