@@ -7,7 +7,6 @@ namespace Application.Api.GraphQL.Tokens;
 [ExtendObjectType(typeof(Query))]
 public class TokenQuery
 {
-
     [UsePaging]
     public IQueryable<Token> GetTokens(GraphQlDbContext dbContext) =>
         dbContext.Tokens.OrderByDescending(t => t.ContractIndex).AsNoTracking();

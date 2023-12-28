@@ -35,7 +35,7 @@ namespace Application.Api.GraphQL.Tokens
         /// <summary>
         /// Total supply of the token
         /// </summary>
-        public BigInteger TotalSupply { get; set; }
+        public decimal TotalSupply { get; set; }
 
         /// <summary>
         /// Gets accounts with balances for this particular token
