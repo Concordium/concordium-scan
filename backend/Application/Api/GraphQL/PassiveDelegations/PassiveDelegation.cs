@@ -24,9 +24,8 @@ public class PassiveDelegation
     [GraphQLIgnore]
     public ulong CurrentPaydayDelegatedStake { get; set; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
-    public IQueryable<DelegationSummary> GetDelegators([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<DelegationSummary> GetDelegators(GraphQlDbContext dbContext)
     {
         return dbContext.Accounts.AsNoTracking()
             .Where(x => x.Delegation!.DelegationTarget == new PassiveDelegationTarget())
@@ -34,8 +33,7 @@ public class PassiveDelegation
             .Select(x => new DelegationSummary(x.CanonicalAddress, x.Delegation!.StakedAmount, x.Delegation.RestakeEarnings));
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public CommissionRates GetCommissionRates([ScopedService] GraphQlDbContext dbContext)
+    public CommissionRates GetCommissionRates(GraphQlDbContext dbContext)
     {
         var latestChainParameters = dbContext.ChainParameters
             .AsNoTracking()
@@ -59,9 +57,8 @@ public class PassiveDelegation
         throw new NotImplementedException("Cannot get commission rates for passive delegation for this version of chain parameters!");
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10, InferConnectionNameFromField = false, ProviderName = "payday_pool_reward_by_descending_index")]
-    public IQueryable<PaydayPoolReward> GetPoolRewards([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<PaydayPoolReward> GetPoolRewards(GraphQlDbContext dbContext)
     {
         var pool = new PassiveDelegationPoolRewardTarget();
 

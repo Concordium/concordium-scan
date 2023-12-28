@@ -29,9 +29,8 @@ public class AccountReward
     /// </summary>
     [GraphQLIgnore]
     public long BlockId { get; init; }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Task<Block> GetBlock([ScopedService] GraphQlDbContext dbContext)
+    
+    public Task<Block> GetBlock(GraphQlDbContext dbContext)
     {
         return dbContext.Blocks.AsNoTracking()
             .SingleAsync(x => x.Id == BlockId);

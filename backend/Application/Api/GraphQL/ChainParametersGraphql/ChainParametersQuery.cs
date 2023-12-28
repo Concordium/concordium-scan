@@ -10,8 +10,7 @@ namespace Application.Api.GraphQL.ChainParametersGraphql
     [ExtendObjectType(typeof(Query))]
     public class ChainParametersQuery
     {
-        [UseDbContext(typeof(GraphQlDbContext))]
-        public async Task<ChainParameters?> GetLatestChainParameters([ScopedService] GraphQlDbContext dbContext)
+        public async Task<ChainParameters?> GetLatestChainParameters(GraphQlDbContext dbContext)
         {
             return await dbContext.ChainParameters
                 .AsNoTracking()

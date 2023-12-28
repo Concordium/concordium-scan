@@ -27,9 +27,8 @@ public class Account
     public DateTimeOffset CreatedAt { get; init; }
 
     public Delegation? Delegation { get; set; }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public async Task<AccountReleaseSchedule> GetReleaseSchedule([ScopedService] GraphQlDbContext dbContext)
+    
+    public async Task<AccountReleaseSchedule> GetReleaseSchedule(GraphQlDbContext dbContext)
     {
         var schedule = await dbContext.AccountReleaseScheduleItems.AsNoTracking()
             .Where(x => x.AccountId == Id && x.Timestamp > DateTimeOffset.UtcNow)
@@ -38,38 +37,34 @@ public class Account
 
         return new AccountReleaseSchedule(schedule);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
+    
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_transaction_relation_by_descending_index")]
-    public IQueryable<AccountTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<AccountTransactionRelation> GetTransactions(GraphQlDbContext dbContext)
     {
         return dbContext.AccountTransactionRelations
             .AsNoTracking()
             .Where(at => at.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
+    
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_statement_entry_by_descending_index")]
     // TODO: Add a filter on entry type
-    public IQueryable<AccountStatementEntry> GetAccountStatement([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<AccountStatementEntry> GetAccountStatement(GraphQlDbContext dbContext)
     {
         return dbContext.AccountStatementEntries.AsNoTracking()
             .Where(x => x.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
+    
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_reward_by_descending_index")]
-    public IQueryable<AccountReward> GetRewards([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<AccountReward> GetRewards(GraphQlDbContext dbContext)
     {
         return dbContext.AccountRewards.AsNoTracking()
             .Where(x => x.AccountId == Id)
             .OrderByDescending(x => x.Index);
     }
-
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Task<Baker?> GetBaker([ScopedService] GraphQlDbContext dbContext)
+    
+    public Task<Baker?> GetBaker(GraphQlDbContext dbContext)
     {
         // Account and baker share the same ID!
         return dbContext.Bakers
@@ -82,9 +77,8 @@ public class Account
     /// </summary>
     /// <param name="dbContext">Database Context</param>
     /// <returns></returns>
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "account_token_descending")]
-    public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
     {
         return dbContext.AccountTokens
             .Where(t => t.AccountId == this.Id && t.Balance != 0)

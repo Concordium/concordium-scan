@@ -73,8 +73,7 @@ public class PaydayPoolReward
     [GraphQLIgnore]
     public long BlockId { get; init; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public async Task<Block> GetBlock([ScopedService] GraphQlDbContext dbContext)
+    public async Task<Block> GetBlock(GraphQlDbContext dbContext)
     {
         return await dbContext.Blocks.AsNoTracking()
             .SingleAsync(x => x.Id == BlockId);

@@ -41,8 +41,7 @@ namespace Application.Api.GraphQL.Tokens
         /// </summary>
         /// <param name="dbContext">EF Core Database Context</param>
         /// <returns><see cref="IQueryable<AccountToken>"/></returns>
-        [UseDbContext(typeof(GraphQlDbContext))]
-        public IQueryable<AccountToken> GetTokens([ScopedService] GraphQlDbContext dbContext)
+        public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
         {
             return dbContext.AccountTokens.AsNoTracking().Where(t =>
                 t.ContractIndex == this.ContractIndex
