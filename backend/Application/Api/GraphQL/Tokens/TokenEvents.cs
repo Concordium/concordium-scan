@@ -20,13 +20,13 @@ public class TokenEvents
         ulong contractSubIndex,
         string tokenId,
         long transactionId,
-        CisEventData eventData)
+        CisEventData @event)
     {
         ContractIndex = contractIndex;
         ContractSubIndex = contractSubIndex;
         TokenId = tokenId;
         TransactionId = transactionId;
-        Event = eventData;
+        Event = @event;
     }
     
     public Transaction? GetTransaction(GraphQlDbContext dbContext) => 
