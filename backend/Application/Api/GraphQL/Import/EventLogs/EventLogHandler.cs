@@ -54,7 +54,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             {
                 TokenUpdate = GetTokenUpdates(e),
                 AccountUpdates = GetAccountUpdates(e),
-                Transactions = GetTransaction(e)
+                Transactions = GetTokenEvent(e)
             }).ToList();
 
             var tokenUpdates = updates
@@ -67,7 +67,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             var tokenTransactions = updates.Select(t => t.Transactions)
                 .Where(t => t != null)
-                .Cast<TokenTransaction>()
+                .Cast<TokenEvents>()
                 .ToList();
 
             if (tokenUpdates.Any())
@@ -88,23 +88,23 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return accountUpdates;
         }
 
-        private static TokenTransaction? GetTransaction(CisEvent log)
+        private static TokenEvents? GetTokenEvent(CisEvent log)
         {
             return log switch
             {
-                CisBurnEvent cisBurnEvent => new TokenTransaction(cisBurnEvent.ContractIndex,
+                CisBurnEvent cisBurnEvent => new TokenEvents(cisBurnEvent.ContractIndex,
                     cisBurnEvent.ContractSubIndex, cisBurnEvent.TokenId, cisBurnEvent.TransactionId,
                     new CisEventDataBurn
                     {
                         Amount = cisBurnEvent.TokenAmount.ToString(), From = Address.From(cisBurnEvent.FromAddress),
                     }),
-                CisMintEvent cisMintEvent => new TokenTransaction(cisMintEvent.ContractIndex,
+                CisMintEvent cisMintEvent => new TokenEvents(cisMintEvent.ContractIndex,
                     cisMintEvent.ContractSubIndex, cisMintEvent.TokenId, cisMintEvent.TransactionId,
                     new CisEventDataMint
                     {
                         Amount = cisMintEvent.TokenAmount.ToString(), To = Address.From(cisMintEvent.ToAddress),
                     }),
-                CisTokenMetadataEvent cisTokenMetadataEvent => new TokenTransaction(cisTokenMetadataEvent.ContractIndex,
+                CisTokenMetadataEvent cisTokenMetadataEvent => new TokenEvents(cisTokenMetadataEvent.ContractIndex,
                     cisTokenMetadataEvent.ContractSubIndex, cisTokenMetadataEvent.TokenId,
                     cisTokenMetadataEvent.TransactionId,
                     new CisEventDataMetadataUpdate
@@ -112,7 +112,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         MetadataUrl = cisTokenMetadataEvent.MetadataUrl,
                         MetadataHashHex = cisTokenMetadataEvent.HashHex,
                     }),
-                CisTransferEvent cisTransferEvent => new TokenTransaction(cisTransferEvent.ContractIndex,
+                CisTransferEvent cisTransferEvent => new TokenEvents(cisTransferEvent.ContractIndex,
                     cisTransferEvent.ContractSubIndex, cisTransferEvent.TokenId, cisTransferEvent.TransactionId,
                     new CisEventDataTransfer
                     {
@@ -120,7 +120,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         From = Address.From(cisTransferEvent.FromAddress),
                         To = Address.From(cisTransferEvent.ToAddress),
                     }),
-                CisUpdateOperatorEvent cisUpdateOperatorEvent => new TokenTransaction(
+                CisUpdateOperatorEvent cisUpdateOperatorEvent => new TokenEvents(
                     cisUpdateOperatorEvent.ContractIndex, cisUpdateOperatorEvent.ContractSubIndex,
                     cisUpdateOperatorEvent.TokenId, cisUpdateOperatorEvent.TransactionId,
                     new CisEventDataUpdateOperator

@@ -45,9 +45,20 @@ namespace Application.Api.GraphQL.Tokens
         public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
         {
             return dbContext.AccountTokens.AsNoTracking().Where(t =>
-                t.ContractIndex == this.ContractIndex
-                && t.ContractSubIndex == this.ContractSubIndex
-                && t.TokenId == this.TokenId);
+                t.ContractIndex == ContractIndex
+                && t.ContractSubIndex == ContractSubIndex
+                && t.TokenId == TokenId);
+        }
+        
+        public IQueryable<TokenEvents> GetTokenEvents(GraphQlDbContext dbContext)
+        {
+            return dbContext.TokenTransactions
+                .AsNoTracking()
+                .Where(t =>
+                    t.ContractIndex == this.ContractIndex
+                    && t.ContractSubIndex == this.ContractSubIndex
+                    && t.TokenId == this.TokenId)
+                .OrderByDescending(t => t.TransactionId);
         }
     }
 }

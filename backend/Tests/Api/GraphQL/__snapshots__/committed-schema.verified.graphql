@@ -1898,11 +1898,22 @@ type TimestampedAmount {
 
 type Token {
   tokens: [AccountToken!]!
+  tokenEvents: [TokenEvents!]!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
   totalSupply: Decimal!
+}
+
+type TokenEvents {
+  transaction: Transaction
+  id: ID!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  tokenId: String!
+  transactionId: Long!
+  event: CisEvent!
 }
 
 "A connection to a list of items."
@@ -2023,6 +2034,8 @@ union BakerState = ActiveBakerState | RemovedBakerState
 union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+
+union CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer | CisEventDataUpdateOperator
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
