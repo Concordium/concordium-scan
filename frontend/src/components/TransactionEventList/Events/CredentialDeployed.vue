@@ -7,6 +7,7 @@
 </template>
 
 <script setup lang="ts">
+import AccountLink from '../../molecules/AccountLink.vue'
 import type { CredentialDeployed } from '~/types/generated'
 
 type Props = {
