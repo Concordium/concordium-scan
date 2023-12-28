@@ -55,7 +55,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<ContractJob> ContractJobs { get; private set; }
     public DbSet<MainMigrationJob> MainMigrationJobs { get; private set; }
 
-    public DbSet<TokenEvents> TokenTransactions { get; private set; }
+    public DbSet<TokenEvents> TokenEvents { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

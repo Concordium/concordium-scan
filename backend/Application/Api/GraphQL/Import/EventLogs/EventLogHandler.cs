@@ -54,7 +54,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             {
                 TokenUpdate = GetTokenUpdates(e),
                 AccountUpdates = GetAccountUpdates(e),
-                Transactions = GetTokenEvent(e)
+                TokenEvents = GetTokenEvents(e)
             }).ToList();
 
             var tokenUpdates = updates
@@ -65,7 +65,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             
             var accountUpdates = updates.SelectMany(a => a.AccountUpdates).ToList();
 
-            var tokenTransactions = updates.Select(t => t.Transactions)
+            var tokenEvents = updates.Select(t => t.TokenEvents)
                 .Where(t => t != null)
                 .Cast<TokenEvents>()
                 .ToList();
@@ -80,15 +80,15 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 writer.ApplyAccountUpdates(accountUpdates);
             }
 
-            if (tokenTransactions.Any())
+            if (tokenEvents.Any())
             {
-                writer.ApplyTokenTransactions(tokenTransactions);
+                writer.ApplyTokenEvents(tokenEvents);
             }
 
             return accountUpdates;
         }
 
-        private static TokenEvents? GetTokenEvent(CisEvent log)
+        private static TokenEvents? GetTokenEvents(CisEvent log)
         {
             return log switch
             {

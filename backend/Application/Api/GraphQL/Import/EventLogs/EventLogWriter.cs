@@ -152,10 +152,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return updates;
         }
 
-        public void ApplyTokenTransactions(IEnumerable<TokenEvents> tokenTransactions)
+        public void ApplyTokenEvents(IEnumerable<TokenEvents> tokenTransactions)
         {
             using var context = _dbContextFactory.CreateDbContext();
-            context.TokenTransactions.AddRange(tokenTransactions);
+            context.TokenEvents.AddRange(tokenTransactions);
             context.SaveChanges();
         }
     }

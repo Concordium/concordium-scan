@@ -52,7 +52,7 @@ namespace Application.Api.GraphQL.Tokens
         
         public IQueryable<TokenEvents> GetTokenEvents(GraphQlDbContext dbContext)
         {
-            return dbContext.TokenTransactions
+            return dbContext.TokenEvents
                 .AsNoTracking()
                 .Where(t =>
                     t.ContractIndex == this.ContractIndex
