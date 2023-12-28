@@ -53,9 +53,6 @@ namespace Application.Api.GraphQL.Import.EventLogs
                     case CisEventTokenAmountUpdate e:
                         batch.BatchCommands.Add(CreateTokenAmountUpdateCmd(cmd, e));
                         break;
-                    case CisEventTokenAddedUpdate e:
-                        batch.BatchCommands.Add(CreateTokenAddedCmd(cmd, e));
-                        break;
                     case CisEventTokenMetadataUpdate e:
                         batch.BatchCommands.Add(CreateTokenMetadataUpdatedCmd(cmd, e));
                         break;
@@ -70,14 +67,14 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return updates;
         }
 
-        private DbBatchCommand CreateTokenAmountUpdateCmd(DbBatchCommand cmd, CisEventTokenAmountUpdate e)
+        private static DbBatchCommand CreateTokenAmountUpdateCmd(DbBatchCommand cmd, CisEventTokenAmountUpdate e)
         {
             cmd.CommandText = @"
-                UPDATE graphql_tokens 
-                SET total_supply = total_supply + @AmountDelta 
-                WHERE contract_index = @ContractIndex
-                    AND contract_sub_index = @ContractSubIndex 
-                    AND token_id = @TokenId";
+                INSERT INTO graphql_tokens(contract_index, contract_sub_index, token_id, total_supply)
+                VALUES (@ContractIndex, @ContractSubIndex, @TokenId, @AmountDelta)
+                ON CONFLICT ON CONSTRAINT graphql_tokens_pkey
+                DO UPDATE SET total_supply = graphql_tokens.total_supply + @AmountDelta";
+            
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<string>("TokenId", e.TokenId));
@@ -86,23 +83,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return cmd;
         }
 
-        private DbBatchCommand CreateTokenAddedCmd(DbBatchCommand cmd, CisEventTokenAddedUpdate e)
-        {
-            cmd.CommandText = @"
-                INSERT INTO graphql_tokens(contract_index, contract_sub_index, token_id, total_supply)
-                VALUES (@ContractIndex, @ContractSubIndex, @TokenId, @TotalSupply)
-                ON CONFLICT ON CONSTRAINT graphql_tokens_pkey
-                DO NOTHING";
-
-            cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
-            cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
-            cmd.Parameters.Add(new NpgsqlParameter<string>("TokenId", e.TokenId));
-            cmd.Parameters.Add(new NpgsqlParameter<BigInteger>("TotalSupply", e.AmountDelta));
-
-            return cmd;
-        }
-
-        private DbBatchCommand CreateTokenMetadataUpdatedCmd(DbBatchCommand cmd, CisEventTokenMetadataUpdate e)
+        private static DbBatchCommand CreateTokenMetadataUpdatedCmd(DbBatchCommand cmd, CisEventTokenMetadataUpdate e)
         {
             cmd.CommandText = @"
                 UPDATE graphql_tokens 
@@ -128,7 +109,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         {
             IEnumerable<string> accountBaseAddresses = accountUpdates.Select(u => u.Address.GetBaseAddress().ToString()).Distinct();
             var accountsMap = this._accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
-            using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyTokenUpdates));
+            using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyAccountUpdates));
 
             using var context = _dbContextFactory.CreateDbContext();
             var connection = context.Database.GetDbConnection();

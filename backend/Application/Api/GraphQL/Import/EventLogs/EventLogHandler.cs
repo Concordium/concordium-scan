@@ -43,29 +43,31 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             //Select Cis Events
             var cisEvents = events
-                .Select(e => ParseCisEvent(e.TxId, e.Address, e.ContractEvent.Bytes))
+                .Select(e => ParseCisEvent(e.Address, e.ContractEvent.Bytes))
                 .Where(e => e != null)
-                .Cast<CisEvent>();
+                .Cast<CisEvent>()
+                .ToList();
 
             //Handle Smart Contract Cis Events Logs
             var updates = cisEvents.Select(e => new
             {
                 TokenUpdate = GetTokenUpdates(e),
                 AccountUpdates = GetAccountUpdates(e)
-            });
+            }).ToList();
 
-            IEnumerable<CisEventTokenUpdate> tokenUpdates = updates
+            var tokenUpdates = updates
                 .Where(u => u.TokenUpdate != null)
                 .Select(u => u.TokenUpdate)
-                .Cast<CisEventTokenUpdate>();
+                .Cast<CisEventTokenUpdate>()
+                .ToList();
             var accountUpdates = updates.SelectMany(a => a.AccountUpdates).ToList();
 
-            if (tokenUpdates.Count() > 0)
+            if (tokenUpdates.Any())
             {
                 writer.ApplyTokenUpdates(tokenUpdates);
             }
 
-            if (accountUpdates.Count() > 0)
+            if (accountUpdates.Any())
             {
                 writer.ApplyAccountUpdates(accountUpdates);
             }
@@ -85,7 +87,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 case CisBurnEvent e:
                     if (e.FromAddress is CisEventAddressAccount accntAddress)
                     {
-                        return new CisAccountUpdate[] {
+                        return new[] {
                             new CisAccountUpdate()
                             {
                                 ContractIndex = e.ContractIndex,
@@ -128,7 +130,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 case CisMintEvent e:
                     if (e.ToAddress is CisEventAddressAccount accntAddress4)
                     {
-                        return new CisAccountUpdate[] {new CisAccountUpdate()
+                        return new[] {new CisAccountUpdate()
                         {
                             ContractIndex = e.ContractIndex,
                             ContractSubIndex = e.ContractSubIndex,
@@ -162,7 +164,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         AmountDelta = log.TokenAmount * -1
                     };
                 case CisMintEvent log:
-                    return new CisEventTokenAddedUpdate()
+                    return new CisEventTokenAmountUpdate()
                     {
                         ContractIndex = log.ContractIndex,
                         ContractSubIndex = log.ContractSubIndex,
@@ -190,16 +192,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <param name="address">CIS Contract Address</param>
         /// <param name="bytes">Input bytes</param>
         /// <returns></returns>
-        private CisEvent? ParseCisEvent(
-            long txnId,
+        private static CisEvent? ParseCisEvent(
             Concordium.Sdk.Types.ContractAddress address,
             byte[] bytes)
         {
-            if (!CisEvent.IsCisEvent(bytes))
-            {
-                return null;
-            }
-
             CisEvent cisEvent;
             if (!CisEvent.TryParse(bytes, address, out cisEvent))
             {
