@@ -26,8 +26,7 @@ public class AccountTransactionRelation
     [GraphQLIgnore]
     public long TransactionId { get; set; }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Transaction GetTransaction([ScopedService] GraphQlDbContext dbContext)
+    public Transaction GetTransaction(GraphQlDbContext dbContext)
     {
         return dbContext.Transactions
             .AsNoTracking()

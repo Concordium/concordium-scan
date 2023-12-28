@@ -8,8 +8,7 @@ namespace Application.Api.GraphQL.Import
     [ExtendObjectType(typeof(Query))]
     public class ImportStateQuery
     {
-        [UseDbContext(typeof(GraphQlDbContext))]
-        public ImportState? GetImportState([ScopedService] GraphQlDbContext dbContext)
+        public ImportState? GetImportState(GraphQlDbContext dbContext)
         {
             return dbContext.ImportState.SingleOrDefault();
         }

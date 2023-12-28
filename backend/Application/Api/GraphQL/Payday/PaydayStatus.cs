@@ -19,9 +19,8 @@ public class PaydayStatus
     [GraphQLIgnore]
     public int? ProtocolVersion { get; set; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(DefaultPageSize = 10)]
-    public IQueryable<PaydaySummary> GetPaydaySummaries([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<PaydaySummary> GetPaydaySummaries(GraphQlDbContext dbContext)
     {
         return dbContext.PaydaySummaries.AsNoTracking()
             .OrderByDescending(x => x.BlockId);

@@ -50,8 +50,7 @@ public class Transaction : IBlockOrTransactionUnion
         }
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Block GetBlock([ScopedService] GraphQlDbContext dbContext)
+    public Block GetBlock(GraphQlDbContext dbContext)
     {
         return dbContext.Blocks
             .AsNoTracking()

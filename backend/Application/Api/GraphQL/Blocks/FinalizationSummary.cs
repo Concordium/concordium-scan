@@ -18,9 +18,8 @@ public class FinalizationSummary
     public long FinalizationIndex { get; init; }
     public long FinalizationDelay { get; init; }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging]
-    public IEnumerable<FinalizationSummaryParty> GetFinalizers([ScopedService] GraphQlDbContext dbContext)
+    public IEnumerable<FinalizationSummaryParty> GetFinalizers(GraphQlDbContext dbContext)
     {
         return dbContext.FinalizationSummaryFinalizers
             .AsNoTracking()

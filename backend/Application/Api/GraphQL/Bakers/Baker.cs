@@ -64,8 +64,7 @@ public class Baker
         set => State = value ?? throw new ArgumentNullException(nameof(value));
     }
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Task<Account> GetAccount([ScopedService] GraphQlDbContext dbContext)
+    public Task<Account> GetAccount(GraphQlDbContext dbContext)
     {
         // Account and baker share the same ID!
         return dbContext.Accounts
@@ -73,10 +72,9 @@ public class Baker
             .SingleAsync(x => x.Id == Id);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(InferConnectionNameFromField = false, ProviderName = "baker_transaction_relation_by_descending_index")] 
     [GraphQLDescription("Get the transactions that have affected the baker.")]
-    public IQueryable<BakerTransactionRelation> GetTransactions([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<BakerTransactionRelation> GetTransactions(GraphQlDbContext dbContext)
     {
         return dbContext.BakerTransactionRelations
             .AsNoTracking()

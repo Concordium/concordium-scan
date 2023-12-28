@@ -12,25 +12,22 @@ public class BlocksQuery
 {
     private const int DefaultPageSize = 20;
 
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Block? GetBlock([ScopedService] GraphQlDbContext dbContext, [ID] long id)
+    public Block? GetBlock(GraphQlDbContext dbContext, [ID] long id)
     {
         return dbContext.Blocks
             .AsNoTracking()
             .SingleOrDefault(block => block.Id == id);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
-    public Block? GetBlockByBlockHash([ScopedService] GraphQlDbContext dbContext, string blockHash)
+    public Block? GetBlockByBlockHash(GraphQlDbContext dbContext, string blockHash)
     {
         return dbContext.Blocks
             .AsNoTracking()
             .SingleOrDefault(block => block.BlockHash == blockHash);
     }
     
-    [UseDbContext(typeof(GraphQlDbContext))]
     [UsePaging(MaxPageSize = 50, DefaultPageSize = DefaultPageSize, ProviderName = "block_by_descending_id")]
-    public IQueryable<Block> GetBlocks([ScopedService] GraphQlDbContext dbContext)
+    public IQueryable<Block> GetBlocks(GraphQlDbContext dbContext)
     {
         return dbContext.Blocks
             .AsNoTracking()
