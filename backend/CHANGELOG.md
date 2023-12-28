@@ -1,4 +1,6 @@
 ## Unreleased changes
+- Bugfix
+    - Fix total token supply
 
 ## 1.8.1
 - Added mapping for chain update events
