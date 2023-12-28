@@ -80,10 +80,10 @@ internal static class ApplicationMetrics
             .Set(value);
     }
 
-    internal static void IncInteropErrors(string instigator, InteropBindingException exception)
+    internal static void IncInteropErrors(string instigator, InteropError error)
     {
         InteropErrors
-            .WithLabels(instigator, exception.Error.ToStringCached())
+            .WithLabels(instigator, error.ToStringCached())
             .Inc();
     }
 
