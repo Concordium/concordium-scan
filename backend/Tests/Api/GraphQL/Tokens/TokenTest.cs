@@ -13,10 +13,16 @@ public sealed class TokenTest : IAsyncLifetime
 {
     private readonly GraphQlTestHelper _testHelper = new();
     private readonly DatabaseFixture _databaseFixture;
+    private readonly JsonSerializerOptions _jsonSerializerOptions;
 
     public TokenTest(DatabaseFixture dbFixture)
     {
         _databaseFixture = dbFixture;
+        _jsonSerializerOptions = new JsonSerializerOptions
+        {
+            Converters = { new CisEventDataConverter(), new AddressConverter() },
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
     }
 
     public async Task InitializeAsync()
@@ -28,9 +34,9 @@ public sealed class TokenTest : IAsyncLifetime
     {
         await _testHelper.DisposeAsync();
     }
-
+    
     [Fact]
-    public async Task WhenQueryTokenEvents_ThenGetEvents()
+    public async Task GivenTokenWithEvent_WhenQueryToken_ThenTokenWithEvents()
     {
         // Arrange
         const ulong contractIndex = 1UL;
@@ -60,14 +66,9 @@ public sealed class TokenTest : IAsyncLifetime
         var result = await _testHelper.ExecuteGraphQlQueryAsync(query);
 
         // Assert
-        var jsonSerializerOptions = new JsonSerializerOptions
-        {
-            Converters = { new CisEventDataConverter(), new AddressConverter() },
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-        var tokenFromQuery = result["token"].Deserialize<Token>(jsonSerializerOptions);
+        var tokenFromQuery = result["token"].Deserialize<Token>(_jsonSerializerOptions);
         result["token"]!["tokenEvents"]![0]!["id"] = 0; // Stub the base64 encoded id
-        var tokenEventsFromQuery = result["token"]!["tokenEvents"].Deserialize<List<TokenEvent>>(jsonSerializerOptions);
+        var tokenEventsFromQuery = result["token"]!["tokenEvents"].Deserialize<List<TokenEvent>>(_jsonSerializerOptions);
 
         tokenFromQuery.Should().NotBeNull();
         tokenFromQuery!.TokenId.Should().Be(tokenId);
