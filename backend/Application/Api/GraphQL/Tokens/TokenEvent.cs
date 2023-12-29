@@ -19,7 +19,6 @@ public class TokenEvent
         ulong contractIndex,
         ulong contractSubIndex,
         string tokenId,
-        long transactionId,
         CisEvent @event)
     {
         ContractIndex = contractIndex;
