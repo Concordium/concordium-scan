@@ -13,9 +13,9 @@ namespace Application.Api.GraphQL.Import.EventLogs
         {
         }
 
-        public BigInteger TokenAmount { get; internal set; }
+        public BigInteger TokenAmount { get; set; }
 
-        public BaseAddress ToAddress { get; internal set; }
+        public Address ToAddress { get; set; }
 
         public static CisMintEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {

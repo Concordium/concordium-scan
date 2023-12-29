@@ -17,6 +17,6 @@ public sealed class TokenTransactionConfiguration : IEntityTypeConfiguration<Tok
         builder.Property(x => x.TransactionId).HasColumnName("transaction_id").HasColumnType("bigint");
         builder.Property(x => x.TokenId).HasColumnName("token_id").HasColumnType<string>("text");
         builder.Property(x => x.Event).HasColumnName("event").HasColumnType("json")
-            .HasConversion<CisEventDataToJsonConverter>();
+            .HasConversion<CisEventToJsonConverter>();
     }
 }

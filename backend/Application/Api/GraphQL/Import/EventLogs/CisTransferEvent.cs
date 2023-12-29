@@ -21,12 +21,12 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Transferred from Address
         /// </summary>
-        public BaseAddress FromAddress { get; set; }
+        public Address FromAddress { get; set; }
 
         /// <summary>
         /// Transferred to Address
         /// </summary>
-        public BaseAddress ToAddress { get; set; }
+        public Address ToAddress { get; set; }
 
         public static CisTransferEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {

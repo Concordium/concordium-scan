@@ -1,4 +1,3 @@
-using Application.Api.GraphQL.Import.EventLogs;
 using Concordium.Sdk.Types;
 using HotChocolate.Types;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
@@ -15,14 +14,4 @@ public abstract class Address
             Concordium.Sdk.Types.ContractAddress contractAddress => ContractAddress.From(contractAddress),
             _ => throw new NotSupportedException("Cannot map this address type")
         };
-    
-    internal static Address From(BaseAddress fromAddress)
-    {
-        return fromAddress switch
-        {
-            CisEventAddressAccount account => new AccountAddress(account.Address.ToString()),
-            CisEventAddressContract contract => new ContractAddress(contract.Index, contract.SubIndex),
-            _ => throw new ArgumentException($"Unknown address type {fromAddress.GetType()}")
-        };
-    }    
 }

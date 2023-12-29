@@ -704,25 +704,56 @@ type ChainUpdateEnqueued {
   payload: ChainUpdatePayload!
 }
 
-type CisEventDataBurn {
-  amount: String!
-  from: Address!
+type CisBurnEvent {
+  tokenAmount: BigInteger!
+  fromAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  type: CisEventType!
+  tokenId: String!
+  transactionId: Long!
 }
 
-type CisEventDataMetadataUpdate {
+type CisMintEvent {
+  tokenAmount: BigInteger!
+  toAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  type: CisEventType!
+  tokenId: String!
+  transactionId: Long!
+}
+
+type CisTokenMetadataEvent {
   metadataUrl: String!
-  metadataHashHex: String
+  hashHex: String
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  type: CisEventType!
+  tokenId: String!
+  transactionId: Long!
 }
 
-type CisEventDataMint {
-  amount: String!
-  to: Address!
+type CisTransferEvent {
+  tokenAmount: BigInteger!
+  fromAddress: Address!
+  toAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  type: CisEventType!
+  tokenId: String!
+  transactionId: Long!
 }
 
-type CisEventDataTransfer {
-  amount: String!
-  from: Address!
-  to: Address!
+type CisUpdateOperatorEvent {
+  update: OperatorUpdateType!
+  owner: Address!
+  operator: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  type: CisEventType!
+  tokenId: String!
+  transactionId: Long!
 }
 
 "Information about the offset pagination."
@@ -2029,7 +2060,7 @@ union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
 
-union CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer
+union CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUpdateOperatorEvent
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
@@ -2131,6 +2162,14 @@ enum BakerSort {
   BLOCK_COMMISSIONS_DESC
 }
 
+enum CisEventType {
+  TOKEN_METADATA
+  UPDATE_OPERATOR
+  BURN
+  MINT
+  TRANSFER
+}
+
 enum ContractVersion {
   V0
   V1
@@ -2168,6 +2207,11 @@ enum NodeSortField {
   PEERS_COUNT
   FINALIZED_BLOCK_HEIGHT
   BLOCKS_RECEIVED_COUNT
+}
+
+enum OperatorUpdateType {
+  REMOVE_OPERATOR
+  ADD_OPERATOR
 }
 
 enum RewardType {

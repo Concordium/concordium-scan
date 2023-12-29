@@ -7,6 +7,7 @@ using Application.Api.GraphQL.ChainParametersGraphql;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Extensions.ScalarTypes;
 using Application.Api.GraphQL.Import;
+using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Metrics;
 using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Pagination;
@@ -107,7 +108,7 @@ public static class GraphQlConfiguration
         AddAllTypesDerivedFrom<DelegationTarget>(builder);
         AddAllTypesDerivedFrom<PendingDelegationChange>(builder);
         AddAllTypesDerivedFrom<PoolRewardTarget>(builder);
-        AddAllTypesDerivedFrom<CisEventData>(builder);
+        AddAllTypesDerivedFrom<CisEvent>(builder);
     }
 
     private static void AddAllTypesDerivedFrom<T>(ISchemaBuilder builder)

@@ -1,10 +1,12 @@
 using System.IO;
+using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
     /// <summary>
     /// Base class for CIS Event. <see href="https://proposals.concordium.software/CIS/cis-2.html#abstract"/>
     /// </summary>
+    [UnionType("CisEvent")]
     public abstract class CisEvent
     {
         private static readonly List<int> AllowedEventTypes = new List<int> {
