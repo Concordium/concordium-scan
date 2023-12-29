@@ -2,7 +2,7 @@ using Application.Api.GraphQL.Import.EventLogs;
 
 namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
-public sealed class TokenTransactionDataConverter : PolymorphicJsonConverter<CisEvent>
+public sealed class CisEventConverter : PolymorphicJsonConverter<CisEvent>
 {
     private static readonly Dictionary<Type, int> SerializeMap = new()
     {
@@ -12,7 +12,7 @@ public sealed class TokenTransactionDataConverter : PolymorphicJsonConverter<Cis
         { typeof(CisTransferEvent), 4 }
     };
     
-    public TokenTransactionDataConverter() : base(SerializeMap)
+    public CisEventConverter() : base(SerializeMap)
     {
     }
 }
