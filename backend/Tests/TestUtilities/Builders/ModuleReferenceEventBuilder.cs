@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 
 namespace Tests.TestUtilities.Builders;

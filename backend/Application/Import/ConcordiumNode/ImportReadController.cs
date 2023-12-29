@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Application.Common.Diagnostics;
 using Application.Configurations;
 using Application.Database.MigrationJobs;
-using Application.Entities;
 using Application.Jobs;
 using Application.NodeApi;
 using Application.Observability;

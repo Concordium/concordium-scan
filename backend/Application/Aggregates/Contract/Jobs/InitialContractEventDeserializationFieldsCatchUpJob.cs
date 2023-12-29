@@ -7,7 +7,6 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
-using Application.Observability;
 using Application.Resilience;
 using Dapper;
 using Microsoft.EntityFrameworkCore;

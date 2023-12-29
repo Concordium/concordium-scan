@@ -2,7 +2,6 @@ using System.Threading;
 using Application.Api.GraphQL.Bakers;
 using Application.Database.MigrationJobs;
 using Application.Import.ConcordiumNode;
-using Application.Observability;
 using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
