@@ -90,35 +90,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
         private static TokenEvent? GetTokenEvents(CisEvent log)
         {
-            return log switch
-            {
-                CisBurnEvent cisBurnEvent => new TokenEvent(cisBurnEvent.ContractIndex,
-                    cisBurnEvent.ContractSubIndex, cisBurnEvent.TokenId, cisBurnEvent.TransactionId,
-                    new CisEventDataBurn(
-                        Amount: cisBurnEvent.TokenAmount.ToString(), From: Address.From(cisBurnEvent.FromAddress)
-                    )),
-                CisMintEvent cisMintEvent => new TokenEvent(cisMintEvent.ContractIndex,
-                    cisMintEvent.ContractSubIndex, cisMintEvent.TokenId, cisMintEvent.TransactionId,
-                    new CisEventDataMint(
-                        Amount: cisMintEvent.TokenAmount.ToString(), To: Address.From(cisMintEvent.ToAddress)
-                    )),
-                CisTokenMetadataEvent cisTokenMetadataEvent => new TokenEvent(cisTokenMetadataEvent.ContractIndex,
-                    cisTokenMetadataEvent.ContractSubIndex, cisTokenMetadataEvent.TokenId,
-                    cisTokenMetadataEvent.TransactionId,
-                    new CisEventDataMetadataUpdate(
-                        MetadataUrl: cisTokenMetadataEvent.MetadataUrl,
-                        MetadataHashHex: cisTokenMetadataEvent.HashHex
-                    )),
-                CisTransferEvent cisTransferEvent => new TokenEvent(cisTransferEvent.ContractIndex,
-                    cisTransferEvent.ContractSubIndex, cisTransferEvent.TokenId, cisTransferEvent.TransactionId,
-                    new CisEventDataTransfer(
-                        Amount: cisTransferEvent.TokenAmount.ToString(),
-                        From: Address.From(cisTransferEvent.FromAddress),
-                        To: Address.From(cisTransferEvent.ToAddress)
-                    )),
-                CisUpdateOperatorEvent => null,
-                _ => throw new ArgumentOutOfRangeException(nameof(log))
-            };
+            return log is CisUpdateOperatorEvent ? null : new TokenEvent(log.ContractIndex, log.ContractSubIndex, log.TokenId, log.TransactionId, log);
         }
 
         /// <summary>

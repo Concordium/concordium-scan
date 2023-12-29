@@ -1,4 +1,5 @@
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
@@ -13,14 +14,14 @@ public class TokenEvent
     public ulong ContractSubIndex { get; set; }
     public string TokenId { get; set; }
     public long TransactionId { get; set; }
-    public CisEventData Event { get; set; }
+    public CisEvent Event { get; set; }
 
     public TokenEvent(
         ulong contractIndex,
         ulong contractSubIndex,
         string tokenId,
         long transactionId,
-        CisEventData @event)
+        CisEvent @event)
     {
         ContractIndex = contractIndex;
         ContractSubIndex = contractSubIndex;

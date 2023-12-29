@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Tokens;
 using FluentAssertions;
 using Tests.TestUtilities;
@@ -42,8 +44,15 @@ public sealed class TokenTest : IAsyncLifetime
         const ulong contractIndex = 1UL;
         const ulong contractSubindex = 0UL;
         const string tokenId = "42";
-        const string amount = "42";
-        var cisEventDataMint = new CisEventDataMint("42", new ContractAddress(contractIndex,contractSubindex));
+        var amount = new BigInteger(42);
+        var cisEventDataMint = new CisMintEvent
+        {
+            ContractIndex = contractIndex,
+            ContractSubIndex = contractSubindex,
+            TokenAmount = amount,
+            TokenId = tokenId,
+            ToAddress = new CisEventAddressContract { Index = contractIndex, SubIndex = contractSubindex }
+        };
         var tokenEvent = new TokenEvent(
             contractIndex, contractSubindex, tokenId, 1, cisEventDataMint
         );
@@ -81,11 +90,11 @@ public sealed class TokenTest : IAsyncLifetime
         tokenEventFromQuery.TokenId.Should().Be(tokenId);
         tokenEventFromQuery.ContractIndex.Should().Be(contractIndex);
         tokenEventFromQuery.ContractSubIndex.Should().Be(contractSubindex);
-        tokenEventFromQuery.Event.Should().BeOfType<CisEventDataMint>();
-        var eventDataMint = (tokenEventFromQuery.Event as CisEventDataMint)!;
-        eventDataMint.Amount.Should().Be(amount);
-        eventDataMint.To.Should().BeOfType<ContractAddress>();
-        var to = (eventDataMint.To as ContractAddress)!;
+        tokenEventFromQuery.Event.Should().BeOfType<CisMintEvent>();
+        var eventDataMint = (tokenEventFromQuery.Event as CisMintEvent)!;
+        eventDataMint.TokenAmount.Should().Be(amount);
+        eventDataMint.ToAddress.Should().BeOfType<CisEventAddressContract>();
+        var to = (eventDataMint.ToAddress as CisEventAddressContract)!;
         to.Index.Should().Be(contractIndex);
         to.SubIndex.Should().Be(contractSubindex);
     }
@@ -116,9 +125,9 @@ public sealed class TokenTest : IAsyncLifetime
         }
     }
 
-    private class CisEventDataConverter : JsonConverter<CisEventData>
+    private class CisEventDataConverter : JsonConverter<CisEvent>
     {
-        public override CisEventData? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        public override CisEvent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             using var doc = JsonDocument.ParseValue(ref reader);
             var root = doc.RootElement;
@@ -128,15 +137,15 @@ public sealed class TokenTest : IAsyncLifetime
             var eventType = typename.GetString();
             switch (eventType)
             {
-                case "CisEventDataMint":
-                    var cisEventDataMint = root.Deserialize<CisEventDataMint>(options);
-                    return cisEventDataMint;
+                case "CisMintEvent":
+                    var cisMintEvent = root.Deserialize<CisMintEvent>(options);
+                    return cisMintEvent;
                 default:
                     throw new JsonException($"Unknown event type {eventType}");
             }
         }
 
-        public override void Write(Utf8JsonWriter writer, CisEventData value, JsonSerializerOptions options)
+        public override void Write(Utf8JsonWriter writer, CisEvent value, JsonSerializerOptions options)
         {
             throw new NotImplementedException();
         }
@@ -167,9 +176,9 @@ query {{
             transactionId
             event {{
                 __typename
-                ... on CisEventDataBurn {{
-                    amount
-                    from {{
+                ... on CisBurnEvent {{
+                    tokenAmount
+                    fromAddress {{
                         __typename
                         ... on AccountAddress {{
                             asString
@@ -181,13 +190,13 @@ query {{
                         }}
                     }}
                 }}
-                ... on CisEventDataMetadataUpdate {{
+                ... on CisTokenMetadataEvent {{
                     metadataUrl
-                    metadataHashHex
+                    hashHex
                 }}
-                ... on CisEventDataMint {{
-                    amount
-                    to {{
+                ... on CisMintEvent {{
+                    tokenAmount
+                    toAddress {{
                         __typename
                         ... on AccountAddress {{
                             asString
@@ -199,9 +208,9 @@ query {{
                         }}
                     }}
                 }}
-                ... on CisEventDataTransfer {{
-                    amount
-                    from {{
+                ... on CisTransferEvent {{
+                    tokenAmount
+                    fromAddress {{
                         __typename
                         ... on AccountAddress {{
                             asString
@@ -212,7 +221,7 @@ query {{
                             subIndex
                         }}
                     }}                        
-                    to {{
+                    toAddress {{
                         __typename
                         ... on AccountAddress {{
                             asString
