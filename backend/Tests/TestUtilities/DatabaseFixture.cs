@@ -71,6 +71,8 @@ public sealed class DatabaseFixture : IDisposable
         var dbFactory = new Mock<IDbContextFactory<GraphQlDbContext>>();
         dbFactory.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateGraphQlDbContext);
+        dbFactory.Setup(f => f.CreateDbContext())
+            .Returns(CreateGraphQlDbContext);
         return dbFactory;
     }
     
