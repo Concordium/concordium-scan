@@ -1898,7 +1898,7 @@ type TimestampedAmount {
 
 type Token {
   tokens: [AccountToken!]!
-  tokenEvents: [TokenEvents!]!
+  tokenEvents: [TokenEvent!]!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
@@ -1906,7 +1906,7 @@ type Token {
   totalSupply: Decimal!
 }
 
-type TokenEvents {
+type TokenEvent {
   transaction: Transaction
   id: ID!
   contractIndex: UnsignedLong!

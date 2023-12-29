@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens;
 
-public class TokenEvents
+public class TokenEvent
 {
     [ID]
     public long Id { get; set; }
@@ -15,7 +15,7 @@ public class TokenEvents
     public long TransactionId { get; set; }
     public CisEventData Event { get; set; }
 
-    public TokenEvents(
+    public TokenEvent(
         ulong contractIndex,
         ulong contractSubIndex,
         string tokenId,

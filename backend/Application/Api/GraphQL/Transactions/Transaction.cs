@@ -2,7 +2,6 @@
 using Application.Api.GraphQL.EfCore;
 using Concordium.Sdk.Types;
 using HotChocolate;
-using HotChocolate.Data;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;

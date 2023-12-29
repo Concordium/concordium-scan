@@ -8,7 +8,6 @@ using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Network;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
-using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 

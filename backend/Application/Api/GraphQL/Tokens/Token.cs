@@ -1,8 +1,5 @@
-using System.Numerics;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using HotChocolate;
-using HotChocolate.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens
@@ -50,7 +47,7 @@ namespace Application.Api.GraphQL.Tokens
                 && t.TokenId == TokenId);
         }
         
-        public IQueryable<TokenEvents> GetTokenEvents(GraphQlDbContext dbContext)
+        public IQueryable<TokenEvent> GetTokenEvents(GraphQlDbContext dbContext)
         {
             return dbContext.TokenEvents
                 .AsNoTracking()

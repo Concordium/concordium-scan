@@ -8,34 +8,12 @@ public abstract record CisEventData
 {
 }
 
-public record CisEventDataBurn : CisEventData
-{
-    public string Amount { get; set; }
-    public Address From { get; set; }
-}
+public record CisEventDataBurn(string Amount, Address From) : CisEventData;
 
-public record CisEventDataMetadataUpdate : CisEventData
-{
-    public string MetadataUrl { get; set; }
-    public string? MetadataHashHex { get; set; }
-}
+public record CisEventDataMetadataUpdate(string MetadataUrl, string? MetadataHashHex) : CisEventData;
 
-public record CisEventDataMint : CisEventData
-{
-    public string Amount { get; set; }
-    public Address To { get; set; }
-}
+public record CisEventDataMint(string Amount, Address To) : CisEventData;
 
-public record CisEventDataTransfer : CisEventData
-{
-    public string Amount { get; set; }
-    public Address From { get; set; }
-    public Address To { get; set; }
-}
+public record CisEventDataTransfer(string Amount, Address From, Address To) : CisEventData;
 
-public record CisEventDataUpdateOperator : CisEventData
-{
-    public OperatorUpdateType Update { get; set; }
-    public Address Owner { get; set; }
-    public Address Operator { get; set; }
-}
+public record CisEventDataUpdateOperator(OperatorUpdateType Update, Address Owner, Address Operator) : CisEventData;

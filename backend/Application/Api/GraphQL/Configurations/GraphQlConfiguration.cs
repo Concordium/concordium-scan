@@ -5,7 +5,6 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.ChainParametersGraphql;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Extensions.ScalarTypes;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Metrics;

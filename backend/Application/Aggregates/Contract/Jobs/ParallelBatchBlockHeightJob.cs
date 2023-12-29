@@ -1,11 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
-using Application.Aggregates.Contract.Observability;
 using Application.Configurations;
 using Application.Observability;
 using Microsoft.Extensions.Options;
-using Serilog.Context;
 
 namespace Application.Aggregates.Contract.Jobs;
 

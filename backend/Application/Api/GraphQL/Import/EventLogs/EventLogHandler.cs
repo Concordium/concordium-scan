@@ -67,7 +67,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             var tokenEvents = updates.Select(t => t.TokenEvents)
                 .Where(t => t != null)
-                .Cast<TokenEvents>()
+                .Cast<TokenEvent>()
                 .ToList();
 
             if (tokenUpdates.Any())
@@ -88,47 +88,42 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return accountUpdates;
         }
 
-        private static TokenEvents? GetTokenEvents(CisEvent log)
+        private static TokenEvent? GetTokenEvents(CisEvent log)
         {
             return log switch
             {
-                CisBurnEvent cisBurnEvent => new TokenEvents(cisBurnEvent.ContractIndex,
+                CisBurnEvent cisBurnEvent => new TokenEvent(cisBurnEvent.ContractIndex,
                     cisBurnEvent.ContractSubIndex, cisBurnEvent.TokenId, cisBurnEvent.TransactionId,
-                    new CisEventDataBurn
-                    {
-                        Amount = cisBurnEvent.TokenAmount.ToString(), From = Address.From(cisBurnEvent.FromAddress),
-                    }),
-                CisMintEvent cisMintEvent => new TokenEvents(cisMintEvent.ContractIndex,
+                    new CisEventDataBurn(
+                        Amount: cisBurnEvent.TokenAmount.ToString(), From: Address.From(cisBurnEvent.FromAddress)
+                    )),
+                CisMintEvent cisMintEvent => new TokenEvent(cisMintEvent.ContractIndex,
                     cisMintEvent.ContractSubIndex, cisMintEvent.TokenId, cisMintEvent.TransactionId,
-                    new CisEventDataMint
-                    {
-                        Amount = cisMintEvent.TokenAmount.ToString(), To = Address.From(cisMintEvent.ToAddress),
-                    }),
-                CisTokenMetadataEvent cisTokenMetadataEvent => new TokenEvents(cisTokenMetadataEvent.ContractIndex,
+                    new CisEventDataMint(
+                        Amount: cisMintEvent.TokenAmount.ToString(), To: Address.From(cisMintEvent.ToAddress)
+                    )),
+                CisTokenMetadataEvent cisTokenMetadataEvent => new TokenEvent(cisTokenMetadataEvent.ContractIndex,
                     cisTokenMetadataEvent.ContractSubIndex, cisTokenMetadataEvent.TokenId,
                     cisTokenMetadataEvent.TransactionId,
-                    new CisEventDataMetadataUpdate
-                    {
-                        MetadataUrl = cisTokenMetadataEvent.MetadataUrl,
-                        MetadataHashHex = cisTokenMetadataEvent.HashHex,
-                    }),
-                CisTransferEvent cisTransferEvent => new TokenEvents(cisTransferEvent.ContractIndex,
+                    new CisEventDataMetadataUpdate(
+                        MetadataUrl: cisTokenMetadataEvent.MetadataUrl,
+                        MetadataHashHex: cisTokenMetadataEvent.HashHex
+                    )),
+                CisTransferEvent cisTransferEvent => new TokenEvent(cisTransferEvent.ContractIndex,
                     cisTransferEvent.ContractSubIndex, cisTransferEvent.TokenId, cisTransferEvent.TransactionId,
-                    new CisEventDataTransfer
-                    {
-                        Amount = cisTransferEvent.TokenAmount.ToString(),
-                        From = Address.From(cisTransferEvent.FromAddress),
-                        To = Address.From(cisTransferEvent.ToAddress),
-                    }),
-                CisUpdateOperatorEvent cisUpdateOperatorEvent => new TokenEvents(
+                    new CisEventDataTransfer(
+                        Amount: cisTransferEvent.TokenAmount.ToString(),
+                        From: Address.From(cisTransferEvent.FromAddress),
+                        To: Address.From(cisTransferEvent.ToAddress)
+                    )),
+                CisUpdateOperatorEvent cisUpdateOperatorEvent => new TokenEvent(
                     cisUpdateOperatorEvent.ContractIndex, cisUpdateOperatorEvent.ContractSubIndex,
                     cisUpdateOperatorEvent.TokenId, cisUpdateOperatorEvent.TransactionId,
-                    new CisEventDataUpdateOperator
-                    {
-                        Update = cisUpdateOperatorEvent.Update,
-                        Owner = Address.From(cisUpdateOperatorEvent.Owner),
-                        Operator = Address.From(cisUpdateOperatorEvent.Operator),
-                    }),
+                    new CisEventDataUpdateOperator(
+                        Update: cisUpdateOperatorEvent.Update,
+                        Owner: Address.From(cisUpdateOperatorEvent.Owner),
+                        Operator: Address.From(cisUpdateOperatorEvent.Operator)
+                    )),
                 _ => throw new ArgumentOutOfRangeException(nameof(log))
             };
         }

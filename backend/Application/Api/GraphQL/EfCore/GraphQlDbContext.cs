@@ -2,7 +2,6 @@
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.Blocks;
-using Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
@@ -55,7 +54,7 @@ public class GraphQlDbContext : DbContext
     public DbSet<ContractJob> ContractJobs { get; private set; }
     public DbSet<MainMigrationJob> MainMigrationJobs { get; private set; }
 
-    public DbSet<TokenEvents> TokenEvents { get; private set; }
+    public DbSet<TokenEvent> TokenEvents { get; private set; }
 
     public GraphQlDbContext(DbContextOptions options) : base(options)
     {

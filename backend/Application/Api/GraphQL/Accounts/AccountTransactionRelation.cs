@@ -1,7 +1,6 @@
 ﻿using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using HotChocolate;
-using HotChocolate.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Accounts;

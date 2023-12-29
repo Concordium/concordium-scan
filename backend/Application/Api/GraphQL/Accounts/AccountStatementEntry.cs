@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
-using HotChocolate.Data;
 using HotChocolate.Types.Relay;
 using Microsoft.EntityFrameworkCore;
 

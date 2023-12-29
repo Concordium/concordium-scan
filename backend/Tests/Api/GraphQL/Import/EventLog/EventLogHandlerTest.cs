@@ -57,20 +57,19 @@ public sealed class EventLogHandlerTest
             "fd0080a094a58d1d00f761affb26ea6bbd14e4c50e51984d6d059156fa86658126c5ca0b747d60ba00",
             typeof(CisEventDataBurn)
         );
-    }    
+    }
 
     private async Task CisEventParsingContractEventTestSkeleton(string cisEventInHexadecimal, Type expectedCisEventType)
     {
         // Arrange
+        await DatabaseFixture.TruncateTables("graphql_tokens", "graphql_account_tokens", "graphql_token_events");
+        
         const ulong index = 1423UL;
         const ulong subIndex = 1UL;
         const string address = "31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd";
         const string name = "inventory.transfer";
         _ = ReceiveName.TryParse(name, out var output);
         
-        await DatabaseFixture.TruncateTables("graphql_tokens");
-        await DatabaseFixture.TruncateTables("graphql_account_tokens");
-        await DatabaseFixture.TruncateTables("graphql_token_events");
         var dbContractFactoryMock = _fixture.CreateDbContractFactoryMock();
         var accountLookup = new AccountLookupStub();
         accountLookup.AddToCache(AccountAddress.From("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e").GetBaseAddress().ToString(), 1);

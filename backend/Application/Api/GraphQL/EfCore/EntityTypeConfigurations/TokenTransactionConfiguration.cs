@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Application.Api.GraphQL.EfCore.EntityTypeConfigurations;
 
-public sealed class TokenTransactionConfiguration : IEntityTypeConfiguration<TokenEvents>
+public sealed class TokenTransactionConfiguration : IEntityTypeConfiguration<TokenEvent>
 {
-    public void Configure(EntityTypeBuilder<TokenEvents> builder)
+    public void Configure(EntityTypeBuilder<TokenEvent> builder)
     {
         builder.ToTable("graphql_token_events");
         builder.HasKey(x => x.Id);

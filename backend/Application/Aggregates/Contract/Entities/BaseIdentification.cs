@@ -1,5 +1,4 @@
 using Application.Aggregates.Contract.Types;
-using Application.Api.GraphQL;
 using HotChocolate;
 
 namespace Application.Aggregates.Contract.Entities;
