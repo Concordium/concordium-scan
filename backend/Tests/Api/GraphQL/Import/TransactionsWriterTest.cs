@@ -6,7 +6,6 @@ using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
@@ -66,7 +65,6 @@ using NotAllowedToReceiveEncrypted = Concordium.Sdk.Types.NotAllowedToReceiveEnc
 using OutOfEnergy = Concordium.Sdk.Types.OutOfEnergy;
 using PoolClosed = Concordium.Sdk.Types.PoolClosed;
 using PoolWouldBecomeOverDelegated = Concordium.Sdk.Types.PoolWouldBecomeOverDelegated;
-using Ratio = Application.Api.GraphQL.Ratio;
 using RejectedInit = Concordium.Sdk.Types.RejectedInit;
 using RejectedReceive = Concordium.Sdk.Types.RejectedReceive;
 using RemoveFirstCredential = Concordium.Sdk.Types.RemoveFirstCredential;

@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
-using Application.Aggregates.Contract.Types;
 using Concordium.Sdk.Client;
 using Concordium.Sdk.Types;
 using FluentAssertions;
