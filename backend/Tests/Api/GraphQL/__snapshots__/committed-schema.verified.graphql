@@ -725,12 +725,6 @@ type CisEventDataTransfer {
   to: Address!
 }
 
-type CisEventDataUpdateOperator {
-  update: OperatorUpdateType!
-  owner: Address!
-  operator: Address!
-}
-
 "Information about the offset pagination."
 type CollectionSegmentInfo {
   "Indicates whether more items exist following the set defined by the clients arguments."
@@ -2035,7 +2029,7 @@ union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
 
-union CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer | CisEventDataUpdateOperator
+union CisEvent = CisEventDataBurn | CisEventDataMetadataUpdate | CisEventDataMint | CisEventDataTransfer
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
@@ -2174,11 +2168,6 @@ enum NodeSortField {
   PEERS_COUNT
   FINALIZED_BLOCK_HEIGHT
   BLOCKS_RECEIVED_COUNT
-}
-
-enum OperatorUpdateType {
-  REMOVE_OPERATOR
-  ADD_OPERATOR
 }
 
 enum RewardType {
