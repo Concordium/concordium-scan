@@ -509,10 +509,6 @@ type BalanceStatistics {
   gasAccount: UnsignedLong!
 }
 
-type BaseAddress {
-  type: CisEventAddressType!
-}
-
 type Block {
   specialEvents("Filter special events by special event type. Set to null to return all special events (no filtering)." includeFilter: [SpecialEventTypeFilter!] "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): SpecialEventsConnection
   transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TransactionsConnection
@@ -710,7 +706,7 @@ type ChainUpdateEnqueued {
 
 type CisBurnEvent {
   tokenAmount: BigInteger!
-  fromAddress: BaseAddress!
+  fromAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   type: CisEventType!
@@ -720,7 +716,7 @@ type CisBurnEvent {
 
 type CisMintEvent {
   tokenAmount: BigInteger!
-  toAddress: BaseAddress!
+  toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   type: CisEventType!
@@ -740,8 +736,8 @@ type CisTokenMetadataEvent {
 
 type CisTransferEvent {
   tokenAmount: BigInteger!
-  fromAddress: BaseAddress!
-  toAddress: BaseAddress!
+  fromAddress: Address!
+  toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   type: CisEventType!
@@ -751,8 +747,8 @@ type CisTransferEvent {
 
 type CisUpdateOperatorEvent {
   update: OperatorUpdateType!
-  owner: BaseAddress!
-  operator: BaseAddress!
+  owner: Address!
+  operator: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   type: CisEventType!
@@ -2164,11 +2160,6 @@ enum BakerSort {
   DELEGATOR_APY30_DAYS_DESC
   BLOCK_COMMISSIONS_ASC
   BLOCK_COMMISSIONS_DESC
-}
-
-enum CisEventAddressType {
-  ACCOUNT_ADDRESS
-  CONTRACT_ADDRESS
 }
 
 enum CisEventType {

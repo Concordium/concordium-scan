@@ -50,25 +50,16 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         /// <param name="st"><see cref="BinaryReader"/></param>
         /// <returns>Parsed Address</returns>
-        public static BaseAddress ParseAddress(BinaryReader st)
+        public static Address ParseAddress(BinaryReader st)
         {
-            byte type = st.ReadByte();
-            switch (type)
+            var type = st.ReadByte();
+            return type switch
             {
-                case (int)CisEventAddressType.AccountAddress:
-                    return new CisEventAddressAccount()
-                    {
-                        Address = AccountAddress.From(st.ReadBytes(32))
-                    };
-                case (int)CisEventAddressType.ContractAddress:
-                    return new CisEventAddressContract()
-                    {
-                        Index = st.ReadUInt64(),
-                        SubIndex = st.ReadUInt64()
-                    };
-                default:
-                    throw new Exception(String.Format("Invalid Address Type : {0}", type));
-            }
+                (int)CisEventAddressType.AccountAddress => new Application.Api.GraphQL.Accounts.AccountAddress(
+                    AccountAddress.From(st.ReadBytes(32)).ToString()),
+                (int)CisEventAddressType.ContractAddress => new ContractAddress(st.ReadUInt64(), st.ReadUInt64()),
+                _ => throw new Exception(String.Format("Invalid Address Type : {0}", type))
+            };
         }
 
         /// <summary>

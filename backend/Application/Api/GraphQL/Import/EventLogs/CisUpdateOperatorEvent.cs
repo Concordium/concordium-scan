@@ -13,8 +13,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
         }
 
         public OperatorUpdateType Update { get; set; }
-        public BaseAddress Owner { get; set; }
-        public BaseAddress Operator { get; set; }
+        public Address Owner { get; set; }
+        public Address Operator { get; set; }
 
         public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long txnId)
         {

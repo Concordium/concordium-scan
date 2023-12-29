@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.EfCore.Converters.Json;
 using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Tokens;
 using FluentAssertions;
@@ -22,7 +24,7 @@ public sealed class TokenTest : IAsyncLifetime
         _databaseFixture = dbFixture;
         _jsonSerializerOptions = new JsonSerializerOptions
         {
-            Converters = { new CisEventDataConverter(), new AddressConverter() },
+            Converters = { new CisEventDataConverter(), new AddressConverter(), new GraphqlBigIntegerConverter() },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
     }
@@ -51,7 +53,7 @@ public sealed class TokenTest : IAsyncLifetime
             ContractSubIndex = contractSubindex,
             TokenAmount = amount,
             TokenId = tokenId,
-            ToAddress = new CisEventAddressContract { Index = contractIndex, SubIndex = contractSubindex }
+            ToAddress = new ContractAddress(contractIndex, contractSubindex),
         };
         var tokenEvent = new TokenEvent(
             contractIndex, contractSubindex, tokenId, 1, cisEventDataMint
@@ -93,8 +95,8 @@ public sealed class TokenTest : IAsyncLifetime
         tokenEventFromQuery.Event.Should().BeOfType<CisMintEvent>();
         var eventDataMint = (tokenEventFromQuery.Event as CisMintEvent)!;
         eventDataMint.TokenAmount.Should().Be(amount);
-        eventDataMint.ToAddress.Should().BeOfType<CisEventAddressContract>();
-        var to = (eventDataMint.ToAddress as CisEventAddressContract)!;
+        eventDataMint.ToAddress.Should().BeOfType<ContractAddress>();
+        var to = (eventDataMint.ToAddress as ContractAddress)!;
         to.Index.Should().Be(contractIndex);
         to.SubIndex.Should().Be(contractSubindex);
     }
@@ -109,14 +111,11 @@ public sealed class TokenTest : IAsyncLifetime
                 throw new JsonException("__typename property not present");
 
             var eventType = typename.GetString();
-            switch (eventType)
+            return eventType switch
             {
-                case "ContractAddress":
-                    var contractAddress = root.Deserialize<ContractAddress>(options);
-                    return contractAddress;
-                default:
-                    throw new JsonException($"Unknown event type {eventType}");
-            }
+                "ContractAddress" => root.Deserialize<ContractAddress>(options),
+                _ => throw new JsonException($"Unknown event type {eventType}")
+            };
         }
 
         public override void Write(Utf8JsonWriter writer, Address value, JsonSerializerOptions options)
@@ -135,14 +134,11 @@ public sealed class TokenTest : IAsyncLifetime
                 throw new JsonException("__typename property not present");
             
             var eventType = typename.GetString();
-            switch (eventType)
+            return eventType switch
             {
-                case "CisMintEvent":
-                    var cisMintEvent = root.Deserialize<CisMintEvent>(options);
-                    return cisMintEvent;
-                default:
-                    throw new JsonException($"Unknown event type {eventType}");
-            }
+                "CisMintEvent" => root.Deserialize<CisMintEvent>(options),
+                _ => throw new JsonException($"Unknown event type {eventType}")
+            };
         }
 
         public override void Write(Utf8JsonWriter writer, CisEvent value, JsonSerializerOptions options)
@@ -150,6 +146,29 @@ public sealed class TokenTest : IAsyncLifetime
             throw new NotImplementedException();
         }
     }
+    
+    /// <summary>
+    /// Can't use <see cref="BigIntegerConverter"/> since <see cref="BigInteger"/> is serialized to a string
+    /// in <see cref="Application.Api.GraphQL.Extensions.ScalarTypes.BigIntegerScalarType"/>.
+    /// </summary>
+    private class GraphqlBigIntegerConverter : JsonConverter<BigInteger>
+    {
+        public override BigInteger Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                throw new JsonException($"Found token {reader.TokenType} but expected token {JsonTokenType.String}");
+            }
+
+            using var doc = JsonDocument.ParseValue(ref reader);
+            return BigInteger.Parse(doc.RootElement.GetString()!, NumberFormatInfo.InvariantInfo);
+        }
+
+        public override void Write(Utf8JsonWriter writer, BigInteger value, JsonSerializerOptions options)
+        {
+            throw new NotImplementedException();
+        }
+    }    
     
     private static string GetTokenQuery(ulong contractIndex, string tokenId)
     {

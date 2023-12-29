@@ -21,7 +21,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// Account/Contract address from which the token was burned.  
         /// </summary>
         /// <value></value>
-        public BaseAddress FromAddress { get; init; }
+        public Address FromAddress { get; init; }
 
         /// <summary>
         /// Parses the event from bytes.

@@ -103,16 +103,16 @@ namespace Application.Api.GraphQL.Import.EventLogs
             switch (log)
             {
                 case CisBurnEvent e:
-                    if (e.FromAddress is CisEventAddressAccount accntAddress)
+                    if (e.FromAddress is Application.Api.GraphQL.Accounts.AccountAddress accntAddress)
                     {
                         return new[] {
-                            new CisAccountUpdate()
+                            new CisAccountUpdate
                             {
                                 ContractIndex = e.ContractIndex,
                                 ContractSubIndex = e.ContractSubIndex,
                                 TokenId = e.TokenId,
                                 AmountDelta = e.TokenAmount * -1,
-                                Address = accntAddress.Address
+                                Address = accntAddress
                             }
                         };
                     }
@@ -120,7 +120,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                     return new CisAccountUpdate[] { };
                 case CisTransferEvent e:
                     var ret = new List<CisAccountUpdate>();
-                    if (e.FromAddress is CisEventAddressAccount accntAddress2)
+                    if (e.FromAddress is Application.Api.GraphQL.Accounts.AccountAddress accntAddress2)
                     {
                         ret.Add(new CisAccountUpdate()
                         {
@@ -128,11 +128,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
                             ContractSubIndex = e.ContractSubIndex,
                             TokenId = e.TokenId,
                             AmountDelta = e.TokenAmount * -1,
-                            Address = accntAddress2.Address
+                            Address = accntAddress2
                         });
                     }
 
-                    if (e.ToAddress is CisEventAddressAccount accntAddress3)
+                    if (e.ToAddress is Application.Api.GraphQL.Accounts.AccountAddress accntAddress3)
                     {
                         ret.Add(new CisAccountUpdate()
                         {
@@ -140,13 +140,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
                             ContractSubIndex = e.ContractSubIndex,
                             TokenId = e.TokenId,
                             AmountDelta = e.TokenAmount,
-                            Address = accntAddress3.Address
+                            Address = accntAddress3
                         });
                     }
 
                     return ret.ToArray();
                 case CisMintEvent e:
-                    if (e.ToAddress is CisEventAddressAccount accntAddress4)
+                    if (e.ToAddress is Application.Api.GraphQL.Accounts.AccountAddress accntAddress4)
                     {
                         return new[] {new CisAccountUpdate()
                         {
@@ -154,7 +154,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                             ContractSubIndex = e.ContractSubIndex,
                             TokenId = e.TokenId,
                             AmountDelta = e.TokenAmount,
-                            Address = accntAddress4.Address
+                            Address = accntAddress4
                         }};
                     }
 

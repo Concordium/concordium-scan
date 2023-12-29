@@ -2,6 +2,7 @@ using System.Numerics;
 using Application.Api.GraphQL.Import.EventLogs;
 using Concordium.Sdk.Types;
 using FluentAssertions;
+using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
 
 namespace Tests.Api.GraphQL.Import.EventLog
 {
@@ -27,9 +28,9 @@ namespace Tests.Api.GraphQL.Import.EventLog
             cisEvent.Type.Should().Be(CisEventType.Mint);
 
             var mintEvent = cisEvent as CisMintEvent;
-            mintEvent.ToAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
-            mintEvent.ToAddress.As<CisEventAddressAccount>()
-                .Address.ToString().Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
+            mintEvent.ToAddress.Should().BeOfType<AccountAddress>();
+            mintEvent.ToAddress.As<AccountAddress>().AsString
+                .Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
             mintEvent.TokenAmount.Should().Be(new BigInteger(1));
         }
 
@@ -48,13 +49,13 @@ namespace Tests.Api.GraphQL.Import.EventLog
             cisEvent.Type.Should().Be(CisEventType.Transfer);
 
             var transferEvent = cisEvent as CisTransferEvent;
-            transferEvent.FromAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
-            transferEvent.FromAddress.As<CisEventAddressAccount>()
-                .Address.ToString().Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
+            transferEvent.FromAddress.Should().BeOfType<AccountAddress>();
+            transferEvent.FromAddress.As<AccountAddress>().AsString
+                .Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
             transferEvent.TokenAmount.Should().Be(new BigInteger(1));
-            transferEvent.ToAddress.Type.Should().Be(CisEventAddressType.AccountAddress);
-            transferEvent.ToAddress.As<CisEventAddressAccount>()
-                .Address.ToString().Should().Be("47da8rxVf4vFuF21hFypBJ3eGibxGSuricuAHnUpVbZjLeB4ML");
+            transferEvent.ToAddress.Should().BeOfType<AccountAddress>();
+            transferEvent.ToAddress.As<AccountAddress>().AsString
+                .Should().Be("47da8rxVf4vFuF21hFypBJ3eGibxGSuricuAHnUpVbZjLeB4ML");
         }
 
         [Fact]
