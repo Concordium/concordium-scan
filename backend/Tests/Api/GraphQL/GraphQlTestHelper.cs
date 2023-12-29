@@ -6,7 +6,6 @@ using Dapper;
 using FluentAssertions;
 using HotChocolate;
 using HotChocolate.Execution;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
