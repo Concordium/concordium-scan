@@ -5,7 +5,6 @@ using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Extensions;
 using Application.Api.GraphQL.Import;
-using Application.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
