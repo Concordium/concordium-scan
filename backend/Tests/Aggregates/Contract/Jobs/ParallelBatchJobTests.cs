@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
-using Application.Aggregates.Contract.Observability;
 using Application.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Options;

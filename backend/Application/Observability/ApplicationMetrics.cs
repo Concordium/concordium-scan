@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
-using Concordium.Sdk.Types;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
 using Prometheus;

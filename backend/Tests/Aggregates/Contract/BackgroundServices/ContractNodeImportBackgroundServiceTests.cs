@@ -4,7 +4,6 @@ using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
-using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Application.Jobs;

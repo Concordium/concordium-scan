@@ -1,7 +1,5 @@
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using HotChocolate;
-using HotChocolate.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens

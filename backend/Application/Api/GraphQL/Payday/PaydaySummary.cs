@@ -1,7 +1,6 @@
 ﻿using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
-using HotChocolate.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Payday;

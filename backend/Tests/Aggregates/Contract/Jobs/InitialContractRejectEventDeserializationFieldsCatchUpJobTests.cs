@@ -4,7 +4,6 @@ using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
-using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;

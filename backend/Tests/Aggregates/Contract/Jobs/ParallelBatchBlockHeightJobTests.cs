@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
-using Application.Aggregates.Contract.Observability;
 using Application.Configurations;
 using Application.Observability;
 using FluentAssertions;

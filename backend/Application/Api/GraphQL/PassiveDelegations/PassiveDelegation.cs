@@ -2,7 +2,6 @@
 using Application.Api.GraphQL.Bakers;
 using Application.Api.GraphQL.EfCore;
 using HotChocolate;
-using HotChocolate.Data;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 

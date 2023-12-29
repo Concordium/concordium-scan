@@ -2,14 +2,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
-using Application.Aggregates.Contract.Observability;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
 using Application.Observability;
 using Application.Resilience;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Serilog.Context;
 
 namespace Application.Aggregates.Contract.Jobs;
 

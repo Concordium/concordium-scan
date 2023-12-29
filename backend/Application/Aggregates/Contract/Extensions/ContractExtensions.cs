@@ -3,13 +3,10 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
 using Application.Jobs;
-using Application.Observability;
 using Dapper;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Prometheus;
 
 namespace Application.Aggregates.Contract.Extensions;
 
