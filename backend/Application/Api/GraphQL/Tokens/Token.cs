@@ -55,7 +55,7 @@ namespace Application.Api.GraphQL.Tokens
                     t.ContractIndex == this.ContractIndex
                     && t.ContractSubIndex == this.ContractSubIndex
                     && t.TokenId == this.TokenId)
-                .OrderByDescending(t => t.TransactionId);
+                .OrderByDescending(t => t.Id);
         }
     }
 }

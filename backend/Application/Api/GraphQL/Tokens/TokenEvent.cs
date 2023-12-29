@@ -13,7 +13,6 @@ public class TokenEvent
     public ulong ContractIndex { get; set; }
     public ulong ContractSubIndex { get; set; }
     public string TokenId { get; set; }
-    public long TransactionId { get; set; }
     public CisEvent Event { get; set; }
 
     public TokenEvent(
@@ -26,10 +25,9 @@ public class TokenEvent
         ContractIndex = contractIndex;
         ContractSubIndex = contractSubIndex;
         TokenId = tokenId;
-        TransactionId = transactionId;
         Event = @event;
     }
     
     public Transaction? GetTransaction(GraphQlDbContext dbContext) => 
-        dbContext.Transactions.AsNoTracking().SingleOrDefault(t => t.Id == this.TransactionId);
+        dbContext.Transactions.AsNoTracking().SingleOrDefault(t => t.Id == this.Event.TransactionId);
 }

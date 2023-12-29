@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 namespace Application.Api.GraphQL.EfCore.Converters.Json;
 
 /// <summary>
+/// Mapping <see cref="BigInteger"/> to raw json number representation in database.
 /// https://stackoverflow.com/questions/64788895/serialising-biginteger-using-system-text-json/65350863#65350863
 /// </summary>
 public class BigIntegerConverter : JsonConverter<BigInteger>

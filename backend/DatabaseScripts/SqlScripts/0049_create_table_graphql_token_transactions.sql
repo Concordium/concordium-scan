@@ -2,7 +2,6 @@ create table graphql_token_events (
     id                          bigint  primary key generated always as identity,
     contract_address_index      bigint  not null,
     contract_address_subindex   bigint  not null,
-    transaction_id              bigint  not null,
     token_id                    text    not null,
     event                       json    not null
 );
