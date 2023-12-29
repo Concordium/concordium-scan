@@ -192,7 +192,6 @@ query {{
             contractIndex
             contractSubIndex
             tokenId
-            transactionId
             event {{
                 __typename
                 ... on CisBurnEvent {{
