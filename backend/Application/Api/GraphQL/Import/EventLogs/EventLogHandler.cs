@@ -116,14 +116,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                         From: Address.From(cisTransferEvent.FromAddress),
                         To: Address.From(cisTransferEvent.ToAddress)
                     )),
-                CisUpdateOperatorEvent cisUpdateOperatorEvent => new TokenEvent(
-                    cisUpdateOperatorEvent.ContractIndex, cisUpdateOperatorEvent.ContractSubIndex,
-                    cisUpdateOperatorEvent.TokenId, cisUpdateOperatorEvent.TransactionId,
-                    new CisEventDataUpdateOperator(
-                        Update: cisUpdateOperatorEvent.Update,
-                        Owner: Address.From(cisUpdateOperatorEvent.Owner),
-                        Operator: Address.From(cisUpdateOperatorEvent.Operator)
-                    )),
+                CisUpdateOperatorEvent => null,
                 _ => throw new ArgumentOutOfRangeException(nameof(log))
             };
         }

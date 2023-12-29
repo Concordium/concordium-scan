@@ -9,8 +9,7 @@ public sealed class TokenTransactionDataConverter : PolymorphicJsonConverter<Cis
         { typeof(CisEventDataBurn), 1 },
         { typeof(CisEventDataMetadataUpdate), 2 },
         { typeof(CisEventDataMint), 3 },
-        { typeof(CisEventDataTransfer), 4 },
-        { typeof(CisEventDataUpdateOperator), 5 },
+        { typeof(CisEventDataTransfer), 4 }
     };
     
     public TokenTransactionDataConverter() : base(SerializeMap)

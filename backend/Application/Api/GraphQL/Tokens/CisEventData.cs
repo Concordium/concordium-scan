@@ -1,4 +1,3 @@
-using Application.Api.GraphQL.Import.EventLogs;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Tokens;
@@ -15,5 +14,3 @@ public record CisEventDataMetadataUpdate(string MetadataUrl, string? MetadataHas
 public record CisEventDataMint(string Amount, Address To) : CisEventData;
 
 public record CisEventDataTransfer(string Amount, Address From, Address To) : CisEventData;
-
-public record CisEventDataUpdateOperator(OperatorUpdateType Update, Address Owner, Address Operator) : CisEventData;
