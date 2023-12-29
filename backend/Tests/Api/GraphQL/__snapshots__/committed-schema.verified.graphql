@@ -1937,7 +1937,6 @@ type TokenEvent {
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
-  transactionId: Long!
   event: CisEvent!
 }
 

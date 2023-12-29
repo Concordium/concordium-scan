@@ -56,7 +56,7 @@ public sealed class TokenTest : IAsyncLifetime
             ToAddress = new ContractAddress(contractIndex, contractSubindex),
         };
         var tokenEvent = new TokenEvent(
-            contractIndex, contractSubindex, tokenId, 1, cisEventDataMint
+            contractIndex, contractSubindex, tokenId, cisEventDataMint
         );
         var token = new Token
         {

@@ -88,10 +88,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
             return accountUpdates;
         }
 
-        private static TokenEvent? GetTokenEvents(CisEvent log)
-        {
-            return log is CisUpdateOperatorEvent ? null : new TokenEvent(log.ContractIndex, log.ContractSubIndex, log.TokenId, log.TransactionId, log);
-        }
+        private static TokenEvent? GetTokenEvents(CisEvent log) => 
+            log is CisUpdateOperatorEvent ? null : new TokenEvent(log.ContractIndex, log.ContractSubIndex, log.TokenId, log);
 
         /// <summary>
         /// Computes Token amount changes for an Account.
