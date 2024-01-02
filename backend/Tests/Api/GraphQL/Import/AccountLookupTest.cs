@@ -131,7 +131,29 @@ public class AccountLookupTest
         // Assert
         result.Should().Equal(expected);
     }
-    
+
+    [Fact]
+    public async Task GivenExceptionFromNode_WhichIsNotNotFound_ThenThrowException()
+    {
+        // Arrange
+        var uniqueAddress = AccountAddressHelper.GetUniqueAddress();
+        const StatusCode statusCode = StatusCode.Unimplemented;
+        var clientMock = new Mock<IConcordiumNodeClient>();
+        clientMock.Setup(m => m.GetAccountInfoAsync(
+                It.IsAny<IAccountIdentifier>(),
+                It.IsAny<IBlockHashInput>(),
+                It.IsAny<CancellationToken>()))
+            .Throws(new RpcException(new Status(statusCode, string.Empty)));
+        using var testObject = await TestObject.Create(_databaseSettings, client: clientMock.Object);
+        
+        // Act
+        Action act = () => testObject.AccountLookup.GetAccountIdsFromBaseAddresses(new[] { uniqueAddress });
+        
+        // Assert
+        act.Should().Throw<RpcException>()
+            .Where(e => e.StatusCode == statusCode);
+    }
+
     private sealed class TestObject : IDisposable
     {
         private readonly MemoryCache _cache;
