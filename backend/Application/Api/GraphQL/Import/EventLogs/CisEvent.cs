@@ -59,10 +59,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         /// <param name="eventBytes">Bytes of the event.</param>
         /// <param name="address">Contract Address emitting the event.</param>
-        /// <param name="txnId">Transaction Id</param>
+        /// <param name="transactionId">Transaction Id</param>
         /// <param name="cisEvent">Parsed Cis Event.</param>
         /// <returns></returns>
-        public static bool TryParse(byte[] eventBytes, Concordium.Sdk.Types.ContractAddress address, long txnId, out CisEvent cisEvent)
+        public static bool TryParse(byte[] eventBytes, Concordium.Sdk.Types.ContractAddress address, long transactionId, out CisEvent cisEvent)
         {
             if (!IsCisEvent(eventBytes))
             {
@@ -72,7 +72,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             try
             {
-                cisEvent = CisEvent.Parse(address, eventBytes, txnId);
+                cisEvent = CisEvent.Parse(address, eventBytes, transactionId);
                 return true;
             }
             catch (Exception)
@@ -97,19 +97,19 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         /// <param name="address">Contract emitting the event.</param>
         /// <param name="eventBytes">Event Bytes</param>
-        /// <param name="txnId">Transaction Id</param>
+        /// <param name="transactionId">Transaction Id</param>
         /// <returns>Parsed <see cref="CisEvent"/></returns>
-        private static CisEvent Parse(Concordium.Sdk.Types.ContractAddress address, byte[] eventBytes, long txnId)
+        private static CisEvent Parse(Concordium.Sdk.Types.ContractAddress address, byte[] eventBytes, long transactionId)
         {
             var st = new BinaryReader(new MemoryStream(eventBytes));
             var eventType = st.ReadByte();
             return eventType switch
             {
-                (int)CisEventType.Burn => CisBurnEvent.Parse(address, st, txnId),
-                (int)CisEventType.Mint => CisMintEvent.Parse(address, st, txnId),
-                (int)CisEventType.TokenMetadata => CisTokenMetadataEvent.Parse(address, st, txnId),
-                (int)CisEventType.Transfer => CisTransferEvent.Parse(address, st, txnId),
-                (int)CisEventType.UpdateOperator => CisUpdateOperatorEvent.Parse(address, st, txnId),
+                (int)CisEventType.Burn => CisBurnEvent.Parse(address, st, transactionId),
+                (int)CisEventType.Mint => CisMintEvent.Parse(address, st, transactionId),
+                (int)CisEventType.TokenMetadata => CisTokenMetadataEvent.Parse(address, st, transactionId),
+                (int)CisEventType.Transfer => CisTransferEvent.Parse(address, st, transactionId),
+                (int)CisEventType.UpdateOperator => CisUpdateOperatorEvent.Parse(address, st, transactionId),
                 _ => throw new Exception($"invalid event type: {eventType}")
             };
         }

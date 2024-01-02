@@ -10,10 +10,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
         public EventLogHandler(EventLogWriter logWriter)
         {
-            this.writer = logWriter;
+            writer = logWriter;
         }
 
-        private readonly record struct PossibleCis2Event(long TxId, Concordium.Sdk.Types.ContractAddress Address, ContractEvent ContractEvent);
+        private readonly record struct PossibleCis2Event(long TransactionId, Concordium.Sdk.Types.ContractAddress Address, ContractEvent ContractEvent);
 
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
@@ -44,7 +44,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             //Select Cis Events
             var cisEvents = events
-                .Select(e => ParseCisEvent(e.Address, e.TxId, e.ContractEvent.Bytes))
+                .Select(e => ParseCisEvent(e.Address, e.TransactionId, e.ContractEvent.Bytes))
                 .Where(e => e != null)
                 .Cast<CisEvent>()
                 .ToList();
