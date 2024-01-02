@@ -133,7 +133,7 @@ public class AccountLookupTest
     }
 
     [Fact]
-    public async Task GivenExceptionFromNode_WhichIsNotNotFound_ThenThrowException()
+    public async Task GivenRpcExceptionFromNode_WhichIsNotNotFound_ThenThrowException()
     {
         // Arrange
         var uniqueAddress = AccountAddressHelper.GetUniqueAddress();
@@ -143,15 +143,38 @@ public class AccountLookupTest
                 It.IsAny<IAccountIdentifier>(),
                 It.IsAny<IBlockHashInput>(),
                 It.IsAny<CancellationToken>()))
-            .Throws(new RpcException(new Status(statusCode, string.Empty)));
+            .Throws(new AggregateException(new RpcException(new Status(statusCode, string.Empty))));
         using var testObject = await TestObject.Create(_databaseSettings, client: clientMock.Object);
         
         // Act
         Action act = () => testObject.AccountLookup.GetAccountIdsFromBaseAddresses(new[] { uniqueAddress });
         
         // Assert
-        act.Should().Throw<RpcException>()
+        act.Should().Throw<AggregateException>()
+            .WithInnerException<RpcException>()
             .Where(e => e.StatusCode == statusCode);
+    }
+    
+    [Fact]
+    public async Task GivenExceptionFromNode_WhichIsNotRpcException_ThenThrowException()
+    {
+        // Arrange
+        var uniqueAddress = AccountAddressHelper.GetUniqueAddress();
+        const StatusCode statusCode = StatusCode.Unimplemented;
+        var clientMock = new Mock<IConcordiumNodeClient>();
+        clientMock.Setup(m => m.GetAccountInfoAsync(
+                It.IsAny<IAccountIdentifier>(),
+                It.IsAny<IBlockHashInput>(),
+                It.IsAny<CancellationToken>()))
+            .Throws(new AggregateException(new StackOverflowException()));
+        using var testObject = await TestObject.Create(_databaseSettings, client: clientMock.Object);
+        
+        // Act
+        Action act = () => testObject.AccountLookup.GetAccountIdsFromBaseAddresses(new[] { uniqueAddress });
+        
+        // Assert
+        act.Should().Throw<AggregateException>()
+            .WithInnerException<StackOverflowException>();
     }
 
     private sealed class TestObject : IDisposable
@@ -187,7 +210,7 @@ public class AccountLookupTest
                         It.IsAny<IAccountIdentifier>(),
                         It.IsAny<IBlockHashInput>(),
                         It.IsAny<CancellationToken>()))
-                    .Throws(new RpcException(new Status(StatusCode.NotFound, string.Empty)));
+                    .Throws(new AggregateException(new RpcException(new Status(StatusCode.NotFound, string.Empty))));
                 client = mock.Object;
             }
             return new TestObject(memoryCache, client, databaseSettings);

@@ -86,18 +86,24 @@ public class AccountLookup : IAccountLookup
         {
             try
             {
-                var response = _client.GetAccountInfoAsync(AccountAddress.From(nonExistingAccount), _blockHashInput).Result;
+                var response = _client.GetAccountInfoAsync(AccountAddress.From(nonExistingAccount), _blockHashInput)
+                    .Result;
                 var lookupResult = new LookupResult(nonExistingAccount, (long)response.AccountIndex.Index);
                 AddToCache(lookupResult.Key, lookupResult.Result);
                 result.Add(lookupResult);
             }
-            catch (RpcException e)
+            catch (AggregateException e)
             {
                 // Only catch errors due to account not found.
-                if (e.StatusCode != StatusCode.NotFound)
+                if (e.InnerException is not RpcException rpcException)
                 {
                     throw;
                 }
+                if (rpcException.StatusCode != StatusCode.NotFound)
+                {
+                    throw;
+                }
+
                 AddToCache(nonExistingAccount, null);
                 result.Add(new LookupResult(nonExistingAccount, null));
             }
