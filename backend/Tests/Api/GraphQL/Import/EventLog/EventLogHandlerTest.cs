@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Import.EventLogs;
-using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
@@ -26,40 +25,36 @@ public sealed class EventLogHandlerTest
     [Fact]
     public Task GivenMintCisEvents_WhenParse_ThenSaveTokenEvent()
     {
-        return CisEventParsingContractEventTestSkeleton(
-            "fe040000000101009d230671ab6efaf2861f0b5942e650186036b8fbb4e9973f5634b43e664d3b4b",
-            typeof(CisMintEvent)
-        );
+        const string cisEvent = "fe040000000101009d230671ab6efaf2861f0b5942e650186036b8fbb4e9973f5634b43e664d3b4b";
+        
+        return GivenEvent_WhenParse_ThenSaveEvent(cisEvent, typeof(CisMintEvent));
     }
     
     [Fact]
     public Task GivenTransferCisEvents_WhenParse_ThenSaveTokenEvent()
     {
-        return CisEventParsingContractEventTestSkeleton(
-            "ff040000000101009d230671ab6efaf2861f0b5942e650186036b8fbb4e9973f5634b43e664d3b4b009a24cbfa7d436c36def76154006e20c30c1a8213d02ee7971f5f65cf1e4206e7",
-            typeof(CisTransferEvent)
-        );
+        const string cisEvent = "ff040000000101009d230671ab6efaf2861f0b5942e650186036b8fbb4e9973f5634b43e664d3b4b009a24cbfa7d436c36def76154006e20c30c1a8213d02ee7971f5f65cf1e4206e7";
+        
+        return GivenEvent_WhenParse_ThenSaveEvent(cisEvent, typeof(CisTransferEvent));
     }
     
     [Fact]
     public Task GivenTokenMetadataCisEvents_WhenParse_ThenSaveTokenEvent()
     {
-        return CisEventParsingContractEventTestSkeleton(
-            "fb0400000001540068747470733a2f2f697066732e696f2f697066732f516d563552454533484a524c5448646d71473138576335504246334e6339573564514c345270374d7842737838713f66696c656e616d653d6e66742e6a706700",
-            typeof(CisTokenMetadataEvent)
-        );
+        const string cisEvent = "fb0400000001540068747470733a2f2f697066732e696f2f697066732f516d563552454533484a524c5448646d71473138576335504246334e6339573564514c345270374d7842737838713f66696c656e616d653d6e66742e6a706700";
+        
+        return GivenEvent_WhenParse_ThenSaveEvent(cisEvent, typeof(CisTokenMetadataEvent));
     }
     
     [Fact]
     public Task GivenBurnCisEvents_WhenParse_ThenSaveTokenEvent()
     {
-        return CisEventParsingContractEventTestSkeleton(
-            "fd0080a094a58d1d00f761affb26ea6bbd14e4c50e51984d6d059156fa86658126c5ca0b747d60ba00",
-            typeof(CisBurnEvent)
-        );
+        const string cisEvent = "fd0080a094a58d1d00f761affb26ea6bbd14e4c50e51984d6d059156fa86658126c5ca0b747d60ba00";
+        
+        return GivenEvent_WhenParse_ThenSaveEvent(cisEvent, typeof(CisBurnEvent));
     }
 
-    private async Task CisEventParsingContractEventTestSkeleton(string cisEventInHexadecimal, Type expectedCisEventType)
+    private async Task GivenEvent_WhenParse_ThenSaveEvent(string cisEventInHexadecimal, Type expectedCisEventType)
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_tokens", "graphql_account_tokens", "graphql_token_events");

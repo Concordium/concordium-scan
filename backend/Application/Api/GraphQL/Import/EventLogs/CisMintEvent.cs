@@ -17,7 +17,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
         public Address ToAddress { get; set; }
 
-        public static CisMintEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long txnId)
+        public static CisMintEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {
             return new CisMintEvent
             {
@@ -26,7 +26,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 TokenId = CommonParsers.ParseTokenId(st),
                 TokenAmount = CommonParsers.ParseTokenAmount(st),
                 ToAddress = CommonParsers.ParseAddress(st),
-                TransactionId = txnId
+                TransactionId = transactionId
             };
         }
 

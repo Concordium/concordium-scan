@@ -77,9 +77,11 @@ public sealed class TokenTest : IAsyncLifetime
         var result = await _testHelper.ExecuteGraphQlQueryAsync(query);
 
         // Assert
-        var tokenFromQuery = result["token"].Deserialize<Token>(_jsonSerializerOptions);
-        result["token"]!["tokenEvents"]![0]!["id"] = 0; // Stub the base64 encoded id
-        var tokenEventsFromQuery = result["token"]!["tokenEvents"].Deserialize<List<TokenEvent>>(_jsonSerializerOptions);
+        const string tokenProperty = "token";
+        const string tokenEventsProperty = "tokenEvents";
+        var tokenFromQuery = result[tokenProperty].Deserialize<Token>(_jsonSerializerOptions);
+        result[tokenProperty]![tokenEventsProperty]![0]!["id"] = 0; // Stub the base64 encoded id
+        var tokenEventsFromQuery = result[tokenProperty]![tokenEventsProperty].Deserialize<List<TokenEvent>>(_jsonSerializerOptions);
 
         tokenFromQuery.Should().NotBeNull();
         tokenFromQuery!.TokenId.Should().Be(tokenId);
