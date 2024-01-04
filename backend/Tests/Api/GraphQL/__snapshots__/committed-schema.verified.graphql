@@ -705,43 +705,39 @@ type ChainUpdateEnqueued {
 }
 
 type CisBurnEvent {
+  tokenId: String!
   tokenAmount: BigInteger!
   fromAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  type: CisEventType!
-  tokenId: String!
   transactionId: Long!
 }
 
 type CisMintEvent {
+  tokenId: String!
   tokenAmount: BigInteger!
   toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  type: CisEventType!
-  tokenId: String!
   transactionId: Long!
 }
 
 type CisTokenMetadataEvent {
+  tokenId: String!
   metadataUrl: String!
   hashHex: String
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  type: CisEventType!
-  tokenId: String!
   transactionId: Long!
 }
 
 type CisTransferEvent {
+  tokenId: String!
   tokenAmount: BigInteger!
   fromAddress: Address!
   toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  type: CisEventType!
-  tokenId: String!
   transactionId: Long!
 }
 
@@ -751,8 +747,6 @@ type CisUpdateOperatorEvent {
   operator: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  type: CisEventType!
-  tokenId: String!
   transactionId: Long!
 }
 
@@ -2159,14 +2153,6 @@ enum BakerSort {
   DELEGATOR_APY30_DAYS_DESC
   BLOCK_COMMISSIONS_ASC
   BLOCK_COMMISSIONS_DESC
-}
-
-enum CisEventType {
-  TOKEN_METADATA
-  UPDATE_OPERATOR
-  BURN
-  MINT
-  TRANSFER
 }
 
 enum ContractVersion {

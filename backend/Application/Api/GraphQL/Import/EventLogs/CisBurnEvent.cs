@@ -1,5 +1,6 @@
 using System.IO;
 using System.Numerics;
+using Application.Api.GraphQL.Tokens;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -8,20 +9,34 @@ namespace Application.Api.GraphQL.Import.EventLogs
     /// </summary>
     public class CisBurnEvent : CisEvent
     {
-        public CisBurnEvent() : base(CisEventType.Burn)
+        public CisBurnEvent(
+            Address fromAddress,
+            BigInteger tokenAmount,
+            string tokenId,
+            ulong contractIndex,
+            ulong contractSubIndex,
+            long transactionId) : base(contractIndex, contractSubIndex, transactionId)
         {
+            FromAddress = fromAddress;
+            TokenAmount = tokenAmount;
+            TokenId = tokenId;
         }
+        
+        /// <summary>
+        /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
+        /// </summary>
+        public string TokenId { get; set; }
 
         /// <summary>
         /// Amount of token burned.
         /// </summary>
-        public BigInteger TokenAmount { get; init; }
+        public BigInteger TokenAmount { get; set; }
 
         /// <summary>
         /// Account/Contract address from which the token was burned.  
         /// </summary>
         /// <value></value>
-        public Address FromAddress { get; init; }
+        public Address FromAddress { get; set; }
 
         /// <summary>
         /// Parses the event from bytes.
@@ -33,15 +48,18 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public static CisBurnEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {
             return new CisBurnEvent
-            {
-                ContractIndex = address.Index,
-                ContractSubIndex = address.SubIndex,
+            (
+                contractIndex: address.Index,
+                contractSubIndex: address.SubIndex,
                 // https://proposals.concordium.software/CIS/cis-1.html#tokenid
-                TokenId = CommonParsers.ParseTokenId(st),
-                TokenAmount = CommonParsers.ParseTokenAmount(st),
-                FromAddress = CommonParsers.ParseAddress(st),
-                TransactionId = transactionId,
-            };
+                tokenId: CommonParsers.ParseTokenId(st),
+                tokenAmount: CommonParsers.ParseTokenAmount(st),
+                fromAddress: CommonParsers.ParseAddress(st),
+                transactionId: transactionId
+            );
         }
+
+        internal override TokenEvent GetTokenEvent() => 
+            new(ContractIndex, ContractSubIndex, TokenId, this);
     }
 }

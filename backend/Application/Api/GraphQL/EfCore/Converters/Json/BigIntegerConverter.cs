@@ -13,6 +13,7 @@ public class BigIntegerConverter : JsonConverter<BigInteger>
 {
     public override BigInteger Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        
         if (reader.TokenType != JsonTokenType.Number)
         {
             throw new JsonException($"Found token {reader.TokenType} but expected token {JsonTokenType.Number}");

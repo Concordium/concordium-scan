@@ -54,7 +54,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
             {
                 TokenUpdate = GetTokenUpdates(e),
                 AccountUpdates = GetAccountUpdates(e),
-                TokenEvents = GetTokenEvents(e)
+                TokenEvents = e.GetTokenEvent()
             }).ToList();
 
             var tokenUpdates = updates
@@ -87,9 +87,6 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             return accountUpdates;
         }
-
-        private static TokenEvent? GetTokenEvents(CisEvent log) => 
-            log is CisUpdateOperatorEvent ? null : new TokenEvent(log.ContractIndex, log.ContractSubIndex, log.TokenId, log);
 
         /// <summary>
         /// Computes Token amount changes for an Account.

@@ -48,13 +48,14 @@ public sealed class TokenTest : IAsyncLifetime
         const string tokenId = "42";
         var amount = new BigInteger(42);
         var cisEventDataMint = new CisMintEvent
-        {
-            ContractIndex = contractIndex,
-            ContractSubIndex = contractSubindex,
-            TokenAmount = amount,
-            TokenId = tokenId,
-            ToAddress = new ContractAddress(contractIndex, contractSubindex),
-        };
+        (
+            tokenId: tokenId,
+            contractIndex: contractIndex,
+            contractSubIndex: contractSubindex,
+            transactionId: 0,
+            tokenAmount: amount,
+            toAddress: new ContractAddress(contractIndex, contractSubindex)
+        );
         var tokenEvent = new TokenEvent(
             contractIndex, contractSubindex, tokenId, cisEventDataMint
         );

@@ -24,10 +24,10 @@ namespace Tests.Api.GraphQL.Import.EventLog
             CisEvent.TryParse(eventBytes, contractAddess, 1L, out cisEvent);
 
             cisEvent.Should().NotBeNull();
-            cisEvent.TokenId.Should().Be("00000001");
-            cisEvent.Type.Should().Be(CisEventType.Mint);
-
+            
+            cisEvent.Should().BeOfType<CisMintEvent>();
             var mintEvent = cisEvent as CisMintEvent;
+            mintEvent!.TokenId.Should().Be("00000001");
             mintEvent.ToAddress.Should().BeOfType<AccountAddress>();
             mintEvent.ToAddress.As<AccountAddress>().AsString
                 .Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
@@ -45,10 +45,10 @@ namespace Tests.Api.GraphQL.Import.EventLog
             CisEvent.TryParse(eventBytes, contractAddess, 1L, out cisEvent);
 
             cisEvent.Should().NotBeNull();
-            cisEvent.TokenId.Should().Be("00000001");
-            cisEvent.Type.Should().Be(CisEventType.Transfer);
+            cisEvent.Should().BeOfType<CisTransferEvent>();
 
             var transferEvent = cisEvent as CisTransferEvent;
+            transferEvent!.TokenId.Should().Be("00000001");
             transferEvent.FromAddress.Should().BeOfType<AccountAddress>();
             transferEvent.FromAddress.As<AccountAddress>().AsString
                 .Should().Be("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e");
@@ -69,10 +69,10 @@ namespace Tests.Api.GraphQL.Import.EventLog
             CisEvent.TryParse(eventBytes, contractAddess, 1L, out cisEvent);
 
             cisEvent.Should().NotBeNull();
-            cisEvent.TokenId.Should().Be("00000001");
-            cisEvent.Type.Should().Be(CisEventType.TokenMetadata);
+            cisEvent.Should().BeOfType<CisTokenMetadataEvent>();
 
             var metadataEvent = cisEvent as CisTokenMetadataEvent;
+            metadataEvent!.TokenId.Should().Be("00000001");
             metadataEvent.HashHex.Should().BeNull();
             metadataEvent.MetadataUrl.Should().Be("https://ipfs.io/ipfs/QmV5REE3HJRLTHdmqG18Wc5PBF3Nc9W5dQL4Rp7MxBsx8q?filename=nft.jpg");
         }
@@ -90,7 +90,7 @@ namespace Tests.Api.GraphQL.Import.EventLog
             CisEvent.TryParse(eventBytes, contractAddess, 1L, out cisEvent);
 
             cisEvent.Should().NotBeNull();
-            cisEvent.Type.Should().Be(CisEventType.Burn);
+            cisEvent.Should().BeOfType<CisBurnEvent>();
             cisEvent.As<CisBurnEvent>().TokenAmount.Should().Be(new BigInteger(1000000000000L));
         }
     }

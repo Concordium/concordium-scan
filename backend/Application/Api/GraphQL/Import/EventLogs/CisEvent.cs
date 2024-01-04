@@ -1,4 +1,5 @@
 using System.IO;
+using Application.Api.GraphQL.Tokens;
 using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Import.EventLogs
@@ -9,7 +10,8 @@ namespace Application.Api.GraphQL.Import.EventLogs
     [UnionType("CisEvent")]
     public abstract class CisEvent
     {
-        private static readonly List<int> AllowedEventTypes = new List<int> {
+        private static readonly List<int> AllowedEventTypes = new()
+        {
             (int)CisEventType.Burn,
             (int)CisEventType.Mint,
             (int)CisEventType.TokenMetadata,
@@ -17,42 +19,33 @@ namespace Application.Api.GraphQL.Import.EventLogs
             (int)CisEventType.UpdateOperator
         };
         
-        private const int MAX_7_BIT_VALUE = 128;
+        internal abstract TokenEvent? GetTokenEvent();
 
         /// <summary>
         /// Instantiates a new CIS Event.
         /// </summary>
-        /// <param name="type">Type of CIS Event.</param>
-        public CisEvent(CisEventType type)
+        protected CisEvent(ulong contractIndex, ulong contractSubIndex, long transactionId)
         {
-            this.Type = type;
+            ContractIndex = contractIndex;
+            ContractSubIndex = contractSubIndex;
+            TransactionId = transactionId;
         }
 
         /// <summary>
         /// Index of Contract emitting this event.
         /// </summary>
-        public ulong ContractIndex { get; init; }
+        public ulong ContractIndex { get; set;  }
 
         /// <summary>
         /// Sub Index of Contract emitting this event.
         /// </summary>
         /// <value></value>
-        public ulong ContractSubIndex { get; init; }
-
-        /// <summary>
-        /// Type of CIS event. <see cref="CisEventType"/>
-        /// </summary>
-        public CisEventType Type { get; private set; }
-        
-        /// <summary>
-        /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
-        /// </summary>
-        public string TokenId { get; init; }
+        public ulong ContractSubIndex { get; set;  }
 
         /// <summary>
         /// Transaction Id of the transaction that emitted this event.
         /// </summary>
-        public long TransactionId { get; init; }
+        public long TransactionId { get; set; }
         
         /// <summary>
         /// Parses CIS event bytes read from Node.
@@ -89,7 +82,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns></returns>
         public static bool IsCisEvent(byte[] eventBytes)
         {
-            return AllowedEventTypes.Contains((int)eventBytes.FirstOrDefault());
+            return AllowedEventTypes.Contains(eventBytes.FirstOrDefault());
         }
 
         /// <summary>

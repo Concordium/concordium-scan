@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Tokens;
 
-public class TokenEvent
+public sealed class TokenEvent
 {
     [ID]
     public long Id { get; set; }
