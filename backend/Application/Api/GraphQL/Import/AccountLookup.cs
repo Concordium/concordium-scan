@@ -39,6 +39,8 @@ public class AccountLookup : IAccountLookup
     }
 
     /// <summary>
+    /// Get all account id's from <see cref="accountBaseAddresses"/>.
+    ///  
     /// The method first attempts to get account index using base address from cache,
     ///
     /// If not present the database i queried and the cache is updated for addresses present in the database.
@@ -57,6 +59,25 @@ public class AccountLookup : IAccountLookup
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountLookup), nameof(GetAccountIdsFromBaseAddresses));
 
+        var (result, notCached) = LookUpCache(accountBaseAddresses);
+        
+        LookUpDatabase(result, notCached);
+        
+        notCached = notCached.Except(result.Select(x => x.Key)).ToList();
+        
+        LookUpNode(result, notCached);
+        
+        return result.ToDictionary(x => x.Key, x => x.Result);
+    }
+
+    /// <summary>
+    /// Query the database for addresses in <see cref="accountBaseAddresses"/>.
+    /// </summary>
+    /// <returns>
+    /// Returns list of result where addresses was present in cache and list of non present addresses.
+    /// </returns>
+    private (IList<LookupResult> Result, IList<string> notCached) LookUpCache(IEnumerable<string> accountBaseAddresses)
+    {
         var result = new List<LookupResult>();
         var notCached = new List<string>();
         
@@ -68,18 +89,31 @@ public class AccountLookup : IAccountLookup
                 notCached.Add(accountBaseAddress);
         }
 
-        if (notCached.Count > 0)
-        {
-            _logger.Debug("Cache-miss for {count} accounts", notCached.Count);
+        return (result, notCached);
+    }
 
-            var accounts = QueryDatabase(notCached);
-            foreach (var account in accounts)
-            {
-                AddToCache(account.Key, account.Result);
-                result.Add(account);
-            }
-        }
+    /// <summary>
+    /// Query the database for addresses in <see cref="notCached"/> and add results to <see cref="result"/>, 
+    /// </summary>
+    private void LookUpDatabase(IList<LookupResult> result, IList<string> notCached)
+    {
+        if (notCached.Count <= 0) return;
         
+        _logger.Debug("Cache-miss for {count} accounts", notCached.Count);
+
+        var accounts = QueryDatabase(notCached);
+        foreach (var account in accounts)
+        {
+            AddToCache(account.Key, account.Result);
+            result.Add(account);
+        }
+    }
+    
+    /// <summary>
+    /// Query the node for addresses in <see cref="notCached"/> and add results to <see cref="result"/>, 
+    /// </summary>
+    private void LookUpNode(IList<LookupResult> result, IList<string> notCached)
+    {
         var nonExistingAccounts = notCached.Except(result.Select(x => x.Key));
         
         foreach (var nonExistingAccount in nonExistingAccounts)
@@ -108,8 +142,6 @@ public class AccountLookup : IAccountLookup
                 result.Add(new LookupResult(nonExistingAccount, null));
             }
         }
-        
-        return result.ToDictionary(x => x.Key, x => x.Result);
     }
 
     public void AddToCache(string baseAddress, long? accountId)
@@ -121,7 +153,7 @@ public class AccountLookup : IAccountLookup
 
     private IEnumerable<LookupResult> QueryDatabase(IEnumerable<string> baseAddresses)
     {
-        var sql = @"
+        const string sql = @"
                 select base_address as Key, id as Result  
                 from graphql_accounts 
                 where base_address = any(@BaseAddresses)";
