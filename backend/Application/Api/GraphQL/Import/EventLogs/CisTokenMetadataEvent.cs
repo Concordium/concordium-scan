@@ -25,10 +25,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
         /// </summary>
-        public string TokenId { get; set;  }
+        public string TokenId { get; init;  }
 
-        public string MetadataUrl { get; set;  }
-        public string? HashHex { get; set;  }
+        public string MetadataUrl { get; init;  }
+        public string? HashHex { get; init;  }
 
         public static CisTokenMetadataEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {

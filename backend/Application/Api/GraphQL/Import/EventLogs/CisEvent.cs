@@ -34,18 +34,18 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Index of Contract emitting this event.
         /// </summary>
-        public ulong ContractIndex { get; set;  }
+        public ulong ContractIndex { get; init; }
 
         /// <summary>
         /// Sub Index of Contract emitting this event.
         /// </summary>
         /// <value></value>
-        public ulong ContractSubIndex { get; set;  }
+        public ulong ContractSubIndex { get; init;  }
 
         /// <summary>
         /// Transaction Id of the transaction that emitted this event.
         /// </summary>
-        public long TransactionId { get; set; }
+        public long TransactionId { get; init; }
         
         /// <summary>
         /// Parses CIS event bytes read from Node.

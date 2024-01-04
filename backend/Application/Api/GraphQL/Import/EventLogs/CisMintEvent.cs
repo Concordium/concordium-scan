@@ -26,11 +26,11 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
         /// </summary>
-        public string TokenId { get; set;  }
+        public string TokenId { get; init;  }
 
-        public BigInteger TokenAmount { get; set; }
+        public BigInteger TokenAmount { get; init; }
 
-        public Address ToAddress { get;  set;}
+        public Address ToAddress { get;  init;}
 
         public static CisMintEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {

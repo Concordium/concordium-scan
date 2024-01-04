@@ -22,9 +22,9 @@ namespace Application.Api.GraphQL.Import.EventLogs
             Operator = @operator;
         }
 
-        public OperatorUpdateType Update { get; set; }
-        public Address Owner { get; set; }
-        public Address Operator { get; set; }
+        public OperatorUpdateType Update { get; init; }
+        public Address Owner { get; init; }
+        public Address Operator { get; init; }
 
         public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {

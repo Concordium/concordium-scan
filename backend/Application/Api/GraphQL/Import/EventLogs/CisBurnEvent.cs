@@ -25,18 +25,18 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
         /// </summary>
-        public string TokenId { get; set; }
+        public string TokenId { get; init; }
 
         /// <summary>
         /// Amount of token burned.
         /// </summary>
-        public BigInteger TokenAmount { get; set; }
+        public BigInteger TokenAmount { get; init; }
 
         /// <summary>
         /// Account/Contract address from which the token was burned.  
         /// </summary>
         /// <value></value>
-        public Address FromAddress { get; set; }
+        public Address FromAddress { get; init; }
 
         /// <summary>
         /// Parses the event from bytes.

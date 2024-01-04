@@ -28,22 +28,22 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <summary>
         /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
         /// </summary>
-        public string TokenId { get; set; }
+        public string TokenId { get; init; }
 
         /// <summary>
         /// Amount of token transferred
         /// </summary>
-        public BigInteger TokenAmount { get; set; }
+        public BigInteger TokenAmount { get; init; }
 
         /// <summary>
         /// Transferred from Address
         /// </summary>
-        public Address FromAddress { get; set; }
+        public Address FromAddress { get; init; }
 
         /// <summary>
         /// Transferred to Address
         /// </summary>
-        public Address ToAddress { get; set; }
+        public Address ToAddress { get; init; }
 
         public static CisTransferEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {
