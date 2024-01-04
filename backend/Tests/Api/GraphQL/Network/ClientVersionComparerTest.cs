@@ -18,7 +18,7 @@ public class ClientVersionComparerTest
     [InlineData("3.0.0", "2.0.0", 1)]
     [InlineData("2.0.0", "2.0.0", 0)]
     [InlineData("2.0.0", "10.0.0", -1)]
-    public async Task OrderTest(string? v1, string? v2, int expectedResult)
+    public void OrderTest(string? v1, string? v2, int expectedResult)
     {
         var actualResult = new ClientVersionComparer().Compare(v1, v2);
         expectedResult.Should().Be(actualResult, String.Format("comparing v1:{0} and v2:{1}", v1, v2));
