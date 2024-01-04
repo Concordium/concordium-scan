@@ -15,6 +15,11 @@ public interface IConcordiumNodeClient
     
     Task<BakerPoolStatus> GetPoolInfoAsync(BakerId bakerId, IBlockHashInput blockHashInput,
         CancellationToken token = default);
+
+    public Task<AccountInfo> GetAccountInfoAsync(
+        IAccountIdentifier accountIdentifier,
+        IBlockHashInput blockHash,
+        CancellationToken token = default);
 }
 
 internal sealed class ConcordiumNodeClient : IConcordiumNodeClient
@@ -30,6 +35,13 @@ internal sealed class ConcordiumNodeClient : IConcordiumNodeClient
     {
         var poolInfoAsync = await _client.GetPoolInfoAsync(bakerId, blockHashInput, token);
         return poolInfoAsync.Response;
+    }
+
+    public async Task<AccountInfo> GetAccountInfoAsync(IAccountIdentifier accountIdentifier, IBlockHashInput blockHash,
+        CancellationToken token = default)
+    {
+        var accountInfo = await _client.GetAccountInfoAsync(accountIdentifier, blockHash, token);
+        return accountInfo.Response;
     }
 
     public async Task<IBlockItemSummaryWrapper> GetBlockItemStatusAsync(TransactionHash transactionHash,
