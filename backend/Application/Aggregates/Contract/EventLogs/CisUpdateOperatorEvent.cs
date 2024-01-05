@@ -13,10 +13,11 @@ namespace Application.Aggregates.Contract.EventLogs
         public CisUpdateOperatorEvent(            
             ulong contractIndex,
             ulong contractSubIndex,
-            long transactionId,
+            string transactionHash,
+            string? parsed,
             OperatorUpdateType update,
             Address owner,
-            Address @operator) : base(contractIndex, contractSubIndex, transactionId)
+            Address @operator) : base(contractIndex, contractSubIndex, transactionHash, parsed)
         {
             Update = update;
             Owner = owner;
@@ -27,7 +28,7 @@ namespace Application.Aggregates.Contract.EventLogs
         public Address Owner { get; init; }
         public Address Operator { get; init; }
 
-        public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        public static CisUpdateOperatorEvent Parse(ContractAddress address, BinaryReader st, string transactionHash, string? parsed)
         {
             return new CisUpdateOperatorEvent(
                 contractIndex: address.Index,
@@ -35,7 +36,8 @@ namespace Application.Aggregates.Contract.EventLogs
                 update: ParseOperatorUpdate(st),
                 owner: CommonParsers.ParseAddress(st),
                 @operator: CommonParsers.ParseAddress(st),
-                transactionId: transactionId
+                transactionHash: transactionHash,
+                parsed: parsed
             );
         }
 

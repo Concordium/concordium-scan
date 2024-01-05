@@ -1,6 +1,7 @@
 using Application.Aggregates.Contract.Entities;
-using Application.Api.GraphQL.Import;
-using ContractEvent = Concordium.Sdk.Types.ContractEvent;
+using Application.Api.GraphQL;
+using Application.Api.GraphQL.Transactions;
+using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
 
 namespace Application.Aggregates.Contract.EventLogs
 {
@@ -14,38 +15,24 @@ namespace Application.Aggregates.Contract.EventLogs
             writer = logWriter;
         }
 
-        private readonly record struct PossibleCis2Event(long TransactionId, Concordium.Sdk.Types.ContractAddress Address, ContractEvent ContractEvent);
-
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
-        /// <param name="transactions">Pair of Database Persisted Transaction and on chain transaction</param>
-        public List<CisAccountUpdate> HandleLogs(TransactionPair[] transactions)
+        public List<CisAccountUpdate> HandleLogs(IContractRepository contractRepository)
         {
-            var events = new List<PossibleCis2Event>();
-            foreach (var (blockItemSummary, transaction) in transactions)
-            {
-                if (blockItemSummary.TryGetContractInit(out var contractInitializedEvent))
-                {
-                    events.AddRange(
-                        contractInitializedEvent!.Events.Select(e =>
-                            new PossibleCis2Event(transaction.Id, contractInitializedEvent.ContractAddress, e))
-                    );
-                }
+            var addedEvents = contractRepository.GetContractEventsAddedInTransaction()
+                .OrderBy(ce => ce.BlockHeight)
+                .ThenBy(ce => ce.TransactionIndex)
+                .ThenBy(ce => ce.EventIndex);
 
-                if (blockItemSummary.TryGetContractUpdateLogs(out var items))
-                {
-                    events.AddRange(
-                        items!.SelectMany(item => 
-                            item.Item2.Select(e => 
-                                new PossibleCis2Event(transaction.Id, item.Item1, e)))
-                        );
-                }
-            }
+            var possibleCis2Events = addedEvents
+                .SelectMany(PossibleCis2Event.ToIter)
+                .ToList();
+            
 
             //Select Cis Events
-            var cisEvents = events
-                .Select(e => ParseCisEvent(e.Address, e.TransactionId, e.ContractEvent.Bytes))
+            var cisEvents = possibleCis2Events
+                .Select(e => ParseCisEvent(e.Address, e.TransactionHash, e.EventBytes, e.EventParsed))
                 .Where(e => e != null)
                 .Cast<CisEvent>()
                 .ToList();
@@ -88,6 +75,50 @@ namespace Application.Aggregates.Contract.EventLogs
 
             return accountUpdates;
         }
+        
+        private readonly record struct PossibleCis2Event(
+            string TransactionHash,
+            ContractAddress Address,
+            byte[] EventBytes,
+            string? EventParsed)
+        {
+            internal static IEnumerable<PossibleCis2Event> ToIter(ContractEvent contractEvent)
+            {
+                var transactionHash = contractEvent.TransactionHash;
+                var contractAddress = new ContractAddress(contractEvent.ContractAddressIndex,
+                    contractEvent.ContractAddressSubIndex);
+                
+                return contractEvent.Event switch
+                {
+                    ContractInitialized contractInitialized => MapEvents(contractInitialized.EventsAsHex,
+                        contractInitialized.Events, transactionHash, contractAddress),
+                    ContractInterrupted contractInterrupted => MapEvents(contractInterrupted.EventsAsHex,
+                        contractInterrupted.Events, transactionHash, contractAddress),
+                    ContractUpdated contractUpdated => MapEvents(contractUpdated.EventsAsHex, contractUpdated.Events,
+                        transactionHash, contractAddress),
+                    _ => Enumerable.Empty<PossibleCis2Event>()
+                };
+            }
+            
+            private static IEnumerable<PossibleCis2Event> MapEvents(
+                IReadOnlyList<string> hexEvents,
+                IReadOnlyList<string>? parsedEvents,
+                string transactionHash,
+                ContractAddress contractAddress)
+            {
+                for (var i = 0; i < hexEvents.Count; i++)
+                {
+                    var parsedEvent = parsedEvents != null && i < parsedEvents.Count ?
+                        parsedEvents[i] : null;
+                    yield return new PossibleCis2Event(
+                        transactionHash,
+                        contractAddress,
+                        Convert.FromHexString(hexEvents[i]),
+                        parsedEvent
+                    );
+                }   
+            }
+        }        
 
         /// <summary>
         /// Computes Token amount changes for an Account.
@@ -199,20 +230,17 @@ namespace Application.Aggregates.Contract.EventLogs
         /// Parses CIS event from input bytes. returns null if the bytes do not represent standard CIS event.
         /// </summary>
         /// <param name="address">CIS Contract Address</param>
-        /// <param name="txnId">Transaction Id</param>
+        /// <param name="transactionHash">Transaction Hash</param>
         /// <param name="bytes">Input bytes</param>
+        /// <param name="parsed">Parsed event in human interpretable form.</param>
         /// <returns></returns>
         private static CisEvent? ParseCisEvent(
-            Concordium.Sdk.Types.ContractAddress address,
-            long txnId,
-            byte[] bytes)
+            ContractAddress address,
+            string transactionHash,
+            byte[] bytes,
+            string? parsed)
         {
-            CisEvent cisEvent;
-            if (!CisEvent.TryParse(bytes, address, txnId, out cisEvent))
-            {
-                return null;
-            }
-
+            _ = CisEvent.TryParse(bytes, address, transactionHash, parsed, out var cisEvent);
             return cisEvent;
         }
     }

@@ -16,7 +16,8 @@ namespace Application.Aggregates.Contract.EventLogs
             string tokenId,
             ulong contractIndex,
             ulong contractSubIndex,
-            long transactionId) : base(contractIndex, contractSubIndex, transactionId)
+            string transactionHash,
+            string? parsed) : base(contractIndex, contractSubIndex, transactionHash, parsed)
         {
             FromAddress = fromAddress;
             TokenAmount = tokenAmount;
@@ -44,9 +45,10 @@ namespace Application.Aggregates.Contract.EventLogs
         /// </summary>
         /// <param name="address">Contract Address emitting the event</param>
         /// <param name="st">Binary Reader</param>
-        /// <param name="transactionId">Transaction Id</param>
+        /// <param name="transactionHash">Transaction Hash</param>
+        /// <param name="parsed">Parsed event in human interpretable form.</param>
         /// <returns>Parsed <see cref="CisBurnEvent"/></returns>
-        public static CisBurnEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        public static CisBurnEvent Parse(ContractAddress address, BinaryReader st, string transactionHash, string? parsed)
         {
             return new CisBurnEvent
             (
@@ -56,7 +58,8 @@ namespace Application.Aggregates.Contract.EventLogs
                 tokenId: CommonParsers.ParseTokenId(st),
                 tokenAmount: CommonParsers.ParseTokenAmount(st),
                 fromAddress: CommonParsers.ParseAddress(st),
-                transactionId: transactionId
+                transactionHash: transactionHash,
+                parsed: parsed
             );
         }
 

@@ -15,9 +15,10 @@ namespace Application.Aggregates.Contract.EventLogs
             string tokenId,
             ulong contractIndex,
             ulong contractSubIndex,
-            long transactionId,
+            string transactionHash,
+            string? parsed,
             BigInteger tokenAmount,
-            Address toAddress) : base(contractIndex, contractSubIndex, transactionId)
+            Address toAddress) : base(contractIndex, contractSubIndex, transactionHash, parsed)
         {
             TokenId = tokenId;
             TokenAmount = tokenAmount;
@@ -33,7 +34,7 @@ namespace Application.Aggregates.Contract.EventLogs
 
         public Address ToAddress { get;  init;}
 
-        public static CisMintEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        public static CisMintEvent Parse(ContractAddress address, BinaryReader st, string transactionHash, string? parsed)
         {
             return new CisMintEvent
             (
@@ -42,7 +43,8 @@ namespace Application.Aggregates.Contract.EventLogs
                 tokenId: CommonParsers.ParseTokenId(st),
                 tokenAmount: CommonParsers.ParseTokenAmount(st),
                 toAddress:  CommonParsers.ParseAddress(st),
-                transactionId: transactionId
+                transactionHash: transactionHash,
+                parsed: parsed
             );
         }
 

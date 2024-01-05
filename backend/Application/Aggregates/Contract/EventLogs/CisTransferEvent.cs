@@ -15,10 +15,11 @@ namespace Application.Aggregates.Contract.EventLogs
             string tokenId,
             ulong contractIndex,
             ulong contractSubIndex,
-            long transactionId,
+            string transactionHash,
+            string? parsed,
             BigInteger tokenAmount, 
             Address fromAddress, 
-            Address toAddress) : base(contractIndex, contractSubIndex, transactionId)
+            Address toAddress) : base(contractIndex, contractSubIndex, transactionHash, parsed)
         {
             TokenId = tokenId;
             TokenAmount = tokenAmount;
@@ -46,7 +47,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// </summary>
         public Address ToAddress { get; init; }
 
-        public static CisTransferEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        public static CisTransferEvent Parse(ContractAddress address, BinaryReader st, string transactionHash, string? parsed)
         {
             return new CisTransferEvent
             (
@@ -56,7 +57,8 @@ namespace Application.Aggregates.Contract.EventLogs
                 tokenAmount: CommonParsers.ParseTokenAmount(st),
                 fromAddress: CommonParsers.ParseAddress(st),
                 toAddress: CommonParsers.ParseAddress(st),
-                transactionId: transactionId
+                transactionHash: transactionHash,
+                parsed: parsed
             );
         }
 

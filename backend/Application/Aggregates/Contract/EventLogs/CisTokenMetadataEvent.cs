@@ -1,5 +1,6 @@
 using System.IO;
 using Application.Aggregates.Contract.Entities;
+using Application.Api.GraphQL;
 
 namespace Application.Aggregates.Contract.EventLogs
 {
@@ -13,9 +14,10 @@ namespace Application.Aggregates.Contract.EventLogs
             string tokenId,
             ulong contractIndex,
             ulong contractSubIndex,
-            long transactionId, 
+            string transactionHash, 
+            string? parsed,
             string metadataUrl, 
-            string? hashHex) : base(contractIndex, contractSubIndex, transactionId)
+            string? hashHex) : base(contractIndex, contractSubIndex, transactionHash, parsed)
         {
             TokenId = tokenId;
             MetadataUrl = metadataUrl;
@@ -30,7 +32,7 @@ namespace Application.Aggregates.Contract.EventLogs
         public string MetadataUrl { get; init;  }
         public string? HashHex { get; init;  }
 
-        public static CisTokenMetadataEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        public static CisTokenMetadataEvent Parse(ContractAddress address, BinaryReader st, string transactionHash, string? parsed)
         {
             return new CisTokenMetadataEvent(
                 contractIndex: address.Index,
@@ -38,7 +40,8 @@ namespace Application.Aggregates.Contract.EventLogs
                 tokenId: CommonParsers.ParseTokenId(st),
                 metadataUrl: CommonParsers.ParseMetadataUrl(st),
                 hashHex: st.ReadByte() == 1 ? Convert.ToHexString(st.ReadBytes(32)) : null,
-                transactionId: transactionId
+                transactionHash: transactionHash,
+                parsed: parsed
             );
         }
 

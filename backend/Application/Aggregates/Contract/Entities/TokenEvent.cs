@@ -28,5 +28,5 @@ public sealed class TokenEvent
     }
     
     public Transaction? GetTransaction(GraphQlDbContext dbContext) => 
-        dbContext.Transactions.AsNoTracking().SingleOrDefault(t => t.Id == this.Event.TransactionId);
+        dbContext.Transactions.AsNoTracking().SingleOrDefault(t => t.TransactionHash == Event.TransactionHash);
 }

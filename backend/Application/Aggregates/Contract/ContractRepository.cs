@@ -44,7 +44,11 @@ public interface IContractRepository : IAsyncDisposable
     ///
     /// Entity is read only and changes on entity will not be persisted.
     /// </summary>
-    Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress);    
+    Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress);
+    /// <summary>
+    /// Get added <see cref="ContractEvent"/> in current transaction.
+    /// </summary>
+    IEnumerable<ContractEvent> GetContractEventsAddedInTransaction();
     /// <summary>
     /// Adds entity to repository.
     /// </summary>
@@ -195,6 +199,13 @@ WHERE
         
         return (contractEvents!.Event as ContractInitialized)!;
     }
+
+    /// <inheritdoc/>
+    public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction() =>
+        _context.ChangeTracker
+            .Entries<ContractEvent>()
+            .Where(e => e.State == EntityState.Added)
+            .Select(e => e.Entity);
 
     /// <inheritdoc/>
     public Task AddAsync<T>(params T[] entities) where T : class
