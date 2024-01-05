@@ -1,4 +1,5 @@
 using System.IO;
+using Application.Api.GraphQL.Tokens;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -8,24 +9,40 @@ namespace Application.Api.GraphQL.Import.EventLogs
     /// </summary>
     public class CisTokenMetadataEvent : CisEvent
     {
-        public CisTokenMetadataEvent() : base(CisEventType.TokenMetadata)
+        public CisTokenMetadataEvent(
+            string tokenId,
+            ulong contractIndex,
+            ulong contractSubIndex,
+            long transactionId, 
+            string metadataUrl, 
+            string? hashHex) : base(contractIndex, contractSubIndex, transactionId)
         {
+            TokenId = tokenId;
+            MetadataUrl = metadataUrl;
+            HashHex = hashHex;
+        }
+        
+        /// <summary>
+        /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
+        /// </summary>
+        public string TokenId { get; init;  }
+
+        public string MetadataUrl { get; init;  }
+        public string? HashHex { get; init;  }
+
+        public static CisTokenMetadataEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
+        {
+            return new CisTokenMetadataEvent(
+                contractIndex: address.Index,
+                contractSubIndex: address.SubIndex,
+                tokenId: CommonParsers.ParseTokenId(st),
+                metadataUrl: CommonParsers.ParseMetadataUrl(st),
+                hashHex: st.ReadByte() == 1 ? Convert.ToHexString(st.ReadBytes(32)) : null,
+                transactionId: transactionId
+            );
         }
 
-        public string MetadataUrl { get; set; }
-        public string? HashHex { get; set; }
-
-        public static CisTokenMetadataEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
-        {
-            return new CisTokenMetadataEvent()
-            {
-                ContractIndex = address.Index,
-                ContractSubIndex = address.SubIndex,
-                TokenId = CommonParsers.ParseTokenId(st),
-                MetadataUrl = CommonParsers.ParseMetadataUrl(st),
-                HashHex = (st.ReadByte() == 1) ? Convert.ToHexString(st.ReadBytes(32)) : null
-            };
-        }
-
+        internal override TokenEvent GetTokenEvent() => 
+            new(ContractIndex, ContractSubIndex, TokenId, this);
     }
 }

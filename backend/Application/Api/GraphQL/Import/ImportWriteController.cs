@@ -251,7 +251,7 @@ public class ImportWriteController : BackgroundService
         var accountTokenUpdates = _eventLogHandler.HandleLogs(transactions);
 
         var updatedAccountAddresses = accountTokenUpdates
-            .Select(u => u.Address)
+            .Select(u => AccountAddress.From(u.Address.AsString))
             .Concat(accountBalanceUpdates.Select(a => a.AccountAddress))
             .Distinct()
             .ToArray();

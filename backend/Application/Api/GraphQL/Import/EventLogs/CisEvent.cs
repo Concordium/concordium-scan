@@ -1,13 +1,17 @@
 using System.IO;
+using Application.Api.GraphQL.Tokens;
+using HotChocolate.Types;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
     /// <summary>
     /// Base class for CIS Event. <see href="https://proposals.concordium.software/CIS/cis-2.html#abstract"/>
     /// </summary>
+    [UnionType("CisEvent")]
     public abstract class CisEvent
     {
-        private static readonly List<int> AllowedEventTypes = new List<int> {
+        private static readonly List<int> AllowedEventTypes = new()
+        {
             (int)CisEventType.Burn,
             (int)CisEventType.Mint,
             (int)CisEventType.TokenMetadata,
@@ -15,15 +19,16 @@ namespace Application.Api.GraphQL.Import.EventLogs
             (int)CisEventType.UpdateOperator
         };
         
-        private const int MAX_7_BIT_VALUE = 128;
+        internal abstract TokenEvent? GetTokenEvent();
 
         /// <summary>
         /// Instantiates a new CIS Event.
         /// </summary>
-        /// <param name="type">Type of CIS Event.</param>
-        public CisEvent(CisEventType type)
+        protected CisEvent(ulong contractIndex, ulong contractSubIndex, long transactionId)
         {
-            this.Type = type;
+            ContractIndex = contractIndex;
+            ContractSubIndex = contractSubIndex;
+            TransactionId = transactionId;
         }
 
         /// <summary>
@@ -38,23 +43,19 @@ namespace Application.Api.GraphQL.Import.EventLogs
         public ulong ContractSubIndex { get; init; }
 
         /// <summary>
-        /// Type of CIS event. <see cref="CisEventType"/>
+        /// Transaction Id of the transaction that emitted this event.
         /// </summary>
-        public CisEventType Type { get; private set; }
+        public long TransactionId { get; init; }
         
-        /// <summary>
-        /// Serialized Token Id of <see cref="CisEvent"/>. Parsed by <see cref="CommonParsers.ParseTokenId(BinaryReader)" />
-        /// </summary>
-        public string TokenId { get; init; }
-
         /// <summary>
         /// Parses CIS event bytes read from Node.
         /// </summary>
         /// <param name="eventBytes">Bytes of the event.</param>
         /// <param name="address">Contract Address emitting the event.</param>
+        /// <param name="transactionId">Transaction Id</param>
         /// <param name="cisEvent">Parsed Cis Event.</param>
         /// <returns></returns>
-        public static bool TryParse(byte[] eventBytes, Concordium.Sdk.Types.ContractAddress address, out CisEvent cisEvent)
+        public static bool TryParse(byte[] eventBytes, Concordium.Sdk.Types.ContractAddress address, long transactionId, out CisEvent cisEvent)
         {
             if (!IsCisEvent(eventBytes))
             {
@@ -64,10 +65,10 @@ namespace Application.Api.GraphQL.Import.EventLogs
 
             try
             {
-                cisEvent = CisEvent.Parse(address, eventBytes);
+                cisEvent = CisEvent.Parse(address, eventBytes, transactionId);
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception)
             {
                 cisEvent = null;
                 return false;
@@ -81,7 +82,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// <returns></returns>
         public static bool IsCisEvent(byte[] eventBytes)
         {
-            return AllowedEventTypes.Contains((int)eventBytes.FirstOrDefault());
+            return AllowedEventTypes.Contains(eventBytes.FirstOrDefault());
         }
 
         /// <summary>
@@ -89,26 +90,21 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         /// <param name="address">Contract emitting the event.</param>
         /// <param name="eventBytes">Event Bytes</param>
+        /// <param name="transactionId">Transaction Id</param>
         /// <returns>Parsed <see cref="CisEvent"/></returns>
-        private static CisEvent Parse(Concordium.Sdk.Types.ContractAddress address, byte[] eventBytes)
+        private static CisEvent Parse(Concordium.Sdk.Types.ContractAddress address, byte[] eventBytes, long transactionId)
         {
             var st = new BinaryReader(new MemoryStream(eventBytes));
             var eventType = st.ReadByte();
-            switch (eventType)
+            return eventType switch
             {
-                case ((int)CisEventType.Burn):
-                    return CisBurnEvent.Parse(address, st);
-                case ((int)CisEventType.Mint):
-                    return CisMintEvent.Parse(address, st);
-                case ((int)CisEventType.TokenMetadata):
-                    return CisTokenMetadataEvent.Parse(address, st);
-                case ((int)CisEventType.Transfer):
-                    return CisTransferEvent.Parse(address, st);
-                case ((int)CisEventType.UpdateOperator):
-                    return CisUpdateOperatorEvent.Parse(address, st);
-                default:
-                    throw new Exception(String.Format("invalid event type: {0}", eventType));
-            }
+                (int)CisEventType.Burn => CisBurnEvent.Parse(address, st, transactionId),
+                (int)CisEventType.Mint => CisMintEvent.Parse(address, st, transactionId),
+                (int)CisEventType.TokenMetadata => CisTokenMetadataEvent.Parse(address, st, transactionId),
+                (int)CisEventType.Transfer => CisTransferEvent.Parse(address, st, transactionId),
+                (int)CisEventType.UpdateOperator => CisUpdateOperatorEvent.Parse(address, st, transactionId),
+                _ => throw new Exception($"invalid event type: {eventType}")
+            };
         }
     }
 }

@@ -1,7 +1,9 @@
 using System.Data.Common;
 using System.Numerics;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Tokens;
 using Application.Common.Diagnostics;
+using Concordium.Grpc.V2;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -105,9 +107,14 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// </summary>
         /// <param name="accountUpdates"></param>
         /// <returns>Total no of accounts updates applied to database</returns>
-        public int ApplyAccountUpdates(IEnumerable<CisAccountUpdate> accountUpdates)
+        public int ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates)
         {
-            IEnumerable<string> accountBaseAddresses = accountUpdates.Select(u => u.Address.GetBaseAddress().ToString()).Distinct();
+            var accountBaseAddresses = accountUpdates
+                .Select(u => 
+                    Concordium.Sdk.Types.AccountAddress.From(u.Address.AsString)
+                    .GetBaseAddress()
+                    .ToString())
+                .Distinct();
             var accountsMap = this._accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyAccountUpdates));
 
@@ -123,7 +130,9 @@ namespace Application.Api.GraphQL.Import.EventLogs
                     continue;
                 }
 
-                var accountBaseAddress = accountUpdate.Address.GetBaseAddress().ToString();
+                var accountBaseAddress = Concordium.Sdk.Types.AccountAddress.From(accountUpdate.Address.AsString)
+                    .GetBaseAddress()
+                    .ToString();
                 if (accountsMap[accountBaseAddress] is null 
                     || !accountsMap[accountBaseAddress].HasValue)
                 {
@@ -149,6 +158,13 @@ namespace Application.Api.GraphQL.Import.EventLogs
             connection.Close();
 
             return updates;
+        }
+
+        public void ApplyTokenEvents(IEnumerable<TokenEvent> tokenTransactions)
+        {
+            using var context = _dbContextFactory.CreateDbContext();
+            context.TokenEvents.AddRange(tokenTransactions);
+            context.SaveChanges();
         }
     }
 }

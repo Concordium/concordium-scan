@@ -48,7 +48,7 @@ public abstract class PolymorphicJsonConverter<T> : JsonConverter<T>
         writer.WriteStartObject();
         writer.WriteNumber("tag", tagValue);
         writer.WritePropertyName("data");
-        writer.WriteRawValue(JsonSerializer.Serialize(value, value.GetType(), options));
+        writer.WriteRawValue(JsonSerializer.Serialize(value, type, options));
         writer.WriteEndObject();
     }
         

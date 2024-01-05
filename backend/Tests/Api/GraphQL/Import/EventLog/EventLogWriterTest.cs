@@ -82,9 +82,9 @@ namespace Tests.Api.GraphQL.Import.EventLog
         public void ShouldHandleAccountUpdates()
         {
             var updatesCount = writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = AccountAddress.From(ACCOUNT_1_ADDR) },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = AccountAddress.From(ACCOUNT_1_ADDR) },
-                new CisAccountUpdate() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = AccountAddress.From(ACCOUNT_1_ADDR)},
+                new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
+                new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
+                new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR)},
             });
 
             updatesCount.Should().Be(3);

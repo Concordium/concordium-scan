@@ -22,7 +22,9 @@ public static class EfCoreJsonSerializerOptionsFactory
                 new ChainUpdatePayloadConverter(),
                 new PendingBakerChangeConverter(),
                 new PendingDelegationChangeConverter(),
-                new DelegationTargetConverter()
+                new DelegationTargetConverter(),
+                new CisEventConverter(),
+                new BigIntegerConverter()
             }
         };
     }

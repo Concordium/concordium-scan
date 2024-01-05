@@ -704,6 +704,52 @@ type ChainUpdateEnqueued {
   payload: ChainUpdatePayload!
 }
 
+type CisBurnEvent {
+  tokenId: String!
+  tokenAmount: BigInteger!
+  fromAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  transactionId: Long!
+}
+
+type CisMintEvent {
+  tokenId: String!
+  tokenAmount: BigInteger!
+  toAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  transactionId: Long!
+}
+
+type CisTokenMetadataEvent {
+  tokenId: String!
+  metadataUrl: String!
+  hashHex: String
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  transactionId: Long!
+}
+
+type CisTransferEvent {
+  tokenId: String!
+  tokenAmount: BigInteger!
+  fromAddress: Address!
+  toAddress: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  transactionId: Long!
+}
+
+type CisUpdateOperatorEvent {
+  update: OperatorUpdateType!
+  owner: Address!
+  operator: Address!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  transactionId: Long!
+}
+
 "Information about the offset pagination."
 type CollectionSegmentInfo {
   "Indicates whether more items exist following the set defined by the clients arguments."
@@ -1697,6 +1743,8 @@ type Query {
   importState: ImportState
   nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
   nodeStatus(id: ID!): NodeStatus
+  tokens("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TokensConnection
+  token(contractIndex: UnsignedLong! contractSubIndex: UnsignedLong! tokenId: String!): Token!
   contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex: UnsignedLong!): Contract
   contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
   moduleReferenceEvent(moduleReference: String!): ModuleReferenceEvent
@@ -1869,11 +1917,39 @@ type TimestampedAmount {
 
 type Token {
   tokens: [AccountToken!]!
+  tokenEvents: [TokenEvent!]!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
   totalSupply: Decimal!
+}
+
+type TokenEvent {
+  transaction: Transaction
+  id: ID!
+  contractIndex: UnsignedLong!
+  contractSubIndex: UnsignedLong!
+  tokenId: String!
+  event: CisEvent!
+}
+
+"A connection to a list of items."
+type TokensConnection {
+  "Information to aid in pagination."
+  pageInfo: PageInfo!
+  "A list of edges."
+  edges: [TokensEdge!]
+  "A flattened list of the nodes."
+  nodes: [Token!]
+}
+
+"An edge in a connection."
+type TokensEdge {
+  "A cursor for use in pagination."
+  cursor: String!
+  "The item at the end of the edge."
+  node: Token!
 }
 
 type Transaction {
@@ -1976,6 +2052,8 @@ union BakerState = ActiveBakerState | RemovedBakerState
 union BlockOrTransaction = Transaction | Block
 
 union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate | FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update | ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload | TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload | TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+
+union CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUpdateOperatorEvent
 
 union DelegationTarget = PassiveDelegationTarget | BakerDelegationTarget
 
@@ -2114,6 +2192,11 @@ enum NodeSortField {
   PEERS_COUNT
   FINALIZED_BLOCK_HEIGHT
   BLOCKS_RECEIVED_COUNT
+}
+
+enum OperatorUpdateType {
+  REMOVE_OPERATOR
+  ADD_OPERATOR
 }
 
 enum RewardType {

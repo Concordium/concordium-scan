@@ -1,4 +1,5 @@
 using System.IO;
+using Application.Api.GraphQL.Tokens;
 
 namespace Application.Api.GraphQL.Import.EventLogs
 {
@@ -8,24 +9,33 @@ namespace Application.Api.GraphQL.Import.EventLogs
     /// </summary>
     public class CisUpdateOperatorEvent : CisEvent
     {
-        public CisUpdateOperatorEvent() : base(CisEventType.UpdateOperator)
+        public CisUpdateOperatorEvent(            
+            ulong contractIndex,
+            ulong contractSubIndex,
+            long transactionId,
+            OperatorUpdateType update,
+            Address owner,
+            Address @operator) : base(contractIndex, contractSubIndex, transactionId)
         {
+            Update = update;
+            Owner = owner;
+            Operator = @operator;
         }
 
-        public OperatorUpdateType Update { get; set; }
-        public BaseAddress Owner { get; set; }
-        public BaseAddress Operator { get; set; }
+        public OperatorUpdateType Update { get; init; }
+        public Address Owner { get; init; }
+        public Address Operator { get; init; }
 
-        public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st)
+        public static CisUpdateOperatorEvent Parse(Concordium.Sdk.Types.ContractAddress address, BinaryReader st, long transactionId)
         {
-            return new CisUpdateOperatorEvent()
-            {
-                ContractIndex = address.Index,
-                ContractSubIndex = address.SubIndex,
-                Update = ParseOperatorUpdate(st),
-                Owner = CommonParsers.ParseAddress(st),
-                Operator = CommonParsers.ParseAddress(st)
-            };
+            return new CisUpdateOperatorEvent(
+                contractIndex: address.Index,
+                contractSubIndex: address.SubIndex,
+                update: ParseOperatorUpdate(st),
+                owner: CommonParsers.ParseAddress(st),
+                @operator: CommonParsers.ParseAddress(st),
+                transactionId: transactionId
+            );
         }
 
         private static OperatorUpdateType ParseOperatorUpdate(BinaryReader st)
@@ -38,5 +48,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
                 default: throw new Exception(String.Format("Invalid Operator update type: {0}", type));
             }
         }
+
+        internal override TokenEvent? GetTokenEvent() => null;
     }
 }
