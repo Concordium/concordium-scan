@@ -29,6 +29,40 @@ public sealed class ContractRepositoryTests
     }
 
     [Fact]
+    public async Task WhenGetContractEventsAddedInTransaction_ThenReturnContractEventsInAddedState()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        var first = ContractEventBuilder.Create()
+            .WithContractAddress(new ContractAddress(1,0))
+            .Build();
+        await using (var context = _databaseFixture.CreateGraphQlDbContext())
+        {
+            await context.AddAsync(first);
+            await context.SaveChangesAsync();
+        }
+        var second = ContractEventBuilder.Create()
+            .WithContractAddress(new ContractAddress(2,0))
+            .Build();
+        var third = ContractEventBuilder.Create()
+            .WithContractAddress(new ContractAddress(3,0))
+            .Build();
+        
+        var contractRepository = new ContractRepository(graphQlDbContext);
+        await contractRepository.AddAsync(second, third);
+        
+        // Act
+        var contractEventsAddedInTransaction = contractRepository.GetContractEventsAddedInTransaction()
+            .ToList();
+        
+        // Assert
+        contractEventsAddedInTransaction.Count.Should().Be(2);
+        contractEventsAddedInTransaction.SingleOrDefault(ce => ce.ContractAddressIndex == 2).Should().NotBeNull();
+        contractEventsAddedInTransaction.SingleOrDefault(ce => ce.ContractAddressIndex == 3).Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task WhenCallFromBlockHeightRangeGetBlockHeightsRead_ThenReturnReadEvents()
     {
         // Arrange
