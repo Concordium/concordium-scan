@@ -46,7 +46,7 @@ public sealed class ContractRepositoryTests
                 var connection = innerContext.Database.GetDbConnection();
                 await connection.OpenAsync();
                 await connection.ExecuteAsync(
-                    "insert into graphql_contract_read_heights(block_height, source, created_at) values(1, 0, now())");
+                    "insert into graphql_contract_read_heights(block_height, source, created_at) values(2, 0, now())");
                 await connection.CloseAsync();
             }
 
