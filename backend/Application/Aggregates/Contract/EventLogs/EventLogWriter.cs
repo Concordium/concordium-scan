@@ -9,10 +9,30 @@ using Npgsql;
 
 namespace Application.Aggregates.Contract.EventLogs
 {
+    public interface IEventLogWriter
+    {
+        /// <summary>
+        /// Applies computed token updates to the database
+        /// </summary>
+        /// <param name="tokenUpdates">Computed Token Updates</param>
+        /// <returns>Total no of token updates applied to database</returns>
+        int ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates);
+        /// <summary>
+        /// Applies computed Account Updates to the database
+        /// </summary>
+        /// <param name="accountUpdates"></param>
+        /// <returns>Total no of accounts updates applied to database</returns>
+        int ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates);
+        /// <summary>
+        /// Store token events.
+        /// </summary>
+        void ApplyTokenEvents(IEnumerable<TokenEvent> tokenTransactions);
+    }
+    
     /// <summary>
     /// Applies computed updates to the Database
     /// </summary>
-    public class EventLogWriter
+    public class EventLogWriter : IEventLogWriter
     {
         private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
         private readonly IMetrics _metrics;
@@ -31,11 +51,7 @@ namespace Application.Aggregates.Contract.EventLogs
 
         }
 
-        /// <summary>
-        /// Applies computed token updates to the database
-        /// </summary>
-        /// <param name="tokenUpdates">Computed Token Updates</param>
-        /// <returns>Total no of token updates applied to database</returns>
+        /// <inheritdoc/>
         public int ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates)
         {
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyTokenUpdates));
@@ -102,11 +118,7 @@ namespace Application.Aggregates.Contract.EventLogs
             return cmd;
         }
 
-        /// <summary>
-        /// Applies computed Account Updates to the database
-        /// </summary>
-        /// <param name="accountUpdates"></param>
-        /// <returns>Total no of accounts updates applied to database</returns>
+        /// <inheritdoc/>
         public int ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates)
         {
             var accountBaseAddresses = accountUpdates
@@ -160,6 +172,7 @@ namespace Application.Aggregates.Contract.EventLogs
             return updates;
         }
 
+        /// <inheritdoc/>
         public void ApplyTokenEvents(IEnumerable<TokenEvent> tokenTransactions)
         {
             using var context = _dbContextFactory.CreateDbContext();

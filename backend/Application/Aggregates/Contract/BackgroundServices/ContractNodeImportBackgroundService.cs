@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
+using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.EfCore;
 using Application.Observability;
@@ -22,6 +23,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
     private readonly IContractRepositoryFactory _repositoryFactory;
     private readonly IContractNodeClient _client;
     private readonly JobHealthCheck _jobHealthCheck;
+    private readonly IEventLogHandler _eventLogHandler;
     private readonly FeatureFlagOptions _featureFlags;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
@@ -33,6 +35,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         IContractNodeClient client,
         IOptions<ContractAggregateOptions> options,
         JobHealthCheck jobHealthCheck,
+        IEventLogHandler eventLogHandler,
         IOptions<FeatureFlagOptions> featureFlagsOptions)
     {
         _jobFinder = jobFinder;
@@ -40,6 +43,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         _repositoryFactory = repositoryFactory;
         _client = client;
         _jobHealthCheck = jobHealthCheck;
+        _eventLogHandler = eventLogHandler;
         _featureFlags = featureFlagsOptions.Value;
         _options = options.Value;
         _logger = Log.ForContext<ContractNodeImportBackgroundService>();
@@ -59,7 +63,7 @@ internal class ContractNodeImportBackgroundService : BackgroundService
         {
             await AwaitJobsAsync(stoppingToken);
         
-            var contractAggregate = new ContractAggregate(_repositoryFactory, _options);
+            var contractAggregate = new ContractAggregate(_repositoryFactory, _eventLogHandler, _options);
             
             _logger.Information($"{nameof(ContractNodeImportBackgroundService)} started.");
             await contractAggregate.NodeImportJob(_client, stoppingToken);

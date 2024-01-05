@@ -1,24 +1,35 @@
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Transactions;
+using Concordium.Sdk.Types;
+using HotChocolate.Subscriptions;
+using ContractAddress = Application.Api.GraphQL.ContractAddress;
+using ContractEvent = Application.Aggregates.Contract.Entities.ContractEvent;
 using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
 
 namespace Application.Aggregates.Contract.EventLogs
 {
-
-    public class EventLogHandler
+    public interface IEventLogHandler
     {
-        public EventLogWriter writer;
+        Task HandleCisEvent(IContractRepository contractRepository);
+    }
 
-        public EventLogHandler(EventLogWriter logWriter)
+    public class EventLogHandler : IEventLogHandler
+    {
+        private readonly IEventLogWriter _writer;
+        private readonly ITopicEventSender _sender;
+
+        public EventLogHandler(IEventLogWriter logWriter, ITopicEventSender sender)
         {
-            writer = logWriter;
+            _writer = logWriter;
+            _sender = sender;
         }
 
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
-        public List<CisAccountUpdate> HandleLogs(IContractRepository contractRepository)
+        public Task HandleCisEvent(IContractRepository contractRepository)
         {
             var addedEvents = contractRepository.GetContractEventsAddedInTransaction()
                 .OrderBy(ce => ce.BlockHeight)
@@ -60,20 +71,31 @@ namespace Application.Aggregates.Contract.EventLogs
 
             if (tokenUpdates.Any())
             {
-                writer.ApplyTokenUpdates(tokenUpdates);
+                _writer.ApplyTokenUpdates(tokenUpdates);
             }
 
             if (accountUpdates.Any())
             {
-                writer.ApplyAccountUpdates(accountUpdates);
+                _writer.ApplyAccountUpdates(accountUpdates);
             }
 
             if (tokenEvents.Any())
             {
-                writer.ApplyTokenEvents(tokenEvents);
+                _writer.ApplyTokenEvents(tokenEvents);
             }
 
-            return accountUpdates;
+            return NotifyAccountListeners(accountUpdates);
+        }
+
+        private async Task NotifyAccountListeners(List<CisAccountUpdate> accountUpdates)
+        {
+            foreach (var accountAddress in accountUpdates.Select(a => a.Address))
+            {
+                await _sender.SendAsync(
+                    accountAddress.AsString,
+                    new AccountsUpdatedSubscriptionItem(AccountAddress.From(accountAddress.AsString))
+                );
+            }
         }
         
         private readonly record struct PossibleCis2Event(
@@ -130,7 +152,7 @@ namespace Application.Aggregates.Contract.EventLogs
             switch (log)
             {
                 case CisBurnEvent e:
-                    if (e.FromAddress is Application.Api.GraphQL.Accounts.AccountAddress accntAddress)
+                    if (e.FromAddress is Api.GraphQL.Accounts.AccountAddress accntAddress)
                     {
                         return new[] {
                             new CisAccountUpdate

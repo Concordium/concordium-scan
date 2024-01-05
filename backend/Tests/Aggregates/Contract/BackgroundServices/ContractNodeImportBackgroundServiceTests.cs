@@ -3,6 +3,7 @@ using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
@@ -76,7 +77,8 @@ public class ContractNodeImportBackgroundServiceTests
             Mock.Of<IContractNodeClient>(),
             Options.Create(new ContractAggregateOptions()),
             new JobHealthCheck(),
-            Mock.Of<IOptions<FeatureFlagOptions>>());
+            Mock.Of<IEventLogHandler>(),
+        Mock.Of<IOptions<FeatureFlagOptions>>());
         
         // Act
         var awaitJobsAsync = await importService.GetJobsToAwait();

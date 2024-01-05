@@ -5,6 +5,7 @@ using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using FluentAssertions;
+using HotChocolate.Subscriptions;
 using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
@@ -75,7 +76,7 @@ public sealed class EventLogHandlerTest
             dbContractFactoryMock.Object, 
             accountLookup,
             Mock.Of<IMetrics>());
-        var eventLogHandler = new EventLogHandler(eventLogWriter);
+        var eventLogHandler = new EventLogHandler(eventLogWriter, Mock.Of<ITopicEventSender>());
         var updated = new Updated(
             ContractVersion.V1,
             ContractAddress.From(index, subIndex),
@@ -96,7 +97,7 @@ public sealed class EventLogHandlerTest
             .Returns(new List<Application.Aggregates.Contract.Entities.ContractEvent> { contractEvent });
 
         // Act
-        eventLogHandler.HandleLogs(contractRepositoryMock.Object);
+        await eventLogHandler.HandleCisEvent(contractRepositoryMock.Object);
 
         // Assert
         await using var context = _fixture.CreateGraphQlDbContext();
