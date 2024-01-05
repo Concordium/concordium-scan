@@ -4,7 +4,6 @@ using System.Transactions;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Import.EventLogs;
 using Application.Api.GraphQL.Import.Validations;
 using Application.Common;
 using Application.Common.Diagnostics;
@@ -37,7 +36,6 @@ public class ImportWriteController : BackgroundService
     private readonly ChainParametersWriter _chainParametersWriter;
     private readonly TransactionWriter _transactionWriter;
     private readonly AccountImportHandler _accountHandler;
-    private readonly EventLogHandler _eventLogHandler;
     private readonly NonCirculatingAccounts _nonCirculatingAccounts;
     private readonly IJobFinder<IMainMigrationJob> _migrationJobFinder;
     private readonly BakerImportHandler _bakerHandler;
@@ -85,7 +83,6 @@ public class ImportWriteController : BackgroundService
         _materializedViewRefresher = new MaterializedViewRefresher(dbSettings, metrics);
         _passiveDelegationHandler = new PassiveDelegationImportHandler(dbContextFactory);
         _paydayHandler = new PaydayImportHandler(dbContextFactory, metrics);
-        _eventLogHandler = new EventLogHandler(new EventLogWriter(dbContextFactory, accountLookup, metrics));
         _nonCirculatingAccounts = nonCirculatingAccounts;
         _migrationJobFinder = migrationJobFinder;
     }
@@ -248,15 +245,8 @@ public class ImportWriteController : BackgroundService
         var passiveDelegationUpdateResults = await _passiveDelegationHandler.UpdatePassiveDelegation(delegationUpdateResults, payload, importState, importPaydayStatus, block);
         await _bakerHandler.ApplyChangesAfterBlocksAndTransactionsWritten(block, transactions, importPaydayStatus);
         var accountBalanceUpdates = _accountHandler.HandleAccountUpdates(payload, transactions, block);
-        var accountTokenUpdates = _eventLogHandler.HandleLogs(transactions);
 
-        var updatedAccountAddresses = accountTokenUpdates
-            .Select(u => AccountAddress.From(u.Address.AsString))
-            .Concat(accountBalanceUpdates.Select(a => a.AccountAddress))
-            .Distinct()
-            .ToArray();
-
-        foreach (var accntAddress in updatedAccountAddresses)
+        foreach (var accntAddress in accountBalanceUpdates.Select(a => a.AccountAddress))
         {
             await _sender.SendAsync(
                 accntAddress.ToString(),

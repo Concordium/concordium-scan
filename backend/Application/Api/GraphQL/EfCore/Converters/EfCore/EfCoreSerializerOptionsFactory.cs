@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Application.Aggregates.Contract.Configurations;
 using Application.Api.GraphQL.EfCore.Converters.Json;
 
 namespace Application.Api.GraphQL.EfCore.Converters.EfCore;
