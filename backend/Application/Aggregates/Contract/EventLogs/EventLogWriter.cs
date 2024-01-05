@@ -24,10 +24,10 @@ namespace Application.Aggregates.Contract.EventLogs
             IAccountLookup accountLookup,
             IMetrics metrics)
         {
-            this._dbContextFactory = dbContextFactory;
-            this._metrics = metrics;
-            this._accountLookup = accountLookup;
-            this._logger = Log.ForContext(GetType());
+            _dbContextFactory = dbContextFactory;
+            _metrics = metrics;
+            _accountLookup = accountLookup;
+            _logger = Log.ForContext(GetType());
 
         }
 

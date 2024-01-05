@@ -71,11 +71,24 @@ internal sealed class ContractRepository : IContractRepository
     private readonly TransactionScope _transactionScope;
     private readonly GraphQlDbContext _context;
     
-    public ContractRepository(TransactionScope transactionScope, GraphQlDbContext context)
+    private ContractRepository(TransactionScope scope, GraphQlDbContext context)
     {
-        _transactionScope = transactionScope;
+        _transactionScope = scope;
         _context = context;
     }
+
+    internal static async Task<ContractRepository> Create(IDbContextFactory<GraphQlDbContext> dbContextFactory)
+    {
+        var transactionScope = CreateTransactionScope();
+        var graphQlDbContext = dbContextFactory.CreateDbContext();
+        return new ContractRepository(transactionScope, graphQlDbContext);
+    }
+    
+    private static TransactionScope CreateTransactionScope() =>
+        new(
+            TransactionScopeOption.Required,
+            new TransactionOptions{IsolationLevel = IsolationLevel.ReadCommitted},
+            TransactionScopeAsyncFlowOption.Enabled);
 
     /// <summary>
     /// <see cref="Api.GraphQL.Transactions.Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.

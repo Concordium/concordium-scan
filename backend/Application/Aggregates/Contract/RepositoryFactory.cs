@@ -23,21 +23,11 @@ internal sealed class RepositoryFactory : IContractRepositoryFactory
     
     public async Task<IContractRepository> CreateContractRepositoryAsync()
     {
-        var transactionScope = CreateTransactionScope();
-        var graphQlDbContext = await _dbContextFactory.CreateDbContextAsync();
-        return new ContractRepository(
-            transactionScope,
-            graphQlDbContext);
+        return await ContractRepository.Create(_dbContextFactory);
     }
 
     public async Task<IModuleReadonlyRepository> CreateModuleReadonlyRepository()
     {
         return new ModuleReadonlyRepository(await _dbContextFactory.CreateDbContextAsync());
     }
-
-    internal static TransactionScope CreateTransactionScope() =>
-        new(
-            TransactionScopeOption.Required,
-            new TransactionOptions{IsolationLevel = IsolationLevel.ReadCommitted},
-            TransactionScopeAsyncFlowOption.Enabled);
 }
