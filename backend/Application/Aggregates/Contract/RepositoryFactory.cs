@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Transactions;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,11 +23,21 @@ internal sealed class RepositoryFactory : IContractRepositoryFactory
     
     public async Task<IContractRepository> CreateContractRepositoryAsync()
     {
-        return new ContractRepository(await _dbContextFactory.CreateDbContextAsync());
+        var transactionScope = CreateTransactionScope();
+        var graphQlDbContext = await _dbContextFactory.CreateDbContextAsync();
+        return new ContractRepository(
+            transactionScope,
+            graphQlDbContext);
     }
 
     public async Task<IModuleReadonlyRepository> CreateModuleReadonlyRepository()
     {
         return new ModuleReadonlyRepository(await _dbContextFactory.CreateDbContextAsync());
     }
+
+    internal static TransactionScope CreateTransactionScope() =>
+        new(
+            TransactionScopeOption.Required,
+            new TransactionOptions{IsolationLevel = IsolationLevel.ReadCommitted},
+            TransactionScopeAsyncFlowOption.Enabled);
 }

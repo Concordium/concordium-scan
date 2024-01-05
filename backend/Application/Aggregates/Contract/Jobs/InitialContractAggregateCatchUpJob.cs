@@ -90,7 +90,7 @@ public sealed class InitialContractAggregateCatchUpJob : IStatelessBlockHeightJo
                     totalEvents += await StoreRejected(repository, moduleReadonlyRepository, alreadyReadHeights, heightFrom, heightTo);
 
                     await ContractAggregate.SaveLastReadBlocks(repository, heightFrom, heightTo, alreadyReadHeights, ImportSource.DatabaseImport);
-                    await repository.SaveChangesAsync(token);
+                    await repository.CommitAsync(token);
                     ContractMetrics.IncTransactionEvents(totalEvents, ImportSource.DatabaseImport);
                     return affectedRows;
                 }

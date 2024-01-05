@@ -524,7 +524,7 @@ internal sealed class ContractAggregate
 
                 var affectedEvents = await NodeImport(repository, client, height, token);
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
-                await repository.SaveChangesAsync(token);
+                await repository.CommitAsync(token);
                 _logger.Information("Block Height: {BlockHeight} has been processed from node.", height);
                 
                 ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);

@@ -322,7 +322,7 @@ WHERE g0.event ->> 'tag' = '16'
             throw new NotImplementedException();
         }
 
-        public Task SaveChangesAsync(CancellationToken token)
+        public Task CommitAsync(CancellationToken token)
         {
             throw new NotImplementedException();
         }

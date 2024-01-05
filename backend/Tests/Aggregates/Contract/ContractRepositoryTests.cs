@@ -33,7 +33,6 @@ public sealed class ContractRepositoryTests
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_events");
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var first = ContractEventBuilder.Create()
             .WithContractAddress(new ContractAddress(1,0))
             .Build();
@@ -49,7 +48,7 @@ public sealed class ContractRepositoryTests
             .WithContractAddress(new ContractAddress(3,0))
             .Build();
         
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), _databaseFixture.CreateGraphQlDbContext());
         await contractRepository.AddAsync(second, third);
         
         // Act
@@ -75,7 +74,7 @@ public sealed class ContractRepositoryTests
             new ContractReadHeight(6, ImportSource.DatabaseImport),
             new ContractReadHeight(7, ImportSource.DatabaseImport));
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         
         // Act
         var readHeights = await contractRepository.FromBlockHeightRangeGetBlockHeightsReadOrdered(2, 6);
@@ -95,7 +94,7 @@ public sealed class ContractRepositoryTests
         var blockIds = await InsertFiveBlocks();
         await InsertSixTransactionsWithRejections(blockIds);
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         ContractExtensions.AddDapperTypeHandlers();
         
         // Act
@@ -175,7 +174,7 @@ public sealed class ContractRepositoryTests
         var transactionIds = await InsertSixTransactions(blockIds);
         await InsertTransactionResultEvents(transactionIds);
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         ContractExtensions.AddDapperTypeHandlers();
         
         // Act
@@ -314,7 +313,7 @@ public sealed class ContractRepositoryTests
             new ContractReadHeight(latestHeight, ImportSource.NodeImport),
             new ContractReadHeight(2, ImportSource.DatabaseImport));
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
@@ -331,7 +330,7 @@ public sealed class ContractRepositoryTests
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
@@ -362,7 +361,7 @@ public sealed class ContractRepositoryTests
         await _databaseFixture.AddAsync(first, second, third);
         
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
@@ -377,7 +376,7 @@ public sealed class ContractRepositoryTests
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_import_state");
         var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
+        await using var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
@@ -394,15 +393,16 @@ public sealed class ContractRepositoryTests
         const ImportSource source = ImportSource.DatabaseImport;
         await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         
-        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
-        var contractRepository = new ContractRepository(graphQlDbContext);
-
         // Act
-        await contractRepository.AddAsync(new ContractReadHeight(blockHeight, source));
-        await contractRepository.SaveChangesAsync();
-        graphQlDbContext.ChangeTracker.Clear();
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        await using (var contractRepository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), graphQlDbContext))
+        {
+            await contractRepository.AddAsync(new ContractReadHeight(blockHeight, source));
+            await contractRepository.CommitAsync();    
+        };
         
         // Assert
+        graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
         var contractReadHeight = await graphQlDbContext.ContractReadHeights
             .FirstOrDefaultAsync();
         contractReadHeight.Should().NotBeNull();
@@ -440,7 +440,7 @@ public sealed class ContractRepositoryTests
         await context.AddRangeAsync(first, second, third);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
-        var repository = new ContractRepository(context);
+        await using var repository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), context);
 
         // Act
         var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
@@ -478,7 +478,7 @@ public sealed class ContractRepositoryTests
             .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
             .Build();
         await context.AddAsync(first);
-        var repository = new ContractRepository(context);
+        await using var repository = new ContractRepository(RepositoryFactory.CreateTransactionScope(), context);
 
         // Act
         var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);

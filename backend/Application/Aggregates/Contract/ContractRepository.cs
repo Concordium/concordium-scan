@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL;
@@ -58,22 +59,26 @@ public interface IContractRepository : IAsyncDisposable
     /// </summary>
     Task AddRangeAsync<T>(IEnumerable<T> heights) where T : class;
     /// <summary>
-    /// Save changes to storage.
+    /// Saves and commit changes to storage.
+    ///
+    /// This should be the last method used before disposing the entity.
     /// </summary>
-    Task SaveChangesAsync(CancellationToken token);
+    Task CommitAsync(CancellationToken token);
 }
 
 internal sealed class ContractRepository : IContractRepository
 {
+    private readonly TransactionScope _transactionScope;
     private readonly GraphQlDbContext _context;
     
-    public ContractRepository(GraphQlDbContext context)
+    public ContractRepository(TransactionScope transactionScope, GraphQlDbContext context)
     {
+        _transactionScope = transactionScope;
         _context = context;
     }
 
     /// <summary>
-    /// <see cref="Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
+    /// <see cref="Api.GraphQL.Transactions.Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
     ///
     /// From <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionRejectReasonConverter"/> there is a mapping between
     /// `tag` in column `reject_reason` and a transaction.
@@ -104,8 +109,8 @@ WHERE
     }
 
     /// <summary>
-    /// <see cref="Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
-    /// <see cref="TransactionResultEvent"/> has column `transaction_id` which is reference to <see cref="Transaction"/>.
+    /// <see cref="Api.GraphQL.Transactions.Transaction"/> has column `block_id` which is reference to <see cref="Application.Api.GraphQL.Blocks.Block"/>.
+    /// <see cref="TransactionResultEvent"/> has column `transaction_id` which is reference to <see cref="Api.GraphQL.Transactions.Transaction"/>.
     ///
     /// From <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> there is a mapping between
     /// `tag` in column `event` and a transaction event.
@@ -220,13 +225,15 @@ WHERE
     }
 
     /// <inheritdoc/>
-    public Task SaveChangesAsync(CancellationToken token = default)
+    public async Task CommitAsync(CancellationToken token = default)
     {
-        return _context.SaveChangesAsync(token);
+        await _context.SaveChangesAsync(token);
+        _transactionScope.Complete();
     }
     /// <inheritdoc/>
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        return _context.DisposeAsync();
+        await _context.DisposeAsync();
+        _transactionScope.Dispose();
     }
 }
