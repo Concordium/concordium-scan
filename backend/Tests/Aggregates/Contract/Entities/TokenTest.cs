@@ -53,7 +53,8 @@ public sealed class TokenTest : IAsyncLifetime
             tokenId: tokenId,
             contractIndex: contractIndex,
             contractSubIndex: contractSubindex,
-            transactionId: 0,
+            transactionHash: "foobar",
+            parsed: null,
             tokenAmount: amount,
             toAddress: new ContractAddress(contractIndex, contractSubindex)
         );

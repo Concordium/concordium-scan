@@ -710,7 +710,8 @@ type CisBurnEvent {
   fromAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  transactionId: Long!
+  transactionHash: String!
+  parsed: String
 }
 
 type CisMintEvent {
@@ -719,7 +720,8 @@ type CisMintEvent {
   toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  transactionId: Long!
+  transactionHash: String!
+  parsed: String
 }
 
 type CisTokenMetadataEvent {
@@ -728,7 +730,8 @@ type CisTokenMetadataEvent {
   hashHex: String
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  transactionId: Long!
+  transactionHash: String!
+  parsed: String
 }
 
 type CisTransferEvent {
@@ -738,7 +741,8 @@ type CisTransferEvent {
   toAddress: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  transactionId: Long!
+  transactionHash: String!
+  parsed: String
 }
 
 type CisUpdateOperatorEvent {
@@ -747,7 +751,8 @@ type CisUpdateOperatorEvent {
   operator: Address!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
-  transactionId: Long!
+  transactionHash: String!
+  parsed: String
 }
 
 "Information about the offset pagination."

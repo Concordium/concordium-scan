@@ -26,7 +26,7 @@ public sealed class CisEventConverterTest
     };
 
     private const string TransferEvent =
-        "{\"tag\":4,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":42,\"FromAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ToAddress\":{\"tag\":2,\"data\":\"42,0\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionId\":0}}";
+        "{\"tag\":4,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":42,\"FromAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ToAddress\":{\"tag\":2,\"data\":\"42,0\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionHash\":\"foobar\",\"Parsed\":null}}";
     
     [Fact]
     public void WhenReadTransferEvent_ThenReturnParsedObject()
@@ -43,7 +43,8 @@ public sealed class CisEventConverterTest
             contractIndex: 1423,
             contractSubIndex: 0,
             tokenId: "00000001",
-            transactionId: 0,
+            transactionHash: "foobar",
+            parsed: null,
             tokenAmount: new BigInteger(42),
             toAddress: new ContractAddress(42,0),
             fromAddress:new AccountAddress("48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e")
@@ -52,7 +53,7 @@ public sealed class CisEventConverterTest
         WhenWriteEvent_ThenObjectWritten(cisTransferEvent, TransferEvent);
     }
 
-    private const string TokenMetadataEvent = "{\"tag\":2,\"data\":{\"TokenId\":\"00000001\",\"MetadataUrl\":\"https://ipfs.io/ipfs/QmV5REE3HJRLTHdmqG18Wc5PBF3Nc9W5dQL4Rp7MxBsx8q?filename=nft.jpg\",\"HashHex\":null,\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionId\":0}}";
+    private const string TokenMetadataEvent = "{\"tag\":2,\"data\":{\"TokenId\":\"00000001\",\"MetadataUrl\":\"https://ipfs.io/ipfs/QmV5REE3HJRLTHdmqG18Wc5PBF3Nc9W5dQL4Rp7MxBsx8q?filename=nft.jpg\",\"HashHex\":null,\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionHash\":\"foobar\",\"Parsed\":null}}";
     
     [Fact]
     public void WhenReadTokenMetadataEvent_ThenReturnParsedObject()
@@ -69,7 +70,8 @@ public sealed class CisEventConverterTest
             contractIndex: 1423,
             contractSubIndex: 0,
             tokenId: "00000001",
-            transactionId: 0,
+            transactionHash: "foobar",
+            parsed: null,
             metadataUrl:"https://ipfs.io/ipfs/QmV5REE3HJRLTHdmqG18Wc5PBF3Nc9W5dQL4Rp7MxBsx8q?filename=nft.jpg",
             hashHex: null
         );
@@ -78,7 +80,7 @@ public sealed class CisEventConverterTest
     }
 
     private const string BurnEvent =
-        "{\"tag\":1,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":1,\"FromAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionId\":0}}";
+        "{\"tag\":1,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":1,\"FromAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionHash\":\"foobar\",\"Parsed\":null}}";
 
     [Fact]
     public void WhenReadBurnEvent_ThenReturnParsedObject()
@@ -96,14 +98,15 @@ public sealed class CisEventConverterTest
             contractIndex: 1423,
             contractSubIndex: 0,
             tokenId: "00000001",
-            transactionId: 0
+            transactionHash: "foobar",
+            parsed: null
         );
 
         WhenWriteEvent_ThenObjectWritten(cisBurnEvent, BurnEvent);
     }
     
     private const string MintEvent =
-        "{\"tag\":3,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":1,\"ToAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionId\":0}}";
+        "{\"tag\":3,\"data\":{\"TokenId\":\"00000001\",\"TokenAmount\":1,\"ToAddress\":{\"tag\":1,\"data\":\"48x2Uo8xCMMxwGuSQnwbqjzKtVqK5MaUud4vG7QEUgDmYkV85e\"},\"ContractIndex\":1423,\"ContractSubIndex\":0,\"TransactionHash\":\"foobar\",\"Parsed\":null}}";
     
     [Fact]
     public void WhenReadMintEvent_ThenReturnParsedObject()
@@ -121,7 +124,8 @@ public sealed class CisEventConverterTest
             contractIndex: 1423,
             contractSubIndex: 0,
             tokenId: "00000001",
-            transactionId: 0
+            transactionHash: "foobar",
+            parsed: null
         );
         
         WhenWriteEvent_ThenObjectWritten(cisMintEvent, MintEvent);

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.EventLogs;
-using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
@@ -87,16 +87,16 @@ public sealed class EventLogHandlerTest
             {
                 new(Convert.FromHexString(cisEventInHexadecimal))
             });
-        var contractUpdateIssued = new ContractUpdateIssued(new List<IContractTraceElement>{updated});
-
-        var accountTransactionDetails = new AccountTransactionDetailsBuilder(contractUpdateIssued)
+        var contractUpdated = ContractUpdated.From(updated);
+        var contractEvent = ContractEventBuilder.Create()
+            .WithEvent(contractUpdated)
             .Build();
-        var blockItemSummary = new BlockItemSummaryBuilder(accountTransactionDetails)
-            .Build();
-        var transactionPair = new TransactionPair(blockItemSummary, new Transaction());
+        var contractRepositoryMock = new Mock<IContractRepository>();
+        contractRepositoryMock.Setup(m => m.GetContractEventsAddedInTransaction())
+            .Returns(new List<Application.Aggregates.Contract.Entities.ContractEvent> { contractEvent });
 
         // Act
-        eventLogHandler.HandleLogs(new []{transactionPair});
+        eventLogHandler.HandleLogs(contractRepositoryMock.Object);
 
         // Assert
         await using var context = _fixture.CreateGraphQlDbContext();
