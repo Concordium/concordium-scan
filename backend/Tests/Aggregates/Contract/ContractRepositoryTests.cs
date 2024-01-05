@@ -9,6 +9,7 @@ using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
+using Dapper;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
@@ -26,6 +27,71 @@ public sealed class ContractRepositoryTests
     public ContractRepositoryTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture;
+    }
+
+    [Fact]
+    public async Task WhenUsingDifferentFrameworks_ThenSaveInOneTransaction()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
+        
+        // Act
+        await using (var contractRepository =
+                     new ContractRepository(RepositoryFactory.CreateTransactionScope(), _databaseFixture.CreateGraphQlDbContext()))
+        {
+            await contractRepository.AddAsync(new ContractReadHeight(1, ImportSource.NodeImport));
+
+            await using (var innerContext = _databaseFixture.CreateGraphQlDbContext())
+            {
+                var connection = innerContext.Database.GetDbConnection();
+                await connection.OpenAsync();
+                await connection.ExecuteAsync(
+                    "insert into graphql_contract_read_heights(block_height, source, created_at) values(1, 0, now())");
+                await connection.CloseAsync();
+            }
+
+            await contractRepository.CommitAsync();
+        };
+        
+        // Assert
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        graphQlDbContext.ContractReadHeights.Count().Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GivenException_WhenOnlySavedUsingOneFramework_ThenDoNotCommitToDatabase()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
+        
+        // Act
+        try
+        {
+            await using (var contractRepository =
+                         new ContractRepository(RepositoryFactory.CreateTransactionScope(), _databaseFixture.CreateGraphQlDbContext()))
+            {
+                await contractRepository.AddAsync(new ContractReadHeight(1, ImportSource.NodeImport));
+
+                await using (var innerContext = _databaseFixture.CreateGraphQlDbContext())
+                {
+                    var connection = innerContext.Database.GetDbConnection();
+                    await connection.OpenAsync();
+                    await connection.ExecuteAsync(
+                        "insert into graphql_contract_read_heights(block_height, source) values(1, 0)");
+                    await connection.CloseAsync();
+                }
+
+                throw new Exception();
+            };
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
+        
+        // Assert
+        var graphQlDbContext = _databaseFixture.CreateGraphQlDbContext();
+        graphQlDbContext.ContractReadHeights.Count().Should().Be(0);
     }
 
     [Fact]
