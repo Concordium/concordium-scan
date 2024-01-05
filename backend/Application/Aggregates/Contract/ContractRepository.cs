@@ -80,7 +80,7 @@ internal sealed class ContractRepository : IContractRepository
     internal static async Task<ContractRepository> Create(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
         var transactionScope = CreateTransactionScope();
-        var graphQlDbContext = dbContextFactory.CreateDbContext();
+        var graphQlDbContext = await dbContextFactory.CreateDbContextAsync();
         return new ContractRepository(transactionScope, graphQlDbContext);
     }
     
