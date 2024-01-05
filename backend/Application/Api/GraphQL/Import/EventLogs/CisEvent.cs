@@ -40,7 +40,7 @@ namespace Application.Api.GraphQL.Import.EventLogs
         /// Sub Index of Contract emitting this event.
         /// </summary>
         /// <value></value>
-        public ulong ContractSubIndex { get; init;  }
+        public ulong ContractSubIndex { get; init; }
 
         /// <summary>
         /// Transaction Id of the transaction that emitted this event.

@@ -9,11 +9,11 @@ namespace Application.Api.GraphQL.Tokens;
 public sealed class TokenEvent
 {
     [ID]
-    public long Id { get; set; }
-    public ulong ContractIndex { get; set; }
-    public ulong ContractSubIndex { get; set; }
-    public string TokenId { get; set; }
-    public CisEvent Event { get; set; }
+    public long Id { get; init; }
+    public ulong ContractIndex { get; init; }
+    public ulong ContractSubIndex { get; init; }
+    public string TokenId { get; init; }
+    public CisEvent Event { get; init; }
 
     public TokenEvent(
         ulong contractIndex,
