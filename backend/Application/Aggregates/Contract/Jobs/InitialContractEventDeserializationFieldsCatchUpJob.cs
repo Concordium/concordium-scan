@@ -54,7 +54,10 @@ public sealed class InitialContractEventDeserializationFieldsCatchUpJob : IState
         
         return Enumerable.Range(0, batchCount);
     }
-    
+
+    /// <inheritdoc/>
+    public ValueTask Setup(CancellationToken token) => ValueTask.CompletedTask;
+
     /// <summary>
     /// Updates <see cref="Application.Aggregates.Contract.Entities.ContractEvent"/> with hexadecimal fields parsed. 
     /// </summary>

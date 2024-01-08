@@ -127,7 +127,7 @@ namespace Application.Aggregates.Contract.EventLogs
                     .GetBaseAddress()
                     .ToString())
                 .Distinct();
-            var accountsMap = this._accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
+            var accountsMap = _accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyAccountUpdates));
 
             using var context = _dbContextFactory.CreateDbContext();
