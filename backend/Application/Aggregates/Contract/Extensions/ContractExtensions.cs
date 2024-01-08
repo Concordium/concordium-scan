@@ -53,7 +53,7 @@ public static class ContractExtensions
 
     private static void AddCisEventServices(this IServiceCollection collection)
     {
-        collection.AddTransient<IEventLogHandler, IEventLogHandler>();
+        collection.AddTransient<IEventLogHandler, EventLogHandler>();
         collection.AddTransient<IEventLogWriter, EventLogWriter>();
     }
 
