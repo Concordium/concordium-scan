@@ -16,6 +16,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IEventLogHandler _eventLogHandler;
+    private readonly ILogger _logger;
 
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
@@ -29,6 +30,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     {
         _contextFactory = contextFactory;
         _eventLogHandler = eventLogHandler;
+        _logger = Log.ForContext<_10_CisEventReinitialization>();
     }
 
     /// <inheritdoc/>
@@ -53,6 +55,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     /// <inheritdoc/>
     public async ValueTask Process(int identifier, CancellationToken token = default)
     {
+        _logger.Debug($"Start processing {identifier}");
         TransactionScope? transactionScope = null;
         try
         {
@@ -65,6 +68,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
             var jobContractRepository = new JobContractRepository(contractEvents);
             await _eventLogHandler.HandleCisEvent(jobContractRepository);
             transactionScope.Complete();
+            _logger.Debug($"Completed successfully processing {identifier}");
         }
         finally
         {

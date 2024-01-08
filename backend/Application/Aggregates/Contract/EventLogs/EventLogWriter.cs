@@ -148,7 +148,7 @@ namespace Application.Aggregates.Contract.EventLogs
                 if (accountsMap[accountBaseAddress] is null 
                     || !accountsMap[accountBaseAddress].HasValue)
                 {
-                    _logger.Debug("could not find account: {account}", accountUpdate.Address);
+                    _logger.Debug("could not find account: {account}", accountUpdate.Address.AsString);
                     continue;
                 }
 
