@@ -1,6 +1,0 @@
-version: "3"
-services:
-  frontend:
-    image: foo:10
-    ports:
-      - "3000:3000"
