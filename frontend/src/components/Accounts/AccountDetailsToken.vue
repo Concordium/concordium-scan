@@ -43,6 +43,7 @@ import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import TokenAmount from '~/components/atoms/TokenAmount.vue'
+import { fetchMetadata } from '~~/src/types/tokens'
 
 const { breakpoint } = useBreakpoint()
 
@@ -60,9 +61,7 @@ watchEffect(() => {
 		.filter(t => t.token.metadataUrl)
 		.forEach(async t => {
 			try {
-				const response = await fetch(t.token.metadataUrl as string)
-				const json = await response.json()
-				t.metadata = json
+				t.metadata = await fetchMetadata(t.token.metadataUrl as string)
 			} catch {}
 		})
 })

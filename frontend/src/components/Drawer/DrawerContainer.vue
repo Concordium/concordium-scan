@@ -65,6 +65,12 @@
 							v-else-if="drawerItem && drawerItem.entityTypeName === 'node'"
 							:node-internal-id="drawerItem.nodeId"
 						/>
+						<TokenDetailsContainer
+							v-else-if="drawerItem && drawerItem.entityTypeName === 'token'"
+							:token-id="drawerItem.tokenId"
+							:contract-address-index="drawerItem.contractAddressIndex"
+							:contract-address-sub-index="drawerItem.contractAddressSubIndex"
+						/>
 					</template>
 				</Drawer>
 			</div>
@@ -83,6 +89,7 @@ import PassiveDelegationContainer from '~/components/PassiveDelegation/PassiveDe
 import NodeDetailsContainer from '~/components/NodeDetails/NodeDetailsContainer.vue'
 import ContractDetailsContainer from '~/components/Contracts/ContractDetailsContainer.vue'
 import ModuleDetailsContainer from '~/components/Module/ModuleDetailsContainer.vue'
+import TokenDetailsContainer from '~/components/Tokens/TokenDetailsContainer.vue'
 
 const { softReset, getDisplayItems, currentDrawerCount, currentTopItem } =
 	useDrawer()
