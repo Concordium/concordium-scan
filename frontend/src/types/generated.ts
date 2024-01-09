@@ -994,6 +994,64 @@ export type ChainUpdateEnqueued = {
 
 export type ChainUpdatePayload = AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload | BakerStakeThresholdChainUpdatePayload | BlockEnergyLimitUpdate | CooldownParametersChainUpdatePayload | ElectionDifficultyChainUpdatePayload | EuroPerEnergyChainUpdatePayload | FinalizationCommitteeParametersUpdate | FoundationAccountChainUpdatePayload | GasRewardsChainUpdatePayload | GasRewardsCpv2Update | Level1KeysChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload | MinBlockTimeUpdate | MintDistributionChainUpdatePayload | MintDistributionV1ChainUpdatePayload | PoolParametersChainUpdatePayload | ProtocolChainUpdatePayload | RootKeysChainUpdatePayload | TimeParametersChainUpdatePayload | TimeoutParametersUpdate | TransactionFeeDistributionChainUpdatePayload;
 
+export type CisBurnEvent = {
+  __typename?: 'CisBurnEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  fromAddress: Address;
+  parsed?: Maybe<Scalars['String']>;
+  tokenAmount: Scalars['BigInteger'];
+  tokenId: Scalars['String'];
+  transactionHash: Scalars['String'];
+};
+
+export type CisEvent = CisBurnEvent | CisMintEvent | CisTokenMetadataEvent | CisTransferEvent | CisUpdateOperatorEvent;
+
+export type CisMintEvent = {
+  __typename?: 'CisMintEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  parsed?: Maybe<Scalars['String']>;
+  toAddress: Address;
+  tokenAmount: Scalars['BigInteger'];
+  tokenId: Scalars['String'];
+  transactionHash: Scalars['String'];
+};
+
+export type CisTokenMetadataEvent = {
+  __typename?: 'CisTokenMetadataEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  hashHex?: Maybe<Scalars['String']>;
+  metadataUrl: Scalars['String'];
+  parsed?: Maybe<Scalars['String']>;
+  tokenId: Scalars['String'];
+  transactionHash: Scalars['String'];
+};
+
+export type CisTransferEvent = {
+  __typename?: 'CisTransferEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  fromAddress: Address;
+  parsed?: Maybe<Scalars['String']>;
+  toAddress: Address;
+  tokenAmount: Scalars['BigInteger'];
+  tokenId: Scalars['String'];
+  transactionHash: Scalars['String'];
+};
+
+export type CisUpdateOperatorEvent = {
+  __typename?: 'CisUpdateOperatorEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  operator: Address;
+  owner: Address;
+  parsed?: Maybe<Scalars['String']>;
+  transactionHash: Scalars['String'];
+  update: OperatorUpdateType;
+};
+
 /** Information about the offset pagination. */
 export type CollectionSegmentInfo = {
   __typename?: 'CollectionSegmentInfo';
@@ -2029,6 +2087,11 @@ export type NotAllowedToReceiveEncrypted = {
   _: Scalars['Boolean'];
 };
 
+export enum OperatorUpdateType {
+  AddOperator = 'ADD_OPERATOR',
+  RemoveOperator = 'REMOVE_OPERATOR'
+}
+
 export type OutOfEnergy = {
   __typename?: 'OutOfEnergy';
   /** @deprecated Don't use! This field is only in the schema to make sure reject reasons without any fields are valid types in GraphQL (which does not allow types without any fields) */
@@ -2342,6 +2405,8 @@ export type Query = {
   rewardMetrics: RewardMetrics;
   rewardMetricsForAccount: RewardMetrics;
   search: SearchResult;
+  token: Token;
+  tokens?: Maybe<TokensConnection>;
   transaction?: Maybe<Transaction>;
   transactionByTransactionHash?: Maybe<Transaction>;
   transactionMetrics?: Maybe<TransactionMetrics>;
@@ -2481,6 +2546,21 @@ export type QueryRewardMetricsForAccountArgs = {
 
 export type QuerySearchArgs = {
   query: Scalars['String'];
+};
+
+
+export type QueryTokenArgs = {
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  tokenId: Scalars['String'];
+};
+
+
+export type QueryTokensArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
 };
 
 
@@ -2807,9 +2887,40 @@ export type Token = {
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
   metadataUrl?: Maybe<Scalars['String']>;
+  tokenEvents: Array<TokenEvent>;
   tokenId: Scalars['String'];
   tokens: Array<AccountToken>;
   totalSupply: Scalars['Decimal'];
+};
+
+export type TokenEvent = {
+  __typename?: 'TokenEvent';
+  contractIndex: Scalars['UnsignedLong'];
+  contractSubIndex: Scalars['UnsignedLong'];
+  event: CisEvent;
+  id: Scalars['ID'];
+  tokenId: Scalars['String'];
+  transaction?: Maybe<Transaction>;
+};
+
+/** A connection to a list of items. */
+export type TokensConnection = {
+  __typename?: 'TokensConnection';
+  /** A list of edges. */
+  edges?: Maybe<Array<TokensEdge>>;
+  /** A flattened list of the nodes. */
+  nodes?: Maybe<Array<Token>>;
+  /** Information to aid in pagination. */
+  pageInfo: PageInfo;
+};
+
+/** An edge in a connection. */
+export type TokensEdge = {
+  __typename?: 'TokensEdge';
+  /** A cursor for use in pagination. */
+  cursor: Scalars['String'];
+  /** The item at the end of the edge. */
+  node: Token;
 };
 
 export type Transaction = {

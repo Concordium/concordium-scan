@@ -1,6 +1,7 @@
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -64,7 +65,7 @@ public class Token
 [ExtendObjectType(typeof(Query))]
 public class TokenQuery
 {
-    [UsePaging]
+    [UsePaging(MaxPageSize = 100)]
     public IQueryable<Token> GetTokens(GraphQlDbContext dbContext) =>
         dbContext.Tokens.OrderByDescending(t => t.ContractIndex).AsNoTracking();
 

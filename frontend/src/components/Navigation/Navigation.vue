@@ -40,5 +40,9 @@ const routes: Route[] = [
 		title: 'Contracts',
 		path: '/contracts',
 	},
+	{
+		title: 'CIS2 Tokens',
+		path: '/tokens',
+	},
 ]
 </script>
