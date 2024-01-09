@@ -74,7 +74,7 @@ public static class ContractExtensions
         collection.AddTransient<InitialContractEventDeserializationFieldsCatchUpJob>();
         collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>>();
         collection.AddTransient<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
-        // collection.AddTransient<IContractJob, ParallelBatchJob<_10_CisEventReinitialization>>();
-        // collection.AddTransient<_10_CisEventReinitialization>();
+        collection.AddTransient<IContractJob, ParallelBatchJob<_10_CisEventReinitialization>>();
+        collection.AddTransient<_10_CisEventReinitialization>();
     }
 }
