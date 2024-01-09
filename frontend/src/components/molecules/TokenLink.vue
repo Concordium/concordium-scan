@@ -8,18 +8,23 @@
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
 				{{
-					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${props.tokenId}`
+					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
+						props.tokenId || '-'
+					}`
 				}}
 			</div>
-			<Tooltip v-else :text="props.tokenId" text-class="text-theme-body">
+			<Tooltip v-else :text="props.tokenId || '-'" text-class="text-theme-body">
 				{{
-					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${props.tokenId}`
+					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
+						props.tokenId || '-'
+					}`
 				}}
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			v-if="props.url"
-			:text="`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${props.tokenId}`"
+			:text="`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
+				props.tokenId || '-'
+			}`"
 			label="Click to copy index/subindex/token id to clip board"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
@@ -28,6 +33,7 @@
 </template>
 <script lang="ts" setup>
 import Tooltip from '../atoms/Tooltip.vue'
+import TextCopy from '../atoms/TextCopy.vue'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import { useDrawer } from '~/composables/useDrawer'

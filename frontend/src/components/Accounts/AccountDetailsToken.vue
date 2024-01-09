@@ -19,7 +19,9 @@
 					<TableTd>
 						<TokenLink
 							:token-id="token.tokenId"
-							:url="token.token.metadataUrl"
+							:url="(token.token.metadataUrl as string)"
+							:contract-address-index="token.contractIndex"
+							:contract-address-sub-index="token.contractSubIndex"
 						/>
 					</TableTd>
 					<TableTd align="right" class="numerical">
@@ -36,6 +38,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
+import TokenLink from '../molecules/TokenLink.vue'
 import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
