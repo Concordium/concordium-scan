@@ -12,6 +12,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract.Jobs;
 
+/// <summary>
+/// The job starts by truncate tables graphql_account_tokens, graphql_token_events and graphql_tokens. Reinitialization
+/// is needed both because mint events was not correctly updating account token balances.
+///
+/// For each contract those contract actions, which generates log events, are processed
+/// (contract initialization, contract interrupted and contract updated).
+///
+/// Each log events is checked if it should be parsed, see <see cref="CisEvent"/>. If the contract has a linked
+/// schema and a successfully human interpretable log event linked, the human interpretable log event is linked to
+/// the event. This may contain additional data.
+/// </summary>
 public sealed class _10_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
