@@ -32,7 +32,7 @@ public sealed class _10_CisEventReinitializationTests
     [Fact]
     public async Task WhenRunJob_ThenUpdateTokenRelatedEntities()
     {
-        // Assert
+        // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_events");
         const int expectedBalance = 999958;
         const string expectedTokenId = "";
