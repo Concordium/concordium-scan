@@ -16,8 +16,8 @@ using Microsoft.Extensions.Options;
 namespace Application.Aggregates.Contract.Jobs;
 
 /// <summary>
-/// The job starts by truncate tables graphql_account_tokens, graphql_token_events and graphql_tokens. Reinitialization
-/// is needed both because mint events was not correctly updating account token balances.
+/// The job starts by truncating the tables graphql_account_tokens, graphql_token_events and graphql_tokens. Reinitialization
+/// is needed because mint events was not correctly updating account token balances.
 ///
 /// For each contract those contract actions, which generates log events, are processed
 /// (contract initialization, contract interrupted and contract updated).
