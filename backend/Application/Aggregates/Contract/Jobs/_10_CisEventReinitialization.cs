@@ -22,7 +22,7 @@ namespace Application.Aggregates.Contract.Jobs;
 /// For each contract those contract actions, which generates log events, are processed
 /// (contract initialization, contract interrupted and contract updated).
 ///
-/// Each log events is checked if it should be parsed, see <see cref="CisEvent"/>. If the contract has a linked
+/// Each log event is checked if it should be parsed, see <see cref="CisEvent"/>. If the contract has a linked
 /// schema and a successfully human interpretable log event linked, the human interpretable log event is linked to
 /// the event. This may contain additional data.
 /// </summary>
