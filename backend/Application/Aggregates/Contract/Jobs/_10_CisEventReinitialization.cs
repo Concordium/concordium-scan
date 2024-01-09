@@ -1,14 +1,17 @@
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.EventLogs;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Resilience;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
 
@@ -27,6 +30,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IEventLogHandler _eventLogHandler;
+    private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
 
     /// <summary>
@@ -36,11 +40,12 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 
     public _10_CisEventReinitialization(
         IDbContextFactory<GraphQlDbContext> contextFactory,
-        IEventLogHandler eventLogHandler
-        )
+        IEventLogHandler eventLogHandler,
+        IOptions<ContractAggregateOptions> options)
     {
         _contextFactory = contextFactory;
         _eventLogHandler = eventLogHandler;
+        _options = options.Value;
         _logger = Log.ForContext<_10_CisEventReinitialization>();
     }
 
@@ -52,7 +57,8 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     {
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
         var max = context.ContractEvents.Max(ce => ce.ContractAddressIndex);
-        return Enumerable.Range(0, (int)max + 1);
+        var shift = 4000;
+        return Enumerable.Range(shift, (int)max + 1 - shift);
     }
 
     /// <inheritdoc/>
@@ -67,24 +73,33 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     public async ValueTask Process(int identifier, CancellationToken token = default)
     {
         _logger.Debug($"Start processing {identifier}");
-        TransactionScope? transactionScope = null;
-        try
-        {
-            transactionScope = new TransactionScope(
-                TransactionScopeOption.Required,
-                new TransactionOptions{IsolationLevel = IsolationLevel.ReadCommitted},
-                TransactionScopeAsyncFlowOption.Enabled);
-            
-            var contractEvents = await GetContractEvents(identifier, token);
-            var jobContractRepository = new JobContractRepository(contractEvents);
-            await _eventLogHandler.HandleCisEvent(jobContractRepository);
-            transactionScope.Complete();
-            _logger.Debug($"Completed successfully processing {identifier}");
-        }
-        finally
-        {
-            transactionScope?.Dispose();
-        }
+        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
+            .ExecuteAsync(async () =>
+            {
+                TransactionScope? transactionScope = null;
+                try
+                {
+                    transactionScope = new TransactionScope(
+                        TransactionScopeOption.Required,
+                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
+                        TransactionScopeAsyncFlowOption.Enabled);
+
+                    var contractEvents = await GetContractEvents(identifier, token);
+                    var jobContractRepository = new JobContractRepository(contractEvents);
+                    await _eventLogHandler.HandleCisEvent(jobContractRepository);
+                    transactionScope.Complete();
+                    _logger.Debug($"Completed successfully processing {identifier}");
+                }
+                catch (Exception e)
+                {
+                    _logger.Warning(e, $"Exception on identifier {identifier}");
+                    throw;
+                }
+                finally
+                {
+                    transactionScope?.Dispose();
+                }
+            });
     }
 
     /// <inheritdoc/>
