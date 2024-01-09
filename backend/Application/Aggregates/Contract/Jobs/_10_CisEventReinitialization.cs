@@ -57,8 +57,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     {
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
         var max = context.ContractEvents.Max(ce => ce.ContractAddressIndex);
-        var shift = 4000;
-        return Enumerable.Range(shift, (int)max + 1 - shift);
+        return Enumerable.Range(0, (int)max + 1);
     }
 
     /// <inheritdoc/>
