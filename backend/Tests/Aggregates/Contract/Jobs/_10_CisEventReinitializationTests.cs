@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
+using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.Transactions;
@@ -9,6 +10,7 @@ using Concordium.Sdk.Types;
 using FluentAssertions;
 using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
@@ -47,7 +49,8 @@ public sealed class _10_CisEventReinitializationTests
 
         var job = new _10_CisEventReinitialization(
             _fixture.CreateDbContractFactoryMock().Object,
-            eventLogHandler
+            eventLogHandler,
+            Options.Create(new ContractAggregateOptions())
             );
 
         // Act
