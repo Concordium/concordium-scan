@@ -25,12 +25,12 @@ namespace Tests.Aggregates.Contract;
 public sealed class ContractRepositoryTests
 {
     private readonly DatabaseFixture _databaseFixture;
-    private readonly Mock<IDbContextFactory<GraphQlDbContext>> dbContractFactoryMock;
+    private readonly Mock<IDbContextFactory<GraphQlDbContext>> _dbContractFactoryMock;
 
     public ContractRepositoryTests(DatabaseFixture databaseFixture)
     {
         _databaseFixture = databaseFixture; 
-        dbContractFactoryMock = _databaseFixture.CreateDbContractFactoryMock();
+        _dbContractFactoryMock = _databaseFixture.CreateDbContractFactoryMock();
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class ContractRepositoryTests
         await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         
         // Act
-        await using (var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object))
+        await using (var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object))
         {
             await contractRepository.AddAsync(new ContractReadHeight(1, ImportSource.NodeImport));
 
@@ -70,7 +70,7 @@ public sealed class ContractRepositoryTests
         // Act
         try
         {
-            await using (var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object))
+            await using (var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object))
             {
                 await contractRepository.AddAsync(new ContractReadHeight(1, ImportSource.NodeImport));
 
@@ -116,7 +116,7 @@ public sealed class ContractRepositoryTests
             .WithContractAddress(new ContractAddress(3,0))
             .Build();
         
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         await contractRepository.AddAsync(second, third);
         
         // Act
@@ -141,7 +141,7 @@ public sealed class ContractRepositoryTests
             new ContractReadHeight(5, ImportSource.DatabaseImport),
             new ContractReadHeight(6, ImportSource.DatabaseImport),
             new ContractReadHeight(7, ImportSource.DatabaseImport));
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         
         // Act
         var readHeights = await contractRepository.FromBlockHeightRangeGetBlockHeightsReadOrdered(2, 6);
@@ -160,7 +160,7 @@ public sealed class ContractRepositoryTests
         await DatabaseFixture.TruncateTables("graphql_transactions");
         var blockIds = await InsertFiveBlocks();
         await InsertSixTransactionsWithRejections(blockIds);
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         ContractExtensions.AddDapperTypeHandlers();
         
         // Act
@@ -239,7 +239,7 @@ public sealed class ContractRepositoryTests
         var blockIds = await InsertFiveBlocks();
         var transactionIds = await InsertSixTransactions(blockIds);
         await InsertTransactionResultEvents(transactionIds);
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         ContractExtensions.AddDapperTypeHandlers();
         
         // Act
@@ -377,7 +377,7 @@ public sealed class ContractRepositoryTests
             new ContractReadHeight(1, ImportSource.DatabaseImport),
             new ContractReadHeight(latestHeight, ImportSource.NodeImport),
             new ContractReadHeight(2, ImportSource.DatabaseImport));
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
@@ -393,7 +393,7 @@ public sealed class ContractRepositoryTests
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestContractReadHeight();
@@ -423,7 +423,7 @@ public sealed class ContractRepositoryTests
             .Build();
         await _databaseFixture.AddAsync(first, second, third);
         
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
@@ -437,7 +437,7 @@ public sealed class ContractRepositoryTests
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_import_state");
-        await using var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         
         // Act
         var latest = await contractRepository.GetReadonlyLatestImportState(CancellationToken.None);
@@ -455,7 +455,7 @@ public sealed class ContractRepositoryTests
         await DatabaseFixture.TruncateTables("graphql_contract_read_heights");
         
         // Act
-        await using (var contractRepository = await ContractRepository.Create(dbContractFactoryMock.Object))
+        await using (var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object))
         {
             await contractRepository.AddAsync(new ContractReadHeight(blockHeight, source));
             await contractRepository.CommitAsync();    
@@ -500,7 +500,7 @@ public sealed class ContractRepositoryTests
         await context.AddRangeAsync(first, second, third);
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
-        await using var repository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var repository = await ContractRepository.Create(_dbContractFactoryMock.Object);
 
         // Act
         var initialized = await repository.GetReadonlyContractInitializedEventAsync(oneContract);
@@ -534,7 +534,7 @@ public sealed class ContractRepositoryTests
             await context.SaveChangesAsync();    
         }
         
-        await using var repository = await ContractRepository.Create(dbContractFactoryMock.Object);
+        await using var repository = await ContractRepository.Create(_dbContractFactoryMock.Object);
         var first = ContractEventBuilder.Create()
             .WithBlockHeight(3)
             .WithEvent(new ContractInitialized("", oneContract, 10, oneContractName, ContractVersion.V0, Array.Empty<string>()))
