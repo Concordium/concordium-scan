@@ -13,7 +13,7 @@ public sealed class TokenTransactionConfiguration : IEntityTypeConfiguration<Tok
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.ContractIndex).HasColumnName("contract_address_index").HasColumnType("bigint");
         builder.Property(x => x.ContractSubIndex).HasColumnName("contract_address_subindex").HasColumnType("bigint");
-        builder.Property(x => x.TokenId).HasColumnName("token_id").HasColumnType<string>("text");
+        builder.Property(x => x.TokenId).HasColumnName("token_id").HasColumnType("text");
         builder.Property(x => x.Event).HasColumnName("event").HasColumnType("json")
             .HasConversion<CisEventToJsonConverter>();
     }

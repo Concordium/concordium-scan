@@ -32,7 +32,20 @@ public class TransactionResultEventHandler : SqlMapper.TypeHandler<TransactionRe
         return JsonSerializer.Deserialize<TransactionResultEvent>(value.ToString()!, EfCoreJsonSerializerOptionsFactory.Default)!;
     }
 }
-    
+
+public class CisEventHandler : SqlMapper.TypeHandler<EventLogs.CisEvent>
+{
+    public override void SetValue(IDbDataParameter parameter, EventLogs.CisEvent value)
+    {
+        parameter.Value = JsonSerializer.Serialize(value, EfCoreJsonSerializerOptionsFactory.Default);
+    }
+
+    public override EventLogs.CisEvent Parse(object value)
+    {
+        return JsonSerializer.Deserialize<EventLogs.CisEvent>(value.ToString()!, EfCoreJsonSerializerOptionsFactory.Default)!;
+    }   
+}
+
 public class TransactionTypeUnionHandler : SqlMapper.TypeHandler<TransactionTypeUnion>
 {
     public override void SetValue(IDbDataParameter parameter, TransactionTypeUnion value)
