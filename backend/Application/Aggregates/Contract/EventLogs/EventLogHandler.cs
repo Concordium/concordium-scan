@@ -29,7 +29,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
-        public Task HandleCisEvent(IContractRepository contractRepository)
+        public async Task HandleCisEvent(IContractRepository contractRepository)
         {
             var addedEvents = contractRepository.GetContractEventsAddedInTransaction()
                 .OrderBy(ce => ce.BlockHeight)
@@ -81,10 +81,10 @@ namespace Application.Aggregates.Contract.EventLogs
 
             if (tokenEvents.Any())
             {
-                _writer.ApplyTokenEvents(tokenEvents);
+                await _writer.ApplyTokenEvents(tokenEvents);
             }
 
-            return NotifyAccountListeners(accountUpdates);
+            await NotifyAccountListeners(accountUpdates);
         }
 
         private async Task NotifyAccountListeners(List<CisAccountUpdate> accountUpdates)
@@ -256,7 +256,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// <param name="bytes">Input bytes</param>
         /// <param name="parsed">Parsed event in human interpretable form.</param>
         /// <returns></returns>
-        private static CisEvent? ParseCisEvent(
+        private static CisEvent ParseCisEvent(
             ContractAddress address,
             string transactionHash,
             byte[] bytes,

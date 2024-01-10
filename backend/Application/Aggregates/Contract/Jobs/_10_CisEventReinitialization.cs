@@ -103,13 +103,37 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 
     /// <inheritdoc/>
     public bool ShouldNodeImportAwait() => true;
+    
+    /// <summary>
+    /// Return contract events with logs.
+    ///
+    /// <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> has event mapping.
+    /// </summary>
+    private const string ContractEventWithLogs = @"
+SELECT
+    g0.block_height as BlockHeight,
+    g0.transaction_index as TransactionIndex,
+    g0.event_index as EventIndex,
+    g0.contract_address_index as ContractAddressIndex,
+    g0.contract_address_subindex as ContractAddressSubIndex,
+    g0.block_slot_time as BlockSlotTime,
+    g0.created_at as CreatedAt,
+    g0.event as Event,
+    g0.sender as Creator,
+    g0.source as Source,
+    g0.transaction_hash as TransactionHash
+FROM graphql_contract_events AS g0
+WHERE (g0.contract_address_index = @Index) AND
+g0.event ->> 'tag' in ('16', '18', '34') 
+";    
 
     private async Task<IList<ContractEvent>> GetContractEvents(int address, CancellationToken token = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(token);
-        var contractEvents = await context.ContractEvents.Where(ce => ce.ContractAddressIndex == (ulong)address)
-            .ToListAsync(cancellationToken: token);
-        return contractEvents;
+        var parameter = new { Index = (long)address};
+        var contractEvent = await context.Database.GetDbConnection().QueryAsync<ContractEvent>(ContractEventWithLogs, parameter);
+        
+        return contractEvent.ToList();
     }
     
     private sealed class JobContractRepository : IContractRepository

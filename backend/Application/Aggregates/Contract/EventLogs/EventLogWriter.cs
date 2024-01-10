@@ -1,9 +1,11 @@
 using System.Data.Common;
 using System.Numerics;
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Common.Diagnostics;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -26,7 +28,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// <summary>
         /// Store token events.
         /// </summary>
-        void ApplyTokenEvents(IEnumerable<TokenEvent> tokenTransactions);
+        Task ApplyTokenEvents(IEnumerable<TokenEvent> tokenEvents);
     }
     
     /// <summary>
@@ -173,11 +175,22 @@ namespace Application.Aggregates.Contract.EventLogs
         }
 
         /// <inheritdoc/>
-        public void ApplyTokenEvents(IEnumerable<TokenEvent> tokenTransactions)
+        public async Task ApplyTokenEvents(IEnumerable<TokenEvent> tokenEvents)
         {
-            using var context = _dbContextFactory.CreateDbContext();
-            context.TokenEvents.AddRange(tokenTransactions);
-            context.SaveChanges();
+            const string sql = @"
+    insert into graphql_token_events 
+    (contract_address_index, contract_address_subindex, token_id, event) 
+    values (@ContractIndex, @ContractSubIndex, @TokenId, @Event::json)";
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+            await context.Database.GetDbConnection().ExecuteAsync(
+                sql, 
+                tokenEvents.Select(te => new
+                {
+                    ContractIndex = (long)te.ContractIndex,
+                    ContractSubIndex = (long)te.ContractSubIndex,
+                    te.TokenId,
+                    te.Event,
+                }));
         }
     }
 }

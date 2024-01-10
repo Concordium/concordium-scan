@@ -9,7 +9,6 @@ using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
 using Application.Configurations;
-using Application.Observability;
 using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;

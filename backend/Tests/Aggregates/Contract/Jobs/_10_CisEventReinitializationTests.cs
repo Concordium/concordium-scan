@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.EventLogs;
+using Application.Aggregates.Contract.Extensions;
 using Application.Aggregates.Contract.Jobs;
 using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
@@ -41,6 +42,7 @@ public sealed class _10_CisEventReinitializationTests
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
         const int expectedBalance = 999958;
         const string expectedTokenId = "";
         const int accountId = 1;

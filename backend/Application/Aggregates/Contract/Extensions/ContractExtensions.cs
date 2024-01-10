@@ -38,6 +38,7 @@ public static class ContractExtensions
         SqlMapper.AddTypeHandler(new TransactionResultEventHandler());
         SqlMapper.AddTypeHandler(new TransactionTypeUnionHandler());
         SqlMapper.AddTypeHandler(new AccountAddressHandler());
+        SqlMapper.AddTypeHandler(new CisEventHandler());
     }
 
     internal static IRequestExecutorBuilder AddContractGraphQlConfigurations(this IRequestExecutorBuilder builder)

@@ -15,7 +15,6 @@ public class InitialModuleSourceCatchup : IContractJob
 {
     private readonly IContractNodeClient _client;
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
-    private readonly JobHealthCheck _jobHealthCheck;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
     private readonly JobOptions _jobOptions;
@@ -28,12 +27,10 @@ public class InitialModuleSourceCatchup : IContractJob
     public InitialModuleSourceCatchup(
         IContractNodeClient client,
         IDbContextFactory<GraphQlDbContext> dbContextFactory,
-        IOptions<ContractAggregateOptions> options,
-        JobHealthCheck jobHealthCheck)
+        IOptions<ContractAggregateOptions> options)
     {
         _client = client;
         _dbContextFactory = dbContextFactory;
-        _jobHealthCheck = jobHealthCheck;
         _logger = Log.ForContext<InitialModuleSourceCatchup>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);
