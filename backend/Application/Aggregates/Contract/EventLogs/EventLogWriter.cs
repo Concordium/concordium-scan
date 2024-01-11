@@ -1,8 +1,10 @@
 using System.Data.Common;
 using System.Numerics;
+using System.Text;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.EfCore.Converters.EfCore;
 using Application.Api.GraphQL.Import;
 using Application.Common.Diagnostics;
 using Dapper;
@@ -28,7 +30,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// <summary>
         /// Store token events.
         /// </summary>
-        Task ApplyTokenEvents(IEnumerable<TokenEvent> tokenEvents);
+        Task ApplyTokenEvents(IList<TokenEvent> tokenEvents);
     }
     
     /// <summary>
@@ -65,7 +67,6 @@ namespace Application.Aggregates.Contract.EventLogs
             var batch = connection.CreateBatch();
 
             var cisEventTokenUpdates = tokenUpdates.ToList();
-            _logger.Information($"Token Updates: {cisEventTokenUpdates.Count}");
             foreach (var tokenUpdate in cisEventTokenUpdates)
             {
                 var cmd = batch.CreateBatchCommand();
@@ -139,7 +140,6 @@ namespace Application.Aggregates.Contract.EventLogs
 
             await connection.OpenAsync();
             var batch = connection.CreateBatch();
-            _logger.Information($"Account Updates: {accountUpdates.Count}");
             foreach (var accountUpdate in accountUpdates)
             {
                 if (accountUpdate is null)
@@ -178,22 +178,27 @@ namespace Application.Aggregates.Contract.EventLogs
         }
 
         /// <inheritdoc/>
-        public async Task ApplyTokenEvents(IEnumerable<TokenEvent> tokenEvents)
+        public async Task ApplyTokenEvents(IList<TokenEvent> tokenEvents)
         {
-            const string sql = @"
-    insert into graphql_token_events 
-    (contract_address_index, contract_address_subindex, token_id, event) 
-    values (@ContractIndex, @ContractSubIndex, @TokenId, @Event::json)";
+            if (tokenEvents.Count == 0)
+            {
+                return;
+            }
+            const string startSql =
+                "insert into graphql_token_events (contract_address_index, contract_address_subindex, token_id, event) values ";
+            var stringBuilder = new StringBuilder(startSql);
+            foreach (var tokenEvent in tokenEvents)
+            {
+                stringBuilder.Append(
+                    $"({(long)tokenEvent.ContractIndex}, {tokenEvent.ContractSubIndex}, '{tokenEvent.TokenId}', '{System.Text.Json.JsonSerializer.Serialize(tokenEvent.Event, EfCoreJsonSerializerOptionsFactory.Default)}'),");
+            }
+
+            stringBuilder.Remove(stringBuilder.Length - 1, 1); // Remove final ','
+            stringBuilder.Append(';');
+            var query = stringBuilder.ToString();
+
             await using var context = await _dbContextFactory.CreateDbContextAsync();
-            await context.Database.GetDbConnection().ExecuteAsync(
-                sql, 
-                tokenEvents.Select(te => new
-                {
-                    ContractIndex = (long)te.ContractIndex,
-                    ContractSubIndex = (long)te.ContractSubIndex,
-                    te.TokenId,
-                    te.Event,
-                }));
+            await context.Database.GetDbConnection().ExecuteAsync(query);
         }
     }
 }

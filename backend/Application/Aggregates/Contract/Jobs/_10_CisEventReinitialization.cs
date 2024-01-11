@@ -113,7 +113,7 @@ where contract_index = @Identifier;
 
     private Task InsertUpdatedEvents(
         IEnumerable<CisEventTokenUpdate> tokenUpdates,
-        IEnumerable<TokenEvent> tokenEvents,
+        IList<TokenEvent> tokenEvents,
         IList<CisAccountUpdate> accountUpdates
     )
     {

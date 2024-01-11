@@ -53,7 +53,7 @@ namespace Tests.Aggregates.Contract.EventLog
 
             updatesCount.Should().Be(5);
 
-            using var dbContext = _dbContextFactory.CreateDbContext();
+            await using var dbContext = _dbContextFactory.CreateDbContext();
             var allTokens = dbContext.Tokens.ToList();
 
             allTokens.Count.Should().Be(2);
