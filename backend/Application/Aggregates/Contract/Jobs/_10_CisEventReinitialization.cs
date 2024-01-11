@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -6,7 +7,9 @@ using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.EventLogs;
 using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.Transactions;
 using Application.Resilience;
 using Dapper;
@@ -29,7 +32,8 @@ namespace Application.Aggregates.Contract.Jobs;
 public sealed class _10_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
-    private readonly IEventLogHandler _eventLogHandler;
+    private readonly IEventLogWriter _writer;
+    private readonly IAccountLookup _accountLookup;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
 
@@ -40,11 +44,13 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 
     public _10_CisEventReinitialization(
         IDbContextFactory<GraphQlDbContext> contextFactory,
-        IEventLogHandler eventLogHandler,
+        IEventLogWriter writer,
+        IAccountLookup accountLookup,
         IOptions<ContractAggregateOptions> options)
     {
         _contextFactory = contextFactory;
-        _eventLogHandler = eventLogHandler;
+        _writer = writer;
+        _accountLookup = accountLookup;
         _options = options.Value;
         _logger = Log.ForContext<_10_CisEventReinitialization>();
     }
@@ -75,37 +81,159 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
             .ExecuteAsync(async () =>
             {
-                TransactionScope? transactionScope = null;
+                // TransactionScope? transactionScope = null;
                 try
                 {
-                    transactionScope = new TransactionScope(
-                        TransactionScopeOption.Required,
-                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                        TransactionScopeAsyncFlowOption.Enabled);
+                    // transactionScope = new TransactionScope(
+                    //     TransactionScopeOption.Required,
+                    //     new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
+                    //     TransactionScopeAsyncFlowOption.Enabled);
 
                     var contractEvents = await GetContractEvents(identifier, token);
                     var jobContractRepository = new JobContractRepository(contractEvents);
-                    await _eventLogHandler.HandleCisEvent(jobContractRepository);
-                    transactionScope.Complete();
+                    var (cisEventTokenUpdates, tokenEvents, cisAccountUpdates) = EventLogHandler.GetParsedTokenUpdate(jobContractRepository);
+                    var optimizeCisEventTokenUpdate = OptimizeCisEventTokenUpdate(cisEventTokenUpdates);
+                    var optimizeCisAccountUpdate = OptimizeCisAccountUpdate(cisAccountUpdates);
+                    await InsertUpdatedEvents(optimizeCisEventTokenUpdate, tokenEvents, optimizeCisAccountUpdate);
+                    // transactionScope.Complete();
                     _logger.Debug($"Completed successfully processing {identifier}");
                 }
                 catch (Exception e)
                 {
                     _logger.Warning(e, $"Exception on identifier {identifier}");
+                    await using var context = await _contextFactory.CreateDbContextAsync(token);
+                    await context.Database.GetDbConnection().ExecuteAsync(
+                        @"
+delete from graphql_token_events
+where contract_address_index = @Identifier;
+delete from graphql_account_tokens
+where contract_index = @Identifier;
+delete from graphql_tokens
+where contract_index = @Identifier;
+", new { Identifier = identifier });
                     throw;
                 }
-                finally
-                {
-                    transactionScope?.Dispose();
-                }
+                // finally
+                // {
+                //     transactionScope?.Dispose();
+                // }
             });
     }
 
     /// <inheritdoc/>
     public bool ShouldNodeImportAwait() => true;
+
+    private Task InsertUpdatedEvents(
+        IEnumerable<CisEventTokenUpdate> tokenUpdates,
+        IEnumerable<TokenEvent> tokenEvents,
+        IList<CisAccountUpdate> accountUpdates
+    )
+    {
+        var tasks = new List<Task>
+        {
+            _writer.ApplyTokenUpdates(tokenUpdates),
+            _writer.ApplyAccountUpdates(accountUpdates),
+            _writer.ApplyTokenEvents(tokenEvents)
+        };
+        return Task.WhenAll(tasks);
+    }
+    
+private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountUpdate> accountUpdates)
+    {
+        _logger.Debug($"Initial {accountUpdates.Count} CisAccountUpdate updates");
+        var accountBaseAddresses = accountUpdates
+            .Select(u => 
+                Concordium.Sdk.Types.AccountAddress.From(u.Address.AsString)
+                    .GetBaseAddress()
+                    .ToString())
+            .Distinct();
+        var accountsMap = _accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
+        
+        var accountTokenUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId, string AccountAddress), BigInteger>();
+        foreach (var accountUpdate in accountUpdates)
+        {
+            var accountBaseAddress = Concordium.Sdk.Types.AccountAddress.From(accountUpdate.Address.AsString)
+                .GetBaseAddress()
+                .ToString();
+            if (accountsMap[accountBaseAddress] is null 
+                || !accountsMap[accountBaseAddress].HasValue)
+            {
+                continue;
+            }
+            var key = (accountUpdate.ContractIndex, accountUpdate.ContractSubIndex, accountUpdate.TokenId, accountUpdate.Address.AsString);
+            if (accountTokenUpdates.ContainsKey(key))
+            {
+                accountTokenUpdates[key] += accountUpdate.AmountDelta;
+            }
+            else
+            {
+                accountTokenUpdates[key] = accountUpdate.AmountDelta;
+            }
+        }
+
+        var cisAccountUpdates = accountTokenUpdates.Select(keyValue => new CisAccountUpdate
+        {
+            AmountDelta = keyValue.Value,
+            Address = new AccountAddress(keyValue.Key.AccountAddress),
+            ContractSubIndex = keyValue.Key.ContractSubIndex,
+            ContractIndex = keyValue.Key.ContractIndex,
+            TokenId = keyValue.Key.TokenId
+        }).ToList();
+        
+        _logger.Debug($"From {accountUpdates.Count} to {cisAccountUpdates.Count} CisAccountUpdate");
+        return cisAccountUpdates;
+    }
+
+    private IEnumerable<CisEventTokenUpdate> OptimizeCisEventTokenUpdate(ICollection<CisEventTokenUpdate> tokenUpdates)
+    {
+        _logger.Debug($"Initial {tokenUpdates.Count} CisEventTokenUpdate updates");
+        var tokenAmountUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), BigInteger>();
+        var tokenMetadataUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), string>();
+        foreach (var cisEventTokenUpdate in tokenUpdates)
+        {
+            var key = (cisEventTokenUpdate.ContractIndex, cisEventTokenUpdate.ContractSubIndex, cisEventTokenUpdate.TokenId);
+            switch (cisEventTokenUpdate)
+            {
+                case CisEventTokenAmountUpdate tokenAmountUpdate:
+                    if (tokenAmountUpdates.ContainsKey(key))
+                    {
+                        tokenAmountUpdates[key] += tokenAmountUpdate.AmountDelta;
+                    }
+                    else
+                    {
+                        tokenAmountUpdates[key] = tokenAmountUpdate.AmountDelta;
+                    }
+                    break;
+                case CisEventTokenMetadataUpdate tokenMetadataUpdate:
+                    tokenMetadataUpdates[key] = tokenMetadataUpdate.MetadataUrl;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(cisEventTokenUpdate));
+            }
+        }
+
+        IEnumerable<CisEventTokenUpdate> cisEventTokenAmountUpdates = tokenAmountUpdates.Select(valuePair => new CisEventTokenAmountUpdate
+        {
+            ContractIndex = valuePair.Key.ContractIndex,
+            ContractSubIndex = valuePair.Key.ContractIndex,
+            TokenId = valuePair.Key.TokenId,
+            AmountDelta = valuePair.Value
+        });
+        IEnumerable<CisEventTokenUpdate> cisEventTokenMetadataUpdates = tokenMetadataUpdates.Select(valuePair => new CisEventTokenMetadataUpdate
+        {
+            ContractIndex = valuePair.Key.ContractIndex,
+            ContractSubIndex = valuePair.Key.ContractIndex,
+            TokenId = valuePair.Key.TokenId,
+            MetadataUrl = valuePair.Value
+        });
+        var cisEventTokenUpdates = cisEventTokenAmountUpdates.Concat(cisEventTokenMetadataUpdates).ToList();
+        
+        _logger.Debug($"From {tokenUpdates.Count} to {cisEventTokenUpdates.Count} CisEventTokenUpdate");
+        return cisEventTokenUpdates;
+    }    
     
     /// <summary>
-    /// Return contract events with logs.
+    /// Return contract events with logs ordered by block height, transaction index and event index.
     ///
     /// <see cref="Application.Api.GraphQL.EfCore.Converters.Json.TransactionResultEventConverter"/> has event mapping.
     /// </summary>
@@ -123,17 +251,20 @@ SELECT
     g0.source as Source,
     g0.transaction_hash as TransactionHash
 FROM graphql_contract_events AS g0
-WHERE (g0.contract_address_index = @Index) AND
-g0.event ->> 'tag' in ('16', '18', '34') 
+WHERE g0.contract_address_index = @Index AND
+            g0.event ->> 'tag' in ('16', '18', '34')
+ORDER BY block_height, transaction_index, event_index
 ";    
 
     private async Task<IList<ContractEvent>> GetContractEvents(int address, CancellationToken token = default)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(token);
         var parameter = new { Index = (long)address};
-        var contractEvent = await context.Database.GetDbConnection().QueryAsync<ContractEvent>(ContractEventWithLogs, parameter);
-        
-        return contractEvent.ToList();
+        var contractEvent = (await context.Database.GetDbConnection()
+            .QueryAsync<ContractEvent>(ContractEventWithLogs, parameter))
+            .ToList();
+        _logger.Information($"Read count: {contractEvent.Count}");
+        return contractEvent;
     }
     
     private sealed class JobContractRepository : IContractRepository

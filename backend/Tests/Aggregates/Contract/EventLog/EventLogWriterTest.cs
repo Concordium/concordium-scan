@@ -36,9 +36,9 @@ namespace Tests.Aggregates.Contract.EventLog
         }
 
         [Fact]
-        public void ShouldHandleTokenUpdates()
+        public async Task ShouldHandleTokenUpdates()
         {
-            var updatesCount = writer.ApplyTokenUpdates(new List<CisEventTokenUpdate>() {
+            var updatesCount = await writer.ApplyTokenUpdates(new List<CisEventTokenUpdate>() {
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 0, ContractIndex = 1, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_2_ID, AmountDelta = 2, ContractIndex = 2, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 1, ContractIndex= 1, ContractSubIndex = 0 },
@@ -78,9 +78,9 @@ namespace Tests.Aggregates.Contract.EventLog
         }
 
         [Fact]
-        public void ShouldHandleAccountUpdates()
+        public async Task ShouldHandleAccountUpdates()
         {
-            var updatesCount = writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
+            var updatesCount = await writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR)},

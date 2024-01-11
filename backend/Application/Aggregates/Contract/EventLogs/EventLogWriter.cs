@@ -18,13 +18,13 @@ namespace Application.Aggregates.Contract.EventLogs
         /// </summary>
         /// <param name="tokenUpdates">Computed Token Updates</param>
         /// <returns>Total no of token updates applied to database</returns>
-        int ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates);
+        Task<int> ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates);
         /// <summary>
         /// Applies computed Account Updates to the database
         /// </summary>
         /// <param name="accountUpdates"></param>
         /// <returns>Total no of accounts updates applied to database</returns>
-        int ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates);
+        Task<int> ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates);
         /// <summary>
         /// Store token events.
         /// </summary>
@@ -54,17 +54,19 @@ namespace Application.Aggregates.Contract.EventLogs
         }
 
         /// <inheritdoc/>
-        public int ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates)
+        public async Task<int> ApplyTokenUpdates(IEnumerable<CisEventTokenUpdate> tokenUpdates)
         {
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyTokenUpdates));
 
-            using var context = _dbContextFactory.CreateDbContext();
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
             var connection = context.Database.GetDbConnection();
 
-            connection.Open();
+            await connection.OpenAsync();
             var batch = connection.CreateBatch();
 
-            foreach (var tokenUpdate in tokenUpdates)
+            var cisEventTokenUpdates = tokenUpdates.ToList();
+            _logger.Information($"Token Updates: {cisEventTokenUpdates.Count}");
+            foreach (var tokenUpdate in cisEventTokenUpdates)
             {
                 var cmd = batch.CreateBatchCommand();
 
@@ -80,9 +82,9 @@ namespace Application.Aggregates.Contract.EventLogs
                 }
             }
 
-            batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
-            var updates = batch.ExecuteNonQuery();
-            connection.Close();
+            await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+            var updates = await batch.ExecuteNonQueryAsync();
+            await connection.CloseAsync();
 
             return updates;
         }
@@ -121,7 +123,7 @@ namespace Application.Aggregates.Contract.EventLogs
         }
 
         /// <inheritdoc/>
-        public int ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates)
+        public async Task<int> ApplyAccountUpdates(IList<CisAccountUpdate> accountUpdates)
         {
             var accountBaseAddresses = accountUpdates
                 .Select(u => 
@@ -132,11 +134,12 @@ namespace Application.Aggregates.Contract.EventLogs
             var accountsMap = _accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
             using var counter = _metrics.MeasureDuration(nameof(EventLogWriter), nameof(ApplyAccountUpdates));
 
-            using var context = _dbContextFactory.CreateDbContext();
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
             var connection = context.Database.GetDbConnection();
 
-            connection.Open();
+            await connection.OpenAsync();
             var batch = connection.CreateBatch();
+            _logger.Information($"Account Updates: {accountUpdates.Count}");
             foreach (var accountUpdate in accountUpdates)
             {
                 if (accountUpdate is null)
@@ -167,9 +170,9 @@ namespace Application.Aggregates.Contract.EventLogs
                 batch.BatchCommands.Add(cmd);
             }
 
-            batch.Prepare(); // Preparing will speed up the updates, particularly when there are many!
-            var updates = batch.ExecuteNonQuery();
-            connection.Close();
+            await batch.PrepareAsync(); // Preparing will speed up the updates, particularly when there are many!
+            var updates = await batch.ExecuteNonQueryAsync();
+            await connection.CloseAsync();
 
             return updates;
         }
