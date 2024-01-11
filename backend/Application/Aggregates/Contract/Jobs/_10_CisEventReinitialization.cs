@@ -32,7 +32,6 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IEventLogWriter _writer;
-    private readonly IAccountLookup _accountLookup;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
 
@@ -44,12 +43,10 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     public _10_CisEventReinitialization(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IEventLogWriter writer,
-        IAccountLookup accountLookup,
         IOptions<ContractAggregateOptions> options)
     {
         _contextFactory = contextFactory;
         _writer = writer;
-        _accountLookup = accountLookup;
         _options = options.Value;
         _logger = Log.ForContext<_10_CisEventReinitialization>();
     }
@@ -126,27 +123,15 @@ where contract_index = @Identifier;
         return Task.WhenAll(tasks);
     }
     
-private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountUpdate> accountUpdates)
+    /// <summary>
+    /// Process in memory account updates such that only one row for each
+    /// (contract index, contract subindex, token id, account address) are inserted.
+    /// </summary>
+    internal static IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountUpdate> accountUpdates)
     {
-        var accountBaseAddresses = accountUpdates
-            .Select(u => 
-                Concordium.Sdk.Types.AccountAddress.From(u.Address.AsString)
-                    .GetBaseAddress()
-                    .ToString())
-            .Distinct();
-        var accountsMap = _accountLookup.GetAccountIdsFromBaseAddresses(accountBaseAddresses);
-        
         var accountTokenUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId, string AccountAddress), BigInteger>();
         foreach (var accountUpdate in accountUpdates)
         {
-            var accountBaseAddress = Concordium.Sdk.Types.AccountAddress.From(accountUpdate.Address.AsString)
-                .GetBaseAddress()
-                .ToString();
-            if (accountsMap[accountBaseAddress] is null 
-                || !accountsMap[accountBaseAddress].HasValue)
-            {
-                continue;
-            }
             var key = (accountUpdate.ContractIndex, accountUpdate.ContractSubIndex, accountUpdate.TokenId, accountUpdate.Address.AsString);
             if (accountTokenUpdates.ContainsKey(key))
             {
@@ -170,7 +155,11 @@ private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountU
         return cisAccountUpdates;
     }
 
-    private IEnumerable<CisEventTokenUpdate> OptimizeCisEventTokenUpdate(ICollection<CisEventTokenUpdate> tokenUpdates)
+    /// <summary>
+    /// Process in memory token updates such that only one row for each
+    /// (contract index, contract subindex, token id) are inserted.
+    /// </summary>
+    internal static IEnumerable<CisEventTokenUpdate> OptimizeCisEventTokenUpdate(IEnumerable<CisEventTokenUpdate> tokenUpdates)
     {
         var tokenAmountUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), BigInteger>();
         var tokenMetadataUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), string>();
@@ -200,14 +189,14 @@ private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountU
         IEnumerable<CisEventTokenUpdate> cisEventTokenAmountUpdates = tokenAmountUpdates.Select(valuePair => new CisEventTokenAmountUpdate
         {
             ContractIndex = valuePair.Key.ContractIndex,
-            ContractSubIndex = valuePair.Key.ContractIndex,
+            ContractSubIndex = valuePair.Key.ContractSubIndex,
             TokenId = valuePair.Key.TokenId,
             AmountDelta = valuePair.Value
         });
         IEnumerable<CisEventTokenUpdate> cisEventTokenMetadataUpdates = tokenMetadataUpdates.Select(valuePair => new CisEventTokenMetadataUpdate
         {
             ContractIndex = valuePair.Key.ContractIndex,
-            ContractSubIndex = valuePair.Key.ContractIndex,
+            ContractSubIndex = valuePair.Key.ContractSubIndex,
             TokenId = valuePair.Key.TokenId,
             MetadataUrl = valuePair.Value
         });

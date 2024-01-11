@@ -9,7 +9,6 @@ using Application.Api.GraphQL.Transactions;
 using Application.Common.Diagnostics;
 using Concordium.Sdk.Types;
 using FluentAssertions;
-using HotChocolate.Subscriptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -58,7 +57,6 @@ public sealed class _10_CisEventReinitializationTests
         var job = new _10_CisEventReinitialization(
             _fixture.CreateDbContractFactoryMock().Object,
             eventLogWriter,
-            accountLookup,
             Options.Create(new ContractAggregateOptions())
             );
 
@@ -129,5 +127,213 @@ public sealed class _10_CisEventReinitializationTests
         await using var context = _fixture.CreateGraphQlDbContext();
         await context.AddRangeAsync(contractMintEvent, contractBurnEvent);
         await context.SaveChangesAsync();
+    }    
+
+    [Fact]
+    public void WhenOptimizeCisAccountUpdate_ThenOnlyInsertSubset()
+    {
+        // Arrange
+        var cisAccountUpdates = new List<CisAccountUpdate>
+        {
+            new()
+            {
+                AmountDelta = new BigInteger(42),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("A"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(42),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("B"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(42),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("A"),
+                ContractSubIndex = 2,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(-12),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("A"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(42),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("B"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            }
+        };
+        
+        // Act
+        var job = _10_CisEventReinitialization.OptimizeCisAccountUpdate(cisAccountUpdates);
+
+        // Assert
+        var expected = new List<CisAccountUpdate>
+        {
+            new()
+            {
+                AmountDelta = new BigInteger(30),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("A"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(84),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("B"),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            },
+            new()
+            {
+                AmountDelta = new BigInteger(42),
+                Address = new Application.Api.GraphQL.Accounts.AccountAddress("A"),
+                ContractSubIndex = 2,
+                ContractIndex = 0,
+                TokenId = ""
+            }
+        };
+        job.Count().Should().Be(expected.Count);
+        var jobSet = job.ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId, j.Address),
+            j => j.AmountDelta);
+        var expectedSet = expected.ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId, j.Address),
+            j => j.AmountDelta);
+        foreach (var keyValuePair in jobSet)
+        {
+            expectedSet.TryGetValue(keyValuePair.Key, out var expectedValue).Should().BeTrue();
+            expectedValue.Should().Be(keyValuePair.Value);
+        }
+    }
+    
+    [Fact]
+    public void WhenOptimizeCisEventTokenUpdate_ThenOnlyInsertSubset()
+    {
+        // Arrange
+        var tokenUpdates = new List<CisEventTokenUpdate>
+        {
+            new CisEventTokenMetadataUpdate
+            {
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "",
+                MetadataUrl = "Foo"
+            },
+            new CisEventTokenAmountUpdate
+            {
+                AmountDelta = new BigInteger(42),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            },
+            new CisEventTokenMetadataUpdate
+            {
+                ContractSubIndex = 2,
+                ContractIndex = 0,
+                TokenId = "",
+                MetadataUrl = "Something else"
+            },
+            new CisEventTokenMetadataUpdate
+            {
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "",
+                MetadataUrl = "Bar"
+            },
+            new CisEventTokenAmountUpdate
+            {
+                AmountDelta = new BigInteger(42),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new CisEventTokenAmountUpdate
+            {
+                AmountDelta = new BigInteger(42),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            }
+        };
+        
+        // Act
+        var job = _10_CisEventReinitialization.OptimizeCisEventTokenUpdate(tokenUpdates).ToList();
+
+        // Assert
+        var expected = new List<CisEventTokenUpdate>
+        {
+            new CisEventTokenMetadataUpdate
+            {
+                ContractSubIndex = 2,
+                ContractIndex = 0,
+                TokenId = "",
+                MetadataUrl = "Something else"
+            },
+            new CisEventTokenMetadataUpdate
+            {
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "",
+                MetadataUrl = "Bar"
+            },
+            new CisEventTokenAmountUpdate
+            {
+                AmountDelta = new BigInteger(42),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = ""
+            },
+            new CisEventTokenAmountUpdate
+            {
+                AmountDelta = new BigInteger(84),
+                ContractSubIndex = 1,
+                ContractIndex = 0,
+                TokenId = "1"
+            }
+        };
+        job.Count.Should().Be(expected.Count);
+        
+        var actualTokenMetadataUpdates = job
+            .Where(j => j is CisEventTokenMetadataUpdate)
+            .Cast<CisEventTokenMetadataUpdate>()
+            .ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId), j => j.MetadataUrl);
+        var actualTokenAmountUpdate = job
+            .Where(j => j is CisEventTokenAmountUpdate)
+            .Cast<CisEventTokenAmountUpdate>()
+            .ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId), j => j.AmountDelta);
+        
+        var expectedTokenMetadataUpdates = expected
+            .Where(j => j is CisEventTokenMetadataUpdate)
+            .Cast<CisEventTokenMetadataUpdate>()
+            .ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId), j => j.MetadataUrl);
+        var expectedTokenAmountUpdate = expected
+            .Where(j => j is CisEventTokenAmountUpdate)
+            .Cast<CisEventTokenAmountUpdate>()
+            .ToDictionary(j => (j.ContractIndex, j.ContractSubIndex, j.TokenId), j => j.AmountDelta);        
+        
+        foreach (var keyValuePair in actualTokenMetadataUpdates)
+        {
+            expectedTokenMetadataUpdates.TryGetValue(keyValuePair.Key, out var expectedValue).Should().BeTrue();
+            expectedValue.Should().Be(keyValuePair.Value);
+        }
+        foreach (var keyValuePair in actualTokenAmountUpdate)
+        {
+            expectedTokenAmountUpdate.TryGetValue(keyValuePair.Key, out var expectedValue).Should().BeTrue();
+            expectedValue.Should().Be(keyValuePair.Value);
+        }
     }    
 }
