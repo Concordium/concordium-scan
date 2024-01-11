@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Application.Observability;
+using Grpc.Core;
 using Npgsql;
 using Polly;
 
@@ -14,7 +15,8 @@ internal static class Policies
     {
         var policyBuilder = Policy
             .Handle<NpgsqlException>(ex => ex.IsTransient)
-            .OrInner<NpgsqlException>(ex => ex.IsTransient);
+            .OrInner<NpgsqlException>(ex => ex.IsTransient)
+            .Or<RpcException>(ex => ex.StatusCode == StatusCode.Unavailable);
         AsyncPolicy policy;
         if (retryCount == -1)
         {

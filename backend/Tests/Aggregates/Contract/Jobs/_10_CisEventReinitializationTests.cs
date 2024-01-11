@@ -54,11 +54,11 @@ public sealed class _10_CisEventReinitializationTests
             _fixture.CreateDbContractFactoryMock().Object, 
             accountLookup,
             Mock.Of<IMetrics>());
-        var eventLogHandler = new EventLogHandler(eventLogWriter, Mock.Of<ITopicEventSender>());
 
         var job = new _10_CisEventReinitialization(
             _fixture.CreateDbContractFactoryMock().Object,
-            eventLogHandler,
+            eventLogWriter,
+            accountLookup,
             Options.Create(new ContractAggregateOptions())
             );
 
