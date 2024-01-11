@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Numerics;
+using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.EventLogs;
 using Application.Api.GraphQL.Import;
 using Concordium.Sdk.Types;
 using Dapper;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Stubs;
 
@@ -19,16 +22,15 @@ namespace Tests.Aggregates.Contract.EventLog
         private const string ACCOUNT_1_ADDR = "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P";
 
         private readonly GraphQlDbContextFactoryStub _dbContextFactory;
-        private readonly EventLogWriter writer;
-        private readonly IAccountLookup _accountLookup;
+        private readonly EventLogWriter _writer;
 
         public EventLogWriterTest(DatabaseFixture dbFixture)
         {
             _dbContextFactory = new GraphQlDbContextFactoryStub(dbFixture. DatabaseSettings);
-            _accountLookup = new AccountLookupStub();
-            _accountLookup.AddToCache(AccountAddress.From(ACCOUNT_1_ADDR).GetBaseAddress().ToString(), ACCOUNT_1_ID);
+            IAccountLookup accountLookup = new AccountLookupStub();
+            accountLookup.AddToCache(AccountAddress.From(ACCOUNT_1_ADDR).GetBaseAddress().ToString(), ACCOUNT_1_ID);
 
-            writer = new EventLogWriter(_dbContextFactory, _accountLookup, new NullMetrics());
+            _writer = new EventLogWriter(_dbContextFactory, accountLookup, new NullMetrics());
 
             using var connection = DatabaseFixture.GetOpenConnection();
             connection.Execute("TRUNCATE TABLE graphql_tokens");
@@ -36,9 +38,51 @@ namespace Tests.Aggregates.Contract.EventLog
         }
 
         [Fact]
+        public async Task ShouldHandleTokenEventUpdates()
+        {
+            // Arrange
+            await DatabaseFixture.TruncateTables("graphql_tokens", "graphql_account_tokens", "graphql_token_events");
+
+            var tokenEvents = new List<TokenEvent>
+            {
+                new(1, 0, "",
+                    new CisMintEvent(
+                        "",
+                        1,
+                        0,
+                        "",
+                        null,
+                        new BigInteger(42),
+                        new Application.Api.GraphQL.Accounts.AccountAddress(""))
+                    ),
+                new(2, 0, "",
+                    new CisBurnEvent(
+                        new Application.Api.GraphQL.Accounts.AccountAddress(""),
+                        new BigInteger(42),
+                        "",
+                        2,
+                        2,
+                        "",
+                        null)
+                    )
+            };
+            
+            // Act
+            await _writer.ApplyTokenEvents(tokenEvents);
+
+            // Assert
+            var context = _dbContextFactory.CreateDbContext();
+            context.TokenEvents.Count().Should().Be(2);
+            var mintEvent = await context.TokenEvents.SingleAsync(te => te.ContractIndex == 1);
+            mintEvent.Event.Should().BeOfType<CisMintEvent>();
+            var burnEvent = await context.TokenEvents.SingleAsync(te => te.ContractIndex == 2);
+            burnEvent.Event.Should().BeOfType<CisBurnEvent>();
+        }
+
+        [Fact]
         public async Task ShouldHandleTokenUpdates()
         {
-            var updatesCount = await writer.ApplyTokenUpdates(new List<CisEventTokenUpdate>() {
+            var updatesCount = await _writer.ApplyTokenUpdates(new List<CisEventTokenUpdate>() {
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 0, ContractIndex = 1, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_2_ID, AmountDelta = 2, ContractIndex = 2, ContractSubIndex = 0 },
                 new CisEventTokenAmountUpdate() { TokenId = TOKEN_1_ID, AmountDelta = 1, ContractIndex= 1, ContractSubIndex = 0 },
@@ -80,7 +124,7 @@ namespace Tests.Aggregates.Contract.EventLog
         [Fact]
         public async Task ShouldHandleAccountUpdates()
         {
-            var updatesCount = await writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
+            var updatesCount = await _writer.ApplyAccountUpdates(new List<CisAccountUpdate>() {
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = 2, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR) },
                 new() { ContractIndex = 1, ContractSubIndex = 0, TokenId = TOKEN_1_ID, AmountDelta = -1, Address = new Application.Api.GraphQL.Accounts.AccountAddress(ACCOUNT_1_ADDR)},

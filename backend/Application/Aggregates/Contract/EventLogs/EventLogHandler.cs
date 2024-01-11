@@ -25,7 +25,34 @@ namespace Application.Aggregates.Contract.EventLogs
             _writer = logWriter;
             _sender = sender;
         }
+        
+        /// <summary>
+        /// Fetches log bytes from Transaction, parses them and persists them to the database.
+        /// </summary>
+        public Task HandleCisEvent(IContractRepository contractRepository)
+        {
+            var (tokenUpdates, tokenEvents, cisAccountUpdates) = GetParsedTokenUpdate(contractRepository);
 
+            var tasks = new List<Task>();
+            if (tokenUpdates.Any())
+            {
+                tasks.Add(_writer.ApplyTokenUpdates(tokenUpdates));
+            }
+
+            if (cisAccountUpdates.Any())
+            {
+                tasks.Add(_writer.ApplyAccountUpdates(cisAccountUpdates));
+            }
+
+            if (tokenEvents.Any())
+            {
+                tasks.Add(_writer.ApplyTokenEvents(tokenEvents));
+            }
+            tasks.Add(NotifyAccountListeners(cisAccountUpdates));
+
+            return Task.WhenAll(tasks);
+        }
+        
         internal record ParsedTokenUpdates(
             IList<CisEventTokenUpdate> TokenUpdates,
             IList<TokenEvent> TokenEvents,
@@ -72,34 +99,7 @@ namespace Application.Aggregates.Contract.EventLogs
                 .ToList();
             
             return new ParsedTokenUpdates(tokenUpdates, tokenEvents, accountUpdates);
-        }
-
-        /// <summary>
-        /// Fetches log bytes from Transaction, parses them and persists them to the database.
-        /// </summary>
-        public Task HandleCisEvent(IContractRepository contractRepository)
-        {
-            var (tokenUpdates, tokenEvents, cisAccountUpdates) = GetParsedTokenUpdate(contractRepository);
-
-            var tasks = new List<Task>();
-            if (tokenUpdates.Any())
-            {
-                tasks.Add(_writer.ApplyTokenUpdates(tokenUpdates));
-            }
-
-            if (cisAccountUpdates.Any())
-            {
-                tasks.Add(_writer.ApplyAccountUpdates(cisAccountUpdates));
-            }
-
-            if (tokenEvents.Any())
-            {
-                tasks.Add(_writer.ApplyTokenEvents(tokenEvents));
-            }
-            tasks.Add(NotifyAccountListeners(cisAccountUpdates));
-
-            return Task.WhenAll(tasks);
-        }
+        }        
 
         private async Task NotifyAccountListeners(IEnumerable<CisAccountUpdate> accountUpdates)
         {
