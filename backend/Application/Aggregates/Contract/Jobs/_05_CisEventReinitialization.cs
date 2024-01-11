@@ -27,7 +27,7 @@ namespace Application.Aggregates.Contract.Jobs;
 /// schema and a successfully human interpretable log event linked, the human interpretable log event is linked to
 /// the event. This may contain additional data.
 /// </summary>
-public sealed class _10_CisEventReinitialization : IStatelessJob
+public sealed class _05_CisEventReinitialization : IStatelessJob
 {
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IEventLogWriter _writer;
@@ -37,9 +37,9 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.
     /// </summary>
-    private const string JobName = "_10_CisEventReinitialization";
+    private const string JobName = "_05_CisEventReinitialization";
 
-    public _10_CisEventReinitialization(
+    public _05_CisEventReinitialization(
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IEventLogWriter writer,
         IOptions<ContractAggregateOptions> options)
@@ -47,7 +47,7 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
         _contextFactory = contextFactory;
         _writer = writer;
         _options = options.Value;
-        _logger = Log.ForContext<_10_CisEventReinitialization>();
+        _logger = Log.ForContext<_05_CisEventReinitialization>();
     }
 
     /// <inheritdoc/>

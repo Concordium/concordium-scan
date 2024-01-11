@@ -55,7 +55,7 @@ public sealed class _10_CisEventReinitializationTests
             accountLookup,
             Mock.Of<IMetrics>());
 
-        var job = new _10_CisEventReinitialization(
+        var job = new _05_CisEventReinitialization(
             _fixture.CreateDbContractFactoryMock().Object,
             eventLogWriter,
             Options.Create(new ContractAggregateOptions())
@@ -143,7 +143,7 @@ public sealed class _10_CisEventReinitializationTests
         var parameter = new Parameter(Array.Empty<byte>());
         var contractAddress = ContractAddress.From(contractIndex, 0);
         var address = new Application.Api.GraphQL.ContractAddress(contractAddress.Index, contractAddress.SubIndex);
-        var job = new _10_CisEventReinitialization(
+        var job = new _05_CisEventReinitialization(
             _fixture.CreateDbContractFactoryMock().Object,
             Mock.Of<IEventLogWriter>(),
             Options.Create(new ContractAggregateOptions())
@@ -290,7 +290,7 @@ public sealed class _10_CisEventReinitializationTests
         };
         
         // Act
-        var job = _10_CisEventReinitialization.OptimizeCisAccountUpdate(cisAccountUpdates);
+        var job = _05_CisEventReinitialization.OptimizeCisAccountUpdate(cisAccountUpdates);
 
         // Assert
         var expected = new List<CisAccountUpdate>
@@ -383,7 +383,7 @@ public sealed class _10_CisEventReinitializationTests
         };
         
         // Act
-        var job = _10_CisEventReinitialization.OptimizeCisEventTokenUpdate(tokenUpdates).ToList();
+        var job = _05_CisEventReinitialization.OptimizeCisEventTokenUpdate(tokenUpdates).ToList();
 
         // Assert
         var expected = new List<CisEventTokenUpdate>
