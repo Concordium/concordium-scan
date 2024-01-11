@@ -10,8 +10,8 @@ internal sealed class ContractEventBuilder
 {
     private ulong _blockHeight = 1;
     private readonly string _transactionHash = "";
-    private readonly ulong _transactionIndex = 1;
-    private readonly uint _eventIndex = 1;
+    private ulong _transactionIndex = 1;
+    private uint _eventIndex = 1;
     private ContractAddress _contractAddress = new(1, 0);
     private readonly AccountAddress _accountAddress = new("");
     private TransactionResultEvent _event =
@@ -47,6 +47,18 @@ internal sealed class ContractEventBuilder
     internal ContractEventBuilder WithContractAddress(ContractAddress contractAddress)
     {
         _contractAddress = contractAddress;
+        return this;
+    }
+    
+    internal ContractEventBuilder WithTransactionIndex(ulong transactionIndex)
+    {
+        _transactionIndex = transactionIndex;
+        return this;
+    }
+    
+    internal ContractEventBuilder WithEventIndex(uint eventIndex)
+    {
+        _eventIndex = eventIndex;
         return this;
     }
     

@@ -15,6 +15,7 @@ using Moq;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 using Tests.TestUtilities.Stubs;
+using ContractInitialized = Application.Api.GraphQL.Transactions.ContractInitialized;
 
 namespace Tests.Aggregates.Contract.Jobs;
 
@@ -127,7 +128,118 @@ public sealed class _10_CisEventReinitializationTests
         await using var context = _fixture.CreateGraphQlDbContext();
         await context.AddRangeAsync(contractMintEvent, contractBurnEvent);
         await context.SaveChangesAsync();
-    }    
+    }
+
+    [Fact]
+    public async Task WhenGetOrderedContractEvents_ThenGetOrderedContractEvents()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_events");
+        ContractExtensions.AddDapperTypeHandlers();
+        const string name = "inventory.transfer";
+        const int contractIndex = 1;
+        _ = ReceiveName.TryParse(name, out var output);
+        var accountAddress = AccountAddress.From("31JA2dWnv6xHrdP73kLKvWqr5RMfqoeuJXG2Mep1iyQV9E5aSd");
+        var parameter = new Parameter(Array.Empty<byte>());
+        var contractAddress = ContractAddress.From(contractIndex, 0);
+        var address = new Application.Api.GraphQL.ContractAddress(contractAddress.Index, contractAddress.SubIndex);
+        var job = new _10_CisEventReinitialization(
+            _fixture.CreateDbContractFactoryMock().Object,
+            Mock.Of<IEventLogWriter>(),
+            Options.Create(new ContractAggregateOptions())
+        );
+        
+        // Event with correct type and contract
+        var updateCorrect = new Updated(
+            ContractVersion.V1,
+            contractAddress,
+            accountAddress,
+            CcdAmount.Zero,
+            parameter, 
+            output.ReceiveName!,
+            new List<ContractEvent>());
+        var updateCorrectEvent = ContractEventBuilder.Create()
+            .WithContractAddress(address)
+            .WithEvent(ContractUpdated.From(updateCorrect))
+            .WithBlockHeight(1)
+            .WithTransactionIndex(2)
+            .WithEventIndex(2)
+            .Build();
+        
+        // Event with correct type but wrong contract contract
+        var updateWrongContractAddress = new Updated(
+            ContractVersion.V1,
+            new ContractAddress(2,0),
+            accountAddress,
+            CcdAmount.Zero,
+            parameter, 
+            output.ReceiveName!,
+            new List<ContractEvent>());
+        var updateWrongContractAddressEvent = ContractEventBuilder.Create()
+            .WithContractAddress(new Application.Api.GraphQL.ContractAddress(2, 0))
+            .WithEvent(ContractUpdated.From(updateWrongContractAddress))
+            .WithBlockHeight(2)
+            .Build();
+        
+        // Correct type and contract with same block height lower higher transaction index
+        var interrupted = new Interrupted(contractAddress, new List<ContractEvent>());
+        var interruptedEvent = ContractEventBuilder.Create()
+            .WithContractAddress(address)
+            .WithEvent(ContractInterrupted.From(interrupted))
+            .WithBlockHeight(1)
+            .WithTransactionIndex(1)
+            .WithEventIndex(2)
+            .Build();
+        
+        // Correct type and contract with same block height, transaction index and lower event index
+        _ = ContractName.TryParse("init_foo", out var contractNameOutput);
+        var contractInitialized = new Concordium.Sdk.Types.ContractInitialized(
+            new ContractInitializedEvent(
+                ContractVersion.V1,
+                new ModuleReference(Convert.ToHexString(new byte[32])),
+                contractAddress,
+                CcdAmount.Zero,
+                contractNameOutput.ContractName!,
+                new List<ContractEvent>()
+            ));
+        var contractInitializedEvent = ContractEventBuilder.Create()
+            .WithContractAddress(address)
+            .WithEvent(ContractInitialized.From(contractInitialized))
+            .WithBlockHeight(1)
+            .WithTransactionIndex(1)
+            .WithEventIndex(1)
+            .Build();
+        
+        // Wrong type
+        var resumed = new Resumed(contractAddress, true);
+        var resumedEvent = ContractEventBuilder.Create()
+            .WithContractAddress(address)
+            .WithEvent(ContractResumed.From(resumed))
+            .WithBlockHeight(1)
+            .WithTransactionIndex(1)
+            .WithEventIndex(1)
+            .Build();
+        
+        await using (var context = _fixture.CreateGraphQlDbContext())
+        {
+            await context.AddRangeAsync(
+                updateCorrectEvent,
+                updateWrongContractAddressEvent,
+                interruptedEvent,
+                contractInitializedEvent
+            );
+            await context.SaveChangesAsync();    
+        }
+        
+        // Act
+        var orderedContractEvents = await job.GetOrderedContractEvents(contractIndex);
+
+        // Assert
+        orderedContractEvents.Count.Should().Be(3);
+        orderedContractEvents[0].Event.Should().BeOfType<ContractInitialized>();
+        orderedContractEvents[1].Event.Should().BeOfType<ContractInterrupted>();
+        orderedContractEvents[2].Event.Should().BeOfType<ContractUpdated>();
+    }
 
     [Fact]
     public void WhenOptimizeCisAccountUpdate_ThenOnlyInsertSubset()
