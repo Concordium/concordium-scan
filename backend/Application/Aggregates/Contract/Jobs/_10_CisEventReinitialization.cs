@@ -1,7 +1,6 @@
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Dto;
 using Application.Aggregates.Contract.Entities;
@@ -81,21 +80,14 @@ public sealed class _10_CisEventReinitialization : IStatelessJob
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
             .ExecuteAsync(async () =>
             {
-                // TransactionScope? transactionScope = null;
                 try
                 {
-                    // transactionScope = new TransactionScope(
-                    //     TransactionScopeOption.Required,
-                    //     new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
-                    //     TransactionScopeAsyncFlowOption.Enabled);
-
                     var contractEvents = await GetContractEvents(identifier, token);
                     var jobContractRepository = new JobContractRepository(contractEvents);
                     var (cisEventTokenUpdates, tokenEvents, cisAccountUpdates) = EventLogHandler.GetParsedTokenUpdate(jobContractRepository);
                     var optimizeCisEventTokenUpdate = OptimizeCisEventTokenUpdate(cisEventTokenUpdates);
                     var optimizeCisAccountUpdate = OptimizeCisAccountUpdate(cisAccountUpdates);
                     await InsertUpdatedEvents(optimizeCisEventTokenUpdate, tokenEvents, optimizeCisAccountUpdate);
-                    // transactionScope.Complete();
                     _logger.Debug($"Completed successfully processing {identifier}");
                 }
                 catch (Exception e)
@@ -113,10 +105,6 @@ where contract_index = @Identifier;
 ", new { Identifier = identifier });
                     throw;
                 }
-                // finally
-                // {
-                //     transactionScope?.Dispose();
-                // }
             });
     }
 
@@ -140,7 +128,6 @@ where contract_index = @Identifier;
     
 private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountUpdate> accountUpdates)
     {
-        _logger.Debug($"Initial {accountUpdates.Count} CisAccountUpdate updates");
         var accountBaseAddresses = accountUpdates
             .Select(u => 
                 Concordium.Sdk.Types.AccountAddress.From(u.Address.AsString)
@@ -180,13 +167,11 @@ private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountU
             TokenId = keyValue.Key.TokenId
         }).ToList();
         
-        _logger.Debug($"From {accountUpdates.Count} to {cisAccountUpdates.Count} CisAccountUpdate");
         return cisAccountUpdates;
     }
 
     private IEnumerable<CisEventTokenUpdate> OptimizeCisEventTokenUpdate(ICollection<CisEventTokenUpdate> tokenUpdates)
     {
-        _logger.Debug($"Initial {tokenUpdates.Count} CisEventTokenUpdate updates");
         var tokenAmountUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), BigInteger>();
         var tokenMetadataUpdates = new Dictionary<(ulong ContractIndex, ulong ContractSubIndex, string TokenId), string>();
         foreach (var cisEventTokenUpdate in tokenUpdates)
@@ -228,7 +213,6 @@ private IList<CisAccountUpdate> OptimizeCisAccountUpdate(ICollection<CisAccountU
         });
         var cisEventTokenUpdates = cisEventTokenAmountUpdates.Concat(cisEventTokenMetadataUpdates).ToList();
         
-        _logger.Debug($"From {tokenUpdates.Count} to {cisEventTokenUpdates.Count} CisEventTokenUpdate");
         return cisEventTokenUpdates;
     }    
     
@@ -263,7 +247,6 @@ ORDER BY block_height, transaction_index, event_index
         var contractEvent = (await context.Database.GetDbConnection()
             .QueryAsync<ContractEvent>(ContractEventWithLogs, parameter))
             .ToList();
-        _logger.Information($"Read count: {contractEvent.Count}");
         return contractEvent;
     }
     
