@@ -1,7 +1,8 @@
+using System.Threading.Tasks;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using HotChocolate;
+using Application.Api.GraphQL.Transactions;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,18 +39,39 @@ public class Token
     public decimal TotalSupply { get; set; }
 
     /// <summary>
+    /// Get transaction with the initial mint event of the token.
+    /// </summary>
+    public async Task<Transaction> GetInitialTransaction(GraphQlDbContext context)
+    {
+        var initialTokenEvent = await context.TokenEvents
+            .Where(te => te.ContractIndex == ContractIndex &&
+                         te.ContractSubIndex == ContractSubIndex &&
+                         te.TokenId == TokenId)
+            .OrderBy(t => t.Id)
+            .FirstAsync();
+        
+        return await context.Transactions
+            .SingleAsync(t => t.TransactionHash == initialTokenEvent.Event.TransactionHash);
+    }
+
+    /// <summary>
     /// Gets accounts with balances for this particular token
     /// </summary>
     /// <param name="dbContext">EF Core Database Context</param>
     /// <returns><see cref="IQueryable<AccountToken>"/></returns>
-    public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    public IQueryable<AccountToken> GetAccounts(GraphQlDbContext dbContext)
     {
-        return dbContext.AccountTokens.AsNoTracking().Where(t =>
+        return dbContext.AccountTokens
+            .AsNoTracking()
+            .Where(t =>
             t.ContractIndex == ContractIndex
             && t.ContractSubIndex == ContractSubIndex
-            && t.TokenId == TokenId);
+            && t.TokenId == TokenId)
+            .OrderByDescending(t => t.AccountId);
     }
         
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IQueryable<TokenEvent> GetTokenEvents(GraphQlDbContext dbContext)
     {
         return dbContext.TokenEvents

@@ -1,5 +1,6 @@
 using System.Numerics;
 using Application.Aggregates.Contract.Entities;
+using HotChocolate;
 
 namespace Application.Api.GraphQL.Accounts
 {
@@ -12,6 +13,7 @@ namespace Application.Api.GraphQL.Accounts
         /// <summary>
         /// Serially increasing Index for Account Token.
         /// </summary>
+        [GraphQLIgnore]
         public long Index { get; set; }
 
         /// <summary>

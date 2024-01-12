@@ -139,7 +139,6 @@ type AccountStatementEntryEdge {
 }
 
 type AccountToken {
-  index: Long!
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
@@ -190,6 +189,15 @@ type AccountTransactionRelationEdge {
   cursor: String!
   "The item at the end of the edge."
   node: AccountTransactionRelation!
+}
+
+"A segment of a collection."
+type AccountsCollectionSegment {
+  "Information to aid in pagination."
+  pageInfo: CollectionSegmentInfo!
+  "A flattened list of the items."
+  items: [AccountToken!]
+  totalCount: Int!
 }
 
 "A connection to a list of items."
@@ -1921,8 +1929,9 @@ type TimestampedAmount {
 }
 
 type Token {
-  tokens: [AccountToken!]!
-  tokenEvents: [TokenEvent!]!
+  initialTransaction: Transaction!
+  accounts(skip: Int take: Int): AccountsCollectionSegment
+  tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
   contractIndex: UnsignedLong!
   contractSubIndex: UnsignedLong!
   tokenId: String!
@@ -1937,6 +1946,15 @@ type TokenEvent {
   contractSubIndex: UnsignedLong!
   tokenId: String!
   event: CisEvent!
+}
+
+"A segment of a collection."
+type TokenEventsCollectionSegment {
+  "Information to aid in pagination."
+  pageInfo: CollectionSegmentInfo!
+  "A flattened list of the items."
+  items: [TokenEvent!]
+  totalCount: Int!
 }
 
 "A connection to a list of items."

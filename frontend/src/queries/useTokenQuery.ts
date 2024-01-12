@@ -16,38 +16,166 @@ type TokenQueryResponse = {
 	token: Token
 }
 
+const eventsFragment = `
+__typename
+tokenId
+contractIndex
+contractSubIndex
+transaction {
+  transactionHash
+}
+event {
+  __typename
+  ...on CisBurnEvent {
+    fromAddress {
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    contractIndex
+    contractSubIndex
+    tokenAmount
+    tokenId
+    transactionHash
+    parsed
+  }
+  ...on CisMintEvent {
+    toAddress {
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    tokenAmount
+    contractIndex
+    contractSubIndex
+    tokenId
+    transactionHash
+    parsed
+  }
+  ...on CisTokenMetadataEvent {
+    hashHex
+    metadataUrl
+    contractIndex
+    contractSubIndex
+    tokenId
+    transactionHash
+    parsed
+  }
+  ... on CisTransferEvent {
+    toAddress {
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    fromAddress {
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    tokenAmount
+    contractIndex
+    contractSubIndex
+    tokenId
+    transactionHash
+    parsed
+  }
+  ... on CisUpdateOperatorEvent {
+    operator{
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    owner {
+      __typename
+      ... on AccountAddress {
+        asString
+      }
+      ... on ContractAddress {
+        index
+        subIndex
+        asString
+      }
+    }
+    update
+    contractIndex
+    contractSubIndex
+    transactionHash
+    parsed
+  }
+}
+`
+
 const TokenQuery = gql`
-	query (
-		$skipEvent: Int
-		$takeEvent: Int
-		$skipAccount: Int
-		$takeAccount: Int
-		$contractAddressIndex: UnsignedLong!
-		$contractAddressSubIndex: UnsignedLong!
+query (
+	$skipEvent: Int
+	$takeEvent: Int
+	$skipAccount: Int
+	$takeAccount: Int
+  $tokenId: String!
+	$contractAddressIndex: UnsignedLong!
+	$contractAddressSubIndex: UnsignedLong!
+) {
+	token(
+    tokenId: $tokenId
+		contractIndex: $contractAddressIndex
+		contractSubIndex: $contractAddressSubIndex
 	) {
-		contract(
-			contractAddressIndex: $contractAddressIndex
-			contractAddressSubIndex: $contractAddressSubIndex
-		) {
-			transactionHash
-			contractAddress
-			blockSlotTime
-			moduleReference
-			amount
-			contractName
-			creator {
-				asString
-			}
-			contractRejectEvents(skip: $skipRejectEvent, take: $takeRejectEvent) {
-				items { ${rejectEventsFragment} }
-				totalCount
-			}
-			contractEvents(skip: $skipEvent, take: $takeEvent) {
-				items { ${eventsFragment} }
-				totalCount
-			}
-		}
-	}
+    tokenId
+    contractIndex
+    contractSubIndex
+    metadataUrl
+    totalSupply
+    initialTransaction {
+      block {
+        blockSlotTime
+      }
+    }    
+    accounts(skip: $skipAccount, take: $takeAccount) {
+      items {
+        accountId
+        balance
+        contractIndex
+        contractSubIndex
+        tokenId
+      }
+      totalCount
+    }
+    tokenEvents(skip: $skipEvent, take: $takeEvent) {
+      items { ${eventsFragment} }
+      totalCount
+    }
+  }
+}
 `
 
 export const useTokenQuery = ({

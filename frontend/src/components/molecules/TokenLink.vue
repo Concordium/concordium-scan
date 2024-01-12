@@ -1,6 +1,6 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
-		<TransactionIcon class="h-4 w-4 align-text-top" />
+		<TokenIcon class="h-4 w-4 align-text-top" />
 		<LinkButton
 			class="numerical px-2"
 			@blur="emitBlur"
@@ -34,8 +34,8 @@
 <script lang="ts" setup>
 import Tooltip from '../atoms/Tooltip.vue'
 import TextCopy from '../atoms/TextCopy.vue'
+import TokenIcon from '../icons/TokenIcon.vue'
 import LinkButton from '~/components/atoms/LinkButton.vue'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {

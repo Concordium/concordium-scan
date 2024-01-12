@@ -244,7 +244,6 @@ export type AccountToken = {
   balance: Scalars['BigInteger'];
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
-  index: Scalars['Long'];
   token: Token;
   tokenId: Scalars['String'];
 };
@@ -322,6 +321,16 @@ export enum AccountTransactionType {
   UpdateCredentialKeys = 'UPDATE_CREDENTIAL_KEYS',
   UpdateSmartContractInstance = 'UPDATE_SMART_CONTRACT_INSTANCE'
 }
+
+/** A segment of a collection. */
+export type AccountsCollectionSegment = {
+  __typename?: 'AccountsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<AccountToken>>;
+  /** Information to aid in pagination. */
+  pageInfo: CollectionSegmentInfo;
+  totalCount: Scalars['Int'];
+};
 
 /** A connection to a list of items. */
 export type AccountsConnection = {
@@ -2884,13 +2893,26 @@ export type TimestampedAmount = {
 
 export type Token = {
   __typename?: 'Token';
+  accounts?: Maybe<AccountsCollectionSegment>;
   contractIndex: Scalars['UnsignedLong'];
   contractSubIndex: Scalars['UnsignedLong'];
+  initialTransaction: Transaction;
   metadataUrl?: Maybe<Scalars['String']>;
-  tokenEvents: Array<TokenEvent>;
+  tokenEvents?: Maybe<TokenEventsCollectionSegment>;
   tokenId: Scalars['String'];
-  tokens: Array<AccountToken>;
   totalSupply: Scalars['Decimal'];
+};
+
+
+export type TokenAccountsArgs = {
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type TokenTokenEventsArgs = {
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
 };
 
 export type TokenEvent = {
@@ -2901,6 +2923,16 @@ export type TokenEvent = {
   id: Scalars['ID'];
   tokenId: Scalars['String'];
   transaction?: Maybe<Transaction>;
+};
+
+/** A segment of a collection. */
+export type TokenEventsCollectionSegment = {
+  __typename?: 'TokenEventsCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<TokenEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: CollectionSegmentInfo;
+  totalCount: Scalars['Int'];
 };
 
 /** A connection to a list of items. */

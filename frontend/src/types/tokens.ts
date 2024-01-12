@@ -24,7 +24,7 @@ export interface TokenMetadata {
 	description?: string
 	thumbnail?: UrlJson
 	display?: UrlJson
-	artifacts?: UrlJson
+	artifact?: UrlJson
 	assets?: TokenMetadata[]
 	attributes?: TokenAttribute[]
 	localization?: { [name: string]: UrlJson }
@@ -49,6 +49,6 @@ export async function fetchMetadata(
 			redirect: 'error',
 			keepalive: false,
 		})
-		return response.json as TokenMetadata
+		return response.json() as TokenMetadata
 	} catch {}
 }

@@ -3,8 +3,8 @@
 	<NotFound v-else-if="componentState === 'empty'" class="pt-20" />
 	<Error v-else-if="componentState === 'error'" :error="error" class="pt-20" />
 	<TokenDetailsContent
-		v-else-if="componentState === 'success' && data?.token"
-		:token="data?.token"
+		v-else-if="componentState === 'success' && tokenWithMetadata"
+		:token="tokenWithMetadata"
 		:pagination-events="pageOffsetInfoEvents"
 		:pagination-accounts="pageOffsetInfoAccount"
 		:page-dropdown-events="pageDropdownEvents"
@@ -13,6 +13,7 @@
 	/>
 </template>
 <script lang="ts" setup>
+import { ComputedRef } from 'vue'
 import TokenDetailsContent from './TokenDetailsContent.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
@@ -20,6 +21,7 @@ import NotFound from '~/components/molecules/NotFound.vue'
 import { usePaginationOffset } from '~~/src/composables/usePaginationOffset'
 import { usePageDropdown } from '~~/src/composables/usePageDropdown'
 import { useTokenQuery } from '~~/src/queries/useTokenQuery'
+import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
 
 type Props = {
 	tokenId: string
@@ -50,5 +52,20 @@ const { data, error, componentState, fetching } = useTokenQuery({
 		skip: pageOffsetInfoAccount.skip,
 		take: pageOffsetInfoAccount.take,
 	},
+})
+
+const tokenWithMetadata: ComputedRef<TokenWithMetadata | undefined> = computed(
+	() => data.value?.token as TokenWithMetadata
+)
+
+watchEffect(async () => {
+	if (!tokenWithMetadata.value) {
+		return
+	}
+	try {
+		tokenWithMetadata.value.metadata = await fetchMetadata(
+			String(tokenWithMetadata.value.metadataUrl)
+		)
+	} catch {}
 })
 </script>
