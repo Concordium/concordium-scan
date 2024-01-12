@@ -1,6 +1,6 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
-		<TokenIcon class="h-4 w-4 align-text-top" />
+		<TokenIcon class="h-5 inline align-text-top" />
 		<LinkButton
 			class="numerical px-2"
 			@blur="emitBlur"
