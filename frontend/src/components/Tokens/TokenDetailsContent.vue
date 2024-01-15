@@ -112,6 +112,19 @@
 					/>
 				</DetailsTable>
 			</template>
+			<template #tabPanel-2>
+				<DetailsTable
+					v-if="
+						token.accounts?.items?.length && token.accounts?.items?.length > 0
+					"
+					:total-count="token.accounts.totalCount"
+					:page-offset-info="paginationAccounts"
+					:page-dropdown-info="pageDropdownAccounts"
+					:fetching="fetching"
+				>
+					<TokenDetailsAccounts :accounts="token.accounts.items" />
+				</DetailsTable>
+			</template>
 		</Tabs>
 	</DrawerContent>
 </template>
@@ -124,6 +137,7 @@ import DetailsTable from '../Details/DetailsTable.vue'
 import ContractLink from '../molecules/ContractLink.vue'
 import TokenDetailsHeader from './TokenDetailsHeader.vue'
 import TokenDetailsEvents from './TokenDetailsEvents.vue'
+import TokenDetailsAccounts from './TokenDetailsAccounts.vue'
 import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 import {

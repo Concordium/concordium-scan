@@ -240,6 +240,7 @@ export enum AccountStatementEntryType {
 
 export type AccountToken = {
   __typename?: 'AccountToken';
+  account: Account;
   accountId: Scalars['Long'];
   balance: Scalars['BigInteger'];
   contractIndex: Scalars['UnsignedLong'];

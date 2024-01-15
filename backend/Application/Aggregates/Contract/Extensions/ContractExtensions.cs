@@ -3,6 +3,7 @@ using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Jobs;
+using Application.Api.GraphQL.Accounts;
 using Application.Jobs;
 using Dapper;
 using HotChocolate.Execution.Configuration;
@@ -49,7 +50,8 @@ public static class ContractExtensions
             .AddType<ModuleReferenceEvent.ModuleReferenceEventQuery>()
             .AddTypeExtension<ModuleReferenceEvent.ModuleReferenceEventExtensions>()
             .AddTypeExtension<ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>()
-            .AddTypeExtension<Token.TokenExtensions>();
+            .AddTypeExtension<Token.TokenExtensions>()
+            .AddTypeExtension<AccountToken.AccountTokenExtensions>();
         return builder;
     }
 

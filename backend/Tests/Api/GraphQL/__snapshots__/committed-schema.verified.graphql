@@ -145,6 +145,7 @@ type AccountToken {
   balance: BigInteger!
   token: Token!
   accountId: Long!
+  account: Account!
 }
 
 "A connection to a list of items."
