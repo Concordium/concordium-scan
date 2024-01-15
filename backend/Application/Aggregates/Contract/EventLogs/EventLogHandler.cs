@@ -156,61 +156,6 @@ namespace Application.Aggregates.Contract.EventLogs
             }
         }        
 
-        private async Task NotifyAccountListeners(List<CisAccountUpdate> accountUpdates)
-        {
-            foreach (var accountAddress in accountUpdates.Select(a => a.Address))
-            {
-                await _sender.SendAsync(
-                    accountAddress.AsString,
-                    new AccountsUpdatedSubscriptionItem(AccountAddress.From(accountAddress.AsString))
-                );
-            }
-        }
-        
-        private readonly record struct PossibleCis2Event(
-            string TransactionHash,
-            ContractAddress Address,
-            byte[] EventBytes,
-            string? EventParsed)
-        {
-            internal static IEnumerable<PossibleCis2Event> ToIter(ContractEvent contractEvent)
-            {
-                var transactionHash = contractEvent.TransactionHash;
-                var contractAddress = new ContractAddress(contractEvent.ContractAddressIndex,
-                    contractEvent.ContractAddressSubIndex);
-                
-                return contractEvent.Event switch
-                {
-                    ContractInitialized contractInitialized => MapEvents(contractInitialized.EventsAsHex,
-                        contractInitialized.Events, transactionHash, contractAddress),
-                    ContractInterrupted contractInterrupted => MapEvents(contractInterrupted.EventsAsHex,
-                        contractInterrupted.Events, transactionHash, contractAddress),
-                    ContractUpdated contractUpdated => MapEvents(contractUpdated.EventsAsHex, contractUpdated.Events,
-                        transactionHash, contractAddress),
-                    _ => Enumerable.Empty<PossibleCis2Event>()
-                };
-            }
-            
-            private static IEnumerable<PossibleCis2Event> MapEvents(
-                IReadOnlyList<string> hexEvents,
-                IReadOnlyList<string>? parsedEvents,
-                string transactionHash,
-                ContractAddress contractAddress)
-            {
-                for (var i = 0; i < hexEvents.Count; i++)
-                {
-                    var parsedEvent = parsedEvents != null && i < parsedEvents.Count ?
-                        parsedEvents[i] : null;
-                    yield return new PossibleCis2Event(
-                        transactionHash,
-                        contractAddress,
-                        Convert.FromHexString(hexEvents[i]),
-                        parsedEvent
-                    );
-                }   
-            }
-        }        
-
         /// <summary>
         /// Computes Token amount changes for an Account.
         /// </summary>
