@@ -18,7 +18,6 @@ namespace Application.Aggregates.Contract.Jobs;
 internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob where TStatelessJob : IStatelessBlockHeightJobs
 {
     
-    private readonly JobHealthCheck _jobHealthCheck;
     private readonly IStatelessBlockHeightJobs _statelessJob;
     private readonly ILogger _logger;
     private readonly ContractAggregateOptions _contractAggregateOptions;
@@ -26,12 +25,10 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
 
     public ParallelBatchBlockHeightJob(
         TStatelessJob statelessJob,
-        IOptions<ContractAggregateOptions> options,
-        JobHealthCheck jobHealthCheck
+        IOptions<ContractAggregateOptions> options
         )
     {
         _statelessJob = statelessJob;
-        _jobHealthCheck = jobHealthCheck;
         _logger = Log.ForContext<ParallelBatchBlockHeightJob<TStatelessJob>>();
         _contractAggregateOptions = options.Value;
         var gotJobOptions = _contractAggregateOptions.Jobs.TryGetValue(GetUniqueIdentifier(), out var jobOptions);

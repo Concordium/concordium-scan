@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Jobs;
-using Application.Observability;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 
@@ -21,8 +20,7 @@ public sealed class ParallelBatchJobTests
         var statelessMockJob = new StatelessMockJob();
         var parallelBatchJob = new ParallelBatchJob<StatelessMockJob>(
             statelessMockJob,
-            Options.Create(new ContractAggregateOptions()),
-            new JobHealthCheck()
+            Options.Create(new ContractAggregateOptions())
             );
         
         // Act
@@ -46,6 +44,8 @@ public sealed class ParallelBatchJobTests
         {
             return Task.FromResult(Enumerable.Range(0, 42));
         }
+
+        public ValueTask Setup(CancellationToken token = default) => ValueTask.CompletedTask;
 
         public ValueTask Process(int identifier, CancellationToken token = default)
         {

@@ -38,6 +38,7 @@ public static class ContractExtensions
         SqlMapper.AddTypeHandler(new TransactionResultEventHandler());
         SqlMapper.AddTypeHandler(new TransactionTypeUnionHandler());
         SqlMapper.AddTypeHandler(new AccountAddressHandler());
+        SqlMapper.AddTypeHandler(new CisEventHandler());
     }
 
     internal static IRequestExecutorBuilder AddContractGraphQlConfigurations(this IRequestExecutorBuilder builder)
@@ -74,5 +75,7 @@ public static class ContractExtensions
         collection.AddTransient<InitialContractEventDeserializationFieldsCatchUpJob>();
         collection.AddTransient<IContractJob, ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>>();
         collection.AddTransient<InitialContractRejectEventDeserializationFieldsCatchUpJob>();
+        collection.AddTransient<IContractJob, ParallelBatchJob<_05_CisEventReinitialization>>();
+        collection.AddTransient<_05_CisEventReinitialization>();
     }
 }

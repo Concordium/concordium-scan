@@ -25,11 +25,40 @@ namespace Application.Aggregates.Contract.EventLogs
             _writer = logWriter;
             _sender = sender;
         }
-
+        
         /// <summary>
         /// Fetches log bytes from Transaction, parses them and persists them to the database.
         /// </summary>
         public Task HandleCisEvent(IContractRepository contractRepository)
+        {
+            var (tokenUpdates, tokenEvents, cisAccountUpdates) = GetParsedTokenUpdate(contractRepository);
+
+            var tasks = new List<Task>();
+            if (tokenUpdates.Any())
+            {
+                tasks.Add(_writer.ApplyTokenUpdates(tokenUpdates));
+            }
+
+            if (cisAccountUpdates.Any())
+            {
+                tasks.Add(_writer.ApplyAccountUpdates(cisAccountUpdates));
+            }
+
+            if (tokenEvents.Any())
+            {
+                tasks.Add(_writer.ApplyTokenEvents(tokenEvents));
+            }
+            tasks.Add(NotifyAccountListeners(cisAccountUpdates));
+
+            return Task.WhenAll(tasks);
+        }
+        
+        internal record ParsedTokenUpdates(
+            IList<CisEventTokenUpdate> TokenUpdates,
+            IList<TokenEvent> TokenEvents,
+            IList<CisAccountUpdate> AccountUpdates);
+
+        internal static ParsedTokenUpdates GetParsedTokenUpdate(IContractRepository contractRepository)
         {
             var addedEvents = contractRepository.GetContractEventsAddedInTransaction()
                 .OrderBy(ce => ce.BlockHeight)
@@ -68,26 +97,11 @@ namespace Application.Aggregates.Contract.EventLogs
                 .Where(t => t != null)
                 .Cast<TokenEvent>()
                 .ToList();
+            
+            return new ParsedTokenUpdates(tokenUpdates, tokenEvents, accountUpdates);
+        }        
 
-            if (tokenUpdates.Any())
-            {
-                _writer.ApplyTokenUpdates(tokenUpdates);
-            }
-
-            if (accountUpdates.Any())
-            {
-                _writer.ApplyAccountUpdates(accountUpdates);
-            }
-
-            if (tokenEvents.Any())
-            {
-                _writer.ApplyTokenEvents(tokenEvents);
-            }
-
-            return NotifyAccountListeners(accountUpdates);
-        }
-
-        private async Task NotifyAccountListeners(List<CisAccountUpdate> accountUpdates)
+        private async Task NotifyAccountListeners(IEnumerable<CisAccountUpdate> accountUpdates)
         {
             foreach (var accountAddress in accountUpdates.Select(a => a.Address))
             {
@@ -256,7 +270,7 @@ namespace Application.Aggregates.Contract.EventLogs
         /// <param name="bytes">Input bytes</param>
         /// <param name="parsed">Parsed event in human interpretable form.</param>
         /// <returns></returns>
-        private static CisEvent? ParseCisEvent(
+        private static CisEvent ParseCisEvent(
             ContractAddress address,
             string transactionHash,
             byte[] bytes,

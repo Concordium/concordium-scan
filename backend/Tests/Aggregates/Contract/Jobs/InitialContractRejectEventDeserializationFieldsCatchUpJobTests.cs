@@ -7,7 +7,6 @@ using Application.Aggregates.Contract.Jobs;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.EfCore;
 using Application.Configurations;
-using Application.Observability;
 using Concordium.Sdk.Types;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +55,7 @@ public class InitialContractRejectEventDeserializationEventFieldsCatchUpJobTests
             }
         });
         var job = new InitialContractRejectEventDeserializationFieldsCatchUpJob(dbFactory.Object, options);
-        var parallelBatchJob = new ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>(job, options, new JobHealthCheck());
+        var parallelBatchJob = new ParallelBatchJob<InitialContractRejectEventDeserializationFieldsCatchUpJob>(job, options);
         
         // Act
         await parallelBatchJob.StartImport(CancellationToken.None);

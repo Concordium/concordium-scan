@@ -23,6 +23,11 @@ public interface IStatelessJob
     Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken);
 
     /// <summary>
+    /// Actions which should be applied before any call to <see cref="Process"/>.
+    /// </summary>
+    ValueTask Setup(CancellationToken token = default);
+
+    /// <summary>
     /// Process identifier.
     /// </summary>
     ValueTask Process(int identifier, CancellationToken token = default);

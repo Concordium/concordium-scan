@@ -50,6 +50,9 @@ public sealed class InitialContractRejectEventDeserializationFieldsCatchUpJob : 
     }
 
     /// <inheritdoc/>
+    public ValueTask Setup(CancellationToken token) => ValueTask.CompletedTask;
+
+    /// <inheritdoc/>
     public bool ShouldNodeImportAwait() => false;
     
     /// <summary>
