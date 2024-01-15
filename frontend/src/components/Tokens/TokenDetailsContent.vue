@@ -65,7 +65,7 @@
 		</div>
 	</DrawerContent>
 	<DrawerContent v-if="token.metadata && token.metadataUrl">
-		<div class="flex flex-col gap-5">
+		<div class="flex flex-col gap-5 mb-6 md:mb-12">
 			<DetailsCard>
 				<template #title>Metadata Url</template>
 				<template #default>
@@ -92,26 +92,28 @@
 			</DetailsCard>
 		</div>
 	</DrawerContent>
-	<Tabs :tab-list="tabList">
-		<template #tabPanel-1>
-			<DetailsTable
-				v-if="
-					token.tokenEvents?.items?.length &&
-					token.tokenEvents?.items?.length > 0
-				"
-				:total-count="token.tokenEvents.totalCount"
-				:page-offset-info="paginationEvents"
-				:page-dropdown-info="pageDropdownEvents"
-				:fetching="fetching"
-			>
-				<TokenDetailsEvents
-					:token-events="token.tokenEvents.items"
-					:symbol="token.metadata?.symbol"
-					:decimals="token.metadata?.decimals"
-				/>
-			</DetailsTable>
-		</template>
-	</Tabs>
+	<DrawerContent>
+		<Tabs :tab-list="tabList">
+			<template #tabPanel-1>
+				<DetailsTable
+					v-if="
+						token.tokenEvents?.items?.length &&
+						token.tokenEvents?.items?.length > 0
+					"
+					:total-count="token.tokenEvents.totalCount"
+					:page-offset-info="paginationEvents"
+					:page-dropdown-info="pageDropdownEvents"
+					:fetching="fetching"
+				>
+					<TokenDetailsEvents
+						:token-events="token.tokenEvents.items"
+						:symbol="token.metadata?.symbol"
+						:decimals="token.metadata?.decimals"
+					/>
+				</DetailsTable>
+			</template>
+		</Tabs>
+	</DrawerContent>
 </template>
 <script lang="ts" setup>
 import DrawerContent from '../Drawer/DrawerContent.vue'
