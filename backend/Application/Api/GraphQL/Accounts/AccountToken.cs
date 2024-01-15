@@ -1,5 +1,5 @@
 using System.Numerics;
-using Application.Api.GraphQL.Tokens;
+using Application.Aggregates.Contract.Entities;
 
 namespace Application.Api.GraphQL.Accounts
 {

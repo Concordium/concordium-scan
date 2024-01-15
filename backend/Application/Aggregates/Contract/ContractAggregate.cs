@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Observability;
 using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL.Transactions;
@@ -22,6 +23,7 @@ namespace Application.Aggregates.Contract;
 internal sealed class ContractAggregate
 {
     private readonly IContractRepositoryFactory _repositoryFactory;
+    private readonly IEventLogHandler _eventLogHandler;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
     private const string NodeImportJobActivity = "NodeImportJobActivity";
@@ -29,10 +31,12 @@ internal sealed class ContractAggregate
 
     public ContractAggregate(
         IContractRepositoryFactory repositoryFactory,
+        IEventLogHandler eventLogHandler,
         ContractAggregateOptions options
             )
     {
         _repositoryFactory = repositoryFactory;
+        _eventLogHandler = eventLogHandler;
         _options = options;
         _logger = _logger = Log.ForContext<ContractAggregate>();
     }
@@ -523,8 +527,11 @@ internal sealed class ContractAggregate
                 await using var repository = await _repositoryFactory.CreateContractRepositoryAsync();
 
                 var affectedEvents = await NodeImport(repository, client, height, token);
+                
+                await _eventLogHandler.HandleCisEvent(repository);
+                
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
-                await repository.SaveChangesAsync(token);
+                await repository.CommitAsync(token);
                 _logger.Information("Block Height: {BlockHeight} has been processed from node.", height);
                 
                 ContractMetrics.SetReadHeight(height, ImportSource.NodeImport);

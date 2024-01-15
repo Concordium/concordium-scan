@@ -1,6 +1,7 @@
 using Application.Aggregates.Contract.BackgroundServices;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.EventLogs;
 using Application.Aggregates.Contract.Jobs;
 using Application.Jobs;
 using Dapper;
@@ -22,6 +23,8 @@ public static class ContractExtensions
         collection.AddTransient<IContractNodeClient, ContractNodeClient>();
         
         collection.AddContractJobs();
+        
+        collection.AddCisEventServices();
         
         AddDapperTypeHandlers();
     }
@@ -46,6 +49,12 @@ public static class ContractExtensions
             .AddTypeExtension<ModuleReferenceEvent.ModuleReferenceEventExtensions>()
             .AddTypeExtension<ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>();
         return builder;
+    }
+
+    private static void AddCisEventServices(this IServiceCollection collection)
+    {
+        collection.AddTransient<IEventLogHandler, EventLogHandler>();
+        collection.AddTransient<IEventLogWriter, EventLogWriter>();
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Transactions;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,7 @@ internal sealed class RepositoryFactory : IContractRepositoryFactory
     
     public async Task<IContractRepository> CreateContractRepositoryAsync()
     {
-        return new ContractRepository(await _dbContextFactory.CreateDbContextAsync());
+        return await ContractRepository.Create(_dbContextFactory);
     }
 
     public async Task<IModuleReadonlyRepository> CreateModuleReadonlyRepository()

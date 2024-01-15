@@ -5,7 +5,6 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Import;
 using Application.Api.GraphQL.PassiveDelegations;
 using Application.Api.GraphQL.Payday;
-using Application.Api.GraphQL.Tokens;
 using Application.Api.GraphQL.Transactions;
 using Application.Entities;
 using Microsoft.EntityFrameworkCore;

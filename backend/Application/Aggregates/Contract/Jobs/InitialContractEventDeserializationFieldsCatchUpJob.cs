@@ -307,6 +307,11 @@ WHERE g0.event ->> 'tag' = '16'
         public Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress) => 
             Task.FromResult(_contractInitialized.First(c => c.ContractAddress == contractAddress));
 
+        public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction()
+        {
+            throw new NotImplementedException();
+        }
+
         public Task AddAsync<T>(params T[] entities) where T : class
         {
             throw new NotImplementedException();
@@ -317,7 +322,7 @@ WHERE g0.event ->> 'tag' = '16'
             throw new NotImplementedException();
         }
 
-        public Task SaveChangesAsync(CancellationToken token)
+        public Task CommitAsync(CancellationToken token)
         {
             throw new NotImplementedException();
         }
