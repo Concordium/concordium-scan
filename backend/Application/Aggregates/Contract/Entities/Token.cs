@@ -3,6 +3,7 @@ using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
 
@@ -81,6 +82,13 @@ public class Token
                 && t.ContractSubIndex == this.ContractSubIndex
                 && t.TokenId == this.TokenId)
             .OrderByDescending(t => t.Id);
+    }
+
+    [ExtendObjectType(typeof(Token))]
+    public sealed class TokenExtensions
+    {
+        public string GetContractName([Parent] Token token) => 
+            new ContractAddress(token.ContractIndex, token.ContractSubIndex).AsString;
     }
 }
 

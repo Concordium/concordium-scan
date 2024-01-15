@@ -48,7 +48,8 @@ public static class ContractExtensions
             .AddTypeExtension<Entities.Contract.ContractExtensions>()
             .AddType<ModuleReferenceEvent.ModuleReferenceEventQuery>()
             .AddTypeExtension<ModuleReferenceEvent.ModuleReferenceEventExtensions>()
-            .AddTypeExtension<ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>();
+            .AddTypeExtension<ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkEventExtensions>()
+            .AddTypeExtension<Token.TokenExtensions>();
         return builder;
     }
 

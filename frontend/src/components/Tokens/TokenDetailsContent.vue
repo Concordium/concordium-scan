@@ -16,10 +16,24 @@
 					}}
 				</template>
 			</DetailsCard>
+			<DetailsCard>
+				<template #title>Contract</template>
+				<template #default>
+					<ContractLink
+						:address="token.contractName"
+						:contract-address-index="token.contractIndex"
+						:contract-address-sub-index="token.contractSubIndex"
+					/>
+				</template>
+			</DetailsCard>
 			<DetailsCard class="numeric-right-align">
 				<template #title>Supply {{ token.metadata?.symbol ?? '' }}</template>
 				<template #default>
-					<TokenAmount :amount="String(token.totalSupply)" />
+					<TokenAmount
+						:amount="String(token.totalSupply)"
+						:symbol="symbol"
+						:fraction-digits="Number(decimals || 0)"
+					/>
 				</template>
 			</DetailsCard>
 			<template v-if="token.metadata && token.metadataUrl">
@@ -78,12 +92,36 @@
 			</DetailsCard>
 		</div>
 	</DrawerContent>
+	<Tabs :tab-list="tabList">
+		<template #tabPanel-1>
+			<DetailsTable
+				v-if="
+					token.tokenEvents?.items?.length &&
+					token.tokenEvents?.items?.length > 0
+				"
+				:total-count="token.tokenEvents.totalCount"
+				:page-offset-info="paginationEvents"
+				:page-dropdown-info="pageDropdownEvents"
+				:fetching="fetching"
+			>
+				<TokenDetailsEvents
+					:token-events="token.tokenEvents.items"
+					:symbol="token.metadata?.symbol"
+					:decimals="token.metadata?.decimals"
+				/>
+			</DetailsTable>
+		</template>
+	</Tabs>
 </template>
 <script lang="ts" setup>
 import DrawerContent from '../Drawer/DrawerContent.vue'
 import DetailsCard from '../DetailsCard.vue'
 import TokenAmount from '../atoms/TokenAmount.vue'
+import Tabs from '../Tabs.vue'
+import DetailsTable from '../Details/DetailsTable.vue'
+import ContractLink from '../molecules/ContractLink.vue'
 import TokenDetailsHeader from './TokenDetailsHeader.vue'
+import TokenDetailsEvents from './TokenDetailsEvents.vue'
 import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 import {
@@ -109,7 +147,7 @@ const props = defineProps<Props>()
 
 const tabList = computed(() => {
 	return [
-		`Event (${props.token.tokenEvents?.totalCount ?? 0})`,
+		`Events (${props.token.tokenEvents?.totalCount ?? 0})`,
 		`Accounts (${props.token.accounts?.totalCount ?? 0})`,
 	]
 })

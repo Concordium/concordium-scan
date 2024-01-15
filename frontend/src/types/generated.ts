@@ -2895,6 +2895,7 @@ export type Token = {
   __typename?: 'Token';
   accounts?: Maybe<AccountsCollectionSegment>;
   contractIndex: Scalars['UnsignedLong'];
+  contractName: Scalars['String'];
   contractSubIndex: Scalars['UnsignedLong'];
   initialTransaction: Transaction;
   metadataUrl?: Maybe<Scalars['String']>;

@@ -1937,6 +1937,7 @@ type Token {
   tokenId: String!
   metadataUrl: String
   totalSupply: Decimal!
+  contractName: String!
 }
 
 type TokenEvent {
