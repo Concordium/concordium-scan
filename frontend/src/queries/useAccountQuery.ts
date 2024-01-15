@@ -60,7 +60,6 @@ const AccountQueryFragment = `
 				__typename
 			}
 			nodes {
-				index
 				balance
 				contractIndex
 				contractSubIndex

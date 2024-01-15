@@ -122,7 +122,11 @@
 					:page-dropdown-info="pageDropdownAccounts"
 					:fetching="fetching"
 				>
-					<TokenDetailsAccounts :accounts="token.accounts.items" />
+					<TokenDetailsAccounts
+						:accounts="token.accounts.items"
+						:symbol="token.metadata?.symbol"
+						:decimals="token.metadata?.decimals"
+					/>
 				</DetailsTable>
 			</template>
 		</Tabs>

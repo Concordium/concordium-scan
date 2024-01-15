@@ -155,6 +155,7 @@ query (
     contractSubIndex
     metadataUrl
     totalSupply
+    contractName
     initialTransaction {
       block {
         blockSlotTime
@@ -163,6 +164,11 @@ query (
     accounts(skip: $skipAccount, take: $takeAccount) {
       items {
         accountId
+        account {
+          address {
+            asString
+          }
+        }        
         balance
         contractIndex
         contractSubIndex
