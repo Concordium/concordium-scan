@@ -28,7 +28,7 @@
 			</DetailsCard>
 			<DetailsCard>
 				<template #title>Id</template>
-				<template #default>{{ token.tokenId || '-' }}</template>
+				<template #default><TokenId :token-id="token.tokenId" /></template>
 			</DetailsCard>
 			<DetailsCard class="numeric-right-align">
 				<template #title>Supply {{ token.metadata?.symbol ?? '' }}</template>
@@ -143,6 +143,8 @@ import TokenAmount from '../atoms/TokenAmount.vue'
 import Tabs from '../Tabs.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
 import ContractLink from '../molecules/ContractLink.vue'
+import TokenMetadataLink from '../molecules/TokenMetadataLink.vue'
+import TokenId from '../molecules/TokenId.vue'
 import TokenDetailsHeader from './TokenDetailsHeader.vue'
 import TokenDetailsEvents from './TokenDetailsEvents.vue'
 import TokenDetailsAccounts from './TokenDetailsAccounts.vue'

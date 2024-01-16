@@ -31,7 +31,7 @@
 						/>
 					</TableTd>
 					<TableTd>
-						{{ token.tokenId || '-' }}
+						<TokenId :token-id="token.tokenId" />
 					</TableTd>
 					<TableTd align="right">
 						<TokenAmount
@@ -52,7 +52,6 @@
 </template>
 <script lang="ts" setup>
 import { ComputedRef } from 'vue'
-import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import Pagination from '~/components/Pagination.vue'
 import Table from '~~/src/components/Table/Table.vue'
 import TableBody from '~~/src/components/Table/TableBody.vue'
@@ -64,6 +63,8 @@ import TokenLink from '~~/src/components/molecules/TokenLink.vue'
 import { useTokensListQuery } from '~~/src/queries/useTokensListQuery'
 import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
 import ContractLink from '~~/src/components/molecules/ContractLink.vue'
+import TokenAmount from '~~/src/components/atoms/TokenAmount.vue'
+import TokenId from '~~/src/components/molecules/TokenId.vue'
 
 const { first, last, after, before, goToPage } = usePagination()
 const { data } = useTokensListQuery({

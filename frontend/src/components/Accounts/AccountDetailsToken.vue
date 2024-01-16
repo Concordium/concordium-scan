@@ -31,7 +31,7 @@
 						/>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
-						{{ token.tokenId || '-' }}
+						<TokenId :token-id="token.tokenId" />
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<TokenAmount
@@ -49,6 +49,7 @@
 <script lang="ts" setup>
 import TokenLink from '../molecules/TokenLink.vue'
 import ContractLink from '../molecules/ContractLink.vue'
+import TokenId from '../molecules/TokenId.vue'
 import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
