@@ -7,25 +7,15 @@
 			@click="() => handleOnClick()"
 		>
 			<div v-if="props.hideTooltip" text-class="text-theme-body">
-				{{
-					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
-						props.tokenId || '-'
-					}`
-				}}
+				{{ props.tokenAddress }}
 			</div>
-			<Tooltip v-else :text="props.tokenId || '-'" text-class="text-theme-body">
-				{{
-					`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
-						props.tokenId || '-'
-					}`
-				}}
+			<Tooltip v-else :text="props.tokenAddress" text-class="text-theme-body">
+				{{ props.tokenAddress }}
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			:text="`${props.contractAddressIndex}/${props.contractAddressSubIndex}/${
-				props.tokenId || '-'
-			}`"
-			label="Click to copy index/subindex/token id to clip board"
+			:text="props.tokenAddress"
+			label="Click to copy token address"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
 		/>
@@ -39,7 +29,7 @@ import LinkButton from '~/components/atoms/LinkButton.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
 type Props = {
-	url?: string
+	tokenAddress: string
 	tokenId: string
 	contractAddressIndex: number
 	contractAddressSubIndex: number

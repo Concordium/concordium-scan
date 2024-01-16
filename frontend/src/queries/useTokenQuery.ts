@@ -155,6 +155,7 @@ query (
     contractSubIndex
     metadataUrl
     totalSupply
+    tokenAddress
     contractAddressFormatted
     initialTransaction {
       block {

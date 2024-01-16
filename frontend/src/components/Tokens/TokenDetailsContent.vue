@@ -1,5 +1,5 @@
 <template>
-	<TokenDetailsHeader :token-id="token.tokenId" />
+	<TokenDetailsHeader :token-address="token.tokenAddress" />
 	<DrawerContent>
 		<div class="flex flex-row flex-wrap gap-5 md:gap-20 mb-6 md:mb-12">
 			<DetailsCard>
@@ -25,6 +25,10 @@
 						:contract-address-sub-index="token.contractSubIndex"
 					/>
 				</template>
+			</DetailsCard>
+			<DetailsCard>
+				<template #title>Id</template>
+				<template #default>{{ token.tokenId || '-' }}</template>
 			</DetailsCard>
 			<DetailsCard class="numeric-right-align">
 				<template #title>Supply {{ token.metadata?.symbol ?? '' }}</template>

@@ -21,6 +21,8 @@ const TokensQuery = gql`
 				tokenId
 				metadataUrl
 				totalSupply
+				tokenAddress
+				contractAddressFormatted
 			}
 			pageInfo {
 				startCursor

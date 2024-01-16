@@ -4,8 +4,9 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh> Token Address </TableTh>
-					<TableTh v-if="breakpoint >= Breakpoint.SM"> Metadata Url </TableTh>
+					<TableTh> Address </TableTh>
+					<TableTh> Contract </TableTh>
+					<TableTh> Id </TableTh>
 					<TableTh align="right"> Supply </TableTh>
 				</TableRow>
 			</TableHead>
@@ -16,13 +17,21 @@
 				>
 					<TableTd>
 						<TokenLink
+							:token-address="token.tokenAddress"
+							:token-id="token.tokenId"
 							:contract-address-index="token.contractIndex"
 							:contract-address-sub-index="token.contractSubIndex"
-							:token-id="token.tokenId"
 						/>
 					</TableTd>
-					<TableTd v-if="breakpoint >= Breakpoint.SM">
-						<TokenMetadataLink :url="(token.metadataUrl as string)" />
+					<TableTd>
+						<ContractLink
+							:address="token.contractAddressFormatted"
+							:contract-address-index="token.contractIndex"
+							:contract-address-sub-index="token.contractSubIndex"
+						/>
+					</TableTd>
+					<TableTd>
+						{{ token.tokenId || '-' }}
 					</TableTd>
 					<TableTd align="right">
 						<TokenAmount
@@ -52,11 +61,10 @@ import TableRow from '~~/src/components/Table/TableRow.vue'
 import TableTd from '~~/src/components/Table/TableTd.vue'
 import TableTh from '~~/src/components/Table/TableTh.vue'
 import TokenLink from '~~/src/components/molecules/TokenLink.vue'
-import TokenMetadataLink from '~~/src/components/molecules/TokenMetadataLink.vue'
 import { useTokensListQuery } from '~~/src/queries/useTokensListQuery'
 import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
+import ContractLink from '~~/src/components/molecules/ContractLink.vue'
 
-const { breakpoint } = useBreakpoint()
 const { first, last, after, before, goToPage } = usePagination()
 const { data } = useTokensListQuery({
 	first,
