@@ -155,7 +155,7 @@ query (
     contractSubIndex
     metadataUrl
     totalSupply
-    contractName
+    contractAddressFormatted
     initialTransaction {
       block {
         blockSlotTime

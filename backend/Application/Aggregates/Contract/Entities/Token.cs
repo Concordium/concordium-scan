@@ -1,11 +1,16 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Utils;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
+using NBitcoin.DataEncoders;
+using Base58Encoder = Application.Utils.Base58Encoder;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -87,8 +92,25 @@ public class Token
     [ExtendObjectType(typeof(Token))]
     public sealed class TokenExtensions
     {
-        public string GetContractName([Parent] Token token) => 
+        public string GetContractAddressFormatted([Parent] Token token) => 
             new ContractAddress(token.ContractIndex, token.ContractSubIndex).AsString;
+
+        public string GetTokenAddress([Parent]Token token)
+        {
+            var contractIndexBytes = Leb128.EncodeUnsignedLeb128(token.ContractIndex);
+            var contractSubindexBytes = Leb128.EncodeUnsignedLeb128(token.ContractSubIndex);
+            var tokenIdBytes = Convert.FromHexString(token.TokenId).AsSpan();
+            Span<byte> bytes = new byte[1 + contractIndexBytes.Length + contractSubindexBytes.Length + tokenIdBytes.Length];
+            bytes[0] = 2;
+            contractIndexBytes.CopyTo(bytes.Slice(1,
+                contractIndexBytes.Length));
+            contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length + 1,
+                contractSubindexBytes.Length));
+            tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length + contractIndexBytes.Length + 1,
+                tokenIdBytes.Length));
+            
+            return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
+        }
     }
 }
 

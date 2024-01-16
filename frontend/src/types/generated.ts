@@ -2895,11 +2895,12 @@ export type TimestampedAmount = {
 export type Token = {
   __typename?: 'Token';
   accounts?: Maybe<AccountsCollectionSegment>;
+  contractAddressFormatted: Scalars['String'];
   contractIndex: Scalars['UnsignedLong'];
-  contractName: Scalars['String'];
   contractSubIndex: Scalars['UnsignedLong'];
   initialTransaction: Transaction;
   metadataUrl?: Maybe<Scalars['String']>;
+  tokenAddress: Scalars['String'];
   tokenEvents?: Maybe<TokenEventsCollectionSegment>;
   tokenId: Scalars['String'];
   totalSupply: Scalars['Decimal'];

@@ -20,7 +20,7 @@
 				<template #title>Contract</template>
 				<template #default>
 					<ContractLink
-						:address="token.contractName"
+						:address="token.contractAddressFormatted"
 						:contract-address-index="token.contractIndex"
 						:contract-address-sub-index="token.contractSubIndex"
 					/>
