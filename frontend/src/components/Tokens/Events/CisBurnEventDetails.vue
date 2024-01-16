@@ -31,8 +31,8 @@ import ContractLink from '../../molecules/ContractLink.vue'
 
 type Props = {
 	event: CisBurnEvent
-	decimals: number | undefined
-	symbol: string | undefined
+	decimals?: number | undefined
+	symbol?: string | undefined
 }
 defineProps<Props>()
 </script>

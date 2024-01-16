@@ -66,6 +66,8 @@ const AccountQueryFragment = `
 				tokenId
 				token {
 					metadataUrl
+					tokenAddress
+    				contractAddressFormatted
 				}
 			}
 	}

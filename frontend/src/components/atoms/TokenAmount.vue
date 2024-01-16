@@ -20,8 +20,8 @@ const defaultFractionDigits = 0
 type Props = {
 	amount: string
 	removeTopPadding?: boolean
-	fractionDigits?: number
-	symbol?: string
+	fractionDigits?: number | undefined
+	symbol?: string | undefined
 }
 
 const props = defineProps<Props>()

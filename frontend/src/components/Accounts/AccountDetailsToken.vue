@@ -3,8 +3,9 @@
 		<Table>
 			<TableHead>
 				<TableRow>
-					<TableTh v-if="breakpoint >= Breakpoint.LG">Index</TableTh>
-					<TableTh>Token Id</TableTh>
+					<TableTh>Token Address</TableTh>
+					<TableTh>Contract</TableTh>
+					<TableTh v-if="breakpoint >= Breakpoint.LG">Token Id</TableTh>
 					<TableTh align="right">Balance</TableTh>
 				</TableRow>
 			</TableHead>
@@ -13,16 +14,24 @@
 					v-for="token in accountTokens"
 					:key="token.contractIndex + token.contractSubIndex + token.tokenId"
 				>
-					<TableTd v-if="breakpoint >= Breakpoint.LG">
-						{{ token.contractIndex }} / {{ token.contractSubIndex }}
-					</TableTd>
 					<TableTd>
 						<TokenLink
+							:token-address="token.token.tokenAddress"
 							:token-id="token.tokenId"
 							:url="(token.token.metadataUrl as string)"
 							:contract-address-index="token.contractIndex"
 							:contract-address-sub-index="token.contractSubIndex"
 						/>
+					</TableTd>
+					<TableTd>
+						<ContractLink
+							:address="token.token.contractAddressFormatted"
+							:contract-address-index="token.token.contractIndex"
+							:contract-address-sub-index="token.token.contractSubIndex"
+						/>
+					</TableTd>
+					<TableTd v-if="breakpoint >= Breakpoint.LG">
+						{{ token.tokenId || '-' }}
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<TokenAmount
@@ -39,6 +48,7 @@
 </template>
 <script lang="ts" setup>
 import TokenLink from '../molecules/TokenLink.vue'
+import ContractLink from '../molecules/ContractLink.vue'
 import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'

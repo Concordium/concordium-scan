@@ -77,8 +77,8 @@ import { TokenEvent } from '~~/src/types/generated'
 
 type Props = {
 	tokenEvents: TokenEvent[]
-	decimals: number | undefined
-	symbol: string | undefined
+	decimals?: number | undefined
+	symbol?: string | undefined
 }
 defineProps<Props>()
 </script>

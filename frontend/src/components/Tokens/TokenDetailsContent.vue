@@ -35,8 +35,8 @@
 				<template #default>
 					<TokenAmount
 						:amount="String(token.totalSupply)"
-						:symbol="symbol"
-						:fraction-digits="Number(decimals || 0)"
+						:symbol="token.metadata?.symbol"
+						:fraction-digits="Number(token.metadata?.decimals || 0)"
 					/>
 				</template>
 			</DetailsCard>
