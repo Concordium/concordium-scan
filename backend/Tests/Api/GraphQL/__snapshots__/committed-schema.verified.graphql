@@ -784,6 +784,7 @@ type CommissionRates {
 }
 
 type Contract {
+  tokens(skip: Int take: Int): TokensCollectionSegment
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
   contractAddress: String!
@@ -1957,6 +1958,15 @@ type TokenEventsCollectionSegment {
   pageInfo: CollectionSegmentInfo!
   "A flattened list of the items."
   items: [TokenEvent!]
+  totalCount: Int!
+}
+
+"A segment of a collection."
+type TokensCollectionSegment {
+  "Information to aid in pagination."
+  pageInfo: CollectionSegmentInfo!
+  "A flattened list of the items."
+  items: [Token!]
   totalCount: Int!
 }
 

@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
@@ -9,7 +7,6 @@ using Application.Utils;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
-using NBitcoin.DataEncoders;
 using Base58Encoder = Application.Utils.Base58Encoder;
 
 namespace Application.Aggregates.Contract.Entities;

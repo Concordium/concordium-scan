@@ -172,6 +172,8 @@ const ContractQuery = gql`
 		$takeEvent: Int
 		$skipRejectEvent: Int
 		$takeRejectEvent: Int
+		$skipTokens: Int
+		$takeTokens: Int		
 		$contractAddressIndex: UnsignedLong!
 		$contractAddressSubIndex: UnsignedLong!
 	) {
@@ -185,6 +187,18 @@ const ContractQuery = gql`
 			moduleReference
 			amount
 			contractName
+			tokens(skip: $skipTokens, take: $takeTokens) {
+				items {
+				  tokenAddress
+				  tokenId
+				  contractIndex
+				  contractSubIndex
+				  contractAddressFormatted
+				  totalSupply
+				  metadataUrl				  
+				}
+				totalCount
+			}			
 			creator {
 				asString
 			}
@@ -205,6 +219,7 @@ type QueryParams = {
 	contractAddressSubIndex: Ref<number>
 	eventsVariables: PaginationOffsetQueryVariables
 	rejectEventsVariables: PaginationOffsetQueryVariables
+	tokensVariables: PaginationOffsetQueryVariables
 }
 
 type ContractQueryResponse = {
@@ -216,6 +231,7 @@ export const useContractQuery = ({
 	contractAddressSubIndex,
 	eventsVariables,
 	rejectEventsVariables,
+	tokensVariables,
 }: QueryParams): {
 	data: Ref<ContractQueryResponse | undefined>
 	error: Ref<CombinedError | undefined>
@@ -232,6 +248,8 @@ export const useContractQuery = ({
 			takeEvent: eventsVariables.take,
 			skipRejectEvent: rejectEventsVariables.skip,
 			takeRejectEvent: rejectEventsVariables.take,
+			skipTokens: tokensVariables.skip,
+			takeTokens: tokensVariables.take,
 		},
 	})
 

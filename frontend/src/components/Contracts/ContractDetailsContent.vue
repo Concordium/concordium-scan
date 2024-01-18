@@ -76,6 +76,21 @@
 						/>
 					</DetailsTable>
 				</template>
+				<template
+					v-if="
+						contract.tokens?.items?.length && contract.tokens?.items?.length > 0
+					"
+					#tabPanel-3
+				>
+					<DetailsTable
+						:total-count="contract.tokens.totalCount"
+						:page-offset-info="paginationTokens"
+						:page-dropdown-info="pageDropdownTokens"
+						:fetching="fetching"
+					>
+						<ContractDetailsTokens :contract-tokens="contract.tokens!.items" />
+					</DetailsTable>
+				</template>
 			</Tabs>
 		</DrawerContent>
 	</div>
@@ -89,6 +104,7 @@ import InfoTooltip from '../atoms/InfoTooltip.vue'
 import ContractDetailsAmounts from './ContractDetailsAmounts.vue'
 import ContractDetailsHeader from './ContractDetailsHeader.vue'
 import ContractDetailsEvents from './ContractDetailsEvents.vue'
+import ContractDetailsTokens from './ContractDetailsTokens.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
 import { Contract } from '~~/src/types/generated'
@@ -109,16 +125,22 @@ type Props = {
 	contract: Contract
 	paginationEvents: PaginationOffsetInfo
 	paginationRejectEvents: PaginationOffsetInfo
+	paginationTokens: PaginationOffsetInfo
 	pageDropdownEvents: PageDropdownInfo
 	pageDropdownRejectedEvents: PageDropdownInfo
+	pageDropdownTokens: PageDropdownInfo
 	fetching: boolean
 }
 const props = defineProps<Props>()
 
 const tabList = computed(() => {
-	return [
+	const tabs = [
 		`Event (${props.contract.contractEvents?.totalCount ?? 0})`,
 		`Rejected events (${props.contract.contractRejectEvents?.totalCount ?? 0})`,
 	]
+	if (props.contract.tokens?.totalCount) {
+		tabs.push(`Tokens (${props.contract.tokens.totalCount})`)
+	}
+	return tabs
 })
 </script>
