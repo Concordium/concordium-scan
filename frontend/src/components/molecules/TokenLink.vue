@@ -1,43 +1,46 @@
 ﻿<template>
 	<div class="inline-block whitespace-nowrap">
-		<TransactionIcon class="h-4 w-4 align-text-top" />
-		<LinkButton
-			class="numerical px-2"
-			@blur="emitBlur"
-			@click="() => handleOnClick(props.url)"
-		>
-			<div v-if="props.hideTooltip" text-class="text-theme-body">
-				{{ shortenTokenId(props.tokenId) }}
+		<TokenIcon class="h-5 inline align-text-top" />
+		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
+			<div text-class="text-theme-body">
+				{{ props.tokenAddress }}
 			</div>
-			<Tooltip v-else :text="props.tokenId" text-class="text-theme-body">
-				{{ shortenTokenId(props.tokenId) }}
-			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			v-if="props.url"
-			:text="props.url"
-			label="Click to copy token metadata url to clipboard"
+			:text="props.tokenAddress"
+			label="Click to copy token address"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
 		/>
 	</div>
 </template>
 <script lang="ts" setup>
-import { shortenTokenId } from '~/utils/format'
+import TextCopy from '../atoms/TextCopy.vue'
+import TokenIcon from '../icons/TokenIcon.vue'
 import LinkButton from '~/components/atoms/LinkButton.vue'
-import TransactionIcon from '~/components/icons/TransactionIcon.vue'
+import { useDrawer } from '~/composables/useDrawer'
+
 type Props = {
-	url?: string
+	tokenAddress: string
 	tokenId: string
-	hideTooltip?: boolean
+	contractAddressIndex: number
+	contractAddressSubIndex: number
+	suffix?: string
+	length?: number
 }
 const props = defineProps<Props>()
+const drawer = useDrawer()
 const emit = defineEmits(['blur'])
 const emitBlur = (newTarget: FocusEvent) => {
 	emit('blur', newTarget)
 }
 
-const handleOnClick = (url: string | undefined) => {
-	url && window.open(url, '_blank')
+const handleOnClick = () => {
+	drawer.push({
+		entityTypeName: 'token',
+		tokenId: props.tokenId,
+		contractAddressIndex: props.contractAddressIndex,
+		contractAddressSubIndex: props.contractAddressSubIndex,
+	})
 }
 </script>

@@ -1,5 +1,10 @@
 using System.Numerics;
+using System.Threading.Tasks;
 using Application.Aggregates.Contract.Entities;
+using Application.Api.GraphQL.EfCore;
+using HotChocolate;
+using HotChocolate.Types;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Api.GraphQL.Accounts
 {
@@ -12,6 +17,7 @@ namespace Application.Api.GraphQL.Accounts
         /// <summary>
         /// Serially increasing Index for Account Token.
         /// </summary>
+        [GraphQLIgnore]
         public long Index { get; set; }
 
         /// <summary>
@@ -43,5 +49,13 @@ namespace Application.Api.GraphQL.Accounts
         /// Id of the Account in <see cref="Account"/>
         /// </summary>
         public long AccountId { get; set; }
+
+        [ExtendObjectType(typeof(AccountToken))]
+        public sealed class AccountTokenExtensions
+        {
+            public Task<Account> GetAccount(GraphQlDbContext context, [Parent] AccountToken accountToken) =>
+                context.Accounts
+                    .SingleAsync(a => a.Id == accountToken.AccountId);
+        }
     }
 }

@@ -1,8 +1,16 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
+using Application.Api.GraphQL.Transactions;
+using Application.Utils;
+using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
+using NBitcoin.DataEncoders;
+using Base58Encoder = Application.Utils.Base58Encoder;
 
 namespace Application.Aggregates.Contract.Entities;
 
@@ -37,18 +45,39 @@ public class Token
     public decimal TotalSupply { get; set; }
 
     /// <summary>
+    /// Get transaction with the initial mint event of the token.
+    /// </summary>
+    public async Task<Transaction> GetInitialTransaction(GraphQlDbContext context)
+    {
+        var initialTokenEvent = await context.TokenEvents
+            .Where(te => te.ContractIndex == ContractIndex &&
+                         te.ContractSubIndex == ContractSubIndex &&
+                         te.TokenId == TokenId)
+            .OrderBy(t => t.Id)
+            .FirstAsync();
+        
+        return await context.Transactions
+            .SingleAsync(t => t.TransactionHash == initialTokenEvent.Event.TransactionHash);
+    }
+
+    /// <summary>
     /// Gets accounts with balances for this particular token
     /// </summary>
     /// <param name="dbContext">EF Core Database Context</param>
     /// <returns><see cref="IQueryable<AccountToken>"/></returns>
-    public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    public IQueryable<AccountToken> GetAccounts(GraphQlDbContext dbContext)
     {
-        return dbContext.AccountTokens.AsNoTracking().Where(t =>
+        return dbContext.AccountTokens
+            .AsNoTracking()
+            .Where(t =>
             t.ContractIndex == ContractIndex
             && t.ContractSubIndex == ContractSubIndex
-            && t.TokenId == TokenId);
+            && t.TokenId == TokenId)
+            .OrderByDescending(t => t.AccountId);
     }
         
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IQueryable<TokenEvent> GetTokenEvents(GraphQlDbContext dbContext)
     {
         return dbContext.TokenEvents
@@ -59,12 +88,36 @@ public class Token
                 && t.TokenId == this.TokenId)
             .OrderByDescending(t => t.Id);
     }
+
+    [ExtendObjectType(typeof(Token))]
+    public sealed class TokenExtensions
+    {
+        public string GetContractAddressFormatted([Parent] Token token) => 
+            new ContractAddress(token.ContractIndex, token.ContractSubIndex).AsString;
+
+        public string GetTokenAddress([Parent]Token token)
+        {
+            var contractIndexBytes = Leb128.EncodeUnsignedLeb128(token.ContractIndex);
+            var contractSubindexBytes = Leb128.EncodeUnsignedLeb128(token.ContractSubIndex);
+            var tokenIdBytes = Convert.FromHexString(token.TokenId).AsSpan();
+            Span<byte> bytes = new byte[1 + contractIndexBytes.Length + contractSubindexBytes.Length + tokenIdBytes.Length];
+            bytes[0] = 2;
+            contractIndexBytes.CopyTo(bytes.Slice(1,
+                contractIndexBytes.Length));
+            contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length + 1,
+                contractSubindexBytes.Length));
+            tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length + contractIndexBytes.Length + 1,
+                tokenIdBytes.Length));
+            
+            return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
+        }
+    }
 }
 
 [ExtendObjectType(typeof(Query))]
 public class TokenQuery
 {
-    [UsePaging]
+    [UsePaging(MaxPageSize = 100)]
     public IQueryable<Token> GetTokens(GraphQlDbContext dbContext) =>
         dbContext.Tokens.OrderByDescending(t => t.ContractIndex).AsNoTracking();
 

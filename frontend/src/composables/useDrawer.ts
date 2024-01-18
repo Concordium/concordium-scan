@@ -53,6 +53,14 @@ type NodeDrawerItem = {
 type PassiveDelegationItem = {
 	entityTypeName: 'passiveDelegation'
 }
+
+type TokenDrawerItem = {
+	entityTypeName: 'token'
+	tokenId: string
+	contractAddressIndex: number
+	contractAddressSubIndex: number
+}
+
 export type DrawerItem = (
 	| BlockDrawerItem
 	| TxDrawerItem
@@ -63,6 +71,7 @@ export type DrawerItem = (
 	| BakerDrawerItem
 	| PassiveDelegationItem
 	| NodeDrawerItem
+	| TokenDrawerItem
 ) & {
 	scrollY?: number
 }
@@ -135,6 +144,21 @@ export const isItemOnTop = (
 	) {
 		return !!(item.nodeId && item.nodeId === currentTopItem.value.nodeId)
 	}
+	if (
+		item.entityTypeName === 'token' &&
+		item.entityTypeName === currentTopItem.value.entityTypeName
+	) {
+		return !!(
+			item.contractAddressIndex !== null &&
+			item.contractAddressSubIndex !== null &&
+			item.contractAddressIndex !== undefined &&
+			item.contractAddressSubIndex !== undefined &&
+			item.tokenId === currentTopItem.value.tokenId &&
+			item.contractAddressIndex === currentTopItem.value.contractAddressIndex &&
+			item.contractAddressSubIndex ===
+				currentTopItem.value.contractAddressSubIndex
+		)
+	}
 
 	if (
 		item.entityTypeName === 'passiveDelegation' &&
@@ -155,39 +179,79 @@ export const isItemOnTop = (
 export const pushToRouter =
 	(drawerItem: DrawerItem, resetList = true) =>
 	(router: Router, state: Ref<DrawerList>) => {
-		router.push({
-			query: {
-				dcount: resetList ? state.value.items.length : 1,
-				dentity: drawerItem.entityTypeName,
-				daddress:
-					drawerItem.entityTypeName === 'account'
-						? drawerItem.address
-						: undefined,
-				dhash:
-					drawerItem.entityTypeName === 'block' ||
-					drawerItem.entityTypeName === 'transaction'
-						? drawerItem.hash
-						: undefined,
-				did:
-					drawerItem.entityTypeName === 'validator'
-						? drawerItem.id
-						: drawerItem.entityTypeName === 'node'
-						? encodeURIComponent(drawerItem.nodeId)
-						: undefined,
-				dcontractAddressIndex:
-					drawerItem.entityTypeName === 'contract'
-						? drawerItem.contractAddressIndex
-						: undefined,
-				dcontractAddressSubIndex:
-					drawerItem.entityTypeName === 'contract'
-						? drawerItem.contractAddressSubIndex
-						: undefined,
-				dmoduleReference:
-					drawerItem.entityTypeName === 'module'
-						? drawerItem.moduleReference
-						: undefined,
-			},
-		})
+		const dcount = resetList ? state.value.items.length : 1
+		const dentity = drawerItem.entityTypeName
+
+		switch (dentity) {
+			case 'block' || 'transaction':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						dhash: drawerItem.hash ?? undefined,
+					},
+				})
+				break
+			case 'account':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						daddress: drawerItem.address ?? undefined,
+					},
+				})
+				break
+			case 'validator':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						did: drawerItem.id ?? undefined,
+					},
+				})
+				break
+			case 'node':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						did: encodeURIComponent(drawerItem.nodeId) ?? undefined,
+					},
+				})
+				break
+			case 'contract':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						dcontractAddressIndex: drawerItem.contractAddressIndex ?? undefined,
+						dcontractAddressSubIndex:
+							drawerItem.contractAddressSubIndex ?? undefined,
+					},
+				})
+				break
+			case 'module':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						dmoduleReference: drawerItem.moduleReference ?? undefined,
+					},
+				})
+				break
+			case 'token':
+				router.push({
+					query: {
+						dcount,
+						dentity,
+						did: drawerItem.tokenId ?? undefined,
+						dcontractAddressIndex: drawerItem.contractAddressIndex ?? undefined,
+						dcontractAddressSubIndex:
+							drawerItem.contractAddressSubIndex ?? undefined,
+					},
+				})
+				break
+		}
 	}
 
 export const useDrawer = () => {
@@ -279,6 +343,17 @@ export const useDrawer = () => {
 				},
 				false
 			)
+		} else if (route.query.dentity === 'token') {
+			push({
+				entityTypeName: 'token',
+				tokenId: route.query.did as string,
+				contractAddressIndex: parseInt(
+					route.query.dcontractAddressIndex as string
+				),
+				contractAddressSubIndex: parseInt(
+					route.query.dcontractAddressSubIndex as string
+				),
+			})
 		} else router.push({ query: {} })
 	}
 

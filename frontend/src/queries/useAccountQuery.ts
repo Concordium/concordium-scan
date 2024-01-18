@@ -60,13 +60,14 @@ const AccountQueryFragment = `
 				__typename
 			}
 			nodes {
-				index
 				balance
 				contractIndex
 				contractSubIndex
 				tokenId
 				token {
 					metadataUrl
+					tokenAddress
+    					contractAddressFormatted
 				}
 			}
 	}

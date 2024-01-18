@@ -82,9 +82,10 @@ public sealed class TokenTest : IAsyncLifetime
         // Assert
         const string tokenProperty = "token";
         const string tokenEventsProperty = "tokenEvents";
+        const string tokenEvensItemsProperty = "items";
         var tokenFromQuery = result[tokenProperty].Deserialize<Token>(_jsonSerializerOptions);
-        result[tokenProperty]![tokenEventsProperty]![0]!["id"] = 0; // Stub the base64 encoded id
-        var tokenEventsFromQuery = result[tokenProperty]![tokenEventsProperty].Deserialize<List<TokenEvent>>(_jsonSerializerOptions);
+        result[tokenProperty]![tokenEventsProperty]![tokenEvensItemsProperty]![0]!["id"] = 0; // Stub the base64 encoded id
+        var tokenEventsFromQuery = result[tokenProperty]![tokenEventsProperty]![tokenEvensItemsProperty].Deserialize<List<TokenEvent>>(_jsonSerializerOptions);
 
         tokenFromQuery.Should().NotBeNull();
         tokenFromQuery!.TokenId.Should().Be(tokenId);
@@ -184,79 +185,84 @@ query {{
         contractSubIndex
         metadataUrl
         tokenId
-        tokens {{
-            accountId
-            balance
-            contractIndex
-            contractSubIndex
-            index
-            tokenId
+        accounts(skip: 0, take: 10) {{
+            items {{
+              accountId
+              balance
+              contractIndex
+              contractSubIndex
+              tokenId
+            }}
+            totalCount
         }}
-        tokenEvents {{
-            id
-            contractIndex
-            contractSubIndex
-            tokenId
-            event {{
-                __typename
-                ... on CisBurnEvent {{
-                    tokenAmount
-                    fromAddress {{
-                        __typename
-                        ... on AccountAddress {{
-                            asString
-                        }}
-                        ... on ContractAddress {{
-                            asString
-                            index
-                            subIndex
-                        }}
-                    }}
-                }}
-                ... on CisTokenMetadataEvent {{
-                    metadataUrl
-                    hashHex
-                }}
-                ... on CisMintEvent {{
-                    tokenAmount
-                    toAddress {{
-                        __typename
-                        ... on AccountAddress {{
-                            asString
-                        }}
-                        ... on ContractAddress {{
-                            asString
-                            index
-                            subIndex
+        tokenEvents(skip: 0, take: 10) {{
+            items {{
+                id
+                contractIndex
+                contractSubIndex
+                tokenId
+                event {{
+                    __typename
+                    ... on CisBurnEvent {{
+                        tokenAmount
+                        fromAddress {{
+                            __typename
+                            ... on AccountAddress {{
+                                asString
+                            }}
+                            ... on ContractAddress {{
+                                asString
+                                index
+                                subIndex
+                            }}
                         }}
                     }}
-                }}
-                ... on CisTransferEvent {{
-                    tokenAmount
-                    fromAddress {{
-                        __typename
-                        ... on AccountAddress {{
-                            asString
+                    ... on CisTokenMetadataEvent {{
+                        metadataUrl
+                        hashHex
+                    }}
+                    ... on CisMintEvent {{
+                        tokenAmount
+                        toAddress {{
+                            __typename
+                            ... on AccountAddress {{
+                                asString
+                            }}
+                            ... on ContractAddress {{
+                                asString
+                                index
+                                subIndex
+                            }}
                         }}
-                        ... on ContractAddress {{
-                            asString
-                            index
-                            subIndex
-                        }}
-                    }}                        
-                    toAddress {{
-                        __typename
-                        ... on AccountAddress {{
-                            asString
-                        }}
-                        ... on ContractAddress {{
-                            asString
-                            index
-                            subIndex
+                    }}
+                    ... on CisTransferEvent {{
+                        tokenAmount
+                        fromAddress {{
+                            __typename
+                            ... on AccountAddress {{
+                                asString
+                            }}
+                            ... on ContractAddress {{
+                                asString
+                                index
+                                subIndex
+                            }}
+                        }}                        
+                        toAddress {{
+                            __typename
+                            ... on AccountAddress {{
+                                asString
+                            }}
+                            ... on ContractAddress {{
+                                asString
+                                index
+                                subIndex
+                            }}
                         }}
                     }}
                 }}
             }}
+            totalCount
         }}      
     }}
 }}
