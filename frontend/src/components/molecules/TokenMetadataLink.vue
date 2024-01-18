@@ -2,7 +2,7 @@
 	<div class="inline-block whitespace-nowrap">
 		<span v-if="props.url">
 			<Tooltip
-				text="This is an external URL, and its source may be potentially malicious. Only redirect to URLs from sources that are known to be trusted"
+				text="This is an external URL, and its source may be potentially malicious. Only open URLs from sources that are known to be trusted"
 				text-class="text-theme-body"
 			>
 				<span class="icon-warning">
