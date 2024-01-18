@@ -27,8 +27,8 @@ import { AccountToken } from '~~/src/types/generated'
 
 type Props = {
 	accounts: AccountToken[]
-	decimals: number | undefined
-	symbol: string | undefined
+	decimals?: number | undefined
+	symbol?: string | undefined
 }
 defineProps<Props>()
 </script>

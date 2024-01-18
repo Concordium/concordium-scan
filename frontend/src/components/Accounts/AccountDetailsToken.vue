@@ -26,8 +26,8 @@
 					<TableTd>
 						<ContractLink
 							:address="token.token.contractAddressFormatted"
-							:contract-address-index="token.token.contractIndex"
-							:contract-address-sub-index="token.token.contractSubIndex"
+							:contract-address-index="token.contractIndex"
+							:contract-address-sub-index="token.contractSubIndex"
 						/>
 					</TableTd>
 					<TableTd v-if="breakpoint >= Breakpoint.LG">
