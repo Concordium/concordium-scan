@@ -1,6 +1,6 @@
 <template>
 	<DrawerTitle class="flex flex-row flex-wrap">
-		<TokenIcon class="w-12 h-12 mr-4 hidden md:block" />
+		<TokenIcon class="w-12 h-12 mr-4 md:block" />
 
 		<div class="flex flex-wrap flex-grow w-1/2">
 			<h3 class="w-full text-sm text-theme-faded">CIS2 Token</h3>
