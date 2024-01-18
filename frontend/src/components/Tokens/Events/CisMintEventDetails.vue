@@ -1,16 +1,7 @@
 <template>
 	<div>To:</div>
 	<div>
-		<ContractLink
-			v-if="event.toAddress.__typename === 'ContractAddress'"
-			:address="event.toAddress.asString"
-			:contract-address-index="event.toAddress.index"
-			:contract-address-sub-index="event.toAddress.subIndex"
-		/>
-		<AccountLink
-			v-else-if="event.toAddress.__typename === 'AccountAddress'"
-			:address="event.toAddress.asString"
-		/>
+		<AddressLink :address="event.toAddress" />
 	</div>
 	<div>Amount:</div>
 	<div>
@@ -26,8 +17,7 @@
 import { CisMintEvent } from '../../../../src/types/generated'
 import Log from '../../Details/Log.vue'
 import TokenAmount from '../../atoms/TokenAmount.vue'
-import AccountLink from '../../molecules/AccountLink.vue'
-import ContractLink from '../../molecules/ContractLink.vue'
+import AddressLink from '../../molecules/AddressLink.vue'
 
 type Props = {
 	event: CisMintEvent

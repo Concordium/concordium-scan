@@ -1,29 +1,11 @@
 <template>
 	<div>From:</div>
 	<div>
-		<ContractLink
-			v-if="event.fromAddress.__typename === 'ContractAddress'"
-			:address="event.fromAddress.asString"
-			:contract-address-index="event.fromAddress.index"
-			:contract-address-sub-index="event.fromAddress.subIndex"
-		/>
-		<AccountLink
-			v-else-if="event.fromAddress.__typename === 'AccountAddress'"
-			:address="event.fromAddress.asString"
-		/>
+		<AddressLink :address="event.fromAddress" />
 	</div>
 	<div>To:</div>
 	<div>
-		<ContractLink
-			v-if="event.fromAddress.__typename === 'ContractAddress'"
-			:address="event.fromAddress.asString"
-			:contract-address-index="event.fromAddress.index"
-			:contract-address-sub-index="event.fromAddress.subIndex"
-		/>
-		<AccountLink
-			v-else-if="event.fromAddress.__typename === 'AccountAddress'"
-			:address="event.fromAddress.asString"
-		/>
+		<AddressLink :address="event.toAddress" />
 	</div>
 	<div>Amount:</div>
 	<div>
@@ -39,8 +21,7 @@
 import { CisTransferEvent } from '../../../../src/types/generated'
 import Log from '../../Details/Log.vue'
 import TokenAmount from '../../atoms/TokenAmount.vue'
-import AccountLink from '../../molecules/AccountLink.vue'
-import ContractLink from '../../molecules/ContractLink.vue'
+import AddressLink from '../../molecules/AddressLink.vue'
 
 type Props = {
 	event: CisTransferEvent

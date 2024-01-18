@@ -7,7 +7,6 @@ internal static class Leb128
 {
     internal static Span<byte> EncodeUnsignedLeb128(ulong value)
     {
-        value |= 0;
         var result = new List<byte>();
         do
         { 
