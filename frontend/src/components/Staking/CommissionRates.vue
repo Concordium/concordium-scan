@@ -4,7 +4,7 @@
 			props.currentPaydayCommission === undefined ||
 			props.currentPaydayCommission === null
 		"
-		:text="`Validator is new and rates will be active on next payday.`"
+		:text="`Validator is new and rates will be active on next pay day.`"
 	>
 		<span class="numerical change">
 			{{ `${formatPercentage(props.nextPaydayCommission)}%` }}
@@ -15,7 +15,7 @@
 		v-else-if="props.nextPaydayCommission !== props.currentPaydayCommission"
 		:text="`Rates will change to ${formatPercentage(
 			props.nextPaydayCommission
-		)}% on the next payday.`"
+		)}% on the next pay day.`"
 	>
 		<span class="numerical change">
 			{{ `${formatPercentage(props.currentPaydayCommission)}%` }}

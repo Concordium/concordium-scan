@@ -349,7 +349,7 @@
 
 			<DescriptionList class="mt-4 ml-8">
 				<DescriptionListItem>
-					Mint per payday
+					Mint per pay day
 					<template #content>
 						<span class="numerical">
 							{{ event.payload.mintPerPayday }}

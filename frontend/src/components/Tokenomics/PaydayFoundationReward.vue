@@ -1,6 +1,6 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Payday: Foundation reward</template>
+		<template #title>Pay day: Foundation reward</template>
 		<template #content>
 			<DescriptionList v-for="event in data.nodes" :key="event.id">
 				<DescriptionListItem>
