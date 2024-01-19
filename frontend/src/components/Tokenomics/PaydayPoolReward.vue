@@ -1,6 +1,6 @@
 <template>
 	<TokenomicsDisplay class="p-4 pr-0">
-		<template #title>Payday: Pool rewards</template>
+		<template #title>Pay day: Pool rewards</template>
 		<template #content>
 			<Table>
 				<TableHead>

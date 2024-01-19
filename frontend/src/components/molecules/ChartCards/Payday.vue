@@ -4,8 +4,8 @@
 			v-if="componentState === 'empty'"
 			class="mb-8 bg-theme-transparent not-found"
 		>
-			Payday not known
-			<template #secondary>We don't know when the next payday is</template>
+			Pay day not known
+			<template #secondary>We don't know when the next pay day is</template>
 		</NotFound>
 		<Error v-else-if="componentState === 'error'" :error="error" class="mb-8" />
 
@@ -13,7 +13,7 @@
 			v-else-if="componentState === 'success' || componentState === 'loading'"
 			class="flex flex-col items-center mb-4"
 		>
-			<div class="text-sm text-theme-faded w-72 text-center">Next payday</div>
+			<div class="text-sm text-theme-faded w-72 text-center">Next pay day</div>
 
 			<Loader v-if="componentState === 'loading'" class="top-1/2" />
 
@@ -55,7 +55,7 @@
 					"
 				>
 					<BlockIcon class="h-4 w-4 mr-2 align-text-top text-theme-white" />
-					Previous payday block
+					Previous pay day block
 				</Button>
 			</div>
 		</div>
