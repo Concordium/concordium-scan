@@ -8,8 +8,10 @@
 		:contract="data?.contract"
 		:pagination-events="pageOffsetInfoEvents"
 		:pagination-reject-events="pageOffsetInfoRejectedEvents"
+		:pagination-tokens="pageOffsetInfoTokens"
 		:page-dropdown-events="pageDropdownEvents"
 		:page-dropdown-rejected-events="pageDropdownRejectedEvents"
+		:page-dropdown-tokens="pageDropdownTokens"
 		:fetching="fetching"
 	/>
 </template>
@@ -28,11 +30,15 @@ type Props = {
 	contractAddressSubIndex: number
 }
 
-const pageDropdownEvents = usePageDropdown();
-const pageDropdownRejectedEvents = usePageDropdown();
+const pageDropdownEvents = usePageDropdown()
+const pageDropdownRejectedEvents = usePageDropdown()
+const pageDropdownTokens = usePageDropdown()
 
-const pageOffsetInfoEvents = usePaginationOffset(pageDropdownEvents.take);
-const pageOffsetInfoRejectedEvents = usePaginationOffset(pageDropdownRejectedEvents.take);
+const pageOffsetInfoEvents = usePaginationOffset(pageDropdownEvents.take)
+const pageOffsetInfoRejectedEvents = usePaginationOffset(
+	pageDropdownRejectedEvents.take
+)
+const pageOffsetInfoTokens = usePaginationOffset(pageDropdownTokens.take)
 
 const props = defineProps<Props>()
 const contractAddressIndex = ref(props.contractAddressIndex)
@@ -43,11 +49,15 @@ const { data, error, componentState, fetching } = useContractQuery({
 	contractAddressSubIndex,
 	eventsVariables: {
 		skip: pageOffsetInfoEvents.skip,
-		take: pageOffsetInfoEvents.take
+		take: pageOffsetInfoEvents.take,
 	},
 	rejectEventsVariables: {
 		skip: pageOffsetInfoRejectedEvents.skip,
-		take: pageOffsetInfoRejectedEvents.take
+		take: pageOffsetInfoRejectedEvents.take,
+	},
+	tokensVariables: {
+		skip: pageOffsetInfoTokens.skip,
+		take: pageOffsetInfoTokens.take,
 	},
 })
 </script>

@@ -1097,6 +1097,7 @@ export type Contract = {
   contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
   creator: AccountAddress;
   moduleReference: Scalars['String'];
+  tokens?: Maybe<TokensCollectionSegment>;
   transactionHash: Scalars['String'];
 };
 
@@ -1108,6 +1109,12 @@ export type ContractContractEventsArgs = {
 
 
 export type ContractContractRejectEventsArgs = {
+  skip?: InputMaybe<Scalars['Int']>;
+  take?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type ContractTokensArgs = {
   skip?: InputMaybe<Scalars['Int']>;
   take?: InputMaybe<Scalars['Int']>;
 };
@@ -2933,6 +2940,16 @@ export type TokenEventsCollectionSegment = {
   __typename?: 'TokenEventsCollectionSegment';
   /** A flattened list of the items. */
   items?: Maybe<Array<TokenEvent>>;
+  /** Information to aid in pagination. */
+  pageInfo: CollectionSegmentInfo;
+  totalCount: Scalars['Int'];
+};
+
+/** A segment of a collection. */
+export type TokensCollectionSegment = {
+  __typename?: 'TokensCollectionSegment';
+  /** A flattened list of the items. */
+  items?: Maybe<Array<Token>>;
   /** Information to aid in pagination. */
   pageInfo: CollectionSegmentInfo;
   totalCount: Scalars['Int'];

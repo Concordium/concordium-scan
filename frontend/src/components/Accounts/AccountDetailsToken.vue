@@ -12,7 +12,7 @@
 			<TableBody>
 				<TableRow
 					v-for="token in accountTokens"
-					:key="token.contractIndex + token.contractSubIndex + token.tokenId"
+					:key="token.token.tokenAddress"
 				>
 					<TableTd>
 						<TokenLink
