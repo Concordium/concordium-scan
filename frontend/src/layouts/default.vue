@@ -10,7 +10,7 @@
 				<DrawerContainer />
 				<div id="app">
 					<PageHeader :class="[isLoading ? 'pointer-events-none' : ' ']" />
-					<main class="p-4 xl:container xl:mx-auto page-padding">
+					<main class="p-4 xl:container xl:mx-auto">
 						<slot />
 					</main>
 					<PageFooter />
@@ -58,16 +58,3 @@ watch(route, to => {
 	}, 1)
 })
 </script>
-<style>
-.page-padding {
-	padding-bottom: 100px;
-
-	@media screen and (max-width: 961px) {
-		padding-bottom: 200px;
-	}
-
-	@media screen and (max-width: 640px) {
-		padding-bottom: 300px;
-	}
-}
-</style>

@@ -88,11 +88,6 @@ import OpenLinkButton from './OpenLinkButton.vue'
 <style>
 .footer {
 	display: grid;
-	position: fixed;
-	left: 0;
-	bottom: 0;
-	width: 100%;
-	height: 210px;
 	grid-template-columns: repeat(6, auto);
 	grid-template-rows: repeat(7, auto);
 	column-gap: 150px;
