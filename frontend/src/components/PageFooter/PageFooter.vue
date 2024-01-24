@@ -94,7 +94,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	flex-wrap: wrap;
 	justify-content: space-between;
 
-	/* :nth-child(1) {
+	:nth-child(1) {
 		order: 1;
 	}
 
@@ -127,7 +127,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		:nth-child(4) {
 			order: 4;
 		}
-	} */
+	}
 }
 
 .footer-powered {
