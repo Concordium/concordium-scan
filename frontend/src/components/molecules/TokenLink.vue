@@ -2,9 +2,11 @@
 	<div class="inline-block whitespace-nowrap">
 		<TokenIcon class="h-5 inline align-text-top" />
 		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
-			<div text-class="text-theme-body">
-				{{ props.tokenAddress }}
-			</div>
+			<Tooltip :text="props.tokenAddress" text-class="text-theme-body">
+				<div class="token-address truncate">
+					{{ props.tokenAddress }}
+				</div>
+			</Tooltip>
 		</LinkButton>
 		<TextCopy
 			:text="props.tokenAddress"
@@ -16,6 +18,7 @@
 </template>
 <script lang="ts" setup>
 import TextCopy from '../atoms/TextCopy.vue'
+import Tooltip from '../atoms/Tooltip.vue'
 import TokenIcon from '../icons/TokenIcon.vue'
 import LinkButton from '~/components/atoms/LinkButton.vue'
 import { useDrawer } from '~/composables/useDrawer'
@@ -44,3 +47,8 @@ const handleOnClick = () => {
 	})
 }
 </script>
+<style>
+.token-address {
+	max-width: 160px;
+}
+</style>
