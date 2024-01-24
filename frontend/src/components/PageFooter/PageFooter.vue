@@ -93,81 +93,124 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-between;
-}
 
-.footer-links-about {
-	grid-column: 1 / 2;
-	grid-row: 1 / 4;
-
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 1 / 2;
+	/* :nth-child(1) {
+		order: 1;
 	}
-}
-.footer-links-feedback {
-	grid-column: 2 / 3;
-	grid-row: 1 / 4;
 
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 2 / 3;
+	:nth-child(2) {
+		order: 2;
 	}
-}
-.footer-links-privacy {
-	grid-column: 3 / 4;
-	grid-row: 1 / 4;
 
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 3 / 4;
+	:nth-child(3) {
+		order: 3;
 	}
-}
-.footer-links-ccd {
-	grid-column: 1 / 2;
-	grid-row: 4 / 7;
 
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 4 / 5;
+	:nth-child(4) {
+		order: 4;
 	}
-}
-.footer-links-contact {
-	grid-column: 2 / 3;
-	grid-row: 4 / 7;
 
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 5 / 6;
-	}
-}
-.footer-links-developers {
-	grid-column: 3 / 4;
-	grid-row: 4 / 7;
+	@media screen and (max-width: 1280px) {
+		padding: 50px 20px;
+		:nth-child(1) {
+			order: 1;
+		}
 
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 4;
-		grid-row: 6 / 7;
+		:nth-child(2) {
+			order: 3;
+		}
+
+		:nth-child(3) {
+			order: 2;
+		}
+
+		:nth-child(4) {
+			order: 4;
+		}
+	} */
+}
+
+.footer-powered {
+	@media screen and (max-width: 1280px) {
+		width: 100%;
 	}
 }
 
 .footer-links {
-	grid-column: 3 / 5;
-	grid-row: 1 / 2;
 	display: grid;
-	grid-template-columns: repeat(3, auto);
-	grid-template-rows: repeat(6, auto);
 	padding-top: 6px;
 	row-gap: 23px;
 	column-gap: 44px;
+	grid-template-columns: repeat(3, auto);
+	grid-template-rows: repeat(2, auto);
 
-	@media screen and (max-width: 961px) {
-		grid-column: 1 / 4;
-		grid-row: 4 / 7;
-	}
+	/* @media screen and (max-width: 1280px) {
+		width: 100%;
+	} */
 
 	@media screen and (max-width: 640px) {
-		grid-column: 1 / 7;
-		grid-row: 3 / 5;
+		grid-template-columns: repeat(1, auto);
+		grid-template-rows: repeat(6, auto);
+	}
+}
+
+.footer-links-about {
+	grid-column: 1 / 2;
+	grid-row: 1 / 2;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 1 / 2;
+	}
+}
+
+.footer-links-feedback {
+	grid-column: 2 / 3;
+	grid-row: 1 / 2;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 2 / 3;
+	}
+}
+
+.footer-links-privacy {
+	grid-column: 3 / 4;
+	grid-row: 1 / 2;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 3 / 4;
+	}
+}
+
+.footer-links-ccd {
+	grid-column: 1 / 2;
+	grid-row: 2 / 3;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 4 / 5;
+	}
+}
+
+.footer-links-contact {
+	grid-column: 2 / 3;
+	grid-row: 2 / 3;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 5 / 6;
+	}
+}
+
+.footer-links-developers {
+	grid-column: 3 / 4;
+	grid-row: 2 / 3;
+
+	@media screen and (max-width: 640px) {
+		grid-column: 1 / 2;
+		grid-row: 6 / 7;
 	}
 }
 </style>
