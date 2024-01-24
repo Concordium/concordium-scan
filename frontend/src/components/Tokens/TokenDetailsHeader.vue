@@ -6,7 +6,7 @@
 			<h3 class="w-full text-sm text-theme-faded">CIS2 Token</h3>
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl numerical">
-					{{ tokenAddress }}
+					{{ tokenAddress.toLowerCase() }}
 				</h1>
 				<TextCopy
 					:text="tokenAddress"
