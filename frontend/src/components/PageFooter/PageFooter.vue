@@ -1,6 +1,5 @@
 <template>
 	<footer class="footer bg-theme-background-primary-elevated-nontrans">
-		<div class="footer-rights text-sm">CCDScan © 2023 All rights reserved</div>
 		<div class="footer-powered">
 			<div class="text-lg">
 				<ConcordiumLogoNoTextIcon class="inline pr-1" /> Powered by Concordium
@@ -14,34 +13,34 @@
 			</div>
 		</div>
 		<div class="footer-links text-base">
-			<div class="footer-about-about">
+			<div class="footer-links-about">
 				<OpenLinkButton url="https://www.concordium.com/about">
 					About
 				</OpenLinkButton>
 			</div>
-			<div class="footer-about-feedback">
+			<div class="footer-links-feedback">
 				<OpenLinkButton
 					url="https://docs.google.com/forms/d/e/1FAIpQLSc_I5t56NxDfyZV5_204p8NzDDB3SACsA7ZzWDd_6sRkf4tvA/viewform"
 				>
 					Feedback
 				</OpenLinkButton>
 			</div>
-			<div class="footer-about-privacy">
+			<div class="footer-links-privacy">
 				<OpenLinkButton url="https://www.concordium.com/privacy-policy">
 					Privacy Policy
 				</OpenLinkButton>
 			</div>
-			<div class="footer-about-ccd">
+			<div class="footer-links-ccd">
 				<OpenLinkButton url="https://www.concordium.com/ccd">
 					CCD
 				</OpenLinkButton>
 			</div>
-			<div class="footer-about-contact">
+			<div class="footer-links-contact">
 				<OpenLinkButton url="https://www.concordium.com/contact">
 					Contact Us
 				</OpenLinkButton>
 			</div>
-			<div class="footer-about-developers">
+			<div class="footer-links-developers">
 				<OpenLinkButton
 					url="https://developer.concordium.software/en/mainnet/net/guides/developer-page.html"
 				>
@@ -73,6 +72,9 @@
 				</OpenLinkButton>
 			</div>
 		</div>
+		<div class="footer-rights w-full text-sm">
+			CCDScan © 2023 All rights reserved
+		</div>
 	</footer>
 </template>
 <script lang="ts" setup>
@@ -87,22 +89,13 @@ import OpenLinkButton from './OpenLinkButton.vue'
 </script>
 <style>
 .footer {
-	display: grid;
-	grid-template-columns: repeat(6, auto);
-	grid-template-rows: repeat(7, auto);
-	column-gap: 150px;
-	row-gap: 20px;
-	padding: 50px 130px 0;
-
-	@media screen and (max-width: 961px) {
-		height: 200px;
-	}
-
-	@media screen and (max-width: 640px) {
-		height: 300px;
-	}
+	padding: 50px 130px;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
 }
-.footer-about-about {
+
+.footer-links-about {
 	grid-column: 1 / 2;
 	grid-row: 1 / 4;
 
@@ -111,7 +104,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-row: 1 / 2;
 	}
 }
-.footer-about-feedback {
+.footer-links-feedback {
 	grid-column: 2 / 3;
 	grid-row: 1 / 4;
 
@@ -120,7 +113,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-row: 2 / 3;
 	}
 }
-.footer-about-privacy {
+.footer-links-privacy {
 	grid-column: 3 / 4;
 	grid-row: 1 / 4;
 
@@ -129,7 +122,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-row: 3 / 4;
 	}
 }
-.footer-about-ccd {
+.footer-links-ccd {
 	grid-column: 1 / 2;
 	grid-row: 4 / 7;
 
@@ -138,7 +131,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-row: 4 / 5;
 	}
 }
-.footer-about-contact {
+.footer-links-contact {
 	grid-column: 2 / 3;
 	grid-row: 4 / 7;
 
@@ -147,7 +140,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-row: 5 / 6;
 	}
 }
-.footer-about-developers {
+.footer-links-developers {
 	grid-column: 3 / 4;
 	grid-row: 4 / 7;
 
@@ -157,20 +150,6 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	}
 }
 
-.footer-powered {
-	grid-column: 1 / 3;
-	grid-row: 1 / 2; /* 7*/
-
-	@media screen and (max-width: 961px) {
-		grid-column: 1 / 4;
-		grid-row: 1 / 4;
-	}
-
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 7;
-		grid-row: 1 / 3;
-	}
-}
 .footer-links {
 	grid-column: 3 / 5;
 	grid-row: 1 / 2;
@@ -190,33 +169,5 @@ import OpenLinkButton from './OpenLinkButton.vue'
 		grid-column: 1 / 7;
 		grid-row: 3 / 5;
 	}
-}
-.footer-follow {
-	grid-column: 5 / 7;
-	grid-row: 1 / 7;
-
-	@media screen and (max-width: 961px) {
-		grid-column: 4 / 7;
-		grid-row: 1 / 7;
-	}
-
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 7;
-		grid-row: 5 / 7;
-	}
-}
-.footer-rights {
-	grid-column: 1 / 7;
-	grid-row: 2 / 8;
-
-	/* @media screen and (max-width: 961px) {
-		grid-column: 1 / 7;
-		grid-row: 7 / 9;
-	}
-
-	@media screen and (max-width: 640px) {
-		grid-column: 1 / 7;
-		grid-row: 5 / 7;
-	} */
 }
 </style>
