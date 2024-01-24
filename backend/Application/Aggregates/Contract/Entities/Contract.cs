@@ -37,6 +37,7 @@ public sealed class Contract : BaseIdentification
     /// </summary>
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IList<ContractRejectEvent> ContractRejectEvents { get; private set; } = null!;
+    
     [GraphQLIgnore]
     public IList<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; internal set; } = null!;
     
@@ -63,7 +64,15 @@ public sealed class Contract : BaseIdentification
         EventIndex = eventIndex;
         Creator = creator;
     }
-    
+
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    public IQueryable<Token> GetTokens(GraphQlDbContext context) =>
+        context
+            .Tokens
+            .Where(t =>
+                t.ContractIndex == ContractAddressIndex && t.ContractSubIndex == ContractAddressSubIndex)
+            .OrderBy(t => t.TokenId);
+
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
