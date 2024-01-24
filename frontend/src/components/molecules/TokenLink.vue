@@ -2,14 +2,14 @@
 	<div class="inline-block whitespace-nowrap">
 		<TokenIcon class="h-5 inline align-text-top" />
 		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
-			<Tooltip :text="tokenAddressLowerCase" text-class="text-theme-body">
+			<Tooltip :text="props.tokenAddress" text-class="text-theme-body">
 				<div class="token-address truncate">
-					{{ tokenAddressLowerCase }}
+					{{ props.tokenAddress }}
 				</div>
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			:text="tokenAddressLowerCase"
+			:text="props.tokenAddress"
 			label="Click to copy token address"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"
@@ -46,7 +46,6 @@ const handleOnClick = () => {
 		contractAddressSubIndex: props.contractAddressSubIndex,
 	})
 }
-const tokenAddressLowerCase = computed(() => props.tokenAddress.toLowerCase())
 </script>
 <style>
 .token-address {
