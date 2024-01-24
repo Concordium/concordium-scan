@@ -10,10 +10,10 @@
 				<DrawerContainer />
 				<div id="app">
 					<PageHeader :class="[isLoading ? 'pointer-events-none' : ' ']" />
-
-					<main class="p-4 pb-0 xl:container xl:mx-auto">
+					<main class="p-4 xl:container xl:mx-auto">
 						<slot />
 					</main>
+					<PageFooter />
 				</div>
 			</GraphQLClient>
 
@@ -25,8 +25,8 @@
 		</ClientOnly>
 	</div>
 </template>
-
 <script setup lang="ts">
+import PageFooter from '../components/PageFooter/PageFooter.vue'
 import PageHeader from '~/components/PageHeader.vue'
 import Breakpoint from '~/components/molecules/Breakpoint.vue'
 import GraphQLClient from '~/components/molecules/GraphQLClient.vue'
