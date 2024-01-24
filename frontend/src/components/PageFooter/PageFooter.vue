@@ -49,8 +49,7 @@
 			</div>
 		</div>
 		<div class="footer-follow text-base0 font-semibold">
-			Follow us
-			<div style="height: 18px"></div>
+			<div class="">Follow us</div>
 			<div>
 				<OpenLinkButton url="https://twitter.com/ConcordiumNet">
 					<XIcon class="inline w-12 h-12" />
@@ -94,46 +93,24 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	flex-wrap: wrap;
 	justify-content: space-between;
 
-	:nth-child(1) {
-		order: 1;
-	}
-
-	:nth-child(2) {
-		order: 2;
-	}
-
-	:nth-child(3) {
-		order: 3;
-	}
-
-	:nth-child(4) {
-		order: 4;
-	}
-
 	@media screen and (max-width: 1280px) {
 		padding: 50px 20px;
-		:nth-child(1) {
-			order: 1;
-		}
-
-		:nth-child(2) {
-			order: 3;
-		}
-
-		:nth-child(3) {
-			order: 2;
-		}
-
-		:nth-child(4) {
-			order: 4;
-		}
 	}
 }
 
 .footer-powered {
 	@media screen and (max-width: 1280px) {
 		width: 100%;
+		padding-bottom: 42px;
 	}
+}
+
+.footer-rights {
+	padding-top: 46px;
+}
+
+.footer-follow-title {
+	padding-bottom: 18px;
 }
 
 .footer-links {
@@ -144,11 +121,9 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-template-columns: repeat(3, auto);
 	grid-template-rows: repeat(2, auto);
 
-	/* @media screen and (max-width: 1280px) {
+	@media screen and (max-width: 768px) {
 		width: 100%;
-	} */
-
-	@media screen and (max-width: 640px) {
+		padding-bottom: 42px;
 		grid-template-columns: repeat(1, auto);
 		grid-template-rows: repeat(6, auto);
 	}
@@ -158,7 +133,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 1 / 2;
 	grid-row: 1 / 2;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 1 / 2;
 	}
@@ -168,7 +143,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 2 / 3;
 	grid-row: 1 / 2;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 2 / 3;
 	}
@@ -178,7 +153,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 3 / 4;
 	grid-row: 1 / 2;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 3 / 4;
 	}
@@ -188,7 +163,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 1 / 2;
 	grid-row: 2 / 3;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 4 / 5;
 	}
@@ -198,7 +173,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 2 / 3;
 	grid-row: 2 / 3;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 5 / 6;
 	}
@@ -208,7 +183,7 @@ import OpenLinkButton from './OpenLinkButton.vue'
 	grid-column: 3 / 4;
 	grid-row: 2 / 3;
 
-	@media screen and (max-width: 640px) {
+	@media screen and (max-width: 768px) {
 		grid-column: 1 / 2;
 		grid-row: 6 / 7;
 	}
