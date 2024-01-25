@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<Title>CCDScan | Tokens</Title>
+		<Title>CCDScan | CIS-2 Tokens</Title>
 		<Table>
 			<TableHead>
 				<TableRow>

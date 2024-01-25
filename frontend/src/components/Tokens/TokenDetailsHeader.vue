@@ -3,7 +3,7 @@
 		<TokenIcon class="w-12 h-12 mr-4 md:block" />
 
 		<div class="flex flex-wrap flex-grow w-1/2">
-			<h3 class="w-full text-sm text-theme-faded">CIS2 Token</h3>
+			<h3 class="w-full text-sm text-theme-faded">CIS-2 Token</h3>
 			<div class="w-full flex items-center justify-items-stretch">
 				<h1 class="inline-block text-2xl numerical">
 					{{ tokenAddress }}

@@ -41,7 +41,7 @@ const routes: Route[] = [
 		path: '/contracts',
 	},
 	{
-		title: 'CIS2 Tokens',
+		title: 'CIS-2 Tokens',
 		path: '/tokens',
 	},
 ]
