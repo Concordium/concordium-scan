@@ -1,6 +1,11 @@
 <template>
 	<div class="inline-block">
-		<Tooltip :text="tokenIdLowerCase">
+		<Tooltip
+			:text="tokenIdLowerCase"
+			x="50%"
+			y="0%"
+			tooltip-position="absolute"
+		>
 			<div class="token-id truncate">
 				{{ tokenIdLowerCase }}
 			</div>

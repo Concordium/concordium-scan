@@ -2,7 +2,13 @@
 	<div class="inline-block whitespace-nowrap">
 		<TokenIcon class="h-5 inline align-text-top" />
 		<LinkButton class="numerical px-2" @blur="emitBlur" @click="handleOnClick">
-			<Tooltip :text="props.tokenAddress" text-class="text-theme-body">
+			<Tooltip
+				:text="props.tokenAddress"
+				text-class="text-theme-body"
+				x="50%"
+				y="0%"
+				tooltip-position="absolute"
+			>
 				<div class="token-address truncate">
 					{{ props.tokenAddress }}
 				</div>
