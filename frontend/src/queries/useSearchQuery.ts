@@ -9,6 +9,7 @@ import type {
 	Baker,
 	NodeStatus,
 	ModuleReferenceEvent,
+	Token,
 } from '~/types/generated'
 type SearchResponse = {
 	search: {
@@ -18,6 +19,7 @@ type SearchResponse = {
 		transactions: { nodes: Transaction[]; pageInfo: PageInfo }
 		accounts: { nodes: Account[]; pageInfo: PageInfo }
 		nodeStatuses: { nodes: NodeStatus[]; pageInfo: PageInfo }
+		tokens: { nodes: Token[]; pageInfo: PageInfo }
 		bakers: {
 			nodes: Pick<Baker, 'id' | 'bakerId' | 'account'>[]
 			pageInfo: PageInfo
@@ -32,6 +34,20 @@ const SearchQuery = gql<SearchResponse>`
 				nodes {
 					blockSlotTime
 					moduleReference
+				}
+				pageInfo {
+					hasNextPage
+				}
+			}
+			tokens(first: 3) {
+				nodes {
+					tokenAddress
+					tokenId
+					contractIndex
+					contractSubIndex
+					initialTransaction {
+						transactionHash
+					}
 				}
 				pageInfo {
 					hasNextPage

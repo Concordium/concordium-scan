@@ -15,7 +15,7 @@ namespace Application.Api.GraphQL.Search;
 public class SearchResult
 {
     private static readonly Regex HashRegex = new("^[a-fA-F0-9]{1,64}$");
-    private static readonly Regex AccountAddressRegex = new("^[a-zA-Z0-9]{1,64}$");
+    private static readonly Regex Base58Regex = new("^[1-9A-HJ-NP-Za-km-z]{1,64}$");
     private static readonly Regex ContractAddressRegex = new Regex(@"^<?(\d{1,20})(?:,\s?(\d{0,20}))?>?$");
     private readonly string _queryString;
     private readonly long? _queryNumeric;
@@ -84,9 +84,19 @@ public class SearchResult
     }
 
     [UsePaging]
+    public IQueryable<Token> GetTokens(GraphQlDbContext dbContext)
+    {
+        if (string.IsNullOrEmpty(_queryString) || !Base58Regex.IsMatch(_queryString)) 
+            return new List<Token>().AsQueryable();
+
+        return dbContext.Tokens.AsNoTracking()
+            .Where(t => t.TokenAddress != null && t.TokenAddress.Contains(_queryString));
+    }
+
+    [UsePaging]
     public IQueryable<Account> GetAccounts(GraphQlDbContext dbContext)
     {
-        if (string.IsNullOrEmpty(_queryString) || !AccountAddressRegex.IsMatch(_queryString)) 
+        if (string.IsNullOrEmpty(_queryString) || !Base58Regex.IsMatch(_queryString)) 
             return new List<Account>().AsQueryable();
 
         if (Concordium.Sdk.Types.AccountAddress.TryParse(_queryString, out var parsed))

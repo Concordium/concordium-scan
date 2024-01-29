@@ -1,4 +1,8 @@
 ## Unreleased changes
+- Added
+    - Extended search functionality to include tokens.
+
+## 1.8.8
 - Bugfix
     - Fix total token supply
 
