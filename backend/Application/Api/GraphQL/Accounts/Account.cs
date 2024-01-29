@@ -80,8 +80,10 @@ public class Account
     public IQueryable<AccountToken> GetTokens(GraphQlDbContext dbContext)
     {
         return dbContext.AccountTokens
-            .Where(t => t.AccountId == this.Id && t.Balance != 0)
-            .OrderByDescending(t => t.Index)
+            .Where(t => t.AccountId == Id && t.Balance != 0)
+            .OrderByDescending(t => t.ContractIndex)
+            .ThenByDescending(t => t.ContractSubIndex)
+            .ThenByDescending(t => t.TokenId)
             .Include(t=>t.Token)
             .AsNoTracking();
     }
