@@ -16,8 +16,8 @@ namespace Tests.Aggregates.Contract.EventLog
     public class EventLogWriterTest
     {
         private const string TOKEN1_METADATA_URL = "http://example.com/token1";
-        private const string TOKEN_1_ID = "token1";
-        private const string TOKEN_2_ID = "token2";
+        private const string TOKEN_1_ID = "01";
+        private const string TOKEN_2_ID = "02";
         private const long ACCOUNT_1_ID = 1;
         private const string ACCOUNT_1_ADDR = "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P";
 
@@ -110,6 +110,7 @@ namespace Tests.Aggregates.Contract.EventLog
             token1.TotalSupply.Should().Be(1);
             token1.ContractSubIndex.Should().Be(0);
             token1.MetadataUrl.Should().Be(TOKEN1_METADATA_URL);
+            token1.TokenAddress.Should().Be("LSYWgnCBmz");
 
             var token2s = allTokens.Where(t => t.ContractIndex == 2 && t.ContractSubIndex == 0 && t.TokenId == TOKEN_2_ID).ToList();
             token2s.Count.Should().Be(1);
@@ -119,6 +120,7 @@ namespace Tests.Aggregates.Contract.EventLog
             token2.TotalSupply.Should().Be(1);
             token2.ContractSubIndex.Should().Be(0);
             token2.MetadataUrl.Should().BeNull();
+            token2.TokenAddress.Should().Be("LUjzdxXnte");
         }
 
         [Fact]

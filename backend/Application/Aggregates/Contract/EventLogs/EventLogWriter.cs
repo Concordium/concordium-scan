@@ -93,14 +93,15 @@ namespace Application.Aggregates.Contract.EventLogs
         private static DbBatchCommand CreateTokenAmountUpdateCmd(DbBatchCommand cmd, CisEventTokenAmountUpdate e)
         {
             cmd.CommandText = @"
-                INSERT INTO graphql_tokens(contract_index, contract_sub_index, token_id, total_supply)
-                VALUES (@ContractIndex, @ContractSubIndex, @TokenId, @AmountDelta)
+                INSERT INTO graphql_tokens(contract_index, contract_sub_index, token_id, token_address, total_supply)
+                VALUES (@ContractIndex, @ContractSubIndex, @TokenId, @TokenAddress, @AmountDelta)
                 ON CONFLICT ON CONSTRAINT graphql_tokens_pkey
                 DO UPDATE SET total_supply = graphql_tokens.total_supply + @AmountDelta";
             
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractIndex", Convert.ToInt64(e.ContractIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<long>("ContractSubIndex", Convert.ToInt64(e.ContractSubIndex)));
             cmd.Parameters.Add(new NpgsqlParameter<string>("TokenId", e.TokenId));
+            cmd.Parameters.Add(new NpgsqlParameter<string>("TokenAddress", Token.EncodeTokenAddress(e.ContractIndex, e.ContractSubIndex, e.TokenId)));
             cmd.Parameters.Add(new NpgsqlParameter<BigInteger>("AmountDelta", e.AmountDelta));
 
             return cmd;
