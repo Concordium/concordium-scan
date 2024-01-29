@@ -1,4 +1,8 @@
 ## Unreleased changes
+- Updated
+    - Token view on account details page now sort tokens by contract- index, subindex and token id.
+
+## 1.8.8
 - Bugfix
     - Fix total token supply
 
