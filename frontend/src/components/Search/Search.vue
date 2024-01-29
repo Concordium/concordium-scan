@@ -176,14 +176,9 @@
 								:token-id="token.tokenId"
 								:contract-address-index="token.contractIndex"
 								:contract-address-sub-index="token.contractSubIndex"
+								:width="80"
 							/>
-							<div :class="$style.threeColumns">
-								<ContractLink
-									:address="token.contractAddressFormatted"
-									:contract-address-index="token.contractIndex"
-									:contract-address-sub-index="contractSubIndex"
-								/>
-							</div>
+							<div :class="$style.threeColumns"></div>
 							<div :class="$style.twoColumns">
 								<TransactionLink
 									:hash="token.initialTransaction.transactionHash"
