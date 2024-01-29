@@ -2,6 +2,9 @@ using System.Threading;
 using Application.Aggregates.Contract.Configurations;
 using Application.Aggregates.Contract.Entities;
 using Application.Aggregates.Contract.Jobs;
+using Application.Aggregates.Contract.Types;
+using Application.Api.GraphQL;
+using Application.Api.GraphQL.Accounts;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -26,6 +29,26 @@ public sealed class _06_AddTokenAddressTest
         await DatabaseFixture.TruncateTables("graphql_tokens");
         await using (var context = _fixture.CreateGraphQlDbContext())
         {
+            var contractFirst = new Application.Aggregates.Contract.Entities.Contract(
+                0,
+                "",
+                0,
+                0,
+                new ContractAddress(1,0),
+                new AccountAddress(""),
+                ImportSource.NodeImport,
+                DateTimeOffset.UtcNow
+            );
+            var contractSecond = new Application.Aggregates.Contract.Entities.Contract(
+                0,
+                "",
+                0,
+                0,
+                new ContractAddress(2,0),
+                new AccountAddress(""),
+                ImportSource.NodeImport,
+                DateTimeOffset.UtcNow
+            );
             var first = new Token
             {
                 ContractIndex = 1,
@@ -39,6 +62,8 @@ public sealed class _06_AddTokenAddressTest
                 TokenId = "02"
             };
             await context.AddRangeAsync(first, second);
+            await context.AddRangeAsync(contractFirst, contractSecond);
+            await context.SaveChangesAsync();
         }
 
         var options = Options.Create(new ContractAggregateOptions());
