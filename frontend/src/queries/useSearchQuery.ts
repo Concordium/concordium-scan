@@ -45,6 +45,7 @@ const SearchQuery = gql<SearchResponse>`
 					tokenId
 					contractIndex
 					contractSubIndex
+					contractAddressFormatted
 					initialTransaction {
 						transactionHash
 					}
