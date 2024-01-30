@@ -11,11 +11,13 @@ namespace Application.Import.ConcordiumNode;
 /// </summary>
 public interface IConcordiumNodeClient
 {
+    Task<BlockInfo> GetBlockInfoAsync(IBlockHashInput blockHashInput, CancellationToken token = default);
+    
     Task<IBlockItemSummaryWrapper> GetBlockItemStatusAsync(TransactionHash transactionHash, CancellationToken token = default);
     
     Task<BakerPoolStatus> GetPoolInfoAsync(BakerId bakerId, IBlockHashInput blockHashInput,
         CancellationToken token = default);
-
+    
     public Task<AccountInfo> GetAccountInfoAsync(
         IAccountIdentifier accountIdentifier,
         IBlockHashInput blockHash,
@@ -29,6 +31,12 @@ internal sealed class ConcordiumNodeClient : IConcordiumNodeClient
     public ConcordiumNodeClient(ConcordiumClient client)
     {
         _client = client;
+    }
+
+    public async Task<BlockInfo> GetBlockInfoAsync(IBlockHashInput blockHashInput, CancellationToken token = default)
+    {
+        var blockInfoAsync = await _client.GetBlockInfoAsync(blockHashInput, token);
+        return blockInfoAsync.Response;
     }
 
     public async Task<BakerPoolStatus> GetPoolInfoAsync(BakerId bakerId, IBlockHashInput blockHashInput, CancellationToken token = default)

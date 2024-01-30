@@ -12,3 +12,6 @@ ALTER TABLE graphql_blocks
     DROP COLUMN finalization_data_delay;
 
 DROP TABLE graphql_finalization_summary_finalizers;
+
+CREATE INDEX metrics_blocks_block_height_index
+    ON metrics_blocks (block_height);
