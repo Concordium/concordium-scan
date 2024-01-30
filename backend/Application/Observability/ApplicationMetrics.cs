@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using Application.Aggregates.Contract.Types;
 using Application.Exceptions;
+using Concordium.Sdk.Interop;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
 using Prometheus;
@@ -18,15 +19,15 @@ internal static class ApplicationMetrics
             LabelNames = new[] { "process", "source", "exception" }
         }
     );
-    
+
     private static readonly Gauge ProcessReadHeight = Metrics.CreateGauge(
         "import_process_read_height",
         "Max height read by an import process",
         new GaugeConfiguration
         {
-            LabelNames = new []{"process", "data_source"}
+            LabelNames = new[] { "process", "data_source" }
         });
-    
+
     private static readonly Histogram GraphQlRequestDuration = Metrics.CreateHistogram(
         "graphql_request_duration_seconds",
         "Duration of GraphQl in seconds",
@@ -71,7 +72,7 @@ internal static class ApplicationMetrics
         TotalAccountCreated
             .Inc(accountsCreated);
     }
-    
+
     internal static void SetReadHeight(double value, string processIdentifier, ImportSource source)
     {
         ProcessReadHeight
@@ -79,7 +80,7 @@ internal static class ApplicationMetrics
             .Set(value);
     }
 
-    internal static void IncInteropErrors(string instigator, InteropError error)
+    internal static void IncInteropErrors(string instigator, SchemaJsonResult error)
     {
         InteropErrors
             .WithLabels(instigator, error.ToStringCached())
@@ -92,7 +93,7 @@ internal static class ApplicationMetrics
             .WithLabels(process, PrettyPrintException(exception))
             .Inc();
     }
-    
+
     internal class DurationMetric : IDisposable
     {
         private Exception? _exception;
@@ -117,7 +118,7 @@ internal static class ApplicationMetrics
             AddProcessDuration(_time.Elapsed, _process, _source, _exception);
         }
     }
-    
+
     internal class GraphQlDurationMetric : IDisposable
     {
         /// <summary>
@@ -143,7 +144,7 @@ internal static class ApplicationMetrics
         {
             _exception = PrettyPrintException(ex);
         }
-        
+
         public void Dispose()
         {
             _activity.Stop();
@@ -223,6 +224,7 @@ internal static class ApplicationMetrics
         {
             name = name[..indexOfGenericCount];
         }
+
         var typeArguments = string.Join(",", type.GenericTypeArguments.Select(t => t.Name));
 
         return $"{name}<{typeArguments}>";
