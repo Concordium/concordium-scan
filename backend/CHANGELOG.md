@@ -1,4 +1,8 @@
 ## Unreleased changes
+- Updated
+    - Handle FFI errors through the use of error codes rather than string comparison.
+
+## 1.8.8
 - Bugfix
     - Fix total token supply
 
