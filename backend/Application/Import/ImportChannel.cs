@@ -49,7 +49,6 @@ public record BlockDataPayload
         IList<BlockItemSummary> blockItemSummaries,
         IChainParameters chainParameters,
         IList<ISpecialEvent> specialEvents,
-        FinalizationSummary? finalizationSummary,
         AccountInfosRetrieved accountInfos,
         RewardOverviewBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
@@ -59,7 +58,6 @@ public record BlockDataPayload
         BlockItemSummaries = blockItemSummaries;
         ChainParameters = chainParameters;
         SpecialEvents = specialEvents;
-        FinalizationSummary = finalizationSummary;
         AccountInfos = accountInfos;
         RewardStatus = rewardStatus;
         _readAllBakerPoolStatusesFunc = readAllBakerPoolStatusesFunc;
@@ -70,7 +68,6 @@ public record BlockDataPayload
     public IList<BlockItemSummary> BlockItemSummaries { get; }
     public IChainParameters ChainParameters { get; }
     public IList<ISpecialEvent> SpecialEvents { get; }
-    public FinalizationSummary? FinalizationSummary { get; }
     public AccountInfosRetrieved AccountInfos { get; }
     public RewardOverviewBase RewardStatus { get; }
 
@@ -93,12 +90,11 @@ public record GenesisBlockDataPayload : BlockDataPayload
         IList<BlockItemSummary> blockItemSummaries,
         IChainParameters chainParameters,
         IList<ISpecialEvent> specialEvents,
-        FinalizationSummary? finalizationSummary,
         AccountInfosRetrieved accountInfos,
         RewardOverviewBase rewardStatus,
         Func<Task<BakerPoolStatus[]>> readAllBakerPoolStatusesFunc,
         Func<Task<PassiveDelegationStatus>> passiveDelegationPoolStatusFunc) 
-        : base(blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
+        : base(blockInfo, blockItemSummaries, chainParameters, specialEvents, accountInfos, rewardStatus, readAllBakerPoolStatusesFunc, passiveDelegationPoolStatusFunc)
     {
         GenesisIdentityProviders = genesisIdentityProviders;
     }

@@ -230,8 +230,7 @@ public class ImportWriteController : BackgroundService
             .ToArray();
 
         var block = await _blockWriter.AddBlock(
-            payload.BlockInfo, 
-            payload.FinalizationSummary, 
+            payload.BlockInfo,
             payload.RewardStatus, 
             chainParameters.Current.Id, 
             bakerUpdateResults, 
@@ -265,7 +264,7 @@ public class ImportWriteController : BackgroundService
         _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
         _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot, passiveDelegationUpdateResults) ;
         
-        var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(block, importState);
+        var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(payload.BlockInfo, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);
 
         return new BlockWriteResult(block, importPaydayStatus);

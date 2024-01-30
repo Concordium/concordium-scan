@@ -137,16 +137,14 @@ public class ImportReadController : BackgroundService
             var response = await _client.GetBlockSpecialEvents(blockHashInput, stoppingToken);
             return await response.Response.ToListAsync(stoppingToken);
         }, nameof(_client.GetBlockSpecialEvents), stoppingToken);
-        var finalizationSummaryTask = GetWithGrpcRetryAsync(() => _client.GetBlockFinalizationSummaryAsync(blockHashInput, stoppingToken), nameof(_client.GetBlockFinalizationSummaryAsync), stoppingToken);
         
 
-        await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask, finalizationSummaryTask);
+        await Task.WhenAll(blockInfoTask, rewardStatusTask, blockItemSummariesTask, chainParametersTask, specialEventsTask);
         var (_, blockInfo) = await blockInfoTask;
         var (_, rewardStatus) = await rewardStatusTask;
         var blockItemSummaries = await blockItemSummariesTask;
         var (_, chainParameters) = await chainParametersTask;
         var specialEvents = await specialEventsTask;
-        var (_, finalizationSummary) = await finalizationSummaryTask;
 
         var accountInfos = await GetWithGrpcRetryAsync(() => GetRelevantAccountInfosAsync(blockHashInput, blockItemSummaries, blockInfo, stoppingToken), nameof(GetRelevantAccountInfosAsync), stoppingToken);
         
@@ -159,11 +157,11 @@ public class ImportReadController : BackgroundService
         {
             var response = await GetWithGrpcRetryAsync(() => _client.GetIdentityProvidersAsync(blockHashInput, stoppingToken), nameof(_client.GetIdentityProvidersAsync), stoppingToken);
             var genesisIdentityProviders = await response.Response.ToListAsync(stoppingToken);
-            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new GenesisBlockDataPayload(genesisIdentityProviders, blockInfo, blockItemSummaries, chainParameters, specialEvents, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
         else
         {
-            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters, specialEvents, finalizationSummary, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
+            payload = new BlockDataPayload(blockInfo, blockItemSummaries, chainParameters, specialEvents, accountInfos, rewardStatus, bakerPoolStatusesFunc, passiveDelegationPoolStatusFunc);
         }
 
         return new BlockDataEnvelope(payload, consensusStatus);

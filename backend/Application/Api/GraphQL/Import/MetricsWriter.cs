@@ -132,18 +132,29 @@ public class MetricsWriter
         importState.CumulativeAccountsCreated = cumulativeAccountsCreated;
     }
 
-    public async Task UpdateFinalizationTimes(FinalizationTimeUpdate[] updates)
+    internal async Task UpdateFinalizationTimes(FinalizationTimeUpdate update)
     {
-        if (updates.Length == 0) return;
+        if (update.MaxBlockHeight == update.MinBlockHeight) return;
 
         using var counter = _metrics.MeasureDuration(nameof(MetricsWriter), nameof(UpdateFinalizationTimes));
-
-        var sql = @"update metrics_blocks  
-                    set finalization_time_secs = @FinalizationTimeSecs
-                    where time = @BlockSlotTime and block_height = @BlockHeight";
+        
+        const string sql = @"
+update metrics_blocks
+set 
+    finalization_time_secs = sub_query.block_stats_finalization_time_secs
+from (
+    select
+        block_height,
+        block_stats_finalization_time_secs
+    from graphql_blocks
+    where block_height > @MinBlockHeight
+        and block_height <= @MaxBlockHeight    
+     ) as sub_query
+where metrics_blocks.block_height = sub_query.block_height
+";        
         await using var conn = new NpgsqlConnection(_settings.ConnectionString);
         conn.Open();
-        await conn.ExecuteAsync(sql, updates);
+        await conn.ExecuteAsync(sql, new {update.MinBlockHeight, update.MaxBlockHeight});
     }
 
     public async Task AddBakerMetrics(DateTimeOffset blockSlotTime, BakerUpdateResults results, ImportState importState)

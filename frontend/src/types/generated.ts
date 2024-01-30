@@ -777,7 +777,6 @@ export type Block = {
   blockSlotTime: Scalars['DateTime'];
   blockStatistics: BlockStatistics;
   chainParameters: ChainParameters;
-  finalizationSummary?: Maybe<FinalizationSummary>;
   finalized: Scalars['Boolean'];
   id: Scalars['ID'];
   specialEvents?: Maybe<SpecialEventsConnection>;
@@ -1541,49 +1540,6 @@ export type FinalizationRewardsSpecialEventFinalizationRewardsArgs = {
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;
   last?: InputMaybe<Scalars['Int']>;
-};
-
-export type FinalizationSummary = {
-  __typename?: 'FinalizationSummary';
-  finalizationDelay: Scalars['Long'];
-  finalizationIndex: Scalars['Long'];
-  finalizedBlockHash: Scalars['String'];
-  finalizers?: Maybe<FinalizersConnection>;
-};
-
-
-export type FinalizationSummaryFinalizersArgs = {
-  after?: InputMaybe<Scalars['String']>;
-  before?: InputMaybe<Scalars['String']>;
-  first?: InputMaybe<Scalars['Int']>;
-  last?: InputMaybe<Scalars['Int']>;
-};
-
-export type FinalizationSummaryParty = {
-  __typename?: 'FinalizationSummaryParty';
-  bakerId: Scalars['Long'];
-  signed: Scalars['Boolean'];
-  weight: Scalars['Long'];
-};
-
-/** A connection to a list of items. */
-export type FinalizersConnection = {
-  __typename?: 'FinalizersConnection';
-  /** A list of edges. */
-  edges?: Maybe<Array<FinalizersEdge>>;
-  /** A flattened list of the nodes. */
-  nodes?: Maybe<Array<FinalizationSummaryParty>>;
-  /** Information to aid in pagination. */
-  pageInfo: PageInfo;
-};
-
-/** An edge in a connection. */
-export type FinalizersEdge = {
-  __typename?: 'FinalizersEdge';
-  /** A cursor for use in pagination. */
-  cursor: Scalars['String'];
-  /** The item at the end of the edge. */
-  node: FinalizationSummaryParty;
 };
 
 export type FirstScheduledReleaseExpired = {

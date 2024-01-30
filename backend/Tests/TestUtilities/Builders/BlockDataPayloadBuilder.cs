@@ -7,28 +7,14 @@ namespace Tests.TestUtilities.Builders;
 
 public class BlockDataPayloadBuilder
 {
-    private BlockInfo _blockInfo;
-    private IList<BlockItemSummary> _blockItemSummaries;
-    private readonly IChainParameters _chainParameters;
-    private readonly IList<ISpecialEvent> _specialEvents;
-    private readonly FinalizationSummary? _finalizationSummary;
-    private AccountInfosRetrieved _accountInfos;
-    private RewardOverviewBase _rewardStatus;
-    private Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc;
-    private Func<Task<PassiveDelegationStatus>> _passiveDelegationPoolStatusFunc;
-    
-    public BlockDataPayloadBuilder()
-    {
-        _blockInfo = new BlockInfoBuilder().Build();
-        _blockItemSummaries = new List<BlockItemSummary>();
-        _chainParameters = Mock.Of<IChainParameters>();
-        _specialEvents = new List<ISpecialEvent>();
-        _finalizationSummary = null;
-        _accountInfos = new AccountInfosRetrieved(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
-        _rewardStatus = new RewardOverviewV0Builder().Build();
-        _readAllBakerPoolStatusesFunc = () => Task.FromResult(Array.Empty<BakerPoolStatus>());
-        _passiveDelegationPoolStatusFunc = () => Task.FromResult<PassiveDelegationStatus>(null!);
-    }
+    private BlockInfo _blockInfo = new BlockInfoBuilder().Build();
+    private IList<BlockItemSummary> _blockItemSummaries = new List<BlockItemSummary>();
+    private readonly IChainParameters _chainParameters = Mock.Of<IChainParameters>();
+    private readonly IList<ISpecialEvent> _specialEvents = new List<ISpecialEvent>();
+    private AccountInfosRetrieved _accountInfos = new(Array.Empty<AccountInfo>(), Array.Empty<AccountInfo>());
+    private RewardOverviewBase _rewardStatus = new RewardOverviewV0Builder().Build();
+    private Func<Task<BakerPoolStatus[]>> _readAllBakerPoolStatusesFunc = () => Task.FromResult(Array.Empty<BakerPoolStatus>());
+    private Func<Task<PassiveDelegationStatus>> _passiveDelegationPoolStatusFunc = () => Task.FromResult<PassiveDelegationStatus>(null!);
 
     public BlockDataPayload Build() =>
         new(
@@ -36,7 +22,6 @@ public class BlockDataPayloadBuilder
             _blockItemSummaries,
             _chainParameters,
             _specialEvents,
-            _finalizationSummary,
             _accountInfos,
             _rewardStatus,
             _readAllBakerPoolStatusesFunc,
