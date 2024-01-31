@@ -51,6 +51,56 @@ public class _02_UpdateFinalizationTimes : IMainMigrationJob
         _metricsWriter = new MetricsWriter(dbSettings, metrics);
         _logger = Log.ForContext<_02_UpdateFinalizationTimes>();
     }
+
+    /// <summary>
+    /// Updates the finalization time for a block if its finalization time has not been set within the 31 days leading
+    /// up to the current <see cref="DateTimeOffset.UtcNow"/> until reaching the
+    /// <see cref="ImportState.MaxImportedBlockHeight"/>.
+    /// </summary>
+    public async Task StartImport(CancellationToken token)
+    {
+        _logger.Debug($"Start initial processing of {JobName}");
+        var state = await _importStateController.GetStateIfExists();
+        if (state == null)
+        {
+            return;
+        }
+        var fromDate = DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(31));
+        _logger.Information($"Migrating from date time: {fromDate}");
+        
+        var initialBlockHeight= state.MaxBlockHeightWithUpdatedFinalizationTime;
+        var initialAbsoluteBlockHeight = new Absolute((ulong)initialBlockHeight);
+        var initialBlockInfo = await _client.GetBlockInfoAsync(initialAbsoluteBlockHeight, token);
+        if (initialBlockInfo.BlockSlotTime < fromDate)
+        {
+            _logger.Debug($"Updating max block height with updated finalization time since block slot time is {initialBlockInfo.BlockSlotTime}");
+            var start = await BinarySearchBlockHeight(fromDate, state.MaxBlockHeightWithUpdatedFinalizationTime, state.MaxImportedBlockHeight, token);
+            state.MaxBlockHeightWithUpdatedFinalizationTime = start;
+            await _importStateController.SaveChanges(state);
+        }
+        _logger.Information($"Migrating from height: {state.MaxBlockHeightWithUpdatedFinalizationTime}");
+
+        await IteratingFromLastSet(token);
+    }
+
+    private async Task<long> BinarySearchBlockHeight(DateTimeOffset finalBlockSlotTime, long start, long end, CancellationToken token = default)
+    {
+        while (start < end)
+        {
+            var mid = (start + end) / 2;
+            var midAbsolute = new Absolute((ulong)mid);
+            var midBlockInfo = await _client.GetBlockInfoAsync(midAbsolute, token);
+            if (midBlockInfo.BlockSlotTime < finalBlockSlotTime)
+            {
+                start = mid + 1;
+            }
+            else
+            {
+                end = mid;
+            }
+        }
+        return start;
+    }
     
     /// <summary>
     /// Iterating from latest block height imported and then back to
@@ -62,7 +112,7 @@ public class _02_UpdateFinalizationTimes : IMainMigrationJob
     /// Then for all blocks between Block From and Block To set finalization time as the time difference
     /// between the blocks slot time and the block slot time of Block To.
     /// </summary>
-    public async Task StartImport(CancellationToken token)
+    public async Task IteratingBackwards(CancellationToken token)
     {
         _logger.Debug($"Start processing {JobName}");
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
