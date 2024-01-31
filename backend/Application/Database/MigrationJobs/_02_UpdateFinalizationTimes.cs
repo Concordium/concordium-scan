@@ -103,70 +103,11 @@ public class _02_UpdateFinalizationTimes : IMainMigrationJob
     }
     
     /// <summary>
-    /// Iterating from latest block height imported and then back to
-    /// <see cref="ImportState.MaxBlockHeightWithUpdatedFinalizationTime"/>.
-    ///
-    /// Find <see cref="BlockInfo.BlockLastFinalized"/>, say Block To, and then find for Block To find
-    /// <see cref="BlockInfo.BlockLastFinalized"/>, say Block From.
-    ///
-    /// Then for all blocks between Block From and Block To set finalization time as the time difference
-    /// between the blocks slot time and the block slot time of Block To.
-    /// </summary>
-    public async Task IteratingBackwards(CancellationToken token)
-    {
-        _logger.Debug($"Start processing {JobName}");
-        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
-            .ExecuteAsync(async () =>
-            {
-                var state = await _importStateController.GetStateIfExists();
-                if (state == null)
-                {
-                    return;
-                }
-                var stoppingBlockHeight = state.MaxBlockHeightWithUpdatedFinalizationTime;
-                var initialBlockHeight= state.MaxImportedBlockHeight;
-                var initialAbsoluteBlockHeight = new Absolute((ulong)initialBlockHeight);
-                var initialBlockInfo = await _client.GetBlockInfoAsync(initialAbsoluteBlockHeight, token);
-                var priorBlockSlotTime = initialBlockInfo.BlockSlotTime;
-                await using var context = await _contextFactory.CreateDbContextAsync(token);
-                
-                var toBlock = await context
-                    .Blocks
-                    .SingleAsync(b => b.BlockHash == initialBlockInfo.BlockLastFinalized.ToString(), cancellationToken: token);
-                var stateFinalUpdate = toBlock.BlockHeight;
-
-                while (toBlock.BlockHeight > stoppingBlockHeight)
-                {
-                    var toAbsolute = new Absolute((ulong)toBlock.BlockHeight);
-                    var toBlockInfo = await _client.GetBlockInfoAsync(toAbsolute, token);
-                
-                    var fromBlock = await context
-                        .Blocks
-                        .SingleAsync(b => b.BlockHash == toBlockInfo.BlockLastFinalized.ToString(), cancellationToken: token);
-
-                    var timeUpdate = new FinalizationTimeUpdate(fromBlock.BlockHeight, toBlock.BlockHeight);
-                    
-                    _logger.Debug($"Updating block height from:{timeUpdate.MinBlockHeight}, to {timeUpdate.MaxBlockHeight}");
-
-                    await BlockWriter.UpdateFinalizationTimes(timeUpdate, priorBlockSlotTime, context);
-                    await _metricsWriter.UpdateFinalizationTimes(timeUpdate);
-
-                    priorBlockSlotTime = toBlock.BlockSlotTime;
-                    toBlock = fromBlock;                    
-                }
-
-                state.MaxBlockHeightWithUpdatedFinalizationTime = stateFinalUpdate;
-                await _importStateController.SaveChanges(state);
-            });
-        _logger.Debug($"Done processing {JobName}");
-    }
-    
-    /// <summary>
     /// Iterating from <see cref="ImportState.MaxBlockHeightWithUpdatedFinalizationTime"/>  up until today.
     ///
     /// Slow since each block needs to be iterated.
     /// </summary>
-    public async Task IteratingFromLastSet(CancellationToken token)
+    private async Task IteratingFromLastSet(CancellationToken token)
     {
         _logger.Debug($"Start processing {JobName}");
         await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
