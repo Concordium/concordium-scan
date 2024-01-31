@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Application.Aggregates.Contract.Types;
+using Application.Database.MigrationJobs;
 using Application.Exceptions;
 using HotChocolate.Execution;
 using Microsoft.Extensions.ObjectPool;
@@ -57,6 +58,14 @@ internal static class ApplicationMetrics
         "accounts_created_total",
         "Total number of accounts created");
 
+    private static readonly Gauge JobCompletion = Metrics.CreateGauge(
+        "job_completion_percentage", "A percentage indicating the completion of a job",
+        new GaugeConfiguration
+        {
+            LabelNames = new []{"job"}
+        }
+        );
+
     private static void AddProcessDuration(TimeSpan elapsed, string process, ImportSource source, Exception? exception)
     {
         var exceptionName = exception != null ? PrettyPrintException(exception) : "";
@@ -64,6 +73,20 @@ internal static class ApplicationMetrics
         ProcessDuration
             .WithLabels(process, source.ToStringCached(), exceptionName)
             .Observe(elapsedSeconds);
+    }
+
+    /// <summary>
+    /// Set the completion percentage metric for a <see cref="IMainMigrationJob"/>.
+    ///
+    /// Multiplies <see cref="fraction"/> by 100 to get the output in percentage. 
+    /// </summary>
+    /// <param name="job">The given job.</param>
+    /// <param name="fraction">The fraction of completion which should be between 0 and 1.</param>
+    internal static void SetJobCompletion(IMainMigrationJob job, double fraction)
+    {
+        JobCompletion
+            .WithLabels(job.GetUniqueIdentifier())
+            .Set(fraction * 100);
     }
 
     internal static void IncAccountCreated(int accountsCreated)
