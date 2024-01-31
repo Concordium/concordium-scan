@@ -130,7 +130,19 @@ public class BlockWriter
         {
             return finalizationTimeUpdate;
         }
+
+        await UpdateFinalizationTimes(finalizationTimeUpdate, blockInfo.BlockSlotTime, context);
+
+        importState.MaxBlockHeightWithUpdatedFinalizationTime = maxBlockHeight;
         
+        return finalizationTimeUpdate;
+    }
+
+    internal static Task UpdateFinalizationTimes(
+        FinalizationTimeUpdate finalizationTimeUpdate,
+        DateTimeOffset blockSlotTime,
+        GraphQlDbContext context)
+    {
         const string sql = @"
 update graphql_blocks 
 set 
@@ -146,17 +158,15 @@ from (
 where graphql_blocks.block_height = sub_query.block_height";
 
         var conn = context.Database.GetDbConnection();
-        await conn.ExecuteAsync(
+        return conn.ExecuteAsync(
             sql,
             new
             {
                 finalizationTimeUpdate.MinBlockHeight,
                 finalizationTimeUpdate.MaxBlockHeight,
-                blockInfo.BlockSlotTime
+                blockSlotTime
             });;
         
-        importState.MaxBlockHeightWithUpdatedFinalizationTime = maxBlockHeight;
         
-        return finalizationTimeUpdate;
     }
 }
