@@ -7,8 +7,11 @@ using Application.Import.ConcordiumNode;
 using Application.Observability;
 using Application.Resilience;
 using Concordium.Sdk.Types;
+using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 
 namespace Application.Database.MigrationJobs;
 
@@ -50,11 +53,20 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
         _metricsWriter = new MetricsWriter(dbSettings, metrics);
         _logger = Log.ForContext<_03_UpdateFinalizationTimes>();
     }
-
+    
+    /// <inheritdoc/>
+    public string GetUniqueIdentifier() => JobName;
+    /// <inheritdoc/>
+    public bool ShouldNodeImportAwait() => false;    
+    /// <inheritdoc/>
     public async Task StartImport(CancellationToken token)
     {
+        var transientPolicy = Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay);
+        var rpcPolicy = GetRpcPolicy();
+        
         _logger.Debug($"Start processing {JobName}");
-        await Policies.GetTransientPolicy(GetUniqueIdentifier(), _logger, _options.RetryCount, _options.RetryDelay)
+        await transientPolicy
+            .WrapAsync(rpcPolicy)
             .ExecuteAsync(async () =>
             {
                 var state = await _importStateController.GetStateIfExists();
@@ -63,11 +75,7 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
                     return;
                 }
 
-                var initialValues = await FindInitialState(state, token);
-                if (initialValues.IsEmpty())
-                {
-                    return;
-                }
+                var initialValues = await FindInitialState(token);
         
                 var (nextHeight, priorFinalizedBlockHeight, priorFinalizedBlockHash, priorFinalizedBlotSlotTime, finalHeight) = initialValues;
                 var initialHeight = nextHeight;
@@ -103,21 +111,16 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
             });
         _logger.Debug($"Done processing {JobName}");
     }
-    
+
     private sealed record InitialState(
         int NextHeight,
         int PriorFinalizedBlockHeight,
         string PriorFinalizedBlockHash,
         DateTimeOffset PriorFinalizedBlotSlotTime,
         int FinalHeight
-    )
-    {
-        internal static InitialState Empty() => new(0,0,string.Empty, DateTimeOffset.MinValue, 0);
+    );
 
-        internal bool IsEmpty() => this.NextHeight == 0 && FinalHeight == 0;
-    }
-
-    private async Task<InitialState> FindInitialState(ImportState state, CancellationToken token)
+    private async Task<InitialState> FindInitialState(CancellationToken token)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(token);
 
@@ -127,11 +130,6 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
             .OrderBy(b => b.BlockHeight)
             .Take(1)
             .SingleAsync(cancellationToken: token);
-
-        if (firstBlockWithNull.BlockHeight > state.MaxBlockHeightWithUpdatedFinalizationTime)
-        {
-            return InitialState.Empty();
-        }
             
         var priorBlockInfo = await _client.GetBlockInfoAsync(new Absolute((ulong)firstBlockWithNull.BlockHeight - 1), token);
         var priorBlockFinalization = await context.Blocks
@@ -152,8 +150,15 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
             lastBlockWithNull.BlockHeight
         );
     }
-
-    public string GetUniqueIdentifier() => JobName;
-
-    public bool ShouldNodeImportAwait() => false;
+    
+    private AsyncRetryPolicy GetRpcPolicy() =>
+        Policy
+            .Handle<RpcException>(ex => ex.StatusCode != StatusCode.Cancelled)
+            .WaitAndRetryForeverAsync((_, _, _) => _options.RetryDelay,
+                (ex, currentRetryCount, _, _) =>
+                {
+                    _logger.Error(ex, $"Triggering retry policy with {currentRetryCount} due to exception");
+                    ApplicationMetrics.IncRetryPolicyExceptions(GetUniqueIdentifier(), ex);
+                    return Task.CompletedTask;
+                });
 }

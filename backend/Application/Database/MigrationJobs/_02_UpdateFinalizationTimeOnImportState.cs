@@ -41,6 +41,7 @@ public class _02_UpdateFinalizationTimeOnImportState : IMainMigrationJob
         _logger = Log.ForContext<_02_UpdateFinalizationTimeOnImportState>();
     }
     
+    /// <inheritdoc/>
     public async Task StartImport(CancellationToken token)
     {
         _logger.Debug($"Start processing {JobName}");
@@ -61,8 +62,8 @@ public class _02_UpdateFinalizationTimeOnImportState : IMainMigrationJob
         
         _logger.Debug($"Done processing {JobName}");
     }
-
+    /// <inheritdoc/>
     public string GetUniqueIdentifier() => JobName;
-
+    /// <inheritdoc/>
     public bool ShouldNodeImportAwait() => true;
 }
