@@ -6,7 +6,6 @@ using Application.Common.Diagnostics;
 using Application.Import.ConcordiumNode;
 using Concordium.Sdk.Types;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace Application.Database.MigrationJobs;
 
@@ -20,10 +19,8 @@ namespace Application.Database.MigrationJobs;
 /// </summary>
 public class _02_UpdateFinalizationTimeOnImportState : IMainMigrationJob
 {
-    private readonly IOptions<MainMigrationJobOptions> _options;
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
-    private readonly DatabaseSettings _dbSettings;
     private readonly ImportStateController _importStateController;
     private readonly ILogger _logger;
     
@@ -33,17 +30,13 @@ public class _02_UpdateFinalizationTimeOnImportState : IMainMigrationJob
     private const string JobName = "_02_UpdateFinalizationTimeOnImportState";
 
     public _02_UpdateFinalizationTimeOnImportState(
-        IOptions<MainMigrationJobOptions> options,
         IDbContextFactory<GraphQlDbContext> contextFactory,
         IMetrics metrics,
-        IConcordiumNodeClient client,
-        DatabaseSettings dbSettings
+        IConcordiumNodeClient client
         )
     {
-        _options = options;
         _contextFactory = contextFactory;
         _client = client;
-        _dbSettings = dbSettings;
         _importStateController = new ImportStateController(contextFactory, metrics);
         _logger = Log.ForContext<_02_UpdateFinalizationTimeOnImportState>();
     }

@@ -26,7 +26,6 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly IConcordiumNodeClient _client;
     private readonly ImportStateController _importStateController;
-    private readonly BlockWriter _blockWriter;
     private readonly MetricsWriter _metricsWriter;
     private readonly ILogger _logger;
     private readonly MainMigrationJobOptions _options;
@@ -48,7 +47,6 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
         _contextFactory = contextFactory;
         _client = client;
         _importStateController = new ImportStateController(contextFactory, metrics);
-        _blockWriter = new BlockWriter(contextFactory, metrics);
         _metricsWriter = new MetricsWriter(dbSettings, metrics);
         _logger = Log.ForContext<_03_UpdateFinalizationTimes>();
     }
