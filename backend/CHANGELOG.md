@@ -1,5 +1,6 @@
 ## Unreleased changes
 - Updated
+    - Handle FFI errors through the use of error codes rather than string comparison.
     - Token view on account details page now sort tokens by contract- index, subindex and token id.
 
 ## 1.8.8

@@ -2,7 +2,8 @@ using System.Threading.Tasks;
 using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Bakers;
-using Application.Exceptions;
+using Concordium.Sdk.Exceptions;
+using Concordium.Sdk.Interop;
 using Concordium.Sdk.Types;
 using HotChocolate.Types;
 using Serilog.Context;
@@ -212,30 +213,20 @@ public abstract record TransactionResultEvent
                 var deserializeEvent = new ContractEvent(Convert.FromHexString(eventAsHex)).GetDeserializeEvent(versionedModuleSchema, new ContractIdentifier(contractName));
                 events[i] = deserializeEvent.ToString();
             }
-            catch (Exception e)
+            catch (SchemaJsonException e)
             {
-                var error = InteropErrorExtensions.From(e.Message);
-                if (error == InteropError.Undefined)
+                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", e.SchemaJsonResult);
+                switch (e.SchemaJsonResult)
                 {
-                    throw;
-                }
-                Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(GetParsedEvents)}", error);
-                switch (error)
-                {
-                    case InteropError.EventNotSupported:
+                    case SchemaJsonResult.VersionedSchemaErrorEventNotSupported:
                         logger.Debug(e, "Event's from {ContractName} on {Module} not supported", contractName, moduleReferenceEvent.ModuleReference);
                         break;
-                    case InteropError.NoEventInContract:
+                    case SchemaJsonResult.VersionedSchemaErrorNoEventInContract:
                         logger.Debug(e, "Event's from {ContractName} not in schema on {Module}", contractName, moduleReferenceEvent.ModuleReference);
                         break;
-                    case InteropError.Deserialization:
+                    case SchemaJsonResult.JsonError:
                         logger.Debug(e, "Error when parsing {Event} from {ContractName} on {Module}", eventsAsHex[i], contractName, moduleReferenceEvent.ModuleReference);
                         break;
-                    case InteropError.EmptyMessage:
-                    case InteropError.NoReceiveInContract:
-                    case InteropError.NoParamsInReceive:
-                    case InteropError.NoContractInModule:
-                    case InteropError.Undefined:
                     default:
                         logger.Error(e, "Error when parsing events from {ContractName} on {Module}", contractName, moduleReferenceEvent.ModuleReference);
                         break;

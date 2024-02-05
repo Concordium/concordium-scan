@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using System.Transactions;
 using Application.Api.GraphQL.EfCore;
 using Microsoft.EntityFrameworkCore;
 
