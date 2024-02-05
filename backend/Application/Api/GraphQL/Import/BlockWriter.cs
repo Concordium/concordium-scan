@@ -164,8 +164,8 @@ where graphql_blocks.block_height = sub_query.block_height";
             {
                 finalizationTimeUpdate.MinBlockHeight,
                 finalizationTimeUpdate.MaxBlockHeight,
-                blockSlotTime
-            });;
+                BlockSlotTime = blockSlotTime
+            });
         
         
     }

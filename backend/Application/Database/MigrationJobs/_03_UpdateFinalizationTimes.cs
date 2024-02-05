@@ -77,7 +77,7 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
 
                 var initialValues = await FindInitialState(token);
         
-                var (nextHeight, priorFinalizedBlockHeight, priorFinalizedBlockHash, priorFinalizedBlotSlotTime, finalHeight) = initialValues;
+                var (nextHeight, priorFinalizedBlockHeight, priorFinalizedBlockHash, finalHeight) = initialValues;
                 var initialHeight = nextHeight;
                 while (nextHeight < finalHeight)
                 {
@@ -100,12 +100,11 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
                     var timeUpdate = new FinalizationTimeUpdate(priorFinalizedBlockHeight, finalizedBlock.BlockHeight);
                     _logger.Debug($"Updating block height from:{timeUpdate.MinBlockHeight}, to {timeUpdate.MaxBlockHeight}");
                     
-                    await BlockWriter.UpdateFinalizationTimes(timeUpdate, priorFinalizedBlotSlotTime, context);
+                    await BlockWriter.UpdateFinalizationTimes(timeUpdate, nextBlockInfo.BlockSlotTime, context);
                     await _metricsWriter.UpdateFinalizationTimes(timeUpdate);
 
                     priorFinalizedBlockHash = finalizedBlock.BlockHash;
                     priorFinalizedBlockHeight = finalizedBlock.BlockHeight;
-                    priorFinalizedBlotSlotTime = finalizedBlock.BlockSlotTime;
                     ApplicationMetrics.SetJobCompletion(this, (nextHeight - initialHeight) / (double)finalHeight);
                 }
             });
@@ -116,7 +115,6 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
         int NextHeight,
         int PriorFinalizedBlockHeight,
         string PriorFinalizedBlockHash,
-        DateTimeOffset PriorFinalizedBlotSlotTime,
         int FinalHeight
     );
 
@@ -146,7 +144,6 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
             firstBlockWithNull.BlockHeight,
             priorBlockFinalization.BlockHeight,
             priorBlockFinalization.BlockHash,
-            priorBlockFinalization.BlockSlotTime,
             lastBlockWithNull.BlockHeight
         );
     }
