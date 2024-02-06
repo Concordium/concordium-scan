@@ -129,9 +129,7 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
             .Take(1)
             .SingleAsync(cancellationToken: token);
             
-        var priorBlockInfo = await _client.GetBlockInfoAsync(new Absolute((ulong)firstBlockWithNull.BlockHeight - 1), token);
-        var priorBlockFinalization = await context.Blocks
-            .SingleAsync(x => x.BlockHash == priorBlockInfo.BlockLastFinalized.ToString(), cancellationToken: token);
+        var priorBlockInfo = await _client.GetBlockInfoAsync(new Absolute(firstBlockWithNull.BlockHeight != 0 ? (ulong)firstBlockWithNull.BlockHeight - 1 : 0), token);
             
         var lastBlockWithNull = await context
             .Blocks
@@ -142,8 +140,8 @@ public class _03_UpdateFinalizationTimes : IMainMigrationJob
 
         return new InitialState(
             firstBlockWithNull.BlockHeight,
-            priorBlockFinalization.BlockHeight,
-            priorBlockFinalization.BlockHash,
+            (int)priorBlockInfo.BlockHeight,
+            priorBlockInfo.BlockHash.ToString(),
             lastBlockWithNull.BlockHeight
         );
     }
