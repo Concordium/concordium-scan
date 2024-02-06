@@ -5,13 +5,16 @@ This is the backend of Concordium Scan.
 ## Prerequisites
 The following prerequisites must be met in order to run the test suite and/or run the backend locally:
 
+* **Dotnet**
+    * .NET 6 SDK must be installed. On macOS currently only dotnet x86 runtimes are supported due to its dependency to ConcordiumNetSdk.
+
 * **C# IDE** 
     * Jetbrains Rider was used during development.
-    * The IDE should also install the .NET 6 SDK
 
 * **PostgreSQL 14 with extension TimescaleDB (community edition)** 
     * The TimescaleDB docker image (latest-pg14) was used during development.
-    * Install with this configuration *(If other configuration values are used, then configuration in code must be changed accordingly)*
+    * **Recommended**: Follow the instructions in `../timescaledb-restore/README.md` to run this as a docker image. Requires that docker is installed.
+    * **Manual solution**: Install with this configuration *(If other configuration values are used, then configuration in code must be changed accordingly)*
         * Port: 5432
         * User: postgres
         * Password: password
@@ -30,14 +33,16 @@ Schema is validated using snapshot testing in test `Tests.Api.GraphQL.GivenGraph
 The committed schema is saved as file `committed-schema.verified.graphql` and this file is used for frontend type generations.
 
 # Run the backend locally
-Once the prerequisites are met you can run the backend either from within the IDE or via a shell by issuing the "dotnet run" command in the Application directory.
+Once the prerequisites are met you can run the backend either: 
+- from within the IDE
+- via a shell by issuing `dotnet run --project ./Application/Application.csproj` (from the `backend` folder)
 
 ## Configuring the application for local execution
 The configuration file ``appsettings.Development.json`` contains the configuration values used when executing the application locally.
 
-* **PostgresDatabase -> ConnectionString**: The connection string to the main database for the backend
-* **PostgresDatabase -> ConnectionStringNodeCache**: The connection string to the Concordium Node cache
-* **ConcordiumNodeGrpc**: The configuration values that determine which Concordium Node is used when importing data
+* **PostgresDatabase -> ConnectionString**: The connection string to the main database for the backend. By default points to postgres exposed by `../timescaledb-restore`
+* **PostgresDatabase -> ConnectionStringNodeCache**: The connection string to the Concordium Node cache. By default points to postgres exposed by `../timescaledb-restore`
+* **ConcordiumNodeGrpc**: The configuration values that determine which Concordium Node is used when importing data. Defaults to local testnet node (i.e. http::/localhost:20001)
 * **NonCirculatingAccounts**: The foundation accounts which do not circulate the CCDs. This is primarily used in the calculation of Total Unlocked CCDs.  
 
 # Run the tests locally

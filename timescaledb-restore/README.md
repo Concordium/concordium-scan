@@ -1,6 +1,6 @@
 # Restore database from backups
 
-Below is instructions how to spin up CCD scan database locally which is restored from Stage- or Testnet backups.
+Below is instructions how to spin up CCD scan database locally which is restored from Stage- or Testnet backups, as specified by `./init/pgbackrest.conf`.
 
 Before following below instructions make sure you have read access to the S3 buckets where the backups are located.
 
