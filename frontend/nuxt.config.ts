@@ -10,8 +10,8 @@ const ENVIRONMENT = (process.env.ENVIRONMENT as Environment) || 'dev'
 
 const VARS: Record<Environment, Config> = {
 	dev: {
-		apiUrl: 'http://localhost:5000/graphql',
-		wsUrl: 'ws://localhost:5000/graphql',
+		apiUrl: 'http://localhost:5090/graphql',
+		wsUrl: 'ws://localhost:5090/graphql',
 	},
 	stagenet: {
 		apiUrl: 'https://api-ccdscan.stagenet.concordium.com/graphql',

@@ -35,6 +35,13 @@ public class Token
     /// Token Metadata URL
     /// </summary>
     public string? MetadataUrl { get; set; }
+    
+    /// <summary>
+    /// Token address of the token which consist of contract index, contract subindex and token id.
+    /// See <see cref="EncodeTokenAddress"/> for calculations.
+    /// </summary>
+    [GraphQLIgnore]
+    public string? TokenAddress { get; set; }
 
     /// <summary>
     /// Total supply of the token
@@ -85,6 +92,34 @@ public class Token
                 && t.TokenId == this.TokenId)
             .OrderByDescending(t => t.Id);
     }
+    
+    /// <summary>
+    /// Encode token address.
+    /// It is encoded by using leb128 encoding on contract index
+    /// and contract subindex.
+    /// The leb128 encodings are concatenated and the token id as bytes are appended.
+    /// Finally the whole byte array are base 58 encoded.
+    /// </summary>
+    internal static string EncodeTokenAddress(
+        ulong contractIndex,
+        ulong contractSubindex,
+        string tokenId
+    )
+    {
+        var contractIndexBytes = Leb128.EncodeUnsignedLeb128(contractIndex);
+        var contractSubindexBytes = Leb128.EncodeUnsignedLeb128(contractSubindex);
+        var tokenIdBytes = Convert.FromHexString(tokenId).AsSpan();
+        Span<byte> bytes = new byte[1 + contractIndexBytes.Length + contractSubindexBytes.Length + tokenIdBytes.Length];
+        bytes[0] = 2;
+        contractIndexBytes.CopyTo(bytes.Slice(1,
+            contractIndexBytes.Length));
+        contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length + 1,
+            contractSubindexBytes.Length));
+        tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length + contractIndexBytes.Length + 1,
+            tokenIdBytes.Length));
+            
+        return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
+    }
 
     [ExtendObjectType(typeof(Token))]
     public sealed class TokenExtensions
@@ -92,22 +127,8 @@ public class Token
         public string GetContractAddressFormatted([Parent] Token token) => 
             new ContractAddress(token.ContractIndex, token.ContractSubIndex).AsString;
 
-        public string GetTokenAddress([Parent]Token token)
-        {
-            var contractIndexBytes = Leb128.EncodeUnsignedLeb128(token.ContractIndex);
-            var contractSubindexBytes = Leb128.EncodeUnsignedLeb128(token.ContractSubIndex);
-            var tokenIdBytes = Convert.FromHexString(token.TokenId).AsSpan();
-            Span<byte> bytes = new byte[1 + contractIndexBytes.Length + contractSubindexBytes.Length + tokenIdBytes.Length];
-            bytes[0] = 2;
-            contractIndexBytes.CopyTo(bytes.Slice(1,
-                contractIndexBytes.Length));
-            contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length + 1,
-                contractSubindexBytes.Length));
-            tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length + contractIndexBytes.Length + 1,
-                tokenIdBytes.Length));
-            
-            return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
-        }
+        public string GetTokenAddress([Parent]Token token) => 
+            token.TokenAddress ?? EncodeTokenAddress(token.ContractIndex, token.ContractSubIndex, token.TokenId);
     }
 }
 
