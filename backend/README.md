@@ -6,7 +6,7 @@ This is the backend of Concordium Scan.
 The following prerequisites must be met in order to run the test suite and/or run the backend locally:
 
 * **Dotnet**
-    * .NET 6 SDK must be installed
+    * .NET 6 SDK must be installed. On macOS currently only dotnet x86 runtimes are supported due to its dependency to ConcordiumNetSdk.
 
 * **C# IDE** 
     * Jetbrains Rider was used during development.
@@ -35,13 +35,13 @@ The committed schema is saved as file `committed-schema.verified.graphql` and th
 # Run the backend locally
 Once the prerequisites are met you can run the backend either: 
 - from within the IDE
-- via a shell by issuing the `dotnet run --project ./Application/Application.csproj` (from the `backend` folder)
+- via a shell by issuing `dotnet run --project ./Application/Application.csproj` (from the `backend` folder)
 
 ## Configuring the application for local execution
 The configuration file ``appsettings.Development.json`` contains the configuration values used when executing the application locally.
 
-* **PostgresDatabase -> ConnectionString**: The connection string to the main database for the backend. By default points to the postgres exposed by `../timescaledb-restore`
-* **PostgresDatabase -> ConnectionStringNodeCache**: The connection string to the Concordium Node cache. By default points to the postgres exposed by `../timescaledb-restore`
+* **PostgresDatabase -> ConnectionString**: The connection string to the main database for the backend. By default points to postgres exposed by `../timescaledb-restore`
+* **PostgresDatabase -> ConnectionStringNodeCache**: The connection string to the Concordium Node cache. By default points to postgres exposed by `../timescaledb-restore`
 * **ConcordiumNodeGrpc**: The configuration values that determine which Concordium Node is used when importing data. Defaults to local testnet node (i.e. http::/localhost:20001)
 * **NonCirculatingAccounts**: The foundation accounts which do not circulate the CCDs. This is primarily used in the calculation of Total Unlocked CCDs.  
 
