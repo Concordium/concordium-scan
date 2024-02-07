@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+## 1.8.10
+- Updated
+    - Changed calculations of finalization time to use last finalized block hash from block info instead of using finalization summaries. Changes are needed since finalization summaries isn't present in protocol 6. Using latest finalization block hash in block info is a robust calculation in both old (before protocol 6) and new consensus protocol.
+
 ## 1.8.9
 - Updated
     - Handle FFI errors through the use of error codes rather than string comparison.

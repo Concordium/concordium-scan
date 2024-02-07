@@ -7,6 +7,7 @@ public class BlockInfoBuilder
     private ulong _blockHeight = 1;
     private DateTimeOffset _blockSlotTime = new(2010, 10, 1, 12, 03, 52, 123, TimeSpan.Zero);
     private BlockHash _blockHash = BlockHash.From("4b39a13d326f422c76f12e20958a90a4af60a2b7e098b2a59d21d402fff44bfc");
+    private BlockHash _blockLastFinalized = BlockHash.From("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d");
     private BakerId? _blockBaker = new BakerId(new AccountIndex(1));
     private bool _finalized = true;
     private uint _transactionCount = 2;
@@ -24,7 +25,7 @@ public class BlockInfoBuilder
         (
             BlockHash: _blockHash,    
             BlockParent: BlockHash.From("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
-            BlockLastFinalized: BlockHash.From("b6078154d6717e909ce0da4a45a25151b592824f31624b755900a74429e3073d"),    
+            BlockLastFinalized: _blockLastFinalized,    
             BlockHeight: _blockHeight,
             GenesisIndex: 0,
             EraBlockHeight: 1,    
@@ -43,7 +44,13 @@ public class BlockInfoBuilder
             Epoch: null
         );
     }
-
+    
+    public BlockInfoBuilder WithBlockLastFinalized(BlockHash lastFinalized)
+    {
+        _blockLastFinalized = lastFinalized;
+        return this;
+    }
+    
     public BlockInfoBuilder WithProtocolVersion(ProtocolVersion version)
     {
         _protocolVersion = version;

@@ -19,13 +19,6 @@ public class BlockConfiguration : IEntityTypeConfiguration<Block>
         builder.Property(b => b.BakerId).HasColumnName("baker_id");
         builder.Property(b => b.Finalized).HasColumnName("finalized");
         builder.Property(b => b.TransactionCount).HasColumnName("transaction_count");
-        builder.OwnsOne(block => block.FinalizationSummary, builder =>
-        {
-            builder.WithOwner(x => x.Owner);
-            builder.Property(x => x.FinalizedBlockHash).HasColumnName("finalization_data_block_pointer");
-            builder.Property(x => x.FinalizationIndex).HasColumnName("finalization_data_index");
-            builder.Property(x => x.FinalizationDelay).HasColumnName("finalization_data_delay");
-        });
         builder.OwnsOne(block => block.BalanceStatistics, builder =>
         {
             builder.Property(x => x.TotalAmount).HasColumnName("bal_stats_total_amount");

@@ -7,7 +7,7 @@
 			>
 				<MetricsPeriodDropdown v-model="selectedMetricsPeriod" />
 			</div>
-			<FtbCarousel non-carousel-classes="grid-cols-2">
+			<FtbCarousel non-carousel-classes="grid-cols-3">
 				<CarouselSlide class="w-full">
 					<BlocksAddedChart
 						:block-metrics-data="metricsData"
@@ -16,6 +16,12 @@
 				</CarouselSlide>
 				<CarouselSlide class="w-full">
 					<BlockTimeChart
+						:block-metrics-data="metricsData"
+						:is-loading="metricsFetching"
+					/>
+				</CarouselSlide>
+				<CarouselSlide class="w-full">
+					<FinalizationTimeChart
 						:block-metrics-data="metricsData"
 						:is-loading="metricsFetching"
 					/>

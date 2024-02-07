@@ -32,6 +32,8 @@ internal static class StartupExtensions
         
         collection.AddTransient<IMainMigrationJob, _00_UpdateValidatorCommissionRates>();
         collection.AddTransient<IMainMigrationJob, _01_AddMissingChainUpdateEvents>();
+        collection.AddTransient<IMainMigrationJob, _02_UpdateFinalizationTimeOnImportState>();
+        collection.AddTransient<IMainMigrationJob, _03_UpdateFinalizationTimes>();
     }
     
     internal static void AddConcordiumClient(this IServiceCollection services, IConfiguration configuration)

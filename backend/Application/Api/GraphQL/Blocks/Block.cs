@@ -20,7 +20,6 @@ public class Block : IBlockOrTransactionUnion
     public int? BakerId { get; init; }
     public bool Finalized { get; init; }
     public int TransactionCount { get; init; }
-    public FinalizationSummary? FinalizationSummary { get; init; }
     public BalanceStatistics BalanceStatistics { get; init; }
     public BlockStatistics BlockStatistics { get; init; }
 
@@ -91,8 +90,7 @@ public class Block : IBlockOrTransactionUnion
         BlockInfo blockInfo,
         double blockTime,
         int chainParametersId,
-        BalanceStatistics balanceStatistics, 
-        FinalizationSummary? finalizationSummary)
+        BalanceStatistics balanceStatistics)
     {
         var block = new Block
         {
@@ -102,7 +100,6 @@ public class Block : IBlockOrTransactionUnion
             BakerId = blockInfo.BlockBaker != null ? (int)blockInfo.BlockBaker!.Value.Id.Index : null,
             Finalized = blockInfo.Finalized,
             TransactionCount = (int)blockInfo.TransactionCount,
-            FinalizationSummary = finalizationSummary,
             BalanceStatistics = balanceStatistics,
             BlockStatistics = new BlockStatistics
             {
