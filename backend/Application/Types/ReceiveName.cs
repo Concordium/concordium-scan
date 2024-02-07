@@ -1,5 +1,6 @@
 using Application.Aggregates.Contract.Exceptions;
-using Application.Exceptions;
+using Concordium.Sdk.Exceptions;
+using Concordium.Sdk.Interop;
 using Concordium.Sdk.Types;
 
 namespace Application.Types;
@@ -35,32 +36,23 @@ internal sealed class ReceiveName
             
             return message.ToString();   
         }
-        catch (Exception e)
+        catch (SchemaJsonException e)
         {
-            var error = InteropErrorExtensions.From(e.Message);
-            if (error == InteropError.Undefined)
+            Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(DeserializeMessage)}", e.SchemaJsonResult);
+            switch (e.SchemaJsonResult)
             {
-                throw;
-            }
-            Observability.ApplicationMetrics.IncInteropErrors($"{instigator}.{nameof(DeserializeMessage)}", error);
-            switch (error)
-            {
-                case InteropError.Deserialization:
+                case SchemaJsonResult.JsonError:
                     logger.Debug(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
                     break;
-                case InteropError.NoReceiveInContract:
+                case SchemaJsonResult.VersionedSchemaErrorNoReceiveInContract:
                     logger.Debug(e, "{Entrypoint} not found in schema. Issue when parsing {Message} from {ContractName} on {Module}", entrypoint, messageAsHex, contractName, moduleReference);
                     break;
-                case InteropError.NoParamsInReceive:
+                case SchemaJsonResult.VersionedSchemaErrorNoParamsInReceive:
                     logger.Debug(e, "{Entrypoint} does not contain parameter in schema. Issue when parsing {Message} from {ContractName} on {Module}", entrypoint, messageAsHex, contractName, moduleReference);
                     break;
-                case InteropError.NoContractInModule:
+                case SchemaJsonResult.VersionedSchemaErrorNoContractInModule:
                     logger.Debug(e, "{ContractName} not in {Module}. Issue when parsing {Message} on {Entrypoint}", contractName, moduleReference, messageAsHex, entrypoint);
                     break;
-                case InteropError.Undefined:
-                case InteropError.EmptyMessage:
-                case InteropError.EventNotSupported:
-                case InteropError.NoEventInContract:
                 default:
                     logger.Error(e, "Error when parsing {Message} from {ContractName} on {Module} at {Entrypoint}", messageAsHex, contractName, moduleReference, entrypoint);
                     break;
