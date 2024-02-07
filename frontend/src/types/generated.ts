@@ -2677,6 +2677,7 @@ export type SearchResult = {
   contracts?: Maybe<ContractsConnection>;
   modules?: Maybe<ModulesConnection>;
   nodeStatuses?: Maybe<NodeStatusesConnection>;
+  tokens?: Maybe<TokensConnection>;
   transactions?: Maybe<TransactionsConnection>;
 };
 
@@ -2722,6 +2723,14 @@ export type SearchResultModulesArgs = {
 
 
 export type SearchResultNodeStatusesArgs = {
+  after?: InputMaybe<Scalars['String']>;
+  before?: InputMaybe<Scalars['String']>;
+  first?: InputMaybe<Scalars['Int']>;
+  last?: InputMaybe<Scalars['Int']>;
+};
+
+
+export type SearchResultTokensArgs = {
   after?: InputMaybe<Scalars['String']>;
   before?: InputMaybe<Scalars['String']>;
   first?: InputMaybe<Scalars['Int']>;

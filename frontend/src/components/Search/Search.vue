@@ -162,6 +162,31 @@
 						</div>
 					</SearchResultCategory>
 					<SearchResultCategory
+						v-if="resultCount"
+						title="CIS-2 Tokens"
+						:has-more-results="data.search.tokens.pageInfo.hasNextPage"
+					>
+						<div
+							v-for="token in data.search.tokens.nodes"
+							:key="token.tokenAddress"
+							:class="$style.searchColumns"
+						>
+							<TokenLink
+								:token-address="token.tokenAddress"
+								:token-id="token.tokenId"
+								:contract-address-index="token.contractIndex"
+								:contract-address-sub-index="token.contractSubIndex"
+								:width="80"
+							/>
+							<div :class="$style.threeColumns"></div>
+							<div :class="$style.twoColumns">
+								<TransactionLink
+									:hash="token.initialTransaction.transactionHash"
+								/>
+							</div>
+						</div>
+					</SearchResultCategory>
+					<SearchResultCategory
 						v-if="resultCount.modules"
 						title="Modules"
 						:has-more-results="data.search.modules.pageInfo.hasNextPage"
@@ -238,6 +263,8 @@
 
 <script lang="ts" setup>
 import ModuleLink from '../molecules/ModuleLink.vue'
+import TransactionLink from '../molecules/TransactionLink.vue'
+import TokenLink from '../molecules/TokenLink.vue'
 import SearchResultCategory from './SearchResultCategory.vue'
 import { useSearchQuery } from '~/queries/useSearchQuery'
 import { useDrawer } from '~/composables/useDrawer'
@@ -354,6 +381,7 @@ const resultCount = computed(() => ({
 	accounts: data.value?.search.accounts.nodes.length,
 	bakers: data.value?.search.bakers.nodes.length,
 	nodeStatuses: data.value?.search.nodeStatuses.nodes.length,
+	tokens: data.value?.search.tokens.nodes.length,
 	total:
 		(data.value?.search.contracts.nodes.length ?? 0) +
 		(data.value?.search.blocks.nodes.length ?? 0) +
@@ -361,7 +389,8 @@ const resultCount = computed(() => ({
 		(data.value?.search.accounts.nodes.length ?? 0) +
 		(data.value?.search.bakers.nodes.length ?? 0) +
 		(data.value?.search.nodeStatuses.nodes.length ?? 0) +
-		(data.value?.search.modules?.nodes.length ?? 0),
+		(data.value?.search.modules?.nodes.length ?? 0) +
+		(data.value?.search.tokens?.nodes.length ?? 0),
 }))
 </script>
 

@@ -28,10 +28,12 @@ type Props = {
 	tokenId: string
 	contractAddressIndex: number
 	contractAddressSubIndex: number
-	suffix?: string
-	length?: number
+	width?: number
 }
 const props = defineProps<Props>()
+
+const maxWidth = computed(() => `${props.width ?? 160}px`)
+
 const drawer = useDrawer()
 const emit = defineEmits(['blur'])
 const emitBlur = (newTarget: FocusEvent) => {
@@ -49,6 +51,6 @@ const handleOnClick = () => {
 </script>
 <style>
 .token-address {
-	max-width: 160px;
+	max-width: v-bind(maxWidth);
 }
 </style>

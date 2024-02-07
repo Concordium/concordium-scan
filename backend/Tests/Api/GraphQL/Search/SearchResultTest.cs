@@ -1,4 +1,6 @@
-﻿using Application.Api.GraphQL.Accounts;
+﻿using System.Runtime.InteropServices;
+using Application.Aggregates.Contract.Entities;
+using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Search;
 using Dapper;
@@ -24,6 +26,30 @@ public class SearchResultTest
         using var connection = DatabaseFixture.GetOpenConnection();
         connection.Execute("TRUNCATE TABLE graphql_blocks");
         connection.Execute("TRUNCATE TABLE graphql_accounts");
+    }
+
+    [Theory]
+    [InlineData("foobar", 1)]
+    [InlineData("foo", 2)]
+    [InlineData("nothing", 0)]
+    public async Task WhenSearchForTokens_ThenReturnMatches(string query, int count)
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_tokens");
+        await using (var insertContext = _dbContextFactory.CreateDbContext())
+        {
+            var first = new Token{TokenId = "00", TokenAddress = "foobar"};
+            var second = new Token{TokenId = "01", TokenAddress = "foo"};
+            await insertContext.AddRangeAsync(first, second);
+            await insertContext.SaveChangesAsync();
+        }
+        var target = new SearchResult(query);
+        
+        // Act
+        var tokens = target.GetTokens(_dbContextFactory.CreateDbContext()).ToList();
+        
+        // Assert
+        tokens.Count.Should().Be(count);
     }
 
     [Theory]
