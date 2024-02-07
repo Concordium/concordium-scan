@@ -1,4 +1,6 @@
 ## Unreleased changes
+
+## 1.8.11
 - Added
     - Extended search functionality to include tokens.
 
