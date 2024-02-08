@@ -13,6 +13,7 @@ namespace Application.Api.Rest;
 public class ExportController : ControllerBase
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private const int MAX_DAYS = 32;
 
     public ExportController(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
@@ -42,26 +43,29 @@ public class ExportController : ControllerBase
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
             .Where(x => x.AccountId == account.Id);
-        if (fromTime.HasValue)
-        {
-            if (fromTime.Value.Kind != DateTimeKind.Utc)
-            {
-                return BadRequest("Time zone missing on 'fromTime'.");
-            }
 
-            DateTimeOffset t = fromTime.Value;
-            query = query.Where(e => e.Timestamp >= t);
-        }
-        if (toTime.HasValue)
+        if (fromTime.Value.Kind != DateTimeKind.Utc)
         {
-            if (toTime.Value.Kind != DateTimeKind.Utc)
-            {
-                return BadRequest("Time zone missing on 'toTime'.");
-            }
-            DateTimeOffset t = toTime.Value;
-            query = query.Where(e => e.Timestamp <= t);
+            return BadRequest("Time zone missing on 'fromTime'.");
         }
-        
+
+        DateTimeOffset from = fromTime ?? DateTime.Now.AddDays(-31);
+
+        if (toTime.Value.Kind != DateTimeKind.Utc)
+        {
+            return BadRequest("Time zone missing on 'toTime'.");
+        }
+
+        DateTimeOffset to = toTime ?? DateTime.Now;
+
+        if ((to - from).TotalDays > MAX_DAYS)
+        {
+            return BadRequest("Chosen time span exceeds max allowed days: '{MAX_DAYS}'");
+        }
+
+        query = query.Where(e => e.Timestamp >= from);
+        query = query.Where(e => e.Timestamp <= to);
+
         var result = query.Select(x => new
         {
             x.Timestamp,
@@ -74,7 +78,7 @@ public class ExportController : ControllerBase
         {
             return new NoContentResult();
         }
-        
+
         var csv = new StringBuilder("Time,Amount (CCD),Balance (CCD),Label\n");
         foreach (var v in values)
         {
@@ -82,12 +86,12 @@ public class ExportController : ControllerBase
             csv.Append(',');
             csv.Append((v.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
             csv.Append(',');
-            csv.Append((v.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));            
+            csv.Append((v.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
             csv.Append(',');
             csv.Append(v.EntryType);
             csv.Append('\n');
         }
-        
+
         var firstTime = values.First().Timestamp;
         var lastTime = values.Last().Timestamp;
         return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
