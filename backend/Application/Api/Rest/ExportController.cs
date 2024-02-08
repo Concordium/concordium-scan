@@ -13,6 +13,7 @@ namespace Application.Api.Rest;
 public class ExportController : ControllerBase
 {
     private readonly IDbContextFactory<GraphQlDbContext> _dbContextFactory;
+    private const int queryLimit = 25000;
 
     public ExportController(IDbContextFactory<GraphQlDbContext> dbContextFactory)
     {
@@ -41,7 +42,8 @@ public class ExportController : ControllerBase
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
-            .Where(x => x.AccountId == account.Id);
+            .Where(x => x.AccountId == account.Id)
+            .Take(queryLimit);
         if (fromTime.HasValue)
         {
             if (fromTime.Value.Kind != DateTimeKind.Utc)
