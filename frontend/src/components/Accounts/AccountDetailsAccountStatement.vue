@@ -133,12 +133,19 @@
 			<div class="col-span-1 flex justify-end">
 				<a
 					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
-					:href="exportUrl"
+					:href="exportUrl(accountAddress, chosenMonth)"
 				>
 					<span class="hidden md:inline">Export</span>
 					<DownloadIcon class="h-4 inline align-text-top" />
 				</a>
 			</div>
+		</div>
+		<div class="col-span-1 flex justify-end">
+			<input
+				v-model="chosenMonth"
+				class="bg-theme-background-primary-elevated-nontrans rounded"
+				type="month"
+			/>
 		</div>
 	</div>
 </template>
@@ -168,11 +175,31 @@ import {
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
+const chosenMonth = ref(
+	`${NOW.value.getFullYear()}-${('0' + (NOW.value.getMonth() + 1)).slice(-2)}`
+)
+
 type Props = {
 	accountStatementItems: AccountStatementEntry[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
-	exportUrl: string
+	accountAddress: string
 }
 defineProps<Props>()
+
+const { apiUrl } = useRuntimeConfig()
+
+function exportUrl(accountAddress, rawMonth: string) {
+	const url = new URL(apiUrl)
+	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
+	url.searchParams.append('accountAddress', accountAddress)
+	if (rawMonth) {
+		const start = new Date(rawMonth)
+		const end = new Date(rawMonth)
+		end.setMonth(end.getMonth() + 1)
+		url.searchParams.append('fromTime', start.toISOString())
+		url.searchParams.append('toTime', end.toISOString())
+	}
+	return url.toString()
+}
 </script>
