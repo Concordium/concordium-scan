@@ -123,6 +123,7 @@
 						:page-info="account.accountStatement.pageInfo"
 						:go-to-page="goToPageAccountStatement"
 						:account-address="account.address.asString"
+						:account-created-at="account.createdAt"
 					/>
 					<div v-else class="p-4">No entries</div>
 				</template>

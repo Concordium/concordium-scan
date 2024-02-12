@@ -145,6 +145,8 @@
 				v-model="chosenMonth"
 				class="bg-theme-background-primary-elevated-nontrans rounded"
 				type="month"
+				:min="createdAtMonth"
+				:max="currentMonth"
 			/>
 		</div>
 	</div>
@@ -175,17 +177,29 @@ import {
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
-const chosenMonth = ref(
-	`${NOW.value.getFullYear()}-${('0' + (NOW.value.getMonth() + 1)).slice(-2)}`
-)
+/// Takes a date and returns the corresponding "YYYY-MM" string.
+/// if no date is given, undefined is returned.
+function toMonthInput(date?: Date): string {
+	if (date) {
+		const year = date.getFullYear()
+		const month = ('0' + (date.getMonth() + 1)).slice(-2)
+		return `${year}-${month}`
+	}
+	return undefined
+}
 
 type Props = {
 	accountStatementItems: AccountStatementEntry[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
 	accountAddress: string
+	accountCreatedAt: string
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const createdAtMonth = toMonthInput(new Date(props.accountCreatedAt))
+const currentMonth = toMonthInput(NOW.value)
+const chosenMonth = ref(currentMonth)
 
 const { apiUrl } = useRuntimeConfig()
 
