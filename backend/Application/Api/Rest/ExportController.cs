@@ -44,14 +44,14 @@ public class ExportController : ControllerBase
             .AsNoTracking()
             .Where(x => x.AccountId == account.Id);
 
-        if (fromTime.Value.Kind != DateTimeKind.Utc)
+        if (fromTime != null && fromTime.Value.Kind != DateTimeKind.Utc)
         {
             return BadRequest("Time zone missing on 'fromTime'.");
         }
 
         DateTimeOffset from = fromTime ?? DateTime.Now.AddDays(-31);
 
-        if (toTime.Value.Kind != DateTimeKind.Utc)
+        if (toTime != null && toTime.Value.Kind != DateTimeKind.Utc)
         {
             return BadRequest("Time zone missing on 'toTime'.");
         }
