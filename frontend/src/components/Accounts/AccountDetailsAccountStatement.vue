@@ -133,12 +133,21 @@
 			<div class="col-span-1 flex justify-end">
 				<a
 					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
-					:href="exportUrl"
+					:href="exportUrl(accountAddress, chosenMonth)"
 				>
 					<span class="hidden md:inline">Export</span>
 					<DownloadIcon class="h-4 inline align-text-top" />
 				</a>
 			</div>
+		</div>
+		<div class="col-span-1 flex justify-end mt-3">
+			<input
+				v-model="chosenMonth"
+				class="bg-theme-background-primary-elevated-nontrans rounded py-2 px-4"
+				type="month"
+				:min="createdAtMonth"
+				:max="currentMonth"
+			/>
 		</div>
 	</div>
 </template>
@@ -168,11 +177,43 @@ import {
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
+/// Takes a date and returns the corresponding "YYYY-MM" string.
+/// if no date is given, undefined is returned.
+function toMonthInput(date?: Date): string {
+	if (date) {
+		const year = date.getFullYear()
+		const month = ('0' + (date.getMonth() + 1)).slice(-2)
+		return `${year}-${month}`
+	}
+	return undefined
+}
+
 type Props = {
 	accountStatementItems: AccountStatementEntry[]
 	pageInfo: PageInfo
 	goToPage: (page: PageInfo) => (target: PaginationTarget) => void
-	exportUrl: string
+	accountAddress: string
+	accountCreatedAt: string
 }
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const createdAtMonth = toMonthInput(new Date(props.accountCreatedAt))
+const currentMonth = toMonthInput(NOW.value)
+const chosenMonth = ref(currentMonth)
+
+const { apiUrl } = useRuntimeConfig()
+
+function exportUrl(accountAddress, rawMonth: string) {
+	const url = new URL(apiUrl)
+	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
+	url.searchParams.append('accountAddress', accountAddress)
+	if (rawMonth) {
+		const start = new Date(rawMonth)
+		const end = new Date(rawMonth)
+		end.setMonth(end.getMonth() + 1)
+		url.searchParams.append('fromTime', start.toISOString())
+		url.searchParams.append('toTime', end.toISOString())
+	}
+	return url.toString()
+}
 </script>

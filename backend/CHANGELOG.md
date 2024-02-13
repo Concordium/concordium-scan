@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+## 1.8.12
+- Updated
+    - StatementExport now defaults time period to "31 days ago" to "now", and requires period to not exceed 32 days.
+
 ## 1.8.11
 - Added
     - Extended search functionality to include tokens.
