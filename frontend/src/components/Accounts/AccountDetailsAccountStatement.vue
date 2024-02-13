@@ -140,10 +140,10 @@
 				</a>
 			</div>
 		</div>
-		<div class="col-span-1 flex justify-end">
+		<div class="col-span-1 flex justify-end mt-3">
 			<input
 				v-model="chosenMonth"
-				class="bg-theme-background-primary-elevated-nontrans rounded"
+				class="bg-theme-background-primary-elevated-nontrans rounded py-2 px-4"
 				type="month"
 				:min="createdAtMonth"
 				:max="currentMonth"
