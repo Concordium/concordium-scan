@@ -30,6 +30,7 @@
 		"subscriptions-transport-ws": "^0.11.0",
 		"tailwindcss": "^2.2.19",
 		"vue": "^3.2.36",
+		"vue-month-picker": "^1.7.2",
 		"vue3-carousel": "^0.1.36"
 	},
 	"devDependencies": {
