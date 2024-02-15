@@ -11044,6 +11044,11 @@ vue-loader@^17.0.0:
     hash-sum "^2.0.0"
     loader-utils "^2.0.0"
 
+vue-month-picker@^1.7.2:
+  version "1.7.2"
+  resolved "https://registry.yarnpkg.com/vue-month-picker/-/vue-month-picker-1.7.2.tgz#8cb40f98f88f12b6f3c32cba1a7b67cef26f5eb0"
+  integrity sha512-Wov461A/Xk+h2ktfjQHeqCYMk9sRvmBL1uFxOzRTa2XiiUA5L6Cv8QZ0EvlXxkeM2EkmhltnidgWVCUEi9lXYg==
+
 vue-router@^4.0.12:
   version "4.0.15"
   resolved "https://registry.yarnpkg.com/vue-router/-/vue-router-4.0.15.tgz#b4a0661efe197f8c724e0f233308f8776e2c3667"

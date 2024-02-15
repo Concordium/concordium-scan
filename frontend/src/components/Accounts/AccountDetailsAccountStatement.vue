@@ -140,19 +140,26 @@
 				</a>
 			</div>
 		</div>
-		<div class="col-span-1 flex justify-end mt-3">
-			<input
-				v-model="chosenMonth"
-				class="bg-theme-background-primary-elevated-nontrans rounded py-2 px-4"
+		<div class="col-span-1 flex mt-3 flex justify-end">
+			<month-picker-input
+				variant="dark"
+				class="py-2"
 				type="month"
-				:min="createdAtMonth"
-				:max="currentMonth"
+				:min-date="createdAtMonth"
+				:max-date="currentMonth"
+				:default-month="currentMonth.getMonth() + 1"
+				@change="
+					update => {
+						chosenMonth = buildMonthInput(update.year, update.monthIndex)
+					}
+				"
 			/>
 		</div>
 	</div>
 </template>
 
 <script lang="ts" setup>
+import { MonthPickerInput } from 'vue-month-picker'
 import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import Amount from '~/components/atoms/Amount.vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
@@ -177,13 +184,20 @@ import {
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
 
+/**
+ * @input month the number of the month, 1-indexed i.e. January = 1
+ */
+function buildMonthInput(year: number, month: number) {
+	const monthString = ('0' + month).slice(-2)
+	return `${year}-${monthString}`
+}
+
 /// Takes a date and returns the corresponding "YYYY-MM" string.
 /// if no date is given, undefined is returned.
-function toMonthInput(date?: Date): string {
+function toMonthInput(date?: Date): string | undefined {
 	if (date) {
 		const year = date.getFullYear()
-		const month = ('0' + (date.getMonth() + 1)).slice(-2)
-		return `${year}-${month}`
+		return buildMonthInput(date.getFullYear(), date.getMonth() + 1)
 	}
 	return undefined
 }
@@ -197,17 +211,17 @@ type Props = {
 }
 const props = defineProps<Props>()
 
-const createdAtMonth = toMonthInput(new Date(props.accountCreatedAt))
-const currentMonth = toMonthInput(NOW.value)
-const chosenMonth = ref(currentMonth)
+const createdAtMonth = new Date(props.accountCreatedAt)
+const currentMonth = NOW.value
+const chosenMonth = ref(toMonthInput(currentMonth))
 
 const { apiUrl } = useRuntimeConfig()
 
-function exportUrl(accountAddress, rawMonth: string) {
+function exportUrl(accountAddress: string, rawMonth: string) {
 	const url = new URL(apiUrl)
 	url.pathname = 'rest/export/statement' // setting pathname discards any existing path in 'apiUrl'
 	url.searchParams.append('accountAddress', accountAddress)
-	if (rawMonth) {
+	if (rawMonth && !isNaN(new Date(rawMonth).getTime())) {
 		const start = new Date(rawMonth)
 		const end = new Date(rawMonth)
 		end.setMonth(end.getMonth() + 1)
