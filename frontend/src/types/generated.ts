@@ -2875,7 +2875,7 @@ export type Token = {
   tokenAddress: Scalars['String'];
   tokenEvents?: Maybe<TokenEventsCollectionSegment>;
   tokenId: Scalars['String'];
-  totalSupply: Scalars['Decimal'];
+  totalSupply: Scalars['BigInteger'];
 };
 
 

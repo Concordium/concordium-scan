@@ -1907,7 +1907,7 @@ type Token {
   contractSubIndex: UnsignedLong!
   tokenId: String!
   metadataUrl: String
-  totalSupply: Decimal!
+  totalSupply: BigInteger!
   contractAddressFormatted: String!
   tokenAddress: String!
 }
