@@ -23,9 +23,10 @@ public sealed class Contract : BaseIdentification
     public uint EventIndex { get; init; }
     public AccountAddress Creator { get; init; } = null!;
     
-    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    [GraphQLIgnore]
     public IQueryable<ContractEvent> ContractEvents { get; internal set; } = null!;
-    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    
+    [GraphQLIgnore]
     public IQueryable<ContractRejectEvent> ContractRejectEvents { get; private set; } = null!;
     
     [GraphQLIgnore]
@@ -54,6 +55,25 @@ public sealed class Contract : BaseIdentification
         EventIndex = eventIndex;
         Creator = creator;
     }
+    
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    public IQueryable<ContractEvent> GetContractEvents(GraphQlDbContext context) =>
+        context
+            .ContractEvents
+            .Where(t =>
+                t.ContractAddressIndex == ContractAddressIndex && t.ContractAddressSubIndex == ContractAddressSubIndex)
+            .OrderByDescending(c => c.BlockHeight)
+            .ThenByDescending(c => c.TransactionIndex)
+            .ThenByDescending(c => c.EventIndex);
+    
+    [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
+    public IQueryable<ContractRejectEvent> GetContractRejectEvents(GraphQlDbContext context) =>
+        context
+            .ContractRejectEvents
+            .Where(t =>
+                t.ContractAddressIndex == ContractAddressIndex && t.ContractAddressSubIndex == ContractAddressSubIndex)
+            .OrderByDescending(c => c.BlockHeight)
+            .ThenByDescending(c => c.TransactionIndex);
 
     [UseOffsetPaging(MaxPageSize = 100, IncludeTotalCount = true)]
     public IQueryable<Token> GetTokens(GraphQlDbContext context) =>

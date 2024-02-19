@@ -783,13 +783,13 @@ type CommissionRates {
 }
 
 type Contract {
+  contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
+  contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
   tokens(skip: Int take: Int): TokensCollectionSegment
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
   contractAddress: String!
   creator: AccountAddress!
-  contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
-  contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
   blockHeight: UnsignedLong!
   transactionHash: String!
   blockSlotTime: DateTime!
