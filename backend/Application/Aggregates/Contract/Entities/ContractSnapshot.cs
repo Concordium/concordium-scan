@@ -16,7 +16,7 @@ public sealed class ContractSnapshot
     public ulong ContractAddressSubIndex { get; init; }
     public string ContractName { get; init; }
     public string ModuleReference { get; init; }
-    public double Amount { get; init; }
+    public ulong Amount { get; init; }
     
     [GraphQLIgnore]
     public ImportSource Source { get; init; }
@@ -35,7 +35,7 @@ public sealed class ContractSnapshot
         ContractAddress contractAddress,
         string contractName,
         string moduleReference,
-        double amount,
+        ulong amount,
         ImportSource importSource
         )
     {
@@ -156,10 +156,10 @@ public sealed class ContractSnapshot
             .ThenByDescending(m => m.EventIndex)
             .FirstOrDefault();
 
-    internal static double GetAmount(
+    internal static ulong GetAmount(
         IEnumerable<ContractEvent> contractEvents,
         ContractAddress contractAddress,
-        double initialAmount)
+        ulong initialAmount)
     {
         var amount = initialAmount;
         foreach (var contractEvent in contractEvents)
@@ -167,10 +167,10 @@ public sealed class ContractSnapshot
             switch (contractEvent.Event)
             {
                 case ContractInitialized contractInitialized:
-                    amount += (long)contractInitialized.Amount;
+                    amount += contractInitialized.Amount;
                     break;
                 case ContractUpdated contractUpdated:
-                    amount += (long)contractUpdated.Amount;
+                    amount += contractUpdated.Amount;
                     break;
                 case ContractCall contractCall:
                 {
@@ -178,7 +178,7 @@ public sealed class ContractSnapshot
                         instigator.Index == contractAddress.Index &&
                         instigator.SubIndex == contractAddress.SubIndex)
                     {
-                        amount -= (long)contractCall.ContractUpdated.Amount;
+                        amount -= contractCall.ContractUpdated.Amount;
                     }                        
                     break;
                 }
@@ -187,7 +187,7 @@ public sealed class ContractSnapshot
                         contractAddressFrom.Index == contractAddress.Index &&
                         contractAddressFrom.SubIndex == contractAddress.SubIndex)
                     {
-                        amount -= (long)transferred.Amount;
+                        amount -= transferred.Amount;
                     }
                     break;
             }

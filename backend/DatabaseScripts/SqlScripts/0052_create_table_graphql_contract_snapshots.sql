@@ -7,7 +7,7 @@ create table graphql_contract_snapshot (
     contract_address_subindex   bigint        not null,
     contract_name               text          not null,
     module_reference            text          not null,
-    amount                      numeric       not null,
+    amount                      bigint        not null,
     source                      int           not null,
     created_at                  TIMESTAMPTZ   not null,
     PRIMARY KEY (

@@ -1233,7 +1233,7 @@ export type ContractResumed = {
 
 export type ContractSnapshot = {
   __typename?: 'ContractSnapshot';
-  amount: Scalars['Float'];
+  amount: Scalars['UnsignedLong'];
   blockHeight: Scalars['UnsignedLong'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];

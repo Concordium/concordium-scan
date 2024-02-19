@@ -875,7 +875,7 @@ type ContractSnapshot {
   contractAddressSubIndex: UnsignedLong!
   contractName: String!
   moduleReference: String!
-  amount: Float!
+  amount: UnsignedLong!
 }
 
 type ContractUpdated {
