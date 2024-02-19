@@ -3,8 +3,6 @@ using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
-using Application.Api.GraphQL.Transactions;
-using Dapper;
 using HotChocolate;
 using HotChocolate.Types;
 using Microsoft.EntityFrameworkCore;
