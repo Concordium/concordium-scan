@@ -36,7 +36,7 @@
 					<TableTd align="right">
 						<TokenAmount
 							:symbol="token.metadata?.symbol"
-							:amount="String(token.totalSupply)"
+							:amount="token.totalSupply"
 							:fraction-digits="Number(token.metadata?.decimals || 0)"
 						/>
 					</TableTd>
