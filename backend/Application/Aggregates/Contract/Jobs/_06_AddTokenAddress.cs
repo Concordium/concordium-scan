@@ -52,12 +52,12 @@ public sealed class _06_AddTokenAddress : IStatelessJob
             {
                 await using var context = await _contextFactory.CreateDbContextAsync(token);
                 var connection = context.Database.GetDbConnection();
-                var tokens = await context.Tokens
+                var tokens = context.Tokens
                     .AsNoTracking()
                     .Where(t => (int)t.ContractIndex == identifier && t.TokenAddress == null)
-                    .ToListAsync(token);
-                
-                foreach (var cisToken in tokens)
+                    .AsAsyncEnumerable();
+
+                await foreach (var cisToken in tokens)
                 {
                     var tokenAddress = Token.EncodeTokenAddress(cisToken.ContractIndex, cisToken.ContractSubIndex, cisToken.TokenId);
                     await connection.ExecuteAsync($"update graphql_tokens set token_address = '{tokenAddress}' where contract_index = {cisToken.ContractIndex} and contract_sub_index = {cisToken.ContractSubIndex} and token_id = '{cisToken.TokenId}';");
