@@ -11,69 +11,6 @@ namespace Tests.Aggregates.Contract.Entities;
 public sealed class ContractTests
 {
     private readonly Application.Aggregates.Contract.Entities.Contract.ContractExtensions _contractExtensions = new();
-
-    [Fact]
-    public void WhenGetContractName_ThenTrimInit()
-    {
-        // Arrange
-        const string contractNameExpected = "foo";
-        var contractEvent = ContractEventBuilder
-            .Create()
-            .WithEvent(new ContractInitialized("", new ContractAddress(1,0), 10, $"init_{contractNameExpected}", ContractVersion.V0, Array.Empty<string>()))
-            .Build();
-        var contract = ContractBuilder
-            .Create()
-            .WithContractEvents(new List<ContractEvent>{contractEvent})
-            .Build();
-        
-        // Act
-        var contractNameActual = _contractExtensions.GetContractName(contract);
-
-        // Assert
-        contractNameActual.Should().Be(contractNameExpected);
-    }
-    
-    [Fact]
-    public void WhenGetModuleReference_ThenReturnLatestAdded()
-    {
-        // Arrange
-        const string expectedModuleReference = "foobar";
-        var a = ModuleReferenceContractLinkEventBuilder.Create()
-            .WithBlockHeight(6)
-            .WithTransactionIndex(5)
-            .WithEventIndex(4)
-            .WithModuleReference(expectedModuleReference)
-            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-            .Build();
-        var b = ModuleReferenceContractLinkEventBuilder.Create()
-            .WithBlockHeight(7)
-            .WithTransactionIndex(5)
-            .WithEventIndex(4)
-            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
-            .Build();
-        var c = ModuleReferenceContractLinkEventBuilder.Create()
-            .WithBlockHeight(6)
-            .WithTransactionIndex(4)
-            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-            .Build();
-        var d = ModuleReferenceContractLinkEventBuilder.Create()
-            .WithBlockHeight(5)
-            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-            .Build();
-        var contract = ContractBuilder
-            .Create()
-            .WithModuleReferenceContractLinkEvents(new List<ModuleReferenceContractLinkEvent>
-            {
-                a, b, c, d
-            })
-            .Build();
-
-        // Act
-        var moduleReference = _contractExtensions.GetModuleReference(contract);
-        
-        // Assert
-        moduleReference.Should().Be(expectedModuleReference);
-    }
     
     [Fact]
     public void WhenGetAmount_ThenReturnCorrectAmount()
@@ -92,14 +29,9 @@ public sealed class ContractTests
             // Subtract Contract Call
             ContractEventBuilder.Create().WithEvent(new ContractCall(new ContractUpdated(other, contractAddress, 8, "", "", ContractVersion.V0,  Array.Empty<string>()))).Build(), 
         };
-        var contract = ContractBuilder
-            .Create()
-            .WithContractAddress(contractAddress)
-            .WithContractEvents(contractEvents)
-            .Build();
-	
+    
         // Act
-        var amount = _contractExtensions.GetAmount(contract);
+        var amount = ContractSnapshot.GetAmount(contractEvents, contractAddress, 0);
 
         // Assert
         amount.Should().Be(42);

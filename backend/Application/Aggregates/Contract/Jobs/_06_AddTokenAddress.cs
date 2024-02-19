@@ -51,8 +51,10 @@ public sealed class _06_AddTokenAddress : IStatelessJob
             {
                 await using var context = await _contextFactory.CreateDbContextAsync(token);
                 var tokens = await context.Tokens
+                    .AsNoTracking()
                     .Where(t => (int)t.ContractIndex == identifier)
                     .ToListAsync(token);
+                
                 foreach (var cisToken in tokens.Where(cisToken => cisToken.TokenAddress == null))
                 {
                     cisToken.TokenAddress =
@@ -65,3 +67,16 @@ public sealed class _06_AddTokenAddress : IStatelessJob
 
     public bool ShouldNodeImportAwait() => true;
 }
+// UPDATE your_table
+// SET 
+//     column1 = new_value1,
+//     column2 = new_value2
+// WHERE
+//     condition1;
+//
+// UPDATE your_table
+// SET 
+//     column3 = new_value3,
+//     column4 = new_value4
+// WHERE
+//     condition2;

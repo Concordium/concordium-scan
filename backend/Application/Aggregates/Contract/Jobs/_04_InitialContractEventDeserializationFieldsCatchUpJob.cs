@@ -315,6 +315,11 @@ WHERE g0.event ->> 'tag' = '16'
             throw new NotImplementedException();
         }
 
+        public Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task AddAsync<T>(params T[] entities) where T : class
         {
             throw new NotImplementedException();
@@ -363,6 +368,11 @@ WHERE g0.event ->> 'tag' = '16'
         public Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference)
         {
             return Task.FromResult(_moduleReferenceEvents.First(m => m.ModuleReference == moduleReference));
+        }
+
+        public IEnumerable<ModuleReferenceContractLinkEvent> GetModuleReferenceContractLinkEventInTransaction(ContractAddress contractAddress)
+        {
+            throw new NotImplementedException();
         }
 
         public Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,

@@ -256,7 +256,11 @@ ORDER BY block_height, transaction_index, event_index
         }
     
         public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction() => _contractEvents;
-    
+        public Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress)
+        {
+            throw new NotImplementedException();
+        }
+
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     
         public Task<IList<TransactionRejectEventDto>> FromBlockHeightRangeGetContractRelatedRejections(ulong heightFrom, ulong heightTo)

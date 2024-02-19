@@ -50,6 +50,11 @@ public interface IContractRepository : IAsyncDisposable
     /// Get added <see cref="ContractEvent"/> in current transaction.
     /// </summary>
     IEnumerable<ContractEvent> GetContractEventsAddedInTransaction();
+
+    /// <summary>
+    /// Get latest added <see cref="ContractSnapshot"/> for a <see cref="Contract"/>.
+    /// </summary>
+    Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress);
     /// <summary>
     /// Adds entity to repository.
     /// </summary>
@@ -219,12 +224,19 @@ WHERE
     }
 
     /// <inheritdoc/>
+    public Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress) =>
+        _context.ContractSnapshots
+            .Where(cs => cs.ContractAddressIndex == contractAddress.Index && cs.ContractAddressSubIndex == contractAddress.SubIndex)
+            .OrderByDescending(cs => cs.BlockHeight)
+            .FirstAsync();
+
+    /// <inheritdoc/>
     public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction() =>
         _context.ChangeTracker
             .Entries<ContractEvent>()
             .Where(e => e.State == EntityState.Added)
             .Select(e => e.Entity);
-
+    
     /// <inheritdoc/>
     public Task AddAsync<T>(params T[] entities) where T : class
     {
@@ -249,4 +261,6 @@ WHERE
         await _context.DisposeAsync();
         _transactionScope.Dispose();
     }
+    
+    
 }

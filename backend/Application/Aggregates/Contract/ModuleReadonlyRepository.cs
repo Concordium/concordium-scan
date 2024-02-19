@@ -24,6 +24,14 @@ public interface IModuleReadonlyRepository : IAsyncDisposable
     /// Throws exception if module doesn't exists.
     /// </exception>
     Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference);
+
+    /// <summary>
+    /// Get added <see cref="ModuleReferenceContractLinkEvent"/> in current transaction.
+    /// </summary>
+    /// <param name="contractAddress"></param>
+    /// <returns></returns>
+    public IEnumerable<ModuleReferenceContractLinkEvent> GetModuleReferenceContractLinkEventInTransaction(
+        ContractAddress contractAddress);
     /// <summary>
     /// Get references module for the given <see cref="contractAddress"/> at
     /// <see cref="blockHeight"/>, <see cref="transactionIndex"/>, <see cref="eventIndex"/>.
@@ -51,6 +59,16 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
             .FirstAsync(m => m.ModuleReference == moduleReference);
     }
 
+    /// <inheritdoc/>
+    public IEnumerable<ModuleReferenceContractLinkEvent> GetModuleReferenceContractLinkEventInTransaction(
+        ContractAddress contractAddress) =>
+        _context.ChangeTracker
+            .Entries<ModuleReferenceContractLinkEvent>()
+            .Select(e => e.Entity)
+            .Where(l =>
+                l.ContractAddressIndex == contractAddress.Index &&
+                l.ContractAddressSubIndex == contractAddress.SubIndex);
+    
     /// <summary>
     /// Starts by looking after <see cref="ModuleReferenceContractLinkEvent"/> with <see cref="ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added"/>
     /// for the given <see cref="contractAddress"/> in the change provider of Entity Framework. These are the entity which has been added in the current transaction
@@ -61,11 +79,8 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
     public async Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,
         uint eventIndex)
     {
-        var link = _context.ChangeTracker
-            .Entries<ModuleReferenceContractLinkEvent>()
-            .Select(e => e.Entity)
+        var link = GetModuleReferenceContractLinkEventInTransaction(contractAddress)
             .Where(l => 
-                l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
                 (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
                  l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
                  l.BlockHeight < blockHeight
