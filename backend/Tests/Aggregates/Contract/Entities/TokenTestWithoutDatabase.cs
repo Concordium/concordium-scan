@@ -13,6 +13,7 @@ public sealed class TokenTestWithoutDatabase
     [InlineData(1,0,"0a", "LSYXivPSWP")]
     [InlineData(1,0,"01", "LSYWgnCBmz")]
     [InlineData(2,0,"02", "LUjzdxXnte")]
+    [InlineData(2,0,"03", "LUjzjdcUJh")]
     public void WhenCreateTokenAddress_ThenCorrectOutput(
         ulong contractIndex,
         ulong contractSubindex,
