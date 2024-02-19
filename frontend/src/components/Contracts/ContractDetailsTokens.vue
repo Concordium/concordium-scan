@@ -23,7 +23,7 @@
 			<TableTd align="right" class="numerical">
 				<TokenAmount
 					:symbol="contractToken.metadata?.symbol"
-					:amount="String(contractToken.totalSupply)"
+					:amount="contractToken.totalSupply"
 					:fraction-digits="Number(contractToken.metadata?.decimals || 0)"
 				/>
 			</TableTd>

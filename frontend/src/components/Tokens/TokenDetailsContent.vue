@@ -34,7 +34,7 @@
 				<template #title>Supply {{ token.metadata?.symbol ?? '' }}</template>
 				<template #default>
 					<TokenAmount
-						:amount="String(token.totalSupply)"
+						:amount="token.totalSupply"
 						:symbol="token.metadata?.symbol"
 						:fraction-digits="Number(token.metadata?.decimals || 0)"
 					/>

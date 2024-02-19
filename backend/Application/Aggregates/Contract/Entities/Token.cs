@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using System.Numerics;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.EfCore;
@@ -46,7 +47,7 @@ public class Token
     /// <summary>
     /// Total supply of the token
     /// </summary>
-    public decimal TotalSupply { get; set; }
+    public BigInteger TotalSupply { get; set; }
 
     /// <summary>
     /// Get transaction with the initial mint event of the token.
