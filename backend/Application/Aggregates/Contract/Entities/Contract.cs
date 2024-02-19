@@ -88,14 +88,6 @@ public sealed class Contract : BaseIdentification
             return context.Contract
                 .AsSplitQuery()
                 .AsNoTracking()
-                .Include(s => s.ContractEvents
-                    .OrderByDescending(ce => ce.BlockHeight)
-                    .ThenByDescending(ce => ce.TransactionIndex)
-                    .ThenByDescending(ce => ce.EventIndex))
-                .Include(s => s.ModuleReferenceContractLinkEvents
-                    .OrderByDescending(ce => ce.BlockHeight)
-                    .ThenByDescending(ce => ce.TransactionIndex)
-                    .ThenByDescending(ce => ce.EventIndex))
                 .OrderByDescending(c => c.ContractAddressIndex);
         }
     }

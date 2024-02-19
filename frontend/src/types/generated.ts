@@ -1085,17 +1085,15 @@ export type CommissionRates = {
 
 export type Contract = {
   __typename?: 'Contract';
-  amount: Scalars['Float'];
   blockHeight: Scalars['UnsignedLong'];
   blockSlotTime: Scalars['DateTime'];
   contractAddress: Scalars['String'];
   contractAddressIndex: Scalars['UnsignedLong'];
   contractAddressSubIndex: Scalars['UnsignedLong'];
   contractEvents?: Maybe<ContractEventsCollectionSegment>;
-  contractName: Scalars['String'];
   contractRejectEvents?: Maybe<ContractRejectEventsCollectionSegment>;
   creator: AccountAddress;
-  moduleReference: Scalars['String'];
+  snapshot: ContractSnapshot;
   tokens?: Maybe<TokensCollectionSegment>;
   transactionHash: Scalars['String'];
 };
@@ -1231,6 +1229,16 @@ export type ContractResumed = {
   __typename?: 'ContractResumed';
   contractAddress: ContractAddress;
   success: Scalars['Boolean'];
+};
+
+export type ContractSnapshot = {
+  __typename?: 'ContractSnapshot';
+  amount: Scalars['Float'];
+  blockHeight: Scalars['UnsignedLong'];
+  contractAddressIndex: Scalars['UnsignedLong'];
+  contractAddressSubIndex: Scalars['UnsignedLong'];
+  contractName: Scalars['String'];
+  moduleReference: Scalars['String'];
 };
 
 export type ContractUpdated = {

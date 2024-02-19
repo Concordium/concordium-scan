@@ -8,12 +8,14 @@
 					<TableTh>Age</TableTh>
 					<TableTh align="right">
 						Creator
-						<InfoTooltip text="Account address of contract creator"/>
+						<InfoTooltip text="Account address of contract creator" />
 					</TableTh>
 					<TableTh align="right">Initial Transaction</TableTh>
 					<TableTh align="right">
 						Module
-						<InfoTooltip :text="`${MODULE} The below references holds the current execution code of the contract.`"/>
+						<InfoTooltip
+							:text="`${MODULE} The below references holds the current execution code of the contract.`"
+						/>
 					</TableTh>
 					<TableTh align="right"
 						>Balance <span class="text-theme-faded">(Ͼ)</span></TableTh
@@ -46,10 +48,12 @@
 						<TransactionLink :hash="contract.node.transactionHash" />
 					</TableTd>
 					<TableTd class="text-right">
-						<ModuleLink :module-reference="contract.node.moduleReference" />
+						<ModuleLink
+							:module-reference="contract.node.snapshot.moduleReference"
+						/>
 					</TableTd>
 					<TableTd class="text-right">
-						<Amount :amount="contract.node.amount" />
+						<Amount :amount="contract.node.snapshot.amount" />
 					</TableTd>
 				</TableRow>
 			</TableBody>

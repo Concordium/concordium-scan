@@ -10,6 +10,7 @@ using Application.Api.GraphQL.Transactions;
 using Application.Resilience;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Application.Aggregates.Contract.Jobs;
 
@@ -18,6 +19,15 @@ public class _07_ContractSnapshotInitialization : IStatelessJob
     private readonly IDbContextFactory<GraphQlDbContext> _contextFactory;
     private readonly ContractAggregateOptions _options;
     private readonly ILogger _logger;
+
+    public _07_ContractSnapshotInitialization(
+        IDbContextFactory<GraphQlDbContext> contextFactory,
+        IOptions<ContractAggregateOptions> options)
+    {
+        _contextFactory = contextFactory;
+        _options = options.Value;
+        _logger = Log.ForContext<_06_AddTokenAddress>();
+    }
 
     /// <summary>
     /// WARNING - Do not change this if job already executed on environment, since it will trigger rerun of job.

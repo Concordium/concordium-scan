@@ -6,7 +6,7 @@
 				<DetailsCard>
 					<template #title>Contract name</template>
 					<template #default>
-						{{ contract.contractName }}
+						{{ contract.snapshot.contractName }}
 					</template>
 				</DetailsCard>
 				<ContractDetailsAmounts :contract="contract" />
@@ -28,7 +28,7 @@
 						/>
 					</template>
 					<template #default>
-						<ModuleLink :module-reference="contract.moduleReference" />
+						<ModuleLink :module-reference="contract.snapshot.moduleReference" />
 					</template>
 				</DetailsCard>
 				<DetailsCard>
