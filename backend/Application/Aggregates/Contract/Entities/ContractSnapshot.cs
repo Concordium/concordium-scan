@@ -95,14 +95,14 @@ public sealed class ContractSnapshot
 
             var latestContractSnapshot = await repository.GetReadonlyLatestContractSnapshot(address);
             var blockHeight = contractEvents.Last().BlockHeight;
-            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, moduleReadonlyRepository)!;
+            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, moduleReadonlyRepository);
             var amount = GetAmount(contractEvents, address, latestContractSnapshot.Amount);
 
             var contractSnapshot = new ContractSnapshot(
                 blockHeight,
                 address,
                 latestContractSnapshot.ContractName,
-                moduleReferenceEvent.ModuleReference,
+                moduleReferenceEvent?.ModuleReference ?? latestContractSnapshot.ModuleReference,
                 amount,
                 source
             );
