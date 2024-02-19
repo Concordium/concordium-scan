@@ -66,9 +66,9 @@ public sealed class ExportControllerTest : IAsyncLifetime
     public async void transactionOutsideSpecifiedTimeStampsAreNotReturned()
     {
         // Arrange
-        var date1 = new DateTime(2020, 12, 1, 0,0,0, DateTimeKind.Utc);
-        var date2 = new DateTime(2020, 12, 7, 0,0,0, DateTimeKind.Utc);
-        var date3 = new DateTime(2020, 12, 12, 0,0,0, DateTimeKind.Utc);
+        var date1 = new DateTime(2020, 12, 1, 0, 0, 0, DateTimeKind.Utc);
+        var date2 = new DateTime(2020, 12, 7, 0, 0, 0, DateTimeKind.Utc);
+        var date3 = new DateTime(2020, 12, 12, 0, 0, 0, DateTimeKind.Utc);
         var startDate = DateTime.SpecifyKind(new DateTime(2020, 12, 5), DateTimeKind.Utc);
         var endDate = DateTime.SpecifyKind(new DateTime(2020, 12, 10), DateTimeKind.Utc);
 
