@@ -8,10 +8,8 @@ using Tests.TestUtilities.Builders;
 
 namespace Tests.Aggregates.Contract.Entities;
 
-public sealed class ContractTests
+public sealed class ContractSnapshotTests
 {
-    private readonly Application.Aggregates.Contract.Entities.Contract.ContractExtensions _contractExtensions = new();
-    
     [Fact]
     public void WhenGetAmount_ThenReturnCorrectAmount()
     {
