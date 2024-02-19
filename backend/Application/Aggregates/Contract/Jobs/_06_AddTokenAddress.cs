@@ -61,14 +61,12 @@ public sealed class _06_AddTokenAddress : IStatelessJob
                 {
                     var tokenAddress = Token.EncodeTokenAddress(cisToken.ContractIndex, cisToken.ContractSubIndex, cisToken.TokenId);
                     stringBuilder.Append(
-                        $"update graphql_tokens set token_address = {tokenAddress} where contract_index = {cisToken.ContractIndex} and contract_sub_index = {cisToken.ContractSubIndex} and token_id = {cisToken.TokenId} ");
+                        $"update graphql_tokens set token_address = '{tokenAddress}' where contract_index = {cisToken.ContractIndex} and contract_sub_index = {cisToken.ContractSubIndex} and token_id = '{cisToken.TokenId}'; ");
                 }
                 if (stringBuilder.Length == 0)
                 {
                     return;
                 }
-
-                stringBuilder.Append(';');
                 var query = stringBuilder.ToString();
                 await context.Database.GetDbConnection().ExecuteAsync(query);
             });
@@ -76,13 +74,13 @@ public sealed class _06_AddTokenAddress : IStatelessJob
     }
     
     public bool ShouldNodeImportAwait() => true;
-    
-    internal const string Tokens = @"
+
+    private const string Tokens = @"
 SELECT
     g0.contract_index as ContractIndex,
     g0.contract_sub_index as ContractSubIndex,
     g0.token_id as TokenId
 FROM graphql_tokens AS g0
-WHERE (g0.contract_index = @Index)
+WHERE g0.contract_index = @Index
 ";    
 }
