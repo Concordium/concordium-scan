@@ -21,6 +21,103 @@ public sealed class ContractSnapshotTests
     {
         _fixture = fixture;
     }
+
+    [Fact]
+    public async Task GivenExistingSnapshot_WhenImport_ThenUpdate()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_snapshot", "graphql_module_reference_contract_link_events", "graphql_contract_events", "graphql_contracts");
+        var contractAddress = new ContractAddress(0, 0);
+        var other = new ContractAddress(2, 1);
+        var someAccount = new AccountAddress("");
+        const string expectedModuleReference = "foobar";
+        const string expectedContractName = "foo";
+        var existingSnapshot = new ContractSnapshot(0, contractAddress, expectedContractName, expectedModuleReference, 10, ImportSource.DatabaseImport);
+        await using (var context = _fixture.CreateGraphQlDbContext())
+        {
+            await context.AddAsync(existingSnapshot);
+            await context.SaveChangesAsync();
+        }
+        var contractEvents = new List<ContractEvent>{
+            // Subtract Transferred
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(2)
+                .WithEvent(new Transferred(2, contractAddress, someAccount)).Build(),
+            // Add Contract Updated
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(3)
+                .WithEvent(new ContractUpdated(new ContractAddress(1,0), other, 42, "", "", ContractVersion.V0,  Array.Empty<string>())).Build(),
+            // Subtract Contract Call
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(4)
+                .WithEvent(new ContractCall(new ContractUpdated(other, contractAddress, 8, "", "", ContractVersion.V0,  Array.Empty<string>()))).Build(), 
+        };
+        var dbContextFactory = _fixture.CreateDbContractFactoryMock().Object;
+        var contractRepository = await ContractRepository.Create(dbContextFactory);
+        var repositoryFactory = new RepositoryFactory(dbContextFactory);
+        await contractRepository.AddRangeAsync(contractEvents);
+        
+        // Act
+        await ContractSnapshot.ImportContractSnapshot(repositoryFactory, contractRepository, ImportSource.DatabaseImport);
+        await contractRepository.CommitAsync();
+
+        // Assert
+        await using var assertContext = _fixture.CreateGraphQlDbContext();
+        var contractSnapshots = await assertContext.ContractSnapshots.OrderByDescending(s => s.BlockHeight).ToListAsync();
+        contractSnapshots.Count.Should().Be(2);
+        var contractSnapshot = contractSnapshots.First();
+        contractSnapshot.ContractAddressIndex.Should().Be(contractAddress.Index);
+        contractSnapshot.Amount.Should().Be(42);
+        contractSnapshot.ModuleReference.Should().Be(expectedModuleReference);
+        contractSnapshot.ContractName.Should().Be(expectedContractName);
+    }
+
+    [Fact]
+    public async Task GivenExistingSnapshot_WhenUpdateModule_ThenUpdateModuleReference()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_snapshot", "graphql_module_reference_contract_link_events", "graphql_contract_events", "graphql_contracts");
+        var dbContextFactory = _fixture.CreateDbContractFactoryMock().Object;
+        var contractRepository = await ContractRepository.Create(dbContextFactory);
+        var repositoryFactory = new RepositoryFactory(dbContextFactory);
+        var contractAddress = new ContractAddress(0, 0);
+        const string expectedModuleReference = "foobar";
+        const string expectedContractName = "foo";
+        const ulong expectedAmount = 10;
+        var existingSnapshot = new ContractSnapshot(0, contractAddress, expectedContractName, "before", expectedAmount, ImportSource.DatabaseImport);
+        await using (var context = _fixture.CreateGraphQlDbContext())
+        {
+            await context.AddAsync(existingSnapshot);
+            await context.SaveChangesAsync();
+        }
+        var link = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithModuleReference(expectedModuleReference)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var contractEvent = ContractEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithEvent(new ContractUpgraded(contractAddress, "before", expectedModuleReference)).Build();
+        await contractRepository.AddAsync(contractEvent);
+        await contractRepository.AddAsync(link);
+        
+        // Act
+        await ContractSnapshot.ImportContractSnapshot(repositoryFactory, contractRepository, ImportSource.DatabaseImport);
+        await contractRepository.CommitAsync();
+
+        // Assert
+        await using var assertContext = _fixture.CreateGraphQlDbContext();
+        var contractSnapshots = await assertContext.ContractSnapshots.OrderByDescending(s => s.BlockHeight).ToListAsync();
+        contractSnapshots.Count.Should().Be(2);
+        var contractSnapshot = contractSnapshots.First();
+        contractSnapshot.ContractAddressIndex.Should().Be(contractAddress.Index);
+        contractSnapshot.Amount.Should().Be(expectedAmount);
+        contractSnapshot.ModuleReference.Should().Be(expectedModuleReference);
+        contractSnapshot.ContractName.Should().Be(expectedContractName);   
+    }
     
     [Fact]
     public async Task GivenMultipleModuleLinkEvents_WhenHavingInitializationEvent_ThenUseLatestModuleLink()
