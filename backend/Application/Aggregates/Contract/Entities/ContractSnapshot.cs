@@ -154,12 +154,13 @@ public sealed class ContractSnapshot
         contractRepository.GetEntitiesAddedInTransaction<ModuleReferenceContractLinkEvent>()
             .Where(l =>
                 l.ContractAddressIndex == contractAddress.Index &&
-                l.ContractAddressSubIndex == contractAddress.SubIndex)
+                l.ContractAddressSubIndex == contractAddress.SubIndex &&
+                l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
             .OrderByDescending(m => m.BlockHeight)
             .ThenByDescending(m => m.TransactionIndex)
             .ThenByDescending(m => m.EventIndex)
             .FirstOrDefault();
-
+    
     internal static ulong GetAmount(
         IEnumerable<ContractEvent> contractEvents,
         ContractAddress contractAddress,

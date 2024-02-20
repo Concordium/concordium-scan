@@ -131,26 +131,37 @@ public sealed class ContractSnapshotTests
         const string expectedModuleReference = "foobar";
         const string expectedContractName = "foo";
         const ulong expectedAmount = 10;
-        var firstLink = ModuleReferenceContractLinkEventBuilder.Create()
+        var a = ModuleReferenceContractLinkEventBuilder.Create()
             .WithContractAddress(contractAddress)
-            .WithBlockHeight(1)
-            .WithTransactionIndex(1)
-            .WithEventIndex(1)
-            .WithModuleReference("first")
-            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
-            .Build();
-        var secondLink = ModuleReferenceContractLinkEventBuilder.Create()
-            .WithContractAddress(contractAddress)
-            .WithBlockHeight(1)
-            .WithTransactionIndex(1)
-            .WithEventIndex(2)
+            .WithBlockHeight(6)
+            .WithTransactionIndex(5)
+            .WithEventIndex(4)
             .WithModuleReference(expectedModuleReference)
             .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
             .Build();
+        var b = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithBlockHeight(7)
+            .WithTransactionIndex(5)
+            .WithEventIndex(4)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Removed)
+            .Build();
+        var c = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithBlockHeight(6)
+            .WithTransactionIndex(4)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var d = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithBlockHeight(5)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
         var contractEvent = ContractEventBuilder.Create()
+            .WithBlockHeight(10)
             .WithContractAddress(contractAddress)
             .WithEvent(new ContractInitialized("", new ContractAddress(1,0), expectedAmount, $"init_{expectedContractName}", ContractVersion.V0, Array.Empty<string>())).Build();
-        await contractRepository.AddAsync(firstLink, secondLink);
+        await contractRepository.AddAsync(a, b, c, d);
         await contractRepository.AddAsync(contractEvent);
         
         // Act
