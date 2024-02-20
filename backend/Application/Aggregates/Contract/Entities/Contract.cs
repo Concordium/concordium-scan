@@ -86,28 +86,21 @@ public sealed class Contract : BaseIdentification
     [ExtendObjectType(typeof(Query))]
     public class ContractQuery
     {
-        public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex)
-        {
-            var contract = await context.Contract
+        public async Task<Contract?> GetContract(GraphQlDbContext context, ulong contractAddressIndex, ulong contractAddressSubIndex) =>
+            await context.Contract
                 .AsNoTracking()
                 .Where(c => c.ContractAddressIndex == contractAddressIndex && c.ContractAddressSubIndex == contractAddressSubIndex)
                 .SingleOrDefaultAsync();
 
-            return contract;
-        }
-        
         /// <summary>
         /// Get contracts with pagination support.
         /// </summary>
         [UsePaging(MaxPageSize = 100)]
         public IQueryable<Contract> GetContracts(
-            GraphQlDbContext context) 
-        {
-            return context.Contract
-                .AsSplitQuery()
+            GraphQlDbContext context) =>
+            context.Contract
                 .AsNoTracking()
                 .OrderByDescending(c => c.ContractAddressIndex);
-        }
     }
 
     /// <summary>
