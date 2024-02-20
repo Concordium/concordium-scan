@@ -167,6 +167,62 @@ public sealed class ContractSnapshotTests
     }
     
     [Fact]
+    public async Task GivenMultipleEvents_WhenHavingInitializationEvent_ThenSaveCorrectAmount()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_snapshot", "graphql_module_reference_contract_link_events", "graphql_contract_events", "graphql_contracts");
+        var dbContextFactory = _fixture.CreateDbContractFactoryMock().Object;
+        var contractRepository = await ContractRepository.Create(dbContextFactory);
+        var repositoryFactory = new RepositoryFactory(dbContextFactory);
+        var contractAddress = new ContractAddress(0, 0);
+        var someAccount = new AccountAddress("");
+        var other = new ContractAddress(2, 1);
+        const string expectedModuleReference = "foobar";
+        const string expectedContractName = "foo";
+        const ulong expectedAmount = 42;
+        var link = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithModuleReference(expectedModuleReference)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var contractEvents = new List<ContractEvent>{
+            // Add Contract Initialized
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEvent(new ContractInitialized("", new ContractAddress(1,0), 10, $"init_{expectedContractName}", ContractVersion.V0, Array.Empty<string>())).Build(),
+            // Subtract Transferred
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(2)
+                .WithEvent(new Transferred(2, contractAddress, someAccount)).Build(),
+            // Add Contract Updated
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(3)
+                .WithEvent(new ContractUpdated(new ContractAddress(1,0), other, 42, "", "", ContractVersion.V0,  Array.Empty<string>())).Build(),
+            // Subtract Contract Call
+            ContractEventBuilder.Create()
+                .WithContractAddress(contractAddress)
+                .WithEventIndex(4)
+                .WithEvent(new ContractCall(new ContractUpdated(other, contractAddress, 8, "", "", ContractVersion.V0,  Array.Empty<string>()))).Build(), 
+        }; // Total amount 42
+        await contractRepository.AddAsync(link);
+        await contractRepository.AddRangeAsync(contractEvents);
+        
+        // Act
+        await ContractSnapshot.ImportContractSnapshot(repositoryFactory, contractRepository, ImportSource.DatabaseImport);
+        await contractRepository.CommitAsync();
+
+        // Assert
+        await using var assertContext = _fixture.CreateGraphQlDbContext();
+        var contractSnapshot = await assertContext.ContractSnapshots.SingleAsync();
+        contractSnapshot.ContractAddressIndex.Should().Be(contractAddress.Index);
+        contractSnapshot.Amount.Should().Be(expectedAmount);
+        contractSnapshot.ModuleReference.Should().Be(expectedModuleReference);
+        contractSnapshot.ContractName.Should().Be(expectedContractName);
+    }
+    
+    [Fact]
     public void WhenGetAmount_ThenReturnCorrectAmount()
     {
         // Arrange
