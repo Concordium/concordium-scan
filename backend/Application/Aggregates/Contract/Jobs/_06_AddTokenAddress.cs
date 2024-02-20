@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Application.Aggregates.Contract.Entities;
 using Application.Resilience;
+using Dapper;
 
 namespace Application.Aggregates.Contract.Jobs;
 
@@ -50,18 +51,20 @@ public sealed class _06_AddTokenAddress : IStatelessJob
             .ExecuteAsync(async () =>
             {
                 await using var context = await _contextFactory.CreateDbContextAsync(token);
+                var connection = context.Database.GetDbConnection();
                 var tokens = await context.Tokens
-                    .Where(t => (int)t.ContractIndex == identifier)
+                    .AsNoTracking()
+                    .Where(t => (int)t.ContractIndex == identifier && t.TokenAddress == null)
                     .ToListAsync(token);
-                foreach (var cisToken in tokens.Where(cisToken => cisToken.TokenAddress == null))
+                
+                foreach (var cisToken in tokens)
                 {
-                    cisToken.TokenAddress =
-                        Token.EncodeTokenAddress(cisToken.ContractIndex, cisToken.ContractSubIndex, cisToken.TokenId);
+                    var tokenAddress = Token.EncodeTokenAddress(cisToken.ContractIndex, cisToken.ContractSubIndex, cisToken.TokenId);
+                    await connection.ExecuteAsync($"update graphql_tokens set token_address = '{tokenAddress}' where contract_index = {cisToken.ContractIndex} and contract_sub_index = {cisToken.ContractSubIndex} and token_id = '{cisToken.TokenId}';");
                 }
-                await context.SaveChangesAsync(token);
             });
         _logger.Debug($"Completed successfully processing {identifier}");
     }
-
+    
     public bool ShouldNodeImportAwait() => true;
 }

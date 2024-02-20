@@ -61,7 +61,13 @@ public sealed class _06_AddTokenAddressTest
                 ContractSubIndex = 0,
                 TokenId = "02"
             };
-            await context.AddRangeAsync(first, second);
+            var third = new Token
+            {
+                ContractIndex = 2,
+                ContractSubIndex = 0,
+                TokenId = "03"
+            };
+            await context.AddRangeAsync(first, second, third);
             await context.AddRangeAsync(contractFirst, contractSecond);
             await context.SaveChangesAsync();
         }
@@ -83,7 +89,10 @@ public sealed class _06_AddTokenAddressTest
             .SingleAsync(t => t.ContractIndex == 1 && t.ContractSubIndex == 0 && t.TokenId == "01");
         var tokenSecond = await assetContext.Tokens
             .SingleAsync(t => t.ContractIndex == 2 && t.ContractSubIndex == 0 && t.TokenId == "02");
+        var tokenThird = await assetContext.Tokens
+            .SingleAsync(t => t.ContractIndex == 2 && t.ContractSubIndex == 0 && t.TokenId == "03");
         tokenFirst.TokenAddress!.Should().Be("LSYWgnCBmz");
         tokenSecond.TokenAddress!.Should().Be("LUjzdxXnte");
+        tokenThird.TokenAddress!.Should().Be("LUjzjdcUJh");
     }
 }
