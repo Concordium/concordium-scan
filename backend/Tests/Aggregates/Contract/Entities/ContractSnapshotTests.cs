@@ -1,15 +1,74 @@
 using System.Collections.Generic;
+using Application.Aggregates.Contract;
 using Application.Aggregates.Contract.Entities;
+using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Transactions;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Tests.TestUtilities;
 using Tests.TestUtilities.Builders;
 
 namespace Tests.Aggregates.Contract.Entities;
 
+[Collection(DatabaseCollectionFixture.DatabaseCollection)]
 public sealed class ContractSnapshotTests
 {
+    private readonly DatabaseFixture _fixture;
+    
+    public ContractSnapshotTests(DatabaseFixture fixture)
+    {
+        _fixture = fixture;
+    }
+    
+    [Fact]
+    public async Task GivenMultipleModuleLinkEvents_WhenHavingInitializationEvent_ThenUseLatestModuleLink()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_snapshot", "graphql_module_reference_contract_link_events", "graphql_contract_events", "graphql_contracts");
+        var dbContextFactory = _fixture.CreateDbContractFactoryMock().Object;
+        var contractRepository = await ContractRepository.Create(dbContextFactory);
+        var repositoryFactory = new RepositoryFactory(dbContextFactory);
+        var contractAddress = new ContractAddress(0, 0);
+        const string expectedModuleReference = "foobar";
+        const string expectedContractName = "foo";
+        const ulong expectedAmount = 10;
+        var firstLink = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithBlockHeight(1)
+            .WithTransactionIndex(1)
+            .WithEventIndex(1)
+            .WithModuleReference("first")
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var secondLink = ModuleReferenceContractLinkEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithBlockHeight(1)
+            .WithTransactionIndex(1)
+            .WithEventIndex(2)
+            .WithModuleReference(expectedModuleReference)
+            .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .Build();
+        var contractEvent = ContractEventBuilder.Create()
+            .WithContractAddress(contractAddress)
+            .WithEvent(new ContractInitialized("", new ContractAddress(1,0), expectedAmount, $"init_{expectedContractName}", ContractVersion.V0, Array.Empty<string>())).Build();
+        await contractRepository.AddAsync(firstLink, secondLink);
+        await contractRepository.AddAsync(contractEvent);
+        
+        // Act
+        await ContractSnapshot.ImportContractSnapshot(repositoryFactory, contractRepository, ImportSource.DatabaseImport);
+        await contractRepository.CommitAsync();
+
+        // Assert
+        await using var assertContext = _fixture.CreateGraphQlDbContext();
+        var contractSnapshot = await assertContext.ContractSnapshots.SingleAsync();
+        contractSnapshot.ContractAddressIndex.Should().Be(contractAddress.Index);
+        contractSnapshot.Amount.Should().Be(expectedAmount);
+        contractSnapshot.ModuleReference.Should().Be(expectedModuleReference);
+        contractSnapshot.ContractName.Should().Be(expectedContractName);
+    }
+    
     [Fact]
     public void WhenGetAmount_ThenReturnCorrectAmount()
     {

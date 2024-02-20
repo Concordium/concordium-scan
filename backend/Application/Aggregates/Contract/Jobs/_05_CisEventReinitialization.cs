@@ -254,8 +254,10 @@ ORDER BY block_height, transaction_index, event_index
         {
             _contractEvents = contractEvents;
         }
-    
-        public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction() => _contractEvents;
+        
+        public IEnumerable<T> GetEntitiesAddedInTransaction<T>() where T : class => 
+            (_contractEvents as IEnumerable<T>)!;
+
         public Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress)
         {
             throw new NotImplementedException();

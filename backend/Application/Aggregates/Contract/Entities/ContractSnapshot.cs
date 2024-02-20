@@ -57,7 +57,7 @@ public sealed class ContractSnapshot
         await using var moduleReadonlyRepository = await repositoryFactory.CreateModuleReadonlyRepository();
             
         var contractEventsAdded = repository
-            .GetContractEventsAddedInTransaction()
+            .GetEntitiesAddedInTransaction<ContractEvent>()
             .ToList();
         
         var addressesInitialized = contractEventsAdded
@@ -95,7 +95,7 @@ public sealed class ContractSnapshot
 
             var latestContractSnapshot = await repository.GetReadonlyLatestContractSnapshot(address);
             var blockHeight = contractEvents.Last().BlockHeight;
-            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, moduleReadonlyRepository);
+            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, repository);
             var amount = GetAmount(contractEvents, address, latestContractSnapshot.Amount);
 
             var contractSnapshot = new ContractSnapshot(
@@ -134,7 +134,7 @@ public sealed class ContractSnapshot
             
             var blockHeight = contractEvents.Last().BlockHeight;
             
-            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, moduleReadonlyRepository)!;
+            var moduleReferenceEvent = GetLatestModuleReferenceContractLinkEvent(address, repository)!;
 
             var contractSnapshot = new ContractSnapshot(
                 blockHeight,
@@ -149,8 +149,12 @@ public sealed class ContractSnapshot
         }
     }
 
-    private static ModuleReferenceContractLinkEvent? GetLatestModuleReferenceContractLinkEvent(ContractAddress contractAddress, IModuleReadonlyRepository moduleReadonlyRepository) =>
-        moduleReadonlyRepository.GetModuleReferenceContractLinkEventInTransaction(contractAddress)
+    private static ModuleReferenceContractLinkEvent? GetLatestModuleReferenceContractLinkEvent(
+        ContractAddress contractAddress, IContractRepository contractRepository) =>
+        contractRepository.GetEntitiesAddedInTransaction<ModuleReferenceContractLinkEvent>()
+            .Where(l =>
+                l.ContractAddressIndex == contractAddress.Index &&
+                l.ContractAddressSubIndex == contractAddress.SubIndex)
             .OrderByDescending(m => m.BlockHeight)
             .ThenByDescending(m => m.TransactionIndex)
             .ThenByDescending(m => m.EventIndex)

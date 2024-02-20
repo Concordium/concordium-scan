@@ -310,7 +310,7 @@ WHERE g0.event ->> 'tag' = '16'
         public Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress) => 
             Task.FromResult(_contractInitialized.First(c => c.ContractAddress == contractAddress));
 
-        public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction()
+        public IEnumerable<T> GetEntitiesAddedInTransaction<T>() where T : class
         {
             throw new NotImplementedException();
         }

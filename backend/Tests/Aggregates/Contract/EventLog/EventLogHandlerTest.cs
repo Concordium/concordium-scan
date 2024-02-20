@@ -93,7 +93,7 @@ public sealed class EventLogHandlerTest
             .WithEvent(contractUpdated)
             .Build();
         var contractRepositoryMock = new Mock<IContractRepository>();
-        contractRepositoryMock.Setup(m => m.GetContractEventsAddedInTransaction())
+        contractRepositoryMock.Setup(m => m.GetEntitiesAddedInTransaction<Application.Aggregates.Contract.Entities.ContractEvent>())
             .Returns(new List<Application.Aggregates.Contract.Entities.ContractEvent> { contractEvent });
 
         // Act

@@ -38,9 +38,6 @@ public class _07_ContractSnapshotInitializationTest
         const string expectedContractName = "foo";
         var moduleReferenceContractLinkEvent = ModuleReferenceContractLinkEventBuilder.Create()
             .WithContractAddress(contractAddress)
-            .WithBlockHeight(6)
-            .WithTransactionIndex(5)
-            .WithEventIndex(4)
             .WithModuleReference(expectedModuleReference)
             .WithLinkAction(ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
             .Build();

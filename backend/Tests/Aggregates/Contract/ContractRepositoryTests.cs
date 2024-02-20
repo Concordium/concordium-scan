@@ -97,7 +97,7 @@ public sealed class ContractRepositoryTests
     }
 
     [Fact]
-    public async Task WhenGetContractEventsAddedInTransaction_ThenReturnContractEventsInAddedState()
+    public async Task WhenGetEntitiesAddedInTransaction_ThenReturnContractEventsInAddedState()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_events");
@@ -120,7 +120,7 @@ public sealed class ContractRepositoryTests
         await contractRepository.AddAsync(second, third);
         
         // Act
-        var contractEventsAddedInTransaction = contractRepository.GetContractEventsAddedInTransaction()
+        var contractEventsAddedInTransaction = contractRepository.GetEntitiesAddedInTransaction<ContractEvent>()
             .ToList();
         
         // Assert
