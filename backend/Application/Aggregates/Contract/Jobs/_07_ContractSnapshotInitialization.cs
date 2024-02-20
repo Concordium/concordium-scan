@@ -26,7 +26,7 @@ public class _07_ContractSnapshotInitialization : IStatelessJob
     {
         _contextFactory = contextFactory;
         _options = options.Value;
-        _logger = Log.ForContext<_06_AddTokenAddress>();
+        _logger = Log.ForContext<_07_ContractSnapshotInitialization>();
     }
 
     /// <summary>
