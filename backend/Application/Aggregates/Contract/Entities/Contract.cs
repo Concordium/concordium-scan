@@ -24,13 +24,13 @@ public sealed class Contract : BaseIdentification
     public AccountAddress Creator { get; init; } = null!;
     
     [GraphQLIgnore]
-    public IQueryable<ContractEvent> ContractEvents { get; internal set; } = null!;
+    public ICollection<ContractEvent> ContractEvents { get; internal set; } = null!;
     
     [GraphQLIgnore]
-    public IQueryable<ContractRejectEvent> ContractRejectEvents { get; private set; } = null!;
+    public ICollection<ContractRejectEvent> ContractRejectEvents { get; private set; } = null!;
     
     [GraphQLIgnore]
-    public IQueryable<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; internal set; } = null!;
+    public ICollection<ModuleReferenceContractLinkEvent> ModuleReferenceContractLinkEvents { get; internal set; } = null!;
     
     /// <summary>
     /// Needed for EF Core

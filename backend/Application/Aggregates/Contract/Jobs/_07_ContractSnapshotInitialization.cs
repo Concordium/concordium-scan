@@ -6,6 +6,7 @@ using Application.Aggregates.Contract.Types;
 using Application.Api.GraphQL;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.Transactions;
+using Application.Exceptions;
 using Application.Resilience;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -63,7 +64,7 @@ public class _07_ContractSnapshotInitialization : IStatelessJob
                 var contractEvents = (await connection.QueryAsync<ContractEvent>(ContractEventsSql, parameter))?.ToList();
                 if (contractEvents == null || contractEvents.Count == 0)
                 {
-                    return;
+                    throw JobException.Create($"{nameof(_07_ContractSnapshotInitialization)}-{identifier}", "no events found for contract but at least an initialization event should exist.");
                 }
                 
                 var blockHeight = contractEvents.Last().BlockHeight;
