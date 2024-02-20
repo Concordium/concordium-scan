@@ -97,7 +97,29 @@ public sealed class ContractRepositoryTests
     }
 
     [Fact]
-    public async Task WhenGetContractEventsAddedInTransaction_ThenReturnContractEventsInAddedState()
+    public async Task WhenQueryLatestContractSnapshot_ThenReturnLatest()
+    {
+        // Arrange
+        await DatabaseFixture.TruncateTables("graphql_contract_snapshot");
+        var contractAddress = new ContractAddress(1,0);
+        var first = new ContractSnapshot(0, contractAddress, "", "", 0, ImportSource.NodeImport);
+        var second = new ContractSnapshot(2, contractAddress, "", "", 0, ImportSource.NodeImport);
+        await using (var context = _databaseFixture.CreateGraphQlDbContext())
+        {
+            await context.AddRangeAsync(first, second);
+            await context.SaveChangesAsync();
+        }
+        await using var contractRepository = await ContractRepository.Create(_dbContractFactoryMock.Object);
+        
+        // Act
+        var latestContractSnapshot = await contractRepository.GetReadonlyLatestContractSnapshot(contractAddress);
+
+        // Assert
+        latestContractSnapshot.BlockHeight.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task WhenGetEntitiesAddedInTransaction_ThenReturnContractEventsInAddedState()
     {
         // Arrange
         await DatabaseFixture.TruncateTables("graphql_contract_events");
@@ -120,7 +142,7 @@ public sealed class ContractRepositoryTests
         await contractRepository.AddAsync(second, third);
         
         // Act
-        var contractEventsAddedInTransaction = contractRepository.GetContractEventsAddedInTransaction()
+        var contractEventsAddedInTransaction = contractRepository.GetEntitiesAddedInTransaction<ContractEvent>()
             .ToList();
         
         // Assert

@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Application.Aggregates.Contract.Entities;
+﻿using Application.Aggregates.Contract.Entities;
 using Application.Api.GraphQL.Accounts;
 using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.Search;

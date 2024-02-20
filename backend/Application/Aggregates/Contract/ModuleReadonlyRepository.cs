@@ -33,7 +33,6 @@ public interface IModuleReadonlyRepository : IAsyncDisposable
     Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex, uint eventIndex);
 }
 
-
 internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
 {
     private readonly GraphQlDbContext _context;
@@ -50,7 +49,7 @@ internal sealed class ModuleReadonlyRepository : IModuleReadonlyRepository
             .AsNoTracking()
             .FirstAsync(m => m.ModuleReference == moduleReference);
     }
-
+    
     /// <summary>
     /// Starts by looking after <see cref="ModuleReferenceContractLinkEvent"/> with <see cref="ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added"/>
     /// for the given <see cref="contractAddress"/> in the change provider of Entity Framework. These are the entity which has been added in the current transaction

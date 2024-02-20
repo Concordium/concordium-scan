@@ -529,6 +529,8 @@ internal sealed class ContractAggregate
                 var affectedEvents = await NodeImport(repository, client, height, token);
                 
                 await _eventLogHandler.HandleCisEvent(repository);
+
+                await ContractSnapshot.ImportContractSnapshot(_repositoryFactory, repository, ImportSource.NodeImport);
                 
                 await repository.AddAsync(new ContractReadHeight(height, ImportSource.NodeImport));
                 await repository.CommitAsync(token);

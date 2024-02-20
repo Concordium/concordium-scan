@@ -47,9 +47,13 @@ public interface IContractRepository : IAsyncDisposable
     /// </summary>
     Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress);
     /// <summary>
-    /// Get added <see cref="ContractEvent"/> in current transaction.
+    /// Get added <see cref="T"/> in current transaction.
     /// </summary>
-    IEnumerable<ContractEvent> GetContractEventsAddedInTransaction();
+    IEnumerable<T> GetEntitiesAddedInTransaction<T>() where T : class;
+    /// <summary>
+    /// Get latest added <see cref="ContractSnapshot"/> for a <see cref="Contract"/>.
+    /// </summary>
+    Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress);
     /// <summary>
     /// Adds entity to repository.
     /// </summary>
@@ -197,9 +201,7 @@ WHERE
     /// </summary>
     public async Task<ContractInitialized> GetReadonlyContractInitializedEventAsync(ContractAddress contractAddress)
     {
-        var contractInitialized = _context.ChangeTracker
-            .Entries<ContractEvent>()
-            .Select(e => e.Entity)
+        var contractInitialized = GetEntitiesAddedInTransaction<ContractEvent>()
             .Where(e => e.ContractAddressIndex == contractAddress.Index && e.ContractAddressSubIndex == contractAddress.SubIndex)
             .Where(e => e.Event is ContractInitialized)
             .Select(e => (e.Event as ContractInitialized)!)
@@ -219,12 +221,18 @@ WHERE
     }
 
     /// <inheritdoc/>
-    public IEnumerable<ContractEvent> GetContractEventsAddedInTransaction() =>
-        _context.ChangeTracker
-            .Entries<ContractEvent>()
+    public Task<ContractSnapshot> GetReadonlyLatestContractSnapshot(ContractAddress contractAddress) =>
+        _context.ContractSnapshots
+            .Where(cs => cs.ContractAddressIndex == contractAddress.Index && cs.ContractAddressSubIndex == contractAddress.SubIndex)
+            .OrderByDescending(cs => cs.BlockHeight)
+            .FirstAsync();
+
+    /// <inheritdoc/>
+    public IEnumerable<T> GetEntitiesAddedInTransaction<T>() where T : class
+        => _context.ChangeTracker.Entries<T>()
             .Where(e => e.State == EntityState.Added)
             .Select(e => e.Entity);
-
+    
     /// <inheritdoc/>
     public Task AddAsync<T>(params T[] entities) where T : class
     {

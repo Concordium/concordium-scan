@@ -184,9 +184,11 @@ const ContractQuery = gql`
 			transactionHash
 			contractAddress
 			blockSlotTime
-			moduleReference
-			amount
-			contractName
+			snapshot {
+				moduleReference
+				amount
+				contractName
+			}
 			tokens(skip: $skipTokens, take: $takeTokens) {
 				items {
 				  tokenAddress

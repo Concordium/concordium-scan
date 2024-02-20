@@ -15,12 +15,14 @@ const Query = gql<ContractListResponse>`
 		contracts(after: $after, before: $before, first: $first, last: $last) {
 			edges {
 				node {
-					amount
+					snapshot {
+						amount
+						moduleReference
+					}
 					transactionHash
 					contractAddress
 					contractAddressIndex
 					contractAddressSubIndex
-					moduleReference
 					blockSlotTime
 					creator {
 						__typename

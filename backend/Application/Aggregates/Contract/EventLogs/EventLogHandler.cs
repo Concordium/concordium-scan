@@ -60,7 +60,7 @@ namespace Application.Aggregates.Contract.EventLogs
 
         internal static ParsedTokenUpdates GetParsedTokenUpdate(IContractRepository contractRepository)
         {
-            var addedEvents = contractRepository.GetContractEventsAddedInTransaction()
+            var addedEvents = contractRepository.GetEntitiesAddedInTransaction<ContractEvent>()
                 .OrderBy(ce => ce.BlockHeight)
                 .ThenBy(ce => ce.TransactionIndex)
                 .ThenBy(ce => ce.EventIndex);

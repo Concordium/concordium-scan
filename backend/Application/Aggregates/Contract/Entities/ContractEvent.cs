@@ -98,24 +98,6 @@ public sealed class ContractEvent : BaseIdentification
         };
     }
     
-    internal const string ContractEventsSql = @"
-    SELECT 
-        g0.block_height as BlockHeight,
-        g0.transaction_index as TransactionIndex,
-        g0.event_index as EventIndex,
-        g0.contract_address_index as ContractAddressIndex,
-        g0.contract_address_subindex as ContractAddressSubIndex,
-        g0.block_slot_time as BlockSlotTime,
-        g0.created_at as CreatedAt,
-        g0.event as Event,
-        g0.sender as Creator,
-        g0.source as Source,
-        g0.transaction_hash as TransactionHash
-    FROM graphql_contract_events AS g0
-    WHERE (g0.contract_address_index = @Index) AND (g0.contract_address_subindex = @Subindex)
-    ORDER BY g0.block_height DESC, g0.transaction_index DESC, g0.event_index DESC;
-";    
-    
     /// <summary>
     /// Returns contract initialized event(s) for contracts. There should always be only one.
     ///

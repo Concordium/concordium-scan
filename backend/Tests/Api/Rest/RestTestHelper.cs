@@ -1,10 +1,7 @@
-﻿using System.Text.Json.Nodes;
-using Application.Api.GraphQL.Configurations;
+﻿using Application.Api.GraphQL.Configurations;
 using Application.Api.GraphQL.EfCore;
 using Application.Database;
 using Dapper;
-using FluentAssertions;
-using HotChocolate;
 using HotChocolate.Execution;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

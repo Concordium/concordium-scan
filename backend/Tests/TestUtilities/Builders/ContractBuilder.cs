@@ -18,7 +18,7 @@ internal sealed class ContractBuilder
     private readonly DateTimeOffset _dateTimeOffset = DateTimeOffset.UtcNow;
     private IList<ModuleReferenceContractLinkEvent> _moduleReferenceContractLinkEvents = new List<ModuleReferenceContractLinkEvent>();
     private IList<ContractEvent> _contractEvents = new List<ContractEvent>();
-    
+
     private ContractBuilder() {}
 
     internal static ContractBuilder Create()
@@ -61,5 +61,5 @@ internal sealed class ContractBuilder
         _contractAddress = contractAddress;
         return this;
     }
-    
-}
+
+} 

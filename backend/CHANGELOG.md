@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+## 1.8.16
+- Updated
+    - Added Contract Snapshot entity to improve frontend query performance.
+
 ## 1.8.13
 - Updated
     - StatementExport now defaults time period to "31 days ago" to "now", and requires period to not exceed 32 days.

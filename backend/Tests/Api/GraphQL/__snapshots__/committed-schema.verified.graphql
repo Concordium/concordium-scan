@@ -783,19 +783,17 @@ type CommissionRates {
 }
 
 type Contract {
+  contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
+  contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
   tokens(skip: Int take: Int): TokensCollectionSegment
   contractAddressIndex: UnsignedLong!
   contractAddressSubIndex: UnsignedLong!
   contractAddress: String!
   creator: AccountAddress!
-  contractEvents(skip: Int take: Int): ContractEventsCollectionSegment
-  contractRejectEvents(skip: Int take: Int): ContractRejectEventsCollectionSegment
   blockHeight: UnsignedLong!
   transactionHash: String!
   blockSlotTime: DateTime!
-  contractName: String!
-  moduleReference: String!
-  amount: Float!
+  snapshot: ContractSnapshot!
 }
 
 type ContractAddress {
@@ -869,6 +867,15 @@ type ContractRejectEventsCollectionSegment {
 type ContractResumed {
   contractAddress: ContractAddress!
   success: Boolean!
+}
+
+type ContractSnapshot {
+  blockHeight: UnsignedLong!
+  contractAddressIndex: UnsignedLong!
+  contractAddressSubIndex: UnsignedLong!
+  contractName: String!
+  moduleReference: String!
+  amount: UnsignedLong!
 }
 
 type ContractUpdated {

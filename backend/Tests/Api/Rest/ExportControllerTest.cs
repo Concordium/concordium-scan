@@ -1,17 +1,8 @@
 using Application.Api.Rest;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
-using System.Text.Json.Nodes;
-using Application.Api.GraphQL.Configurations;
-using Application.Api.GraphQL.EfCore;
 using Application.Database;
-using Dapper;
 using FluentAssertions;
-using HotChocolate;
-using HotChocolate.Execution;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
 
