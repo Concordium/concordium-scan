@@ -1,6 +1,10 @@
 ## Unreleased changes
 
-## 1.8.16
+## 1.8.18
+- Bugfix
+    - Fix performance view `graphql_account_rewards` by adding an index on table `graphql_account_statement_entries`.
+
+## 1.8.17
 - Bugfix
     - Fix jobs `_06_AddTokenAddress`, `_07_ContractSnapshotInitialization` and `_05_CisEventReinitialization` such that they are able to run from an empty database and hence on a initial environment.
 
