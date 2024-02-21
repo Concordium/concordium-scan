@@ -38,8 +38,8 @@ public sealed class _06_AddTokenAddress : IStatelessJob
     public async Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        var max = context.Contract.Max(ce => ce.ContractAddressIndex);
-        return Enumerable.Range(0, (int)max + 1);
+        var max = await context.Contract.AnyAsync(cancellationToken: cancellationToken) ? context.Contract.Max(ce => ce.ContractAddressIndex) + 1 : 0;
+        return Enumerable.Range(0, (int)max);
     }
 
     public ValueTask Setup(CancellationToken token = default) => ValueTask.CompletedTask;
