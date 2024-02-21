@@ -107,6 +107,6 @@ internal sealed class ParallelBatchBlockHeightJob<TStatelessJob> : IContractJob 
         {
             return;
         };
-        _logger.Information("Written heights {From} to {To} for job {}", blockHeightFrom, blockHeightTo, GetUniqueIdentifier());
+        _logger.Information("Written heights {From} to {To} for job {Identifier}", blockHeightFrom, blockHeightTo, GetUniqueIdentifier());
     }
 }

@@ -57,8 +57,8 @@ public sealed class _05_CisEventReinitialization : IStatelessJob
     public async Task<IEnumerable<int>> GetIdentifierSequence(CancellationToken cancellationToken)
     {
         await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        var max = context.ContractEvents.Max(ce => ce.ContractAddressIndex);
-        return Enumerable.Range(0, (int)max + 1);
+        var max = await context.ContractEvents.AnyAsync(cancellationToken: cancellationToken) ? context.ContractEvents.Max(ce => ce.ContractAddressIndex) + 1 : 0;
+        return Enumerable.Range(0, (int)max);
     }
 
     /// <inheritdoc/>

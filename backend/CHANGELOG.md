@@ -1,6 +1,10 @@
 ## Unreleased changes
 
 ## 1.8.16
+- Bugfix
+    - Fix jobs `_06_AddTokenAddress`, `_07_ContractSnapshotInitialization` and `_05_CisEventReinitialization` such that they are able to run from an empty database and hence on a initial environment.
+
+## 1.8.16
 - Updated
     - Added Contract Snapshot entity to improve frontend query performance.
 
