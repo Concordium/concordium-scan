@@ -162,7 +162,7 @@
 						</div>
 					</SearchResultCategory>
 					<SearchResultCategory
-						v-if="resultCount"
+						v-if="resultCount.tokens"
 						title="CIS-2 Tokens"
 						:has-more-results="data.search.tokens.pageInfo.hasNextPage"
 					>
@@ -401,9 +401,6 @@ const resultCount = computed(() => ({
 	}
 }
 .threeColumns {
-	@media only screen and (min-width: 1280px) and (max-width: 1535px) {
-		display: none;
-	}
 	@media (max-width: 639px) {
 		display: none;
 	}
@@ -413,12 +410,6 @@ const resultCount = computed(() => ({
 	display: grid;
 	grid-template-columns: repeat(1, minmax(0, 1fr));
 	@media (min-width: 640px) {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
-	@media (min-width: 1280px) {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-	@media (min-width: 1536px) {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
