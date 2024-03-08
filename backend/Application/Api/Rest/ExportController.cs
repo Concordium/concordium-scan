@@ -1,11 +1,14 @@
 ﻿using System.Globalization;
 using System.Threading.Tasks;
 using System.Text;
+
 using Application.Api.GraphQL.EfCore;
 using Concordium.Sdk.Types;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using System.IO;
+using EnumerableStreamFileResult;
 
 namespace Application.Api.Rest;
 
@@ -24,7 +27,7 @@ public class ExportController : ControllerBase
     [Route("rest/export/statement")]
     public async Task<ActionResult> GetStatementExport(string accountAddress, DateTime? fromTime, DateTime? toTime)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
         {
@@ -42,7 +45,10 @@ public class ExportController : ControllerBase
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
-            .Where(x => x.AccountId == account.Id);
+            .OrderByDescending(x => x.Index)
+            .Where(x => x.AccountId == account.Id)
+            ;
+
 
         if (fromTime != null && fromTime.Value.Kind != DateTimeKind.Utc)
         {
@@ -66,37 +72,35 @@ public class ExportController : ControllerBase
         query = query.Where(e => e.Timestamp >= from);
         query = query.Where(e => e.Timestamp <= to);
 
-        var result = query.Select(x => new
-        {
-            x.Timestamp,
-            x.EntryType,
-            x.Amount,
-            x.AccountBalance
-        });
-        var values = await result.ToListAsync();
-        if (values.Count == 0)
-        {
-            return new NoContentResult();
-        }
-
-        var csv = new StringBuilder("Time,Amount (CCD),Balance (CCD),Label\n");
-        foreach (var v in values)
-        {
-            csv.Append(v.Timestamp.ToString("u"));
-            csv.Append(',');
-            csv.Append((v.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
-            csv.Append(',');
-            csv.Append((v.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
-            csv.Append(',');
-            csv.Append(v.EntryType);
-            csv.Append('\n');
-        }
-
-        var firstTime = values.First().Timestamp;
-        var lastTime = values.Last().Timestamp;
-        return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
-        {
-            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}Z-{lastTime:yyyyMMddHHmmss}Z.csv"
+        var result = query.Select(x => string.Format("{0}, {1}, {2}, {3}\n", 
+        x.Timestamp.ToString("u"), 
+        (x.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+        (x.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+         x.EntryType
+        )
+        );
+        var csv = new StringBuilder("");
+    
+        return new EnumerableFileResult<string>(result, new StreamWritingAdapter()) {
+            FileDownloadName = "statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}Z-{lastTime:yyyyMMddHHmmss}Z.csv"
         };
     }
+    private class StreamWritingAdapter : IStreamWritingAdapter<String>
+    {
+        public string ContentType => "text/csv";
+
+        public async Task WriteAsync(string item, Stream stream)
+        {
+            byte[] line = Encoding.ASCII.GetBytes(item);
+            await stream.WriteAsync(line);
+        }
+
+        public Task WriteFooterAsync(Stream stream, int recordCount) => Task.CompletedTask;
+        public async Task WriteHeaderAsync(Stream stream)
+        {
+            byte[] line = Encoding.ASCII.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
+            await stream.WriteAsync(line);
+        }
+    }
 }
+
