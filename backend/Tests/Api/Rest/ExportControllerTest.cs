@@ -5,6 +5,8 @@ using Application.Database;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
+using Ductus.FluentDocker.Common;
+using System.IO;
 
 namespace Tests.Api.Rest;
 
@@ -80,11 +82,15 @@ public sealed class ExportControllerTest : IAsyncLifetime
 
         // Act
         var actionResult = await controller.GetStatementExport(address, startDate, endDate);
-        var result = Assert.IsType<FileContentResult>(actionResult);
-        string csv = System.Text.Encoding.UTF8.GetString(result.FileContents);
+        var result = Assert.IsType<FileStreamResult>(actionResult);
+        );
+
+        using StreamReader reader = new(result.FileStream, System.Text.Encoding.UTF8);
+        string csv = reader.ReadToEnd();
 
         // Assert
         Regex.Matches(csv, "\n").Count.Should().Be(2);
+
     }
 
 }
