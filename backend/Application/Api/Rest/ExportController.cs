@@ -90,14 +90,14 @@ public class ExportController : ControllerBase
 
         public async Task WriteAsync(string item, Stream stream)
         {
-            byte[] line = Encoding.UTF8.GetBytes(item);
+            byte[] line = Encoding.ASCII.GetBytes(item);
             await stream.WriteAsync(line);
         }
 
         public Task WriteFooterAsync(Stream stream, int recordCount) => Task.CompletedTask;
         public async Task WriteHeaderAsync(Stream stream)
         {
-            byte[] line = Encoding.UTF8.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
+            byte[] line = Encoding.ASCII.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
             await stream.WriteAsync(line);
         }
     }

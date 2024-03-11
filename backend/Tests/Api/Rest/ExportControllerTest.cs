@@ -103,7 +103,7 @@ public sealed class ExportControllerTest : IAsyncLifetime
         var actionResult = await controller.GetStatementExport(address, startDate, endDate);
         var result = Assert.IsType<EnumerableFileResult<string>>(actionResult);
         await result.ExecuteResultAsync(_controllerContext);
-        string csv = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        string csv = System.Text.Encoding.ASCII.GetString(stream.ToArray());
         Console.WriteLine($"csv: {csv}");
 
         // Assert
