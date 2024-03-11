@@ -45,7 +45,7 @@ public class ExportController : ControllerBase
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
-            .OrderByDescending(x => x.Index)
+            .OrderByDescending(x => x.Timestamp)
             .Where(x => x.AccountId == account.Id)
             ;
 
@@ -79,10 +79,9 @@ public class ExportController : ControllerBase
          x.EntryType
         )
         );
-        var csv = new StringBuilder("");
-    
+
         return new EnumerableFileResult<string>(result, new StreamWritingAdapter()) {
-            FileDownloadName = "statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}Z-{lastTime:yyyyMMddHHmmss}Z.csv"
+            FileDownloadName = $"statement-{accountAddress}_{from:yyyyMMdd}Z-{to:yyyyMMdd}Z.csv"
         };
     }
     private class StreamWritingAdapter : IStreamWritingAdapter<String>
