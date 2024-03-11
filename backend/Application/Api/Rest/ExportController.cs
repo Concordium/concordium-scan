@@ -55,14 +55,14 @@ public class ExportController : ControllerBase
             return BadRequest("Time zone missing on 'fromTime'.");
         }
 
-        DateTimeOffset from = fromTime ?? DateTime.Now.AddDays(-31);
+        DateTimeOffset from = fromTime ?? DateTime.UtcNow.AddDays(-31);
 
         if (toTime != null && toTime.Value.Kind != DateTimeKind.Utc)
         {
             return BadRequest("Time zone missing on 'toTime'.");
         }
 
-        DateTimeOffset to = toTime ?? DateTime.Now;
+        DateTimeOffset to = toTime ?? DateTime.UtcNow;
 
         if ((to - from).TotalDays > MAX_DAYS)
         {
@@ -84,20 +84,20 @@ public class ExportController : ControllerBase
             FileDownloadName = $"statement-{accountAddress}_{from:yyyyMMdd}Z-{to:yyyyMMdd}Z.csv"
         };
     }
-    private class StreamWritingAdapter : IStreamWritingAdapter<String>
+    private class StreamWritingAdapter : IStreamWritingAdapter<string>
     {
         public string ContentType => "text/csv";
 
         public async Task WriteAsync(string item, Stream stream)
         {
-            byte[] line = Encoding.ASCII.GetBytes(item);
+            byte[] line = Encoding.UTF8.GetBytes(item);
             await stream.WriteAsync(line);
         }
 
         public Task WriteFooterAsync(Stream stream, int recordCount) => Task.CompletedTask;
         public async Task WriteHeaderAsync(Stream stream)
         {
-            byte[] line = Encoding.ASCII.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
+            byte[] line = Encoding.UTF8.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
             await stream.WriteAsync(line);
         }
     }
