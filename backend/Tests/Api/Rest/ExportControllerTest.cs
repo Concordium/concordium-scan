@@ -72,7 +72,7 @@ public sealed class ExportControllerTest : IAsyncLifetime
         var controller = new ExportController(_testHelper.dbContextFactory);
         var address = "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P";
 
-        MemoryStream stream = new MemoryStream();
+        MemoryStream stream = new();
         var _headers = new HeaderDictionary();
 
         var httpResponseMock = new Mock<HttpResponse>();
@@ -104,7 +104,6 @@ public sealed class ExportControllerTest : IAsyncLifetime
         var result = Assert.IsType<EnumerableFileResult<string>>(actionResult);
         await result.ExecuteResultAsync(_controllerContext);
         string csv = System.Text.Encoding.ASCII.GetString(stream.ToArray());
-        Console.WriteLine($"csv: {csv}");
 
         // Assert
         Regex.Matches(csv, "\n").Count.Should().Be(2);
