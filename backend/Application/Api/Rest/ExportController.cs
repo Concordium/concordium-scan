@@ -46,9 +46,7 @@ public class ExportController : ControllerBase
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
             .OrderByDescending(x => x.Timestamp)
-            .Where(x => x.AccountId == account.Id)
-            ;
-
+            .Where(x => x.AccountId == account.Id);
 
         if (fromTime != null && fromTime.Value.Kind != DateTimeKind.Utc)
         {
@@ -72,15 +70,17 @@ public class ExportController : ControllerBase
         query = query.Where(e => e.Timestamp >= from);
         query = query.Where(e => e.Timestamp <= to);
 
-        var result = query.Select(x => string.Format("{0}, {1}, {2}, {3}\n", 
-        x.Timestamp.ToString("u"), 
-        (x.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
-        (x.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
-         x.EntryType
-        )
+        var result = query.Select(x => string.Format(
+            "{0}, {1}, {2}, {3}\n",
+            x.Timestamp.ToString("u"),
+            (x.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+            (x.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+            x.EntryType
+            )
         );
 
-        return new EnumerableFileResult<string>(result, new StreamWritingAdapter()) {
+        return new EnumerableFileResult<string>(result, new StreamWritingAdapter())
+        {
             FileDownloadName = $"statement-{accountAddress}_{from:yyyyMMdd}Z-{to:yyyyMMdd}Z.csv"
         };
     }
