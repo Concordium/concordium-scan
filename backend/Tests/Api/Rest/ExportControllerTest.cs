@@ -5,6 +5,12 @@ using Application.Database;
 using FluentAssertions;
 using Tests.TestUtilities;
 using Tests.TestUtilities.Builders.GraphQL;
+using EnumerableStreamFileResult;
+using System.IO;
+using Microsoft.AspNetCore.Http;
+using Moq;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace Tests.Api.Rest;
 
@@ -30,7 +36,7 @@ public sealed class ExportControllerTest : IAsyncLifetime
     }
 
     [Fact]
-    public async void accountStatementWith33DaySpanIsNotAllowed()
+    public async void AccountStatementWith33DaySpanIsNotAllowed()
     {
         // Arrange
         var startDate = DateTime.SpecifyKind(new DateTime(2020, 11, 1), DateTimeKind.Utc);
@@ -54,7 +60,7 @@ public sealed class ExportControllerTest : IAsyncLifetime
     }
 
     [Fact]
-    public async void transactionOutsideSpecifiedTimeStampsAreNotReturned()
+    public async void TransactionOutsideSpecifiedTimeStampsAreNotReturned()
     {
         // Arrange
         var date1 = new DateTime(2020, 12, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -65,6 +71,21 @@ public sealed class ExportControllerTest : IAsyncLifetime
 
         var controller = new ExportController(_testHelper.dbContextFactory);
         var address = "3XSLuJcXg6xEua6iBPnWacc3iWh93yEDMCqX8FbE3RDSbEnT9P";
+
+        MemoryStream stream = new();
+        var _headers = new HeaderDictionary();
+
+        var httpResponseMock = new Mock<HttpResponse>();
+        httpResponseMock.Setup(mock => mock.Body).Returns(stream);
+        httpResponseMock.Setup(mock => mock.Headers).Returns(_headers);
+
+        var httpContextMock = new Mock<HttpContext>();
+        httpContextMock.Setup(mock => mock.Response).Returns(httpResponseMock.Object);
+
+        var _controllerContext = new ControllerContext
+        {
+            HttpContext = httpContextMock.Object
+        };
 
         _testHelper.DbContext.Accounts.Add(new AccountBuilder()
             .WithId(42)
@@ -80,8 +101,9 @@ public sealed class ExportControllerTest : IAsyncLifetime
 
         // Act
         var actionResult = await controller.GetStatementExport(address, startDate, endDate);
-        var result = Assert.IsType<FileContentResult>(actionResult);
-        string csv = System.Text.Encoding.UTF8.GetString(result.FileContents);
+        var result = Assert.IsType<EnumerableFileResult<string>>(actionResult);
+        await result.ExecuteResultAsync(_controllerContext);
+        string csv = System.Text.Encoding.ASCII.GetString(stream.ToArray());
 
         // Assert
         Regex.Matches(csv, "\n").Count.Should().Be(2);

@@ -1,5 +1,9 @@
 ## Unreleased changes
 
+## 1.8.19
+- Bugfix
+    - Fix performance of account statement export, by adding an index on table `graphql_account_statement_entries`, and streaming the data.
+
 ## 1.8.18
 - Bugfix
     - Fix performance view `graphql_account_rewards` by adding an index on table `graphql_account_statement_entries`.

@@ -1,11 +1,14 @@
 ﻿using System.Globalization;
 using System.Threading.Tasks;
 using System.Text;
+
 using Application.Api.GraphQL.EfCore;
 using Concordium.Sdk.Types;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AccountAddress = Application.Api.GraphQL.Accounts.AccountAddress;
+using System.IO;
+using EnumerableStreamFileResult;
 
 namespace Application.Api.Rest;
 
@@ -24,7 +27,7 @@ public class ExportController : ControllerBase
     [Route("rest/export/statement")]
     public async Task<ActionResult> GetStatementExport(string accountAddress, DateTime? fromTime, DateTime? toTime)
     {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var dbContext = await _dbContextFactory.CreateDbContextAsync();
 
         if (!Concordium.Sdk.Types.AccountAddress.TryParse(accountAddress, out var parsed))
         {
@@ -42,6 +45,7 @@ public class ExportController : ControllerBase
 
         var query = dbContext.AccountStatementEntries
             .AsNoTracking()
+            .OrderByDescending(x => x.Timestamp)
             .Where(x => x.AccountId == account.Id);
 
         if (fromTime != null && fromTime.Value.Kind != DateTimeKind.Utc)
@@ -49,14 +53,14 @@ public class ExportController : ControllerBase
             return BadRequest("Time zone missing on 'fromTime'.");
         }
 
-        DateTimeOffset from = fromTime ?? DateTime.Now.AddDays(-31);
+        DateTimeOffset from = fromTime ?? DateTime.UtcNow.AddDays(-31);
 
         if (toTime != null && toTime.Value.Kind != DateTimeKind.Utc)
         {
             return BadRequest("Time zone missing on 'toTime'.");
         }
 
-        DateTimeOffset to = toTime ?? DateTime.Now;
+        DateTimeOffset to = toTime ?? DateTime.UtcNow;
 
         if ((to - from).TotalDays > MAX_DAYS)
         {
@@ -66,37 +70,36 @@ public class ExportController : ControllerBase
         query = query.Where(e => e.Timestamp >= from);
         query = query.Where(e => e.Timestamp <= to);
 
-        var result = query.Select(x => new
-        {
-            x.Timestamp,
-            x.EntryType,
-            x.Amount,
-            x.AccountBalance
-        });
-        var values = await result.ToListAsync();
-        if (values.Count == 0)
-        {
-            return new NoContentResult();
-        }
+        var result = query.Select(x => string.Format(
+            "{0}, {1}, {2}, {3}\n",
+            x.Timestamp.ToString("u"),
+            (x.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+            (x.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture),
+            x.EntryType
+            )
+        );
 
-        var csv = new StringBuilder("Time,Amount (CCD),Balance (CCD),Label\n");
-        foreach (var v in values)
+        return new EnumerableFileResult<string>(result, new StreamWritingAdapter())
         {
-            csv.Append(v.Timestamp.ToString("u"));
-            csv.Append(',');
-            csv.Append((v.Amount / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
-            csv.Append(',');
-            csv.Append((v.AccountBalance / (decimal)CcdAmount.MicroCcdPerCcd).ToString(CultureInfo.InvariantCulture));
-            csv.Append(',');
-            csv.Append(v.EntryType);
-            csv.Append('\n');
-        }
-
-        var firstTime = values.First().Timestamp;
-        var lastTime = values.Last().Timestamp;
-        return new FileContentResult(Encoding.ASCII.GetBytes(csv.ToString()), "text/csv")
-        {
-            FileDownloadName = $"statement-{accountAddress}_{firstTime:yyyyMMddHHmmss}Z-{lastTime:yyyyMMddHHmmss}Z.csv"
+            FileDownloadName = $"statement-{accountAddress}_{from:yyyyMMdd}Z-{to:yyyyMMdd}Z.csv"
         };
     }
+    private class StreamWritingAdapter : IStreamWritingAdapter<string>
+    {
+        public string ContentType => "text/csv";
+
+        public async Task WriteAsync(string item, Stream stream)
+        {
+            byte[] line = Encoding.ASCII.GetBytes(item);
+            await stream.WriteAsync(line);
+        }
+
+        public Task WriteFooterAsync(Stream stream, int recordCount) => Task.CompletedTask;
+        public async Task WriteHeaderAsync(Stream stream)
+        {
+            byte[] line = Encoding.ASCII.GetBytes("Time,Amount (CCD),Balance (CCD),Label\n");
+            await stream.WriteAsync(line);
+        }
+    }
 }
+
