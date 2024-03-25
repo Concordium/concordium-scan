@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 	<div>
 		<Table>
 			<TableHead>
@@ -212,6 +212,8 @@ type Props = {
 const props = defineProps<Props>()
 
 const createdAtMonth = new Date(props.accountCreatedAt)
+// Set createdAtMonth date to first in the month, because otherwise the Month picker will not include that month.
+createdAtMonth.setUTCDate(0)
 const currentMonth = NOW.value
 const chosenMonth = ref(toMonthInput(currentMonth))
 
