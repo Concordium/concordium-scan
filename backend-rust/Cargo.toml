@@ -1,0 +1,20 @@
+[package]
+name = "backend-rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+async-graphql = {version = "7.0", features = ["chrono"] }
+async-graphql-axum = "7.0"
+axum = "0.7"
+chrono = "0.4"
+clap = { version = "4.5", features = ["derive", "env"] }
+concordium-rust-sdk = "4.3"
+dotenv = "0.15"
+futures = "0.3"
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "chrono"] }
+thiserror = "1.0"
+tokio = { version = "1.37", features = ["full"] }
