@@ -1,3 +1,7 @@
+//! TODO:
+//! - Insert genesis accounts
+//! -
+
 use anyhow::Context;
 use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, TraverseConfig, TraverseError},
@@ -168,8 +172,8 @@ VALUES ($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6));"#,
                 BlockItemSummaryDetails::AccountCreation(details) => {
                     let account_address = details.address.to_string();
                     sqlx::query!(
-                        r#"INSERT INTO accounts (index, address, created_block, created_index)
-VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3)"#,
+                        r#"INSERT INTO accounts (index, address, created_block, created_index, amount)
+VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3, 0)"#,
                         account_address,
                         height,
                         block_index

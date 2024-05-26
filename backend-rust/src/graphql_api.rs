@@ -16,14 +16,16 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 enum ApiError {
     #[error("Could not find resource")]
     NotFound,
-    #[error("Internal error")]
+    #[error("Internal error: {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
-    #[error("Internal error")]
+    #[error("Internal error: {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
     #[error("Invalid ID format: {0}")]
     InvalidIdIntSize(std::num::TryFromIntError),
+    #[error("Invalid ID for transaction, must be of the format 'block:index'")]
+    InvalidIdTransaction,
     #[error("The period cannot be converted")]
     DurationOutOfRange(Arc<Box<dyn Error + Send + Sync>>),
     #[error("The \"first\" and \"last\" parameters cannot exist at the same time")]
@@ -32,6 +34,12 @@ enum ApiError {
     QueryConnectionNegativeFirst,
     #[error("The \"last\" parameter must be a non-negative number")]
     QueryConnectionNegativeLast,
+}
+
+impl From<sqlx::Error> for ApiError {
+    fn from(value: sqlx::Error) -> Self {
+        ApiError::FailedDatabaseQuery(Arc::new(value))
+    }
 }
 
 type ApiResult<A> = Result<A, ApiError>;
@@ -64,35 +72,25 @@ impl Query {
             backend_versions: VERSION.to_string(),
         }
     }
-    async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<BlockWithId> {
+    async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
         let height: i64 = height_id
             .clone()
             .try_into()
             .map_err(ApiError::InvalidIdInt)?;
-        let block = sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", height)
+        sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", height)
             .fetch_optional(get_pool(ctx)?)
-            .await
-            .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))?
-            .ok_or(ApiError::NotFound)?;
-        Ok(BlockWithId {
-            id: height_id,
-            inner: block,
-        })
+            .await?
+            .ok_or(ApiError::NotFound)
     }
     async fn block_by_block_hash<'a>(
         &self,
         ctx: &Context<'a>,
         block_hash: BlockHash,
-    ) -> ApiResult<BlockWithId> {
-        let block = sqlx::query_as!(Block, "SELECT * FROM blocks WHERE hash=$1", block_hash)
+    ) -> ApiResult<Block> {
+        sqlx::query_as!(Block, "SELECT * FROM blocks WHERE hash=$1", block_hash)
             .fetch_optional(get_pool(ctx)?)
-            .await
-            .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))?
-            .ok_or(ApiError::NotFound)?;
-        Ok(BlockWithId {
-            id: block.height.into(),
-            inner: block,
-        })
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn blocks<'a>(
@@ -155,11 +153,7 @@ impl Query {
         let mut block_stream = builder.build_query_as::<Block>().fetch(get_pool(ctx)?);
 
         let mut connection = connection::Connection::new(true, true);
-        while let Some(block) = block_stream
-            .try_next()
-            .await
-            .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))?
-        {
+        while let Some(block) = block_stream.try_next().await? {
             connection
                 .edges
                 .push(connection::Edge::new(block.height.to_string(), block));
@@ -177,34 +171,31 @@ impl Query {
         Ok(connection)
     }
 
-    async fn transaction<'a>(
+    async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
+        let id = IdTransaction::try_from(id)?;
+        sqlx::query_as!(
+            Transaction,
+            "SELECT * FROM transactions WHERE block=$1 AND index=$2",
+            id.block,
+            id.index
+        )
+        .fetch_optional(get_pool(ctx)?)
+        .await?
+        .ok_or(ApiError::NotFound)
+    }
+    async fn transaction_by_transaction_hash<'a>(
         &self,
         ctx: &Context<'a>,
-        id: types::ID,
-    ) -> ApiResult<TransactionWithId> {
-        let pool = get_pool(ctx)?;
-        let index: i64 = id.clone().try_into().map_err(ApiError::InvalidIdInt)?;
-
-        let transaction = sqlx::query_as!(
+        transaction_hash: TransactionHash,
+    ) -> ApiResult<Transaction> {
+        sqlx::query_as!(
             Transaction,
-            "SELECT * FROM transactions WHERE index=$1",
-            index
+            "SELECT * FROM transactions WHERE hash=$1",
+            transaction_hash
         )
-        .fetch_optional(pool)
-        .await
-        .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))?
-        .ok_or(ApiError::NotFound)?;
-
-        Ok(TransactionWithId {
-            id,
-            inner: transaction,
-        })
-    }
-    async fn transaction_by_transaction_hash(
-        &self,
-        _transaction_hash: TransactionHash,
-    ) -> Transaction {
-        todo!()
+        .fetch_optional(get_pool(ctx)?)
+        .await?
+        .ok_or(ApiError::NotFound)
     }
     async fn transactions(
         &self,
@@ -219,26 +210,105 @@ impl Query {
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         todo!()
     }
-    async fn account(&self, _id: types::ID) -> Account {
-        todo!()
+    async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
+        let index: i64 = id.clone().try_into().map_err(ApiError::InvalidIdInt)?;
+        sqlx::query_as("SELECT * FROM accounts WHERE index=$1")
+            .bind(index)
+            .fetch_optional(get_pool(ctx)?)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
-    async fn account_by_address(&self, _account_address: String) -> Account {
-        todo!()
-    }
-    async fn accounts(
+    async fn account_by_address<'a>(
         &self,
+        ctx: &Context<'a>,
+        account_address: String,
+    ) -> ApiResult<Account> {
+        sqlx::query_as("SELECT * FROM accounts WHERE address=$1")
+            .bind(account_address)
+            .fetch_optional(get_pool(ctx)?)
+            .await?
+            .ok_or(ApiError::NotFound)
+    }
+    async fn accounts<'a>(
+        &self,
+        ctx: &Context<'a>,
         #[graphql(default)] _sort: AccountSort,
-        _filter: AccountFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        _filter: Option<AccountFilterInput>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
         #[graphql(
             desc = "Returns the elements in the list that come before the specified cursor."
         )]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        todo!()
+        check_connection_query(&first, &last)?;
+
+        let mut builder =
+            sqlx::QueryBuilder::<'_, Postgres>::new("SELECT * FROM (SELECT * FROM accounts");
+
+        // TODO: include sort and filter
+
+        match (after, before) {
+            (None, None) => {}
+            (None, Some(before)) => {
+                builder
+                    .push(" WHERE index < ")
+                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
+            }
+            (Some(after), None) => {
+                builder
+                    .push(" WHERE index > ")
+                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
+            }
+            (Some(after), Some(before)) => {
+                builder
+                    .push(" WHERE index > ")
+                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?)
+                    .push(" AND index < ")
+                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
+            }
+        }
+
+        match (first, &last) {
+            (None, None) => {
+                builder.push(" ORDER BY index ASC)");
+            }
+            (None, Some(last)) => {
+                builder
+                    .push(" ORDER BY index DESC LIMIT ")
+                    .push_bind(last)
+                    .push(") ORDER BY index ASC ");
+            }
+            (Some(first), None) => {
+                builder
+                    .push(" ORDER BY index ASC LIMIT ")
+                    .push_bind(first)
+                    .push(")");
+            }
+            (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
+        }
+
+        let mut row_stream = builder.build_query_as::<Account>().fetch(get_pool(ctx)?);
+
+        let mut connection = connection::Connection::new(true, true);
+        while let Some(row) = row_stream.try_next().await? {
+            connection
+                .edges
+                .push(connection::Edge::new(row.index.to_string(), row));
+        }
+        if last.is_some() {
+            if let Some(edge) = connection.edges.last() {
+                connection.has_previous_page = edge.node.index != 0;
+            }
+        } else {
+            if let Some(edge) = connection.edges.first() {
+                connection.has_previous_page = edge.node.index != 0;
+            }
+        }
+
+        Ok(connection)
     }
     async fn baker(&self, _id: types::ID) -> Baker {
         todo!()
@@ -294,8 +364,7 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
             interval
         )
         .fetch_one(pool)
-        .await
-        .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))?;
+        .await?;
 
         Ok(BlockMetrics {
             last_block_height: rec.last_block_height.unwrap_or(0),
@@ -424,6 +493,7 @@ type BlockHash = String;
 type TransactionHash = String;
 type BakerId = i64;
 type AccountIndex = i64;
+type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::NaiveDateTime; // TODO check format matches.
@@ -442,25 +512,34 @@ struct Block {
     hash: BlockHash,
     #[graphql(name = "blockHeight")]
     height: BlockHeight,
+    /// Time of the block being baked.
     #[graphql(name = "blockSlotTime")]
     slot_time: DateTime,
     baker_id: Option<BakerId>,
     finalized: bool,
-    // transaction_count: i32,
     //    chain_parameters: ChainParameters,
     // balance_statistics: BalanceStatistics,
     // block_statistics: BlockStatistics,
 }
 
-#[derive(SimpleObject)]
-struct BlockWithId {
-    id: types::ID,
-    #[graphql(flatten)]
-    inner: Block,
-}
-
 #[ComplexObject]
 impl Block {
+    /// Absolute block height.
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.height)
+    }
+
+    /// Number of transactions included in this block.
+    async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
+        let result = sqlx::query!(
+            "SELECT COUNT(*) FROM transactions WHERE block=$1",
+            self.height
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
+        Ok(result.count.unwrap_or(0))
+    }
+
     async fn special_events(
         &self,
         #[graphql(
@@ -504,294 +583,6 @@ enum SpecialEventTypeFilter {
     PaydayFoundationReward,
     PaydayPoolReward,
 }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct SpecialEventsConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<SpecialEventsEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<SpecialEvent>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct TransactionsConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<TransactionsEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<Transaction>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountAddressAmountConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountAddressAmountEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountAddressAmount>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountReleaseScheduleItemConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountReleaseScheduleItemEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountReleaseScheduleItem>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountTokenConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountTokenEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountToken>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountTransactionRelationConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountTransactionRelationEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountTransactionRelation>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountStatementEntryConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountStatementEntryEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountStatementEntry>>,
-// }
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountRewardConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountRewardEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<AccountReward>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct AccountsConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<AccountsEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<Account>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct BakersConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<BakersEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<Baker>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct ContractsConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<ContractsEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<Contract>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct NodeStatusesConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<NodeStatusesEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<NodeStatus>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct ModulesConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<ModulesEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<ModuleReferenceEvent>>,
-// }
-
-// /// A connection to a list of items.
-// #[derive(SimpleObject)]
-// struct TokensConnection {
-//     /// Information to aid in pagination.
-//     page_info: connection::PageInfo,
-//     /// A list of edges.
-//     edges: Option<Vec<TokensEdge>>,
-//     /// A flattened list of the nodes.
-//     nodes: Option<Vec<Token>>,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct SpecialEventsEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: SpecialEvent,
-// }
-
-// /// An edge in a connection."
-// #[derive(SimpleObject)]
-// struct TransactionsEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Transaction,
-// }
-
-// /// An edge in a connection."
-// #[derive(SimpleObject)]
-// struct BlocksEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Block,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountAddressAmountEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountAddressAmount,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountReleaseScheduleItemEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountReleaseScheduleItem,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountTokenEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountToken,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountTransactionRelationEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountTransactionRelation,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountStatementEntryEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountStatementEntry,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountRewardEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: AccountReward,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct AccountsEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Account,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct BakersEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Baker,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct ContractsEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Contract,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct NodeStatusesEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: NodeStatus,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct ModulesEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: ModuleReferenceEvent,
-// }
-
-// /// An edge in a connection.
-// #[derive(SimpleObject)]
-// struct TokensEdge {
-//     /// A cursor for use in pagination.
-//     cursor: String,
-//     /// The item at the end of the edge.
-//     node: Token,
-// }
 
 #[derive(SimpleObject)]
 #[graphql(complex)]
@@ -1256,12 +1047,36 @@ struct AccountAddress {
     as_string: String,
 }
 
-#[derive(SimpleObject)]
-struct TransactionWithId {
-    id: types::ID,
-    #[graphql(flatten)]
-    inner: Transaction,
+impl From<String> for AccountAddress {
+    fn from(as_string: String) -> Self {
+        Self { as_string }
+    }
 }
+
+struct IdTransaction {
+    block: BlockHeight,
+    index: TransactionIndex,
+}
+
+impl TryFrom<types::ID> for IdTransaction {
+    type Error = ApiError;
+    fn try_from(value: types::ID) -> Result<Self, Self::Error> {
+        let (height_str, index_str) = value
+            .as_str()
+            .split_once(':')
+            .ok_or(ApiError::InvalidIdTransaction)?;
+        Ok(IdTransaction {
+            block: height_str.parse().map_err(ApiError::InvalidIdInt)?,
+            index: index_str.parse().map_err(ApiError::InvalidIdInt)?,
+        })
+    }
+}
+impl From<IdTransaction> for types::ID {
+    fn from(value: IdTransaction) -> Self {
+        types::ID::from(format!("{}:{}", value.block, value.index))
+    }
+}
+
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct Transaction {
@@ -1280,24 +1095,33 @@ struct Transaction {
 }
 #[ComplexObject]
 impl Transaction {
-    async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<BlockWithId> {
-        sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", self.block)
-            .fetch_one(get_pool(ctx)?)
-            .await
-            .map(|block| BlockWithId {
-                id: self.block.to_string().into(),
-                inner: block,
-            })
-            .map_err(|err| ApiError::FailedDatabaseQuery(Arc::new(err)))
+    /// Transaction query ID, formatted as "<block>:<index>".
+    async fn id(&self) -> types::ID {
+        IdTransaction {
+            block: self.block,
+            index: self.index,
+        }
+        .into()
     }
+
+    async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
+        let result = sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", self.block)
+            .fetch_one(get_pool(ctx)?)
+            .await?;
+        Ok(result)
+    }
+
     async fn sender_account_address<'a>(
         &self,
-        _ctx: &Context<'a>,
+        ctx: &Context<'a>,
     ) -> ApiResult<Option<AccountAddress>> {
-        let Some(_account_index) = self.sender else {
+        let Some(account_index) = self.sender else {
             return Ok(None);
         };
-        todo!()
+        let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)
+            .fetch_one(get_pool(ctx)?)
+            .await?;
+        Ok(Some(result.address.into()))
     }
 }
 
@@ -1313,21 +1137,54 @@ struct TransactionResult {
     dummy: i32,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, sqlx::FromRow)]
 #[graphql(complex)]
 struct Account {
-    release_schedule: AccountReleaseSchedule,
-    baker: Baker,
-    id: types::ID,
+    // release_schedule: AccountReleaseSchedule,
+    #[graphql(skip)]
+    index: i64,
+    #[graphql(skip)]
+    created_block: BlockHeight,
+    #[graphql(skip)]
+    created_index: TransactionIndex,
+    /// The address of the account in Base58Check.
+    #[sqlx(try_from = "String")]
     address: AccountAddress,
+    /// The total amount of CCD hold by the account.
     amount: Amount,
-    transaction_count: i32,
-    created_at: DateTime,
-    delegation: Delegation,
+    // Get baker information if this account is baking.
+    // baker: Option<Baker>,
+    // delegation: Option<Delegation>,
 }
 
 #[ComplexObject]
 impl Account {
+    async fn id(&self) -> types::ID {
+        types::ID::from(self.index)
+    }
+
+    /// Timestamp of the block where this account was created.
+    async fn created_at<'a>(&self, ctx: &Context<'a>) -> ApiResult<DateTime> {
+        let rec = sqlx::query!(
+            "SELECT slot_time FROM blocks WHERE height=$1",
+            self.created_block
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
+        Ok(rec.slot_time)
+    }
+
+    /// Number of transactions where this account is used as sender.
+    async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
+        let rec = sqlx::query!(
+            "SELECT COUNT(*) FROM transactions WHERE sender=$1",
+            self.index
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
+        Ok(rec.count.unwrap_or(0))
+    }
+
     async fn tokens(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,

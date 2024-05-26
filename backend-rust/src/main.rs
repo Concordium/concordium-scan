@@ -40,6 +40,10 @@ async fn main() -> anyhow::Result<()> {
     dotenv().ok();
     let cli = Cli::parse();
 
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
     let pool = PgPool::connect(&cli.database_url)
         .await
         .context("Failed constructin database connection pool")?;
@@ -68,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
         async_graphql::EmptyMutation,
         async_graphql::EmptySubscription,
     )
+    .extension(async_graphql::extensions::Tracing)
     .data(pool)
     .finish();
 

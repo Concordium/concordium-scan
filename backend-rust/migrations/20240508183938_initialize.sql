@@ -22,6 +22,7 @@ CREATE TABLE accounts(
     address       CHAR(50) UNIQUE NOT NULL,
     created_block BIGINT   NOT NULL,
     created_index BIGINT   NOT NULL,
+    amount        BIGINT   NOT NULL,
     -- credential_registration_id
     FOREIGN KEY (created_block, created_index) REFERENCES transactions(block, index)
 );
