@@ -555,11 +555,16 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum 0.7.5",
+ "cbor",
  "chrono",
  "clap",
  "concordium-rust-sdk",
+ "derive_more",
  "dotenv",
  "futures",
+ "hex",
+ "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tokio",
@@ -709,6 +714,12 @@ dependencies = [
 
 [[package]]
 name = "byteorder"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
+
+[[package]]
+name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
@@ -729,6 +740,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26b52a9543ae338f279b96b0b9fed9c8093744685043739079ce85cd58f289a6"
 dependencies = [
  "cipher",
+]
+
+[[package]]
+name = "cbor"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e56053652b4b5c0ded5ae6183c7cd547ad2dd6bcce149658bef052a4995533bd"
+dependencies = [
+ "byteorder 0.5.3",
+ "rustc-serialize",
 ]
 
 [[package]]
@@ -893,7 +914,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec03be6a4a56c0501cf9225d135aaa6c155228039efde27d6551814bc6776db1"
 dependencies = [
  "anyhow",
- "byteorder",
+ "byteorder 1.5.0",
  "concordium-contracts-common",
  "concordium-wasm",
  "derive_more",
@@ -939,7 +960,7 @@ dependencies = [
  "ark-std",
  "base64 0.21.7",
  "bs58",
- "byteorder",
+ "byteorder 1.5.0",
  "cbc",
  "chrono",
  "concordium-contracts-common",
@@ -2099,7 +2120,7 @@ version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc84195820f291c7697304f3cbdadd1cb7199c0efc917ff5eafd71225c136151"
 dependencies = [
- "byteorder",
+ "byteorder 1.5.0",
  "lazy_static",
  "libm",
  "num-integer",
@@ -2712,6 +2733,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
+name = "rustc-serialize"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe834bc780604f4674073badbad26d7219cadfb4a2275802db12cbae17498401"
+
+[[package]]
 name = "rustc_version"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2783,18 +2810,18 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.200"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddc6f9cc94d67c0e21aaf7eda3a010fd3af78ebf6e096aa6e2e13c79749cce4f"
+checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.200"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "856f046b9400cee3c8c94ed572ecdb752444c24528c035cd35882aad6f492bcb"
+checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2803,9 +2830,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.116"
+version = "1.0.117"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
+checksum = "455182ea6142b14f93f4bc5320a2b31c1f266b66a4a5c858b013302a5d8cbfc3"
 dependencies = [
  "itoa",
  "ryu",
@@ -3012,7 +3039,7 @@ checksum = "24ba59a9342a3d9bab6c56c118be528b27c9b60e490080e9711a04dccac83ef6"
 dependencies = [
  "ahash 0.8.11",
  "atoi",
- "byteorder",
+ "byteorder 1.5.0",
  "bytes",
  "chrono",
  "crc",
@@ -3092,7 +3119,7 @@ dependencies = [
  "atoi",
  "base64 0.21.7",
  "bitflags 2.5.0",
- "byteorder",
+ "byteorder 1.5.0",
  "bytes",
  "chrono",
  "crc",
@@ -3135,7 +3162,7 @@ dependencies = [
  "atoi",
  "base64 0.21.7",
  "bitflags 2.5.0",
- "byteorder",
+ "byteorder 1.5.0",
  "chrono",
  "crc",
  "dotenvy",
@@ -3632,7 +3659,7 @@ version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ef1a641ea34f399a848dea702823bbecfb4c486f911735368f1f137cb8257e1"
 dependencies = [
- "byteorder",
+ "byteorder 1.5.0",
  "bytes",
  "data-encoding",
  "http 1.1.0",

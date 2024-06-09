@@ -1,17 +1,25 @@
 use anyhow::Context;
-use async_graphql::futures_util::lock::Mutex;
-use async_graphql::http::GraphiQLSource;
-use async_graphql::Schema;
+use async_graphql::{
+    http::GraphiQLSource,
+    Schema,
+};
 use async_graphql_axum::GraphQL;
-use axum::response::{self, IntoResponse};
-use axum::{routing::get, Router};
+use axum::{
+    response::{
+        self,
+        IntoResponse,
+    },
+    routing::get,
+    Router,
+};
 use clap::Parser;
 use concordium_rust_sdk::v2;
 use dotenv::dotenv;
 use sqlx::PgPool;
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::sync::mpsc;
+use tokio::{
+    net::TcpListener,
+    sync::mpsc,
+};
 
 mod graphql_api;
 mod indexer;
@@ -22,7 +30,8 @@ pub async fn graphiql() -> impl IntoResponse {
 
 #[derive(Parser)]
 struct Cli {
-    /// The url used for the database, something of the form "postgres://postgres:example@localhost/ccd-scan"
+    /// The url used for the database, something of the form
+    /// "postgres://postgres:example@localhost/ccd-scan"
     #[arg(long, env = "DATABASE_URL")]
     database_url: String,
 

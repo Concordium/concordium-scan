@@ -1,14 +1,35 @@
+use anyhow::Context as _;
 use async_graphql::{
-    types::{self, connection},
-    ComplexObject, Context, Enum, InputObject, InputValueError, InputValueResult, Interface,
-    Number, Object, Scalar, ScalarType, SimpleObject, Union, Value,
+    types::{
+        self,
+        connection,
+    },
+    ComplexObject,
+    Context,
+    Enum,
+    InputObject,
+    InputValueError,
+    InputValueResult,
+    Interface,
+    Number,
+    Object,
+    Scalar,
+    ScalarType,
+    SimpleObject,
+    Union,
+    Value,
 };
 use chrono::Duration;
 use futures::prelude::*;
-use sqlx::{postgres::types::PgInterval, PgPool, Postgres};
-use std::{error::Error, sync::Arc};
-
-pub struct Query;
+use sqlx::{
+    postgres::types::PgInterval,
+    PgPool,
+    Postgres,
+};
+use std::{
+    error::Error,
+    sync::Arc,
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -34,6 +55,10 @@ enum ApiError {
     QueryConnectionNegativeFirst,
     #[error("The \"last\" parameter must be a non-negative number")]
     QueryConnectionNegativeLast,
+    #[error("Internal error: {0}")]
+    InternalError(String),
+    #[error("Invalid integer: {0}")]
+    InvalidInt(#[from] std::num::TryFromIntError),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -65,6 +90,7 @@ fn check_connection_query(first: &Option<i64>, last: &Option<i64>) -> ApiResult<
     Ok(())
 }
 
+pub struct Query;
 #[Object]
 impl Query {
     async fn versions(&self) -> Versions {
@@ -111,42 +137,42 @@ impl Query {
             sqlx::QueryBuilder::<'_, Postgres>::new("SELECT * FROM (SELECT * FROM blocks");
 
         match (after, before) {
-            (None, None) => {}
+            (None, None) => {},
             (None, Some(before)) => {
                 builder
                     .push(" WHERE height < ")
                     .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
             (Some(after), None) => {
                 builder
                     .push(" WHERE height > ")
                     .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
             (Some(after), Some(before)) => {
                 builder
                     .push(" WHERE height > ")
                     .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?)
                     .push(" AND height < ")
                     .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
         }
 
         match (first, &last) {
             (None, None) => {
                 builder.push(" ORDER BY height ASC)");
-            }
+            },
             (None, Some(last)) => {
                 builder
                     .push(" ORDER BY height DESC LIMIT ")
                     .push_bind(last)
                     .push(") ORDER BY height ASC ");
-            }
+            },
             (Some(first), None) => {
                 builder
                     .push(" ORDER BY height ASC LIMIT ")
                     .push_bind(first)
                     .push(")");
-            }
+            },
             (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
         }
 
@@ -173,29 +199,23 @@ impl Query {
 
     async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
         let id = IdTransaction::try_from(id)?;
-        sqlx::query_as!(
-            Transaction,
-            "SELECT * FROM transactions WHERE block=$1 AND index=$2",
-            id.block,
-            id.index
-        )
-        .fetch_optional(get_pool(ctx)?)
-        .await?
-        .ok_or(ApiError::NotFound)
+        sqlx::query_as("SELECT * FROM transactions WHERE block=$1 AND index=$2")
+            .bind(id.block)
+            .bind(id.index)
+            .fetch_optional(get_pool(ctx)?)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
     async fn transaction_by_transaction_hash<'a>(
         &self,
         ctx: &Context<'a>,
         transaction_hash: TransactionHash,
     ) -> ApiResult<Transaction> {
-        sqlx::query_as!(
-            Transaction,
-            "SELECT * FROM transactions WHERE hash=$1",
-            transaction_hash
-        )
-        .fetch_optional(get_pool(ctx)?)
-        .await?
-        .ok_or(ApiError::NotFound)
+        sqlx::query_as("SELECT * FROM transactions WHERE hash=$1")
+            .bind(transaction_hash)
+            .fetch_optional(get_pool(ctx)?)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
     async fn transactions(
         &self,
@@ -251,42 +271,42 @@ impl Query {
         // TODO: include sort and filter
 
         match (after, before) {
-            (None, None) => {}
+            (None, None) => {},
             (None, Some(before)) => {
                 builder
                     .push(" WHERE index < ")
                     .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
             (Some(after), None) => {
                 builder
                     .push(" WHERE index > ")
                     .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
             (Some(after), Some(before)) => {
                 builder
                     .push(" WHERE index > ")
                     .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?)
                     .push(" AND index < ")
                     .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
+            },
         }
 
         match (first, &last) {
             (None, None) => {
                 builder.push(" ORDER BY index ASC)");
-            }
+            },
             (None, Some(last)) => {
                 builder
                     .push(" ORDER BY index DESC LIMIT ")
                     .push_bind(last)
                     .push(") ORDER BY index ASC ");
-            }
+            },
             (Some(first), None) => {
                 builder
                     .push(" ORDER BY index ASC LIMIT ")
                     .push_bind(first)
                     .push(")");
-            }
+            },
             (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
         }
 
@@ -334,7 +354,7 @@ impl Query {
     }
 
     async fn search(&self, query: String) -> SearchResult {
-        todo!()
+        SearchResult { _query: query }
     }
     async fn block_metrics<'a>(
         &self,
@@ -369,7 +389,8 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
         Ok(BlockMetrics {
             last_block_height: rec.last_block_height.unwrap_or(0),
             blocks_added: rec.blocks_added.unwrap_or(0),
-            avg_block_time: rec.avg_block_time.map(|i| i.microseconds as f64), // TODO check what format this is expected to be in.
+            avg_block_time: rec.avg_block_time.map(|i| i.microseconds as f64),
+            // TODO check what format this is expected to be in.
         })
     }
 
@@ -384,16 +405,29 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
     // paydayStatus: PaydayStatus
     // latestChainParameters: ChainParameters
     // importState: ImportState
-    // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): NodeStatusesConnection
-    // nodeStatus(id: ID!): NodeStatus
-    // tokens("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): TokensConnection
-    // token(contractIndex: UnsignedLong! contractSubIndex: UnsignedLong! tokenId: String!): Token!
-    // contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex: UnsignedLong!): Contract
-    // contracts("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): ContractsConnection
-    // moduleReferenceEvent(moduleReference: String!): ModuleReferenceEvent
+    // nodeStatuses(sortField: NodeSortField! sortDirection: NodeSortDirection! "Returns the first
+    // _n_ elements from the list." first: Int "Returns the elements in the list that come after the
+    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
+    // "Returns the elements in the list that come before the specified cursor." before: String):
+    // NodeStatusesConnection nodeStatus(id: ID!): NodeStatus
+    // tokens("Returns the first _n_ elements from the list." first: Int "Returns the elements in
+    // the list that come after the specified cursor." after: String "Returns the last _n_ elements
+    // from the list." last: Int "Returns the elements in the list that come before the specified
+    // cursor." before: String): TokensConnection token(contractIndex: UnsignedLong!
+    // contractSubIndex: UnsignedLong! tokenId: String!): Token! contract(contractAddressIndex:
+    // UnsignedLong! contractAddressSubIndex: UnsignedLong!): Contract contracts("Returns the
+    // first _n_ elements from the list." first: Int "Returns the elements in the list that come
+    // after the specified cursor." after: String "Returns the last _n_ elements from the list."
+    // last: Int "Returns the elements in the list that come before the specified cursor." before:
+    // String): ContractsConnection moduleReferenceEvent(moduleReference: String!):
+    // ModuleReferenceEvent
 }
 
-/// The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater than or equal to 0.
+/// The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater
+/// than or equal to 0.
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[repr(transparent)]
+#[serde(transparent)]
 struct UnsignedLong(u64);
 #[Scalar]
 impl ScalarType for UnsignedLong {
@@ -413,7 +447,11 @@ impl ScalarType for UnsignedLong {
     }
 }
 
-/// The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can represent values between -(2^63) and 2^63 - 1.
+/// The `Long` scalar type represents non-fractional signed whole 64-bit numeric values. Long can
+/// represent values between -(2^63) and 2^63 - 1.
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[repr(transparent)]
+#[serde(transparent)]
 struct Long(i64);
 #[Scalar]
 impl ScalarType for Long {
@@ -432,6 +470,9 @@ impl ScalarType for Long {
         Value::Number(self.0.into())
     }
 }
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[repr(transparent)]
+#[serde(transparent)]
 struct Byte(u8);
 #[Scalar]
 impl ScalarType for Byte {
@@ -455,6 +496,9 @@ impl ScalarType for Byte {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+#[serde(transparent)]
 struct Decimal(f64);
 #[Scalar]
 impl ScalarType for Decimal {
@@ -476,7 +520,10 @@ impl ScalarType for Decimal {
 }
 
 /// The `TimeSpan` scalar represents an ISO-8601 compliant duration type.
-struct TimeSpan(Duration);
+#[derive(serde::Serialize, serde::Deserialize)]
+#[repr(transparent)]
+#[serde(transparent)]
+struct TimeSpan(String);
 #[Scalar]
 impl ScalarType for TimeSpan {
     fn parse(value: Value) -> InputValueResult<Self> {
@@ -644,13 +691,29 @@ struct ContractRejectEvent {
     block_slot_time: DateTime,
 }
 
-// union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference | InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress | RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit | RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker | InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown | DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse | InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer | ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired | ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds | RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials | NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters | FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange | TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake | MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown | NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool | PoolWouldBecomeOverDelegated | PoolClosed
-#[derive(Union)]
+// union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference |
+// InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress |
+// RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit |
+// RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker |
+// InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown |
+// DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse |
+// InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof
+// | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer |
+// ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired |
+// ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds |
+// RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials |
+// NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters |
+// FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange |
+// TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake |
+// MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown |
+// NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool |
+// PoolWouldBecomeOverDelegated | PoolClosed
+#[derive(Union, serde::Serialize, serde::Deserialize)]
 enum TransactionRejectReason {
     PoolClosed(PoolClosed),
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct PoolClosed {
     #[graphql(
         name = "_",
@@ -916,7 +979,7 @@ struct PassiveDelegationPoolRewardTarget {
     dummy: bool,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct PassiveDelegationTarget {
     #[graphql(
         name = "_",
@@ -925,12 +988,12 @@ struct PassiveDelegationTarget {
     dummy: bool,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct BakerPoolRewardTarget {
     baker_id: BakerId,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct BakerDelegationTarget {
     baker_id: BakerId,
 }
@@ -939,9 +1002,12 @@ struct BakerDelegationTarget {
 struct BalanceStatistics {
     /// The total CCD in existence
     total_amount: Amount,
-    /// The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts.
+    /// The total CCD Released. This is total CCD supply not counting the balances of non
+    /// circulating accounts.
     total_amount_released: Amount,
-    /// The total CCD Unlocked according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule.
+    /// The total CCD Unlocked according to the Concordium promise published on
+    /// deck.concordium.com. Will be null for blocks with slot time before the published release
+    /// schedule.
     total_amount_unlocked: Amount,
     /// The total CCD in encrypted balances.
     total_amount_encrypted: Amount,
@@ -1042,9 +1108,15 @@ struct ExchangeRate {
     denominator: u64,
 }
 
-#[derive(SimpleObject, Clone)]
+#[derive(SimpleObject, Clone, serde::Serialize, serde::Deserialize)]
 struct AccountAddress {
     as_string: String,
+}
+
+impl From<concordium_rust_sdk::common::types::AccountAddress> for AccountAddress {
+    fn from(address: concordium_rust_sdk::common::types::AccountAddress) -> Self {
+        address.to_string().into()
+    }
 }
 
 impl From<String> for AccountAddress {
@@ -1077,7 +1149,7 @@ impl From<IdTransaction> for types::ID {
     }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, sqlx::FromRow)]
 #[graphql(complex)]
 struct Transaction {
     #[graphql(skip)]
@@ -1090,8 +1162,22 @@ struct Transaction {
     energy_cost: Energy,
     #[graphql(skip)]
     sender: Option<AccountIndex>,
-    // transaction_type: TransactionType,
-    // result: TransactionResult,
+    #[graphql(skip)]
+    r#type: DbTransactionType,
+    #[graphql(skip)]
+    type_account: Option<AccountTransactionType>,
+    #[graphql(skip)]
+    type_credential_deployment: Option<CredentialDeploymentTransactionType>,
+    #[graphql(skip)]
+    type_update: Option<UpdateTransactionType>,
+    #[graphql(skip)]
+    success: bool,
+    #[graphql(skip)]
+    #[sqlx(json)]
+    events: Option<Vec<Event>>,
+    #[graphql(skip)]
+    #[sqlx(json)]
+    reject: Option<TransactionRejectReason>,
 }
 #[ComplexObject]
 impl Transaction {
@@ -1123,18 +1209,227 @@ impl Transaction {
             .await?;
         Ok(Some(result.address.into()))
     }
+
+    async fn transaction_type(&self) -> ApiResult<TransactionType> {
+        let tt = match self.r#type {
+            DbTransactionType::Account => TransactionType::AccountTransaction(AccountTransaction {
+                account_transaction_type: self.type_account,
+            }),
+            DbTransactionType::CredentialDeployment => TransactionType::CredentialDeploymentTransaction(CredentialDeploymentTransaction {
+                credential_deployment_transaction_type: self.type_credential_deployment.ok_or(ApiError::InternalError("Database invariant violated, transaction type is credential deployment, but credential deployment type is null".to_string()))?,
+            }),
+            DbTransactionType::Update => TransactionType::UpdateTransaction(UpdateTransaction {
+                update_transaction_type: self.type_update.ok_or(ApiError::InternalError("Database invariant violated, transaction type is update, but update type is null".to_string()))?,
+            }),
+        };
+        Ok(tt)
+    }
+
+    async fn result(&self) -> ApiResult<TransactionResult<'_>> {
+        if self.success {
+            let events = self.events.as_ref().ok_or(ApiError::InternalError(
+                "Success events is null".to_string(),
+            ))?;
+            Ok(TransactionResult::Success(Success { events }))
+        } else {
+            let reason = self.reject.as_ref().ok_or(ApiError::InternalError(
+                "Success events is null".to_string(),
+            ))?;
+            Ok(TransactionResult::Rejected(Rejected { reason }))
+        }
+    }
+}
+
+#[derive(Union)]
+enum TransactionType {
+    AccountTransaction(AccountTransaction),
+    CredentialDeploymentTransaction(CredentialDeploymentTransaction),
+    UpdateTransaction(UpdateTransaction),
 }
 
 #[derive(SimpleObject)]
-// TODO union TransactionType = AccountTransaction | CredentialDeploymentTransaction | UpdateTransaction
-struct TransactionType {
-    dummy: i32,
+struct AccountTransaction {
+    account_transaction_type: Option<AccountTransactionType>,
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "account_transaction_type")]
+pub enum AccountTransactionType {
+    InitializeSmartContractInstance,
+    UpdateSmartContractInstance,
+    SimpleTransfer,
+    EncryptedTransfer,
+    SimpleTransferWithMemo,
+    EncryptedTransferWithMemo,
+    TransferWithScheduleWithMemo,
+    DeployModule,
+    AddBaker,
+    RemoveBaker,
+    UpdateBakerStake,
+    UpdateBakerRestakeEarnings,
+    UpdateBakerKeys,
+    UpdateCredentialKeys,
+    TransferToEncrypted,
+    TransferToPublic,
+    TransferWithSchedule,
+    UpdateCredentials,
+    RegisterData,
+    ConfigureBaker,
+    ConfigureDelegation,
+}
+
+impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionType {
+    fn from(value: concordium_rust_sdk::types::TransactionType) -> Self {
+        use concordium_rust_sdk::types::TransactionType as TT;
+        use AccountTransactionType as ATT;
+        match value {
+            TT::DeployModule => ATT::DeployModule,
+            TT::InitContract => ATT::InitializeSmartContractInstance,
+            TT::Update => ATT::UpdateSmartContractInstance,
+            TT::Transfer => ATT::SimpleTransfer,
+            TT::AddBaker => ATT::AddBaker,
+            TT::RemoveBaker => ATT::RemoveBaker,
+            TT::UpdateBakerStake => ATT::UpdateBakerStake,
+            TT::UpdateBakerRestakeEarnings => ATT::UpdateBakerRestakeEarnings,
+            TT::UpdateBakerKeys => ATT::UpdateBakerKeys,
+            TT::UpdateCredentialKeys => ATT::UpdateCredentialKeys,
+            TT::EncryptedAmountTransfer => ATT::EncryptedTransfer,
+            TT::TransferToEncrypted => ATT::TransferToEncrypted,
+            TT::TransferToPublic => ATT::TransferToPublic,
+            TT::TransferWithSchedule => ATT::TransferWithSchedule,
+            TT::UpdateCredentials => ATT::UpdateCredentials,
+            TT::RegisterData => ATT::RegisterData,
+            TT::TransferWithMemo => ATT::SimpleTransferWithMemo,
+            TT::EncryptedAmountTransferWithMemo => ATT::EncryptedTransferWithMemo,
+            TT::TransferWithScheduleAndMemo => ATT::TransferWithScheduleWithMemo,
+            TT::ConfigureBaker => ATT::ConfigureBaker,
+            TT::ConfigureDelegation => ATT::ConfigureDelegation,
+        }
+    }
 }
 
 #[derive(SimpleObject)]
-// TODO union TransactionResult = Success | Rejected
-struct TransactionResult {
-    dummy: i32,
+struct CredentialDeploymentTransaction {
+    credential_deployment_transaction_type: CredentialDeploymentTransactionType,
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "credential_deployment_transaction_type")]
+pub enum CredentialDeploymentTransactionType {
+    Initial,
+    Normal,
+}
+
+impl From<concordium_rust_sdk::types::CredentialType> for CredentialDeploymentTransactionType {
+    fn from(value: concordium_rust_sdk::types::CredentialType) -> Self {
+        use concordium_rust_sdk::types::CredentialType;
+        match value {
+            CredentialType::Initial => CredentialDeploymentTransactionType::Initial,
+            CredentialType::Normal => CredentialDeploymentTransactionType::Normal,
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+struct UpdateTransaction {
+    update_transaction_type: UpdateTransactionType,
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "update_transaction_type")]
+pub enum UpdateTransactionType {
+    UpdateProtocol,
+    UpdateElectionDifficulty,
+    UpdateEuroPerEnergy,
+    UpdateMicroGtuPerEuro,
+    UpdateFoundationAccount,
+    UpdateMintDistribution,
+    UpdateTransactionFeeDistribution,
+    UpdateGasRewards,
+    UpdateBakerStakeThreshold,
+    UpdateAddAnonymityRevoker,
+    UpdateAddIdentityProvider,
+    UpdateRootKeys,
+    UpdateLevel1Keys,
+    UpdateLevel2Keys,
+    UpdatePoolParameters,
+    UpdateCooldownParameters,
+    UpdateTimeParameters,
+    MintDistributionCpv1Update,
+    GasRewardsCpv2Update,
+    TimeoutParametersUpdate,
+    MinBlockTimeUpdate,
+    BlockEnergyLimitUpdate,
+    FinalizationCommitteeParametersUpdate,
+}
+
+impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
+    fn from(value: concordium_rust_sdk::types::UpdateType) -> Self {
+        use concordium_rust_sdk::types::UpdateType;
+        match value {
+            UpdateType::UpdateProtocol => UpdateTransactionType::UpdateProtocol,
+            UpdateType::UpdateElectionDifficulty => UpdateTransactionType::UpdateElectionDifficulty,
+            UpdateType::UpdateEuroPerEnergy => UpdateTransactionType::UpdateEuroPerEnergy,
+            UpdateType::UpdateMicroGTUPerEuro => UpdateTransactionType::UpdateMicroGtuPerEuro,
+            UpdateType::UpdateFoundationAccount => UpdateTransactionType::UpdateFoundationAccount,
+            UpdateType::UpdateMintDistribution => UpdateTransactionType::UpdateMintDistribution,
+            UpdateType::UpdateTransactionFeeDistribution => {
+                UpdateTransactionType::UpdateTransactionFeeDistribution
+            },
+            UpdateType::UpdateGASRewards => UpdateTransactionType::UpdateGasRewards,
+            UpdateType::UpdateAddAnonymityRevoker => {
+                UpdateTransactionType::UpdateAddAnonymityRevoker
+            },
+            UpdateType::UpdateAddIdentityProvider => {
+                UpdateTransactionType::UpdateAddIdentityProvider
+            },
+            UpdateType::UpdateRootKeys => UpdateTransactionType::UpdateRootKeys,
+            UpdateType::UpdateLevel1Keys => UpdateTransactionType::UpdateLevel1Keys,
+            UpdateType::UpdateLevel2Keys => UpdateTransactionType::UpdateLevel2Keys,
+            UpdateType::UpdatePoolParameters => UpdateTransactionType::UpdatePoolParameters,
+            UpdateType::UpdateCooldownParameters => UpdateTransactionType::UpdateCooldownParameters,
+            UpdateType::UpdateTimeParameters => UpdateTransactionType::UpdateTimeParameters,
+            UpdateType::UpdateGASRewardsCPV2 => UpdateTransactionType::GasRewardsCpv2Update,
+            UpdateType::UpdateTimeoutParameters => UpdateTransactionType::TimeoutParametersUpdate,
+            UpdateType::UpdateMinBlockTime => UpdateTransactionType::MinBlockTimeUpdate,
+            UpdateType::UpdateBlockEnergyLimit => UpdateTransactionType::BlockEnergyLimitUpdate,
+            UpdateType::UpdateFinalizationCommitteeParameters => {
+                UpdateTransactionType::FinalizationCommitteeParametersUpdate
+            },
+        }
+    }
+}
+
+#[derive(Union)]
+enum TransactionResult<'a> {
+    Success(Success<'a>),
+    Rejected(Rejected<'a>),
+}
+
+struct Success<'a> {
+    events: &'a Vec<Event>,
+}
+
+#[Object]
+impl Success<'_> {
+    async fn events(
+        &self,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i64,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: String,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i64,
+        #[graphql(
+            desc = "Returns the elements in the list that come before the specified cursor."
+        )]
+        before: String,
+    ) -> ApiResult<connection::Connection<String, Event>> {
+        todo!()
+    }
+}
+
+#[derive(SimpleObject)]
+struct Rejected<'a> {
+    reason: &'a TransactionRejectReason,
 }
 
 #[derive(SimpleObject, sqlx::FromRow)]
@@ -1143,10 +1438,12 @@ struct Account {
     // release_schedule: AccountReleaseSchedule,
     #[graphql(skip)]
     index: i64,
+    /// Height of the block with the transaction creating this account.
     #[graphql(skip)]
     created_block: BlockHeight,
+    /// Index of transaction creating this account within a block. Only Null for genesis accounts.
     #[graphql(skip)]
-    created_index: TransactionIndex,
+    created_index: Option<TransactionIndex>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
     address: AccountAddress,
@@ -1268,7 +1565,10 @@ struct Baker {
     baker_id: BakerId,
     state: BakerState,
     //      /// Get the transactions that have affected the baker.
-    // transactions("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): BakerTransactionRelationConnection
+    // transactions("Returns the first _n_ elements from the list." first: Int "Returns the
+    // elements in the list that come after the specified cursor." after: String "Returns the last
+    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
+    // the specified cursor." before: String): BakerTransactionRelationConnection
 }
 
 #[derive(Union)]
@@ -1364,7 +1664,9 @@ struct NodeStatus {
 
 #[derive(SimpleObject)]
 struct BakerPool {
-    /// Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.
+    /// Total stake of the baker pool as a percentage of all CCDs in existence. Value may be null
+    /// for brand new bakers where statistics have not been calculated yet. This should be rare and
+    /// only a temporary condition.
     total_stake_percentage: Decimal,
     lottery_power: Decimal,
     payday_commission_rates: CommissionRates,
@@ -1373,16 +1675,25 @@ struct BakerPool {
     metadata_url: String,
     /// The total amount staked by delegation to this baker pool.
     delegated_stake: Amount,
-    /// The maximum amount that may be delegated to the pool, accounting for leverage and stake limits.
+    /// The maximum amount that may be delegated to the pool, accounting for leverage and stake
+    /// limits.
     delegated_stake_cap: Amount,
     /// The total amount staked in this baker pool. Includes both baker stake and delegated stake.
     total_stake: Amount,
     delegator_count: i32,
-    /// Ranking of the baker pool by total staked amount. Value may be null for brand new bakers where statistics have not been calculated yet. This should be rare and only a temporary condition.
+    /// Ranking of the baker pool by total staked amount. Value may be null for brand new bakers
+    /// where statistics have not been calculated yet. This should be rare and only a temporary
+    /// condition.
     ranking_by_total_stake: Ranking,
     // TODO: apy(period: ApyPeriod!): PoolApy!
-    // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): DelegatorsConnection
-    // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): PaydayPoolRewardConnection
+    // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
+    // elements in the list that come after the specified cursor." after: String "Returns the last
+    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
+    // the specified cursor." before: String): DelegatorsConnection
+    // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the
+    // elements in the list that come after the specified cursor." after: String "Returns the last
+    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
+    // the specified cursor." before: String): PaydayPoolRewardConnection
 }
 
 #[derive(SimpleObject)]
@@ -1392,11 +1703,22 @@ struct CommissionRates {
     baking_commission: Decimal,
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
+#[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum BakerPoolOpenStatus {
     OpenForAll,
     ClosedForNew,
     ClosedForAll,
+}
+
+impl From<concordium_rust_sdk::types::OpenStatus> for BakerPoolOpenStatus {
+    fn from(status: concordium_rust_sdk::types::OpenStatus) -> Self {
+        use concordium_rust_sdk::types::OpenStatus;
+        match status {
+            OpenStatus::OpenForAll => Self::OpenForAll,
+            OpenStatus::ClosedForNew => Self::ClosedForNew,
+            OpenStatus::ClosedForAll => Self::ClosedForAll,
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -1414,10 +1736,31 @@ struct Delegation {
     pending_change: PendingDelegationChange,
 }
 
-#[derive(Union)]
+#[derive(Union, serde::Serialize, serde::Deserialize)]
 enum DelegationTarget {
     PassiveDelegationTarget(PassiveDelegationTarget),
     BakerDelegationTarget(BakerDelegationTarget),
+}
+
+impl TryFrom<concordium_rust_sdk::types::DelegationTarget> for DelegationTarget {
+    type Error = anyhow::Error;
+    fn try_from(target: concordium_rust_sdk::types::DelegationTarget) -> Result<Self, Self::Error> {
+        use concordium_rust_sdk::types::DelegationTarget as Target;
+        match target {
+            Target::Passive => {
+                Ok(DelegationTarget::PassiveDelegationTarget(
+                    PassiveDelegationTarget { dummy: true },
+                ))
+            },
+            Target::Baker { baker_id } => {
+                Ok(DelegationTarget::BakerDelegationTarget(
+                    BakerDelegationTarget {
+                        baker_id: baker_id.id.index.try_into()?,
+                    },
+                ))
+            },
+        }
+    }
 }
 
 #[derive(Union)]
@@ -1497,12 +1840,15 @@ enum BakerSort {
     BlockCommissionsDesc,
 }
 
-struct SearchResult;
+struct SearchResult {
+    _query: String,
+}
 
 #[Object]
 impl SearchResult {
-    async fn contracts(
+    async fn contracts<'a>(
         &self,
+        _ctx: &Context<'a>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
@@ -1518,8 +1864,8 @@ impl SearchResult {
     // async fn modules(
     //     &self,
     //     #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-    //     #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-    //     _after: Option<String>,
+    //     #[graphql(desc = "Returns the elements in the list that come after the specified
+    // cursor.")]     _after: Option<String>,
     //     #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
     //     #[graphql(
     //         desc = "Returns the elements in the list that come before the specified cursor."
@@ -1614,21 +1960,31 @@ impl SearchResult {
     }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractAddress {
     index: ContractIndex,
     sub_index: ContractIndex,
     as_string: String,
 }
 
-#[derive(Union)]
+impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
+    fn from(value: concordium_rust_sdk::types::ContractAddress) -> Self {
+        Self {
+            index: value.index.into(),
+            sub_index: value.subindex.into(),
+            as_string: value.to_string(),
+        }
+    }
+}
+
+#[derive(Union, serde::Serialize, serde::Deserialize)]
 enum Address {
     ContractAddress(ContractAddress),
     AccountAddress(AccountAddress),
 }
 
-#[derive(Union)]
-enum Event {
+#[derive(Union, serde::Serialize, serde::Deserialize)]
+pub enum Event {
     Transferred(Transferred),
     AccountCreated(AccountCreated),
     AmountAddedByDecryption(AmountAddedByDecryption),
@@ -1651,141 +2007,578 @@ enum Event {
     NewEncryptedAmount(NewEncryptedAmount),
     TransferMemo(TransferMemo),
     TransferredWithSchedule(TransferredWithSchedule),
-    // TODO:
-    // ChainUpdateEnqueued(ChainUpdateEnqueued),
-    // ContractInterrupted(ContractInterrupted),
-    // ContractResumed(ContractResumed),
-    // ContractUpgraded(ContractUpgraded),
-    // BakerSetOpenStatus(BakerSetOpenStatus),
-    // BakerSetMetadataURL(BakerSetMetadataURL),
-    // BakerSetTransactionFeeCommission(BakerSetTransactionFeeCommission),
-    // BakerSetBakingRewardCommission(BakerSetBakingRewardCommission),
-    // BakerSetFinalizationRewardCommission(BakerSetFinalizationRewardCommission),
-    // DelegationAdded(DelegationAdded),
-    // DelegationRemoved(DelegationRemoved),
-    // DelegationStakeIncreased(DelegationStakeIncreased),
-    // DelegationStakeDecreased(DelegationStakeDecreased),
-    // DelegationSetRestakeEarnings(DelegationSetRestakeEarnings),
-    // DelegationSetDelegationTarget(DelegationSetDelegationTarget),
+    ChainUpdateEnqueued(ChainUpdateEnqueued),
+    ContractInterrupted(ContractInterrupted),
+    ContractResumed(ContractResumed),
+    ContractUpgraded(ContractUpgraded),
+    BakerSetOpenStatus(BakerSetOpenStatus),
+    BakerSetMetadataURL(BakerSetMetadataURL),
+    BakerSetTransactionFeeCommission(BakerSetTransactionFeeCommission),
+    BakerSetBakingRewardCommission(BakerSetBakingRewardCommission),
+    BakerSetFinalizationRewardCommission(BakerSetFinalizationRewardCommission),
+    DelegationAdded(DelegationAdded),
+    DelegationRemoved(DelegationRemoved),
+    DelegationStakeIncreased(DelegationStakeIncreased),
+    DelegationStakeDecreased(DelegationStakeDecreased),
+    DelegationSetRestakeEarnings(DelegationSetRestakeEarnings),
+    DelegationSetDelegationTarget(DelegationSetDelegationTarget),
 }
 
-#[derive(SimpleObject)]
+pub fn events_from_summary(
+    value: concordium_rust_sdk::types::BlockItemSummaryDetails,
+) -> anyhow::Result<Vec<Event>> {
+    use concordium_rust_sdk::types::{
+        AccountTransactionEffects,
+        BlockItemSummaryDetails,
+    };
+    let events = match value {
+        BlockItemSummaryDetails::AccountTransaction(details) => {
+            match details.effects {
+                AccountTransactionEffects::None {
+                    transaction_type,
+                    reject_reason,
+                } => todo!(),
+                AccountTransactionEffects::ModuleDeployed { module_ref } => {
+                    vec![Event::ContractModuleDeployed(ContractModuleDeployed {
+                        module_ref: module_ref.to_string(),
+                    })]
+                },
+                AccountTransactionEffects::ContractInitialized { data } => {
+                    vec![Event::ContractInitialized(ContractInitialized {
+                        module_ref: data.origin_ref.to_string(),
+                        contract_address: data.address.into(),
+                        amount: i64::try_from(data.amount.micro_ccd)?,
+                        init_name: data.init_name.to_string(),
+                        version: data.contract_version.into(),
+                    })]
+                },
+                AccountTransactionEffects::ContractUpdateIssued { effects } => todo!(),
+                AccountTransactionEffects::AccountTransfer { amount, to } => {
+                    vec![Event::Transferred(Transferred {
+                        amount: i64::try_from(amount.micro_ccd)?,
+                        from: details.sender.into(),
+                        to: to.into(),
+                    })]
+                },
+                AccountTransactionEffects::AccountTransferWithMemo { amount, to, memo } => {
+                    vec![
+                        Event::Transferred(Transferred {
+                            amount: i64::try_from(amount.micro_ccd)?,
+                            from: details.sender.into(),
+                            to: to.into(),
+                        }),
+                        Event::TransferMemo(memo.into()),
+                    ]
+                },
+                AccountTransactionEffects::BakerAdded { data } => {
+                    vec![Event::BakerAdded(BakerAdded {
+                        staked_amount: data.stake.micro_ccd.try_into()?,
+                        restake_earnings: data.restake_earnings,
+                        baker_id: data.keys_event.baker_id.id.index.try_into()?,
+                        sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
+                        election_key: serde_json::to_string(&data.keys_event.election_key)?,
+                        aggregation_key: serde_json::to_string(&data.keys_event.aggregation_key)?,
+                    })]
+                },
+                AccountTransactionEffects::BakerRemoved { baker_id } => {
+                    vec![Event::BakerRemoved(BakerRemoved {
+                        baker_id: baker_id.id.index.try_into()?,
+                    })]
+                },
+                AccountTransactionEffects::BakerStakeUpdated { data } => {
+                    if let Some(data) = data {
+                        if data.increased {
+                            vec![Event::BakerStakeIncreased(BakerStakeIncreased {
+                                baker_id: data.baker_id.id.index.try_into()?,
+                                new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            })]
+                        } else {
+                            vec![Event::BakerStakeDecreased(BakerStakeDecreased {
+                                baker_id: data.baker_id.id.index.try_into()?,
+                                new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            })]
+                        }
+                    } else {
+                        Vec::new()
+                    }
+                },
+                AccountTransactionEffects::BakerRestakeEarningsUpdated {
+                    baker_id,
+                    restake_earnings,
+                } => {
+                    vec![Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
+                        baker_id: baker_id.id.index.try_into()?,
+                        restake_earnings,
+                    })]
+                },
+                AccountTransactionEffects::BakerKeysUpdated { data } => {
+                    vec![Event::BakerKeysUpdated(BakerKeysUpdated {
+                        baker_id: data.baker_id.id.index.try_into()?,
+                        sign_key: serde_json::to_string(&data.sign_key)?,
+                        election_key: serde_json::to_string(&data.election_key)?,
+                        aggregation_key: serde_json::to_string(&data.aggregation_key)?,
+                    })]
+                },
+                AccountTransactionEffects::EncryptedAmountTransferred { removed, added } => {
+                    vec![
+                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                        Event::NewEncryptedAmount((*added).try_into()?),
+                    ]
+                },
+                AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
+                    removed,
+                    added,
+                    memo,
+                } => {
+                    vec![
+                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                        Event::NewEncryptedAmount((*added).try_into()?),
+                        Event::TransferMemo(memo.into()),
+                    ]
+                },
+                AccountTransactionEffects::TransferredToEncrypted { data } => {
+                    vec![Event::EncryptedSelfAmountAdded(EncryptedSelfAmountAdded {
+                        account_address: data.account.into(),
+                        new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
+                        amount: data.amount.micro_ccd.try_into()?,
+                    })]
+                },
+                AccountTransactionEffects::TransferredToPublic { removed, amount } => {
+                    vec![
+                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                        Event::AmountAddedByDecryption(AmountAddedByDecryption {
+                            amount: amount.micro_ccd().try_into()?,
+                            account_address: details.sender.into(),
+                        }),
+                    ]
+                },
+                AccountTransactionEffects::TransferredWithSchedule { to, amount } => {
+                    vec![Event::TransferredWithSchedule(TransferredWithSchedule {
+                        from_account_address: details.sender.into(),
+                        to_account_address: to.into(),
+                        total_amount: amount
+                            .into_iter()
+                            .map(|(_, amount)| amount.micro_ccd())
+                            .sum::<u64>()
+                            .try_into()?,
+                    })]
+                },
+                AccountTransactionEffects::TransferredWithScheduleAndMemo { to, amount, memo } => {
+                    vec![
+                        Event::TransferredWithSchedule(TransferredWithSchedule {
+                            from_account_address: details.sender.into(),
+                            to_account_address: to.into(),
+                            total_amount: amount
+                                .into_iter()
+                                .map(|(_, amount)| amount.micro_ccd())
+                                .sum::<u64>()
+                                .try_into()?,
+                        }),
+                        Event::TransferMemo(memo.try_into()?),
+                    ]
+                },
+                AccountTransactionEffects::CredentialKeysUpdated { cred_id } => {
+                    vec![Event::CredentialKeysUpdated(CredentialKeysUpdated {
+                        cred_id: cred_id.to_string(),
+                    })]
+                },
+                AccountTransactionEffects::CredentialsUpdated {
+                    new_cred_ids,
+                    removed_cred_ids,
+                    new_threshold,
+                } => {
+                    vec![Event::CredentialsUpdated(CredentialsUpdated {
+                        account_address: details.sender.into(),
+                        new_cred_ids: new_cred_ids
+                            .into_iter()
+                            .map(|cred| cred.to_string())
+                            .collect(),
+                        removed_cred_ids: removed_cred_ids
+                            .into_iter()
+                            .map(|cred| cred.to_string())
+                            .collect(),
+                        new_threshold: Byte(u8::from(new_threshold)),
+                    })]
+                },
+                AccountTransactionEffects::DataRegistered { data } => {
+                    vec![Event::DataRegistered(DataRegistered {
+                        data_as_hex: hex::encode(data.as_ref()),
+                        decoded: todo!(),
+                    })]
+                },
+                AccountTransactionEffects::BakerConfigured { data } => {
+                    data.into_iter()
+                        .map(|baker_event| {
+                            use concordium_rust_sdk::types::BakerEvent;
+                            match baker_event {
+                                BakerEvent::BakerAdded { data } => {
+                                    Ok(Event::BakerAdded(BakerAdded {
+                                        staked_amount: data.stake.micro_ccd.try_into()?,
+                                        restake_earnings: data.restake_earnings,
+                                        baker_id: data.keys_event.baker_id.id.index.try_into()?,
+                                        sign_key: serde_json::to_string(&data.keys_event.sign_key)?,
+                                        election_key: serde_json::to_string(
+                                            &data.keys_event.election_key,
+                                        )?,
+                                        aggregation_key: serde_json::to_string(
+                                            &data.keys_event.aggregation_key,
+                                        )?,
+                                    }))
+                                },
+                                BakerEvent::BakerRemoved { baker_id } => {
+                                    Ok(Event::BakerRemoved(BakerRemoved {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                    }))
+                                },
+                                BakerEvent::BakerStakeIncreased {
+                                    baker_id,
+                                    new_stake,
+                                } => {
+                                    Ok(Event::BakerStakeIncreased(BakerStakeIncreased {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                        new_staked_amount: new_stake.micro_ccd.try_into()?,
+                                    }))
+                                },
+                                BakerEvent::BakerStakeDecreased {
+                                    baker_id,
+                                    new_stake,
+                                } => {
+                                    Ok(Event::BakerStakeDecreased(BakerStakeDecreased {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                        new_staked_amount: new_stake.micro_ccd.try_into()?,
+                                    }))
+                                },
+                                BakerEvent::BakerRestakeEarningsUpdated {
+                                    baker_id,
+                                    restake_earnings,
+                                } => {
+                                    Ok(Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                        restake_earnings,
+                                    }))
+                                },
+                                BakerEvent::BakerKeysUpdated { data } => {
+                                    Ok(Event::BakerKeysUpdated(BakerKeysUpdated {
+                                        baker_id: data.baker_id.id.index.try_into()?,
+                                        sign_key: serde_json::to_string(&data.sign_key)?,
+                                        election_key: serde_json::to_string(&data.election_key)?,
+                                        aggregation_key: serde_json::to_string(
+                                            &data.aggregation_key,
+                                        )?,
+                                    }))
+                                },
+                                BakerEvent::BakerSetOpenStatus {
+                                    baker_id,
+                                    open_status,
+                                } => {
+                                    Ok(Event::BakerSetOpenStatus(BakerSetOpenStatus {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                        open_status: open_status.into(),
+                                    }))
+                                },
+                                BakerEvent::BakerSetMetadataURL {
+                                    baker_id,
+                                    metadata_url,
+                                } => {
+                                    Ok(Event::BakerSetMetadataURL(BakerSetMetadataURL {
+                                        baker_id: baker_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                        metadata_url: metadata_url.into(),
+                                    }))
+                                },
+                                BakerEvent::BakerSetTransactionFeeCommission {
+                                    baker_id,
+                                    transaction_fee_commission,
+                                } => {
+                                    Ok(Event::BakerSetTransactionFeeCommission(
+                                        BakerSetTransactionFeeCommission {
+                                            baker_id: baker_id.id.index.try_into()?,
+                                            account_address: details.sender.into(),
+                                            transaction_fee_commission: todo!(),
+                                        },
+                                    ))
+                                },
+                                BakerEvent::BakerSetBakingRewardCommission {
+                                    baker_id,
+                                    baking_reward_commission,
+                                } => {
+                                    Ok(Event::BakerSetBakingRewardCommission(
+                                        BakerSetBakingRewardCommission {
+                                            baker_id: baker_id.id.index.try_into()?,
+                                            account_address: details.sender.into(),
+                                            baking_reward_commission: todo!(),
+                                        },
+                                    ))
+                                },
+                                BakerEvent::BakerSetFinalizationRewardCommission {
+                                    baker_id,
+                                    finalization_reward_commission,
+                                } => {
+                                    Ok(Event::BakerSetFinalizationRewardCommission(
+                                        BakerSetFinalizationRewardCommission {
+                                            baker_id: baker_id.id.index.try_into()?,
+                                            account_address: details.sender.into(),
+                                            finalization_reward_commission: todo!(),
+                                        },
+                                    ))
+                                },
+                            }
+                        })
+                        .collect::<anyhow::Result<Vec<Event>>>()?
+                },
+                AccountTransactionEffects::DelegationConfigured { data } => {
+                    use concordium_rust_sdk::types::DelegationEvent;
+                    data.into_iter()
+                        .map(|event| {
+                            match event {
+                                DelegationEvent::DelegationStakeIncreased {
+                                    delegator_id,
+                                    new_stake,
+                                } => {
+                                    Ok(Event::DelegationStakeIncreased(DelegationStakeIncreased {
+                                        delegator_id: delegator_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                        new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                    }))
+                                },
+                                DelegationEvent::DelegationStakeDecreased {
+                                    delegator_id,
+                                    new_stake,
+                                } => {
+                                    Ok(Event::DelegationStakeDecreased(DelegationStakeDecreased {
+                                        delegator_id: delegator_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                        new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                    }))
+                                },
+                                DelegationEvent::DelegationSetRestakeEarnings {
+                                    delegator_id,
+                                    restake_earnings,
+                                } => {
+                                    Ok(Event::DelegationSetRestakeEarnings(
+                                        DelegationSetRestakeEarnings {
+                                            delegator_id: delegator_id.id.index.try_into()?,
+                                            account_address: details.sender.into(),
+                                            restake_earnings,
+                                        },
+                                    ))
+                                },
+                                DelegationEvent::DelegationSetDelegationTarget {
+                                    delegator_id,
+                                    delegation_target,
+                                } => {
+                                    Ok(Event::DelegationSetDelegationTarget(
+                                        DelegationSetDelegationTarget {
+                                            delegator_id: delegator_id.id.index.try_into()?,
+                                            account_address: details.sender.into(),
+                                            delegation_target: delegation_target.try_into()?,
+                                        },
+                                    ))
+                                },
+                                DelegationEvent::DelegationAdded { delegator_id } => {
+                                    Ok(Event::DelegationAdded(DelegationAdded {
+                                        delegator_id: delegator_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                    }))
+                                },
+                                DelegationEvent::DelegationRemoved { delegator_id } => {
+                                    Ok(Event::DelegationRemoved(DelegationRemoved {
+                                        delegator_id: delegator_id.id.index.try_into()?,
+                                        account_address: details.sender.into(),
+                                    }))
+                                },
+                            }
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?
+                },
+            }
+        },
+        BlockItemSummaryDetails::AccountCreation(details) => {
+            vec![Event::AccountCreated(AccountCreated {
+                account_address: details.address.into(),
+            })]
+        },
+        BlockItemSummaryDetails::Update(details) => {
+            vec![Event::ChainUpdateEnqueued(ChainUpdateEnqueued {
+                effective_time: chrono::DateTime::from_timestamp(
+                    details.effective_time.seconds.try_into()?,
+                    0,
+                )
+                .context("Failed to parse effective time")?
+                .naive_utc(),
+                payload: true, // placeholder
+            })]
+        },
+    };
+    Ok(events)
+}
+
+impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
+    fn from(value: concordium_rust_sdk::types::Memo) -> Self {
+        TransferMemo {
+            decoded: todo!(),
+            raw_hex: hex::encode(value.as_ref()),
+        }
+    }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct Transferred {
     amount: Amount,
-    from: Address,
-    to: Address,
+    from: AccountAddress,
+    to: AccountAddress,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct AccountCreated {
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct AmountAddedByDecryption {
     amount: Amount,
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerAdded {
     staked_amount: Amount,
     restake_earnings: bool,
     baker_id: BakerId,
-    account_address: AccountAddress,
     sign_key: String,
     election_key: String,
     aggregation_key: String,
 }
+#[ComplexObject]
+impl BakerAdded {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
+}
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerKeysUpdated {
     baker_id: BakerId,
-    account_address: AccountAddress,
     sign_key: String,
     election_key: String,
     aggregation_key: String,
 }
+#[ComplexObject]
+impl BakerKeysUpdated {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
+}
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerRemoved {
     baker_id: BakerId,
-    account_address: AccountAddress,
+}
+#[ComplexObject]
+impl BakerRemoved {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerSetRestakeEarnings {
     baker_id: BakerId,
-    account_address: AccountAddress,
     restake_earnings: bool,
 }
+#[ComplexObject]
+impl BakerSetRestakeEarnings {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
+}
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerStakeDecreased {
     baker_id: BakerId,
-    account_address: AccountAddress,
     new_staked_amount: Amount,
 }
+#[ComplexObject]
+impl BakerStakeDecreased {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
+}
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct BakerStakeIncreased {
     baker_id: BakerId,
-    account_address: AccountAddress,
     new_staked_amount: Amount,
 }
+#[ComplexObject]
+impl BakerStakeIncreased {
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo!()
+    }
+}
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractInitialized {
     module_ref: String,
     contract_address: ContractAddress,
     amount: Amount,
     init_name: String,
     version: ContractVersion,
-    // TODO: eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
-    // TODO: events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
+    // TODO: eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the
+    // elements in the list that come after the specified cursor." after: String "Returns the last
+    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
+    // the specified cursor." before: String): StringConnection TODO: events("Returns the first
+    // _n_ elements from the list." first: Int "Returns the elements in the list that come after
+    // the specified cursor." after: String "Returns the last _n_ elements from the list." last:
+    // Int "Returns the elements in the list that come before the specified cursor." before:
+    // String): StringConnection
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
+#[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum ContractVersion {
     V0,
     V1,
 }
 
-#[derive(SimpleObject)]
+impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for ContractVersion {
+    fn from(value: concordium_rust_sdk::types::smart_contracts::WasmVersion) -> Self {
+        use concordium_rust_sdk::types::smart_contracts::WasmVersion;
+        match value {
+            WasmVersion::V0 => ContractVersion::V0,
+            WasmVersion::V1 => ContractVersion::V1,
+        }
+    }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractModuleDeployed {
     module_ref: String,
 }
 
-#[derive(SimpleObject)]
-struct ContractUpdated {
-    contract_address: ContractAddress,
-    instigator: Address,
-    amount: Amount,
-    message_as_hex: String,
-    receive_name: String,
-    version: ContractVersion,
-    message: String,
-    // TODO: eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
-    // TODO: events("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): StringConnection
-}
-
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractCall {
     contract_updated: ContractUpdated,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct CredentialDeployed {
     reg_id: String,
     account_address: AccountAddress,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct CredentialKeysUpdated {
     cred_id: String,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct CredentialsUpdated {
     account_address: AccountAddress,
     new_cred_ids: Vec<String>,
@@ -1793,25 +2586,25 @@ struct CredentialsUpdated {
     new_threshold: Byte,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct DataRegistered {
     decoded: DecodedText,
     data_as_hex: String,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct DecodedText {
     text: String,
     decode_type: TextDecodeType,
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
+#[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 enum TextDecodeType {
     Cbor,
     Hex,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct EncryptedAmountsRemoved {
     account_address: AccountAddress,
     new_encrypted_amount: String,
@@ -1819,35 +2612,67 @@ struct EncryptedAmountsRemoved {
     up_to_index: u64,
 }
 
-#[derive(SimpleObject)]
+impl TryFrom<concordium_rust_sdk::types::EncryptedAmountRemovedEvent> for EncryptedAmountsRemoved {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        removed: concordium_rust_sdk::types::EncryptedAmountRemovedEvent,
+    ) -> Result<Self, Self::Error> {
+        Ok(EncryptedAmountsRemoved {
+            account_address: removed.account.into(),
+            new_encrypted_amount: serde_json::to_string(&removed.new_amount)?,
+            input_amount: serde_json::to_string(&removed.input_amount)?,
+            up_to_index: removed.up_to_index.index,
+        })
+    }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct EncryptedSelfAmountAdded {
     account_address: AccountAddress,
     new_encrypted_amount: String,
     amount: Amount,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct NewEncryptedAmount {
     account_address: AccountAddress,
     new_index: u64,
     encrypted_amount: String,
 }
 
-#[derive(SimpleObject)]
+impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncryptedAmount {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        added: concordium_rust_sdk::types::NewEncryptedAmountEvent,
+    ) -> Result<Self, Self::Error> {
+        Ok(NewEncryptedAmount {
+            account_address: added.receiver.into(),
+            new_index: added.new_index.index,
+            encrypted_amount: serde_json::to_string(&added.encrypted_amount)?,
+        })
+    }
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct TransferMemo {
     decoded: DecodedText,
     raw_hex: String,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct TransferredWithSchedule {
     from_account_address: AccountAddress,
     to_account_address: AccountAddress,
     total_amount: Amount,
-    // TODO: amountsSchedule("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String): AmountsScheduleConnection
+    // TODO: amountsSchedule("Returns the first _n_ elements from the list." first: Int "Returns
+    // the elements in the list that come after the specified cursor." after: String "Returns the
+    // last _n_ elements from the list." last: Int "Returns the elements in the list that come
+    // before the specified cursor." before: String): AmountsScheduleConnection
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ModuleReferenceEvent {
     module_reference: String,
     sender: AccountAddress,
@@ -1856,33 +2681,181 @@ struct ModuleReferenceEvent {
     block_slot_time: DateTime,
     display_schema: String,
     // TODO:
-    // moduleReferenceRejectEvents(skip: Int take: Int): ModuleReferenceRejectEventsCollectionSegment
-    // moduleReferenceContractLinkEvents(skip: Int take: Int): ModuleReferenceContractLinkEventsCollectionSegment
-    // linkedContracts(skip: Int take: Int): LinkedContractsCollectionSegment
+    // moduleReferenceRejectEvents(skip: Int take: Int):
+    // ModuleReferenceRejectEventsCollectionSegment moduleReferenceContractLinkEvents(skip: Int
+    // take: Int): ModuleReferenceContractLinkEventsCollectionSegment linkedContracts(skip: Int
+    // take: Int): LinkedContractsCollectionSegment
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ChainUpdateEnqueued {
+    effective_time: DateTime,
+    // effective_immediately: bool, // Not sure this makes sense.
+    payload: bool, // ChainUpdatePayload,
+}
+
+// union ChainUpdatePayload = MinBlockTimeUpdate | TimeoutParametersUpdate |
+// FinalizationCommitteeParametersUpdate | BlockEnergyLimitUpdate | GasRewardsCpv2Update |
+// ProtocolChainUpdatePayload | ElectionDifficultyChainUpdatePayload |
+// EuroPerEnergyChainUpdatePayload | MicroCcdPerEuroChainUpdatePayload |
+// FoundationAccountChainUpdatePayload | MintDistributionChainUpdatePayload |
+// TransactionFeeDistributionChainUpdatePayload | GasRewardsChainUpdatePayload |
+// BakerStakeThresholdChainUpdatePayload | RootKeysChainUpdatePayload | Level1KeysChainUpdatePayload
+// | AddAnonymityRevokerChainUpdatePayload | AddIdentityProviderChainUpdatePayload |
+// CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload |
+// TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ChainUpdatePayload {
+    todo: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ContractInterrupted {
+    contract_address: ContractAddress,
+    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
+    // in the list that come after the specified cursor." after: String "Returns the last _n_
+    // elements from the list." last: Int "Returns the elements in the list that come before the
+    // specified cursor." before: String): StringConnection events("Returns the first _n_
+    // elements from the list." first: Int "Returns the elements in the list that come after the
+    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
+    // "Returns the elements in the list that come before the specified cursor." before: String):
+    // StringConnection
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ContractResumed {
+    contract_address: ContractAddress,
+    success: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ContractUpdated {
+    contract_address: ContractAddress,
+    instigator: Address,
+    amount: Amount,
+    message_as_hex: String,
+    receive_name: String,
+    version: ContractVersion,
+    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
+    // in the list that come after the specified cursor." after: String "Returns the last _n_
+    // elements from the list." last: Int "Returns the elements in the list that come before the
+    // specified cursor." before: String): StringConnection events("Returns the first _n_
+    // elements from the list." first: Int "Returns the elements in the list that come after the
+    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
+    // "Returns the elements in the list that come before the specified cursor." before: String):
+    // StringConnection
+    message: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct ContractUpgraded {
+    contract_address: ContractAddress,
+    from: String,
+    to: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct BakerSetBakingRewardCommission {
+    baker_id: BakerId,
+    account_address: AccountAddress,
+    baking_reward_commission: Decimal,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct BakerSetFinalizationRewardCommission {
+    baker_id: BakerId,
+    account_address: AccountAddress,
+    finalization_reward_commission: Decimal,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct BakerSetTransactionFeeCommission {
+    baker_id: BakerId,
+    account_address: AccountAddress,
+    transaction_fee_commission: Decimal,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct BakerSetMetadataURL {
+    baker_id: BakerId,
+    account_address: AccountAddress,
+    metadata_url: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct BakerSetOpenStatus {
+    baker_id: BakerId,
+    account_address: AccountAddress,
+    open_status: BakerPoolOpenStatus,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationAdded {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationRemoved {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationSetDelegationTarget {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+    delegation_target: DelegationTarget,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationSetRestakeEarnings {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+    restake_earnings: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationStakeDecreased {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+    new_staked_amount: Amount,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+struct DelegationStakeIncreased {
+    delegator_id: AccountIndex,
+    account_address: AccountAddress,
+    new_staked_amount: Amount,
 }
 
 #[derive(SimpleObject)]
 struct BlockMetrics {
-    /// The most recent block height. Equals the total length of the chain minus one (genesis block is at height zero).
+    /// The most recent block height. Equals the total length of the chain minus one (genesis block
+    /// is at height zero).
     last_block_height: BlockHeight,
     /// Total number of blocks added in requested period.
     blocks_added: i64,
-    /// The average block time (slot-time difference between two adjacent blocks) in the requested period. Will be null if no blocks have been added in the requested period.
+    /// The average block time (slot-time difference between two adjacent blocks) in the requested
+    /// period. Will be null if no blocks have been added in the requested period.
     avg_block_time: Option<f64>,
-    // /// The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the requested period. Will be null if no blocks have been finalized in the requested period.
-    // avg_finalization_time: Option<f32>,
+    // /// The average finalization time (slot-time difference between a given block and the block
+    // that holds its finalization proof) in the requested period. Will be null if no blocks have
+    // been finalized in the requested period. avg_finalization_time: Option<f32>,
     // /// The current total amount of CCD in existence.
     // last_total_micro_ccd: Amount,
-    // /// The total CCD Released. This is total CCD supply not counting the balances of non circulating accounts.
-    // last_total_micro_ccd_released: Option<Amount>,
-    // /// The current total CCD released according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule.
-    // last_total_micro_ccd_unlocked: Option<Amount>,
+    // /// The total CCD Released. This is total CCD supply not counting the balances of non
+    // circulating accounts. last_total_micro_ccd_released: Option<Amount>,
+    // /// The current total CCD released according to the Concordium promise published on
+    // deck.concordium.com. Will be null for blocks with slot time before the published release
+    // schedule. last_total_micro_ccd_unlocked: Option<Amount>,
     // /// The current total amount of CCD in encrypted balances.
     // last_total_micro_ccd_encrypted: Long,
     // /// The current total amount of CCD staked.
     // last_total_micro_ccd_staked: Long,
-    // /// The current percentage of CCD released (of total CCD in existence) according to the Concordium promise published on deck.concordium.com. Will be null for blocks with slot time before the published release schedule."
-    // last_total_percentage_released: Option<f32>,
+    // /// The current percentage of CCD released (of total CCD in existence) according to the
+    // Concordium promise published on deck.concordium.com. Will be null for blocks with slot time
+    // before the published release schedule." last_total_percentage_released: Option<f32>,
     // /// The current percentage of CCD encrypted (of total CCD in existence).
     // last_total_percentage_encrypted: f32,
     // /// The current percentage of CCD staked (of total CCD in existence).
@@ -1900,40 +2873,58 @@ struct BlockMetricsBuckets {
     /// Number of blocks added within the bucket time period. Intended y-axis value.
     #[graphql(name = "y_BlocksAdded")]
     y_blocks_added: Vec<i32>,
-    /// The minimum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The minimum block time (slot-time difference between two adjacent blocks) in the bucket
+    /// period. Intended y-axis value. Will be null if no blocks have been added in the bucket
+    /// period.
     #[graphql(name = "y_BlockTimeMin")]
     y_block_time_min: Vec<f32>,
-    /// The average block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The average block time (slot-time difference between two adjacent blocks) in the bucket
+    /// period. Intended y-axis value. Will be null if no blocks have been added in the bucket
+    /// period.
     #[graphql(name = "y_BlockTimeAvg")]
     y_block_time_avg: Vec<f32>,
-    /// The maximum block time (slot-time difference between two adjacent blocks) in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The maximum block time (slot-time difference between two adjacent blocks) in the bucket
+    /// period. Intended y-axis value. Will be null if no blocks have been added in the bucket
+    /// period.
     #[graphql(name = "y_BlockTimeMax")]
     y_block_time_max: Vec<f32>,
-    /// The minimum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.
+    /// The minimum finalization time (slot-time difference between a given block and the block
+    /// that holds its finalization proof) in the bucket period. Intended y-axis value. Will be
+    /// null if no blocks have been finalized in the bucket period.
     #[graphql(name = "y_FinalizationTimeMin")]
     y_finalization_time_min: Vec<f32>,
-    /// The average finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.
+    /// The average finalization time (slot-time difference between a given block and the block
+    /// that holds its finalization proof) in the bucket period. Intended y-axis value. Will be
+    /// null if no blocks have been finalized in the bucket period.
     #[graphql(name = "y_FinalizationTimeAvg")]
     y_finalization_time_avg: Vec<f32>,
-    /// The maximum finalization time (slot-time difference between a given block and the block that holds its finalization proof) in the bucket period. Intended y-axis value. Will be null if no blocks have been finalized in the bucket period.
+    /// The maximum finalization time (slot-time difference between a given block and the block
+    /// that holds its finalization proof) in the bucket period. Intended y-axis value. Will be
+    /// null if no blocks have been finalized in the bucket period.
     #[graphql(name = "y_FinalizationTimeMax")]
     y_finalization_time_max: Vec<f32>,
-    /// The total amount of CCD in existence at the end of the bucket period. Intended y-axis value.
+    /// The total amount of CCD in existence at the end of the bucket period. Intended y-axis
+    /// value.
     #[graphql(name = "y_LastTotalMicroCcd")]
     y_last_total_micro_ccd: Vec<Long>,
-    /// The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis
+    /// value. Will be null if no blocks have been added in the bucket period.
     #[graphql(name = "y_MinTotalMicroCcdEncrypted")]
     y_min_total_micro_ccd_encrypted: Vec<Long>,
-    /// The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis
+    /// value. Will be null if no blocks have been added in the bucket period.
     #[graphql(name = "y_MaxTotalMicroCcdEncrypted")]
     y_max_total_micro_ccd_encrypted: Vec<Long>,
-    /// The total amount of CCD in encrypted balances at the end of the bucket period. Intended y-axis value.
+    /// The total amount of CCD in encrypted balances at the end of the bucket period. Intended
+    /// y-axis value.
     #[graphql(name = "y_LastTotalMicroCcdEncrypted")]
     y_last_total_micro_ccd_encrypted: Vec<Long>,
-    /// The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be null
+    /// if no blocks have been added in the bucket period.
     #[graphql(name = "y_MinTotalMicroCcdStaked")]
     y_min_total_micro_ccd_staked: Vec<Long>,
-    /// The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null if no blocks have been added in the bucket period.
+    /// The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be null
+    /// if no blocks have been added in the bucket period.
     #[graphql(name = "y_MaxTotalMicroCcdStaked")]
     y_max_total_micro_ccd_staked: Vec<Long>,
     /// The total amount of CCD staked at the end of the bucket period. Intended y-axis value.
@@ -1948,4 +2939,12 @@ enum MetricsPeriod {
     Last7Days,
     Last30Days,
     LastYear,
+}
+
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "transaction_type")] // only for PostgreSQL to match a type definition
+pub enum DbTransactionType {
+    Account,
+    CredentialDeployment,
+    Update,
 }
