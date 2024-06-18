@@ -1,3 +1,7 @@
+//! TODO
+//! - Introduce default LIMITS for connections
+//! - Introduce a MAX LIMIT for connections
+
 use anyhow::Context as _;
 use async_graphql::{
     types::{
@@ -11,11 +15,11 @@ use async_graphql::{
     InputValueError,
     InputValueResult,
     Interface,
-    Number,
     Object,
     Scalar,
     ScalarType,
     SimpleObject,
+    Subscription,
     Union,
     Value,
 };
@@ -28,10 +32,13 @@ use sqlx::{
 };
 use std::{
     error::Error,
+    str::FromStr as _,
     sync::Arc,
 };
+use tokio::sync::broadcast;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const QUERY_TRANSACTIONS_LIMIT: i64 = 100;
 
 #[derive(Debug, thiserror::Error, Clone)]
 enum ApiError {
@@ -59,6 +66,8 @@ enum ApiError {
     InternalError(String),
     #[error("Invalid integer: {0}")]
     InvalidInt(#[from] std::num::TryFromIntError),
+    #[error("Invalid integer: {0}")]
+    InvalidIntString(#[from] std::num::ParseIntError),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -217,18 +226,110 @@ impl Query {
             .await?
             .ok_or(ApiError::NotFound)
     }
-    async fn transactions(
+    async fn transactions<'a>(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
+        ctx: &Context<'a>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
         #[graphql(
             desc = "Returns the elements in the list that come before the specified cursor."
         )]
-        _before: Option<String>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        todo!()
+        check_connection_query(&first, &last)?;
+        let after_id = after.as_deref().map(IdTransaction::from_str).transpose()?;
+        let before_id = before.as_deref().map(IdTransaction::from_str).transpose()?;
+
+        let mut builder = sqlx::QueryBuilder::<'_, Postgres>::new("");
+        if last.is_some() {
+            builder.push("SELECT * FROM (");
+        }
+        builder.push("SELECT * FROM (
+  SELECT
+    block, index, hash, ccd_cost, energy_cost, sender, type, type_account, type_credential_deployment,
+    type_update, success, events, reject,
+    LAG(TRUE, 1, FALSE) OVER (ORDER BY block ASC, index ASC) as has_prev,
+    LEAD(TRUE, 1, FALSE) OVER (ORDER BY block ASC, index ASC) as has_next
+  FROM
+    transactions
+)");
+        match (after_id, before_id) {
+            (None, None) => {},
+            (None, Some(before_id)) => {
+                builder
+                    .push(" WHERE block < ")
+                    .push_bind(before_id.block)
+                    .push(" OR block = ")
+                    .push_bind(before_id.block)
+                    .push(" AND index < ")
+                    .push_bind(before_id.index);
+            },
+            (Some(after_id), None) => {
+                builder
+                    .push(" WHERE block > ")
+                    .push_bind(after_id.block)
+                    .push(" OR block = ")
+                    .push_bind(after_id.block)
+                    .push(" AND index > ")
+                    .push_bind(after_id.index);
+            },
+            (Some(after_id), Some(before_id)) => {
+                builder
+                    .push(" WHERE (block > ")
+                    .push_bind(after_id.block)
+                    .push(" OR block = ")
+                    .push_bind(after_id.block)
+                    .push(" AND index > ")
+                    .push_bind(after_id.index)
+                    .push(") AND (block < ")
+                    .push_bind(before_id.block)
+                    .push(" OR block = ")
+                    .push_bind(before_id.block)
+                    .push(" AND index < ")
+                    .push_bind(before_id.index)
+                    .push(")");
+            },
+        }
+
+        match (first, last) {
+            (None, None) => {
+                builder
+                    .push(" ORDER BY block ASC, index ASC LIMIT ")
+                    .push_bind(QUERY_TRANSACTIONS_LIMIT);
+            },
+            (None, Some(last)) => {
+                builder
+                    .push(" ORDER BY block DESC, index DESC LIMIT ")
+                    .push_bind(last.min(QUERY_TRANSACTIONS_LIMIT))
+                    .push(") ORDER BY block ASC, index ASC");
+            },
+            (Some(first), None) => {
+                builder
+                    .push(" ORDER BY block ASC, index ASC LIMIT ")
+                    .push_bind(first.min(QUERY_TRANSACTIONS_LIMIT));
+            },
+            (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
+        }
+        let mut row_stream = builder
+            .build_query_as::<TransactionConnectionQuery>()
+            .fetch(get_pool(ctx)?);
+        let mut connection = connection::Connection::new(true, true);
+        let mut first_row = true;
+        while let Some(row) = row_stream.try_next().await? {
+            if first_row {
+                connection.has_previous_page = row.has_prev;
+                first_row = false;
+            }
+            connection.edges.push(connection::Edge::new(
+                row.transaction.id_transaction().to_string(),
+                row.transaction,
+            ));
+            connection.has_next_page = row.has_next;
+        }
+
+        Ok(connection)
     }
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.clone().try_into().map_err(ApiError::InvalidIdInt)?;
@@ -423,6 +524,64 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
     // ModuleReferenceEvent
 }
 
+pub struct Subscription {
+    pub block_added: broadcast::Receiver<Arc<Block>>,
+}
+pub struct SubscriptionContext {
+    block_added_sender: broadcast::Sender<Arc<Block>>,
+}
+impl Subscription {
+    const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
+
+    pub fn new() -> (Self, SubscriptionContext) {
+        let (block_added_sender, block_added) = broadcast::channel(100);
+        (
+            Subscription { block_added },
+            SubscriptionContext { block_added_sender },
+        )
+    }
+
+    pub async fn handle_notifications(
+        context: SubscriptionContext,
+        pool: PgPool,
+    ) -> anyhow::Result<()> {
+        let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
+            .await
+            .context("Failed to create a postgreSQL listener")?;
+        listener
+            .listen_all([Self::BLOCK_ADDED_CHANNEL])
+            .await
+            .context("Failed to listen to postgreSQL notifications")?;
+
+        loop {
+            let notification = listener.recv().await?;
+            match notification.channel() {
+                Self::BLOCK_ADDED_CHANNEL => {
+                    let block_height = BlockHeight::from_str(notification.payload())
+                        .context("Failed to parse payload of block added")?;
+                    let block = sqlx::query_as("SELECT * FROM blocks WHERE height=$1")
+                        .bind(block_height)
+                        .fetch_one(&pool)
+                        .await?;
+                    context.block_added_sender.send(Arc::new(block))?;
+                },
+                unknown => {
+                    anyhow::bail!("Unknown channel {}", unknown);
+                },
+            }
+        }
+    }
+}
+#[Subscription]
+impl Subscription {
+    async fn block_added(
+        &self,
+    ) -> impl Stream<Item = Result<Arc<Block>, tokio_stream::wrappers::errors::BroadcastStreamRecvError>>
+    {
+        tokio_stream::wrappers::BroadcastStream::new(self.block_added.resubscribe())
+    }
+}
+
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric non-fractional value greater
 /// than or equal to 0.
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
@@ -496,26 +655,27 @@ impl ScalarType for Byte {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
 #[repr(transparent)]
 #[serde(transparent)]
-struct Decimal(f64);
+struct Decimal(rust_decimal::Decimal);
 #[Scalar]
 impl ScalarType for Decimal {
     fn parse(value: Value) -> InputValueResult<Self> {
-        let Value::Number(number) = &value else {
+        let Value::String(string) = value else {
             return Err(InputValueError::expected_type(value));
         };
-        if let Some(v) = number.as_f64() {
-            Ok(Self(v))
-        } else {
-            Err(InputValueError::expected_type(value))
-        }
+        Ok(Self(rust_decimal::Decimal::from_str(string.as_str())?))
     }
 
     fn to_value(&self) -> Value {
-        let number = Number::from_f64(self.0).unwrap();
-        Value::Number(number)
+        Value::String(self.0.to_string())
+    }
+}
+
+impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
+    fn from(fraction: concordium_rust_sdk::types::AmountFraction) -> Self {
+        Self(concordium_rust_sdk::types::PartsPerHundredThousands::from(fraction).into())
     }
 }
 
@@ -552,9 +712,9 @@ struct Versions {
     backend_versions: String,
 }
 
-#[derive(SimpleObject, sqlx::FromRow)]
+#[derive(Debug, SimpleObject, sqlx::FromRow)]
 #[graphql(complex)]
-struct Block {
+pub struct Block {
     #[graphql(name = "blockHash")]
     hash: BlockHash,
     #[graphql(name = "blockHeight")]
@@ -691,30 +851,484 @@ struct ContractRejectEvent {
     block_slot_time: DateTime,
 }
 
-// union TransactionRejectReason = ModuleNotWf | ModuleHashAlreadyExists | InvalidAccountReference |
-// InvalidInitMethod | InvalidReceiveMethod | InvalidModuleReference | InvalidContractAddress |
-// RuntimeFailure | AmountTooLarge | SerializationFailure | OutOfEnergy | RejectedInit |
-// RejectedReceive | NonExistentRewardAccount | InvalidProof | AlreadyABaker | NotABaker |
-// InsufficientBalanceForBakerStake | StakeUnderMinimumThresholdForBaking | BakerInCooldown |
-// DuplicateAggregationKey | NonExistentCredentialId | KeyIndexAlreadyInUse |
-// InvalidAccountThreshold | InvalidCredentialKeySignThreshold | InvalidEncryptedAmountTransferProof
-// | InvalidTransferToPublicProof | EncryptedAmountSelfTransfer | InvalidIndexOnEncryptedTransfer |
-// ZeroScheduledAmount | NonIncreasingSchedule | FirstScheduledReleaseExpired |
-// ScheduledSelfTransfer | InvalidCredentials | DuplicateCredIds | NonExistentCredIds |
-// RemoveFirstCredential | CredentialHolderDidNotSign | NotAllowedMultipleCredentials |
-// NotAllowedToReceiveEncrypted | NotAllowedToHandleEncrypted | MissingBakerAddParameters |
-// FinalizationRewardCommissionNotInRange | BakingRewardCommissionNotInRange |
-// TransactionFeeCommissionNotInRange | AlreadyADelegator | InsufficientBalanceForDelegationStake |
-// MissingDelegationAddParameters | InsufficientDelegationStake | DelegatorInCooldown |
-// NotADelegator | DelegationTargetNotABaker | StakeOverMaximumThresholdForPool |
-// PoolWouldBecomeOverDelegated | PoolClosed
 #[derive(Union, serde::Serialize, serde::Deserialize)]
-enum TransactionRejectReason {
+pub enum TransactionRejectReason {
+    ModuleNotWf(ModuleNotWf),
+    ModuleHashAlreadyExists(ModuleHashAlreadyExists),
+    InvalidAccountReference(InvalidAccountReference),
+    InvalidInitMethod(InvalidInitMethod),
+    InvalidReceiveMethod(InvalidReceiveMethod),
+    InvalidModuleReference(InvalidModuleReference),
+    InvalidContractAddress(InvalidContractAddress),
+    RuntimeFailure(RuntimeFailure),
+    AmountTooLarge(AmountTooLarge),
+    SerializationFailure(SerializationFailure),
+    OutOfEnergy(OutOfEnergy),
+    RejectedInit(RejectedInit),
+    RejectedReceive(RejectedReceive),
+    NonExistentRewardAccount(NonExistentRewardAccount),
+    InvalidProof(InvalidProof),
+    AlreadyABaker(AlreadyABaker),
+    NotABaker(NotABaker),
+    InsufficientBalanceForBakerStake(InsufficientBalanceForBakerStake),
+    StakeUnderMinimumThresholdForBaking(StakeUnderMinimumThresholdForBaking),
+    BakerInCooldown(BakerInCooldown),
+    DuplicateAggregationKey(DuplicateAggregationKey),
+    NonExistentCredentialId(NonExistentCredentialId),
+    KeyIndexAlreadyInUse(KeyIndexAlreadyInUse),
+    InvalidAccountThreshold(InvalidAccountThreshold),
+    InvalidCredentialKeySignThreshold(InvalidCredentialKeySignThreshold),
+    InvalidEncryptedAmountTransferProof(InvalidEncryptedAmountTransferProof),
+    InvalidTransferToPublicProof(InvalidTransferToPublicProof),
+    EncryptedAmountSelfTransfer(EncryptedAmountSelfTransfer),
+    InvalidIndexOnEncryptedTransfer(InvalidIndexOnEncryptedTransfer),
+    ZeroScheduledAmount(ZeroScheduledAmount),
+    NonIncreasingSchedule(NonIncreasingSchedule),
+    FirstScheduledReleaseExpired(FirstScheduledReleaseExpired),
+    ScheduledSelfTransfer(ScheduledSelfTransfer),
+    InvalidCredentials(InvalidCredentials),
+    DuplicateCredIds(DuplicateCredIds),
+    NonExistentCredIds(NonExistentCredIds),
+    RemoveFirstCredential(RemoveFirstCredential),
+    CredentialHolderDidNotSign(CredentialHolderDidNotSign),
+    NotAllowedMultipleCredentials(NotAllowedMultipleCredentials),
+    NotAllowedToReceiveEncrypted(NotAllowedToReceiveEncrypted),
+    NotAllowedToHandleEncrypted(NotAllowedToHandleEncrypted),
+    MissingBakerAddParameters(MissingBakerAddParameters),
+    FinalizationRewardCommissionNotInRange(FinalizationRewardCommissionNotInRange),
+    BakingRewardCommissionNotInRange(BakingRewardCommissionNotInRange),
+    TransactionFeeCommissionNotInRange(TransactionFeeCommissionNotInRange),
+    AlreadyADelegator(AlreadyADelegator),
+    InsufficientBalanceForDelegationStake(InsufficientBalanceForDelegationStake),
+    MissingDelegationAddParameters(MissingDelegationAddParameters),
+    InsufficientDelegationStake(InsufficientDelegationStake),
+    DelegatorInCooldown(DelegatorInCooldown),
+    NotADelegator(NotADelegator),
+    DelegationTargetNotABaker(DelegationTargetNotABaker),
+    StakeOverMaximumThresholdForPool(StakeOverMaximumThresholdForPool),
+    PoolWouldBecomeOverDelegated(PoolWouldBecomeOverDelegated),
     PoolClosed(PoolClosed),
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct PoolClosed {
+pub struct ModuleNotWf {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct ModuleHashAlreadyExists {
+    module_ref: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidInitMethod {
+    module_ref: String,
+    init_name: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidReceiveMethod {
+    module_ref: String,
+    receive_name: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidAccountReference {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidModuleReference {
+    module_ref: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidContractAddress {
+    contract_address: ContractAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct RuntimeFailure {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct AmountTooLarge {
+    address: Address,
+    amount: Amount,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct SerializationFailure {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct OutOfEnergy {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct RejectedInit {
+    reject_reason: i32,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct RejectedReceive {
+    reject_reason: i32,
+    contract_address: ContractAddress,
+    receive_name: String,
+    message_as_hex: String,
+    // TODO message: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NonExistentRewardAccount {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidProof {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct AlreadyABaker {
+    baker_id: BakerId,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NotABaker {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InsufficientBalanceForBakerStake {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InsufficientBalanceForDelegationStake {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InsufficientDelegationStake {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct StakeUnderMinimumThresholdForBaking {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct StakeOverMaximumThresholdForPool {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct BakerInCooldown {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct DuplicateAggregationKey {
+    aggregation_key: String,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NonExistentCredentialId {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct KeyIndexAlreadyInUse {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidAccountThreshold {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidCredentialKeySignThreshold {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidEncryptedAmountTransferProof {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidTransferToPublicProof {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct EncryptedAmountSelfTransfer {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidIndexOnEncryptedTransfer {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct ZeroScheduledAmount {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NonIncreasingSchedule {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct FirstScheduledReleaseExpired {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct ScheduledSelfTransfer {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct InvalidCredentials {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct DuplicateCredIds {
+    cred_ids: Vec<String>,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NonExistentCredIds {
+    cred_ids: Vec<String>,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct RemoveFirstCredential {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct CredentialHolderDidNotSign {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NotAllowedMultipleCredentials {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NotAllowedToReceiveEncrypted {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NotAllowedToHandleEncrypted {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct MissingBakerAddParameters {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct FinalizationRewardCommissionNotInRange {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct BakingRewardCommissionNotInRange {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct TransactionFeeCommissionNotInRange {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct AlreadyADelegator {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct MissingDelegationAddParameters {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct DelegatorInCooldown {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct NotADelegator {
+    account_address: AccountAddress,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct DelegationTargetNotABaker {
+    baker_id: BakerId,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct PoolWouldBecomeOverDelegated {
+    #[graphql(
+        name = "_",
+        deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
+    )]
+    dummy: bool,
+}
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+pub struct PoolClosed {
     #[graphql(
         name = "_",
         deprecation = "Don't use! This field is only in the schema to make this a valid GraphQL type (which does not allow types without any fields)"
@@ -1130,11 +1744,11 @@ struct IdTransaction {
     index: TransactionIndex,
 }
 
-impl TryFrom<types::ID> for IdTransaction {
-    type Error = ApiError;
-    fn try_from(value: types::ID) -> Result<Self, Self::Error> {
+impl std::str::FromStr for IdTransaction {
+    type Err = ApiError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
         let (height_str, index_str) = value
-            .as_str()
             .split_once(':')
             .ok_or(ApiError::InvalidIdTransaction)?;
         Ok(IdTransaction {
@@ -1143,10 +1757,30 @@ impl TryFrom<types::ID> for IdTransaction {
         })
     }
 }
-impl From<IdTransaction> for types::ID {
-    fn from(value: IdTransaction) -> Self {
-        types::ID::from(format!("{}:{}", value.block, value.index))
+impl TryFrom<types::ID> for IdTransaction {
+    type Error = ApiError;
+    fn try_from(value: types::ID) -> Result<Self, Self::Error> {
+        value.0.parse()
     }
+}
+// impl From<IdTransaction> for types::ID {
+//     fn from(value: IdTransaction) -> Self {
+//         types::ID::from(value.to_string())
+//     }
+// }
+
+impl std::fmt::Display for IdTransaction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.block, self.index)
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct TransactionConnectionQuery {
+    #[sqlx(flatten)]
+    transaction: Transaction,
+    has_prev: bool,
+    has_next: bool,
 }
 
 #[derive(SimpleObject, sqlx::FromRow)]
@@ -1173,21 +1807,15 @@ struct Transaction {
     #[graphql(skip)]
     success: bool,
     #[graphql(skip)]
-    #[sqlx(json)]
-    events: Option<Vec<Event>>,
+    events: Option<sqlx::types::Json<Vec<Event>>>,
     #[graphql(skip)]
-    #[sqlx(json)]
-    reject: Option<TransactionRejectReason>,
+    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
 #[ComplexObject]
 impl Transaction {
     /// Transaction query ID, formatted as "<block>:<index>".
     async fn id(&self) -> types::ID {
-        IdTransaction {
-            block: self.block,
-            index: self.index,
-        }
-        .into()
+        self.id_transaction().into()
     }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
@@ -1236,6 +1864,14 @@ impl Transaction {
                 "Success events is null".to_string(),
             ))?;
             Ok(TransactionResult::Rejected(Rejected { reason }))
+        }
+    }
+}
+impl Transaction {
+    fn id_transaction(&self) -> IdTransaction {
+        IdTransaction {
+            block: self.block,
+            index: self.index,
         }
     }
 }
@@ -1414,16 +2050,49 @@ struct Success<'a> {
 impl Success<'_> {
     async fn events(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i64,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i64,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
         #[graphql(
             desc = "Returns the elements in the list that come before the specified cursor."
         )]
-        before: String,
-    ) -> ApiResult<connection::Connection<String, Event>> {
-        todo!()
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, &Event>> {
+        check_connection_query(&first, &last)?;
+
+        let mut start = if let Some(after) = after {
+            usize::from_str(after.as_str())?
+        } else {
+            0
+        };
+
+        let mut end = if let Some(before) = before {
+            usize::from_str(before.as_str())?
+        } else {
+            self.events.len()
+        };
+
+        if let Some(first) = first {
+            let first = usize::try_from(first)?;
+            end = usize::min(end, start + first);
+        }
+
+        if let Some(last) = last {
+            let last = usize::try_from(last)?;
+            if let Some(new_end) = end.checked_sub(last) {
+                start = usize::max(start, new_end);
+            }
+        }
+
+        let mut connection = connection::Connection::new(start == 0, end == self.events.len());
+        connection.edges = self.events[start..end]
+            .iter()
+            .enumerate()
+            .map(|(i, event)| connection::Edge::new(i.to_string(), event))
+            .collect();
+
+        Ok(connection)
     }
 }
 
@@ -1983,8 +2652,20 @@ enum Address {
     AccountAddress(AccountAddress),
 }
 
+impl From<concordium_rust_sdk::types::Address> for Address {
+    fn from(value: concordium_rust_sdk::types::Address) -> Self {
+        use concordium_rust_sdk::types::Address as Addr;
+        match value {
+            Addr::Account(a) => Address::AccountAddress(a.into()),
+            Addr::Contract(c) => Address::ContractAddress(c.into()),
+        }
+    }
+}
+
 #[derive(Union, serde::Serialize, serde::Deserialize)]
 pub enum Event {
+    /// A transfer of CCD. Can be either from an account or a smart contract instance, but the
+    /// receiver in this event is always an account.
     Transferred(Transferred),
     AccountCreated(AccountCreated),
     AmountAddedByDecryption(AmountAddedByDecryption),
@@ -2034,10 +2715,9 @@ pub fn events_from_summary(
     let events = match value {
         BlockItemSummaryDetails::AccountTransaction(details) => {
             match details.effects {
-                AccountTransactionEffects::None {
-                    transaction_type,
-                    reject_reason,
-                } => todo!(),
+                AccountTransactionEffects::None { .. } => {
+                    anyhow::bail!("Transaction was rejected")
+                },
                 AccountTransactionEffects::ModuleDeployed { module_ref } => {
                     vec![Event::ContractModuleDeployed(ContractModuleDeployed {
                         module_ref: module_ref.to_string(),
@@ -2052,11 +2732,56 @@ pub fn events_from_summary(
                         version: data.contract_version.into(),
                     })]
                 },
-                AccountTransactionEffects::ContractUpdateIssued { effects } => todo!(),
+                AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                    use concordium_rust_sdk::types::ContractTraceElement;
+                    effects
+                        .into_iter()
+                        .map(|effect| {
+                            match effect {
+                                ContractTraceElement::Updated { data } => {
+                                    Ok(Event::ContractUpdated(ContractUpdated {
+                                        contract_address: data.address.into(),
+                                        instigator: data.instigator.into(),
+                                        amount: data.amount.micro_ccd().try_into()?,
+                                        message_as_hex: hex::encode(data.message.as_ref()),
+                                        receive_name: data.receive_name.to_string(),
+                                        version: data.contract_version.into(),
+                                        // TODO message: (),
+                                    }))
+                                },
+                                ContractTraceElement::Transferred { from, amount, to } => {
+                                    Ok(Event::Transferred(Transferred {
+                                        amount: amount.micro_ccd().try_into()?,
+                                        from: Address::ContractAddress(from.into()),
+                                        to: to.into(),
+                                    }))
+                                },
+                                ContractTraceElement::Interrupted { address, events } => {
+                                    Ok(Event::ContractInterrupted(ContractInterrupted {
+                                        contract_address: address.into(),
+                                    }))
+                                },
+                                ContractTraceElement::Resumed { address, success } => {
+                                    Ok(Event::ContractResumed(ContractResumed {
+                                        contract_address: address.into(),
+                                        success,
+                                    }))
+                                },
+                                ContractTraceElement::Upgraded { address, from, to } => {
+                                    Ok(Event::ContractUpgraded(ContractUpgraded {
+                                        contract_address: address.into(),
+                                        from: from.to_string(),
+                                        to: to.to_string(),
+                                    }))
+                                },
+                            }
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?
+                },
                 AccountTransactionEffects::AccountTransfer { amount, to } => {
                     vec![Event::Transferred(Transferred {
                         amount: i64::try_from(amount.micro_ccd)?,
-                        from: details.sender.into(),
+                        from: Address::AccountAddress(details.sender.into()),
                         to: to.into(),
                     })]
                 },
@@ -2064,7 +2789,7 @@ pub fn events_from_summary(
                     vec![
                         Event::Transferred(Transferred {
                             amount: i64::try_from(amount.micro_ccd)?,
-                            from: details.sender.into(),
+                            from: Address::AccountAddress(details.sender.into()),
                             to: to.into(),
                         }),
                         Event::TransferMemo(memo.into()),
@@ -2203,7 +2928,7 @@ pub fn events_from_summary(
                 AccountTransactionEffects::DataRegistered { data } => {
                     vec![Event::DataRegistered(DataRegistered {
                         data_as_hex: hex::encode(data.as_ref()),
-                        decoded: todo!(),
+                        decoded: DecodedText::from_bytes(data.as_ref()),
                     })]
                 },
                 AccountTransactionEffects::BakerConfigured { data } => {
@@ -2295,7 +3020,8 @@ pub fn events_from_summary(
                                         BakerSetTransactionFeeCommission {
                                             baker_id: baker_id.id.index.try_into()?,
                                             account_address: details.sender.into(),
-                                            transaction_fee_commission: todo!(),
+                                            transaction_fee_commission: transaction_fee_commission
+                                                .into(),
                                         },
                                     ))
                                 },
@@ -2307,7 +3033,8 @@ pub fn events_from_summary(
                                         BakerSetBakingRewardCommission {
                                             baker_id: baker_id.id.index.try_into()?,
                                             account_address: details.sender.into(),
-                                            baking_reward_commission: todo!(),
+                                            baking_reward_commission: baking_reward_commission
+                                                .into(),
                                         },
                                     ))
                                 },
@@ -2319,7 +3046,8 @@ pub fn events_from_summary(
                                         BakerSetFinalizationRewardCommission {
                                             baker_id: baker_id.id.index.try_into()?,
                                             account_address: details.sender.into(),
-                                            finalization_reward_commission: todo!(),
+                                            finalization_reward_commission:
+                                                finalization_reward_commission.into(),
                                         },
                                     ))
                                 },
@@ -2414,36 +3142,366 @@ pub fn events_from_summary(
     Ok(events)
 }
 
+impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReason {
+    type Error = anyhow::Error;
+
+    fn try_from(reason: concordium_rust_sdk::types::RejectReason) -> Result<Self, Self::Error> {
+        use concordium_rust_sdk::types::RejectReason;
+        match reason {
+            RejectReason::ModuleNotWF => {
+                Ok(TransactionRejectReason::ModuleNotWf(ModuleNotWf {
+                    dummy: true,
+                }))
+            },
+            RejectReason::ModuleHashAlreadyExists { contents } => {
+                Ok(TransactionRejectReason::ModuleHashAlreadyExists(
+                    ModuleHashAlreadyExists {
+                        module_ref: contents.to_string(),
+                    },
+                ))
+            },
+            RejectReason::InvalidAccountReference { contents } => {
+                Ok(TransactionRejectReason::InvalidAccountReference(
+                    InvalidAccountReference {
+                        account_address: contents.into(),
+                    },
+                ))
+            },
+            RejectReason::InvalidInitMethod { contents } => {
+                Ok(TransactionRejectReason::InvalidInitMethod(
+                    InvalidInitMethod {
+                        module_ref: contents.0.to_string(),
+                        init_name: contents.1.to_string(),
+                    },
+                ))
+            },
+            RejectReason::InvalidReceiveMethod { contents } => {
+                Ok(TransactionRejectReason::InvalidReceiveMethod(
+                    InvalidReceiveMethod {
+                        module_ref: contents.0.to_string(),
+                        receive_name: contents.1.to_string(),
+                    },
+                ))
+            },
+            RejectReason::InvalidModuleReference { contents } => {
+                Ok(TransactionRejectReason::InvalidModuleReference(
+                    InvalidModuleReference {
+                        module_ref: contents.to_string(),
+                    },
+                ))
+            },
+            RejectReason::InvalidContractAddress { contents } => {
+                Ok(TransactionRejectReason::InvalidContractAddress(
+                    InvalidContractAddress {
+                        contract_address: contents.into(),
+                    },
+                ))
+            },
+            RejectReason::RuntimeFailure => {
+                Ok(TransactionRejectReason::RuntimeFailure(RuntimeFailure {
+                    dummy: true,
+                }))
+            },
+            RejectReason::AmountTooLarge { contents } => {
+                Ok(TransactionRejectReason::AmountTooLarge(AmountTooLarge {
+                    address: contents.0.into(),
+                    amount: contents.1.micro_ccd().try_into()?,
+                }))
+            },
+            RejectReason::SerializationFailure => {
+                Ok(TransactionRejectReason::SerializationFailure(
+                    SerializationFailure { dummy: true },
+                ))
+            },
+            RejectReason::OutOfEnergy => {
+                Ok(TransactionRejectReason::OutOfEnergy(OutOfEnergy {
+                    dummy: true,
+                }))
+            },
+            RejectReason::RejectedInit { reject_reason } => {
+                Ok(TransactionRejectReason::RejectedInit(RejectedInit {
+                    reject_reason,
+                }))
+            },
+            RejectReason::RejectedReceive {
+                reject_reason,
+                contract_address,
+                receive_name,
+                parameter,
+            } => {
+                Ok(TransactionRejectReason::RejectedReceive(RejectedReceive {
+                    reject_reason,
+                    contract_address: contract_address.into(),
+                    receive_name: receive_name.to_string(),
+                    message_as_hex: hex::encode(parameter.as_ref()),
+                    // message: todo!(),
+                }))
+            },
+            RejectReason::InvalidProof => {
+                Ok(TransactionRejectReason::InvalidProof(InvalidProof {
+                    dummy: true,
+                }))
+            },
+            RejectReason::AlreadyABaker { contents } => {
+                Ok(TransactionRejectReason::AlreadyABaker(AlreadyABaker {
+                    baker_id: contents.id.index.try_into()?,
+                }))
+            },
+            RejectReason::NotABaker { contents } => {
+                Ok(TransactionRejectReason::NotABaker(NotABaker {
+                    account_address: contents.into(),
+                }))
+            },
+            RejectReason::InsufficientBalanceForBakerStake => {
+                Ok(TransactionRejectReason::InsufficientBalanceForBakerStake(
+                    InsufficientBalanceForBakerStake { dummy: true },
+                ))
+            },
+            RejectReason::StakeUnderMinimumThresholdForBaking => {
+                Ok(
+                    TransactionRejectReason::StakeUnderMinimumThresholdForBaking(
+                        StakeUnderMinimumThresholdForBaking { dummy: true },
+                    ),
+                )
+            },
+            RejectReason::BakerInCooldown => {
+                Ok(TransactionRejectReason::BakerInCooldown(BakerInCooldown {
+                    dummy: true,
+                }))
+            },
+            RejectReason::DuplicateAggregationKey { contents } => {
+                Ok(TransactionRejectReason::DuplicateAggregationKey(
+                    DuplicateAggregationKey {
+                        aggregation_key: serde_json::to_string(&contents)?,
+                    },
+                ))
+            },
+            RejectReason::NonExistentCredentialID => {
+                Ok(TransactionRejectReason::NonExistentCredentialId(
+                    NonExistentCredentialId { dummy: true },
+                ))
+            },
+            RejectReason::KeyIndexAlreadyInUse => {
+                Ok(TransactionRejectReason::KeyIndexAlreadyInUse(
+                    KeyIndexAlreadyInUse { dummy: true },
+                ))
+            },
+            RejectReason::InvalidAccountThreshold => {
+                Ok(TransactionRejectReason::InvalidAccountThreshold(
+                    InvalidAccountThreshold { dummy: true },
+                ))
+            },
+            RejectReason::InvalidCredentialKeySignThreshold => {
+                Ok(TransactionRejectReason::InvalidCredentialKeySignThreshold(
+                    InvalidCredentialKeySignThreshold { dummy: true },
+                ))
+            },
+            RejectReason::InvalidEncryptedAmountTransferProof => {
+                Ok(
+                    TransactionRejectReason::InvalidEncryptedAmountTransferProof(
+                        InvalidEncryptedAmountTransferProof { dummy: true },
+                    ),
+                )
+            },
+            RejectReason::InvalidTransferToPublicProof => {
+                Ok(TransactionRejectReason::InvalidTransferToPublicProof(
+                    InvalidTransferToPublicProof { dummy: true },
+                ))
+            },
+            RejectReason::EncryptedAmountSelfTransfer { contents } => {
+                Ok(TransactionRejectReason::EncryptedAmountSelfTransfer(
+                    EncryptedAmountSelfTransfer {
+                        account_address: contents.into(),
+                    },
+                ))
+            },
+            RejectReason::InvalidIndexOnEncryptedTransfer => {
+                Ok(TransactionRejectReason::InvalidIndexOnEncryptedTransfer(
+                    InvalidIndexOnEncryptedTransfer { dummy: true },
+                ))
+            },
+            RejectReason::ZeroScheduledAmount => {
+                Ok(TransactionRejectReason::ZeroScheduledAmount(
+                    ZeroScheduledAmount { dummy: true },
+                ))
+            },
+            RejectReason::NonIncreasingSchedule => {
+                Ok(TransactionRejectReason::NonIncreasingSchedule(
+                    NonIncreasingSchedule { dummy: true },
+                ))
+            },
+            RejectReason::FirstScheduledReleaseExpired => {
+                Ok(TransactionRejectReason::FirstScheduledReleaseExpired(
+                    FirstScheduledReleaseExpired { dummy: true },
+                ))
+            },
+            RejectReason::ScheduledSelfTransfer { contents } => {
+                Ok(TransactionRejectReason::ScheduledSelfTransfer(
+                    ScheduledSelfTransfer {
+                        account_address: contents.into(),
+                    },
+                ))
+            },
+            RejectReason::InvalidCredentials => {
+                Ok(TransactionRejectReason::InvalidCredentials(
+                    InvalidCredentials { dummy: true },
+                ))
+            },
+            RejectReason::DuplicateCredIDs { contents } => {
+                Ok(TransactionRejectReason::DuplicateCredIds(
+                    DuplicateCredIds {
+                        cred_ids: contents
+                            .into_iter()
+                            .map(|cred_id| cred_id.to_string())
+                            .collect(),
+                    },
+                ))
+            },
+            RejectReason::NonExistentCredIDs { contents } => {
+                Ok(TransactionRejectReason::NonExistentCredIds(
+                    NonExistentCredIds {
+                        cred_ids: contents
+                            .into_iter()
+                            .map(|cred_id| cred_id.to_string())
+                            .collect(),
+                    },
+                ))
+            },
+            RejectReason::RemoveFirstCredential => {
+                Ok(TransactionRejectReason::RemoveFirstCredential(
+                    RemoveFirstCredential { dummy: true },
+                ))
+            },
+            RejectReason::CredentialHolderDidNotSign => {
+                Ok(TransactionRejectReason::CredentialHolderDidNotSign(
+                    CredentialHolderDidNotSign { dummy: true },
+                ))
+            },
+            RejectReason::NotAllowedMultipleCredentials => {
+                Ok(TransactionRejectReason::NotAllowedMultipleCredentials(
+                    NotAllowedMultipleCredentials { dummy: true },
+                ))
+            },
+            RejectReason::NotAllowedToReceiveEncrypted => {
+                Ok(TransactionRejectReason::NotAllowedToReceiveEncrypted(
+                    NotAllowedToReceiveEncrypted { dummy: true },
+                ))
+            },
+            RejectReason::NotAllowedToHandleEncrypted => {
+                Ok(TransactionRejectReason::NotAllowedToHandleEncrypted(
+                    NotAllowedToHandleEncrypted { dummy: true },
+                ))
+            },
+            RejectReason::MissingBakerAddParameters => {
+                Ok(TransactionRejectReason::MissingBakerAddParameters(
+                    MissingBakerAddParameters { dummy: true },
+                ))
+            },
+            RejectReason::FinalizationRewardCommissionNotInRange => {
+                Ok(
+                    TransactionRejectReason::FinalizationRewardCommissionNotInRange(
+                        FinalizationRewardCommissionNotInRange { dummy: true },
+                    ),
+                )
+            },
+            RejectReason::BakingRewardCommissionNotInRange => {
+                Ok(TransactionRejectReason::BakingRewardCommissionNotInRange(
+                    BakingRewardCommissionNotInRange { dummy: true },
+                ))
+            },
+            RejectReason::TransactionFeeCommissionNotInRange => {
+                Ok(TransactionRejectReason::TransactionFeeCommissionNotInRange(
+                    TransactionFeeCommissionNotInRange { dummy: true },
+                ))
+            },
+            RejectReason::AlreadyADelegator => {
+                Ok(TransactionRejectReason::AlreadyADelegator(
+                    AlreadyADelegator { dummy: true },
+                ))
+            },
+            RejectReason::InsufficientBalanceForDelegationStake => {
+                Ok(
+                    TransactionRejectReason::InsufficientBalanceForDelegationStake(
+                        InsufficientBalanceForDelegationStake { dummy: true },
+                    ),
+                )
+            },
+            RejectReason::MissingDelegationAddParameters => {
+                Ok(TransactionRejectReason::MissingDelegationAddParameters(
+                    MissingDelegationAddParameters { dummy: true },
+                ))
+            },
+            RejectReason::InsufficientDelegationStake => {
+                Ok(TransactionRejectReason::InsufficientDelegationStake(
+                    InsufficientDelegationStake { dummy: true },
+                ))
+            },
+            RejectReason::DelegatorInCooldown => {
+                Ok(TransactionRejectReason::DelegatorInCooldown(
+                    DelegatorInCooldown { dummy: true },
+                ))
+            },
+            RejectReason::NotADelegator { address } => {
+                Ok(TransactionRejectReason::NotADelegator(NotADelegator {
+                    account_address: address.into(),
+                }))
+            },
+            RejectReason::DelegationTargetNotABaker { target } => {
+                Ok(TransactionRejectReason::DelegationTargetNotABaker(
+                    DelegationTargetNotABaker {
+                        baker_id: target.id.index.try_into()?,
+                    },
+                ))
+            },
+            RejectReason::StakeOverMaximumThresholdForPool => {
+                Ok(TransactionRejectReason::StakeOverMaximumThresholdForPool(
+                    StakeOverMaximumThresholdForPool { dummy: true },
+                ))
+            },
+            RejectReason::PoolWouldBecomeOverDelegated => {
+                Ok(TransactionRejectReason::PoolWouldBecomeOverDelegated(
+                    PoolWouldBecomeOverDelegated { dummy: true },
+                ))
+            },
+            RejectReason::PoolClosed => {
+                Ok(TransactionRejectReason::PoolClosed(PoolClosed {
+                    dummy: true,
+                }))
+            },
+        }
+    }
+}
+
 impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
     fn from(value: concordium_rust_sdk::types::Memo) -> Self {
         TransferMemo {
-            decoded: todo!(),
+            decoded: DecodedText::from_bytes(value.as_ref()),
             raw_hex: hex::encode(value.as_ref()),
         }
     }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct Transferred {
+pub struct Transferred {
     amount: Amount,
-    from: AccountAddress,
+    from: Address,
     to: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct AccountCreated {
+pub struct AccountCreated {
     account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct AmountAddedByDecryption {
+pub struct AmountAddedByDecryption {
     amount: Amount,
     account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerAdded {
+pub struct BakerAdded {
     staked_amount: Amount,
     restake_earnings: bool,
     baker_id: BakerId,
@@ -2460,7 +3518,7 @@ impl BakerAdded {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerKeysUpdated {
+pub struct BakerKeysUpdated {
     baker_id: BakerId,
     sign_key: String,
     election_key: String,
@@ -2475,7 +3533,7 @@ impl BakerKeysUpdated {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerRemoved {
+pub struct BakerRemoved {
     baker_id: BakerId,
 }
 #[ComplexObject]
@@ -2487,7 +3545,7 @@ impl BakerRemoved {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerSetRestakeEarnings {
+pub struct BakerSetRestakeEarnings {
     baker_id: BakerId,
     restake_earnings: bool,
 }
@@ -2500,7 +3558,7 @@ impl BakerSetRestakeEarnings {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerStakeDecreased {
+pub struct BakerStakeDecreased {
     baker_id: BakerId,
     new_staked_amount: Amount,
 }
@@ -2513,7 +3571,7 @@ impl BakerStakeDecreased {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
-struct BakerStakeIncreased {
+pub struct BakerStakeIncreased {
     baker_id: BakerId,
     new_staked_amount: Amount,
 }
@@ -2525,7 +3583,7 @@ impl BakerStakeIncreased {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractInitialized {
+pub struct ContractInitialized {
     module_ref: String,
     contract_address: ContractAddress,
     amount: Amount,
@@ -2542,7 +3600,7 @@ struct ContractInitialized {
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-enum ContractVersion {
+pub enum ContractVersion {
     V0,
     V1,
 }
@@ -2558,28 +3616,28 @@ impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for Contract
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractModuleDeployed {
+pub struct ContractModuleDeployed {
     module_ref: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractCall {
+pub struct ContractCall {
     contract_updated: ContractUpdated,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct CredentialDeployed {
+pub struct CredentialDeployed {
     reg_id: String,
     account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct CredentialKeysUpdated {
+pub struct CredentialKeysUpdated {
     cred_id: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct CredentialsUpdated {
+pub struct CredentialsUpdated {
     account_address: AccountAddress,
     new_cred_ids: Vec<String>,
     removed_cred_ids: Vec<String>,
@@ -2587,25 +3645,42 @@ struct CredentialsUpdated {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DataRegistered {
+pub struct DataRegistered {
     decoded: DecodedText,
     data_as_hex: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DecodedText {
+pub struct DecodedText {
     text: String,
     decode_type: TextDecodeType,
 }
 
+impl DecodedText {
+    /// Attempt to parse the bytes as a CBOR string otherwise use HEX to present the bytes.
+    fn from_bytes(bytes: &[u8]) -> Self {
+        if let Ok(text) = ciborium::from_reader::<String, _>(bytes) {
+            Self {
+                text,
+                decode_type: TextDecodeType::Cbor,
+            }
+        } else {
+            Self {
+                text: hex::encode(bytes),
+                decode_type: TextDecodeType::Hex,
+            }
+        }
+    }
+}
+
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-enum TextDecodeType {
+pub enum TextDecodeType {
     Cbor,
     Hex,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct EncryptedAmountsRemoved {
+pub struct EncryptedAmountsRemoved {
     account_address: AccountAddress,
     new_encrypted_amount: String,
     input_amount: String,
@@ -2628,14 +3703,14 @@ impl TryFrom<concordium_rust_sdk::types::EncryptedAmountRemovedEvent> for Encryp
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct EncryptedSelfAmountAdded {
+pub struct EncryptedSelfAmountAdded {
     account_address: AccountAddress,
     new_encrypted_amount: String,
     amount: Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct NewEncryptedAmount {
+pub struct NewEncryptedAmount {
     account_address: AccountAddress,
     new_index: u64,
     encrypted_amount: String,
@@ -2656,13 +3731,13 @@ impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncrypt
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct TransferMemo {
+pub struct TransferMemo {
     decoded: DecodedText,
     raw_hex: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct TransferredWithSchedule {
+pub struct TransferredWithSchedule {
     from_account_address: AccountAddress,
     to_account_address: AccountAddress,
     total_amount: Amount,
@@ -2673,7 +3748,7 @@ struct TransferredWithSchedule {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ModuleReferenceEvent {
+pub struct ModuleReferenceEvent {
     module_reference: String,
     sender: AccountAddress,
     block_height: BlockHeight,
@@ -2688,7 +3763,7 @@ struct ModuleReferenceEvent {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ChainUpdateEnqueued {
+pub struct ChainUpdateEnqueued {
     effective_time: DateTime,
     // effective_immediately: bool, // Not sure this makes sense.
     payload: bool, // ChainUpdatePayload,
@@ -2705,12 +3780,12 @@ struct ChainUpdateEnqueued {
 // CooldownParametersChainUpdatePayload | PoolParametersChainUpdatePayload |
 // TimeParametersChainUpdatePayload | MintDistributionV1ChainUpdatePayload
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ChainUpdatePayload {
+pub struct ChainUpdatePayload {
     todo: bool,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractInterrupted {
+pub struct ContractInterrupted {
     contract_address: ContractAddress,
     // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
     // in the list that come after the specified cursor." after: String "Returns the last _n_
@@ -2723,13 +3798,13 @@ struct ContractInterrupted {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractResumed {
+pub struct ContractResumed {
     contract_address: ContractAddress,
     success: bool,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractUpdated {
+pub struct ContractUpdated {
     contract_address: ContractAddress,
     instigator: Address,
     amount: Amount,
@@ -2744,86 +3819,86 @@ struct ContractUpdated {
     // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
     // "Returns the elements in the list that come before the specified cursor." before: String):
     // StringConnection
-    message: String,
+    // TODO message: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct ContractUpgraded {
+pub struct ContractUpgraded {
     contract_address: ContractAddress,
     from: String,
     to: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerSetBakingRewardCommission {
+pub struct BakerSetBakingRewardCommission {
     baker_id: BakerId,
     account_address: AccountAddress,
     baking_reward_commission: Decimal,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerSetFinalizationRewardCommission {
+pub struct BakerSetFinalizationRewardCommission {
     baker_id: BakerId,
     account_address: AccountAddress,
     finalization_reward_commission: Decimal,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerSetTransactionFeeCommission {
+pub struct BakerSetTransactionFeeCommission {
     baker_id: BakerId,
     account_address: AccountAddress,
     transaction_fee_commission: Decimal,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerSetMetadataURL {
+pub struct BakerSetMetadataURL {
     baker_id: BakerId,
     account_address: AccountAddress,
     metadata_url: String,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct BakerSetOpenStatus {
+pub struct BakerSetOpenStatus {
     baker_id: BakerId,
     account_address: AccountAddress,
     open_status: BakerPoolOpenStatus,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationAdded {
+pub struct DelegationAdded {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationRemoved {
+pub struct DelegationRemoved {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationSetDelegationTarget {
+pub struct DelegationSetDelegationTarget {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
     delegation_target: DelegationTarget,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationSetRestakeEarnings {
+pub struct DelegationSetRestakeEarnings {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
     restake_earnings: bool,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationStakeDecreased {
+pub struct DelegationStakeDecreased {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
     new_staked_amount: Amount,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-struct DelegationStakeIncreased {
+pub struct DelegationStakeIncreased {
     delegator_id: AccountIndex,
     account_address: AccountAddress,
     new_staked_amount: Amount,

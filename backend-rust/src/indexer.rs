@@ -18,6 +18,8 @@ use concordium_rust_sdk::{
     },
     types::{
         queries::BlockInfo,
+        AccountTransactionDetails,
+        AccountTransactionEffects,
         BlockItemSummary,
         BlockItemSummaryDetails,
     },
@@ -209,13 +211,32 @@ impl BlockData {
                     },
                 };
             let success = block_item.is_success();
-            let details = serde_json::to_value(&events_from_summary(block_item.details.clone())?)?;
+            let (events, reject) = if success {
+                let events =
+                    serde_json::to_value(&events_from_summary(block_item.details.clone())?)?;
+                (Some(events), None)
+            } else {
+                let reject = if let BlockItemSummaryDetails::AccountTransaction(
+                    AccountTransactionDetails {
+                        effects: AccountTransactionEffects::None { reject_reason, .. },
+                        ..
+                    },
+                ) = &block_item.details
+                {
+                    serde_json::to_value(crate::graphql_api::TransactionRejectReason::try_from(
+                        reject_reason.clone(),
+                    )?)?
+                } else {
+                    anyhow::bail!("Invariant violation: Failed transaction without a reject reason")
+                };
+                (None, Some(reject))
+            };
 
             sqlx::query(
                 r#"INSERT INTO transactions
-(index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, details)
+(index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
 VALUES
-($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12);"#)
+($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#)
             .bind(block_index)
                 .bind(tx_hash)
                 .bind(ccd_cost)
@@ -227,7 +248,8 @@ VALUES
                 .bind(credential_type)
                 .bind(update_type)
                 .bind(success)
-                .bind(details)
+                .bind(events)
+                                .bind(reject)
             .execute(&mut *tx)
             .await?;
 

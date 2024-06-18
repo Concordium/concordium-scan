@@ -133,8 +133,11 @@ CREATE TABLE transactions(
     success
         BOOLEAN
         NOT NULL,
-    -- Transaction details. Events if success otherwise the reject reason.
-    details
+    -- Transaction details. Events if success is true.
+    events
+        JSONB,
+    -- Transaction details. Reject reason if success is false.
+    reject
         JSONB,
 
     -- Make the block height and transaction index the primary key.
@@ -183,3 +186,20 @@ ALTER TABLE blocks
     FOREIGN KEY (baker_id)
     REFERENCES accounts(index);
 
+CREATE OR REPLACE FUNCTION notify_trigger() RETURNS trigger AS $trigger$
+DECLARE
+  rec blocks;
+  payload TEXT;
+BEGIN
+  CASE TG_OP
+  WHEN 'INSERT' THEN
+     payload := NEW.height;
+     PERFORM pg_notify('block_added', payload);
+  END CASE;
+  RETURN NEW;
+END;
+$trigger$ LANGUAGE plpgsql;
+
+CREATE TRIGGER user_notify AFTER INSERT OR UPDATE OR DELETE
+ON blocks
+FOR EACH ROW EXECUTE PROCEDURE notify_trigger();

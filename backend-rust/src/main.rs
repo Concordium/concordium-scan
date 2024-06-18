@@ -3,7 +3,10 @@ use async_graphql::{
     http::GraphiQLSource,
     Schema,
 };
-use async_graphql_axum::GraphQL;
+use async_graphql_axum::{
+    GraphQL,
+    GraphQLSubscription,
+};
 use axum::{
     response::{
         self,
@@ -16,16 +19,25 @@ use clap::Parser;
 use concordium_rust_sdk::v2;
 use dotenv::dotenv;
 use sqlx::PgPool;
+use std::path::PathBuf;
 use tokio::{
     net::TcpListener,
-    sync::mpsc,
+    sync::{
+        broadcast,
+        mpsc,
+    },
 };
 
 mod graphql_api;
 mod indexer;
 
 pub async fn graphiql() -> impl IntoResponse {
-    response::Html(GraphiQLSource::build().endpoint("/").finish())
+    response::Html(
+        GraphiQLSource::build()
+            .endpoint("/")
+            .subscription_endpoint("/ws")
+            .finish(),
+    )
 }
 
 #[derive(Parser)]
@@ -42,6 +54,9 @@ struct Cli {
     /// Whether to run the indexer.
     #[arg(long)]
     indexer: bool,
+
+    #[arg(long)]
+    schema_out: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -50,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
     let pool = PgPool::connect(&cli.database_url)
@@ -76,18 +91,36 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    let (subscription, subscription_context) = graphql_api::Subscription::new();
+    {
+        let pool = pool.clone();
+        tokio::spawn(async move {
+            graphql_api::Subscription::handle_notifications(subscription_context, pool)
+                .await
+                .expect("PostgreSQL notification task failed")
+        });
+    }
+
     let schema = Schema::build(
         graphql_api::Query,
         async_graphql::EmptyMutation,
-        async_graphql::EmptySubscription,
+        subscription,
     )
     .extension(async_graphql::extensions::Tracing)
     .data(pool)
     .finish();
 
-    println!("Schema: \n{}", schema.sdl());
+    if let Some(schema_file) = cli.schema_out {
+        println!("Writing schema to {}", schema_file.to_string_lossy());
+        std::fs::write(schema_file, schema.sdl()).context("Failed to write schema")?;
+    }
 
-    let app = Router::new().route("/", get(graphiql).post_service(GraphQL::new(schema)));
+    let app = Router::new()
+        .route(
+            "/",
+            get(graphiql).post_service(GraphQL::new(schema.clone())),
+        )
+        .route_service("/ws", GraphQLSubscription::new(schema));
 
     println!("Server is running at http://localhost:8000");
     axum::serve(
