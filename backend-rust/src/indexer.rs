@@ -10,6 +10,7 @@ use crate::graphql_api::{
 };
 use anyhow::Context;
 use concordium_rust_sdk::{
+    base::hashes::BlockHash,
     indexer::{
         async_trait,
         Indexer,
@@ -18,10 +19,13 @@ use concordium_rust_sdk::{
     },
     types::{
         queries::BlockInfo,
+        AbsoluteBlockHeight,
         AccountTransactionDetails,
         AccountTransactionEffects,
+        BlockHeight,
         BlockItemSummary,
         BlockItemSummaryDetails,
+        RewardsOverview,
     },
     v2::{
         self,
@@ -36,30 +40,11 @@ use tokio::sync::mpsc;
 
 pub async fn traverse_chain(
     endpoints: Vec<v2::Endpoint>,
-    pool: PgPool,
     sender: mpsc::Sender<BlockData>,
+    start_height: AbsoluteBlockHeight,
 ) -> anyhow::Result<()> {
-    let rec = sqlx::query!(
-        r#"
-SELECT MAX(height) FROM blocks
-"#
-    )
-    .fetch_one(&pool)
-    .await?;
-    let last_height_stored = rec.max;
-
-    if last_height_stored.is_none() {
-        save_genesis_data(endpoints[0].clone(), &pool).await?;
-    }
-
-    let start_height = if let Some(height) = last_height_stored {
-        u64::try_from(height).unwrap() + 1u64
-    } else {
-        1
-    };
-
-    let config = TraverseConfig::new(endpoints, start_height.into())
-        .context("No gRPC endpoints provided")?;
+    let config =
+        TraverseConfig::new(endpoints, start_height).context("No gRPC endpoints provided")?;
     let indexer = BlockIndexer;
 
     println!("Indexing from {}", start_height);
@@ -73,14 +58,26 @@ pub async fn save_blocks(
     mut receiver: mpsc::Receiver<BlockData>,
     pool: PgPool,
 ) -> anyhow::Result<()> {
+    let mut context = SaveContext::load_from_database(&pool).await?;
+
     while let Some(res) = receiver.recv().await {
+        // TODO: Improve this by batching blocks within some time frame into the same
+        // DB-transaction.
+        // TODO: Handle failures and probably retry a few times
         println!(
             "Saving {}:{}",
             res.finalized_block_info.height, res.finalized_block_info.block_hash
         );
-        res.save_to_database(&pool)
+        let mut tx = pool
+            .begin()
             .await
-            .expect("Failed saving block")
+            .context("Failed to create SQL transaction")?;
+        res.save_to_database(&mut context, &mut tx)
+            .await
+            .context("Failed saving block")?;
+        tx.commit()
+            .await
+            .context("Failed to commit SQL transaction")?;
     }
     Ok(())
 }
@@ -118,12 +115,13 @@ impl Indexer for BlockIndexer {
             .get_block_chain_parameters(fbi.height)
             .await?
             .response;
-
+        let tokenomics_info = client.get_tokenomics_info(fbi.height).await?.response;
         Ok(BlockData {
             finalized_block_info: fbi,
             block_info,
             events,
             chain_parameters,
+            tokenomics_info,
         })
     }
 
@@ -137,21 +135,52 @@ impl Indexer for BlockIndexer {
     }
 }
 
+/// Information for a block which is relevant for storing it into the database.
 pub struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
     block_info: BlockInfo,
     events: Vec<BlockItemSummary>,
     chain_parameters: ChainParameters,
+    tokenomics_info: RewardsOverview,
+}
+
+/// Cross block context
+struct SaveContext {
+    /// The last finalized block height according to the latest indexed block.
+    /// This is needed in order to compute the finalization time of blocks.
+    last_finalized_height: BlockHeight,
+    /// The last finalized block hash according to the latest indexed block.
+    /// This is needed in order to compute the finalization time of blocks.
+    last_finalized_hash: BlockHash,
+}
+
+impl SaveContext {
+    /// The genesis block must already be in the database.
+    async fn load_from_database(pool: &PgPool) -> anyhow::Result<Self> {
+        let rec = sqlx::query!(
+            r#"
+SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height ASC LIMIT 1
+"#
+        )
+        .fetch_one(pool)
+        .await
+        .context("Failed to query data for save context")?;
+
+        Ok(Self {
+            last_finalized_height: BlockHeight::from(u64::try_from(rec.height)?),
+            last_finalized_hash: rec.hash.parse()?,
+        })
+    }
 }
 
 impl BlockData {
-    // Relies on blocks being stored sequencially.
-    async fn save_to_database(self, pool: &PgPool) -> anyhow::Result<()> {
-        let mut tx = pool
-            .begin()
-            .await
-            .context("Failed to create SQL transaction")?;
-
+    /// Relies on blocks being stored sequentially.
+    /// The genesis block must already be in the database.
+    async fn save_to_database(
+        self,
+        context: &mut SaveContext,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
         let height = i64::try_from(self.finalized_block_info.height.height)?;
         let block_hash = self.finalized_block_info.block_hash.to_string();
         let slot_time = self.block_info.block_slot_time.naive_utc();
@@ -160,17 +189,64 @@ impl BlockData {
         } else {
             None
         };
+        let common_reward_data = match self.tokenomics_info {
+            RewardsOverview::V0 { data } => data,
+            RewardsOverview::V1 { common, .. } => common,
+        };
+        let total_amount = i64::try_from(common_reward_data.total_amount.micro_ccd())?;
+        let total_staked = match self.tokenomics_info {
+            RewardsOverview::V0 { .. } => {
+                // TODO Compute the total staked capital.
+                0i64
+            },
+            RewardsOverview::V1 {
+                total_staked_capital,
+                ..
+            } => i64::try_from(total_staked_capital.micro_ccd())?,
+        };
 
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, finalized, baker_id) VALUES ($1, $2, $3, $4, $5);"#,
+            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
+VALUES ($1, $2, $3,
+  (SELECT EXTRACT("MILLISECONDS" FROM $3 - b.slot_time) FROM blocks b WHERE b.height=($1 - 1::bigint)),
+  $4, $5, $6);"#,
             height,
             block_hash,
             slot_time,
-            self.block_info.finalized,
-            baker_id
+            baker_id,
+            total_amount,
+            total_staked
         )
-        .execute(&mut *tx)
+        .execute(tx.as_mut())
             .await?;
+
+        // Check if this block knows of a new finalized block.
+        // If so, mark the blocks since last time as finalized by this block.
+        if self.block_info.block_last_finalized != context.last_finalized_hash {
+            let last_height = i64::try_from(context.last_finalized_height.height)?;
+            let new_last_finalized_hash = self.block_info.block_last_finalized.to_string();
+
+            let rec = sqlx::query!(
+                r#"
+WITH finalizer
+   AS (SELECT height FROM blocks WHERE hash = $1)
+UPDATE blocks b
+   SET finalization_time = EXTRACT("MILLISECONDS" FROM $3 - b.slot_time),
+       finalized_by = finalizer.height
+FROM finalizer
+WHERE $2 <= b.height AND b.height < finalizer.height
+RETURNING finalizer.height"#,
+                new_last_finalized_hash,
+                last_height,
+                slot_time
+            )
+            .fetch_one(tx.as_mut())
+            .await
+            .context("Failed updating finalization_time")?;
+
+            context.last_finalized_height = u64::try_from(rec.height)?.into();
+            context.last_finalized_hash = self.block_info.block_last_finalized;
+        }
 
         for block_item in self.events {
             let block_index = i64::try_from(block_item.index.index).unwrap();
@@ -250,7 +326,7 @@ VALUES
                 .bind(success)
                 .bind(events)
                                 .bind(reject)
-            .execute(&mut *tx)
+            .execute(tx.as_mut())
             .await?;
 
             match block_item.details {
@@ -263,21 +339,18 @@ VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3, 0)"#,
                         height,
                         block_index
                     )
-                    .execute(&mut *tx)
+                    .execute(tx.as_mut())
                     .await?;
                 },
                 _ => {},
             }
         }
 
-        tx.commit()
-            .await
-            .context("Failed to commit SQL transaction")?;
         Ok(())
     }
 }
 
-async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
+pub async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
     let mut client = v2::Client::new(endpoint).await?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
 
@@ -289,19 +362,36 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     let genesis_block_info = client.get_block_info(genesis_height).await?.response;
     let block_hash = genesis_block_info.block_hash.to_string();
     let slot_time = genesis_block_info.block_slot_time.naive_utc();
-    let finalized = genesis_block_info.finalized;
     let baker_id = if let Some(index) = genesis_block_info.block_baker {
         Some(i64::try_from(index.id.index)?)
     } else {
         None
     };
+    let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
+    let common_reward = match genesis_tokenomics {
+        RewardsOverview::V0 { data } => data,
+        RewardsOverview::V1 { common, .. } => common,
+    };
+    let total_staked = match genesis_tokenomics {
+        RewardsOverview::V0 { .. } => {
+            // TODO Compute the total staked capital.
+            0i64
+        },
+        RewardsOverview::V1 {
+            total_staked_capital,
+            ..
+        } => i64::try_from(total_staked_capital.micro_ccd())?,
+    };
+
+    let total_amount = i64::try_from(common_reward.total_amount.micro_ccd())?;
     sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, finalized, baker_id) VALUES ($1, $2, $3, $4, $5);"#,
+            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked) VALUES ($1, $2, $3, 0, $4, $5, $6);"#,
             0,
             block_hash,
             slot_time,
-            finalized,
-            baker_id
+            baker_id,
+        total_amount,
+        total_staked
         )
         .execute(&mut *tx)
             .await?;

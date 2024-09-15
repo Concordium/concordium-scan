@@ -27,3 +27,4 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 rust_decimal = "1.35"
+iso8601-duration = { version = "0.2", features = ["chrono"] }

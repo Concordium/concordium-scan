@@ -22,10 +22,7 @@ use sqlx::PgPool;
 use std::path::PathBuf;
 use tokio::{
     net::TcpListener,
-    sync::{
-        broadcast,
-        mpsc,
-    },
+    sync::mpsc,
 };
 
 mod graphql_api;
@@ -42,12 +39,12 @@ pub async fn graphiql() -> impl IntoResponse {
 
 #[derive(Parser)]
 struct Cli {
-    /// The url used for the database, something of the form
+    /// The URL used for the database, something of the form
     /// "postgres://postgres:example@localhost/ccd-scan"
     #[arg(long, env = "DATABASE_URL")]
     database_url: String,
 
-    /// GRPC interface of the node.
+    /// gRPC interface of the node. Several can be provided.
     #[arg(long, default_value = "http://localhost:20000")]
     node: Vec<v2::Endpoint>,
 
@@ -55,6 +52,7 @@ struct Cli {
     #[arg(long)]
     indexer: bool,
 
+    /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
     schema_out: Option<PathBuf>,
 }
@@ -70,21 +68,38 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = PgPool::connect(&cli.database_url)
         .await
-        .context("Failed constructin database connection pool")?;
+        .context("Failed constructing database connection pool")?;
 
     if cli.indexer {
-        println!("Starting indexer");
+        eprintln!("Starting indexer");
+        let last_height_stored = sqlx::query!(
+            r#"
+SELECT height FROM blocks ORDER BY height DESC LIMIT 1
+"#
+        )
+        .fetch_optional(&pool)
+        .await?
+        .map(|r| r.height);
+
+        let start_height = if let Some(height) = last_height_stored {
+            u64::try_from(height)? + 1
+        } else {
+            indexer::save_genesis_data(cli.node[0].clone(), &pool).await?;
+            1
+        };
+
         let (sender, receiver) = mpsc::channel(10);
         {
-            let pool = pool.clone();
+            // TODO: Graceful shutdown if this task fails
             tokio::spawn(async move {
-                indexer::traverse_chain(cli.node, pool, sender)
+                indexer::traverse_chain(cli.node, sender, start_height.into())
                     .await
                     .expect("failed")
             });
         }
         {
             let pool = pool.clone();
+            // TODO: Graceful shutdown if this task fails
             tokio::spawn(
                 async move { indexer::save_blocks(receiver, pool).await.expect("failed") },
             );
@@ -94,6 +109,7 @@ async fn main() -> anyhow::Result<()> {
     let (subscription, subscription_context) = graphql_api::Subscription::new();
     {
         let pool = pool.clone();
+        // TODO: Graceful shutdown if this task fails
         tokio::spawn(async move {
             graphql_api::Subscription::handle_notifications(subscription_context, pool)
                 .await
@@ -111,7 +127,7 @@ async fn main() -> anyhow::Result<()> {
     .finish();
 
     if let Some(schema_file) = cli.schema_out {
-        println!("Writing schema to {}", schema_file.to_string_lossy());
+        eprintln!("Writing schema to {}", schema_file.to_string_lossy());
         std::fs::write(schema_file, schema.sdl()).context("Failed to write schema")?;
     }
 
@@ -122,7 +138,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route_service("/ws", GraphQLSubscription::new(schema));
 
-    println!("Server is running at http://localhost:8000");
+    eprintln!("Server is running at http://localhost:8000");
     axum::serve(
         TcpListener::bind("127.0.0.1:8000")
             .await

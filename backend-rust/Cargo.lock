@@ -563,6 +563,7 @@ dependencies = [
  "dotenv",
  "futures",
  "hex",
+ "iso8601-duration",
  "rust_decimal",
  "serde",
  "serde_json",
@@ -1925,6 +1926,16 @@ name = "is_terminal_polyfill"
 version = "1.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8478577c03552c21db0e2724ffb8986a5ce7af88107e6be5d2ee6e158c12800"
+
+[[package]]
+name = "iso8601-duration"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a26adff60a5d3ca10dc271ad37a34ff376595d2a1e5f21d02564929ca888c511"
+dependencies = [
+ "chrono",
+ "nom",
+]
 
 [[package]]
 name = "itertools"

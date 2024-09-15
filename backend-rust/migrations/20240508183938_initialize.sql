@@ -76,15 +76,33 @@ CREATE TABLE blocks(
     slot_time
         TIMESTAMP
         NOT NULL,
-    -- Whether the block is finalized.
-    finalized
-        BOOLEAN
+    -- Milliseconds between the slot_time of this block and the block below (height - 1).
+    -- For the genesis block it will be 0.
+    block_time
+        INTEGER
         NOT NULL,
+    -- Milliseconds between the slot_time of this block and the block above causing this block to be finalized.
+    -- This is NULL until the indexer have processed the block marking this a finalized.
+    finalization_time
+        INTEGER,
+    -- Block causing this block to become finalized.
+    -- This is NULL until the indexer have processed the block marking this a finalized.
+    finalized_by
+        BIGINT
+        REFERENCES blocks(height),
     -- Index of the account which baked the block.
     -- For non-genesis blocks this should always be defined.
     -- Foreign key constraint added later, since account table is not defined yet.
     baker_id
+        BIGINT,
+    -- The total amount of CCD in existence at the time of this block was created in micro CCD.
+    total_amount
         BIGINT
+        NOT NULL,
+    -- The total staked amount of CCD at the time of this block was created in micro CCD.
+    total_staked
+        BIGINT
+        NOT NULL
 );
 
 -- Every transaction on chain.
@@ -165,7 +183,7 @@ CREATE TABLE accounts(
     -- Only NULL for genesis accounts
     created_index
         BIGINT,
-    -- The total balance of this account.
+    -- The total balance of this account in micro CCD.
     amount
         BIGINT
         NOT NULL,
@@ -192,9 +210,10 @@ DECLARE
   payload TEXT;
 BEGIN
   CASE TG_OP
-  WHEN 'INSERT' THEN
-     payload := NEW.height;
-     PERFORM pg_notify('block_added', payload);
+       WHEN 'INSERT' THEN
+            payload := NEW.height;
+            PERFORM pg_notify('block_added', payload);
+       ELSE NULL;
   END CASE;
   RETURN NEW;
 END;
