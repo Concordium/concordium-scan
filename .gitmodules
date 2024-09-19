@@ -1,0 +1,3 @@
+[submodule "backend/concordium-net-sdk"]
+	path = backend/concordium-net-sdk
+	url = ../concordium-net-sdk.git
