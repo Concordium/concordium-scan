@@ -164,6 +164,33 @@ public class BakerWriter
         await context.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Removes delegator information tracked for an account.
+    /// Throws for accounts with no delegation information.
+    /// </summary>
+    public async Task RemoveDelegator(DelegatorId delegatorId) {
+        using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(RemoveDelegator));
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        var account = await context.Accounts.SingleAsync(x => x.Id == (long) delegatorId.Id.Index);
+        if (account.Delegation == null) throw new InvalidOperationException("Trying to remove delegator, but account is not delegating.");
+        // Update the delegation counter on the target.
+        switch (account.Delegation.DelegationTarget) {
+            case PassiveDelegationTarget passiveTarget:
+                var passive = await context.PassiveDelegations.SingleAsync();
+                passive.DelegatorCount -= 1;
+                break;
+            case BakerDelegationTarget target:
+                var baker = await context.Bakers.SingleAsync(baker => baker.BakerId == target.BakerId);
+                var activeState = baker.State as ActiveBakerState ?? throw new InvalidOperationException("Trying to remove delegator targeting a baker pool, but the baker state is not active.");
+                var pool = activeState.Pool ?? throw new InvalidOperationException("Trying to remove delegator targeting a baker pool, but the baker state had no pool information.");
+                pool.DelegatorCount -= 1;
+                break;
+        };
+        // Delete the delegation information
+        account.Delegation = null;
+        await context.SaveChangesAsync();
+    }
+
     public async Task UpdateDelegatedStake()
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerWriter), nameof(UpdateDelegatedStake));

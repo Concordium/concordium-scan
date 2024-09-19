@@ -235,8 +235,8 @@ public class AccountValidator : IImportValidator
                             TransactionCommission = x.BakerPoolInfo.CommissionRates.TransactionCommission.AsDecimal(),
                             FinalizationCommission = x.BakerPoolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
                             BakingCommission = x.BakerPoolInfo.CommissionRates.BakingCommission.AsDecimal(),
-                            DelegatedStake = bakerPoolStatus.DelegatedCapital.Value,
-                            DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap.Value,
+                            DelegatedStake = bakerPoolStatus!.DelegatedCapital!.Value.Value,
+                            DelegatedStakeCap = bakerPoolStatus.DelegatedCapitalCap!.Value.Value,
                             PaydayStatus = bakerPoolStatus?.CurrentPaydayStatus == null ? null : new
                             {
                                 BakerStake = bakerPoolStatus.CurrentPaydayStatus.BakerEquityCapital.Value,

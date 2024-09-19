@@ -25,11 +25,14 @@ public class BakerImportHandler
         _logger = Log.ForContext(GetType());
     }
 
+    /// <summary>
+    /// Process block data related to changes for bakers/validators.
+    /// </summary>
     public async Task<BakerUpdateResults> HandleBakerUpdates(BlockDataPayload payload, RewardsSummary rewardsSummary,
         ChainParametersState chainParameters, BlockImportPaydayStatus importPaydayStatus, ImportState importState)
     {
         using var counter = _metrics.MeasureDuration(nameof(BakerImportHandler), nameof(HandleBakerUpdates));
-        
+
         var changeStrategy = BakerChangeStrategyFactory.Create(payload.BlockInfo, chainParameters.Current, importPaydayStatus, _writer,
             payload.AccountInfos.BakersWithNewPendingChanges);;
 
@@ -164,8 +167,8 @@ public class BakerImportHandler
                 or BakerConfigured
                 or BakerKeysUpdated
             );
-        
-        await bakerChangeStrategy.UpdateBakersFromTransactionEvents(txEvents, importState, resultBuilder);
+
+        await bakerChangeStrategy.UpdateBakersFromTransactionEvents(txEvents, importState, resultBuilder, payload.BlockInfo.BlockSlotTime);
 
         // This should happen after the bakers from current block has been added to the database
         if (isFirstBlockAfterPayday)
@@ -224,10 +227,10 @@ public class BakerImportHandler
                         FinalizationCommission = source.PoolInfo.CommissionRates.FinalizationCommission.AsDecimal(),
                         BakingCommission = source.PoolInfo.CommissionRates.BakingCommission.AsDecimal()
                     },
-                    DelegatedStake = source.DelegatedCapital.Value,
+                    DelegatedStake = source.DelegatedCapital!.Value.Value,
                     DelegatorCount = 0,
-                    DelegatedStakeCap = source.DelegatedCapitalCap.Value,
-                    TotalStake = source.BakerEquityCapital.Value + source.DelegatedCapital.Value
+                    DelegatedStakeCap = source.DelegatedCapitalCap!.Value.Value,
+                    TotalStake = source.BakerEquityCapital!.Value.Value + source.DelegatedCapital.Value.Value
                 };
                 pool.ApplyPaydayStatus(source.CurrentPaydayStatus, source.PoolInfo.CommissionRates);
                 
@@ -262,8 +265,8 @@ public class BakerImportHandler
                 {
                     var rates = baker.ActiveState!.Pool!.CommissionRates;
                     rates.FinalizationCommission = AdjustValueToRange(rates.FinalizationCommission, currentFinalizationCommissionRange);
-                    rates.BakingCommission = AdjustValueToRange(rates.BakingCommission, currentBakingCommissionRange);
-                    rates.TransactionCommission = AdjustValueToRange(rates.TransactionCommission, currentTransactionCommissionRange);
+                    rates.BakingCommission = AdjustValueToRange(rates.BakingCommission, currentBakingCommissionRange!);
+                    rates.TransactionCommission = AdjustValueToRange(rates.TransactionCommission, currentTransactionCommissionRange!);
                 },
                 baker => baker.ActiveState!.Pool != null);
 
@@ -309,16 +312,22 @@ public class BakerImportHandler
         }
     }
 
-    private async Task UpdateBakersWithPendingChangesDue(IBakerChangeStrategy bakerChangeStrategy, 
+    private async Task UpdateBakersWithPendingChangesDue(IBakerChangeStrategy bakerChangeStrategy,
         ImportState importState, BakerUpdateResultsBuilder resultBuilder)
     {
-        if (bakerChangeStrategy.MustApplyPendingChangesDue(importState.NextPendingBakerChangeTime))
-        {
-            var effectiveTime = bakerChangeStrategy.GetEffectiveTime();
-            await _writer.UpdateBakersWithPendingChange(effectiveTime, baker => ApplyPendingChange(baker, resultBuilder));
+        // Check if this protocol supports pending changes.
+        if (bakerChangeStrategy.SupportsPendingChanges()) {
+            if (bakerChangeStrategy.MustApplyPendingChangesDue(importState.NextPendingBakerChangeTime))
+            {
+                var effectiveTime = bakerChangeStrategy.GetEffectiveTime();
+                await _writer.UpdateBakersWithPendingChange(effectiveTime, baker => ApplyPendingChange(baker, resultBuilder));
 
-            importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
-            _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+                importState.NextPendingBakerChangeTime = await _writer.GetMinPendingChangeTime();
+                _logger.Information("NextPendingBakerChangeTime set to {value}", importState.NextPendingBakerChangeTime);
+            }
+        } else {
+            // Starting from protocol version 7 and onwards stake changes are immediate, so we apply all of them in the first block of P7 and this is a no-op for future blocks.
+            await _writer.UpdateBakersWithPendingChange(DateTimeOffset.MaxValue, baker => ApplyPendingChange(baker, resultBuilder));
         }
     }
 
