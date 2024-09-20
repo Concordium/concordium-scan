@@ -24,17 +24,17 @@ public class AccountValidator : IImportValidator
         _logger = Log.ForContext<AccountValidator>();
     }
 
-    public async Task Validate(Block block)
+    public async Task Validate(Block block, ProtocolVersion protocolVersion)
     {
-        await InternalValidate(block);
+        await InternalValidate(block, protocolVersion);
     }
 
-    public async Task ValidateSingle(Block block, SingleAccountValidationInfo singleAccountValidationInfo)
+    public async Task ValidateSingle(Block block, ProtocolVersion protocolVersion, SingleAccountValidationInfo singleAccountValidationInfo)
     {
-        await InternalValidate(block, singleAccountValidationInfo);
+        await InternalValidate(block, protocolVersion, singleAccountValidationInfo);
     }
 
-    private async Task InternalValidate(Block block, SingleAccountValidationInfo? singleAccountValidationInfo = null)
+    private async Task InternalValidate(Block block, ProtocolVersion protocolVersion, SingleAccountValidationInfo? singleAccountValidationInfo = null)
     {
         var blockHash = BlockHash.From(block.BlockHash);
         var blockHeight = (ulong)block.BlockHeight;
@@ -67,7 +67,7 @@ public class AccountValidator : IImportValidator
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         await ValidateAccounts(nodeAccountInfos, blockHeight, dbContext, singleAccountValidationInfo);
-        await ValidateBakers(nodeAccountBakers, block, dbContext, singleAccountValidationInfo);
+        await ValidateBakers(protocolVersion, nodeAccountBakers, block, dbContext, singleAccountValidationInfo);
     }
 
     private bool TryGetAccountDelegation(IAccountStakingInfo? info, out AccountDelegation? delegation)
@@ -193,16 +193,16 @@ public class AccountValidator : IImportValidator
         };
     }
 
-    private async Task ValidateBakers(List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
+    private async Task ValidateBakers(ProtocolVersion protocolVersion, List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
     {
+        _logger.Information($"Validating bakers in ${block.BlockHash}: ${nodeAccountBakers.Select(a=> a.BakerInfo.BakerId).ToString()}");
         var blockHeight = (ulong)block.BlockHeight;
         var blockHash = BlockHash.From(block.BlockHash);
         var given = new Given(blockHash);
 
         var poolStatuses = new List<BakerPoolStatus>();
 
-        var nodeInfo = await _nodeClient.GetNodeInfoAsync();
-        if (nodeInfo.Version.Major >= 4)
+        if (protocolVersion >= ProtocolVersion.P4)
         {
             foreach (var chunk in Chunk(nodeAccountBakers, 10))
             {
