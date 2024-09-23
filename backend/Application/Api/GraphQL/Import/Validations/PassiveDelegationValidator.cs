@@ -3,6 +3,7 @@ using Application.Api.GraphQL.Blocks;
 using Application.Api.GraphQL.EfCore;
 using Application.Api.GraphQL.PassiveDelegations;
 using Concordium.Sdk.Client;
+using Concordium.Sdk.Types;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +22,9 @@ public class PassiveDelegationValidator : IImportValidator
         _logger = Log.ForContext<PassiveDelegationValidator>();
     }
 
-    public async Task Validate(Block block)
+    public async Task Validate(Block block, ProtocolVersion protocolVersion)
     {
-        var nodeInfo = await _nodeClient.GetNodeInfoAsync();
-        if (nodeInfo.Version.Major >= 4)
+        if (protocolVersion >= ProtocolVersion.P4)
         {
             var target = await ReadPassiveDelegation();
 

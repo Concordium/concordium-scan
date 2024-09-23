@@ -3,6 +3,7 @@ using System.Threading;
 using Application.Api.GraphQL.EfCore;
 using Application.Database;
 using Dapper;
+using Ductus.FluentDocker.Model.Compose;
 using Ductus.FluentDocker.Builders;
 using Ductus.FluentDocker.Services;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,7 @@ public sealed class DatabaseFixture : IDisposable
         _service = new Builder()
             .UseContainer()
             .UseCompose()
+            .AssumeComposeVersion(ComposeVersion.V2)
             .FromFile(file)
             .RemoveOrphans()
             .WaitForPort("timescaledb-test", "5432/tcp", 30_000)

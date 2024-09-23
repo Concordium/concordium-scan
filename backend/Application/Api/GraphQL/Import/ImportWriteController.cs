@@ -125,7 +125,7 @@ public class ImportWriteController : BackgroundService
                         result.Block.BlockHeight,
                         result.Block.BlockSlotTime.ToUniversalTime().ToString());
                 
-                    await _accountBalanceValidator.PerformValidations(result.Block);
+                    await _accountBalanceValidator.PerformValidations(result.Block, envelope.Payload.BlockInfo.ProtocolVersion);
                 
                     if (result.Block.BlockHeight % 5000 == 0)
                         _metricsListener.DumpCapturedMetrics();

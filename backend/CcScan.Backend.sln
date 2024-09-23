@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseScripts", "DatabaseScripts\DatabaseScripts.csproj", "{F9322D66-8D55-466D-B7DF-04FBF2BD9341}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "concordium-net-sdk", "concordium-net-sdk", "{B970FDDA-8B7C-4DEE-9522-C51EB3D424B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Concordium.Sdk", "concordium-net-sdk\src\Concordium.Sdk.csproj", "{84A4662D-9D85-482F-84C3-FB37C2894053}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,12 @@ Global
 		{F9322D66-8D55-466D-B7DF-04FBF2BD9341}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9322D66-8D55-466D-B7DF-04FBF2BD9341}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9322D66-8D55-466D-B7DF-04FBF2BD9341}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84A4662D-9D85-482F-84C3-FB37C2894053}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84A4662D-9D85-482F-84C3-FB37C2894053}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84A4662D-9D85-482F-84C3-FB37C2894053}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84A4662D-9D85-482F-84C3-FB37C2894053}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{84A4662D-9D85-482F-84C3-FB37C2894053} = {B970FDDA-8B7C-4DEE-9522-C51EB3D424B4}
 	EndGlobalSection
 EndGlobal

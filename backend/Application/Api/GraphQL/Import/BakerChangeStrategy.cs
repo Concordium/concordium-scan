@@ -9,24 +9,27 @@ internal interface IBakerChangeStrategy
     Task UpdateBakersFromTransactionEvents(
         IEnumerable<AccountTransactionDetails> transactionEvents,
         ImportState importState,
-        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder);
-    
+        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder,
+        DateTimeOffset blockSlotTime);
+
     bool MustApplyPendingChangesDue(DateTimeOffset? nextPendingBakerChangeTime);
     DateTimeOffset GetEffectiveTime();
+    /// <summary>Whether the protocol supports pending changes. Starting from Protocol version 7 this is not the case.</summary>
+    bool SupportsPendingChanges();
 }
 
 internal static class BakerChangeStrategyFactory
 {
     internal static IBakerChangeStrategy Create(
         BlockInfo blockInfo,
-        ChainParameters chainParameters, 
+        ChainParameters chainParameters,
         BlockImportPaydayStatus importPaydayStatus,
         BakerWriter writer,
         AccountInfo[] bakersWithNewPendingChanges)
     {
         if (blockInfo.ProtocolVersion.AsInt() < 4)
             return new PreProtocol4Strategy(bakersWithNewPendingChanges, blockInfo, writer);
-        
+
         ChainParameters.TryGetPoolOwnerCooldown(chainParameters, out var poolOwnerCooldown);
         return new PostProtocol4Strategy(blockInfo, poolOwnerCooldown!.Value, importPaydayStatus, writer);
 
@@ -46,13 +49,17 @@ public class PreProtocol4Strategy : IBakerChangeStrategy
         _accountInfos = accountInfos;
     }
 
+    public bool SupportsPendingChanges() => true;
+
     /// <summary>
     /// Prior to protocol 4 <see cref="Concordium.Sdk.Types.BakerConfigured"/> isn't used.
     /// </summary>
     public async Task UpdateBakersFromTransactionEvents(
         IEnumerable<AccountTransactionDetails> transactionEvents,
         ImportState importState,
-        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder)
+        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder,
+        DateTimeOffset blockSlotTime
+    )
     {
         foreach (var txEvent in transactionEvents)
         {
@@ -184,6 +191,8 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
         return false;
     }
 
+    public bool SupportsPendingChanges() => _blockInfo.ProtocolVersion < ProtocolVersion.P7;
+
     public DateTimeOffset GetEffectiveTime()
     {
         if (_importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday)
@@ -195,8 +204,9 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
     /// <see cref="Concordium.Sdk.Types.BakerConfigured"/> are used from protocol 4.
     /// </summary>
     public async Task UpdateBakersFromTransactionEvents(IEnumerable<AccountTransactionDetails> transactionEvents, ImportState importState,
-        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder)
+        BakerImportHandler.BakerUpdateResultsBuilder resultBuilder, DateTimeOffset blockSlotTime)
     {
+        bool supportsPendingChanges = SupportsPendingChanges();
         foreach (var txEvent in transactionEvents)
         {
             switch (txEvent.Effects)
@@ -219,8 +229,21 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
                                 resultBuilder.IncrementBakersAdded();
                                 break;
                             case BakerRemovedEvent bakerRemovedEvent:
-                                var pendingChange = await SetPendingChangeOnBaker(bakerRemovedEvent.BakerId, bakerRemovedEvent);
-                                importState.UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime);
+                                if (supportsPendingChanges) {
+                                    // If the protocol version (prior to 7) supports pending changes, then store a pending change.
+                                    var pendingChange = await SetPendingChangeOnBaker(bakerRemovedEvent.BakerId, bakerRemovedEvent);
+                                    importState.UpdateNextPendingBakerChangeTimeIfLower(pendingChange.EffectiveTime);
+                                } else {
+                                    // Otherwise update the stake immediately.
+                                    await _writer.UpdateBaker(bakerRemovedEvent,
+                                    src => src.BakerId.Id.Index,
+                                    (src, dst) =>
+                                    {
+                                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot remove a baker that is not active!");
+                                        dst.State = new RemovedBakerState(blockSlotTime);
+                                        resultBuilder.AddBakerRemoved((long) bakerRemovedEvent.BakerId.Id.Index);
+                                    });
+                                }
                                 break;
                             case BakerRestakeEarningsUpdatedEvent bakerRestakeEarningsUpdatedEvent:
                                 await _writer.UpdateBaker(bakerRestakeEarningsUpdatedEvent,
@@ -280,17 +303,35 @@ public class PostProtocol4Strategy : IBakerChangeStrategy
                                     resultBuilder.AddBakerClosedForAll((long)bakerSetOpenStatusEvent.BakerId.Id.Index);
                                 break;
                             case BakerStakeDecreasedEvent bakerStakeDecreasedEvent:
-                                var pendingChangeStakeDecreased = await SetPendingChangeOnBaker(bakerStakeDecreasedEvent.BakerId, bakerStakeDecreasedEvent);
-                                importState.UpdateNextPendingBakerChangeTimeIfLower(pendingChangeStakeDecreased.EffectiveTime);
+                                if (supportsPendingChanges) {
+                                    // If the protocol version (prior to 7) supports pending changes, then store a pending change.
+                                    var pendingChangeStakeDecreased = await SetPendingChangeOnBaker(bakerStakeDecreasedEvent.BakerId, bakerStakeDecreasedEvent);
+                                    importState.UpdateNextPendingBakerChangeTimeIfLower(pendingChangeStakeDecreased.EffectiveTime);
+                                } else {
+                                    // From protocol version 7 and onwards stake changes are immediate.
+                                    await _writer.UpdateBaker(bakerStakeDecreasedEvent,
+                                    src => src.BakerId.Id.Index,
+                                    (src, dst) =>
+                                    {
+                                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot decrease stake for a baker that is not active!");
+                                        activeState.StakedAmount = src.NewStake.Value;
+                                    });
+                                }
                                 break;
                             case BakerStakeIncreasedEvent bakerStakeIncreasedEvent:
                                 await _writer.UpdateBaker(bakerStakeIncreasedEvent,
                                     src => src.BakerId.Id.Index,
                                     (src, dst) =>
                                     {
-                                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot set restake earnings for a baker that is not active!");
+                                        var activeState = dst.State as ActiveBakerState ?? throw new InvalidOperationException("Cannot increase stake for a baker that is not active!");
                                         activeState.StakedAmount = src.NewStake.Value;
                                     });
+                                break;
+                            case BakerEventDelegationRemoved delegationRemoved:
+                                // This event was introduced as part of Concordium Protocol Version 7,
+                                // which also removes the logic around pending changes, meaning we can
+                                // just update the state immediately.
+                                await _writer.RemoveDelegator(delegationRemoved.DelegatorId);
                                 break;
                             case BakerKeysUpdatedEvent:
                             default:

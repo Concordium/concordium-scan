@@ -115,10 +115,13 @@ public class AccountLookupTest
         var clientMock = new Mock<IConcordiumNodeClient>();
         var accountInfo = new AccountInfo(
             AccountSequenceNumber.From(1UL),
-            CcdAmount.Zero, 
+            CcdAmount.Zero,
             new AccountIndex(accountIndex),
             AccountAddress.From(uniqueAddress),
-            null
+            null,
+            Schedule: ReleaseSchedule.Empty(),
+            Cooldowns: new List<Concordium.Sdk.Types.Cooldown>(),
+            AvailableBalance: CcdAmount.Zero
         );
         clientMock.Setup(m => m.GetAccountInfoAsync(It.IsAny<IAccountIdentifier>(), It.IsAny<IBlockHashInput>(),
                 It.IsAny<CancellationToken>()))

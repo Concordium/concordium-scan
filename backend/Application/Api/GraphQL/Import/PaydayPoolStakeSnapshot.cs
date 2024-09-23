@@ -6,4 +6,8 @@ public record PaydayPoolStakeSnapshot(
 public record PaydayPoolStakeSnapshotItem(
     long BakerId,
     long BakerStake,
-    long DelegatedStake);
+    long DelegatedStake) {
+        public static PaydayPoolStakeSnapshotItem Removed(long bakerId) {
+            return new(bakerId, 0, 0);
+        }
+    };

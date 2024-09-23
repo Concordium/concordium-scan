@@ -20,7 +20,7 @@ public class BalanceStatisticsValidator : IImportValidator
         _logger = Log.ForContext<BalanceStatisticsValidator>();
     }
 
-    public async Task Validate(Block block)
+    public async Task Validate(Block block, ProtocolVersion _protocolVersion)
     {
         var nodeData = await _grpcNodeClient.GetTokenomicsInfoAsync(new Given(BlockHash.From(block.BlockHash)));
         if (nodeData.Response is RewardOverviewV1 rv1)

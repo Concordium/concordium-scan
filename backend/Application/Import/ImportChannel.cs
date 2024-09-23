@@ -102,6 +102,9 @@ public record GenesisBlockDataPayload : BlockDataPayload
     public IList<IpInfo> GenesisIdentityProviders { get; }
 }
 
+/// <summary>
+/// List of results from GetAccountInfo for accounts that have changed in this block.
+/// </summary>
 public record AccountInfosRetrieved(
     AccountInfo[] CreatedAccounts,
     AccountInfo[] BakersWithNewPendingChanges);
