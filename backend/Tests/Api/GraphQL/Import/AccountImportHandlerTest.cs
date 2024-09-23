@@ -78,7 +78,10 @@ namespace Tests.Api.GraphQL.Import
                         AccountAmount: CcdAmount.FromCcd(1),
                         AccountIndex: receiverAccountId,
                         AccountAddress: receiverAccount,
-                        null
+                        null,
+                        Schedule: ReleaseSchedule.Empty(),
+                        Cooldowns: new List<Concordium.Sdk.Types.Cooldown>(),
+                        AvailableBalance: CcdAmount.FromCcd(1)
                     )
                 },
                 Array.Empty<AccountInfo>());
@@ -143,11 +146,14 @@ namespace Tests.Api.GraphQL.Import
                         AccountAmount: CcdAmount.FromCcd(1),
                         AccountIndex: receiverAccountId,
                         AccountAddress: receiverAccount,
-                        null
+                        null,
+                        Schedule: ReleaseSchedule.Empty(),
+                        Cooldowns: new List<Concordium.Sdk.Types.Cooldown>(),
+                        AvailableBalance: CcdAmount.FromCcd(1)
                     )
                 },
-                Array.Empty<AccountInfo>());            
-            
+                Array.Empty<AccountInfo>());
+
             var blockDataPayload = new BlockDataPayloadBuilder()
                 .WithBlockInfo(blockInfo)
                 .WithBlockItemSummaries(new List<BlockItemSummary>())
