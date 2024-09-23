@@ -2,14 +2,19 @@
 //! - Introduce default LIMITS for connections
 //! - Introduce a MAX LIMIT for connections
 
+#![allow(unused_variables)]
+#![allow(unreachable_code)]
+
 use anyhow::Context as _;
 use async_graphql::{
+    http::GraphiQLSource,
     types::{
         self,
         connection,
     },
     ComplexObject,
     Context,
+    EmptyMutation,
     Enum,
     InputObject,
     InputValueError,
@@ -18,11 +23,13 @@ use async_graphql::{
     Object,
     Scalar,
     ScalarType,
+    Schema,
     SimpleObject,
     Subscription,
     Union,
     Value,
 };
+use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use futures::prelude::*;
 use sqlx::{
@@ -35,12 +42,57 @@ use std::{
     str::FromStr as _,
     sync::Arc,
 };
-use tokio::sync::broadcast;
+use tokio::{
+    net::TcpListener,
+    sync::broadcast,
+};
+use tokio_util::sync::CancellationToken;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The most transactions which can be queried at once.
 const QUERY_TRANSACTIONS_LIMIT: i64 = 100;
+
+pub struct Service {
+    pub schema: Schema<Query, EmptyMutation, Subscription>,
+}
+impl Service {
+    pub fn new(subscription: Subscription, pool: PgPool) -> Self {
+        let schema = Schema::build(Query, EmptyMutation, subscription)
+            .extension(async_graphql::extensions::Tracing)
+            .data(pool)
+            .finish();
+        Self { schema }
+    }
+
+    pub async fn serve(
+        self,
+        tcp_listener: TcpListener,
+        stop_signal: CancellationToken,
+    ) -> anyhow::Result<()> {
+        let app = axum::Router::new()
+            .route(
+                "/",
+                axum::routing::get(Self::graphiql)
+                    .post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
+            )
+            .route_service("/ws", GraphQLSubscription::new(self.schema));
+
+        axum::serve(tcp_listener, app)
+            .with_graceful_shutdown(stop_signal.cancelled_owned())
+            .await?;
+        Ok(())
+    }
+
+    async fn graphiql() -> impl axum::response::IntoResponse {
+        axum::response::Html(
+            GraphiQLSource::build()
+                .endpoint("/")
+                .subscription_endpoint("/ws")
+                .finish(),
+        )
+    }
+}
 
 #[derive(Debug, thiserror::Error, Clone)]
 enum ApiError {
@@ -593,49 +645,13 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 pub struct Subscription {
     pub block_added: broadcast::Receiver<Arc<Block>>,
 }
-pub struct SubscriptionContext {
-    block_added_sender: broadcast::Sender<Arc<Block>>,
-}
 impl Subscription {
-    const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
-
     pub fn new() -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
         (
             Subscription { block_added },
             SubscriptionContext { block_added_sender },
         )
-    }
-
-    pub async fn handle_notifications(
-        context: SubscriptionContext,
-        pool: PgPool,
-    ) -> anyhow::Result<()> {
-        let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
-            .await
-            .context("Failed to create a postgreSQL listener")?;
-        listener
-            .listen_all([Self::BLOCK_ADDED_CHANNEL])
-            .await
-            .context("Failed to listen to postgreSQL notifications")?;
-
-        loop {
-            let notification = listener.recv().await?;
-            match notification.channel() {
-                Self::BLOCK_ADDED_CHANNEL => {
-                    let block_height = BlockHeight::from_str(notification.payload())
-                        .context("Failed to parse payload of block added")?;
-                    let block = sqlx::query_as("SELECT * FROM blocks WHERE height=$1")
-                        .bind(block_height)
-                        .fetch_one(&pool)
-                        .await?;
-                    context.block_added_sender.send(Arc::new(block))?;
-                },
-                unknown => {
-                    anyhow::bail!("Unknown channel {}", unknown);
-                },
-            }
-        }
     }
 }
 #[Subscription]
@@ -645,6 +661,48 @@ impl Subscription {
     ) -> impl Stream<Item = Result<Arc<Block>, tokio_stream::wrappers::errors::BroadcastStreamRecvError>>
     {
         tokio_stream::wrappers::BroadcastStream::new(self.block_added.resubscribe())
+    }
+}
+pub struct SubscriptionContext {
+    block_added_sender: broadcast::Sender<Arc<Block>>,
+}
+impl SubscriptionContext {
+    const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
+
+    pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
+        let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
+            .await
+            .context("Failed to create a postgreSQL listener")?;
+        listener
+            .listen_all([Self::BLOCK_ADDED_CHANNEL])
+            .await
+            .context("Failed to listen to postgreSQL notifications")?;
+
+        let exit = stop_signal
+            .run_until_cancelled(async move {
+                loop {
+                    let notification = listener.recv().await?;
+                    match notification.channel() {
+                        Self::BLOCK_ADDED_CHANNEL => {
+                            let block_height = BlockHeight::from_str(notification.payload())
+                                .context("Failed to parse payload of block added")?;
+                            let block = sqlx::query_as("SELECT * FROM blocks WHERE height=$1")
+                                .bind(block_height)
+                                .fetch_one(&pool)
+                                .await?;
+                            self.block_added_sender.send(Arc::new(block))?;
+                        },
+                        unknown => {
+                            anyhow::bail!("Unknown channel {}", unknown);
+                        },
+                    }
+                }
+            })
+            .await;
+        if let Some(result) = exit {
+            result.context("Failed listening")?;
+        }
+        Ok(())
     }
 }
 
@@ -2017,6 +2075,7 @@ impl From<concordium_rust_sdk::types::TransactionType> for AccountTransactionTyp
     fn from(value: concordium_rust_sdk::types::TransactionType) -> Self {
         use concordium_rust_sdk::types::TransactionType as TT;
         use AccountTransactionType as ATT;
+        #[allow(deprecated)]
         match value {
             TT::DeployModule => ATT::DeployModule,
             TT::InitContract => ATT::InitializeSmartContractInstance,
@@ -3158,6 +3217,9 @@ pub fn events_from_summary(
                                         },
                                     ))
                                 },
+                                BakerEvent::DelegationRemoved { delegator_id } => {
+                                    todo!()
+                                },
                             }
                         })
                         .collect::<anyhow::Result<Vec<Event>>>()?
@@ -3222,6 +3284,9 @@ pub fn events_from_summary(
                                         delegator_id: delegator_id.id.index.try_into()?,
                                         account_address: details.sender.into(),
                                     }))
+                                },
+                                DelegationEvent::BakerRemoved { baker_id } => {
+                                    todo!();
                                 },
                             }
                         })
@@ -4148,7 +4213,7 @@ impl MetricsPeriod {
     }
 }
 
-#[derive(sqlx::Type)]
+#[derive(sqlx::Type, Copy, Clone)]
 #[sqlx(type_name = "transaction_type")] // only for PostgreSQL to match a type definition
 pub enum DbTransactionType {
     Account,

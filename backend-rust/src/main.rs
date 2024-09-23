@@ -1,152 +1,116 @@
 use anyhow::Context;
-use async_graphql::{
-    http::GraphiQLSource,
-    Schema,
-};
-use async_graphql_axum::{
-    GraphQL,
-    GraphQLSubscription,
-};
-use axum::{
-    response::{
-        self,
-        IntoResponse,
-    },
-    routing::get,
-    Router,
-};
 use clap::Parser;
 use concordium_rust_sdk::v2;
 use dotenv::dotenv;
+use futures::future::OptionFuture;
 use sqlx::PgPool;
-use std::path::PathBuf;
-use tokio::{
-    net::TcpListener,
-    sync::mpsc,
+use std::{
+    net::SocketAddr,
+    path::PathBuf,
+};
+use tokio::net::TcpListener;
+use tokio_util::sync::CancellationToken;
+use tracing::{
+    error,
+    info,
+    warn,
 };
 
 mod graphql_api;
 mod indexer;
 
-pub async fn graphiql() -> impl IntoResponse {
-    response::Html(
-        GraphiQLSource::build()
-            .endpoint("/")
-            .subscription_endpoint("/ws")
-            .finish(),
-    )
-}
-
+// TODO add env for remaining args.
 #[derive(Parser)]
 struct Cli {
     /// The URL used for the database, something of the form
     /// "postgres://postgres:example@localhost/ccd-scan"
     #[arg(long, env = "DATABASE_URL")]
     database_url: String,
-
     /// gRPC interface of the node. Several can be provided.
     #[arg(long, default_value = "http://localhost:20000")]
     node: Vec<v2::Endpoint>,
-
     /// Whether to run the indexer.
     #[arg(long)]
     indexer: bool,
-
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
     schema_out: Option<PathBuf>,
+    /// Address to listen for API requests
+    #[arg(long, default_value = "127.0.0.1:8000")]
+    listen: SocketAddr,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
     let cli = Cli::parse();
-
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .init();
-
     let pool = PgPool::connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
+    let cancel_token = CancellationToken::new();
 
-    if cli.indexer {
-        eprintln!("Starting indexer");
-        let last_height_stored = sqlx::query!(
-            r#"
-SELECT height FROM blocks ORDER BY height DESC LIMIT 1
-"#
-        )
-        .fetch_optional(&pool)
-        .await?
-        .map(|r| r.height);
-
-        let start_height = if let Some(height) = last_height_stored {
-            u64::try_from(height)? + 1
-        } else {
-            indexer::save_genesis_data(cli.node[0].clone(), &pool).await?;
-            1
-        };
-
-        let (sender, receiver) = mpsc::channel(10);
-        {
-            // TODO: Graceful shutdown if this task fails
-            tokio::spawn(async move {
-                indexer::traverse_chain(cli.node, sender, start_height.into())
-                    .await
-                    .expect("failed")
-            });
-        }
-        {
-            let pool = pool.clone();
-            // TODO: Graceful shutdown if this task fails
-            tokio::spawn(
-                async move { indexer::save_blocks(receiver, pool).await.expect("failed") },
-            );
-        }
-    }
-
-    let (subscription, subscription_context) = graphql_api::Subscription::new();
-    {
+    let mut indexer_task = if cli.indexer {
         let pool = pool.clone();
-        // TODO: Graceful shutdown if this task fails
-        tokio::spawn(async move {
-            graphql_api::Subscription::handle_notifications(subscription_context, pool)
-                .await
-                .expect("PostgreSQL notification task failed")
-        });
-    }
+        let stop_signal = cancel_token.child_token();
+        let indexer = indexer::CcdScanIndexer::new(cli.node, pool).await?;
+        let task = tokio::spawn(async move { indexer.run(stop_signal).await });
+        OptionFuture::from(Some(task))
+    } else {
+        OptionFuture::from(None)
+    };
 
-    let schema = Schema::build(
-        graphql_api::Query,
-        async_graphql::EmptyMutation,
-        subscription,
-    )
-    .extension(async_graphql::extensions::Tracing)
-    .data(pool)
-    .finish();
+    let (subscription, subscription_listener) = graphql_api::Subscription::new();
+    let mut subscription_task = {
+        let pool = pool.clone();
+        let stop_signal = cancel_token.child_token();
+        tokio::spawn(async move { subscription_listener.listen(pool, stop_signal).await })
+    };
 
-    if let Some(schema_file) = cli.schema_out {
-        eprintln!("Writing schema to {}", schema_file.to_string_lossy());
-        std::fs::write(schema_file, schema.sdl()).context("Failed to write schema")?;
-    }
-
-    let app = Router::new()
-        .route(
-            "/",
-            get(graphiql).post_service(GraphQL::new(schema.clone())),
-        )
-        .route_service("/ws", GraphQLSubscription::new(schema));
-
-    eprintln!("Server is running at http://localhost:8000");
-    axum::serve(
-        TcpListener::bind("127.0.0.1:8000")
+    let mut queries_task = {
+        let service = graphql_api::Service::new(subscription, pool);
+        if let Some(schema_file) = cli.schema_out {
+            info!("Writing schema to {}", schema_file.to_string_lossy());
+            std::fs::write(schema_file, service.schema.sdl()).context("Failed to write schema")?;
+        }
+        let tcp_listener = TcpListener::bind(cli.listen)
             .await
-            .context("Parsing TCP listener address failed")?,
-        app,
-    )
-    .await
-    .context("Server failed")?;
+            .context("Parsing TCP listener address failed")?;
+        let stop_signal = cancel_token.child_token();
+        info!("Server is running at {:?}", cli.listen);
+        tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
+    };
 
+    // Await for signal to shutdown or any of the tasks to stop.
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received signal to shutdown");
+        },
+        Some(result) = &mut indexer_task => {
+            error!("Indexer task stopped.");
+            if let Err(err) = result? {
+                error!("Indexer error: {}", err);
+            }
+        },
+        result = &mut queries_task => {
+            error!("Queries task stopped.");
+            if let Err(err) = result? {
+                error!("Queries error: {}", err);
+            }
+        },
+        result = &mut subscription_task => {
+            error!("Subscription task stopped.");
+            if let Err(err) = result? {
+                error!("Subscription error: {}", err);
+            }
+        },
+    }
+    info!("Shutting down");
+    cancel_token.cancel();
+    let _ = indexer_task.await.transpose()?;
+    let _ = queries_task.await?;
+    let _ = subscription_task.await?;
     Ok(())
 }
