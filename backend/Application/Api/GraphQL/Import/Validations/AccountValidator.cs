@@ -195,7 +195,8 @@ public class AccountValidator : IImportValidator
 
     private async Task ValidateBakers(ProtocolVersion protocolVersion, List<AccountBaker> nodeAccountBakers, Block block, GraphQlDbContext dbContext, SingleAccountValidationInfo? singleAccountAddress)
     {
-        _logger.Information($"Validating bakers in ${block.BlockHash}: ${nodeAccountBakers.Select(a=> a.BakerInfo.BakerId).ToString()}");
+       _logger.Information($"Validating bakers in {block.BlockHash}: ${nodeAccountBakers.Select(a=> a.BakerInfo.BakerId).ToString()}");
+
         var blockHeight = (ulong)block.BlockHeight;
         var blockHash = BlockHash.From(block.BlockHash);
         var given = new Given(blockHash);
