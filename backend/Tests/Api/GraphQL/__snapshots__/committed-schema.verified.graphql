@@ -2117,27 +2117,49 @@ enum AccountStatementEntryType {
   TRANSACTION_FEE_REWARD
 }
 
+"Types of account transactions."
 enum AccountTransactionType {
+  "Initialize a smart contract instance."
   INITIALIZE_SMART_CONTRACT_INSTANCE
+  "Update a smart contract instance."
   UPDATE_SMART_CONTRACT_INSTANCE
+  "Transfer CCD from an account to another."
   SIMPLE_TRANSFER
+  "Transfer encrypted amount."
   ENCRYPTED_TRANSFER
+  "Same as transfer but with a memo field."
   SIMPLE_TRANSFER_WITH_MEMO
+  "Same as encrypted transfer, but with a memo."
   ENCRYPTED_TRANSFER_WITH_MEMO
+  "Same as transfer with schedule, but with an added memo."
   TRANSFER_WITH_SCHEDULE_WITH_MEMO
+  "Deploy a Wasm module."
   DEPLOY_MODULE
+  "Register an account as a baker."
   ADD_BAKER
+  "Remove an account as a baker."
   REMOVE_BAKER
+  "Update the staked amount."
   UPDATE_BAKER_STAKE
+  "Update whether the baker automatically restakes earnings."
   UPDATE_BAKER_RESTAKE_EARNINGS
+  "Update baker keys"
   UPDATE_BAKER_KEYS
+  "Update given credential keys"
   UPDATE_CREDENTIAL_KEYS
+  "Transfer from public to encrypted balance of the same account."
   TRANSFER_TO_ENCRYPTED
+  "Transfer from encrypted to public balance of the same account."
   TRANSFER_TO_PUBLIC
+  "Transfer a CCD with a release schedule."
   TRANSFER_WITH_SCHEDULE
+  "Update the account's credentials."
   UPDATE_CREDENTIALS
+  "Register some data on the chain."
   REGISTER_DATA
+  "Configure an account's baker."
   CONFIGURE_BAKER
+  "Configure an account's stake delegation."
   CONFIGURE_DELEGATION
 }
 
@@ -2172,8 +2194,11 @@ enum ContractVersion {
   V1
 }
 
+"Enumeration of the types of credentials."
 enum CredentialDeploymentTransactionType {
+  "Initial credential is a credential that is submitted by the identity\nprovider on behalf of the user. There is only one initial credential\nper identity."
   INITIAL
+  "A normal credential is one where the identity behind it is only known to\nthe owner of the account, unless the anonymity revocation process was\nfollowed."
   NORMAL
 }
 
@@ -2234,29 +2259,53 @@ enum TextDecodeType {
   HEX
 }
 
+"The type of an update."
 enum UpdateTransactionType {
+  "Update of protocol version."
   UPDATE_PROTOCOL
+  "Update of the election difficulty."
   UPDATE_ELECTION_DIFFICULTY
+  "Update of conversion rate of Euro per energy."
   UPDATE_EURO_PER_ENERGY
+  "Update of conversion rate of CCD per Euro."
   UPDATE_MICRO_GTU_PER_EURO
+  "Update of account marked as foundation account."
   UPDATE_FOUNDATION_ACCOUNT
+  "Update of distribution of minted CCD."
   UPDATE_MINT_DISTRIBUTION
+  "Update of distribution of transaction fee."
   UPDATE_TRANSACTION_FEE_DISTRIBUTION
+  "Update of distribution of GAS rewards."
   UPDATE_GAS_REWARDS
+  "Update of minimum threshold for becoming a validator."
   UPDATE_BAKER_STAKE_THRESHOLD
+  "Introduce new Identity Disclosure Authority."
   UPDATE_ADD_ANONYMITY_REVOKER
+  "Introduce new Identity Provider."
   UPDATE_ADD_IDENTITY_PROVIDER
+  "Update of root keys."
   UPDATE_ROOT_KEYS
+  "Update of level1 keys."
   UPDATE_LEVEL1_KEYS
+  "Update of level2 keys."
   UPDATE_LEVEL2_KEYS
+  "Update of pool parameters."
   UPDATE_POOL_PARAMETERS
+  "Update of cooldown parameters."
   UPDATE_COOLDOWN_PARAMETERS
+  "Update of time parameters."
   UPDATE_TIME_PARAMETERS
+  "Update of distribution of minted CCD."
   MINT_DISTRIBUTION_CPV1_UPDATE
+  "Update of distribution of GAS rewards."
   GAS_REWARDS_CPV2_UPDATE
+  "Update of timeout parameters."
   TIMEOUT_PARAMETERS_UPDATE
+  "Update of min-block-time parameters."
   MIN_BLOCK_TIME_UPDATE
+  "Update of block energy limit parameters."
   BLOCK_ENERGY_LIMIT_UPDATE
+  "Update of finalization committee parameters."
   FINALIZATION_COMMITTEE_PARAMETERS_UPDATE
 }
 
