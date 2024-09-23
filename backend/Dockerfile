@@ -3,11 +3,13 @@ WORKDIR /app
 EXPOSE 5000
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim AS publish
+RUN apt-get update && apt-get install -y build-essential
+# Installing Rust to build Concordium.Sdk.
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.80 --profile minimal -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /src
-COPY Application/ Application/
-COPY DatabaseScripts/ DatabaseScripts/
-WORKDIR "/src/Application"
-RUN dotnet publish "Application.csproj" -c Release -o /app/publish -p:RunRustBuild=false
+COPY . .
+RUN dotnet publish Application -c Release -o /app/publish
 
 FROM base AS final
 # Install 'ca-certificates' for supporting HTTPS.
