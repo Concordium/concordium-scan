@@ -1,5 +1,6 @@
 ## Unreleased changes
 
+## 1.9.0
 - Support Concordium Protocol Version 7.
   - Transition between Delegation and Validating immediately.
   - Stake changes are immediate.
