@@ -53,6 +53,6 @@ async fn main() -> anyhow::Result<()> {
                 error!("Indexer error: {}", err);
             }
         }
-    }
+    };
     Ok(())
 }

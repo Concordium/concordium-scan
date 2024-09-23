@@ -1,5 +1,11 @@
 //! TODO:
 //! - Check endpoints are using the same chain.
+//! - Extend with prometheus metrics.
+//! - Batch blocks into the same SQL transaction.
+//! - More logging
+//! - Setup CI to check formatting and build.
+//! - Build docker images.
+//! - Setup CI for deployment.
 
 use crate::graphql_api::{
     events_from_summary,
@@ -23,7 +29,6 @@ use concordium_rust_sdk::{
         queries::BlockInfo,
         AccountTransactionDetails,
         AccountTransactionEffects,
-        BlockHeight,
         BlockItemSummary,
         BlockItemSummaryDetails,
         RewardsOverview,
@@ -79,7 +84,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         let processor_config = concordium_rust_sdk::indexer::ProcessorConfig::new()
             .set_stop_signal(stop_signal.cancelled_owned());
 
-        info!("Indexing from {}", self.start_height);
+        info!("Indexing from block height {}", self.start_height);
         traverse_and_process(
             traverse_config,
             BlockIndexer,
@@ -140,20 +145,22 @@ impl Indexer for BlockIndexer {
         _successive_failures: u64,
         _err: TraverseError,
     ) -> bool {
+        // TODO: Add logging
         true
     }
 }
 
+/// Type implementing the `ProcessEvent` handling the insertion of prepared blocks.
 struct BlockProcessor {
+    /// Database connection pool
     pool: PgPool,
     /// The last finalized block height according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_height: BlockHeight,
+    last_finalized_height: i64,
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
     last_finalized_hash: String,
 }
-
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the database.
     /// This assumes at least the genesis block is in the database.
@@ -169,7 +176,7 @@ SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height 
 
         Ok(Self {
             pool,
-            last_finalized_height: BlockHeight::from(u64::try_from(rec.height)?),
+            last_finalized_height: rec.height,
             last_finalized_hash: rec.hash,
         })
     }
@@ -389,7 +396,7 @@ VALUES ($1, $2, $3,
         // Check if this block knows of a new finalized block.
         // If so, mark the blocks since last time as finalized by this block.
         if self.block_last_finalized != context.last_finalized_hash {
-            let last_height = i64::try_from(context.last_finalized_height.height)?;
+            let last_height = context.last_finalized_height;
 
             let rec = sqlx::query!(
                 r#"
@@ -409,7 +416,7 @@ RETURNING finalizer.height"#,
             .await
             .context("Failed updating finalization_time")?;
 
-            context.last_finalized_height = u64::try_from(rec.height)?.into();
+            context.last_finalized_height = rec.height;
             context.last_finalized_hash = self.block_last_finalized.clone();
         }
 
@@ -503,8 +510,8 @@ impl PreparedBlockItem {
                     details,
                 )?)
             },
-            _ => {
-                todo!()
+            details => {
+                todo!("details = \n {:#?}", details)
             },
         };
 
