@@ -1,7 +1,16 @@
-# Introduction 
+# Introduction
 This is the backend of Concordium Scan.
 
 # Getting Started
+
+This project depends on [concordium-net-sdk](https://github.com/Concordium/concordium-net-sdk) as a Git Submodule, which can be installed using:
+
+```
+git submodule update --init --recursive
+```
+
+Check out the readme of this dependency for how to build it.
+
 ## Prerequisites
 The following prerequisites must be met in order to run the test suite and/or run the backend locally:
 

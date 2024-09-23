@@ -1,5 +1,10 @@
 ## Unreleased changes
 
+- Support Concordium Protocol Version 7.
+  - Transition between Delegation and Validating immediately.
+  - Stake changes are immediate.
+- Fix bug in validation which was branching on the node software version instead of the protocol version.
+
 ## 1.8.19
 - Bugfix
     - Fix performance of account statement export, by adding an index on table `graphql_account_statement_entries`, and streaming the data.
