@@ -440,15 +440,14 @@ struct PreparedBlockItem {
 impl PreparedBlockItem {
     fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_index = i64::try_from(block_item.index.index).unwrap();
+        let block_index = i64::try_from(block_item.index.index)?;
         let tx_hash = block_item.hash.to_string();
         let ccd_cost = i64::try_from(
             data.chain_parameters
                 .ccd_cost(block_item.energy_cost)
                 .micro_ccd,
-        )
-        .unwrap();
-        let energy_cost = i64::try_from(block_item.energy_cost.energy).unwrap();
+        )?;
+        let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
         let sender = block_item.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =
             match &block_item.details {

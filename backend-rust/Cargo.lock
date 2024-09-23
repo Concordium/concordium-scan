@@ -548,35 +548,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "backend-rust"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-graphql",
- "async-graphql-axum",
- "axum 0.7.5",
- "chrono",
- "ciborium",
- "clap",
- "concordium-rust-sdk",
- "derive_more",
- "dotenv",
- "futures",
- "hex",
- "iso8601-duration",
- "rust_decimal",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -914,6 +885,35 @@ dependencies = [
  "tokio-stream",
  "tonic",
  "tracing",
+]
+
+[[package]]
+name = "concordium-scan"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-graphql",
+ "async-graphql-axum",
+ "axum 0.7.5",
+ "chrono",
+ "ciborium",
+ "clap",
+ "concordium-rust-sdk",
+ "derive_more",
+ "dotenv",
+ "futures",
+ "hex",
+ "iso8601-duration",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
