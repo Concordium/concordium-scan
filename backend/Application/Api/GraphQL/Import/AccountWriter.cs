@@ -215,7 +215,7 @@ public class AccountWriter
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(RemoveBaker));
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-        var baker = await context.Bakers.SingleAsync(x => x.BakerId == (long)bakerId.Id.Index);
+        var baker = await context.Bakers.SingleAsync(x => x.Id == (long)bakerId.Id.Index);
         baker.State = new Bakers.RemovedBakerState(effectiveTime);
 
         var target = new BakerDelegationTarget((long) bakerId.Id.Index);

@@ -262,7 +262,9 @@ where metrics_blocks.block_height = sub_query.block_height
             
             var stakeSnapshot = poolReward.Pool switch
             {
-                BakerPoolRewardTarget baker => paydayPoolStakeSnapshot.Items.Single(x => x.BakerId == baker.BakerId),
+                BakerPoolRewardTarget baker =>
+                    // Find the active baker stake, otherwise the baker was removed and empty stake is used.
+                    paydayPoolStakeSnapshot.Items.SingleOrDefault(x => x.BakerId == baker.BakerId, PaydayPoolStakeSnapshotItem.Removed(baker.BakerId)),
                 PassiveDelegationPoolRewardTarget => new PaydayPoolStakeSnapshotItem(-1, 0, paydayPassiveDelegationStakeSnapshot.DelegatedStake),
                 _ => throw new NotImplementedException()
             };
