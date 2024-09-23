@@ -42,18 +42,29 @@ use concordium_rust_sdk::{
     },
 };
 use futures::TryStreamExt;
+use prometheus_client::{
+    metrics::counter::Counter,
+    registry::Registry,
+};
 use sqlx::PgPool;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{
+    info,
+    warn,
+};
 
-pub struct CcdScanIndexer {
+pub struct IndexerService {
     endpoints: Vec<v2::Endpoint>,
     start_height: u64,
     block_processor: BlockProcessor,
 }
 
-impl CcdScanIndexer {
-    pub async fn new(endpoints: Vec<v2::Endpoint>, pool: PgPool) -> anyhow::Result<Self> {
+impl IndexerService {
+    pub async fn new(
+        endpoints: Vec<v2::Endpoint>,
+        pool: PgPool,
+        registry: &mut Registry,
+    ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
             r#"
 SELECT height FROM blocks ORDER BY height DESC LIMIT 1
@@ -69,7 +80,8 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             save_genesis_data(endpoints[0].clone(), &pool).await?;
             1
         };
-        let block_processor = BlockProcessor::load_from_database(pool).await?;
+        let block_processor =
+            BlockProcessor::new(pool, registry.sub_registry_with_prefix("processor")).await?;
 
         Ok(Self {
             endpoints,
@@ -160,11 +172,13 @@ struct BlockProcessor {
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
     last_finalized_hash: String,
+    /// Metric counting how many blocks was saved to the database successfully.
+    blocks_processed: Counter,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the database.
     /// This assumes at least the genesis block is in the database.
-    async fn load_from_database(pool: PgPool) -> anyhow::Result<Self> {
+    async fn new(pool: PgPool, registry: &mut Registry) -> anyhow::Result<Self> {
         let rec = sqlx::query!(
             r#"
 SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height ASC LIMIT 1
@@ -174,10 +188,18 @@ SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height 
         .await
         .context("Failed to query data for save context")?;
 
+        let blocks_processed = Counter::default();
+        registry.register(
+            "blocks_processed",
+            "Number of blocks save to the database",
+            blocks_processed.clone(),
+        );
+
         Ok(Self {
             pool,
             last_finalized_height: rec.height,
             last_finalized_hash: rec.hash,
+            blocks_processed,
         })
     }
 }
@@ -215,6 +237,7 @@ impl ProcessEvent for BlockProcessor {
         tx.commit()
             .await
             .context("Failed to commit SQL transaction")?;
+        self.blocks_processed.inc();
         Ok(format!("Processed block {}:{}", data.height, data.hash))
     }
 
@@ -441,7 +464,8 @@ struct PreparedBlockItem {
     success: bool,
     events: Option<serde_json::Value>,
     reject: Option<serde_json::Value>,
-    prepared_event: PreparedEvent,
+    // This is an option temporarily, until we are able to handle every type of event.
+    prepared_event: Option<PreparedEvent>,
 }
 
 impl PreparedBlockItem {
@@ -504,14 +528,13 @@ impl PreparedBlockItem {
         };
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
-                PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data,
-                    &block_item,
-                    details,
-                )?)
+                Some(PreparedEvent::AccountCreation(
+                    PreparedAccountCreation::prepare(data, &block_item, details)?,
+                ))
             },
             details => {
-                todo!("details = \n {:#?}", details)
+                warn!("details = \n {:#?}", details);
+                None
             },
         };
 
@@ -560,7 +583,8 @@ VALUES
             .await?;
 
         match &self.prepared_event {
-            PreparedEvent::AccountCreation(event) => event.save(context, tx).await?,
+            Some(PreparedEvent::AccountCreation(event)) => event.save(context, tx).await?,
+            _ => {},
         }
         Ok(())
     }

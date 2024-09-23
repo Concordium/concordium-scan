@@ -1,9 +1,15 @@
 use anyhow::Context;
 use clap::Parser;
 use concordium_rust_sdk::v2;
-use concordium_scan::indexer;
+use concordium_scan::{
+    indexer,
+    metrics,
+};
 use dotenv::dotenv;
+use prometheus_client::registry::Registry;
 use sqlx::PgPool;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{
     error,
@@ -20,6 +26,9 @@ struct Cli {
     /// gRPC interface of the node. Several can be provided.
     #[arg(long, default_value = "http://localhost:20000")]
     node: Vec<v2::Endpoint>,
+    /// Address to listen for metrics requests
+    #[arg(long, default_value = "127.0.0.1:8001")]
+    metrics_listen: SocketAddr,
 }
 
 #[tokio::main]
@@ -34,11 +43,20 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
 
+    let mut registry = Registry::with_prefix("indexer");
     let mut indexer_task = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
-        let indexer = indexer::CcdScanIndexer::new(cli.node, pool).await?;
+        let indexer = indexer::IndexerService::new(cli.node, pool, &mut registry).await?;
         tokio::spawn(async move { indexer.run(stop_signal).await })
+    };
+    let mut metrics_task = {
+        let tcp_listener = TcpListener::bind(cli.metrics_listen)
+            .await
+            .context("Parsing TCP listener address failed")?;
+        let stop_signal = cancel_token.child_token();
+        info!("Metrics server is running at {:?}", cli.metrics_listen);
+        tokio::spawn(metrics::serve(registry, tcp_listener, stop_signal))
     };
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {
@@ -46,12 +64,23 @@ async fn main() -> anyhow::Result<()> {
             info!("Received signal to shutdown");
             cancel_token.cancel();
             let _ = indexer_task.await?;
+            let _ = metrics_task.await?;
         },
         result = &mut indexer_task => {
             error!("Indexer task stopped.");
             if let Err(err) = result? {
                 error!("Indexer error: {}", err);
             }
+            cancel_token.cancel();
+            let _ = metrics_task.await?;
+        }
+        result = &mut metrics_task => {
+            error!("Metrics task stopped.");
+            if let Err(err) = result? {
+                error!("Metrics error: {}", err);
+            }
+            cancel_token.cancel();
+            let _ = indexer_task.await?;
         }
     };
     Ok(())
