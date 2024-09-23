@@ -21,12 +21,16 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
-    
+
     - name: Restore dependencies
       run: dotnet restore ./backend/CcScan.Backend.sln
-    
+
     - name: Build
       run: dotnet build ./backend/CcScan.Backend.sln -c Release --no-restore
 
     - name: Test
-      run: dotnet test ./backend/CcScan.Backend.sln --filter Category!=IntegrationTests -c Release --no-build --verbosity normal
+      run: |
+        # Tests depend on docker-compose being available due to this issue https://github.com/mariotoffia/FluentDocker/issues/312.
+        # The soft linking should be remove when a fix is released.
+        ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+        dotnet test ./backend/CcScan.Backend.sln --filter Category!=IntegrationTests -c Release --no-build --verbosity normal
