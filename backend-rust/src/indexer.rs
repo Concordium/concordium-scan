@@ -43,23 +43,35 @@ use concordium_rust_sdk::{
 };
 use futures::TryStreamExt;
 use prometheus_client::{
-    metrics::counter::Counter,
+    metrics::{
+        counter::Counter,
+        family::Family,
+        gauge::Gauge,
+    },
     registry::Registry,
 };
 use sqlx::PgPool;
+use tokio::try_join;
 use tokio_util::sync::CancellationToken;
 use tracing::{
     info,
     warn,
 };
 
+/// Service traversing each block of the chain, indexing it into a database.
 pub struct IndexerService {
+    /// List of Concordium nodes to cycle through when traversing.
     endpoints: Vec<v2::Endpoint>,
+    /// The block height to traversing from.
     start_height: u64,
+    /// State tracked by the block preprocessor during traversing.
+    block_pre_processor: BlockPreProcessor,
+    /// State tracked by the block processor, which is submitting to the database.
     block_processor: BlockProcessor,
 }
 
 impl IndexerService {
+    /// Construct the service. This reads the current state from the database.
     pub async fn new(
         endpoints: Vec<v2::Endpoint>,
         pool: PgPool,
@@ -80,26 +92,30 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             save_genesis_data(endpoints[0].clone(), &pool).await?;
             1
         };
+        let block_pre_processor =
+            BlockPreProcessor::new(registry.sub_registry_with_prefix("preprocessor"));
         let block_processor =
             BlockProcessor::new(pool, registry.sub_registry_with_prefix("processor")).await?;
 
         Ok(Self {
             endpoints,
             start_height,
+            block_pre_processor,
             block_processor,
         })
     }
 
-    pub async fn run(self, stop_signal: CancellationToken) -> anyhow::Result<()> {
+    /// Run the service. This future will only stop when signalled by the `cancel_token`.
+    pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
         let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
             .context("Failed setting up TraverseConfig")?;
         let processor_config = concordium_rust_sdk::indexer::ProcessorConfig::new()
-            .set_stop_signal(stop_signal.cancelled_owned());
+            .set_stop_signal(cancel_token.cancelled_owned());
 
         info!("Indexing from block height {}", self.start_height);
         traverse_and_process(
             traverse_config,
-            BlockIndexer,
+            self.block_pre_processor,
             processor_config,
             self.block_processor,
         )
@@ -108,56 +124,150 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     }
 }
 
-struct BlockIndexer;
+/// Represents the labels used for metrics related to Concordium Node.
+#[derive(Clone, Debug, Hash, PartialEq, Eq, prometheus_client::encoding::EncodeLabelSet)]
+struct NodeMetricLabels {
+    /// URI of the node
+    node: String,
+}
+impl NodeMetricLabels {
+    fn new(endpoint: &v2::Endpoint) -> Self {
+        Self {
+            node: endpoint.uri().to_string(),
+        }
+    }
+}
+
+/// State tracked during block preprocessing, this also holds the implementation of
+/// [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several preprocessors can run in
+/// parallel, this must be `Sync`.
+struct BlockPreProcessor {
+    /// Metric counting the total number of connections ever established to a node.
+    established_node_connections: Family<NodeMetricLabels, Counter>,
+    /// Metric counting the total number of failed attempts to preprocess blocks.
+    total_failures: Family<NodeMetricLabels, Counter>,
+    /// Metric tracking the number of blocks currently being preprocessed.
+    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
+}
+impl BlockPreProcessor {
+    fn new(registry: &mut Registry) -> Self {
+        let established_node_connections = Family::default();
+        registry.register(
+            "established_node_connections",
+            "Total number of established Concordium Node connections",
+            established_node_connections.clone(),
+        );
+        let total_failures = Family::default();
+        registry.register(
+            "preprocessing_failures",
+            "Total number of failed attempts to preprocess blocks",
+            total_failures.clone(),
+        );
+        let blocks_being_preprocessed = Family::default();
+        registry.register(
+            "blocks_being_preprocessed",
+            "Current number of blocks being preprocessed",
+            blocks_being_preprocessed.clone(),
+        );
+        Self {
+            established_node_connections,
+            total_failures,
+            blocks_being_preprocessed,
+        }
+    }
+}
 #[async_trait]
-impl Indexer for BlockIndexer {
-    type Context = ();
+impl Indexer for BlockPreProcessor {
+    type Context = NodeMetricLabels;
     type Data = PreparedBlock;
 
+    /// Called when a new connection is established to the given endpoint.
+    /// The return value from this method is passed to each call of on_finalized.
     async fn on_connect<'a>(
         &mut self,
         endpoint: v2::Endpoint,
         _client: &'a mut v2::Client,
     ) -> QueryResult<Self::Context> {
+        // TODO: check the genesis hash matches, i.e. that the node is running on the same network.
         info!("Connection established to node at uri: {}", endpoint.uri());
-        Ok(())
+        let label = NodeMetricLabels::new(&endpoint);
+        self.established_node_connections
+            .get_or_create(&label)
+            .inc();
+        Ok(label)
     }
 
+    /// The main method of this trait. It is called for each finalized block
+    /// that the indexer discovers. Note that the indexer might call this
+    /// concurrently for multiple blocks at the same time to speed up indexing.
+    ///
+    /// This method is meant to return errors that are unexpected, and if it
+    /// does return an error the indexer will attempt to reconnect to the
+    /// next endpoint.
     async fn on_finalized<'a>(
         &self,
         mut client: v2::Client,
-        _ctx: &'a Self::Context,
+        label: &'a Self::Context,
         fbi: FinalizedBlockInfo,
     ) -> QueryResult<Self::Data> {
-        let block_info = client.get_block_info(fbi.height).await?.response;
-        let events: Vec<_> = client
-            .get_block_transaction_events(fbi.height)
-            .await?
-            .response
-            .try_collect()
-            .await?;
-        let chain_parameters = client
-            .get_block_chain_parameters(fbi.height)
-            .await?
-            .response;
-        let tokenomics_info = client.get_tokenomics_info(fbi.height).await?.response;
-        let data = BlockData {
-            finalized_block_info: fbi,
-            block_info,
-            events,
-            chain_parameters,
-            tokenomics_info,
-        };
-        Ok(PreparedBlock::prepare(&data).map_err(|err| RPCError::ParseError(err))?)
+        self.blocks_being_preprocessed.get_or_create(label).inc();
+        // We block together the computation, so we can update the metric in the error case, before
+        // returning early.
+        let result = async move {
+            let mut client1 = client.clone();
+            let mut client2 = client.clone();
+            let mut client3 = client.clone();
+            let get_events = async move {
+                let events = client3
+                    .get_block_transaction_events(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(events)
+            };
+
+            let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
+                client1.get_block_info(fbi.height),
+                client2.get_block_chain_parameters(fbi.height),
+                get_events,
+                client.get_tokenomics_info(fbi.height)
+            )
+            .map_err(|err| err)?;
+
+            let data = BlockData {
+                finalized_block_info: fbi,
+                block_info: block_info.response,
+                events,
+                chain_parameters: chain_parameters.response,
+                tokenomics_info: tokenomics_info.response,
+            };
+            let prepared_block =
+                PreparedBlock::prepare(&data).map_err(|err| RPCError::ParseError(err))?;
+            Ok(prepared_block)
+        }
+        .await;
+        self.blocks_being_preprocessed.get_or_create(label).dec();
+        result
     }
 
+    /// Called when either connecting to the node or querying the node fails.
+    /// The number of successive failures without progress is passed to the
+    /// method which should return whether to stop indexing `true` or not
+    /// `false`
     async fn on_failure(
         &mut self,
-        _ep: v2::Endpoint,
-        _successive_failures: u64,
-        _err: TraverseError,
+        endpoint: v2::Endpoint,
+        successive_failures: u64,
+        err: TraverseError,
     ) -> bool {
-        // TODO: Add logging
+        info!(
+            "Failed preprocessing {} times in row: {}",
+            successive_failures, err
+        );
+        self.total_failures
+            .get_or_create(&NodeMetricLabels::new(&endpoint))
+            .inc();
         true
     }
 }
