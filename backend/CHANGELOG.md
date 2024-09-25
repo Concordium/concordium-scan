@@ -1,5 +1,8 @@
 ## Unreleased changes
 
+- Bugfix
+    - Change APY computation to be based on the expected payday length instead of the last measure payday length. ([#217](https://github.com/Concordium/concordium-scan/pull/217))
+
 ## 1.9.0
 - Support Concordium Protocol Version 7.
   - Transition between Delegation and Validating immediately.
