@@ -335,7 +335,6 @@ impl ProcessEvent for BlockProcessor {
     async fn process(&mut self, data: &Self::Data) -> Result<Self::Description, Self::Error> {
         // TODO: Improve this by batching blocks within some time frame into the same
         // DB-transaction.
-        // TODO: Handle failures and probably retry a few times
         let mut tx = self
             .pool
             .begin()
@@ -365,11 +364,13 @@ impl ProcessEvent for BlockProcessor {
         _error: Self::Error,
         _failed_attempts: u32,
     ) -> Result<bool, Self::Error> {
+        // TODO add logging.
+        // TODO add metric counting failures.
         Ok(true)
     }
 }
 
-/// Information for a block which is relevant for storing it into the database.
+/// Raw block Information fetched from a Concordium Node.
 struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
     block_info: BlockInfo,
@@ -378,7 +379,9 @@ struct BlockData {
     tokenomics_info: RewardsOverview,
 }
 
-pub async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
+/// Function for initializing the database with the genesis block.
+/// This should only be called if the database is empty.
+async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
     let mut client = v2::Client::new(endpoint).await?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
 
@@ -451,7 +454,7 @@ pub async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow:
     Ok(())
 }
 
-pub struct PreparedBlock {
+struct PreparedBlock {
     hash: String,
     height: i64,
     slot_time: NaiveDateTime,

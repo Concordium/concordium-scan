@@ -1,6 +1,6 @@
 # CCDScan Backend
 
-This is the backend for [CCDScan](https://ccdscan.io/) Blockchain explorer for the [Concordium blockchain](https://concordium.com/).
+This is the backend for the [CCDScan](https://ccdscan.io/) Blockchain explorer for the [Concordium blockchain](https://concordium.com/).
 
 The backend consists of two binaries:
 
