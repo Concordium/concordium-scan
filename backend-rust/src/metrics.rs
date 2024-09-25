@@ -13,9 +13,7 @@ pub async fn serve(
     let app = axum::Router::new()
         .route("/metrics", axum::routing::get(metrics))
         .with_state(Arc::new(registry));
-    axum::serve(tcp_listener, app)
-        .with_graceful_shutdown(stop_signal.cancelled_owned())
-        .await?;
+    axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
     Ok(())
 }
 

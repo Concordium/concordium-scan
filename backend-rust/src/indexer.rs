@@ -8,66 +8,42 @@
 //! - Setup CI for deployment.
 
 use crate::graphql_api::{
-    events_from_summary,
-    AccountTransactionType,
-    CredentialDeploymentTransactionType,
-    DbTransactionType,
-    UpdateTransactionType,
+    events_from_summary, AccountTransactionType, CredentialDeploymentTransactionType,
+    DbTransactionType, UpdateTransactionType,
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
     indexer::{
-        async_trait,
-        traverse_and_process,
-        Indexer,
-        ProcessEvent,
-        TraverseConfig,
-        TraverseError,
+        async_trait, traverse_and_process, Indexer, ProcessEvent, TraverseConfig, TraverseError,
     },
     types::{
-        queries::BlockInfo,
-        AccountTransactionDetails,
-        AccountTransactionEffects,
-        BlockItemSummary,
-        BlockItemSummaryDetails,
-        RewardsOverview,
+        queries::BlockInfo, AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+        BlockItemSummaryDetails, RewardsOverview,
     },
-    v2::{
-        self,
-        ChainParameters,
-        FinalizedBlockInfo,
-        QueryResult,
-        RPCError,
-    },
+    v2::{self, ChainParameters, FinalizedBlockInfo, QueryResult, RPCError},
 };
 use futures::TryStreamExt;
 use prometheus_client::{
-    metrics::{
-        counter::Counter,
-        family::Family,
-        gauge::Gauge,
-    },
+    metrics::{counter::Counter, family::Family, gauge::Gauge},
     registry::Registry,
 };
 use sqlx::PgPool;
 use tokio::try_join;
 use tokio_util::sync::CancellationToken;
-use tracing::{
-    info,
-    warn,
-};
+use tracing::{info, warn};
 
 /// Service traversing each block of the chain, indexing it into a database.
 pub struct IndexerService {
     /// List of Concordium nodes to cycle through when traversing.
-    endpoints: Vec<v2::Endpoint>,
+    endpoints:           Vec<v2::Endpoint>,
     /// The block height to traversing from.
-    start_height: u64,
+    start_height:        u64,
     /// State tracked by the block preprocessor during traversing.
     block_pre_processor: BlockPreProcessor,
-    /// State tracked by the block processor, which is submitting to the database.
-    block_processor: BlockProcessor,
+    /// State tracked by the block processor, which is submitting to the
+    /// database.
+    block_processor:     BlockProcessor,
 }
 
 impl IndexerService {
@@ -105,7 +81,8 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         })
     }
 
-    /// Run the service. This future will only stop when signalled by the `cancel_token`.
+    /// Run the service. This future will only stop when signalled by the
+    /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
         let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
             .context("Failed setting up TraverseConfig")?;
@@ -138,16 +115,18 @@ impl NodeMetricLabels {
     }
 }
 
-/// State tracked during block preprocessing, this also holds the implementation of
-/// [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several preprocessors can run in
-/// parallel, this must be `Sync`.
+/// State tracked during block preprocessing, this also holds the implementation
+/// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
+/// preprocessors can run in parallel, this must be `Sync`.
 struct BlockPreProcessor {
-    /// Metric counting the total number of connections ever established to a node.
+    /// Metric counting the total number of connections ever established to a
+    /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
-    /// Metric counting the total number of failed attempts to preprocess blocks.
-    total_failures: Family<NodeMetricLabels, Counter>,
+    /// Metric counting the total number of failed attempts to preprocess
+    /// blocks.
+    total_failures:               Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
 }
 impl BlockPreProcessor {
     fn new(registry: &mut Registry) -> Self {
@@ -182,18 +161,18 @@ impl Indexer for BlockPreProcessor {
     type Data = PreparedBlock;
 
     /// Called when a new connection is established to the given endpoint.
-    /// The return value from this method is passed to each call of on_finalized.
+    /// The return value from this method is passed to each call of
+    /// on_finalized.
     async fn on_connect<'a>(
         &mut self,
         endpoint: v2::Endpoint,
         _client: &'a mut v2::Client,
     ) -> QueryResult<Self::Context> {
-        // TODO: check the genesis hash matches, i.e. that the node is running on the same network.
+        // TODO: check the genesis hash matches, i.e. that the node is running on the
+        // same network.
         info!("Connection established to node at uri: {}", endpoint.uri());
         let label = NodeMetricLabels::new(&endpoint);
-        self.established_node_connections
-            .get_or_create(&label)
-            .inc();
+        self.established_node_connections.get_or_create(&label).inc();
         Ok(label)
     }
 
@@ -211,8 +190,8 @@ impl Indexer for BlockPreProcessor {
         fbi: FinalizedBlockInfo,
     ) -> QueryResult<Self::Data> {
         self.blocks_being_preprocessed.get_or_create(label).inc();
-        // We block together the computation, so we can update the metric in the error case, before
-        // returning early.
+        // We block together the computation, so we can update the metric in the error
+        // case, before returning early.
         let result = async move {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
@@ -261,33 +240,30 @@ impl Indexer for BlockPreProcessor {
         successive_failures: u64,
         err: TraverseError,
     ) -> bool {
-        info!(
-            "Failed preprocessing {} times in row: {}",
-            successive_failures, err
-        );
-        self.total_failures
-            .get_or_create(&NodeMetricLabels::new(&endpoint))
-            .inc();
+        info!("Failed preprocessing {} times in row: {}", successive_failures, err);
+        self.total_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
         true
     }
 }
 
-/// Type implementing the `ProcessEvent` handling the insertion of prepared blocks.
+/// Type implementing the `ProcessEvent` handling the insertion of prepared
+/// blocks.
 struct BlockProcessor {
     /// Database connection pool
-    pool: PgPool,
+    pool:                  PgPool,
     /// The last finalized block height according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
     last_finalized_height: i64,
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash: String,
+    last_finalized_hash:   String,
     /// Metric counting how many blocks was saved to the database successfully.
-    blocks_processed: Counter,
+    blocks_processed:      Counter,
 }
 impl BlockProcessor {
-    /// Construct the block processor by loading the initial state from the database.
-    /// This assumes at least the genesis block is in the database.
+    /// Construct the block processor by loading the initial state from the
+    /// database. This assumes at least the genesis block is in the
+    /// database.
     async fn new(pool: PgPool, registry: &mut Registry) -> anyhow::Result<Self> {
         let rec = sqlx::query!(
             r#"
@@ -319,14 +295,14 @@ impl ProcessEvent for BlockProcessor {
     /// The type of events that are to be processed. Typically this will be all
     /// of the transactions of interest for a single block."]
     type Data = PreparedBlock;
-
-    /// An error that can be signalled.
-    type Error = anyhow::Error; // TODO: introduce proper error type
+    // TODO: introduce proper error type
 
     /// A description returned by the [`process`](ProcessEvent::process) method.
     /// This message is logged by the [`ProcessorConfig`] and is intended to
     /// describe the data that was just processed.
     type Description = String;
+    /// An error that can be signalled.
+    type Error = anyhow::Error;
 
     /// Process a single item. This should work atomically in the sense that
     /// either the entire `data` is processed or none of it is in case of an
@@ -335,17 +311,9 @@ impl ProcessEvent for BlockProcessor {
     async fn process(&mut self, data: &Self::Data) -> Result<Self::Description, Self::Error> {
         // TODO: Improve this by batching blocks within some time frame into the same
         // DB-transaction.
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .context("Failed to create SQL transaction")?;
-        data.save(&mut self, &mut tx)
-            .await
-            .context("Failed saving block")?;
-        tx.commit()
-            .await
-            .context("Failed to commit SQL transaction")?;
+        let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
+        data.save(&mut self, &mut tx).await.context("Failed saving block")?;
+        tx.commit().await.context("Failed to commit SQL transaction")?;
         self.blocks_processed.inc();
         Ok(format!("Processed block {}:{}", data.height, data.hash))
     }
@@ -373,10 +341,10 @@ impl ProcessEvent for BlockProcessor {
 /// Raw block Information fetched from a Concordium Node.
 struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
-    block_info: BlockInfo,
-    events: Vec<BlockItemSummary>,
-    chain_parameters: ChainParameters,
-    tokenomics_info: RewardsOverview,
+    block_info:           BlockInfo,
+    events:               Vec<BlockItemSummary>,
+    chain_parameters:     ChainParameters,
+    tokenomics_info:      RewardsOverview,
 }
 
 /// Function for initializing the database with the genesis block.
@@ -385,10 +353,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     let mut client = v2::Client::new(endpoint).await?;
     let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
 
-    let mut tx = pool
-        .begin()
-        .await
-        .context("Failed to create SQL transaction")?;
+    let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
 
     let genesis_block_info = client.get_block_info(genesis_height).await?.response;
     let block_hash = genesis_block_info.block_hash.to_string();
@@ -400,14 +365,21 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     };
     let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
     let common_reward = match genesis_tokenomics {
-        RewardsOverview::V0 { data } => data,
-        RewardsOverview::V1 { common, .. } => common,
+        RewardsOverview::V0 {
+            data,
+        } => data,
+        RewardsOverview::V1 {
+            common,
+            ..
+        } => common,
     };
     let total_staked = match genesis_tokenomics {
-        RewardsOverview::V0 { .. } => {
+        RewardsOverview::V0 {
+            ..
+        } => {
             // TODO Compute the total staked capital.
             0i64
-        },
+        }
         RewardsOverview::V1 {
             total_staked_capital,
             ..
@@ -429,10 +401,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {
-        let info = client
-            .get_account_info(&account.into(), genesis_height)
-            .await?
-            .response;
+        let info = client.get_account_info(&account.into(), genesis_height).await?.response;
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
@@ -448,19 +417,17 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         .execute(&mut *tx)
         .await?;
     }
-    tx.commit()
-        .await
-        .context("Failed to commit SQL transaction")?;
+    tx.commit().await.context("Failed to commit SQL transaction")?;
     Ok(())
 }
 
 struct PreparedBlock {
-    hash: String,
-    height: i64,
-    slot_time: NaiveDateTime,
-    baker_id: Option<i64>,
-    total_amount: i64,
-    total_staked: i64,
+    hash:                 String,
+    height:               i64,
+    slot_time:            NaiveDateTime,
+    baker_id:             Option<i64>,
+    total_amount:         i64,
+    total_staked:         i64,
     block_last_finalized: String,
     prepared_block_items: Vec<PreparedBlockItem>,
 }
@@ -477,15 +444,22 @@ impl PreparedBlock {
             None
         };
         let common_reward_data = match data.tokenomics_info {
-            RewardsOverview::V0 { data } => data,
-            RewardsOverview::V1 { common, .. } => common,
+            RewardsOverview::V0 {
+                data,
+            } => data,
+            RewardsOverview::V1 {
+                common,
+                ..
+            } => common,
         };
         let total_amount = i64::try_from(common_reward_data.total_amount.micro_ccd())?;
         let total_staked = match data.tokenomics_info {
-            RewardsOverview::V0 { .. } => {
+            RewardsOverview::V0 {
+                ..
+            } => {
                 // TODO Compute the total staked capital.
                 0i64
-            },
+            }
             RewardsOverview::V1 {
                 total_staked_capital,
                 ..
@@ -564,21 +538,21 @@ RETURNING finalizer.height"#,
 }
 
 struct PreparedBlockItem {
-    block_index: i64,
-    tx_hash: String,
-    ccd_cost: i64,
-    energy_cost: i64,
-    height: i64,
-    sender: Option<String>,
+    block_index:      i64,
+    tx_hash:          String,
+    ccd_cost:         i64,
+    energy_cost:      i64,
+    height:           i64,
+    sender:           Option<String>,
     transaction_type: DbTransactionType,
-    account_type: Option<AccountTransactionType>,
-    credential_type: Option<CredentialDeploymentTransactionType>,
-    update_type: Option<UpdateTransactionType>,
-    success: bool,
-    events: Option<serde_json::Value>,
-    reject: Option<serde_json::Value>,
+    account_type:     Option<AccountTransactionType>,
+    credential_type:  Option<CredentialDeploymentTransactionType>,
+    update_type:      Option<UpdateTransactionType>,
+    success:          bool,
+    events:           Option<serde_json::Value>,
+    reject:           Option<serde_json::Value>,
     // This is an option temporarily, until we are able to handle every type of event.
-    prepared_event: Option<PreparedEvent>,
+    prepared_event:   Option<PreparedEvent>,
 }
 
 impl PreparedBlockItem {
@@ -586,11 +560,8 @@ impl PreparedBlockItem {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_index = i64::try_from(block_item.index.index)?;
         let tx_hash = block_item.hash.to_string();
-        let ccd_cost = i64::try_from(
-            data.chain_parameters
-                .ccd_cost(block_item.energy_cost)
-                .micro_ccd,
-        )?;
+        let ccd_cost =
+            i64::try_from(data.chain_parameters.ccd_cost(block_item.energy_cost).micro_ccd)?;
         let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
         let sender = block_item.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =
@@ -598,27 +569,17 @@ impl PreparedBlockItem {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
                     let account_transaction_type =
                         details.transaction_type().map(AccountTransactionType::from);
-                    (
-                        DbTransactionType::Account,
-                        account_transaction_type,
-                        None,
-                        None,
-                    )
-                },
+                    (DbTransactionType::Account, account_transaction_type, None, None)
+                }
                 BlockItemSummaryDetails::AccountCreation(details) => {
                     let credential_type =
                         CredentialDeploymentTransactionType::from(details.credential_type);
-                    (
-                        DbTransactionType::CredentialDeployment,
-                        None,
-                        Some(credential_type),
-                        None,
-                    )
-                },
+                    (DbTransactionType::CredentialDeployment, None, Some(credential_type), None)
+                }
                 BlockItemSummaryDetails::Update(details) => {
                     let update_type = UpdateTransactionType::from(details.update_type());
                     (DbTransactionType::Update, None, None, Some(update_type))
-                },
+                }
             };
         let success = block_item.is_success();
         let (events, reject) = if success {
@@ -627,7 +588,11 @@ impl PreparedBlockItem {
         } else {
             let reject =
                 if let BlockItemSummaryDetails::AccountTransaction(AccountTransactionDetails {
-                    effects: AccountTransactionEffects::None { reject_reason, .. },
+                    effects:
+                        AccountTransactionEffects::None {
+                            reject_reason,
+                            ..
+                        },
                     ..
                 }) = &block_item.details
                 {
@@ -641,14 +606,16 @@ impl PreparedBlockItem {
         };
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
-                Some(PreparedEvent::AccountCreation(
-                    PreparedAccountCreation::prepare(data, &block_item, details)?,
-                ))
-            },
+                Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
+                    data,
+                    &block_item,
+                    details,
+                )?))
+            }
             details => {
                 warn!("details = \n {:#?}", details);
                 None
-            },
+            }
         };
 
         Ok(Self {
@@ -697,7 +664,7 @@ VALUES
 
         match &self.prepared_event {
             Some(PreparedEvent::AccountCreation(event)) => event.save(context, tx).await?,
-            _ => {},
+            _ => {}
         }
         Ok(())
     }
@@ -709,8 +676,8 @@ enum PreparedEvent {
 
 struct PreparedAccountCreation {
     account_address: String,
-    height: i64,
-    block_index: i64,
+    height:          i64,
+    block_index:     i64,
 }
 
 impl PreparedAccountCreation {

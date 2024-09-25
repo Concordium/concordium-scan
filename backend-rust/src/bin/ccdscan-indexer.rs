@@ -1,20 +1,14 @@
 use anyhow::Context;
 use clap::Parser;
 use concordium_rust_sdk::v2;
-use concordium_scan::{
-    indexer,
-    metrics,
-};
+use concordium_scan::{indexer, metrics};
 use dotenv::dotenv;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::{
-    error,
-    info,
-};
+use tracing::{error, info};
 
 // TODO add env for remaining args.
 #[derive(Parser)]
@@ -22,10 +16,10 @@ struct Cli {
     /// The URL used for the database, something of the form
     /// "postgres://postgres:example@localhost/ccd-scan"
     #[arg(long, env = "DATABASE_URL")]
-    database_url: String,
+    database_url:   String,
     /// gRPC interface of the node. Several can be provided.
     #[arg(long, default_value = "http://localhost:20000")]
-    node: Vec<v2::Endpoint>,
+    node:           Vec<v2::Endpoint>,
     /// Address to listen for metrics requests
     #[arg(long, default_value = "127.0.0.1:8001")]
     metrics_listen: SocketAddr,
@@ -35,9 +29,7 @@ struct Cli {
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
     let cli = Cli::parse();
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
     let pool = PgPool::connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;

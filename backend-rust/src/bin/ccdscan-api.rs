@@ -3,16 +3,10 @@ use clap::Parser;
 use concordium_scan::graphql_api;
 use dotenv::dotenv;
 use sqlx::PgPool;
-use std::{
-    net::SocketAddr,
-    path::PathBuf,
-};
+use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
-use tracing::{
-    error,
-    info,
-};
+use tracing::{error, info};
 
 // TODO add env for remaining args.
 #[derive(Parser)]
@@ -23,19 +17,17 @@ struct Cli {
     database_url: String,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
-    schema_out: Option<PathBuf>,
+    schema_out:   Option<PathBuf>,
     /// Address to listen for API requests
     #[arg(long, default_value = "127.0.0.1:8000")]
-    listen: SocketAddr,
+    listen:       SocketAddr,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
     let cli = Cli::parse();
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
     let pool = PgPool::connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
@@ -54,9 +46,8 @@ async fn main() -> anyhow::Result<()> {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(schema_file, service.schema.sdl()).context("Failed to write schema")?;
         }
-        let tcp_listener = TcpListener::bind(cli.listen)
-            .await
-            .context("Parsing TCP listener address failed")?;
+        let tcp_listener =
+            TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Server is running at {:?}", cli.listen);
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
