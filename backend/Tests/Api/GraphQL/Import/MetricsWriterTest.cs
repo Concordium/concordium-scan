@@ -237,8 +237,17 @@ public class MetricsWriterTest
             new []{ new PaydayPoolStakeSnapshotItem(42, 9000000, 1000000)});
 
         var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(200000);
-        
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
+
+        var importState = new ImportState()
+        {
+            GenesisBlockHash = "12ba993f256c03e805e34d1bbe4f12c255ec1cfc507feedd245543ba5df297e9",
+            LatestWrittenChainParameters = new ChainParametersV2(){
+                RewardPeriodLength = 2
+            },
+            EpochDuration = 1000 * 60 * 60 // milliseconds
+        };
+
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot, importState);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();
@@ -290,7 +299,15 @@ public class MetricsWriterTest
 
         var paydayPassiveDelegationStakeSnapshot = new PaydayPassiveDelegationStakeSnapshot(20000000);
 
-        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot);
+        var importState = new ImportState()
+        {
+            GenesisBlockHash = "12ba993f256c03e805e34d1bbe4f12c255ec1cfc507feedd245543ba5df297e9",
+            LatestWrittenChainParameters = new ChainParametersV2(){
+                RewardPeriodLength = 2
+            },
+            EpochDuration = 1000 * 60 * 60 // milliseconds
+        };
+        _target.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, paydayPoolStakeSnapshot, paydayPassiveDelegationStakeSnapshot, importState);
 
         await using var dbContext = _dbContextFactory.CreateDbContext();
         var result = await dbContext.PaydayPoolRewards.SingleOrDefaultAsync();

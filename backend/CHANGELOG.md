@@ -1,5 +1,11 @@
 ## Unreleased changes
 
+## 1.9.1
+
+- Bugfix
+    - Change APY computation to be based on the expected payday length instead of the last measure payday length. ([#217](https://github.com/Concordium/concordium-scan/pull/217))
+    - Fix crashing issue for when a block contains transactions for both deploying a smart contract module and initializing a smart contract from this module. ([#213](https://github.com/Concordium/concordium-scan/pull/213))
+
 ## 1.9.0
 - Support Concordium Protocol Version 7.
   - Transition between Delegation and Validating immediately.
