@@ -25,11 +25,16 @@ use concordium_rust_sdk::{
 };
 use futures::TryStreamExt;
 use prometheus_client::{
-    metrics::{counter::Counter, family::Family, gauge::Gauge},
+    metrics::{
+        counter::Counter,
+        family::Family,
+        gauge::Gauge,
+        histogram::{self, Histogram},
+    },
     registry::Registry,
 };
 use sqlx::PgPool;
-use tokio::try_join;
+use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
@@ -81,7 +86,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         })
     }
 
-    /// Run the service. This future will only stop when signalled by the
+    /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
         let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
@@ -124,9 +129,12 @@ struct BlockPreProcessor {
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    total_failures:               Family<NodeMetricLabels, Counter>,
+    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
     blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
+    /// Histogram collecting the time it takes for fetching all the block data
+    /// from the node.
+    node_response_time:           Family<NodeMetricLabels, Histogram>,
 }
 impl BlockPreProcessor {
     fn new(registry: &mut Registry) -> Self {
@@ -136,11 +144,11 @@ impl BlockPreProcessor {
             "Total number of established Concordium Node connections",
             established_node_connections.clone(),
         );
-        let total_failures = Family::default();
+        let preprocessing_failures = Family::default();
         registry.register(
             "preprocessing_failures",
             "Total number of failed attempts to preprocess blocks",
-            total_failures.clone(),
+            preprocessing_failures.clone(),
         );
         let blocks_being_preprocessed = Family::default();
         registry.register(
@@ -148,10 +156,21 @@ impl BlockPreProcessor {
             "Current number of blocks being preprocessed",
             blocks_being_preprocessed.clone(),
         );
+        let node_response_time: Family<NodeMetricLabels, Histogram> =
+            Family::new_with_constructor(|| {
+                Histogram::new(histogram::exponential_buckets(0.010, 2.0, 10))
+            });
+        registry.register(
+            "node_response_time_seconds",
+            "Duration of seconds used to fetch all of the block information",
+            node_response_time.clone(),
+        );
+
         Self {
             established_node_connections,
-            total_failures,
+            preprocessing_failures,
             blocks_being_preprocessed,
+            node_response_time,
         }
     }
 }
@@ -206,6 +225,7 @@ impl Indexer for BlockPreProcessor {
                 Ok(events)
             };
 
+            let start_fetching = Instant::now();
             let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
                 client1.get_block_info(fbi.height),
                 client2.get_block_chain_parameters(fbi.height),
@@ -213,6 +233,8 @@ impl Indexer for BlockPreProcessor {
                 client.get_tokenomics_info(fbi.height)
             )
             .map_err(|err| err)?;
+            let node_response_time = start_fetching.elapsed();
+            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
 
             let data = BlockData {
                 finalized_block_info: fbi,
@@ -241,7 +263,7 @@ impl Indexer for BlockPreProcessor {
         err: TraverseError,
     ) -> bool {
         info!("Failed preprocessing {} times in row: {}", successive_failures, err);
-        self.total_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
+        self.preprocessing_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
         true
     }
 }
@@ -250,15 +272,20 @@ impl Indexer for BlockPreProcessor {
 /// blocks.
 struct BlockProcessor {
     /// Database connection pool
-    pool:                  PgPool,
+    pool: PgPool,
     /// The last finalized block height according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
     last_finalized_height: i64,
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash:   String,
+    last_finalized_hash: String,
     /// Metric counting how many blocks was saved to the database successfully.
-    blocks_processed:      Counter,
+    blocks_processed: Counter,
+    /// Metric counting the total number of failed attempts to process
+    /// blocks.
+    processing_failures: Counter,
+    /// Histogram collecting the time it took to process a block.
+    processing_duration_seconds: Histogram,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
@@ -280,12 +307,27 @@ SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height 
             "Number of blocks save to the database",
             blocks_processed.clone(),
         );
+        let processing_failures = Counter::default();
+        registry.register(
+            "processing_failures",
+            "Number of blocks save to the database",
+            processing_failures.clone(),
+        );
+        let processing_duration_seconds =
+            Histogram::new(histogram::exponential_buckets(0.01, 2.0, 10));
+        registry.register(
+            "processing_duration_seconds",
+            "Time taken for processing a block",
+            processing_duration_seconds.clone(),
+        );
 
         Ok(Self {
             pool,
             last_finalized_height: rec.height,
             last_finalized_hash: rec.hash,
             blocks_processed,
+            processing_failures,
+            processing_duration_seconds,
         })
     }
 }
@@ -295,12 +337,11 @@ impl ProcessEvent for BlockProcessor {
     /// The type of events that are to be processed. Typically this will be all
     /// of the transactions of interest for a single block."]
     type Data = PreparedBlock;
-    // TODO: introduce proper error type
-
     /// A description returned by the [`process`](ProcessEvent::process) method.
     /// This message is logged by the [`ProcessorConfig`] and is intended to
     /// describe the data that was just processed.
     type Description = String;
+    // TODO: introduce proper error type
     /// An error that can be signalled.
     type Error = anyhow::Error;
 
@@ -311,9 +352,12 @@ impl ProcessEvent for BlockProcessor {
     async fn process(&mut self, data: &Self::Data) -> Result<Self::Description, Self::Error> {
         // TODO: Improve this by batching blocks within some time frame into the same
         // DB-transaction.
+        let start_time = Instant::now();
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
         data.save(&mut self, &mut tx).await.context("Failed saving block")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
+        let duration = start_time.elapsed();
+        self.processing_duration_seconds.observe(duration.as_secs_f64());
         self.blocks_processed.inc();
         Ok(format!("Processed block {}:{}", data.height, data.hash))
     }
@@ -329,11 +373,11 @@ impl ProcessEvent for BlockProcessor {
     /// attempts of calling `process` that failed.
     async fn on_failure(
         &mut self,
-        _error: Self::Error,
-        _failed_attempts: u32,
+        error: Self::Error,
+        successive_failures: u32,
     ) -> Result<bool, Self::Error> {
-        // TODO add logging.
-        // TODO add metric counting failures.
+        info!("Failed processing {} times in row: {}", successive_failures, error);
+        self.processing_failures.inc();
         Ok(true)
     }
 }
@@ -421,6 +465,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     Ok(())
 }
 
+/// Preprocessed block which is ready to be saved in the database.
 struct PreparedBlock {
     hash:                 String,
     height:               i64,

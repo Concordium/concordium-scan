@@ -36,6 +36,17 @@ async fn main() -> anyhow::Result<()> {
     let cancel_token = CancellationToken::new();
 
     let mut registry = Registry::with_prefix("indexer");
+    registry.register(
+        "service",
+        "Information about the software",
+        prometheus_client::metrics::info::Info::new(vec![("version", clap::crate_version!())]),
+    );
+    registry.register(
+        "service_startup_timestamp_millis",
+        "Timestamp of starting up the node (Unix time in milliseconds)",
+        prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
+    );
+
     let mut indexer_task = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
