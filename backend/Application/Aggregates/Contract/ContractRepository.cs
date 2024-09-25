@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Aggregates.Contract;
 
-public interface IContractRepository : IAsyncDisposable
+public interface IContractRepository : IAsyncDisposable, IModuleReadonlyRepository
 {
     /// <summary>
     /// From block <see cref="heightFrom"/> to block <see cref="heightTo"/> all transaction rejected events
@@ -256,5 +256,70 @@ WHERE
     {
         await _context.DisposeAsync();
         _transactionScope.Dispose();
+    }
+
+    public async Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference)
+    {
+        var moduleRefEvent = GetEntitiesAddedInTransaction<ModuleReferenceEvent>()
+            .Where(e => e.ModuleReference == moduleReference)
+            .FirstOrDefault();
+
+        if (moduleRefEvent != null)
+        {
+            return moduleRefEvent;
+        }
+
+        return await _context.ModuleReferenceEvents
+            .AsNoTracking()
+            .FirstAsync(m => m.ModuleReference == moduleReference);
+    }
+
+    /// <summary>
+    /// Starts by looking after <see cref="ModuleReferenceContractLinkEvent"/> with <see cref="ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added"/>
+    /// for the given <see cref="contractAddress"/> in the change provider of Entity Framework. These are the entity which has been added in the current transaction
+    /// but are not yet committed to the database.
+    ///
+    /// If none is present the database is queried.
+    /// </summary>
+    public async Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex,
+        uint eventIndex)
+    {
+        var link = _context.ChangeTracker
+            .Entries<ModuleReferenceContractLinkEvent>()
+            .Select(e => e.Entity)
+            .Where(l => 
+                l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
+                (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                 l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                 l.BlockHeight < blockHeight
+                 ) &&
+                l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+            .OrderByDescending(l => l.BlockHeight)
+            .ThenByDescending(l => l.TransactionIndex)
+            .ThenByDescending(l => l.EventIndex)
+            .FirstOrDefault();
+
+        if (link == null)
+        {
+            link = await _context.ModuleReferenceContractLinkEvents
+                .AsNoTracking()
+                .Where(l => 
+                    l.ContractAddressIndex == contractAddress.Index && l.ContractAddressSubIndex == contractAddress.SubIndex &&
+                    (l.BlockHeight == blockHeight && l.TransactionIndex == transactionIndex && l.EventIndex <= eventIndex ||
+                     l.BlockHeight == blockHeight && l.TransactionIndex < transactionIndex ||
+                     l.BlockHeight < blockHeight
+                    ) &&
+                    l.LinkAction == ModuleReferenceContractLinkEvent.ModuleReferenceContractLinkAction.Added)
+                .OrderByDescending(l => l.BlockHeight)
+                .ThenByDescending(l => l.TransactionIndex)
+                .ThenByDescending(l => l.EventIndex)
+                .FirstAsync();
+        }
+
+        var module = await _context.ModuleReferenceEvents
+            .AsNoTracking()
+            .FirstAsync(m => m.ModuleReference == link.ModuleReference);
+        
+        return module;
     }
 }

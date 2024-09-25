@@ -334,6 +334,16 @@ WHERE g0.event ->> 'tag' = '16'
         {
             throw new NotImplementedException();
         }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex, uint eventIndex)
+        {
+            throw new NotImplementedException();
+        }
     }
     
     /// <summary>

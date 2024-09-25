@@ -309,5 +309,15 @@ ORDER BY block_height, transaction_index, event_index
         {
             throw new NotImplementedException();
         }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAsync(string moduleReference)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<ModuleReferenceEvent> GetModuleReferenceEventAtAsync(ContractAddress contractAddress, ulong blockHeight, ulong transactionIndex, uint eventIndex)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
