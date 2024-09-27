@@ -5,15 +5,36 @@ This is the backend for the [CCDScan](https://ccdscan.io/) Blockchain explorer f
 The backend consists of two binaries:
 
 - `ccdscan-indexer`: Traversing the chain indexing events into the database.
-- `ccdscan-api`: Running a GraphQL API for querying the database.
+- `ccdscan-api`: Providing a GraphQL API for querying the database.
 
 The service is split to allow for running several instances of the GraphQL API and while having a single instance of the indexer.
 
 ## Dependencies
 
-To run the service, the following dependencies are required to be available on the system:
+To run the services, the following dependencies are required to be available on the system:
 
 - PostgreSQL server 16
+
+## Run the Indexer Service
+
+For instructions how to use the indexer run:
+
+```
+ccdscan-indexer --help
+```
+
+<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+
+## Run the GraphQL API Service
+
+For instructions how to use the API service run:
+
+```
+ccdscan-api --help
+```
+
+<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+
 
 ## Setup for development
 
@@ -38,22 +59,18 @@ sqlx migrate run
 
 The project can now be build using `cargo build`
 
-## Run the Indexer Service
+### Database migrations
 
-For instructions how to use the indexer run:
-
-```
-ccdscan-indexer --help
-```
-
-<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
-
-## Run the GraphQL API Service
-
-For instructions how to use the API service run:
+Database migrations are tracked in the `migrations` directory. To introduce a new one run:
 
 ```
-ccdscan-api --help
+sqlx migrate add '<description>'
 ```
 
-<!-- TODO When service become stable: add documentation of arguments and environment variables. -->
+where `<description>` is replaced by a short description of the nature of the migration.
+
+This will create two files in the directory:
+
+- `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
+- `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
+
