@@ -1,4 +1,5 @@
 use anyhow::Context;
+use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::graphql_api;
 use dotenv::dotenv;
@@ -44,7 +45,13 @@ async fn main() -> anyhow::Result<()> {
         let service = graphql_api::Service::new(subscription, pool);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
-            std::fs::write(schema_file, service.schema.sdl()).context("Failed to write schema")?;
+            std::fs::write(
+                schema_file,
+                service
+                    .schema
+                    .sdl_with_options(SDLExportOptions::new().prefer_single_line_descriptions()),
+            )
+            .context("Failed to write schema")?;
         }
         let tcp_listener =
             TcpListener::bind(cli.listen).await.context("Parsing TCP listener address failed")?;

@@ -14,16 +14,14 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
-    indexer::{
-        async_trait, traverse_and_process, Indexer, ProcessEvent, TraverseConfig, TraverseError,
-    },
+    indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
         queries::BlockInfo, AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
         BlockItemSummaryDetails, RewardsOverview,
     },
     v2::{self, ChainParameters, FinalizedBlockInfo, QueryResult, RPCError},
 };
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -49,6 +47,23 @@ pub struct IndexerService {
     /// State tracked by the block processor, which is submitting to the
     /// database.
     block_processor:     BlockProcessor,
+    config:              IndexerServiceConfig,
+}
+
+#[derive(clap::Args)]
+pub struct IndexerServiceConfig {
+    /// Maximum number of blocks being preprocessed in parallel.
+    #[arg(long, default_value = "8")]
+    pub max_parallel_block_preprocessors: usize,
+    /// Maximum number of blocks allowed to be batched into the same database
+    /// transaction.
+    #[arg(long, default_value = "4")]
+    pub max_processing_batch:             usize,
+    /// Set the maximum amount of seconds the last finalized block of the node
+    /// can be behind before it is deemed too far behind, and another node
+    /// is tried.
+    #[arg(long, default_value = "60")]
+    pub node_max_behind:                  u64,
 }
 
 impl IndexerService {
@@ -57,6 +72,7 @@ impl IndexerService {
         endpoints: Vec<v2::Endpoint>,
         pool: PgPool,
         registry: &mut Registry,
+        config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
             r#"
@@ -83,6 +99,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             start_height,
             block_pre_processor,
             block_processor,
+            config,
         })
     }
 
@@ -90,19 +107,20 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
         let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
-            .context("Failed setting up TraverseConfig")?;
+            .context("Failed setting up TraverseConfig")?
+            .set_max_parallel(self.config.max_parallel_block_preprocessors)
+            .set_max_behind(std::time::Duration::from_secs(self.config.node_max_behind));
         let processor_config = concordium_rust_sdk::indexer::ProcessorConfig::new()
             .set_stop_signal(cancel_token.cancelled_owned());
 
+        let (sender, receiver) = tokio::sync::mpsc::channel(self.config.max_processing_batch);
+        let receiver = tokio_stream::wrappers::ReceiverStream::from(receiver)
+            .ready_chunks(self.config.max_processing_batch);
+        let traverse_future = traverse_config.traverse(self.block_pre_processor, sender);
+        let process_future = processor_config.process_event_stream(self.block_processor, receiver);
         info!("Indexing from block height {}", self.start_height);
-        traverse_and_process(
-            traverse_config,
-            self.block_pre_processor,
-            processor_config,
-            self.block_processor,
-        )
-        .await?;
-        Ok(())
+        let (result, ()) = futures::join!(traverse_future, process_future);
+        Ok(result?)
     }
 }
 
@@ -336,7 +354,7 @@ SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height 
 impl ProcessEvent for BlockProcessor {
     /// The type of events that are to be processed. Typically this will be all
     /// of the transactions of interest for a single block."]
-    type Data = PreparedBlock;
+    type Data = Vec<PreparedBlock>;
     /// A description returned by the [`process`](ProcessEvent::process) method.
     /// This message is logged by the [`ProcessorConfig`] and is intended to
     /// describe the data that was just processed.
@@ -349,17 +367,19 @@ impl ProcessEvent for BlockProcessor {
     /// either the entire `data` is processed or none of it is in case of an
     /// error. This property is relied upon by the [`ProcessorConfig`] to retry
     /// failed attempts.
-    async fn process(&mut self, data: &Self::Data) -> Result<Self::Description, Self::Error> {
-        // TODO: Improve this by batching blocks within some time frame into the same
-        // DB-transaction.
+    async fn process(&mut self, batch: &Self::Data) -> Result<Self::Description, Self::Error> {
         let start_time = Instant::now();
+        let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
-        data.save(&mut self, &mut tx).await.context("Failed saving block")?;
+        for data in batch {
+            data.save(&mut self, &mut tx).await.context("Failed saving block")?;
+            out.push_str(format!("\n- {}:{}", data.height, data.hash).as_str())
+        }
         tx.commit().await.context("Failed to commit SQL transaction")?;
         let duration = start_time.elapsed();
         self.processing_duration_seconds.observe(duration.as_secs_f64());
-        self.blocks_processed.inc();
-        Ok(format!("Processed block {}:{}", data.height, data.hash))
+        self.blocks_processed.inc_by(u64::try_from(batch.len())?);
+        Ok(out)
     }
 
     /// The `on_failure` method is invoked by the [`ProcessorConfig`] when it

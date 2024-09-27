@@ -1,7 +1,10 @@
 use anyhow::Context;
 use clap::Parser;
 use concordium_rust_sdk::v2;
-use concordium_scan::{indexer, metrics};
+use concordium_scan::{
+    indexer::{self, IndexerServiceConfig},
+    metrics,
+};
 use dotenv::dotenv;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
@@ -12,6 +15,7 @@ use tracing::{error, info};
 
 // TODO add env for remaining args.
 #[derive(Parser)]
+#[command(version, author, about)]
 struct Cli {
     /// The URL used for the database, something of the form
     /// "postgres://postgres:example@localhost/ccd-scan"
@@ -23,6 +27,8 @@ struct Cli {
     /// Address to listen for metrics requests
     #[arg(long, default_value = "127.0.0.1:8001")]
     metrics_listen: SocketAddr,
+    #[command(flatten, next_help_heading = "Performance tuning")]
+    indexer_config: IndexerServiceConfig,
 }
 
 #[tokio::main]
@@ -50,7 +56,8 @@ async fn main() -> anyhow::Result<()> {
     let mut indexer_task = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();
-        let indexer = indexer::IndexerService::new(cli.node, pool, &mut registry).await?;
+        let indexer =
+            indexer::IndexerService::new(cli.node, pool, &mut registry, cli.indexer_config).await?;
         tokio::spawn(async move { indexer.run(stop_signal).await })
     };
     let mut metrics_task = {
