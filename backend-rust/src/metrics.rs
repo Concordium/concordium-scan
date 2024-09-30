@@ -10,9 +10,8 @@ pub async fn serve(
     tcp_listener: TcpListener,
     stop_signal: CancellationToken,
 ) -> anyhow::Result<()> {
-    let app = axum::Router::new()
-        .route("/metrics", axum::routing::get(metrics))
-        .with_state(Arc::new(registry));
+    let app =
+        axum::Router::new().route("/", axum::routing::get(metrics)).with_state(Arc::new(registry));
     axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
     Ok(())
 }
