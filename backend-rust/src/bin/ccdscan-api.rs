@@ -60,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
-        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.config);
+        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(

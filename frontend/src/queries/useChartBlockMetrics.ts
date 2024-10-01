@@ -21,13 +21,8 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 				bucketWidth
 				x_Time
 				y_BlocksAdded
-				y_BlockTimeMin
 				y_BlockTimeAvg
-				y_BlockTimeMax
-				y_LastTotalMicroCcd
 				y_FinalizationTimeAvg
-				y_MinTotalMicroCcdStaked
-				y_MaxTotalMicroCcdStaked
 				y_LastTotalMicroCcdStaked
 			}
 		}
@@ -36,6 +31,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 
 export const useBlockMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery, fetching } = useQuery({
+		context: { url: '/api/graphql' },
 		query: BlockMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
