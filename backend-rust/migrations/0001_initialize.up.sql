@@ -59,6 +59,11 @@ CREATE TYPE transaction_type AS ENUM (
     'Update'
 );
 
+CREATE TYPE pool_open_status AS ENUM (
+    'OpenForAll',
+    'ClosedForNew',
+    'ClosedForAll'
+);
 
 -- Every block on chain.
 CREATE TABLE blocks(
@@ -204,6 +209,45 @@ ALTER TABLE blocks
     FOREIGN KEY (baker_id)
     REFERENCES accounts(index);
 
+-- Current active bakers
+CREATE TABLE bakers(
+    -- Baker/validator ID, corresponding to the account index.
+    id
+        BIGINT
+        PRIMARY KEY
+        NOT NULL
+        REFERENCES accounts(index),
+    -- Amount staked at present.
+    staked
+        BIGINT
+        NOT NULL,
+    -- Flag indicating whether rewards paid to the baker are automatically restaked.
+    restake_earnings
+        BOOLEAN
+        NOT NULL,
+    -- Delegation open status of this pool.
+    -- This was introduced as part of P4.
+    open_status
+        pool_open_status,
+    -- URL for pool metadata.
+    -- This was introduced as part of P4.
+    metadata_url
+        VARCHAR(2048), -- The official max length is 2048 bytes, this however is a limit in characters.
+    -- Fraction of transaction rewards charged by the pool owner.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    transaction_commission
+        BIGINT,
+    -- Fraction of baking rewards charged by the pool owner.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    baking_commission
+        BIGINT,
+    -- Fraction of finalization rewards charged by the pool owner.
+    -- Stored as a fraction of an amount with a precision of `1/100_000`.
+    finalization_commission
+        BIGINT
+);
+
+
 CREATE OR REPLACE FUNCTION notify_trigger() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;
@@ -222,3 +266,4 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER user_notify AFTER INSERT OR UPDATE OR DELETE
 ON blocks
 FOR EACH ROW EXECUTE PROCEDURE notify_trigger();
+

@@ -1,23 +1,15 @@
-//! TODO:
-//! - Check endpoints are using the same chain.
-//! - Extend with prometheus metrics.
-//! - Batch blocks into the same SQL transaction.
-//! - More logging
-//! - Setup CI to check formatting and build.
-//! - Build docker images.
-//! - Setup CI for deployment.
-
 use crate::graphql_api::{
-    events_from_summary, AccountTransactionType, CredentialDeploymentTransactionType,
-    DbTransactionType, UpdateTransactionType,
+    events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
+    CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
 };
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
-        queries::BlockInfo, AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
-        BlockItemSummaryDetails, RewardsOverview,
+        queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
+        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
+        PartsPerHundredThousands, RewardsOverview,
     },
     v2::{self, ChainParameters, FinalizedBlockInfo, QueryResult, RPCError},
 };
@@ -359,7 +351,6 @@ impl ProcessEvent for BlockProcessor {
     /// This message is logged by the [`ProcessorConfig`] and is intended to
     /// describe the data that was just processed.
     type Description = String;
-    // TODO: introduce proper error type
     /// An error that can be signalled.
     type Error = anyhow::Error;
 
@@ -402,7 +393,7 @@ impl ProcessEvent for BlockProcessor {
     }
 }
 
-/// Raw block Information fetched from a Concordium Node.
+/// Raw block information fetched from a Concordium Node.
 struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
     block_info:           BlockInfo,
@@ -469,7 +460,6 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
-
         sqlx::query!(
             r#"INSERT INTO accounts (index, address, created_block, amount)
         VALUES ($1, $2, $3, $4)"#,
@@ -480,7 +470,46 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         )
         .execute(&mut *tx)
         .await?;
+
+        if let Some(AccountStakingInfo::Baker {
+            staked_amount,
+            restake_earnings,
+            baker_info: _,
+            pending_change: _,
+            pool_info,
+        }) = info.account_stake
+        {
+            let stake = i64::try_from(staked_amount.micro_ccd())?;
+            let open_status = pool_info.as_ref().map(|i| BakerPoolOpenStatus::from(i.open_status));
+            let metadata_url = pool_info.as_ref().map(|i| i.metadata_url.to_string());
+            let transaction_commission = pool_info.as_ref().map(|i| {
+                i64::from(u32::from(PartsPerHundredThousands::from(i.commission_rates.transaction)))
+            });
+            let baking_commission = pool_info.as_ref().map(|i| {
+                i64::from(u32::from(PartsPerHundredThousands::from(i.commission_rates.baking)))
+            });
+            let finalization_commission = pool_info.as_ref().map(|i| {
+                i64::from(u32::from(PartsPerHundredThousands::from(
+                    i.commission_rates.finalization,
+                )))
+            });
+            sqlx::query!(
+                r#"INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, transaction_commission, baking_commission, finalization_commission)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
+                index,
+                stake,
+                restake_earnings,
+                open_status as Option<BakerPoolOpenStatus>,
+                metadata_url,
+                transaction_commission,
+                baking_commission,
+                finalization_commission
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
     }
+
     tx.commit().await.context("Failed to commit SQL transaction")?;
     Ok(())
 }
@@ -591,12 +620,13 @@ RETURNING finalizer.height"#,
             .await
             .context("Failed updating finalization_time")?;
 
+            // TODO: Updating the context should be done, when we know nothing has failed.
             context.last_finalized_height = rec.height;
             context.last_finalized_hash = self.block_last_finalized.clone();
         }
 
         for item in self.prepared_block_items.iter() {
-            item.save(context, tx).await?;
+            item.save(tx).await?;
         }
         Ok(())
     }
@@ -669,19 +699,8 @@ impl PreparedBlockItem {
                 };
             (None, Some(reject))
         };
-        let prepared_event = match &block_item.details {
-            BlockItemSummaryDetails::AccountCreation(details) => {
-                Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data,
-                    &block_item,
-                    details,
-                )?))
-            }
-            details => {
-                warn!("details = \n {:#?}", details);
-                None
-            }
-        };
+
+        let prepared_event = PreparedEvent::prepare(&data, &block_item)?;
 
         Ok(Self {
             block_index,
@@ -703,7 +722,6 @@ impl PreparedBlockItem {
 
     async fn save(
         &self,
-        context: &mut BlockProcessor,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -727,9 +745,8 @@ VALUES
             .execute(tx.as_mut())
             .await?;
 
-        match &self.prepared_event {
-            Some(PreparedEvent::AccountCreation(event)) => event.save(context, tx).await?,
-            _ => {}
+        if let Some(prepared_event) = &self.prepared_event {
+            prepared_event.save(tx).await?;
         }
         Ok(())
     }
@@ -737,6 +754,169 @@ VALUES
 
 enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
+    BakerEvents(Vec<PreparedBakerEvent>),
+    NoOperation,
+}
+impl PreparedEvent {
+    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Option<Self>> {
+        let prepared_event = match &block_item.details {
+            BlockItemSummaryDetails::AccountCreation(details) => {
+                Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
+                    data,
+                    &block_item,
+                    details,
+                )?))
+            }
+            BlockItemSummaryDetails::AccountTransaction(details) => match &details.effects {
+                AccountTransactionEffects::None {
+                    transaction_type,
+                    reject_reason,
+                } => None,
+                AccountTransactionEffects::ModuleDeployed {
+                    module_ref,
+                } => None,
+                AccountTransactionEffects::ContractInitialized {
+                    data,
+                } => None,
+                AccountTransactionEffects::ContractUpdateIssued {
+                    effects,
+                } => None,
+                AccountTransactionEffects::AccountTransfer {
+                    amount,
+                    to,
+                } => None,
+                AccountTransactionEffects::AccountTransferWithMemo {
+                    amount,
+                    to,
+                    memo,
+                } => None,
+                AccountTransactionEffects::BakerAdded {
+                    data: event_data,
+                } => {
+                    let event = concordium_rust_sdk::types::BakerEvent::BakerAdded {
+                        data: event_data.clone(),
+                    };
+                    let prepared = PreparedBakerEvent::prepare(&event)?;
+                    Some(PreparedEvent::BakerEvents(vec![prepared]))
+                }
+                AccountTransactionEffects::BakerRemoved {
+                    baker_id,
+                } => {
+                    let event = concordium_rust_sdk::types::BakerEvent::BakerRemoved {
+                        baker_id: *baker_id,
+                    };
+                    let prepared = PreparedBakerEvent::prepare(&event)?;
+                    Some(PreparedEvent::BakerEvents(vec![prepared]))
+                }
+                AccountTransactionEffects::BakerStakeUpdated {
+                    data: update,
+                } => {
+                    if let Some(update) = update {
+                        let event = if update.increased {
+                            concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
+                                baker_id:  update.baker_id,
+                                new_stake: update.new_stake,
+                            }
+                        } else {
+                            concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
+                                baker_id:  update.baker_id,
+                                new_stake: update.new_stake,
+                            }
+                        };
+                        let prepared = PreparedBakerEvent::prepare(&event)?;
+                        Some(PreparedEvent::BakerEvents(vec![prepared]))
+                    } else {
+                        Some(PreparedEvent::NoOperation)
+                    }
+                }
+                AccountTransactionEffects::BakerRestakeEarningsUpdated {
+                    baker_id,
+                    restake_earnings,
+                } => {
+                    let prepared = PreparedEvent::BakerEvents(vec![PreparedBakerEvent::prepare(
+                        &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
+                            baker_id:         *baker_id,
+                            restake_earnings: *restake_earnings,
+                        },
+                    )?]);
+                    Some(prepared)
+                }
+                AccountTransactionEffects::BakerKeysUpdated {
+                    ..
+                } => Some(PreparedEvent::NoOperation),
+                AccountTransactionEffects::BakerConfigured {
+                    data: events,
+                } => Some(PreparedEvent::BakerEvents(
+                    events
+                        .iter()
+                        .map(|event| PreparedBakerEvent::prepare(event))
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
+
+                AccountTransactionEffects::EncryptedAmountTransferred {
+                    removed,
+                    added,
+                } => None,
+                AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
+                    removed,
+                    added,
+                    memo,
+                } => None,
+                AccountTransactionEffects::TransferredToEncrypted {
+                    data,
+                } => None,
+                AccountTransactionEffects::TransferredToPublic {
+                    removed,
+                    amount,
+                } => None,
+                AccountTransactionEffects::TransferredWithSchedule {
+                    to,
+                    amount,
+                } => None,
+                AccountTransactionEffects::TransferredWithScheduleAndMemo {
+                    to,
+                    amount,
+                    memo,
+                } => None,
+                AccountTransactionEffects::CredentialKeysUpdated {
+                    cred_id,
+                } => None,
+                AccountTransactionEffects::CredentialsUpdated {
+                    new_cred_ids,
+                    removed_cred_ids,
+                    new_threshold,
+                } => None,
+                AccountTransactionEffects::DataRegistered {
+                    data,
+                } => None,
+
+                AccountTransactionEffects::DelegationConfigured {
+                    data,
+                } => None,
+            },
+            details => {
+                warn!("details = \n {:#?}", details);
+                None
+            }
+        };
+        Ok(prepared_event)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PreparedEvent::AccountCreation(event) => event.save(tx).await,
+            PreparedEvent::BakerEvents(events) => {
+                for event in events {
+                    event.save(tx).await?;
+                }
+                Ok(())
+            }
+            PreparedEvent::NoOperation => Ok(()),
+        }
+    }
 }
 
 struct PreparedAccountCreation {
@@ -762,7 +942,6 @@ impl PreparedAccountCreation {
 
     async fn save(
         &self,
-        _context: &mut BlockProcessor,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
@@ -774,6 +953,270 @@ VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3, 0)"#,
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+}
+
+enum PreparedBakerEvent {
+    Add {
+        baker_id:         i64,
+        staked:           i64,
+        restake_earnings: bool,
+    },
+    Remove {
+        baker_id: i64,
+    },
+    StakeIncrease {
+        baker_id: i64,
+        staked:   i64,
+    },
+    StakeDecrease {
+        baker_id: i64,
+        staked:   i64,
+    },
+    SetRestakeEarnings {
+        baker_id:         i64,
+        restake_earnings: bool,
+    },
+    SetOpenStatus {
+        baker_id:    i64,
+        open_status: BakerPoolOpenStatus,
+    },
+    SetMetadataUrl {
+        baker_id:     i64,
+        metadata_url: String,
+    },
+    SetTransactionFeeCommission {
+        baker_id:   i64,
+        commission: i64,
+    },
+    SetBakingRewardCommission {
+        baker_id:   i64,
+        commission: i64,
+    },
+    SetFinalizationRewardCommission {
+        baker_id:   i64,
+        commission: i64,
+    },
+    RemoveDelegation {
+        delegator_id: i64,
+    },
+    NoOperation,
+}
+impl PreparedBakerEvent {
+    fn prepare(event: &concordium_rust_sdk::types::BakerEvent) -> anyhow::Result<Self> {
+        use concordium_rust_sdk::types::BakerEvent;
+        let prepared = match event {
+            BakerEvent::BakerAdded {
+                data: details,
+            } => PreparedBakerEvent::Add {
+                baker_id:         details.keys_event.baker_id.id.index.try_into()?,
+                staked:           details.stake.micro_ccd().try_into()?,
+                restake_earnings: details.restake_earnings,
+            },
+            BakerEvent::BakerRemoved {
+                baker_id,
+            } => PreparedBakerEvent::Remove {
+                baker_id: baker_id.id.index.try_into()?,
+            },
+            BakerEvent::BakerStakeIncreased {
+                baker_id,
+                new_stake,
+            } => PreparedBakerEvent::StakeIncrease {
+                baker_id: baker_id.id.index.try_into()?,
+                staked:   new_stake.micro_ccd().try_into()?,
+            },
+            BakerEvent::BakerStakeDecreased {
+                baker_id,
+                new_stake,
+            } => PreparedBakerEvent::StakeDecrease {
+                baker_id: baker_id.id.index.try_into()?,
+                staked:   new_stake.micro_ccd().try_into()?,
+            },
+            BakerEvent::BakerRestakeEarningsUpdated {
+                baker_id,
+                restake_earnings,
+            } => PreparedBakerEvent::SetRestakeEarnings {
+                baker_id:         baker_id.id.index.try_into()?,
+                restake_earnings: *restake_earnings,
+            },
+            BakerEvent::BakerKeysUpdated {
+                ..
+            } => PreparedBakerEvent::NoOperation,
+            BakerEvent::BakerSetOpenStatus {
+                baker_id,
+                open_status,
+            } => PreparedBakerEvent::SetOpenStatus {
+                baker_id:    baker_id.id.index.try_into()?,
+                open_status: open_status.to_owned().into(),
+            },
+            BakerEvent::BakerSetMetadataURL {
+                baker_id,
+                metadata_url,
+            } => PreparedBakerEvent::SetMetadataUrl {
+                baker_id:     baker_id.id.index.try_into()?,
+                metadata_url: metadata_url.to_string(),
+            },
+            BakerEvent::BakerSetTransactionFeeCommission {
+                baker_id,
+                transaction_fee_commission,
+            } => PreparedBakerEvent::SetTransactionFeeCommission {
+                baker_id:   baker_id.id.index.try_into()?,
+                commission: u32::from(PartsPerHundredThousands::from(*transaction_fee_commission))
+                    .into(),
+            },
+            BakerEvent::BakerSetBakingRewardCommission {
+                baker_id,
+                baking_reward_commission,
+            } => PreparedBakerEvent::SetBakingRewardCommission {
+                baker_id:   baker_id.id.index.try_into()?,
+                commission: u32::from(PartsPerHundredThousands::from(*baking_reward_commission))
+                    .into(),
+            },
+            BakerEvent::BakerSetFinalizationRewardCommission {
+                baker_id,
+                finalization_reward_commission,
+            } => PreparedBakerEvent::SetFinalizationRewardCommission {
+                baker_id:   baker_id.id.index.try_into()?,
+                commission: u32::from(PartsPerHundredThousands::from(
+                    *finalization_reward_commission,
+                ))
+                .into(),
+            },
+            BakerEvent::DelegationRemoved {
+                delegator_id,
+            } => PreparedBakerEvent::RemoveDelegation {
+                delegator_id: delegator_id.id.index.try_into()?,
+            },
+        };
+        Ok(prepared)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PreparedBakerEvent::Add {
+                baker_id,
+                staked,
+                restake_earnings,
+            } => {
+                sqlx::query!(
+                    r#"
+INSERT INTO bakers (id, staked, restake_earnings)
+VALUES ($1, $2, $3)
+"#,
+                    baker_id,
+                    staked,
+                    restake_earnings,
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::Remove {
+                baker_id,
+            } => {
+                sqlx::query!(r#"DELETE FROM bakers WHERE id=$1"#, baker_id,)
+                    .execute(tx.as_mut())
+                    .await?;
+            }
+            PreparedBakerEvent::StakeIncrease {
+                baker_id,
+                staked,
+            } => {
+                sqlx::query!(r#"UPDATE bakers SET staked = $2 WHERE id=$1"#, baker_id, staked,)
+                    .execute(tx.as_mut())
+                    .await?;
+            }
+            PreparedBakerEvent::StakeDecrease {
+                baker_id,
+                staked,
+            } => {
+                sqlx::query!(r#"UPDATE bakers SET staked = $2 WHERE id=$1"#, baker_id, staked,)
+                    .execute(tx.as_mut())
+                    .await?;
+            }
+            PreparedBakerEvent::SetRestakeEarnings {
+                baker_id,
+                restake_earnings,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET restake_earnings = $2 WHERE id=$1"#,
+                    baker_id,
+                    restake_earnings,
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::SetOpenStatus {
+                baker_id,
+                open_status,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET open_status = $2 WHERE id=$1"#,
+                    baker_id,
+                    *open_status as BakerPoolOpenStatus,
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::SetMetadataUrl {
+                baker_id,
+                metadata_url,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET metadata_url = $2 WHERE id=$1"#,
+                    baker_id,
+                    metadata_url
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::SetTransactionFeeCommission {
+                baker_id,
+                commission,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET transaction_commission = $2 WHERE id=$1"#,
+                    baker_id,
+                    commission
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::SetBakingRewardCommission {
+                baker_id,
+                commission,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET baking_commission = $2 WHERE id=$1"#,
+                    baker_id,
+                    commission
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::SetFinalizationRewardCommission {
+                baker_id,
+                commission,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE bakers SET finalization_commission = $2 WHERE id=$1"#,
+                    baker_id,
+                    commission
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::RemoveDelegation {
+                delegator_id: _,
+            } => {
+                // TODO: Implement this when database is tracking delegation as well.
+                todo!()
+            }
+            PreparedBakerEvent::NoOperation => (),
+        }
         Ok(())
     }
 }
