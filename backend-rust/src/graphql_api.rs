@@ -23,7 +23,7 @@ use async_graphql::{
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
-use concordium_rust_sdk::types::AmountFraction;
+use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool, Postgres};
@@ -33,18 +33,31 @@ use tokio_util::sync::CancellationToken;
 
 const VERSION: &str = clap::crate_version!();
 
-/// The most transactions which can be queried at once.
-const QUERY_TRANSACTIONS_LIMIT: i64 = 100;
+#[derive(clap::Args)]
+pub struct ApiServiceConfig {
+    /// Account(s) that should not be considered in circulation.
+    #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
+    non_circulating_account:      Vec<sdk_types::AccountAddress>,
+    /// The most transactions which can be queried at once.
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
+    transaction_connection_limit: i64,
+}
 
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
 }
 impl Service {
-    pub fn new(subscription: Subscription, registry: &mut Registry, pool: PgPool) -> Self {
+    pub fn new(
+        subscription: Subscription,
+        registry: &mut Registry,
+        pool: PgPool,
+        config: ApiServiceConfig,
+    ) -> Self {
         let schema = Schema::build(Query, EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
             .data(pool)
+            .data(config)
             .finish();
         Self {
             schema,
@@ -57,12 +70,12 @@ impl Service {
         stop_signal: CancellationToken,
     ) -> anyhow::Result<()> {
         let app = axum::Router::new()
+            .route("/", axum::routing::get(Self::graphiql))
             .route(
-                "/",
-                axum::routing::get(Self::graphiql)
-                    .post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
+                "/api/graphql",
+                axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
-            .route_service("/ws", GraphQLSubscription::new(self.schema));
+            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema));
 
         axum::serve(tcp_listener, app)
             .with_graceful_shutdown(stop_signal.cancelled_owned())
@@ -72,7 +85,10 @@ impl Service {
 
     async fn graphiql() -> impl axum::response::IntoResponse {
         axum::response::Html(
-            GraphiQLSource::build().endpoint("/").subscription_endpoint("/ws").finish(),
+            GraphiQLSource::build()
+                .endpoint("/api/graphql")
+                .subscription_endpoint("/ws/graphql")
+                .finish(),
         )
     }
 }
@@ -225,6 +241,8 @@ enum ApiError {
     NotFound,
     #[error("Internal error: {}", .0.message)]
     NoDatabasePool(async_graphql::Error),
+    #[error("Internal error: {}", .0.message)]
+    NoServiceConfig(async_graphql::Error),
     #[error("Internal error: {0}")]
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
@@ -257,6 +275,10 @@ type ApiResult<A> = Result<A, ApiError>;
 
 fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
     ctx.data::<PgPool>().map_err(ApiError::NoDatabasePool)
+}
+
+fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
+    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
 }
 
 fn check_connection_query(first: &Option<i64>, last: &Option<i64>) -> ApiResult<()> {
@@ -407,6 +429,8 @@ impl Query {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
+        let config = get_config(ctx)?;
+
         check_connection_query(&first, &last)?;
         let after_id = after.as_deref().map(IdTransaction::from_str).transpose()?;
         let before_id = before.as_deref().map(IdTransaction::from_str).transpose()?;
@@ -469,18 +493,18 @@ impl Query {
             (None, None) => {
                 builder
                     .push(" ORDER BY block ASC, index ASC LIMIT ")
-                    .push_bind(QUERY_TRANSACTIONS_LIMIT);
+                    .push_bind(config.transaction_connection_limit);
             }
             (None, Some(last)) => {
                 builder
                     .push(" ORDER BY block DESC, index DESC LIMIT ")
-                    .push_bind(last.min(QUERY_TRANSACTIONS_LIMIT))
+                    .push_bind(last.min(config.transaction_connection_limit))
                     .push(") ORDER BY block ASC, index ASC");
             }
             (Some(first), None) => {
                 builder
                     .push(" ORDER BY block ASC, index ASC LIMIT ")
-                    .push_bind(first.min(QUERY_TRANSACTIONS_LIMIT));
+                    .push_bind(first.min(config.transaction_connection_limit));
             }
             (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
         }
@@ -647,18 +671,43 @@ impl Query {
         period: MetricsPeriod,
     ) -> ApiResult<BlockMetrics> {
         let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let non_circulating_accounts =
+            config.non_circulating_account.iter().map(|a| a.to_string()).collect::<Vec<_>>();
+
+        let latest_block = sqlx::query!(
+            r#"
+WITH non_circulating_accounts AS (
+    SELECT
+        COALESCE(SUM(amount), 0)::BIGINT AS total_amount
+    FROM accounts
+    WHERE address=ANY($1)
+)
+SELECT
+    height,
+    blocks.total_amount,
+    total_staked,
+    (blocks.total_amount - non_circulating_accounts.total_amount)::BIGINT AS total_amount_released
+FROM blocks, non_circulating_accounts
+ORDER BY height DESC
+LIMIT 1"#,
+            non_circulating_accounts.as_slice()
+        )
+        .fetch_one(pool)
+        .await?;
+
         let interval: PgInterval = period
             .as_duration()
             .try_into()
             .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
-        let rec = sqlx::query!(
-            "SELECT
-MAX(height) as last_block_height,
-COUNT(*) as blocks_added,
-(MAX(slot_time) - MIN(slot_time)) / (COUNT(*) - 1) as avg_block_time,
-(MAX(total_amount)) as last_total_micro_ccd
+        let period_query = sqlx::query!(
+            r#"
+SELECT
+    COUNT(*) as blocks_added,
+    AVG(block_time)::integer as avg_block_time,
+    AVG(finalization_time)::integer as avg_finalization_time
 FROM blocks
-WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
+WHERE slot_time > (LOCALTIMESTAMP - $1::interval)"#,
             interval
         )
         .fetch_one(pool)
@@ -667,7 +716,7 @@ WHERE slot_time > (LOCALTIMESTAMP - $1::interval)",
         let bucket_width = period.bucket_width();
         let bucket_interval: PgInterval =
             bucket_width.try_into().map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
-        let res = sqlx::query!(
+        let bucket_query = sqlx::query!(
             "
 WITH data AS (
   SELECT
@@ -703,7 +752,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             y_finalization_time_avg: Vec::new(),
             y_last_total_micro_ccd_staked: Vec::new(),
         };
-        for row in res {
+        for row in bucket_query {
             buckets.x_time.push(row.time.ok_or(ApiError::InternalError(
                 "Unexpected missing time for bucket".to_string(),
             ))?);
@@ -718,10 +767,14 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         }
 
         Ok(BlockMetrics {
-            last_block_height: rec.last_block_height.unwrap_or(0),
-            blocks_added: rec.blocks_added.unwrap_or(0),
-            avg_block_time: rec.avg_block_time.map(|i| i.microseconds as f64 / 1000.0),
-            last_total_micro_ccd: rec.last_total_micro_ccd.unwrap_or(0),
+            blocks_added: period_query.blocks_added.unwrap_or(0),
+            avg_block_time: period_query.avg_block_time.map(|i| i as f64 / 1000.0),
+            avg_finalization_time: period_query.avg_finalization_time.map(|i| i as f64 / 1000.0),
+            last_block_height: latest_block.height,
+            last_total_micro_ccd: latest_block.total_amount,
+            last_total_micro_ccd_staked: latest_block.total_staked,
+            last_total_micro_ccd_released: latest_block.total_amount_released.unwrap_or(0),
+            last_total_micro_ccd_unlocked: None, // TODO implement unlocking schedule
             // TODO check what format this is expected to be in.
             buckets,
         })
@@ -996,6 +1049,9 @@ pub struct Block {
 impl Block {
     /// Absolute block height.
     async fn id(&self) -> types::ID { types::ID::from(self.height) }
+
+    /// Whether the block is finalized.
+    async fn finalized(&self) -> bool { true }
 
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
@@ -4308,36 +4364,30 @@ pub struct DelegationStakeIncreased {
 struct BlockMetrics {
     /// The most recent block height. Equals the total length of the chain minus
     /// one (genesis block is at height zero).
-    last_block_height:    BlockHeight,
+    last_block_height: BlockHeight,
     /// Total number of blocks added in requested period.
-    blocks_added:         i64,
-    /// The average block time (slot-time difference between two adjacent
-    /// blocks) in the requested period. Will be null if no blocks have been
-    /// added in the requested period.
-    avg_block_time:       Option<f64>,
-    // /// The average finalization time (slot-time difference between a given block and the block
-    // /// that holds its finalization proof) in the requested period. Will be null if no blocks
-    // have /// been finalized in the requested period.
-    // avg_finalization_time: Option<f64>,
+    blocks_added: i64,
+    /// The average block time in seconds (slot-time difference between two
+    /// adjacent blocks) in the requested period. Will be null if no blocks
+    /// have been added in the requested period.
+    avg_block_time: Option<f64>,
+    /// The average finalization time in seconds (slot-time difference between a
+    /// given block and the block that holds its finalization proof) in the
+    /// requested period. Will be null if no blocks have been finalized in
+    /// the requested period.
+    avg_finalization_time: Option<f64>,
     /// The current total amount of CCD in existence.
     last_total_micro_ccd: Amount,
-    // /// The total CCD Released. This is total CCD supply not counting the balances of non
-    // circulating accounts. last_total_micro_ccd_released: Option<Amount>,
-    // /// The current total CCD released according to the Concordium promise published on
-    // deck.concordium.com. Will be null for blocks with slot time before the published release
-    // schedule. last_total_micro_ccd_unlocked: Option<Amount>,
-    // /// The current total amount of CCD in encrypted balances.
-    // last_total_micro_ccd_encrypted: Long,
-    // /// The current total amount of CCD staked.
-    // last_total_micro_ccd_staked: Long,
-    // /// The current percentage of CCD released (of total CCD in existence) according to the
-    // Concordium promise published on deck.concordium.com. Will be null for blocks with slot time
-    // before the published release schedule." last_total_percentage_released: Option<f32>,
-    // /// The current percentage of CCD encrypted (of total CCD in existence).
-    // last_total_percentage_encrypted: f32,
-    // /// The current percentage of CCD staked (of total CCD in existence).
-    // last_total_percentage_staked: f32,
-    buckets:              BlockMetricsBuckets,
+    /// The total CCD Released. This is total CCD supply not counting the
+    /// balances of non circulating accounts.
+    last_total_micro_ccd_released: Amount,
+    /// The current total CCD released according to the Concordium promise
+    /// published on deck.concordium.com. Will be null for blocks with slot
+    /// time before the published release schedule.
+    last_total_micro_ccd_unlocked: Option<Amount>,
+    /// The current total amount of CCD staked.
+    last_total_micro_ccd_staked: Amount,
+    buckets: BlockMetricsBuckets,
 }
 
 #[derive(SimpleObject)]
@@ -4351,61 +4401,17 @@ struct BlockMetricsBuckets {
     /// value.
     #[graphql(name = "y_BlocksAdded")]
     y_blocks_added: Vec<i64>,
-    // /// The minimum block time (slot-time difference between two adjacent blocks) in the bucket
-    // /// period. Intended y-axis value. Will be null if no blocks have been added in the bucket
-    // /// period.
-    // #[graphql(name = "y_BlockTimeMin")]
-    // y_block_time_min: Vec<f32>,
     /// The average block time (slot-time difference between two adjacent
     /// blocks) in the bucket period. Intended y-axis value. Will be null if
     /// no blocks have been added in the bucket period.
     #[graphql(name = "y_BlockTimeAvg")]
     y_block_time_avg: Vec<f64>,
-    // /// The maximum block time (slot-time difference between two adjacent blocks) in the bucket
-    // /// period. Intended y-axis value. Will be null if no blocks have been added in the bucket
-    // /// period.
-    // #[graphql(name = "y_BlockTimeMax")]
-    // y_block_time_max: Vec<f32>,
-    // /// The minimum finalization time (slot-time difference between a given block and the block
-    // /// that holds its finalization proof) in the bucket period. Intended y-axis value. Will be
-    // /// null if no blocks have been finalized in the bucket period.
-    // #[graphql(name = "y_FinalizationTimeMin")]
-    // y_finalization_time_min: Vec<f32>,
     /// The average finalization time (slot-time difference between a given
     /// block and the block that holds its finalization proof) in the bucket
     /// period. Intended y-axis value. Will be null if no blocks have been
     /// finalized in the bucket period.
     #[graphql(name = "y_FinalizationTimeAvg")]
     y_finalization_time_avg: Vec<f64>,
-    // /// The maximum finalization time (slot-time difference between a given block and the block
-    // /// that holds its finalization proof) in the bucket period. Intended y-axis value. Will be
-    // /// null if no blocks have been finalized in the bucket period.
-    // #[graphql(name = "y_FinalizationTimeMax")]
-    // y_finalization_time_max: Vec<f32>,
-    // /// The total amount of CCD in existence at the end of the bucket period. Intended y-axis
-    // /// value.
-    // #[graphql(name = "y_LastTotalMicroCcd")]
-    // y_last_total_micro_ccd: Vec<Long>,
-    // /// The minimum amount of CCD in encrypted balances in the bucket period. Intended y-axis
-    // /// value. Will be null if no blocks have been added in the bucket period.
-    // #[graphql(name = "y_MinTotalMicroCcdEncrypted")]
-    // y_min_total_micro_ccd_encrypted: Vec<Long>,
-    // /// The maximum amount of CCD in encrypted balances in the bucket period. Intended y-axis
-    // /// value. Will be null if no blocks have been added in the bucket period.
-    // #[graphql(name = "y_MaxTotalMicroCcdEncrypted")]
-    // y_max_total_micro_ccd_encrypted: Vec<Long>,
-    // /// The total amount of CCD in encrypted balances at the end of the bucket period. Intended
-    // /// y-axis value.
-    // #[graphql(name = "y_LastTotalMicroCcdEncrypted")]
-    // y_last_total_micro_ccd_encrypted: Vec<Long>,
-    // /// The minimum amount of CCD staked in the bucket period. Intended y-axis value. Will be
-    // null /// if no blocks have been added in the bucket period.
-    // #[graphql(name = "y_MinTotalMicroCcdStaked")]
-    // y_min_total_micro_ccd_staked: Vec<Long>,
-    // /// The maximum amount of CCD staked in the bucket period. Intended y-axis value. Will be
-    // null /// if no blocks have been added in the bucket period.
-    // #[graphql(name = "y_MaxTotalMicroCcdStaked")]
-    // y_max_total_micro_ccd_staked: Vec<Long>,
     /// The total amount of CCD staked at the end of the bucket period. Intended
     /// y-axis value.
     #[graphql(name = "y_LastTotalMicroCcdStaked")]
@@ -4415,9 +4421,13 @@ struct BlockMetricsBuckets {
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
 enum MetricsPeriod {
     LastHour,
+    #[graphql(name = "LAST24_HOURS")]
     Last24Hours,
+    #[graphql(name = "LAST7_DAYS")]
     Last7Days,
+    #[graphql(name = "LAST30_DAYS")]
     Last30Days,
+    #[graphql(name = "LAST_YEAR")]
     LastYear,
 }
 

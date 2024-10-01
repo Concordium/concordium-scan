@@ -13,7 +13,6 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-// TODO add env for remaining args.
 #[derive(Parser)]
 #[command(version, author, about)]
 struct Cli {
@@ -22,10 +21,16 @@ struct Cli {
     #[arg(long, env = "DATABASE_URL")]
     database_url:   String,
     /// gRPC interface of the node. Several can be provided.
-    #[arg(long, default_value = "http://localhost:20000")]
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_GRPC_ENDPOINTS",
+        value_delimiter = ',',
+        num_args = 1..,
+        default_value = "http://localhost:20000"
+    )]
     node:           Vec<v2::Endpoint>,
     /// Address to listen for metrics requests
-    #[arg(long, default_value = "127.0.0.1:8001")]
+    #[arg(long, env = "CCDSCAN_INDEXER_METRICS_ADDRESS", default_value = "127.0.0.1:8001")]
     metrics_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Performance tuning")]
     indexer_config: IndexerServiceConfig,

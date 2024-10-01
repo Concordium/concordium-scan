@@ -21,11 +21,13 @@ struct Cli {
     #[arg(long)]
     schema_out:     Option<PathBuf>,
     /// Address to listen for API requests
-    #[arg(long, default_value = "127.0.0.1:8000")]
+    #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen:         SocketAddr,
     /// Address to listen for API requests
-    #[arg(long, default_value = "127.0.0.1:8003")]
+    #[arg(long, env = "CCDSCAN_API_METRICS_ADDRESS", default_value = "127.0.0.1:8003")]
     metrics_listen: SocketAddr,
+    #[command(flatten, next_help_heading = "Configuration")]
+    api_config:     graphql_api::ApiServiceConfig,
 }
 
 #[tokio::main]
@@ -58,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
-        let service = graphql_api::Service::new(subscription, &mut registry, pool);
+        let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
             std::fs::write(

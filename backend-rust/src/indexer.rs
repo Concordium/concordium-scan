@@ -45,16 +45,20 @@ pub struct IndexerService {
 #[derive(clap::Args)]
 pub struct IndexerServiceConfig {
     /// Maximum number of blocks being preprocessed in parallel.
-    #[arg(long, default_value = "8")]
+    #[arg(
+        long,
+        env = "CCDSCAN_INDEXER_CONFIG_MAX_PARALLEL_BLOCK_PREPROCESSORS",
+        default_value = "8"
+    )]
     pub max_parallel_block_preprocessors: usize,
     /// Maximum number of blocks allowed to be batched into the same database
     /// transaction.
-    #[arg(long, default_value = "4")]
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_MAX_PROCESSING_BATCH", default_value = "4")]
     pub max_processing_batch:             usize,
     /// Set the maximum amount of seconds the last finalized block of the node
     /// can be behind before it is deemed too far behind, and another node
     /// is tried.
-    #[arg(long, default_value = "60")]
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_MAX_BEHIND", default_value = "60")]
     pub node_max_behind:                  u64,
 }
 
