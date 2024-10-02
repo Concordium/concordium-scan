@@ -7,11 +7,11 @@ use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
-        queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
+        self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
         PartsPerHundredThousands, RewardsOverview,
     },
-    v2::{self, ChainParameters, FinalizedBlockInfo, QueryResult, RPCError},
+    v2::{self, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult, RPCError},
 };
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
@@ -26,7 +26,7 @@ use prometheus_client::{
 use sqlx::PgPool;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 /// Service traversing each block of the chain, indexing it into a database.
 pub struct IndexerService {
@@ -85,8 +85,17 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             save_genesis_data(endpoints[0].clone(), &pool).await?;
             1
         };
-        let block_pre_processor =
-            BlockPreProcessor::new(registry.sub_registry_with_prefix("preprocessor"));
+        let genesis_block_hash: sdk_types::hashes::BlockHash =
+            sqlx::query!(r#"SELECT hash FROM blocks WHERE height=0"#)
+                .fetch_one(&pool)
+                .await?
+                .hash
+                .parse()?;
+
+        let block_pre_processor = BlockPreProcessor::new(
+            genesis_block_hash,
+            registry.sub_registry_with_prefix("preprocessor"),
+        );
         let block_processor =
             BlockProcessor::new(pool, registry.sub_registry_with_prefix("processor")).await?;
 
@@ -138,6 +147,8 @@ impl NodeMetricLabels {
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
 /// preprocessors can run in parallel, this must be `Sync`.
 struct BlockPreProcessor {
+    /// Genesis hash, used to ensure the nodes are on the expected network.
+    genesis_hash:                 sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
@@ -151,7 +162,7 @@ struct BlockPreProcessor {
     node_response_time:           Family<NodeMetricLabels, Histogram>,
 }
 impl BlockPreProcessor {
-    fn new(registry: &mut Registry) -> Self {
+    fn new(genesis_hash: sdk_types::hashes::BlockHash, registry: &mut Registry) -> Self {
         let established_node_connections = Family::default();
         registry.register(
             "established_node_connections",
@@ -181,6 +192,7 @@ impl BlockPreProcessor {
         );
 
         Self {
+            genesis_hash,
             established_node_connections,
             preprocessing_failures,
             blocks_being_preprocessed,
@@ -199,10 +211,25 @@ impl Indexer for BlockPreProcessor {
     async fn on_connect<'a>(
         &mut self,
         endpoint: v2::Endpoint,
-        _client: &'a mut v2::Client,
+        client: &'a mut v2::Client,
     ) -> QueryResult<Self::Context> {
-        // TODO: check the genesis hash matches, i.e. that the node is running on the
-        // same network.
+        let info = client.get_consensus_info().await?;
+        if info.genesis_block != self.genesis_hash {
+            error!(
+                "Invalid client: {} is on network with genesis hash {} expected {}",
+                endpoint.uri(),
+                info.genesis_block,
+                self.genesis_hash
+            );
+            return Err(QueryError::RPCError(RPCError::CallError(
+                tonic::Status::failed_precondition(format!(
+                    "Invalid client: {} is on network with genesis hash {} expected {}",
+                    endpoint.uri(),
+                    info.genesis_block,
+                    self.genesis_hash
+                )),
+            )));
+        }
         info!("Connection established to node at uri: {}", endpoint.uri());
         let label = NodeMetricLabels::new(&endpoint);
         self.established_node_connections.get_or_create(&label).inc();
