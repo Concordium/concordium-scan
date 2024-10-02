@@ -4115,7 +4115,9 @@ impl DecodedText {
     fn from_bytes(bytes: &[u8]) -> Self {
         if let Ok(text) = ciborium::from_reader::<String, _>(bytes) {
             Self {
-                text,
+                text: match text.as_str() {
+                    "\0" => String::from("none"),
+                    _ => text,
                 decode_type: TextDecodeType::Cbor,
             }
         } else {
