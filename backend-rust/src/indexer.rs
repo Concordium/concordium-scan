@@ -5,6 +5,7 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
+    base::hashes::ModuleReference,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
@@ -23,6 +24,7 @@ use prometheus_client::{
     },
     registry::Registry,
 };
+use serde_json::Value;
 use sqlx::PgPool;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
@@ -111,6 +113,24 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
+        // Set up endpoints to the node.
+        let mut new_endpoints = Vec::new();
+        for endpoint in &self.endpoints {
+            if endpoint
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            {
+                let new_endpoint = endpoint
+                    .clone()
+                    .tls_config(tonic::transport::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium node.")?;
+                new_endpoints.push(new_endpoint);
+            } else {
+                new_endpoints.push(endpoint.clone());
+            }
+        }
+
         let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
             .context("Failed setting up TraverseConfig")?
             .set_max_parallel(self.config.max_parallel_block_preprocessors)
@@ -284,8 +304,9 @@ impl Indexer for BlockPreProcessor {
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
             };
-            let prepared_block =
-                PreparedBlock::prepare(&data).map_err(|err| RPCError::ParseError(err))?;
+            let prepared_block = PreparedBlock::prepare(&data, &client)
+                .await
+                .map_err(|err| RPCError::ParseError(err))?;
             Ok(prepared_block)
         }
         .await;
@@ -558,7 +579,7 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(data: &BlockData, node_client: &v2::Client) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -592,8 +613,16 @@ impl PreparedBlock {
         };
 
         let mut prepared_block_items = Vec::new();
-        for block_item in data.events.iter() {
-            prepared_block_items.push(PreparedBlockItem::prepare(data, block_item)?)
+        for (event_index, block_item) in data.events.iter().enumerate() {
+            prepared_block_items.push(
+                PreparedBlockItem::prepare(
+                    data,
+                    block_item,
+                    event_index.try_into()?,
+                    node_client.clone(),
+                )
+                .await?,
+            )
         }
 
         Ok(Self {
@@ -614,19 +643,19 @@ impl PreparedBlock {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
-VALUES ($1, $2, $3,
-  (SELECT EXTRACT("MILLISECONDS" FROM $3 - b.slot_time) FROM blocks b WHERE b.height=($1 - 1::bigint)),
-  $4, $5, $6);"#,
-            self.height,
-            self.hash,
-            self.slot_time,
-            self.baker_id,
-            self.total_amount,
-            self.total_staked
-        )
-        .execute(tx.as_mut())
-            .await?;
+                    r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
+        VALUES ($1, $2, $3,
+          (SELECT EXTRACT("MILLISECONDS" FROM $3 - b.slot_time) FROM blocks b WHERE b.height=($1 - 1::bigint)),
+          $4, $5, $6);"#,
+                    self.height,
+                    self.hash,
+                    self.slot_time,
+                    self.baker_id,
+                    self.total_amount,
+                    self.total_staked
+                )
+                .execute(tx.as_mut())
+                    .await?;
 
         // Check if this block knows of a new finalized block.
         // If so, mark the blocks since last time as finalized by this block.
@@ -635,14 +664,14 @@ VALUES ($1, $2, $3,
 
             let rec = sqlx::query!(
                 r#"
-WITH finalizer
-   AS (SELECT height FROM blocks WHERE hash = $1)
-UPDATE blocks b
-   SET finalization_time = EXTRACT("MILLISECONDS" FROM $3 - b.slot_time),
-       finalized_by = finalizer.height
-FROM finalizer
-WHERE $2 <= b.height AND b.height < finalizer.height
-RETURNING finalizer.height"#,
+        WITH finalizer
+           AS (SELECT height FROM blocks WHERE hash = $1)
+        UPDATE blocks b
+           SET finalization_time = EXTRACT("MILLISECONDS" FROM $3 - b.slot_time),
+               finalized_by = finalizer.height
+        FROM finalizer
+        WHERE $2 <= b.height AND b.height < finalizer.height
+        RETURNING finalizer.height"#,
                 self.block_last_finalized,
                 last_height,
                 self.slot_time
@@ -682,7 +711,12 @@ struct PreparedBlockItem {
 }
 
 impl PreparedBlockItem {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
+    async fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event_index: i64,
+        node_client: v2::Client,
+    ) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_index = i64::try_from(block_item.index.index)?;
         let tx_hash = block_item.hash.to_string();
@@ -731,7 +765,8 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(&data, &block_item)?;
+        let prepared_event =
+            PreparedEvent::prepare(&data, &block_item, event_index, node_client).await?;
 
         Ok(Self {
             block_index,
@@ -756,25 +791,25 @@ impl PreparedBlockItem {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-                r#"INSERT INTO transactions
-(index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
-VALUES
-($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
-            self.block_index,
-            self.tx_hash,
-            self.ccd_cost,
-            self.energy_cost,
-            self.height,
-            self.sender,
-            self.transaction_type as DbTransactionType,
-            self.account_type as Option<AccountTransactionType>,
-            self.credential_type as Option<CredentialDeploymentTransactionType>,
-            self.update_type as Option<UpdateTransactionType>,
-            self.success,
-            self.events,
-            self.reject)
-            .execute(tx.as_mut())
-            .await?;
+                        r#"INSERT INTO transactions
+        (index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
+        VALUES
+        ($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
+                    self.block_index,
+                    self.tx_hash,
+                    self.ccd_cost,
+                    self.energy_cost,
+                    self.height,
+                    self.sender,
+                    self.transaction_type as DbTransactionType,
+                    self.account_type as Option<AccountTransactionType>,
+                    self.credential_type as Option<CredentialDeploymentTransactionType>,
+                    self.update_type as Option<UpdateTransactionType>,
+                    self.success,
+                    self.events,
+                    self.reject)
+                    .execute(tx.as_mut())
+                    .await?;
 
         if let Some(prepared_event) = &self.prepared_event {
             prepared_event.save(tx).await?;
@@ -786,10 +821,16 @@ VALUES
 enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     BakerEvents(Vec<PreparedBakerEvent>),
+    ModuleDeployed(PreparedModuleDeployed),
     NoOperation,
 }
 impl PreparedEvent {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Option<Self>> {
+    async fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event_index: i64,
+        node_client: v2::Client,
+    ) -> anyhow::Result<Option<Self>> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -805,8 +846,18 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => None,
+                } => Some(PreparedEvent::ModuleDeployed(
+                    PreparedModuleDeployed::prepare(
+                        data,
+                        &block_item,
+                        event_index,
+                        *module_ref,
+                        node_client,
+                    )
+                    .await?,
+                )),
                 AccountTransactionEffects::ContractInitialized {
+                    ///////////// TODO
                     data,
                 } => None,
                 AccountTransactionEffects::ContractUpdateIssued {
@@ -945,8 +996,118 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ModuleDeployed(module) => module.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
+    }
+}
+
+struct PreparedModuleDeployed {
+    height:             i64,
+    module_reference:   String,
+    source:             Vec<u8>,
+    schema:             Vec<u8>,
+    schema_version:     i32,
+    contract_names:     Value,
+    entrypoint_names:   Value,
+    // TODO:  contract_instances: Vec<(i64, i64)>,
+    contract_instances: Value,
+    creator:            String,
+    tx_hash:            String,
+    tx_index:           i64,
+    tx_event_index:     i64,
+    created_at:         NaiveDateTime,
+}
+
+impl PreparedModuleDeployed {
+    async fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        tx_event_index: i64,
+        module_reference: ModuleReference,
+        mut node_client: v2::Client,
+    ) -> anyhow::Result<Self> {
+        let block_height = data.finalized_block_info.height;
+        let tx_hash = block_item.hash.to_string();
+        let tx_index = block_item.index.index.try_into()?;
+        let created_at = data.block_info.block_slot_time.naive_utc();
+        let creator =
+            block_item.sender_account().map(|a| a.to_string()).ok_or(anyhow::Error::msg(
+                "Deploying a module transaction has an sender account. This error should not \
+                 happen.",
+            ))?;
+
+        // TODO:
+        // let source = node_client
+        //     .get_module_source(&module_reference,
+        // BlockIdentifier::AbsoluteHeight(block_height))     .await?
+        //     .response
+        //     .source
+        //     .into();
+
+        // TODO
+        let source = vec![];
+        let schema = vec![];
+        let schema_version = 0;
+        let contract_names = serde_json::to_value(vec![""])?;
+        let entrypoint_names = serde_json::to_value(vec![""])?;
+        let contract_instances = serde_json::to_value(vec![""])?;
+
+        Ok(Self {
+            height: i64::try_from(block_height.height)?,
+            module_reference: module_reference.into(),
+            source,
+            schema,
+            schema_version,
+            contract_names,
+            entrypoint_names,
+            contract_instances,
+            creator,
+            tx_hash,
+            tx_index,
+            tx_event_index,
+            created_at,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO wasm_modules (
+                module_reference,
+                source,
+                schema,
+                schema_version,
+                contract_names,
+                entrypoint_names,
+                contract_instances,
+                creator,
+                created_block,
+                created_tx_hash,
+                created_tx_index,
+                created_tx_event_index,
+                created_at
+                )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"#,
+            self.module_reference,
+            self.source,
+            self.schema,
+            self.schema_version,
+            self.contract_names,
+            self.entrypoint_names,
+            self.contract_instances,
+            self.creator,
+            self.height,
+            self.tx_hash,
+            self.tx_index,
+            self.tx_event_index,
+            self.created_at.into()
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
     }
 }
 

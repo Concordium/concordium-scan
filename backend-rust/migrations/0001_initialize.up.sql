@@ -168,8 +168,10 @@ CREATE TABLE transactions(
         JSONB,
 
     -- Make the block height and transaction index the primary key.
-    PRIMARY KEY (block, index)
-    -- transaction_type: TransactionType,
+    PRIMARY KEY (block, index),
+
+    -- Unique constraint on block, hash, index, and slot_time
+    CONSTRAINT unique_transaction_keys UNIQUE (block, hash, index, slot_time)
 );
 
 -- Every account on chain.
@@ -199,6 +201,68 @@ CREATE TABLE accounts(
     -- Connect the account with the transaction creating it.
     FOREIGN KEY (created_block, created_index) REFERENCES transactions(block, index)
     -- credential_registration_id
+);
+
+-- Every WASM module on chain.
+CREATE TABLE wasm_modules(
+    -- Module reference of the wasm module.
+    module_reference
+        CHAR(64)
+        PRIMARY KEY
+        NOT NULL,
+    -- Source bytes of the module (WASM).
+    source
+        BYTEA
+        NOT NULL,
+    -- Embedded schema as bytes in the wasm module if present.
+    schema
+        BYTEA,
+    -- Embedded schema version in the wasm module if present.
+    schema_version
+        INT,
+    -- List of contract names in the wasm module.
+    contract_names
+        JSONB
+        NOT NULL,
+    -- List of entrypoint names in the wasm module.
+    entrypoint_names
+        JSONB
+        NOT NULL,
+    -- List of contract instances that are currently linked to this module.
+    contract_instances
+        JSONB
+        NOT NULL,
+    -- Account address that deployed the wasm module.
+    creator
+        CHAR(50)
+        NOT NULL,
+        -- REFERENCES accounts(address),
+    -- The absolute block height when the contract was initialized.
+    created_block
+        BIGINT
+        NOT NULL,
+    -- Transaction hash in the block initializing this contract using HEX.
+    created_tx_hash
+        CHAR(64)
+        UNIQUE
+        NOT NULL,
+    -- Index of the transaction in the block initializing this contract.
+    created_tx_index
+        BIGINT
+        NOT NULL,
+    -- Index of the event in the transaction initializing this contract.
+    created_tx_event_index
+        BIGINT
+        NOT NULL,
+    -- Timestamp when the contract was initialized.
+    created_at
+        TIMESTAMP
+        NOT NULL,
+
+    -- Connect the module with the transaction creating it.
+    -- TODO: nice-to-have add foreign key for `created_tx_event_index` reference, needs `events` in `transactions` table to be more fine grained than a `JSONB` blob.
+    FOREIGN KEY (created_block, created_tx_hash, created_tx_index, created_at)
+    REFERENCES transactions(block, hash, index, slot_time)
 );
 
 -- Every contract instance on chain.
@@ -255,70 +319,9 @@ CREATE TABLE contracts(
     REFERENCES transactions(block, hash, index, slot_time),
 
     -- Make the contract index and subindex the primary key.
-    PRIMARY KEY (index, subindex)
+    PRIMARY KEY (index, sub_index)
 );
 
--- Every WASM module on chain.
-CREATE TABLE wasm_modules(
-    -- Module reference of the wasm module.
-    module_reference
-        CHAR(64)
-        PRIMARY KEY
-        NOT NULL,
-    -- Source bytes of the module (WASM).
-    source
-        BYTES
-        NOT NULL,
-    -- Embedded schema as bytes in the wasm module if present.
-    schema
-        BYTES,
-    -- Embedded schema version in the wasm module if present.
-    schema_version
-        INT,
-    -- List of contract names in the wasm module.
-    contract_names
-        JSONB
-        NOT NULL,
-    -- List of entrypoint names in the wasm module.
-    entrypoint_names
-        JSONB
-        NOT NULL,
-    -- List of contract instances that are currently linked to this module.
-    contract_instances
-        JSONB
-        NOT NULL,
-    -- Account address that deployed the wasm module.
-    creator
-        CHAR(50)
-        NOT NULL
-        REFERENCES accounts(address),
-    -- The absolute block height when the contract was initialized.
-    created_block
-        BIGINT
-        NOT NULL,
-    -- Transaction hash in the block initializing this contract using HEX.
-    created_tx_hash
-        CHAR(64)
-        UNIQUE
-        NOT NULL,
-    -- Index of the transaction in the block initializing this contract.
-    created_tx_index
-        BIGINT
-        NOT NULL,
-    -- Index of the event in the transaction initializing this contract.
-    created_tx_event_index
-        BIGINT
-        NOT NULL,
-    -- Timestamp when the contract was initialized.
-    created_at
-        TIMESTAMP
-        NOT NULL,
-
-    -- Connect the module with the transaction creating it.
-    -- TODO: nice-to-have add foreign key for `created_tx_event_index` reference, needs `events` in `transactions` table to be more fine grained than a `JSONB` blob.
-    FOREIGN KEY (created_block, created_tx_hash, created_tx_index, created_at)
-    REFERENCES transactions(block, hash, index, slot_time),
-);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions

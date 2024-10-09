@@ -27,9 +27,8 @@ Example:
 
 ```
 cargo run --bin ccdscan-indexer -- --node http://node.testnet.concordium.com:20000
+cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000
 ```
-
-TODO: add TLS support and change node
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 
