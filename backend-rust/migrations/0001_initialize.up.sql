@@ -117,7 +117,7 @@ CREATE TABLE transactions(
         BIGINT
         NOT NULL,
     -- Absolute height of the block containing the transaction.
-    block
+    block_height
         BIGINT
         REFERENCES blocks(height)
         NOT NULL,
@@ -143,7 +143,8 @@ CREATE TABLE transactions(
     type
         transaction_type
         NOT NULL,
-    -- NULL if the transaction type is not account or the account transaction have no effect on chain.
+    -- NULL if the transaction type is not an account transaction or an account transaction which
+    -- got rejected due to deserialization failure.
     type_account
         account_transaction_type,
     -- NULL if the transaction type is not credential deployment.
@@ -164,8 +165,7 @@ CREATE TABLE transactions(
         JSONB,
 
     -- Make the block height and transaction index the primary key.
-    PRIMARY KEY (block, index)
-    -- transaction_type: TransactionType,
+    PRIMARY KEY (block_height, index)
 );
 
 -- Every account on chain.
@@ -193,7 +193,7 @@ CREATE TABLE accounts(
         BIGINT
         NOT NULL,
     -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions(block, index)
+    FOREIGN KEY (created_block, created_index) REFERENCES transactions(block_height, index)
     -- credential_registration_id
 );
 
@@ -248,7 +248,7 @@ CREATE TABLE bakers(
 );
 
 
-CREATE OR REPLACE FUNCTION notify_trigger() RETURNS trigger AS $trigger$
+CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;
   payload TEXT;
@@ -263,7 +263,7 @@ BEGIN
 END;
 $trigger$ LANGUAGE plpgsql;
 
-CREATE TRIGGER user_notify AFTER INSERT OR UPDATE OR DELETE
+CREATE TRIGGER block_added_notify_trigger AFTER INSERT
 ON blocks
-FOR EACH ROW EXECUTE PROCEDURE notify_trigger();
+FOR EACH ROW EXECUTE PROCEDURE block_added_notify_trigger_function();
 

@@ -1055,9 +1055,10 @@ impl Block {
 
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let result = sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block=$1", self.height)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
+        let result =
+            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height=$1", self.height)
+                .fetch_one(get_pool(ctx)?)
+                .await?;
         Ok(result.count.unwrap_or(0))
     }
 

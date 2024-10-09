@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     );
     registry.register(
         "service_startup_timestamp_millis",
-        "Timestamp of starting up the node (Unix time in milliseconds)",
+        "Timestamp of starting up the API service (Unix time in milliseconds)",
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
 

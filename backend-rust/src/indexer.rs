@@ -5,13 +5,17 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
+    common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
         PartsPerHundredThousands, RewardsOverview,
     },
-    v2::{self, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult, RPCError},
+    v2::{
+        self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
+        RPCError,
+    },
 };
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
@@ -24,6 +28,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
+use std::borrow::Borrow;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -60,6 +65,10 @@ pub struct IndexerServiceConfig {
     /// is tried.
     #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_NODE_MAX_BEHIND", default_value = "60")]
     pub node_max_behind:                  u64,
+    /// Set the max number of acceptable successive failures before shutting
+    /// down the service.
+    #[arg(long, env = "CCDSCAN_INDEXER_CONFIG_MAX_SUCCESSIVE_FAILURES", default_value = "10")]
+    pub max_successive_failures:          u32,
 }
 
 impl IndexerService {
@@ -94,10 +103,15 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
 
         let block_pre_processor = BlockPreProcessor::new(
             genesis_block_hash,
+            config.max_successive_failures.into(),
             registry.sub_registry_with_prefix("preprocessor"),
         );
-        let block_processor =
-            BlockProcessor::new(pool, registry.sub_registry_with_prefix("processor")).await?;
+        let block_processor = BlockProcessor::new(
+            pool,
+            config.max_successive_failures,
+            registry.sub_registry_with_prefix("processor"),
+        )
+        .await?;
 
         Ok(Self {
             endpoints,
@@ -160,9 +174,16 @@ struct BlockPreProcessor {
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
     node_response_time:           Family<NodeMetricLabels, Histogram>,
+    /// Max number of acceptable successive failures before shutting down the
+    /// service.
+    max_successive_failures:      u64,
 }
 impl BlockPreProcessor {
-    fn new(genesis_hash: sdk_types::hashes::BlockHash, registry: &mut Registry) -> Self {
+    fn new(
+        genesis_hash: sdk_types::hashes::BlockHash,
+        max_successive_failures: u64,
+        registry: &mut Registry,
+    ) -> Self {
         let established_node_connections = Family::default();
         registry.register(
             "established_node_connections",
@@ -197,6 +218,7 @@ impl BlockPreProcessor {
             preprocessing_failures,
             blocks_being_preprocessed,
             node_response_time,
+            max_successive_failures,
         }
     }
 }
@@ -272,8 +294,23 @@ impl Indexer for BlockPreProcessor {
                 client2.get_block_chain_parameters(fbi.height),
                 get_events,
                 client.get_tokenomics_info(fbi.height)
-            )
-            .map_err(|err| err)?;
+            )?;
+            let total_staked_capital = match tokenomics_info.response {
+                RewardsOverview::V0 {
+                    ..
+                } => {
+                    compute_total_stake_capital(
+                        &mut client,
+                        BlockIdentifier::AbsoluteHeight(fbi.height),
+                    )
+                    .await?
+                }
+                RewardsOverview::V1 {
+                    total_staked_capital,
+                    ..
+                } => total_staked_capital,
+            };
+
             let node_response_time = start_fetching.elapsed();
             self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
 
@@ -283,6 +320,7 @@ impl Indexer for BlockPreProcessor {
                 events,
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
+                total_staked_capital,
             };
             let prepared_block =
                 PreparedBlock::prepare(&data).map_err(|err| RPCError::ParseError(err))?;
@@ -305,8 +343,31 @@ impl Indexer for BlockPreProcessor {
     ) -> bool {
         info!("Failed preprocessing {} times in row: {}", successive_failures, err);
         self.preprocessing_failures.get_or_create(&NodeMetricLabels::new(&endpoint)).inc();
-        true
+        successive_failures > self.max_successive_failures
     }
+}
+
+/// Compute the total stake capital by summing all the stake of the bakers.
+/// This is only needed for older blocks, which does not provide this
+/// information as part of the tokenomics info query.
+async fn compute_total_stake_capital(
+    client: &mut v2::Client,
+    block_height: v2::BlockIdentifier,
+) -> QueryResult<Amount> {
+    let mut total_staked_capital = Amount::zero();
+    let mut bakers = client.get_baker_list(block_height).await?.response;
+    while let Some(baker_id) = bakers.try_next().await? {
+        let account_info = client
+            .get_account_info(&v2::AccountIdentifier::Index(baker_id.id), block_height)
+            .await?
+            .response;
+        total_staked_capital += account_info
+            .account_stake
+            .context("Expected baker to have account stake information")
+            .map_err(RPCError::ParseError)?
+            .staked_amount();
+    }
+    Ok(total_staked_capital)
 }
 
 /// Type implementing the `ProcessEvent` handling the insertion of prepared
@@ -314,12 +375,6 @@ impl Indexer for BlockPreProcessor {
 struct BlockProcessor {
     /// Database connection pool
     pool: PgPool,
-    /// The last finalized block height according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_height: i64,
-    /// The last finalized block hash according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash: String,
     /// Metric counting how many blocks was saved to the database successfully.
     blocks_processed: Counter,
     /// Metric counting the total number of failed attempts to process
@@ -327,15 +382,31 @@ struct BlockProcessor {
     processing_failures: Counter,
     /// Histogram collecting the time it took to process a block.
     processing_duration_seconds: Histogram,
+    /// Max number of acceptable successive failures before shutting down the
+    /// service.
+    max_successive_failures: u32,
+    /// Starting context which is tracked across processing blocks.
+    current_context: BlockProcessingContext,
 }
 impl BlockProcessor {
     /// Construct the block processor by loading the initial state from the
     /// database. This assumes at least the genesis block is in the
     /// database.
-    async fn new(pool: PgPool, registry: &mut Registry) -> anyhow::Result<Self> {
-        let rec = sqlx::query!(
+    async fn new(
+        pool: PgPool,
+        max_successive_failures: u32,
+        registry: &mut Registry,
+    ) -> anyhow::Result<Self> {
+        let starting_context = sqlx::query_as!(
+            BlockProcessingContext,
             r#"
-SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height ASC LIMIT 1
+SELECT
+  height as last_finalized_height,
+  hash as last_finalized_hash
+FROM blocks
+WHERE finalization_time IS NULL
+ORDER BY height ASC
+LIMIT 1
 "#
         )
         .fetch_one(&pool)
@@ -364,11 +435,11 @@ SELECT height, hash FROM blocks WHERE finalization_time IS NULL ORDER BY height 
 
         Ok(Self {
             pool,
-            last_finalized_height: rec.height,
-            last_finalized_hash: rec.hash,
+            current_context: starting_context,
             blocks_processed,
             processing_failures,
             processing_duration_seconds,
+            max_successive_failures,
         })
     }
 }
@@ -393,11 +464,19 @@ impl ProcessEvent for BlockProcessor {
         let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
+        let mut override_context = None;
         for data in batch {
-            data.save(&mut self, &mut tx).await.context("Failed saving block")?;
+            let context = override_context.as_ref().unwrap_or(self.current_context.borrow());
+            let new_context = data.save(context, &mut tx).await.context("Failed saving block")?;
+            if new_context.is_some() {
+                override_context = new_context;
+            }
             out.push_str(format!("\n- {}:{}", data.height, data.hash).as_str())
         }
         tx.commit().await.context("Failed to commit SQL transaction")?;
+        if let Some(context) = override_context {
+            self.current_context = context;
+        }
         let duration = start_time.elapsed();
         self.processing_duration_seconds.observe(duration.as_secs_f64());
         self.blocks_processed.inc_by(u64::try_from(batch.len())?);
@@ -420,8 +499,17 @@ impl ProcessEvent for BlockProcessor {
     ) -> Result<bool, Self::Error> {
         info!("Failed processing {} times in row: {}", successive_failures, error);
         self.processing_failures.inc();
-        Ok(true)
+        Ok(self.max_successive_failures >= successive_failures)
     }
+}
+
+struct BlockProcessingContext {
+    /// The last finalized block height according to the latest indexed block.
+    /// This is needed in order to compute the finalization time of blocks.
+    last_finalized_height: i64,
+    /// The last finalized block hash according to the latest indexed block.
+    /// This is needed in order to compute the finalization time of blocks.
+    last_finalized_hash:   String,
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -431,59 +519,45 @@ struct BlockData {
     events:               Vec<BlockItemSummary>,
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
+    total_staked_capital: Amount,
 }
 
 /// Function for initializing the database with the genesis block.
 /// This should only be called if the database is empty.
 async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Result<()> {
     let mut client = v2::Client::new(endpoint).await?;
-    let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
-
     let mut tx = pool.begin().await.context("Failed to create SQL transaction")?;
-
-    let genesis_block_info = client.get_block_info(genesis_height).await?.response;
-    let block_hash = genesis_block_info.block_hash.to_string();
-    let slot_time = genesis_block_info.block_slot_time.naive_utc();
-    let baker_id = if let Some(index) = genesis_block_info.block_baker {
-        Some(i64::try_from(index.id.index)?)
-    } else {
-        None
-    };
-    let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
-    let common_reward = match genesis_tokenomics {
-        RewardsOverview::V0 {
-            data,
-        } => data,
-        RewardsOverview::V1 {
-            common,
-            ..
-        } => common,
-    };
-    let total_staked = match genesis_tokenomics {
-        RewardsOverview::V0 {
-            ..
-        } => {
-            // TODO Compute the total staked capital.
-            0i64
-        }
-        RewardsOverview::V1 {
-            total_staked_capital,
-            ..
-        } => i64::try_from(total_staked_capital.micro_ccd())?,
-    };
-
-    let total_amount = i64::try_from(common_reward.total_amount.micro_ccd())?;
-    sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked) VALUES ($1, $2, $3, 0, $4, $5, $6);"#,
+    let genesis_height = v2::BlockIdentifier::AbsoluteHeight(0.into());
+    {
+        let genesis_block_info = client.get_block_info(genesis_height).await?.response;
+        let block_hash = genesis_block_info.block_hash.to_string();
+        let slot_time = genesis_block_info.block_slot_time.naive_utc();
+        let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
+        let total_staked = match genesis_tokenomics {
+            RewardsOverview::V0 {
+                ..
+            } => {
+                let total_staked_capital =
+                    compute_total_stake_capital(&mut client, genesis_height).await?;
+                i64::try_from(total_staked_capital.micro_ccd())?
+            }
+            RewardsOverview::V1 {
+                total_staked_capital,
+                ..
+            } => i64::try_from(total_staked_capital.micro_ccd())?,
+        };
+        let total_amount =
+            i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
+        sqlx::query!(
+            r#"INSERT INTO blocks (height, hash, slot_time, block_time, total_amount, total_staked) VALUES ($1, $2, $3, 0, $4, $5);"#,
             0,
             block_hash,
             slot_time,
-            baker_id,
-        total_amount,
-        total_staked
-        )
-        .execute(&mut *tx)
-            .await?;
+            total_amount,
+            total_staked
+        ).execute(&mut *tx)
+        .await?;
+    }
 
     let mut genesis_accounts = client.get_account_list(genesis_height).await?.response;
     while let Some(account) = genesis_accounts.try_next().await? {
@@ -547,13 +621,22 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
 
 /// Preprocessed block which is ready to be saved in the database.
 struct PreparedBlock {
+    /// Hash of the block.
     hash:                 String,
+    /// Absolute height of the block.
     height:               i64,
+    /// Block slot time (UTC).
     slot_time:            NaiveDateTime,
+    /// Id of the validator which constructed the block. Is only None for the
+    /// genesis block.
     baker_id:             Option<i64>,
+    /// Total amount of CCD in existence at the time of this block.
     total_amount:         i64,
+    /// Total staked CCD at the time of this block.
     total_staked:         i64,
+    /// Block hash of the last finalized block.
     block_last_finalized: String,
+    /// Preprocessed block items, ready to be saved in the database.
     prepared_block_items: Vec<PreparedBlockItem>,
 }
 
@@ -568,34 +651,13 @@ impl PreparedBlock {
         } else {
             None
         };
-        let common_reward_data = match data.tokenomics_info {
-            RewardsOverview::V0 {
-                data,
-            } => data,
-            RewardsOverview::V1 {
-                common,
-                ..
-            } => common,
-        };
-        let total_amount = i64::try_from(common_reward_data.total_amount.micro_ccd())?;
-        let total_staked = match data.tokenomics_info {
-            RewardsOverview::V0 {
-                ..
-            } => {
-                // TODO Compute the total staked capital.
-                0i64
-            }
-            RewardsOverview::V1 {
-                total_staked_capital,
-                ..
-            } => i64::try_from(total_staked_capital.micro_ccd())?,
-        };
-
+        let total_amount =
+            i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
+        let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
             prepared_block_items.push(PreparedBlockItem::prepare(data, block_item)?)
         }
-
         Ok(Self {
             hash,
             height,
@@ -610,9 +672,9 @@ impl PreparedBlock {
 
     async fn save(
         &self,
-        context: &mut BlockProcessor,
+        context: &BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Option<BlockProcessingContext>> {
         sqlx::query!(
             r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
 VALUES ($1, $2, $3,
@@ -630,7 +692,7 @@ VALUES ($1, $2, $3,
 
         // Check if this block knows of a new finalized block.
         // If so, mark the blocks since last time as finalized by this block.
-        if self.block_last_finalized != context.last_finalized_hash {
+        let new_context = if self.block_last_finalized != context.last_finalized_hash {
             let last_height = context.last_finalized_height;
 
             let rec = sqlx::query!(
@@ -650,42 +712,65 @@ RETURNING finalizer.height"#,
             .fetch_one(tx.as_mut())
             .await
             .context("Failed updating finalization_time")?;
-
-            // TODO: Updating the context should be done, when we know nothing has failed.
-            context.last_finalized_height = rec.height;
-            context.last_finalized_hash = self.block_last_finalized.clone();
-        }
-
+            let new_context = BlockProcessingContext {
+                last_finalized_hash:   self.block_last_finalized.clone(),
+                last_finalized_height: rec.height,
+            };
+            Some(new_context)
+        } else {
+            None
+        };
         for item in self.prepared_block_items.iter() {
             item.save(tx).await?;
         }
-        Ok(())
+        Ok(new_context)
     }
 }
 
+/// Prepared block item (transaction), ready to be inserted in the database.
 struct PreparedBlockItem {
-    block_index:      i64,
-    tx_hash:          String,
+    /// Index of the block item within the block.
+    block_item_index: i64,
+    /// Hash of the transaction
+    block_item_hash:  String,
+    /// Cost for the account signing the block item (in microCCD), always 0 for
+    /// update and credential deployments.
     ccd_cost:         i64,
+    /// Energy cost of the execution of the block item.
     energy_cost:      i64,
-    height:           i64,
+    /// Absolute height of the block.
+    block_height:     i64,
+    /// Base58check representation of the account address which signed the
+    /// block, none for update and credential deployments.
     sender:           Option<String>,
+    /// Whether the block item is an account transaction, update or credential
+    /// deployment.
     transaction_type: DbTransactionType,
+    /// The type of account transaction, is none if not an account transaction
+    /// or if the account transaction got rejected due to deserialization
+    /// failing.
     account_type:     Option<AccountTransactionType>,
+    /// The type of credential deployment transaction, is none if not a
+    /// credential deployment transaction.
     credential_type:  Option<CredentialDeploymentTransactionType>,
+    /// The type of update transaction, is none if not an update transaction.
     update_type:      Option<UpdateTransactionType>,
+    /// Whether the block item was successful i.e. not rejected.
     success:          bool,
+    /// Events of the block item. Is none for rejected block items.
     events:           Option<serde_json::Value>,
+    /// Reject reason the block item. Is none for successful block items.
     reject:           Option<serde_json::Value>,
     // This is an option temporarily, until we are able to handle every type of event.
+    /// Block item events prepared for inserting into the database.
     prepared_event:   Option<PreparedEvent>,
 }
 
 impl PreparedBlockItem {
     fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
-        let height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_index = i64::try_from(block_item.index.index)?;
-        let tx_hash = block_item.hash.to_string();
+        let block_height = i64::try_from(data.finalized_block_info.height.height)?;
+        let block_item_index = i64::try_from(block_item.index.index)?;
+        let block_item_hash = block_item.hash.to_string();
         let ccd_cost =
             i64::try_from(data.chain_parameters.ccd_cost(block_item.energy_cost).micro_ccd)?;
         let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
@@ -734,11 +819,11 @@ impl PreparedBlockItem {
         let prepared_event = PreparedEvent::prepare(&data, &block_item)?;
 
         Ok(Self {
-            block_index,
-            tx_hash,
+            block_item_index,
+            block_item_hash,
             ccd_cost,
             energy_cost,
-            height,
+            block_height,
             sender,
             transaction_type,
             account_type,
@@ -757,14 +842,14 @@ impl PreparedBlockItem {
     ) -> anyhow::Result<()> {
         sqlx::query!(
                 r#"INSERT INTO transactions
-(index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
+(index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
 VALUES
 ($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
-            self.block_index,
-            self.tx_hash,
+            self.block_item_index,
+            self.block_item_hash,
             self.ccd_cost,
             self.energy_cost,
-            self.height,
+            self.block_height,
             self.sender,
             self.transaction_type as DbTransactionType,
             self.account_type as Option<AccountTransactionType>,
@@ -783,9 +868,13 @@ VALUES
     }
 }
 
+/// Different types of block item events that can be prepared.
 enum PreparedEvent {
+    /// A new account got created.
     AccountCreation(PreparedAccountCreation),
+    /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    /// No changes in the database was caused by this event.
     NoOperation,
 }
 impl PreparedEvent {
@@ -950,10 +1039,14 @@ impl PreparedEvent {
     }
 }
 
+/// Prepared database insertion of a new account.
 struct PreparedAccountCreation {
-    account_address: String,
-    height:          i64,
-    block_index:     i64,
+    /// The base58check representation of the canonical account address.
+    account_address:  String,
+    /// The absolute block height for the block creating this account.
+    block_height:     i64,
+    /// The transaction index within the block creating this account.
+    block_item_index: i64,
 }
 
 impl PreparedAccountCreation {
@@ -962,12 +1055,10 @@ impl PreparedAccountCreation {
         block_item: &BlockItemSummary,
         details: &concordium_rust_sdk::types::AccountCreationDetails,
     ) -> anyhow::Result<Self> {
-        let height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_index = i64::try_from(block_item.index.index)?;
         Ok(Self {
-            account_address: details.address.to_string(),
-            height,
-            block_index,
+            account_address:  details.address.to_string(),
+            block_height:     i64::try_from(data.finalized_block_info.height.height)?,
+            block_item_index: i64::try_from(block_item.index.index)?,
         })
     }
 
@@ -979,8 +1070,8 @@ impl PreparedAccountCreation {
             r#"INSERT INTO accounts (index, address, created_block, created_index, amount)
 VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3, 0)"#,
             self.account_address,
-            self.height,
-            self.block_index
+            self.block_height,
+            self.block_item_index
         )
         .execute(tx.as_mut())
         .await?;
@@ -988,6 +1079,7 @@ VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, $3, 0)"#,
     }
 }
 
+/// Event changing state related to validators (bakers).
 enum PreparedBakerEvent {
     Add {
         baker_id:         i64,
@@ -1134,10 +1226,7 @@ impl PreparedBakerEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    r#"
-INSERT INTO bakers (id, staked, restake_earnings)
-VALUES ($1, $2, $3)
-"#,
+                    r#"INSERT INTO bakers (id, staked, restake_earnings) VALUES ($1, $2, $3)"#,
                     baker_id,
                     staked,
                     restake_earnings,

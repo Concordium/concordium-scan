@@ -43,6 +43,22 @@ To develop this service the following tools are required, besides the dependenci
 - [Rust and cargo](https://rustup.rs/)
 - [sqlx-cli](https://crates.io/crates/sqlx-cli)
 
+This project have some dependencies tracked as Git submodules, so make sure to initialize these:
+
+```
+git submodule update --init --recursive
+```
+
+### Running the database server
+
+Both services depend on having a PostgreSQL server running, this can be done in several ways, but it can be done using [docker](https://www.docker.com/) with the command below:
+
+```
+docker run -p 5432:5432 -e 'POSTGRES_PASSWORD=example' -e 'POSTGRES_DB=ccd-scan' postgres:16
+```
+
+### Initializing a database
+
 Then set the environment variable `DATABASE_URL` pointing to the location of the SQL database, this can be done by creating a `.env` file within this directory.
 Example:
 
@@ -61,7 +77,8 @@ The project can now be build using `cargo build`
 
 ### Database migrations
 
-Database migrations are tracked in the `migrations` directory. To introduce a new one run:
+Database migrations are tracked in the `migrations` directory.
+To introduce a new one run:
 
 ```
 sqlx migrate add '<description>'
