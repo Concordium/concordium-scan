@@ -20,8 +20,16 @@ To run the services, the following dependencies are required to be available on 
 For instructions how to use the indexer run:
 
 ```
-ccdscan-indexer --help
+cargo run --bin ccdscan-indexer -- --help
 ```
+
+Example:
+
+```
+cargo run --bin ccdscan-indexer -- --node http://node.testnet.concordium.com:20000
+```
+
+TODO: add TLS support and change node
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 
@@ -30,7 +38,14 @@ ccdscan-indexer --help
 For instructions how to use the API service run:
 
 ```
-ccdscan-api --help
+cargo run --bin ccdscan-api -- --help
+```
+
+
+Example:
+
+```
+cargo run --bin ccdscan-api
 ```
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
@@ -74,3 +89,8 @@ This will create two files in the directory:
 - `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
 - `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
 
+Note: if you want to restart the database with fresh data, delete the data in the `data` folder:
+
+```
+sudo rm -r data/
+```
