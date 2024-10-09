@@ -218,7 +218,7 @@ where metrics_blocks.block_height = sub_query.block_height
     /// </summary>
     public void AddPaydayPoolRewardMetrics(Block block, SpecialEvent[] specialEvents, RewardsSummary rewardsSummary,
         PaydaySummary? paydaySummary, PaydayPoolStakeSnapshot? paydayPoolStakeSnapshot,
-        PaydayPassiveDelegationStakeSnapshot? paydayPassiveDelegationStakeSnapshot)
+        PaydayPassiveDelegationStakeSnapshot? paydayPassiveDelegationStakeSnapshot, ImportState importState)
     {
         var poolRewards = specialEvents
             .OfType<PaydayPoolRewardSpecialEvent>()
@@ -262,7 +262,9 @@ where metrics_blocks.block_height = sub_query.block_height
             
             var stakeSnapshot = poolReward.Pool switch
             {
-                BakerPoolRewardTarget baker => paydayPoolStakeSnapshot.Items.Single(x => x.BakerId == baker.BakerId),
+                BakerPoolRewardTarget baker =>
+                    // Find the active baker stake, otherwise the baker was removed and empty stake is used.
+                    paydayPoolStakeSnapshot.Items.SingleOrDefault(x => x.BakerId == baker.BakerId, PaydayPoolStakeSnapshotItem.Removed(baker.BakerId)),
                 PassiveDelegationPoolRewardTarget => new PaydayPoolStakeSnapshotItem(-1, 0, paydayPassiveDelegationStakeSnapshot.DelegatedStake),
                 _ => throw new NotImplementedException()
             };
@@ -286,9 +288,13 @@ where metrics_blocks.block_height = sub_query.block_height
             var sumBaker = transactionFeesBaker + bakerRewardBaker + finalizationRewardBaker;
             var sumDelegators = transactionFeesDelegators + bakerRewardDelegators + finalizationRewardDelegators;
 
-            var totalApy = CalculateApy(sumTotal, stakeSnapshot.BakerStake + stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds);
-            var bakerApy = CalculateApy(sumBaker, stakeSnapshot.BakerStake, paydaySummary.PaydayDurationSeconds);
-            var delegatorsApy = CalculateApy(sumDelegators, stakeSnapshot.DelegatedStake, paydaySummary.PaydayDurationSeconds);
+            if (importState.LatestWrittenChainParameters == null || !ChainParameters.TryGetRewardPeriodLength(importState.LatestWrittenChainParameters, out var rewardPeriodLength)) {
+                throw new NotImplementedException("The reward period length is expected to be available here");
+            }
+            var expectedPaydayDurationSeconds = ((long) importState.EpochDuration) * (long) rewardPeriodLength!.Value / 1000L;
+            var totalApy = CalculateApy(sumTotal, stakeSnapshot.BakerStake + stakeSnapshot.DelegatedStake, expectedPaydayDurationSeconds);
+            var bakerApy = CalculateApy(sumBaker, stakeSnapshot.BakerStake, expectedPaydayDurationSeconds);
+            var delegatorsApy = CalculateApy(sumDelegators, stakeSnapshot.DelegatedStake, expectedPaydayDurationSeconds);
             
             cmd.Parameters.Add(new NpgsqlParameter<DateTime>("Time", block.BlockSlotTime.UtcDateTime));
             cmd.Parameters.Add(new NpgsqlParameter<long>("PoolId", poolId));

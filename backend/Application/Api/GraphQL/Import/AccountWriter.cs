@@ -8,6 +8,7 @@ using Application.Common.Diagnostics;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import;
 
@@ -157,20 +158,23 @@ public class AccountWriter
     public async Task UpdateAccount<TSource>(TSource item, Func<TSource, ulong> delegatorIdSelector, Action<TSource, Account> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccount));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         var delegatorId = (long)delegatorIdSelector(item);
 
         var account = await context.Accounts.SingleAsync(x => x.Id == delegatorId);
         updateAction(item, account);
-        
+
         await context.SaveChangesAsync();
     }
-    
+
+    /// <summary>
+    /// Update using <paramref name="updateAction"/> on each account with a pending change for delegation that is effective before <paramref name="effectiveTimeEqualOrBefore"/>.
+    /// </summary>
     public async Task UpdateAccountsWithPendingDelegationChange(DateTimeOffset effectiveTimeEqualOrBefore, Action<Account> updateAction)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateAccountsWithPendingDelegationChange));
-        
+
         await using var context = await _dbContextFactory.CreateDbContextAsync();
 
         var sql = $"select * from graphql_accounts where delegation_pending_change->'data'->>'EffectiveTime' <= '{effectiveTimeEqualOrBefore:O}'";
@@ -202,7 +206,31 @@ public class AccountWriter
             await context.SaveChangesAsync();
         }
     }
-    
+
+    /// <summary>
+    /// Remove baker and move its delegators to the passive pool.
+    /// Returns the number of delegators which were moved.
+    /// </summary>
+    public async Task<int> RemoveBaker(BakerId bakerId, DateTimeOffset effectiveTime) {
+        using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(RemoveBaker));
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        var baker = await context.Bakers.SingleAsync(x => x.Id == (long)bakerId.Id.Index);
+        baker.State = new Bakers.RemovedBakerState(effectiveTime);
+
+        var target = new BakerDelegationTarget((long) bakerId.Id.Index);
+        var delegatorAccounts = await context.Accounts
+             .Where(account => account.Delegation != null && account.Delegation.DelegationTarget == target)
+             .ToArrayAsync();
+        foreach (var delegatorAccount in delegatorAccounts) {
+            var delegation = delegatorAccount.Delegation ?? throw new InvalidOperationException("Account delegating to baker target being removed has no delegation attached.");
+            delegation.DelegationTarget = new PassiveDelegationTarget();
+        }
+
+        await context.SaveChangesAsync();
+        return delegatorAccounts.Length;
+    }
+
     public async Task UpdateDelegationStakeIfRestakingEarnings(AccountRewardSummary[] stakeUpdates)
     {
         using var counter = _metrics.MeasureDuration(nameof(AccountWriter), nameof(UpdateDelegationStakeIfRestakingEarnings));

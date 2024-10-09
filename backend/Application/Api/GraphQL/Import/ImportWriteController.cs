@@ -125,7 +125,7 @@ public class ImportWriteController : BackgroundService
                         result.Block.BlockHeight,
                         result.Block.BlockSlotTime.ToUniversalTime().ToString());
                 
-                    await _accountBalanceValidator.PerformValidations(result.Block);
+                    await _accountBalanceValidator.PerformValidations(result.Block, envelope.Payload.BlockInfo.ProtocolVersion);
                 
                     if (result.Block.BlockHeight % 5000 == 0)
                         _metricsListener.DumpCapturedMetrics();
@@ -262,7 +262,7 @@ public class ImportWriteController : BackgroundService
         await _metricsWriter.AddAccountsMetrics(payload.BlockInfo, payload.AccountInfos.CreatedAccounts, importState);
         await _metricsWriter.AddBakerMetrics(payload.BlockInfo.BlockSlotTime, bakerUpdateResults, importState);
         _metricsWriter.AddRewardMetrics(payload.BlockInfo.BlockSlotTime, rewardsSummary);
-        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot, passiveDelegationUpdateResults) ;
+        _metricsWriter.AddPaydayPoolRewardMetrics(block, specialEvents, rewardsSummary, paydaySummary, bakerUpdateResults.PaydayPoolStakeSnapshot, passiveDelegationUpdateResults, importState) ;
         
         var finalizationTimeUpdates = await _blockWriter.UpdateFinalizationTimeOnBlocksInFinalizationProof(payload.BlockInfo, importState);
         await _metricsWriter.UpdateFinalizationTimes(finalizationTimeUpdates);

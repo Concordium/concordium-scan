@@ -95,7 +95,6 @@ internal sealed class ContractAggregate
         var (blockHash, transactionEvents) = await client.GetBlockTransactionEvents(blockHashInput, token);
         _logger.Debug("Reading block {BlockHash}, at height {BlockHeight}", blockHash.ToString(), height);
         
-        await using var moduleReadonlyRepository = await _repositoryFactory.CreateModuleReadonlyRepository();
         BlockInfo? blockInfo = null;
         var totalEvents = 0u;
         await foreach (var blockItemSummary in transactionEvents.WithCancellation(token))
@@ -106,8 +105,8 @@ internal sealed class ContractAggregate
             }
             blockInfo ??= (await client.GetBlockInfoAsync(new Given(blockHash), token)).Response;
 
-            totalEvents += await StoreEvents(repository, moduleReadonlyRepository, client, blockInfo, details, blockItemSummary);
-            totalEvents += await StorePossibleRejectEvent(repository, moduleReadonlyRepository, blockInfo, details, blockItemSummary);
+            totalEvents += await StoreEvents(repository, repository, client, blockInfo, details, blockItemSummary);
+            totalEvents += await StorePossibleRejectEvent(repository, repository, blockInfo, details, blockItemSummary);
         }
 
         return totalEvents;
@@ -227,6 +226,7 @@ internal sealed class ContractAggregate
         switch (transactionResultEvent)
         {
             case Api.GraphQL.Transactions.ContractInitialized contractInitialized:
+                // Module Reference event is being read from the modules read only repository.
                 var contractInitializedEvent = await contractInitialized.TryUpdateWithParsedEvents(moduleReadonlyRepository);
                 if (contractInitializedEvent != null)
                 {
@@ -407,6 +407,7 @@ internal sealed class ContractAggregate
                     sender,
                     source,
                     blockSlotTime), client);
+                // Module reference event is being added via contracts repository
                 await contractRepository
                     .AddAsync(moduleReferenceEvent);
                 break;

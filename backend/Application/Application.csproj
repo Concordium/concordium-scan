@@ -4,15 +4,10 @@
         <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
-        <Version>1.8.19</Version>
-        <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
-        <IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
-        <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
-        <RunRustBuild>true</RunRustBuild>
+        <Version>1.9.1</Version>
     </PropertyGroup>
     
     <ItemGroup>
-      <PackageReference Include="ConcordiumNetSdk" Version="4.3.1" />
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="dbup-postgresql" Version="4.5.0" />
       <PackageReference Include="HotChocolate.AspNetCore" Version="13.5.1" />
@@ -36,6 +31,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DatabaseScripts\DatabaseScripts.csproj" />
+      <ProjectReference Include="..\concordium-net-sdk\src\Concordium.Sdk.csproj" />
     </ItemGroup>
 
     <ItemGroup>

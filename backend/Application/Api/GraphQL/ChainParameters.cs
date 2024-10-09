@@ -197,6 +197,25 @@ public abstract class ChainParameters
                 throw new ArgumentOutOfRangeException(nameof(chainParameters));
         }
     }
+
+    /// <summary>
+    /// Attempt to extract the RewardPeriodLength from ChainParameters, this will only fail for ChainParameters of blocks prior to P4.
+    /// </summary>
+    internal static bool TryGetRewardPeriodLength(ChainParameters chainParameters, out ulong? rewardPeriodLength) {
+        switch (chainParameters) {
+            case ChainParametersV0:
+                rewardPeriodLength = null;
+                return false;
+            case ChainParametersV1 cpv1:
+                rewardPeriodLength = cpv1.RewardPeriodLength;
+                return true;
+            case ChainParametersV2 cpv2:
+                rewardPeriodLength = cpv2.RewardPeriodLength;
+                return true;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(chainParameters));
+        }
+    }
     
     
 }

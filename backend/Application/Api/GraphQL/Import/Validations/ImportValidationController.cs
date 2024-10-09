@@ -5,6 +5,7 @@ using Application.Configurations;
 using Concordium.Sdk.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Concordium.Sdk.Types;
 
 namespace Application.Api.GraphQL.Import.Validations;
 
@@ -27,14 +28,14 @@ public class ImportValidationController
         };
     }
 
-    public async Task PerformValidations(Block block)
+    public async Task PerformValidations(Block block, ProtocolVersion protocolVersion)
     {
         if (!_featureFlags.ConcordiumNodeImportValidationEnabled) return;
 
         if (block.BlockHeight % 10000 == 0)
         {
             foreach (var validator in _validators)
-                await validator.Validate(block);
+            await validator.Validate(block, protocolVersion);
         }
     }
 }
