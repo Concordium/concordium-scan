@@ -388,10 +388,8 @@ impl Query {
             if let Some(edge) = connection.edges.last() {
                 connection.has_previous_page = edge.node.height != 0;
             }
-        } else {
-            if let Some(edge) = connection.edges.first() {
-                connection.has_previous_page = edge.node.height != 0;
-            }
+        } else if let Some(edge) = connection.edges.first() {
+            connection.has_previous_page = edge.node.height != 0;
         }
 
         Ok(connection)

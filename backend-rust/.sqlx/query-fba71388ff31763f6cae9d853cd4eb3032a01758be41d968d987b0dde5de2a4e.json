@@ -1,0 +1,107 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO transactions\n(index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)\nVALUES\n($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bpchar",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bpchar",
+        {
+          "Custom": {
+            "name": "transaction_type",
+            "kind": {
+              "Enum": [
+                "Account",
+                "CredentialDeployment",
+                "Update"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "account_transaction_type",
+            "kind": {
+              "Enum": [
+                "InitializeSmartContractInstance",
+                "UpdateSmartContractInstance",
+                "SimpleTransfer",
+                "EncryptedTransfer",
+                "SimpleTransferWithMemo",
+                "EncryptedTransferWithMemo",
+                "TransferWithScheduleWithMemo",
+                "DeployModule",
+                "AddBaker",
+                "RemoveBaker",
+                "UpdateBakerStake",
+                "UpdateBakerRestakeEarnings",
+                "UpdateBakerKeys",
+                "UpdateCredentialKeys",
+                "TransferToEncrypted",
+                "TransferToPublic",
+                "TransferWithSchedule",
+                "UpdateCredentials",
+                "RegisterData",
+                "ConfigureBaker",
+                "ConfigureDelegation"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "credential_deployment_transaction_type",
+            "kind": {
+              "Enum": [
+                "Initial",
+                "Normal"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "update_transaction_type",
+            "kind": {
+              "Enum": [
+                "UpdateProtocol",
+                "UpdateElectionDifficulty",
+                "UpdateEuroPerEnergy",
+                "UpdateMicroGtuPerEuro",
+                "UpdateFoundationAccount",
+                "UpdateMintDistribution",
+                "UpdateTransactionFeeDistribution",
+                "UpdateGasRewards",
+                "UpdateBakerStakeThreshold",
+                "UpdateAddAnonymityRevoker",
+                "UpdateAddIdentityProvider",
+                "UpdateRootKeys",
+                "UpdateLevel1Keys",
+                "UpdateLevel2Keys",
+                "UpdatePoolParameters",
+                "UpdateCooldownParameters",
+                "UpdateTimeParameters",
+                "MintDistributionCpv1Update",
+                "GasRewardsCpv2Update",
+                "TimeoutParametersUpdate",
+                "MinBlockTimeUpdate",
+                "BlockEnergyLimitUpdate",
+                "FinalizationCommitteeParametersUpdate"
+              ]
+            }
+          }
+        },
+        "Bool",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fba71388ff31763f6cae9d853cd4eb3032a01758be41d968d987b0dde5de2a4e"
+}

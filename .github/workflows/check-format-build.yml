@@ -1,0 +1,63 @@
+name: Backend (Rust) Check formatting and build
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: [ main ]
+
+env:
+  RUST_FMT: nightly-2023-04-01-x86_64-unknown-linux-gnu
+  RUST_VERSION: 1.80
+
+jobs:
+  rustfmt:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Format
+        working-directory: backend-rust
+        run: |
+          rustup default $RUST_FMT
+          rustup component add rustfmt
+          cargo fmt -- --color=always --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Rust
+        run: |
+          rustup default $RUST_VERSION
+          rustup component add clippy
+      - name: Install sqlx-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli@0.7.4
+      - name: Setup Rust
+        working-directory: backend-rust
+        run: |
+          cargo clippy --color=always --tests -- -D warnings
+          cargo sqlx prepare --check
+
+  test:
+    name: test
+    # Don't run on draft pull requests
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run unit tests
+        working-directory: backend-rust
+        run: |
+          rustup default $RUST_VERSION
+          cargo test

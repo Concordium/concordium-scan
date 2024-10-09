@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nWITH non_circulating_accounts AS (\n    SELECT\n        COALESCE(SUM(amount), 0)::BIGINT AS total_amount\n    FROM accounts\n    WHERE address=ANY($1)\n)\nSELECT\n    height,\n    blocks.total_amount,\n    total_staked,\n    (blocks.total_amount - non_circulating_accounts.total_amount)::BIGINT AS total_amount_released\nFROM blocks, non_circulating_accounts\nORDER BY height DESC\nLIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_amount_released",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "BpcharArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b5a479d6a39f388d4b1c6cc868471a95f5c7cff53d6e63f0158c2337dcf3dcef"
+}
