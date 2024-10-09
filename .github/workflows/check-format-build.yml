@@ -7,8 +7,9 @@ on:
     branches: [ main ]
 
 env:
-  RUST_FMT: nightly-2023-04-01-x86_64-unknown-linux-gnu
+  RUST_FMT: nightly-2023-04-01
   RUST_VERSION: 1.80
+  SQLX_CLI_VERSION: 0.7.4
 
 jobs:
   rustfmt:
@@ -20,7 +21,7 @@ jobs:
       - name: Format
         working-directory: backend-rust
         run: |
-          rustup default $RUST_FMT
+          rustup default ${{ env.RUST_FMT }}
           rustup component add rustfmt
           cargo fmt -- --color=always --check
 
@@ -34,12 +35,12 @@ jobs:
           submodules: recursive
       - name: Setup Rust
         run: |
-          rustup default $RUST_VERSION
+          rustup default ${{ env.RUST_VERSION }}
           rustup component add clippy
       - name: Install sqlx-cli
         uses: taiki-e/install-action@v2
         with:
-          tool: sqlx-cli@0.7.4
+          tool: sqlx-cli@${{ env.SQLX_CLI_VERSION }}
       - name: Setup Rust
         working-directory: backend-rust
         run: |
@@ -59,5 +60,5 @@ jobs:
       - name: Run unit tests
         working-directory: backend-rust
         run: |
-          rustup default $RUST_VERSION
+          rustup default ${{ env.RUST_VERSION }}
           cargo test
