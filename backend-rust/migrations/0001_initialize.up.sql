@@ -280,6 +280,10 @@ CREATE TABLE contracts(
         CHAR(64)
         NOT NULL
         REFERENCES wasm_modules(module_reference),
+    -- The contract name.
+    name
+        TEXT
+        NOT NULL,
     -- The total balance of the contract in micro CCD.
     amount
         BIGINT

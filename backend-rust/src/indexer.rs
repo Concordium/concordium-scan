@@ -10,7 +10,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{self, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult, RPCError},
 };
@@ -87,6 +87,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             save_genesis_data(endpoints[0].clone(), &pool).await?;
             1
         };
+        // let start_height=18762271;
         let genesis_block_hash: sdk_types::hashes::BlockHash =
             sqlx::query!(r#"SELECT hash FROM blocks WHERE height=0"#)
                 .fetch_one(&pool)
@@ -695,6 +696,7 @@ impl PreparedBlock {
 struct PreparedBlockItem {
     block_index:      i64,
     tx_hash:          String,
+    slot_time:        NaiveDateTime,
     ccd_cost:         i64,
     energy_cost:      i64,
     height:           i64,
@@ -720,6 +722,7 @@ impl PreparedBlockItem {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_index = i64::try_from(block_item.index.index)?;
         let tx_hash = block_item.hash.to_string();
+        let slot_time = data.block_info.block_slot_time.naive_utc();
         let ccd_cost =
             i64::try_from(data.chain_parameters.ccd_cost(block_item.energy_cost).micro_ccd)?;
         let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
@@ -771,6 +774,7 @@ impl PreparedBlockItem {
         Ok(Self {
             block_index,
             tx_hash,
+            slot_time,
             ccd_cost,
             energy_cost,
             height,
@@ -792,11 +796,12 @@ impl PreparedBlockItem {
     ) -> anyhow::Result<()> {
         sqlx::query!(
                         r#"INSERT INTO transactions
-        (index, hash, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
+        (index, hash, slot_time, ccd_cost, energy_cost, block, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
         VALUES
-        ($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
+        ($1, $2, $3, $4, $5, $6, (SELECT index FROM accounts WHERE address=$7), $8, $9, $10, $11, $12, $13, $14);"#,
                     self.block_index,
                     self.tx_hash,
+                    self.slot_time,
                     self.ccd_cost,
                     self.energy_cost,
                     self.height,
@@ -822,6 +827,7 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     BakerEvents(Vec<PreparedBakerEvent>),
     ModuleDeployed(PreparedModuleDeployed),
+    ContractInitialized(PreparedContractInitialized),
     NoOperation,
 }
 impl PreparedEvent {
@@ -857,9 +863,17 @@ impl PreparedEvent {
                     .await?,
                 )),
                 AccountTransactionEffects::ContractInitialized {
-                    ///////////// TODO
-                    data,
-                } => None,
+                    data: event_data,
+                } => Some(PreparedEvent::ContractInitialized(
+                    PreparedContractInitialized::prepare(
+                        data,
+                        &block_item,
+                        event_index,
+                        event_data,
+                        node_client,
+                    )
+                    .await?,
+                )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => None,
@@ -997,8 +1011,99 @@ impl PreparedEvent {
                 Ok(())
             }
             PreparedEvent::ModuleDeployed(module) => module.save(tx).await,
+            PreparedEvent::ContractInitialized(contract) => contract.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
+    }
+}
+
+struct PreparedContractInitialized {
+    height:           i64,
+    index:            i64,
+    sub_index:        i64,
+    module_reference: String,
+    name:             String,
+    amount:           i64,
+    creator:          String,
+    tx_hash:          String,
+    tx_index:         i64,
+    tx_event_index:   i64,
+    created_at:       NaiveDateTime,
+}
+
+impl PreparedContractInitialized {
+    async fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        tx_event_index: i64,
+        event: &ContractInitializedEvent,
+        mut node_client: v2::Client,
+    ) -> anyhow::Result<Self> {
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let tx_hash = block_item.hash.to_string();
+        let tx_index = block_item.index.index.try_into()?;
+        let created_at = data.block_info.block_slot_time.naive_utc();
+        let creator =
+            block_item.sender_account().map(|a| a.to_string()).ok_or(anyhow::Error::msg(
+                "Deploying a module transaction has an sender account. This error should not \
+                 happen.",
+            ))?;
+
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let module_reference = event.origin_ref;
+        let name = event.init_name.to_string();
+
+        Ok(Self {
+            height,
+            module_reference: module_reference.into(),
+            index,
+            sub_index,
+            amount,
+            name,
+            creator,
+            tx_hash,
+            tx_index,
+            tx_event_index,
+            created_at,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contracts (
+                index,
+                sub_index,
+                module_reference,
+                name,
+                amount,
+                creator,
+                created_block,
+                created_tx_hash,
+                created_tx_index,
+                created_tx_event_index,
+                created_at
+                )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
+            self.index,
+            self.sub_index,
+            self.module_reference,
+            self.name,
+            self.amount,
+            self.creator,
+            self.height,
+            self.tx_hash,
+            self.tx_index,
+            self.tx_event_index,
+            self.created_at.into()
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
     }
 }
 
