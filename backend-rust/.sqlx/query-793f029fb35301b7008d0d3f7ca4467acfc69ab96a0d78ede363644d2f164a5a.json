@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT address FROM accounts WHERE index=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address",
+        "type_info": "Bpchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "793f029fb35301b7008d0d3f7ca4467acfc69ab96a0d78ede363644d2f164a5a"
+}
