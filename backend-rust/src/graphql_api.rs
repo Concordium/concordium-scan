@@ -4,13 +4,12 @@
 //! - Enable GraphiQL through flag instead of always.
 
 #![allow(unused_variables)]
-#![allow(unreachable_code)]
 
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
 macro_rules! todo_api {
     () => {
-        return Err(ApiError::InternalError(String::from("Not implemented")))
+        Err(ApiError::InternalError(String::from("Not implemented")))
     };
 }
 
@@ -167,9 +166,7 @@ mod monitor {
         }
     }
     impl async_graphql::extensions::ExtensionFactory for MonitorExtension {
-        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> {
-            return Arc::new(self.clone());
-        }
+        fn create(&self) -> Arc<dyn async_graphql::extensions::Extension> { Arc::new(self.clone()) }
     }
     #[async_trait]
     impl async_graphql::extensions::Extension for MonitorExtension {
@@ -273,10 +270,12 @@ impl From<sqlx::Error> for ApiError {
 
 type ApiResult<A> = Result<A, ApiError>;
 
+/// Get the database pool from the context.
 fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
     ctx.data::<PgPool>().map_err(ApiError::NoDatabasePool)
 }
 
+/// Get service configuration from the context.
 fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
     ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
 }
@@ -300,6 +299,7 @@ fn check_connection_query(first: &Option<i64>, last: &Option<i64>) -> ApiResult<
 
 pub struct Query;
 #[Object]
+#[allow(clippy::too_many_arguments)]
 impl Query {
     async fn versions(&self) -> Versions {
         Versions {
@@ -308,11 +308,8 @@ impl Query {
     }
 
     async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
-        let height: i64 = height_id.clone().try_into().map_err(ApiError::InvalidIdInt)?;
-        sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", height)
-            .fetch_optional(get_pool(ctx)?)
-            .await?
-            .ok_or(ApiError::NotFound)
+        let height: BlockHeight = height_id.try_into().map_err(ApiError::InvalidIdInt)?;
+        Block::query_by_height(get_pool(ctx)?, height).await
     }
 
     async fn block_by_block_hash<'a>(
@@ -320,10 +317,7 @@ impl Query {
         ctx: &Context<'a>,
         block_hash: BlockHash,
     ) -> ApiResult<Block> {
-        sqlx::query_as!(Block, "SELECT * FROM blocks WHERE hash=$1", block_hash)
-            .fetch_optional(get_pool(ctx)?)
-            .await?
-            .ok_or(ApiError::NotFound)
+        Block::query_by_hash(get_pool(ctx)?, block_hash).await
     }
 
     async fn blocks<'a>(
@@ -397,12 +391,7 @@ impl Query {
 
     async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
         let id = IdTransaction::try_from(id)?;
-        sqlx::query_as("SELECT * FROM transactions WHERE block=$1 AND index=$2")
-            .bind(id.block)
-            .bind(id.index)
-            .fetch_optional(get_pool(ctx)?)
-            .await?
-            .ok_or(ApiError::NotFound)
+        Transaction::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
     }
 
     async fn transaction_by_transaction_hash<'a>(
@@ -410,9 +399,7 @@ impl Query {
         ctx: &Context<'a>,
         transaction_hash: TransactionHash,
     ) -> ApiResult<Transaction> {
-        sqlx::query_as("SELECT * FROM transactions WHERE hash=$1")
-            .bind(transaction_hash)
-            .fetch_optional(get_pool(ctx)?)
+        Transaction::query_by_hash(get_pool(ctx)?, transaction_hash)
             .await?
             .ok_or(ApiError::NotFound)
     }
@@ -526,9 +513,8 @@ impl Query {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
-        let index: i64 = id.clone().try_into().map_err(ApiError::InvalidIdInt)?;
-        let pool = get_pool(ctx)?;
-        Account::query_by_index(pool, index).await
+        let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
+        Account::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn account_by_address<'a>(
@@ -536,11 +522,7 @@ impl Query {
         ctx: &Context<'a>,
         account_address: String,
     ) -> ApiResult<Account> {
-        sqlx::query_as("SELECT * FROM accounts WHERE address=$1")
-            .bind(account_address)
-            .fetch_optional(get_pool(ctx)?)
-            .await?
-            .ok_or(ApiError::NotFound)
+        Account::query_by_address(get_pool(ctx)?, account_address).await?.ok_or(ApiError::NotFound)
     }
 
     async fn accounts<'a>(
@@ -859,10 +841,7 @@ impl SubscriptionContext {
                         Self::BLOCK_ADDED_CHANNEL => {
                             let block_height = BlockHeight::from_str(notification.payload())
                                 .context("Failed to parse payload of block added")?;
-                            let block = sqlx::query_as("SELECT * FROM blocks WHERE height=$1")
-                                .bind(block_height)
-                                .fetch_one(&pool)
-                                .await?;
+                            let block = Block::query_by_height(&pool, block_height).await?;
                             self.block_added_sender.send(Arc::new(block))?;
                         }
                         unknown => {
@@ -1018,35 +997,63 @@ struct Versions {
     backend_versions: String,
 }
 
-#[derive(Debug, SimpleObject, sqlx::FromRow)]
-#[graphql(complex)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct Block {
-    #[graphql(name = "blockHash")]
-    hash:              BlockHash,
-    #[graphql(name = "blockHeight")]
-    height:            BlockHeight,
+    hash:         BlockHash,
+    height:       BlockHeight,
     /// Time of the block being baked.
-    #[graphql(name = "blockSlotTime")]
-    slot_time:         DateTime,
-    #[graphql(skip)]
-    block_time:        i32,
-    #[graphql(skip)]
-    finalization_time: Option<i32>,
-    #[graphql(skip)]
-    finalized_by:      Option<BlockHeight>,
-    baker_id:          Option<BakerId>,
-    total_amount:      Amount,
-    #[graphql(skip)]
-    total_staked:      Amount,
+    slot_time:    DateTime,
+    // block_time:        i32,
+    // finalization_time: Option<i32>,
+    // finalized_by:      Option<BlockHeight>,
+    baker_id:     Option<BakerId>,
+    total_amount: Amount,
+    // total_staked:      Amount,
+}
+
+impl Block {
+    async fn query_by_height(pool: &PgPool, height: BlockHeight) -> ApiResult<Self> {
+        sqlx::query_as!(
+            Block,
+            "SELECT hash, height, slot_time, baker_id, total_amount FROM blocks WHERE height=$1",
+            height
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)
+    }
+
+    async fn query_by_hash(pool: &PgPool, block_hash: BlockHash) -> ApiResult<Self> {
+        sqlx::query_as!(
+            Block,
+            "SELECT hash, height, slot_time, baker_id, total_amount FROM blocks WHERE hash=$1",
+            block_hash
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)
+    }
+}
+
+#[Object]
+impl Block {
     // chain_parameters: ChainParameters,
     // balance_statistics: BalanceStatistics,
     // block_statistics: BlockStatistics,
-}
 
-#[ComplexObject]
-impl Block {
     /// Absolute block height.
     async fn id(&self) -> types::ID { types::ID::from(self.height) }
+
+    async fn block_hash(&self) -> &BlockHash { &self.hash }
+
+    async fn block_height(&self) -> &BlockHeight { &self.height }
+
+    async fn baker_id(&self) -> Option<BakerId> { self.baker_id }
+
+    async fn total_amount(&self) -> &Amount { &self.total_amount }
+
+    /// Time of the block being baked.
+    async fn block_slot_time(&self) -> &DateTime { &self.slot_time }
 
     /// Whether the block is finalized.
     async fn finalized(&self) -> bool { true }
@@ -1072,7 +1079,7 @@ impl Block {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, SpecialEvent>> {
-        todo!()
+        todo_api!()
     }
 
     async fn transactions(
@@ -1084,7 +1091,7 @@ impl Block {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -1114,19 +1121,25 @@ struct Contract {
 }
 #[ComplexObject]
 impl Contract {
-    async fn contract_events(&self, skip: i32, take: i32) -> ContractEventsCollectionSegment {
-        todo!()
+    async fn contract_events(
+        &self,
+        skip: i32,
+        take: i32,
+    ) -> ApiResult<ContractEventsCollectionSegment> {
+        todo_api!()
     }
 
     async fn contract_reject_events(
         &self,
         _skip: i32,
         _take: i32,
-    ) -> ContractRejectEventsCollectionSegment {
-        todo!()
+    ) -> ApiResult<ContractRejectEventsCollectionSegment> {
+        todo_api!()
     }
 
-    async fn tokens(&self, skip: i32, take: i32) -> TokensCollectionSegment { todo!() }
+    async fn tokens(&self, skip: i32, take: i32) -> ApiResult<TokensCollectionSegment> {
+        todo_api!()
+    }
 }
 
 /// A segment of a collection.
@@ -1733,6 +1746,7 @@ struct AccountReward {
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 enum RewardType {
     FinalizationReward,
     FoundationReward,
@@ -1794,6 +1808,7 @@ struct Token {
 }
 
 #[derive(Union)]
+#[allow(clippy::enum_variant_names)]
 enum SpecialEvent {
     MintSpecialEvent(MintSpecialEvent),
     FinalizationRewardsSpecialEvent(FinalizationRewardsSpecialEvent),
@@ -1832,7 +1847,7 @@ impl FinalizationRewardsSpecialEvent {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -1865,7 +1880,7 @@ impl BakingRewardsSpecialEvent {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountAddressAmount>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -1990,6 +2005,7 @@ struct BlockStatistics {
 }
 
 #[derive(Interface)]
+#[allow(clippy::duplicated_attributes)]
 #[graphql(
     field(name = "euro_per_energy", ty = "&ExchangeRate"),
     field(name = "micro_ccd_per_euro", ty = "&ExchangeRate"),
@@ -2087,6 +2103,7 @@ impl From<String> for AccountAddress {
     }
 }
 
+#[derive(Copy, Clone)]
 struct IdTransaction {
     block: BlockHeight,
     index: TransactionIndex,
@@ -2129,44 +2146,102 @@ struct TransactionConnectionQuery {
     has_next:    bool,
 }
 
-#[derive(SimpleObject, sqlx::FromRow)]
-#[graphql(complex)]
+#[derive(sqlx::FromRow)]
 struct Transaction {
-    #[graphql(skip)]
-    block: BlockHeight,
-    #[graphql(name = "transactionIndex")]
-    index: i64,
-    #[graphql(name = "transactionHash")]
+    block_height: BlockHeight,
+    index: TransactionIndex,
     hash: TransactionHash,
     ccd_cost: Amount,
     energy_cost: Energy,
-    #[graphql(skip)]
     sender: Option<AccountIndex>,
-    #[graphql(skip)]
-    r#type: DbTransactionType,
-    #[graphql(skip)]
+    tx_type: DbTransactionType,
     type_account: Option<AccountTransactionType>,
-    #[graphql(skip)]
     type_credential_deployment: Option<CredentialDeploymentTransactionType>,
-    #[graphql(skip)]
     type_update: Option<UpdateTransactionType>,
-    #[graphql(skip)]
     success: bool,
-    #[graphql(skip)]
     events: Option<sqlx::types::Json<Vec<Event>>>,
-    #[graphql(skip)]
     reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
-#[ComplexObject]
 impl Transaction {
-    /// Transaction query ID, formatted as "<block>:<index>".
+    fn id_transaction(&self) -> IdTransaction {
+        IdTransaction {
+            block: self.block_height,
+            index: self.index,
+        }
+    }
+
+    async fn query_by_id(pool: &PgPool, id: IdTransaction) -> ApiResult<Option<Self>> {
+        let transaction = sqlx::query_as!(
+            Transaction,
+            r#"SELECT
+  block_height,
+  index,
+  hash,
+  ccd_cost,
+  energy_cost,
+  sender,
+  type as "tx_type: DbTransactionType",
+  type_account as "type_account: AccountTransactionType",
+  type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+  type_update as "type_update: UpdateTransactionType",
+  success,
+  events as "events: sqlx::types::Json<Vec<Event>>",
+  reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+FROM transactions
+WHERE block_height=$1 AND index=$2"#,
+            id.block,
+            id.index
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(transaction)
+    }
+
+    async fn query_by_hash(
+        pool: &PgPool,
+        transaction_hash: TransactionHash,
+    ) -> ApiResult<Option<Self>> {
+        let transaction = sqlx::query_as!(
+            Transaction,
+            r#"SELECT
+  block_height,
+  index,
+  hash,
+  ccd_cost,
+  energy_cost,
+  sender,
+  type as "tx_type: DbTransactionType",
+  type_account as "type_account: AccountTransactionType",
+  type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+  type_update as "type_update: UpdateTransactionType",
+  success,
+  events as "events: sqlx::types::Json<Vec<Event>>",
+  reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+FROM transactions
+WHERE hash=$1"#,
+            transaction_hash
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(transaction)
+    }
+}
+
+#[Object]
+impl Transaction {
+    /// Transaction query ID, formatted as "<block_height>:<block_item_index>".
     async fn id(&self) -> types::ID { self.id_transaction().into() }
 
+    async fn transaction_index(&self) -> TransactionIndex { self.index }
+
+    async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
+
+    async fn ccd_cost(&self) -> Amount { self.ccd_cost }
+
+    async fn energy_cost(&self) -> Energy { self.energy_cost }
+
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
-        let result = sqlx::query_as!(Block, "SELECT * FROM blocks WHERE height=$1", self.block)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(result)
+        Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
 
     async fn sender_account_address<'a>(
@@ -2183,7 +2258,7 @@ impl Transaction {
     }
 
     async fn transaction_type(&self) -> ApiResult<TransactionType> {
-        let tt = match self.r#type {
+        let tt = match self.tx_type {
             DbTransactionType::Account => TransactionType::AccountTransaction(AccountTransaction {
                 account_transaction_type: self.type_account,
             }),
@@ -2229,16 +2304,9 @@ impl Transaction {
         }
     }
 }
-impl Transaction {
-    fn id_transaction(&self) -> IdTransaction {
-        IdTransaction {
-            block: self.block,
-            index: self.index,
-        }
-    }
-}
 
 #[derive(Union)]
+#[allow(clippy::enum_variant_names)]
 enum TransactionType {
     AccountTransaction(AccountTransaction),
     CredentialDeploymentTransaction(CredentialDeploymentTransaction),
@@ -2408,7 +2476,6 @@ enum TransactionResult<'a> {
 struct Success<'a> {
     events: &'a Vec<Event>,
 }
-
 #[Object]
 impl Success<'_> {
     async fn events(
@@ -2470,19 +2537,12 @@ struct AccountConnectionQuery {
     has_next: bool,
 }
 
-#[derive(SimpleObject, sqlx::FromRow)]
-#[graphql(complex)]
+#[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
-    #[graphql(skip)]
     index:         i64,
     /// Height of the block with the transaction creating this account.
-    #[graphql(skip)]
     created_block: BlockHeight,
-    /// Index of transaction creating this account within a block. Only Null for
-    /// genesis accounts.
-    #[graphql(skip)]
-    created_index: Option<TransactionIndex>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
     address:       AccountAddress,
@@ -2492,19 +2552,49 @@ struct Account {
     // baker: Option<Baker>,
     // delegation: Option<Delegation>,
 }
-
 impl Account {
-    async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Self> {
-        sqlx::query_as!(Account, "SELECT * FROM accounts WHERE index=$1", index)
-            .fetch_optional(pool)
-            .await?
-            .ok_or(ApiError::NotFound)
+    async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
+        let account = sqlx::query_as!(
+            Account,
+            r#"
+SELECT
+   index, created_block, address, amount
+FROM accounts
+WHERE index=$1
+"#,
+            index
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(account)
+    }
+
+    async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
+        let account = sqlx::query_as!(
+            Account,
+            r#"
+SELECT
+   index, created_block, address, amount
+FROM accounts
+WHERE address=$1
+"#,
+            address
+        )
+        .fetch_optional(pool)
+        .await?;
+        Ok(account)
     }
 }
 
-#[ComplexObject]
+#[Object]
 impl Account {
     async fn id(&self) -> types::ID { types::ID::from(self.index) }
+
+    /// The address of the account in Base58Check.
+    async fn address(&self) -> &AccountAddress { &self.address }
+
+    /// The total amount of CCD hold by the account.
+    async fn amount(&self) -> Amount { self.amount }
 
     /// Timestamp of the block where this account was created.
     async fn created_at<'a>(&self, ctx: &Context<'a>) -> ApiResult<DateTime> {
@@ -2531,7 +2621,7 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountToken>> {
-        todo!()
+        todo_api!()
     }
 
     async fn transactions(
@@ -2543,7 +2633,7 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountTransactionRelation>> {
-        todo!()
+        todo_api!()
     }
 
     async fn account_statement(
@@ -2555,7 +2645,7 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-        todo!()
+        todo_api!()
     }
 
     async fn rewards(
@@ -2567,7 +2657,7 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -2587,7 +2677,7 @@ impl AccountReleaseSchedule {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -2684,7 +2774,7 @@ impl Baker {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.id).await
+        Account::query_by_index(get_pool(ctx)?, self.id).await?.ok_or(ApiError::NotFound)
     }
 
     // transactions("Returns the first _n_ elements from the list." first: Int
@@ -2983,7 +3073,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Contract>> {
-        todo!()
+        todo_api!()
     }
 
     // async fn modules(
@@ -2997,7 +3087,7 @@ impl SearchResult {
     // specified cursor."     )]
     //     _before: Option<String>,
     // ) -> ApiResult<connection::Connection<String, Module>> {
-    //     todo!()
+    //     todo_api!()
     // }
 
     async fn blocks(
@@ -3009,7 +3099,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        todo!()
+        todo_api!()
     }
 
     async fn transactions(
@@ -3021,7 +3111,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        todo!()
+        todo_api!()
     }
 
     async fn tokens(
@@ -3033,7 +3123,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Token>> {
-        todo!()
+        todo_api!()
     }
 
     async fn accounts(
@@ -3045,7 +3135,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        todo!()
+        todo_api!()
     }
 
     async fn bakers(
@@ -3057,7 +3147,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Baker>> {
-        todo!()
+        todo_api!()
     }
 
     async fn node_statuses(
@@ -3069,7 +3159,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
-        todo!()
+        todo_api!()
     }
 }
 
@@ -3386,7 +3476,7 @@ pub fn events_from_summary(
                                 .sum::<u64>()
                                 .try_into()?,
                         }),
-                        Event::TransferMemo(memo.try_into()?),
+                        Event::TransferMemo(memo.into()),
                     ]
                 }
                 AccountTransactionEffects::CredentialKeysUpdated {
@@ -3527,7 +3617,7 @@ pub fn events_from_summary(
                             BakerEvent::DelegationRemoved {
                                 delegator_id,
                             } => {
-                                todo!()
+                                unimplemented!()
                             }
                         }
                     })
@@ -3589,7 +3679,7 @@ pub fn events_from_summary(
                             DelegationEvent::BakerRemoved {
                                 baker_id,
                             } => {
-                                todo!();
+                                unimplemented!();
                             }
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?
@@ -3975,7 +4065,9 @@ pub struct BakerAdded {
 }
 #[ComplexObject]
 impl BakerAdded {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -3988,7 +4080,9 @@ pub struct BakerKeysUpdated {
 }
 #[ComplexObject]
 impl BakerKeysUpdated {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -3998,7 +4092,9 @@ pub struct BakerRemoved {
 }
 #[ComplexObject]
 impl BakerRemoved {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -4009,7 +4105,9 @@ pub struct BakerSetRestakeEarnings {
 }
 #[ComplexObject]
 impl BakerSetRestakeEarnings {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -4020,7 +4118,9 @@ pub struct BakerStakeDecreased {
 }
 #[ComplexObject]
 impl BakerStakeDecreased {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -4031,7 +4131,9 @@ pub struct BakerStakeIncreased {
 }
 #[ComplexObject]
 impl BakerStakeIncreased {
-    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> { todo!() }
+    async fn account_address<'a>(&self, _ctx: &Context<'a>) -> ApiResult<AccountAddress> {
+        todo_api!()
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]

@@ -1,3 +1,6 @@
+#![allow(unused_variables)] // TODO Remove before first release
+#![allow(dead_code)] // TODO Remove before first release
+
 use crate::graphql_api::{
     events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
     CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
@@ -322,8 +325,7 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block =
-                PreparedBlock::prepare(&data).map_err(|err| RPCError::ParseError(err))?;
+            let prepared_block = PreparedBlock::prepare(&data).map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -816,7 +818,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(&data, &block_item)?;
+        let prepared_event = PreparedEvent::prepare(data, block_item)?;
 
         Ok(Self {
             block_item_index,
@@ -882,9 +884,7 @@ impl PreparedEvent {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data,
-                    &block_item,
-                    details,
+                    data, block_item, details,
                 )?))
             }
             BlockItemSummaryDetails::AccountTransaction(details) => match &details.effects {
@@ -969,7 +969,7 @@ impl PreparedEvent {
                 } => Some(PreparedEvent::BakerEvents(
                     events
                         .iter()
-                        .map(|event| PreparedBakerEvent::prepare(event))
+                        .map(PreparedBakerEvent::prepare)
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 )),
 

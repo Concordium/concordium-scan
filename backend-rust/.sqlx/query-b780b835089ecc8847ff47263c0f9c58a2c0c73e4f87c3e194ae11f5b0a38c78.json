@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT hash, height, slot_time, baker_id, total_amount FROM blocks WHERE hash=$1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hash",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "slot_time",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "baker_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b780b835089ecc8847ff47263c0f9c58a2c0c73e4f87c3e194ae11f5b0a38c78"
+}

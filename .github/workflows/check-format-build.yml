@@ -7,9 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  RUST_FMT: nightly-2023-04-01
-  RUST_VERSION: 1.80
-  SQLX_CLI_VERSION: 0.7.4
+  RUST_FMT: "nightly-2023-04-01"
+  RUST_VERSION: "1.80"
 
 jobs:
   rustfmt:
@@ -18,7 +17,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Format
+      - name: Check formatting
         working-directory: backend-rust
         run: |
           rustup default ${{ env.RUST_FMT }}
@@ -37,15 +36,10 @@ jobs:
         run: |
           rustup default ${{ env.RUST_VERSION }}
           rustup component add clippy
-      - name: Install sqlx-cli
-        uses: taiki-e/install-action@v2
-        with:
-          tool: sqlx-cli@${{ env.SQLX_CLI_VERSION }}
-      - name: Setup Rust
+      - name: Run clippy
         working-directory: backend-rust
         run: |
           cargo clippy --color=always --tests -- -D warnings
-          cargo sqlx prepare --check
 
   test:
     name: test
