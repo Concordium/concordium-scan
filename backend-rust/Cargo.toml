@@ -35,3 +35,8 @@ iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
 prometheus-client = "0.22"
 tonic = "0.10.2"
+concordium-smart-contract-engine = "6.0.0"
+
+[patch.crates-io]
+concordium-contracts-common = {path = "./concordium-rust-sdk/concordium-base/smart-contracts/contracts-common/concordium-contracts-common"}
+concordium-contracts-common-derive = {path = "./concordium-rust-sdk/concordium-base/smart-contracts/contracts-common/concordium-contracts-common-derive"}

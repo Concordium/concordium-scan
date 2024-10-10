@@ -863,7 +863,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "chrono",
- "concordium-smart-contract-engine",
+ "concordium-smart-contract-engine 6.0.0",
  "concordium_base",
  "derive_more",
  "ed25519-dalek",
@@ -899,6 +899,7 @@ dependencies = [
  "ciborium",
  "clap",
  "concordium-rust-sdk",
+ "concordium-smart-contract-engine 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "derive_more",
  "dotenv",
  "futures",
@@ -925,7 +926,7 @@ dependencies = [
  "anyhow",
  "byteorder",
  "concordium-contracts-common",
- "concordium-wasm",
+ "concordium-wasm 5.0.0",
  "derive_more",
  "ed25519-zebra",
  "futures",
@@ -942,8 +943,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "concordium-smart-contract-engine"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acd7ceba6727800db45bb7fffdda4c45377ea7682779eb8b2cf0df7f377161f3"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "concordium-contracts-common",
+ "concordium-wasm 5.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "derive_more",
+ "ed25519-zebra",
+ "libc",
+ "num_enum",
+ "rand",
+ "secp256k1",
+ "serde",
+ "sha2",
+ "sha3",
+ "slab",
+ "thiserror",
+ "tinyvec",
+]
+
+[[package]]
 name = "concordium-wasm"
 version = "5.0.0"
+dependencies = [
+ "anyhow",
+ "concordium-contracts-common",
+ "derive_more",
+ "leb128",
+ "num_enum",
+]
+
+[[package]]
+name = "concordium-wasm"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d051a3ec0f7fbacc57e7f1b1bfa2d5d8a268354f5bbe37962390a00959adaa1"
 dependencies = [
  "anyhow",
  "concordium-contracts-common",

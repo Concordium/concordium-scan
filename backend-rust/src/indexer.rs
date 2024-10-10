@@ -5,15 +5,23 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
-    base::hashes::ModuleReference,
+    base::{
+        contracts_common::{schema::VersionedModuleSchema, to_bytes},
+        hashes::ModuleReference,
+        smart_contracts::WasmVersion,
+    },
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
         ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
     },
-    v2::{self, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult, RPCError},
+    v2::{
+        self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
+        RPCError,
+    },
 };
+use concordium_smart_contract_engine::utils;
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -24,7 +32,6 @@ use prometheus_client::{
     },
     registry::Registry,
 };
-use serde_json::Value;
 use sqlx::PgPool;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
@@ -87,7 +94,8 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             save_genesis_data(endpoints[0].clone(), &pool).await?;
             1
         };
-        // let start_height=18762271;
+        // let start_height = 2529;
+
         let genesis_block_hash: sdk_types::hashes::BlockHash =
             sqlx::query!(r#"SELECT hash FROM blocks WHERE height=0"#)
                 .fetch_one(&pool)
@@ -870,7 +878,6 @@ impl PreparedEvent {
                         &block_item,
                         event_index,
                         event_data,
-                        node_client,
                     )
                     .await?,
                 )),
@@ -1037,7 +1044,6 @@ impl PreparedContractInitialized {
         block_item: &BlockItemSummary,
         tx_event_index: i64,
         event: &ContractInitializedEvent,
-        mut node_client: v2::Client,
     ) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let tx_hash = block_item.hash.to_string();
@@ -1108,20 +1114,16 @@ impl PreparedContractInitialized {
 }
 
 struct PreparedModuleDeployed {
-    height:             i64,
-    module_reference:   String,
-    source:             Vec<u8>,
-    schema:             Vec<u8>,
-    schema_version:     i32,
-    contract_names:     Value,
-    entrypoint_names:   Value,
-    // TODO:  contract_instances: Vec<(i64, i64)>,
-    contract_instances: Value,
-    creator:            String,
-    tx_hash:            String,
-    tx_index:           i64,
-    tx_event_index:     i64,
-    created_at:         NaiveDateTime,
+    height:           i64,
+    module_reference: String,
+    source:           Vec<u8>,
+    schema:           Option<Vec<u8>>,
+    schema_version:   Option<i32>,
+    creator:          String,
+    tx_hash:          String,
+    tx_index:         i64,
+    tx_event_index:   i64,
+    created_at:       NaiveDateTime,
 }
 
 impl PreparedModuleDeployed {
@@ -1142,31 +1144,32 @@ impl PreparedModuleDeployed {
                  happen.",
             ))?;
 
-        // TODO:
-        // let source = node_client
-        //     .get_module_source(&module_reference,
-        // BlockIdentifier::AbsoluteHeight(block_height))     .await?
-        //     .response
-        //     .source
-        //     .into();
+        let wasm_module = node_client
+            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
 
-        // TODO
-        let source = vec![];
-        let schema = vec![];
-        let schema_version = 0;
-        let contract_names = serde_json::to_value(vec![""])?;
-        let entrypoint_names = serde_json::to_value(vec![""])?;
-        let contract_instances = serde_json::to_value(vec![""])?;
+        let schema = match wasm_module.version {
+            WasmVersion::V0 => utils::get_embedded_schema_v0(wasm_module.source.as_ref()),
+            WasmVersion::V1 => utils::get_embedded_schema_v1(wasm_module.source.as_ref()),
+        }
+        .ok();
+
+        let (schema_version, schema_bytes) = schema
+            .map(|schema| match schema {
+                VersionedModuleSchema::V0(schema) => (0, to_bytes(&schema)),
+                VersionedModuleSchema::V1(schema) => (1, to_bytes(&schema)),
+                VersionedModuleSchema::V2(schema) => (2, to_bytes(&schema)),
+                VersionedModuleSchema::V3(schema) => (3, to_bytes(&schema)),
+            })
+            .unzip();
 
         Ok(Self {
             height: i64::try_from(block_height.height)?,
             module_reference: module_reference.into(),
-            source,
-            schema,
+            source: wasm_module.source.into(),
+            schema: schema_bytes,
             schema_version,
-            contract_names,
-            entrypoint_names,
-            contract_instances,
             creator,
             tx_hash,
             tx_index,
@@ -1185,9 +1188,6 @@ impl PreparedModuleDeployed {
                 source,
                 schema,
                 schema_version,
-                contract_names,
-                entrypoint_names,
-                contract_instances,
                 creator,
                 created_block,
                 created_tx_hash,
@@ -1195,14 +1195,11 @@ impl PreparedModuleDeployed {
                 created_tx_event_index,
                 created_at
                 )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"#,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
             self.module_reference,
             self.source,
             self.schema,
             self.schema_version,
-            self.contract_names,
-            self.entrypoint_names,
-            self.contract_instances,
             self.creator,
             self.height,
             self.tx_hash,

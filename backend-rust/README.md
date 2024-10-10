@@ -28,7 +28,10 @@ Example:
 ```
 cargo run --bin ccdscan-indexer -- --node http://node.testnet.concordium.com:20000
 cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000
+cargo run --bin ccdscan-indexer -- --node http://localhost:20001
 ```
+
+Note: Queries like `getSourceModule` might timeout (are disabled) on our public facing nodes. Recommendation is to run your own local node during development.
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 

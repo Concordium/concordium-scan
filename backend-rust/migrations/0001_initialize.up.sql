@@ -220,23 +220,11 @@ CREATE TABLE wasm_modules(
     -- Embedded schema version in the wasm module if present.
     schema_version
         INT,
-    -- List of contract names in the wasm module.
-    contract_names
-        JSONB
-        NOT NULL,
-    -- List of entrypoint names in the wasm module.
-    entrypoint_names
-        JSONB
-        NOT NULL,
-    -- List of contract instances that are currently linked to this module.
-    contract_instances
-        JSONB
-        NOT NULL,
     -- Account address that deployed the wasm module.
     creator
         CHAR(50)
-        NOT NULL,
-        -- REFERENCES accounts(address),
+        NOT NULL
+        REFERENCES accounts(address),
     -- The absolute block height when the contract was initialized.
     created_block
         BIGINT
@@ -258,6 +246,20 @@ CREATE TABLE wasm_modules(
     created_at
         TIMESTAMP
         NOT NULL,
+
+    -- Nice-to-have:
+    -- -- List of contract names in the wasm module.
+    -- contract_names
+    --     JSONB
+    --     NOT NULL,
+    -- -- List of entrypoint names in the wasm module.
+    -- entrypoint_names
+    --     JSONB
+    --     NOT NULL,
+    -- -- List of contract instances that are currently linked to this module.
+    -- contract_instances
+    --     JSONB
+    --     NOT NULL,
 
     -- Connect the module with the transaction creating it.
     -- TODO: nice-to-have add foreign key for `created_tx_event_index` reference, needs `events` in `transactions` table to be more fine grained than a `JSONB` blob.
