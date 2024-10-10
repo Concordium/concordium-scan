@@ -25,7 +25,7 @@ use chrono::Duration;
 use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
-use sqlx::{postgres::types::PgInterval, PgPool, Postgres};
+use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, str::FromStr as _, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
@@ -36,10 +36,20 @@ const VERSION: &str = clap::crate_version!();
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:      Vec<sdk_types::AccountAddress>,
+    non_circulating_account:            Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit: i64,
+    transaction_connection_limit:       i64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
+    block_connection_limit:             i64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
+    account_connection_limit:           i64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transaction_event_connection_limit: i64,
 }
 
 pub struct Service {
@@ -280,21 +290,67 @@ fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
     ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
 }
 
-fn check_connection_query(first: &Option<i64>, last: &Option<i64>) -> ApiResult<()> {
-    if first.is_some() && last.is_some() {
-        return Err(ApiError::QueryConnectionFirstLast);
+trait ConnectionCursor {
+    const MIN: Self;
+    const MAX: Self;
+}
+impl ConnectionCursor for i64 {
+    const MAX: i64 = i64::MAX;
+    const MIN: i64 = i64::MIN;
+}
+impl ConnectionCursor for usize {
+    const MAX: usize = usize::MAX;
+    const MIN: usize = usize::MIN;
+}
+
+struct ConnectionQuery<A> {
+    from:  A,
+    to:    A,
+    limit: i64,
+    desc:  bool,
+}
+impl<A> ConnectionQuery<A> {
+    fn new<E>(
+        first: Option<i64>,
+        after: Option<String>,
+        last: Option<i64>,
+        before: Option<String>,
+        connection_limit: i64,
+    ) -> ApiResult<Self>
+    where
+        A: std::str::FromStr<Err = E> + ConnectionCursor,
+        E: Into<ApiError>, {
+        if first.is_some() && last.is_some() {
+            return Err(ApiError::QueryConnectionFirstLast);
+        }
+        if let Some(first) = first {
+            if first < 0 {
+                return Err(ApiError::QueryConnectionNegativeFirst);
+            }
+        };
+        if let Some(last) = last {
+            if last < 0 {
+                return Err(ApiError::QueryConnectionNegativeLast);
+            }
+        };
+        let from = if let Some(a) = after {
+            a.parse::<A>().map_err(|e| e.into())?
+        } else {
+            A::MIN
+        };
+        let to = if let Some(b) = before {
+            b.parse::<A>().map_err(|e| e.into())?
+        } else {
+            A::MAX
+        };
+        let limit = first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit));
+        Ok(Self {
+            from,
+            to,
+            limit,
+            desc: last.is_some(),
+        })
     }
-    if let Some(first) = first {
-        if first < &0 {
-            return Err(ApiError::QueryConnectionNegativeFirst);
-        }
-    };
-    if let Some(last) = last {
-        if last < &0 {
-            return Err(ApiError::QueryConnectionNegativeLast);
-        }
-    };
-    Ok(())
 }
 
 pub struct Query;
@@ -330,52 +386,37 @@ impl Query {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        check_connection_query(&first, &last)?;
-
-        let mut builder =
-            sqlx::QueryBuilder::<'_, Postgres>::new("SELECT * FROM (SELECT * FROM blocks");
-
-        match (after, before) {
-            (None, None) => {}
-            (None, Some(before)) => {
-                builder
-                    .push(" WHERE height < ")
-                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-            (Some(after), None) => {
-                builder
-                    .push(" WHERE height > ")
-                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-            (Some(after), Some(before)) => {
-                builder
-                    .push(" WHERE height > ")
-                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?)
-                    .push(" AND height < ")
-                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-        }
-
-        match (first, &last) {
-            (None, None) => {
-                builder.push(" ORDER BY height ASC)");
-            }
-            (None, Some(last)) => {
-                builder
-                    .push(" ORDER BY height DESC LIMIT ")
-                    .push_bind(last)
-                    .push(") ORDER BY height ASC ");
-            }
-            (Some(first), None) => {
-                builder.push(" ORDER BY height ASC LIMIT ").push_bind(first).push(")");
-            }
-            (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
-        }
-
-        let mut block_stream = builder.build_query_as::<Block>().fetch(get_pool(ctx)?);
-
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<BlockHeight>::new(
+            first,
+            after,
+            last,
+            before,
+            config.block_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            Block,
+            r#"
+SELECT * FROM (
+  SELECT
+    hash, height, slot_time, baker_id, total_amount
+  FROM blocks
+  WHERE height > $1 AND height < $2
+  ORDER BY
+     (CASE WHEN $4 THEN height END) DESC,
+     (CASE WHEN NOT $4 THEN height END) ASC
+  LIMIT $3
+) ORDER BY height ASC
+"#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
         let mut connection = connection::Connection::new(true, true);
-        while let Some(block) = block_stream.try_next().await? {
+        while let Some(block) = row_stream.try_next().await? {
             connection.edges.push(connection::Edge::new(block.height.to_string(), block));
         }
         if last.is_some() {
@@ -415,100 +456,56 @@ impl Query {
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let config = get_config(ctx)?;
-
-        check_connection_query(&first, &last)?;
-        let after_id = after.as_deref().map(IdTransaction::from_str).transpose()?;
-        let before_id = before.as_deref().map(IdTransaction::from_str).transpose()?;
-
-        let mut builder = sqlx::QueryBuilder::<'_, Postgres>::new("");
-        if last.is_some() {
-            builder.push("SELECT * FROM (");
-        }
-        builder.push(
-            "SELECT * FROM (
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<IdTransaction>::new(
+            first,
+            after,
+            last,
+            before,
+            config.transaction_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            Transaction,
+            r#"
+SELECT * FROM (
   SELECT
-    block, index, hash, ccd_cost, energy_cost, sender, type, type_account, \
-             type_credential_deployment,
-    type_update, success, events, reject,
-    LAG(TRUE, 1, FALSE) OVER (ORDER BY block ASC, index ASC) as has_prev,
-    LEAD(TRUE, 1, FALSE) OVER (ORDER BY block ASC, index ASC) as has_next
-  FROM
-    transactions
-)",
-        );
-        match (after_id, before_id) {
-            (None, None) => {}
-            (None, Some(before_id)) => {
-                builder
-                    .push(" WHERE block < ")
-                    .push_bind(before_id.block)
-                    .push(" OR block = ")
-                    .push_bind(before_id.block)
-                    .push(" AND index < ")
-                    .push_bind(before_id.index);
-            }
-            (Some(after_id), None) => {
-                builder
-                    .push(" WHERE block > ")
-                    .push_bind(after_id.block)
-                    .push(" OR block = ")
-                    .push_bind(after_id.block)
-                    .push(" AND index > ")
-                    .push_bind(after_id.index);
-            }
-            (Some(after_id), Some(before_id)) => {
-                builder
-                    .push(" WHERE (block > ")
-                    .push_bind(after_id.block)
-                    .push(" OR block = ")
-                    .push_bind(after_id.block)
-                    .push(" AND index > ")
-                    .push_bind(after_id.index)
-                    .push(") AND (block < ")
-                    .push_bind(before_id.block)
-                    .push(" OR block = ")
-                    .push_bind(before_id.block)
-                    .push(" AND index < ")
-                    .push_bind(before_id.index)
-                    .push(")");
-            }
-        }
-
-        match (first, last) {
-            (None, None) => {
-                builder
-                    .push(" ORDER BY block ASC, index ASC LIMIT ")
-                    .push_bind(config.transaction_connection_limit);
-            }
-            (None, Some(last)) => {
-                builder
-                    .push(" ORDER BY block DESC, index DESC LIMIT ")
-                    .push_bind(last.min(config.transaction_connection_limit))
-                    .push(") ORDER BY block ASC, index ASC");
-            }
-            (Some(first), None) => {
-                builder
-                    .push(" ORDER BY block ASC, index ASC LIMIT ")
-                    .push_bind(first.min(config.transaction_connection_limit));
-            }
-            (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
-        }
-        let mut row_stream =
-            builder.build_query_as::<TransactionConnectionQuery>().fetch(get_pool(ctx)?);
+    block_height,
+    index,
+    hash,
+    ccd_cost,
+    energy_cost,
+    sender,
+    type as "tx_type: DbTransactionType",
+    type_account as "type_account: AccountTransactionType",
+    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+    type_update as "type_update: UpdateTransactionType",
+    success,
+    events as "events: sqlx::types::Json<Vec<Event>>",
+    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+  FROM transactions
+  WHERE block_height > $1 AND block_height < $2
+     OR ((block_height = $1 AND index > $3) AND NOT (block_height = $2 AND index >= $4))
+     OR ((block_height = $2 AND index < $4) AND NOT (block_height = $1 AND index <= $3))
+  ORDER BY (CASE WHEN $6 THEN block_height END) DESC,
+         (CASE WHEN $6 THEN index END) DESC,
+         (CASE WHEN NOT $6 THEN block_height END) ASC,
+         (CASE WHEN NOT $6 THEN index END) ASC
+  LIMIT $5
+) ORDER BY block_height ASC, index ASC
+"#,
+            query.from.block,
+            query.to.block,
+            query.from.index,
+            query.to.index,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+        // TODO Update page prev/next
         let mut connection = connection::Connection::new(true, true);
-        let mut first_row = true;
         while let Some(row) = row_stream.try_next().await? {
-            if first_row {
-                connection.has_previous_page = row.has_prev;
-                first_row = false;
-            }
-            connection.edges.push(connection::Edge::new(
-                row.transaction.id_transaction().to_string(),
-                row.transaction,
-            ));
-            connection.has_next_page = row.has_next;
+            connection.edges.push(connection::Edge::new(row.id_transaction().to_string(), row));
         }
-
         Ok(connection)
     }
 
@@ -537,82 +534,44 @@ impl Query {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        check_connection_query(&first, &last)?;
-
         // TODO: include sort and filter
-
-        let mut builder = sqlx::QueryBuilder::<'_, Postgres>::new("");
-        if last.is_some() {
-            builder.push("SELECT * FROM (");
-        }
-
-        builder.push(
-            "SELECT * FROM (
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let query = ConnectionQuery::<AccountIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_connection_limit,
+        )?;
+        let mut row_stream = sqlx::query_as!(
+            Account,
+            r#"
+SELECT * FROM (
   SELECT
     index,
     created_block,
-    created_index,
     address,
-    amount,
-    LAG(TRUE, 1, FALSE) OVER (ORDER BY index ASC) as has_prev,
-    LEAD(TRUE, 1, FALSE) OVER (ORDER BY index ASC) as has_next
+    amount
   FROM accounts
-)",
-        );
-
-        match (after, before) {
-            (None, None) => {}
-            (None, Some(before)) => {
-                builder
-                    .push(" WHERE index < ")
-                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-            (Some(after), None) => {
-                builder
-                    .push(" WHERE index > ")
-                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-            (Some(after), Some(before)) => {
-                builder
-                    .push(" WHERE index > ")
-                    .push_bind(after.parse::<i64>().map_err(ApiError::InvalidIdInt)?)
-                    .push(" AND index < ")
-                    .push_bind(before.parse::<i64>().map_err(ApiError::InvalidIdInt)?);
-            }
-        }
-
-        match (first, &last) {
-            (None, None) => {
-                builder.push(" ORDER BY index ASC");
-            }
-            (None, Some(last)) => {
-                builder
-                    .push(" ORDER BY index DESC LIMIT ")
-                    .push_bind(last)
-                    .push(") ORDER BY index ASC ");
-            }
-            (Some(first), None) => {
-                builder.push(" ORDER BY index ASC LIMIT ").push_bind(first);
-            }
-            (Some(_), Some(_)) => return Err(ApiError::QueryConnectionFirstLast),
-        }
-
-        let mut row_stream =
-            builder.build_query_as::<AccountConnectionQuery>().fetch(get_pool(ctx)?);
-
+  WHERE index > $1 AND index < $2
+  ORDER BY
+     (CASE WHEN $4 THEN index END) DESC,
+     (CASE WHEN NOT $4 THEN index END) ASC
+  LIMIT $3
+) ORDER BY index ASC
+        "#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+        // TODO Update page prev/next
         let mut connection = connection::Connection::new(true, true);
-        let mut first_row = true;
         while let Some(row) = row_stream.try_next().await? {
-            if first_row {
-                connection.has_previous_page = row.has_prev;
-                first_row = false;
-            }
-            connection
-                .edges
-                .push(connection::Edge::new(row.account.index.to_string(), row.account));
-            connection.has_next_page = row.has_next;
+            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
         }
-
         Ok(connection)
     }
 
@@ -2108,6 +2067,16 @@ struct IdTransaction {
     block: BlockHeight,
     index: TransactionIndex,
 }
+impl ConnectionCursor for IdTransaction {
+    const MAX: IdTransaction = IdTransaction {
+        block: BlockHeight::MAX,
+        index: TransactionIndex::MAX,
+    };
+    const MIN: IdTransaction = IdTransaction {
+        block: BlockHeight::MIN,
+        index: TransactionIndex::MIN,
+    };
+}
 
 impl std::str::FromStr for IdTransaction {
     type Err = ApiError;
@@ -2126,27 +2095,12 @@ impl TryFrom<types::ID> for IdTransaction {
 
     fn try_from(value: types::ID) -> Result<Self, Self::Error> { value.0.parse() }
 }
-// impl From<IdTransaction> for types::ID {
-//     fn from(value: IdTransaction) -> Self {
-//         types::ID::from(value.to_string())
-//     }
-// }
-
 impl std::fmt::Display for IdTransaction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.block, self.index)
     }
 }
 
-#[derive(sqlx::FromRow)]
-struct TransactionConnectionQuery {
-    #[sqlx(flatten)]
-    transaction: Transaction,
-    has_prev:    bool,
-    has_next:    bool,
-}
-
-#[derive(sqlx::FromRow)]
 struct Transaction {
     block_height: BlockHeight,
     index: TransactionIndex,
@@ -2487,39 +2441,41 @@ impl Success<'_> {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, &Event>> {
-        check_connection_query(&first, &last)?;
-
-        let mut start = if let Some(after) = after {
+        if first.is_some() && last.is_some() {
+            return Err(ApiError::QueryConnectionFirstLast);
+        }
+        let mut start = if let Some(after) = after.as_ref() {
             usize::from_str(after.as_str())?
         } else {
             0
         };
-
-        let mut end = if let Some(before) = before {
+        let mut end = if let Some(before) = before.as_ref() {
             usize::from_str(before.as_str())?
         } else {
             self.events.len()
         };
-
         if let Some(first) = first {
+            if first < 0 {
+                return Err(ApiError::QueryConnectionNegativeFirst);
+            }
             let first = usize::try_from(first)?;
             end = usize::min(end, start + first);
         }
-
         if let Some(last) = last {
+            if last < 0 {
+                return Err(ApiError::QueryConnectionNegativeLast);
+            }
             let last = usize::try_from(last)?;
             if let Some(new_end) = end.checked_sub(last) {
                 start = usize::max(start, new_end);
             }
         }
-
         let mut connection = connection::Connection::new(start == 0, end == self.events.len());
         connection.edges = self.events[start..end]
             .iter()
             .enumerate()
             .map(|(i, event)| connection::Edge::new(i.to_string(), event))
             .collect();
-
         Ok(connection)
     }
 }
@@ -2527,14 +2483,6 @@ impl Success<'_> {
 #[derive(SimpleObject)]
 struct Rejected<'a> {
     reason: &'a TransactionRejectReason,
-}
-
-#[derive(sqlx::FromRow)]
-struct AccountConnectionQuery {
-    #[sqlx(flatten)]
-    account:  Account,
-    has_prev: bool,
-    has_next: bool,
 }
 
 #[derive(sqlx::FromRow)]
