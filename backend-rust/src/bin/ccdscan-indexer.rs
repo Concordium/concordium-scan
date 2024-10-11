@@ -5,7 +5,6 @@ use concordium_scan::{
     indexer::{self, IndexerServiceConfig},
     metrics,
 };
-use dotenv::dotenv;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::net::SocketAddr;
@@ -17,7 +16,9 @@ use tracing::{error, info};
 #[command(version, author, about)]
 struct Cli {
     /// The URL used for the database, something of the form
-    /// "postgres://postgres:example@localhost/ccd-scan"
+    /// "postgres://postgres:example@localhost/ccd-scan".
+    /// Use environmental variable when the connection contains a password, as
+    /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
     database_url:   String,
     /// gRPC interface of the node. Several can be provided.
@@ -38,7 +39,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenv().ok();
+    let _ = dotenvy::dotenv();
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
     let pool = PgPool::connect(&cli.database_url)

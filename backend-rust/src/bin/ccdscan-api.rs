@@ -2,7 +2,6 @@ use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, metrics};
-use dotenv::dotenv;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
 use std::{net::SocketAddr, path::PathBuf};
@@ -10,11 +9,12 @@ use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-// TODO add env for remaining args.
 #[derive(Parser)]
 struct Cli {
-    /// The URL used for the database, something of the form
-    /// "postgres://postgres:example@localhost/ccd-scan"
+    /// The URL used for the database, something of the form:
+    /// "postgres://postgres:example@localhost/ccd-scan".
+    /// Use environmental variable when the connection contains a password, as
+    /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
     database_url:   String,
     /// Output the GraphQL Schema for the API to this path.
@@ -32,7 +32,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    dotenv().ok();
+    let _ = dotenvy::dotenv();
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
     let pool = PgPool::connect(&cli.database_url)

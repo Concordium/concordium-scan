@@ -19,7 +19,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5", features = ["derive", "env", "cargo"] }
 concordium-rust-sdk = { path = "./concordium-rust-sdk" }
 derive_more = "0.99"
-dotenv = "0.15"
+dotenvy = "0.15"
 futures = "0.3"
 hex = "0.4"
 serde = "1.0"
@@ -35,3 +35,7 @@ iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
 prometheus-client = "0.22"
 tonic = "0.10.2"
+
+# Recommended by SQLx to speed up incremental builds
+[profile.dev.package.sqlx-macros]
+opt-level = 3
