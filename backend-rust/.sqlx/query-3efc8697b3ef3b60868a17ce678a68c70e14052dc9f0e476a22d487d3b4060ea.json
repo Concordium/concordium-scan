@@ -8,7 +8,7 @@
         "Bpchar",
         "Int8",
         "Int8",
-        "Bytea"
+        "Text"
       ]
     },
     "nullable": []

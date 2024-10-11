@@ -15,7 +15,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -804,7 +804,7 @@ impl PreparedBlockItem {
             };
         let success = block_item.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(&events_from_summary(block_item.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(block_item.details.clone())?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -886,6 +886,8 @@ enum PreparedEvent {
     BakerEvents(Vec<PreparedBakerEvent>),
     /// Smart contract module got deployed.
     ModuleDeployed(PreparedModuleDeployed),
+    /// Contract got initialized.
+    ContractInitialized(PreparedContractInitialized),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -913,8 +915,10 @@ impl PreparedEvent {
                         .await?,
                 )),
                 AccountTransactionEffects::ContractInitialized {
-                    data,
-                } => None,
+                    data: event_data,
+                } => Some(PreparedEvent::ContractInitialized(
+                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => None,
@@ -1052,6 +1056,7 @@ impl PreparedEvent {
                 Ok(())
             }
             PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
+            PreparedEvent::ContractInitialized(event) => event.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1416,6 +1421,73 @@ INSERT INTO smart_contract_modules (
             self.block_height,
             self.deployment_transaction_index,
             self.schema
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedContractInitialized {
+    index:            i64,
+    sub_index:        i64,
+    module_reference: String,
+    name:             String,
+    amount:           i64,
+    height:           i64,
+    tx_index:         i64,
+}
+
+impl PreparedContractInitialized {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractInitializedEvent,
+    ) -> anyhow::Result<Self> {
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let tx_index = block_item.index.index.try_into()?;
+
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let module_reference = event.origin_ref;
+        let name = event.init_name.to_string();
+
+        Ok(Self {
+            index,
+            sub_index,
+            module_reference: module_reference.into(),
+            amount,
+            name,
+            height,
+            tx_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contracts (
+                index,
+                sub_index,
+                module_reference,
+                name,
+                amount,
+                init_block_height,
+                init_transaction_index
+                )
+             VALUES (
+                $1, $2, $3, $4, $5, $6, $7
+            )"#,
+            self.index,
+            self.sub_index,
+            self.module_reference,
+            self.name,
+            self.amount,
+            self.height,
+            self.tx_index,
         )
         .execute(tx.as_mut())
         .await?;

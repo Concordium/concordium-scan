@@ -743,12 +743,55 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come before the specified cursor." before:
     // String): TokensConnection token(contractIndex: UnsignedLong!
     // contractSubIndex: UnsignedLong! tokenId: String!): Token!
-    // contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex:
-    // UnsignedLong!): Contract contracts("Returns the first _n_ elements from
-    // the list." first: Int "Returns the elements in the list that come
-    // after the specified cursor." after: String "Returns the last _n_ elements
-    // from the list." last: Int "Returns the elements in the list that come
-    // before the specified cursor." before: String): ContractsConnection
+
+    async fn contract<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_address_index: ContractIndex,
+        contract_address_sub_index: ContractIndex,
+    ) -> ApiResult<Contract> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  module_reference,
+  name as contract_name,
+  contracts.amount,
+  blocks.slot_time as block_slot_time,
+  init_block_height as block_height,
+  transactions.hash as transaction_hash,
+  accounts.address as creator
+FROM contracts
+JOIN blocks ON init_block_height=blocks.height
+JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
+JOIN accounts ON transactions.sender=accounts.index
+WHERE contracts.index=$1 AND contracts.sub_index=$2
+"#,
+contract_address_index.0 as i64,contract_address_sub_index.0 as i64
+        ).fetch_optional(pool).await?
+         .ok_or(ApiError::NotFound)?;
+
+        let snapshot = ContractSnapshot {
+            block_height:               row.block_height,
+            contract_address_index:     contract_address_index.clone(),
+            contract_address_sub_index: contract_address_sub_index.clone(),
+            contract_name:              row.contract_name,
+            module_reference:           row.module_reference,
+            amount:                     row.amount,
+        };
+
+        Ok(Contract {
+            contract_address_index,
+            contract_address_sub_index,
+            contract_address: "<>".to_string(),
+            creator: row.creator.into(),
+            block_height: row.block_height,
+            transaction_hash: row.transaction_hash,
+            block_slot_time: row.block_slot_time,
+            snapshot,
+        })
+    }
 
     async fn module_reference_event<'a>(
         &self,
@@ -854,7 +897,7 @@ impl SubscriptionContext {
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
 /// non-fractional value greater than or equal to 0.
-#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, derive_more::From)]
 #[repr(transparent)]
 #[serde(transparent)]
 struct UnsignedLong(u64);
@@ -1999,7 +2042,7 @@ struct BlockStatistics {
 }
 
 #[derive(Interface)]
-#[allow(clippy::duplicated_attributes)]
+// #[allow(clippy::duplicated_attributes)]
 #[graphql(
     field(name = "euro_per_energy", ty = "&ExchangeRate"),
     field(name = "micro_ccd_per_euro", ty = "&ExchangeRate"),
