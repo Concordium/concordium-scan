@@ -8,8 +8,10 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
+    base::smart_contracts::WasmVersion,
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
+    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
@@ -325,7 +327,8 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block = PreparedBlock::prepare(&data).map_err(RPCError::ParseError)?;
+            let prepared_block =
+                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -643,7 +646,7 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -658,7 +661,8 @@ impl PreparedBlock {
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
-            prepared_block_items.push(PreparedBlockItem::prepare(data, block_item)?)
+            prepared_block_items
+                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -769,7 +773,11 @@ struct PreparedBlockItem {
 }
 
 impl PreparedBlockItem {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_index = i64::try_from(block_item.index.index)?;
         let block_item_hash = block_item.hash.to_string();
@@ -818,7 +826,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(data, block_item)?;
+        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -882,7 +890,11 @@ enum PreparedEvent {
     NoOperation,
 }
 impl PreparedEvent {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Option<Self>> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Option<Self>> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -896,11 +908,10 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => Some(PreparedEvent::ModuleDeployed(PreparedModuleDeployed::prepare(
-                    data,
-                    block_item,
-                    *module_ref,
-                )?)),
+                } => Some(PreparedEvent::ModuleDeployed(
+                    PreparedModuleDeployed::prepare(node_client, data, block_item, *module_ref)
+                        .await?,
+                )),
                 AccountTransactionEffects::ContractInitialized {
                     data,
                 } => None,
@@ -1352,11 +1363,12 @@ struct PreparedModuleDeployed {
     block_height: i64,
     deployment_transaction_index: i64,
     module_reference: String,
-    schema: Option<Vec<u8>>,
+    schema: Option<String>,
 }
 
 impl PreparedModuleDeployed {
-    fn prepare(
+    async fn prepare(
+        node_client: &mut v2::Client,
         data: &BlockData,
         block_item: &BlockItemSummary,
         module_reference: sdk_types::hashes::ModuleReference,
@@ -1364,23 +1376,23 @@ impl PreparedModuleDeployed {
         let block_height = data.finalized_block_info.height;
         let deployment_transaction_index = block_item.index.index.try_into()?;
 
-        // let wasm_module = node_client
-        //     .get_module_source(&module_reference,
-        // BlockIdentifier::AbsoluteHeight(block_height))     .await?
-        //     .response;
-        // let schema = match wasm_module.version {
-        //     WasmVersion::V0 =>
-        // utils::get_embedded_schema_v0(wasm_module.source.as_ref()),
-        //     WasmVersion::V1 =>
-        // utils::get_embedded_schema_v1(wasm_module.source.as_ref()), }
-        // .ok();
-        // let schema = to_bytes(&schema);
+        let wasm_module = node_client
+            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
+        let schema = match wasm_module.version {
+            WasmVersion::V0 => get_embedded_schema_v0(wasm_module.source.as_ref()),
+            WasmVersion::V1 => get_embedded_schema_v1(wasm_module.source.as_ref()),
+        }
+        .ok();
+
+        let schema = schema.as_ref().map(|s| s.to_string());
 
         Ok(Self {
             block_height: i64::try_from(block_height.height)?,
             deployment_transaction_index,
             module_reference: module_reference.into(),
-            schema: None,
+            schema,
         })
     }
 

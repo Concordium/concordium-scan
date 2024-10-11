@@ -782,7 +782,7 @@ WHERE module_reference=$1
             block_height: row.block_height,
             transaction_hash: row.transaction_hash,
             block_slot_time: row.block_slot_time,
-            display_schema: None, // TODO print the actual schema
+            display_schema: row.display_schema,
         })
     }
 }

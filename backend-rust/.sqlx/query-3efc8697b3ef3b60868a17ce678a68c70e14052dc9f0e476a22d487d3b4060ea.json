@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO smart_contract_modules (\n    index,\n    module_reference,\n    deployment_block_height,\n    deployment_transaction_index,\n    schema\n) VALUES (\n  (SELECT COALESCE(MAX(index) + 1, 0) FROM smart_contract_modules),\n  $1, $2, $3, $4\n)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8",
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3efc8697b3ef3b60868a17ce678a68c70e14052dc9f0e476a22d487d3b4060ea"
+}

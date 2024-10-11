@@ -262,7 +262,8 @@ CREATE TABLE smart_contract_modules (
     deployment_transaction_index
         BIGINT
         NOT NULL,
-    schema BYTEA,
+    -- TODO: Would be nice to use BYTEA here (should be propagated to front end)
+    schema TEXT,
     FOREIGN KEY (deployment_block_height, deployment_transaction_index) REFERENCES transactions(block_height, index)
 );
 
