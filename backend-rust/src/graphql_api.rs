@@ -749,7 +749,42 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // after the specified cursor." after: String "Returns the last _n_ elements
     // from the list." last: Int "Returns the elements in the list that come
     // before the specified cursor." before: String): ContractsConnection
-    // moduleReferenceEvent(moduleReference: String!): ModuleReferenceEvent
+
+    async fn module_reference_event<'a>(
+        &self,
+        ctx: &Context<'a>,
+        module_reference: String,
+    ) -> ApiResult<ModuleReferenceEvent> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  deployment_block_height as block_height,
+  deployment_transaction_index,
+  schema as display_schema,
+  blocks.slot_time as block_slot_time,
+  transactions.hash as transaction_hash,
+  accounts.address as sender
+FROM smart_contract_modules
+JOIN blocks ON deployment_block_height=blocks.height
+JOIN transactions ON deployment_block_height=transactions.block_height AND deployment_transaction_index=transactions.index
+JOIN accounts ON transactions.sender=accounts.index
+WHERE module_reference=$1
+"#,
+            module_reference
+        ).fetch_optional(pool).await?
+         .ok_or(ApiError::NotFound)?;
+
+        Ok(ModuleReferenceEvent {
+            module_reference,
+            sender: row.sender.into(),
+            block_height: row.block_height,
+            transaction_hash: row.transaction_hash,
+            block_slot_time: row.block_slot_time,
+            display_schema: None, // TODO print the actual schema
+        })
+    }
 }
 
 pub struct Subscription {
@@ -4257,7 +4292,7 @@ pub struct ModuleReferenceEvent {
     block_height:     BlockHeight,
     transaction_hash: String,
     block_slot_time:  DateTime,
-    display_schema:   String,
+    display_schema:   Option<String>,
     // TODO:
     // moduleReferenceRejectEvents(skip: Int take: Int):
     // ModuleReferenceRejectEventsCollectionSegment moduleReferenceContractLinkEvents(skip: Int

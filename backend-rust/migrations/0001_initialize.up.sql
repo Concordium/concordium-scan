@@ -247,6 +247,24 @@ CREATE TABLE bakers(
         BIGINT
 );
 
+CREATE TABLE smart_contract_modules (
+    index
+        BIGINT
+        PRIMARY KEY,
+    -- Module reference of the wasm module.
+    module_reference
+        CHAR(64)
+        UNIQUE
+        NOT NULL,
+    deployment_block_height
+        BIGINT
+        NOT NULL,
+    deployment_transaction_index
+        BIGINT
+        NOT NULL,
+    schema BYTEA,
+    FOREIGN KEY (deployment_block_height, deployment_transaction_index) REFERENCES transactions(block_height, index)
+);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

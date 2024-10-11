@@ -876,6 +876,8 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    /// Smart contract module got deployed.
+    ModuleDeployed(PreparedModuleDeployed),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -894,7 +896,11 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => None,
+                } => Some(PreparedEvent::ModuleDeployed(PreparedModuleDeployed::prepare(
+                    data,
+                    block_item,
+                    *module_ref,
+                )?)),
                 AccountTransactionEffects::ContractInitialized {
                     data,
                 } => None,
@@ -1034,6 +1040,7 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1337,6 +1344,69 @@ impl PreparedBakerEvent {
             }
             PreparedBakerEvent::NoOperation => (),
         }
+        Ok(())
+    }
+}
+
+struct PreparedModuleDeployed {
+    block_height: i64,
+    deployment_transaction_index: i64,
+    module_reference: String,
+    schema: Option<Vec<u8>>,
+}
+
+impl PreparedModuleDeployed {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        module_reference: sdk_types::hashes::ModuleReference,
+    ) -> anyhow::Result<Self> {
+        let block_height = data.finalized_block_info.height;
+        let deployment_transaction_index = block_item.index.index.try_into()?;
+
+        // let wasm_module = node_client
+        //     .get_module_source(&module_reference,
+        // BlockIdentifier::AbsoluteHeight(block_height))     .await?
+        //     .response;
+        // let schema = match wasm_module.version {
+        //     WasmVersion::V0 =>
+        // utils::get_embedded_schema_v0(wasm_module.source.as_ref()),
+        //     WasmVersion::V1 =>
+        // utils::get_embedded_schema_v1(wasm_module.source.as_ref()), }
+        // .ok();
+        // let schema = to_bytes(&schema);
+
+        Ok(Self {
+            block_height: i64::try_from(block_height.height)?,
+            deployment_transaction_index,
+            module_reference: module_reference.into(),
+            schema: None,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+INSERT INTO smart_contract_modules (
+    index,
+    module_reference,
+    deployment_block_height,
+    deployment_transaction_index,
+    schema
+) VALUES (
+  (SELECT COALESCE(MAX(index) + 1, 0) FROM smart_contract_modules),
+  $1, $2, $3, $4
+)"#,
+            self.module_reference,
+            self.block_height,
+            self.deployment_transaction_index,
+            self.schema
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
