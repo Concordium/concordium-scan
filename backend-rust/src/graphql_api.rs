@@ -189,6 +189,7 @@ mod monitor {
             let label = QueryLabels {
                 query: operation_name.unwrap_or("<none>").to_owned(),
             };
+            self.in_flight_requests.get_or_create(&label).inc();
             self.total_requests.get_or_create(&label).inc();
             let start = Instant::now();
             let response = next.run(ctx, operation_name).await;
