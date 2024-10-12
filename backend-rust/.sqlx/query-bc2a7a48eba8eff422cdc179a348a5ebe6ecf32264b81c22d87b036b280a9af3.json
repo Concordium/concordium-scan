@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bakers SET open_status = $2 WHERE id=$1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc2a7a48eba8eff422cdc179a348a5ebe6ecf32264b81c22d87b036b280a9af3"
+}

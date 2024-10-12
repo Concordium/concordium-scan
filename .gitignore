@@ -13,3 +13,5 @@ pgbackrest.conf
 target/
 
 .vscode/
+
+.env

@@ -1,0 +1,75 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    id,\n    staked,\n    restake_earnings,\n    open_status as \"open_status: BakerPoolOpenStatus\",\n    metadata_url,\n    transaction_commission,\n    baking_commission,\n    finalization_commission\n FROM bakers WHERE id=$1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "staked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "open_status: BakerPoolOpenStatus",
+        "type_info": {
+          "Custom": {
+            "name": "pool_open_status",
+            "kind": {
+              "Enum": [
+                "OpenForAll",
+                "ClosedForNew",
+                "ClosedForAll"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "metadata_url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_commission",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "baking_commission",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "finalization_commission",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "38822385789ad387659bec8d2430126c8d095ee920d1582912060d7a8040e691"
+}
