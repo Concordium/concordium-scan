@@ -284,7 +284,6 @@ CREATE TABLE contracts(
     -- Module reference of the wasm module.
     module_reference
         CHAR(64)
-        UNIQUE
         NOT NULL,
     -- The contract name.
     name
