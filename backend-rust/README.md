@@ -17,24 +17,83 @@ To run the services, the following dependencies are required to be available on 
 
 ## Run the Indexer Service
 
-For instructions how to use the indexer run:
+For instructions on how to use the indexer run:
 
 ```
-ccdscan-indexer --help
+cargo run --bin ccdscan-indexer -- --help
 ```
+
+Example:
+
+```
+cargo run --bin ccdscan-indexer -- --node http://localhost:20001 --max-parallel-block-preprocessors 20 --max-processing-batch 20
+cargo run --bin ccdscan-indexer -- --node http://node.testnet.concordium.com:20000
+cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000
+```
+
+Note: Queries like `getSourceModule` might timeout (are disabled) on our public-facing nodes. The recommendation is to run
+your own local node during development.
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 
 ## Run the GraphQL API Service
 
-For instructions how to use the API service run:
+For instructions on how to use the API service run:
 
 ```
-ccdscan-api --help
+cargo run --bin ccdscan-api -- --help
+```
+
+Example:
+
+```
+cargo run --bin ccdscan-api
 ```
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 
+### GraphiQL IDE
+
+Starting the GraphQL API Service above will provide you an interface
+(usually at 127.0.0.1:8000) to execute graphQL querries.
+
+An examples is shown below:
+
+Query:
+
+```
+query ($after: String, $before: String, $first: Int, $last: Int) {
+  blocks(after: $after, before: $before, first: $first, last: $last) {
+    nodes {
+      id
+      bakerId
+      blockHash
+      blockHeight
+      blockSlotTime
+      finalized
+      transactionCount
+      __typename
+    }
+    pageInfo {
+      startCursor
+      endCursor
+      hasPreviousPage
+      hasNextPage
+      __typename
+    }
+    __typename
+  }
+}
+
+```
+
+Variables:
+
+```
+{"first": 5}
+```
+
+![ExampleQuery](./ExampleQuery.png)
 
 ## Setup for development
 
@@ -43,7 +102,7 @@ To develop this service the following tools are required, besides the dependenci
 - [Rust and cargo](https://rustup.rs/)
 - [sqlx-cli](https://crates.io/crates/sqlx-cli)
 
-This project have some dependencies tracked as Git submodules, so make sure to initialize these:
+This project has some dependencies tracked as Git submodules, so make sure to initialize these:
 
 ```
 git submodule update --init --recursive
@@ -55,6 +114,12 @@ Both services depend on having a PostgreSQL server running, this can be done in 
 
 ```
 docker run -p 5432:5432 -e 'POSTGRES_PASSWORD=example' -e 'POSTGRES_DB=ccd-scan' postgres:16
+```
+
+Alternatively set up the database from the `docker-compose` file with the command below:
+
+```
+docker compose up
 ```
 
 ### Initializing a database
@@ -73,7 +138,7 @@ With the environment variable `DATABASE_URL` set, use the `sqlx` CLI to setup th
 sqlx migrate run
 ```
 
-The project can now be build using `cargo build`
+The project can now be built using `cargo build`
 
 ### Database migrations
 
@@ -91,3 +156,25 @@ This will create two files in the directory:
 - `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
 - `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
 
+
+### Database deletion
+
+If you started the database with the `docker-compose` file and you want to restart the database with fresh data,
+delete the data in the `data` folder with the command:
+
+```
+sudo rm -r data/
+```
+
+### `sqlx` features
+
+The tool validates database queries at compile-time, ensuring they are both syntactically
+correct and type-safe. To take advantage of this feature, you should run the following
+command every time you update the database schema.
+Run a live database with the new schema and execute the command:
+
+```
+cargo sqlx prepare
+```
+
+This will generate type metadata for the queries in the `.sqlx` folder.

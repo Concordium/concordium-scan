@@ -2171,7 +2171,7 @@ struct BlockStatistics {
 }
 
 #[derive(Interface)]
-// #[allow(clippy::duplicated_attributes)]
+#[allow(clippy::duplicated_attributes)]
 #[graphql(
     field(name = "euro_per_energy", ty = "&ExchangeRate"),
     field(name = "micro_ccd_per_euro", ty = "&ExchangeRate"),
