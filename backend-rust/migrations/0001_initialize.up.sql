@@ -265,7 +265,6 @@ CREATE TABLE smart_contract_modules(
     deployment_transaction_index
         BIGINT
         NOT NULL,
-    -- TODO: Would be nice to use BYTEA here (should be propagated to the front end).
     -- Embedded schema in the wasm module if present.
     schema TEXT
 );
@@ -280,7 +279,7 @@ CREATE TABLE contracts(
     sub_index
         BIGINT
         NOT NULL,
-    -- TODO: It might be better to use `module_reference_index` which would save storage space but would require more work in inserting/querying by the indexer.
+    -- Note: It might be better to use `module_reference_index` which would save storage space but would require more work in inserting/querying by the indexer.
     -- Module reference of the wasm module.
     module_reference
         CHAR(64)

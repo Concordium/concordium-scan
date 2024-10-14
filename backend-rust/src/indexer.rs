@@ -130,7 +130,24 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
-        let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
+        // Set up endpoints to the node.
+        let mut endpoints_with_schema = Vec::new();
+        for endpoint in self.endpoints {
+            if endpoint
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            {
+                let new_endpoint = endpoint
+                    .tls_config(tonic::transport::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium node.")?;
+                endpoints_with_schema.push(new_endpoint);
+            } else {
+                endpoints_with_schema.push(endpoint);
+            }
+        }
+
+        let traverse_config = TraverseConfig::new(endpoints_with_schema, self.start_height.into())
             .context("Failed setting up TraverseConfig")?
             .set_max_parallel(self.config.max_parallel_block_preprocessors)
             .set_max_behind(std::time::Duration::from_secs(self.config.node_max_behind));

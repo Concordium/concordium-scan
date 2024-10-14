@@ -178,3 +178,4 @@ cargo sqlx prepare
 ```
 
 This will generate type metadata for the queries in the `.sqlx` folder.
+
