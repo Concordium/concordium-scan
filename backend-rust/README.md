@@ -61,7 +61,7 @@ cargo run --bin ccdscan-api
 ### GraphiQL IDE
 
 Starting the GraphQL API Service above will provide you an interface
-(usually at 127.0.0.1:8000) to execute GraphQL queries.
+(usually at 127.0.0.1:8000) to execute graphQL queries.
 
 An example is shown below:
 
