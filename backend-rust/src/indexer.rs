@@ -784,9 +784,8 @@ struct PreparedBlockItem {
     events:           Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
     reject:           Option<serde_json::Value>,
-    // This is an option temporarily, until we are able to handle every type of event.
     /// Block item events prepared for inserting into the database.
-    prepared_event:   Option<PreparedEvent>,
+    prepared_event:   PreparedEventData,
 }
 
 impl PreparedBlockItem {
@@ -843,7 +842,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+        let prepared_event = PreparedEventData::prepare(node_client, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -888,11 +887,22 @@ VALUES
             .execute(tx.as_mut())
             .await?;
 
-        if let Some(prepared_event) = &self.prepared_event {
-            prepared_event.save(tx).await?;
-        }
+        self.prepared_event.save(tx).await?;
+
         Ok(())
     }
+}
+
+/// Different types of block item events that can be prepared and the
+/// status of the event (if the event was in a successful or rejected
+/// transaction).
+struct PreparedEventData {
+    /// The prepared event. Note: this is optional temporarily until we can
+    /// handle all events.
+    event:   Option<PreparedEvent>,
+    /// The status of the event (if the event belongs to a successful or
+    /// rejected transaction).
+    success: bool,
 }
 
 /// Different types of block item events that can be prepared.
@@ -908,12 +918,12 @@ enum PreparedEvent {
     /// No changes in the database was caused by this event.
     NoOperation,
 }
-impl PreparedEvent {
+impl PreparedEventData {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
         block_item: &BlockItemSummary,
-    ) -> anyhow::Result<Option<Self>> {
+    ) -> anyhow::Result<Self> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -1057,23 +1067,49 @@ impl PreparedEvent {
                 None
             }
         };
-        Ok(prepared_event)
+        Ok(PreparedEventData {
+            event:   prepared_event,
+            success: block_item.is_success(),
+        })
     }
 
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        match self {
+        let Some(event) = &self.event else {
+            return Ok(());
+        };
+
+        match event {
             PreparedEvent::AccountCreation(event) => event.save(tx).await,
+            // TODO: need to handle `rejected` baker events properly.
             PreparedEvent::BakerEvents(events) => {
                 for event in events {
                     event.save(tx).await?;
                 }
                 Ok(())
             }
-            PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
-            PreparedEvent::ContractInitialized(event) => event.save(tx).await,
+            PreparedEvent::ModuleDeployed(event) =>
+            // Only save the module into the `modules` table if the transaction was
+            // successful.
+            {
+                if self.success {
+                    event.save(tx).await
+                } else {
+                    Ok(())
+                }
+            }
+            PreparedEvent::ContractInitialized(event) =>
+            // Only save the contract into the `contracts` table if the transaction was
+            // successful.
+            {
+                if self.success {
+                    event.save(tx).await
+                } else {
+                    Ok(())
+                }
+            }
             PreparedEvent::NoOperation => Ok(()),
         }
     }
