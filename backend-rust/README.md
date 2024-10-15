@@ -55,9 +55,9 @@ cargo run --bin ccdscan-api
 ### GraphiQL IDE
 
 Starting the GraphQL API Service above will provide you an interface
-(usually at 127.0.0.1:8000) to execute graphQL querries.
+(usually at 127.0.0.1:8000) to execute GraphQL queries.
 
-An examples is shown below:
+An example is shown below:
 
 Query:
 
@@ -156,17 +156,9 @@ This will create two files in the directory:
 - `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
 - `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
 
-
-### Database deletion
-
-If you started the database with the `docker-compose` file and you want to restart the database with fresh data,
-delete the data in the `data` folder with the command:
-
-```
-sudo rm -r data/
-```
-
 ### `sqlx` features
+
+- Feature 1:
 
 The tool validates database queries at compile-time, ensuring they are both syntactically
 correct and type-safe. To take advantage of this feature, you should run the following
@@ -179,3 +171,10 @@ cargo sqlx prepare
 
 This will generate type metadata for the queries in the `.sqlx` folder.
 
+- Feature 2:
+
+If you want to update your database to a new schema, execute the command:
+
+```
+sqlx database reset --force
+```

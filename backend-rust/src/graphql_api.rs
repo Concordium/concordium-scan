@@ -837,11 +837,11 @@ SELECT * FROM (
     JOIN blocks ON init_block_height=blocks.height
     JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
     JOIN accounts ON transactions.sender=accounts.index
-  WHERE contracts.index > $1 AND contracts.index < $2
-  ORDER BY
-     (CASE WHEN $4 THEN contracts.index END) DESC,
-     (CASE WHEN NOT $4 THEN contracts.index END) ASC
-  LIMIT $3
+    WHERE contracts.index > $1 AND contracts.index < $2
+    ORDER BY
+        (CASE WHEN $4 THEN contracts.index END) DESC,
+        (CASE WHEN NOT $4 THEN contracts.index END) ASC
+    LIMIT $3
 ) AS contract_data
 ORDER BY contract_data.index ASC"#,
             query.from,
