@@ -34,7 +34,7 @@ rust_decimal = "1.35"
 iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
 prometheus-client = "0.22"
-tonic = "0.10.2"
+tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]

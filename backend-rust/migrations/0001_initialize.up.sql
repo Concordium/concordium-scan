@@ -247,6 +247,63 @@ CREATE TABLE bakers(
         BIGINT
 );
 
+-- Every WASM module on chain.
+CREATE TABLE smart_contract_modules(
+    index
+        BIGINT
+        PRIMARY KEY,
+    -- Module reference of the wasm module.
+    module_reference
+        CHAR(64)
+        UNIQUE
+        NOT NULL,
+    -- The absolute block height when the module was deployed.
+    deployment_block_height
+        BIGINT
+        NOT NULL,
+    -- Transaction index in the block deploying the module.
+    deployment_transaction_index
+        BIGINT
+        NOT NULL,
+    -- Embedded schema in the wasm module if present.
+    schema TEXT
+);
+
+-- Every contract instance on chain.
+CREATE TABLE contracts(
+    -- Index of the contract.
+    index
+        BIGINT
+        NOT NULL,
+    -- Sub index of the contract.
+    sub_index
+        BIGINT
+        NOT NULL,
+    -- Note: It might be better to use `module_reference_index` which would save storage space but would require more work in inserting/querying by the indexer.
+    -- Module reference of the wasm module.
+    module_reference
+        CHAR(64)
+        NOT NULL,
+    -- The contract name.
+    name
+        TEXT
+        NOT NULL,
+    -- The total balance of the contract in micro CCD.
+    amount
+        BIGINT
+        NOT NULL,
+    -- The absolute block height when the module was initialized.
+    init_block_height
+        BIGINT
+        NOT NULL,
+    -- Transaction index in the block initializing the contract.
+    init_transaction_index
+        BIGINT
+        NOT NULL,
+
+    -- Make the contract index and subindex the primary key.
+    PRIMARY KEY (index, sub_index)
+);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
