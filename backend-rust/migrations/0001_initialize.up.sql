@@ -342,8 +342,7 @@ CREATE TABLE contracts(
 CREATE TABLE module_contract_link_events(
     -- An index/id for this event (row number).
     index
-        BIGINT
-        SERIAL
+        BIGSERIAL
         PRIMARY KEY
         NOT NULL,
     -- Event index of the event.
@@ -369,18 +368,17 @@ CREATE TABLE module_contract_link_events(
     -- True if contract gets linked to the given module, false if contract gets unlinked to the given module.
     is_linked
         BOOLEAN
-        NOT NULL,
+        NOT NULL
 
     -- TODO: link_action = int? source = int?
-)
+);
 
 -- Every successful event associated to a contract.
 -- TODO: add index over the contract (index,subindex)
-CREATE TABLE contract_events(
+CREATE TABLE contract_events (
     -- An index/id for this event (row number).
     index
-        BIGINT
-        SERIAL
+        BIGSERIAL
         PRIMARY KEY
         NOT NULL,
     -- Transaction index including the event.
@@ -398,18 +396,17 @@ CREATE TABLE contract_events(
     -- Contract subindex that event is associated with.
     contract_sub_index
         BIGINT
-        NOT NULL,
+        NOT NULL
 
     -- TODO: source = int?
-)
+);
 
 -- Every rejected event associated to a contract.
 -- TODO: add index over the contract (index,subindex)
 CREATE TABLE contract_reject_events(
     -- An index/id for this event (row number).
     index
-        BIGINT
-        SERIAL
+        BIGSERIAL
         PRIMARY KEY
         NOT NULL,
     -- Transaction index including the event.
@@ -427,10 +424,10 @@ CREATE TABLE contract_reject_events(
     -- Contract subindex that event is associated with.
     contract_sub_index
         BIGINT
-        NOT NULL,
+        NOT NULL
 
     -- TODO: source = int?
-)
+);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

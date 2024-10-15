@@ -1670,6 +1670,26 @@ impl PreparedContractInitialized {
         )
         .execute(tx.as_mut())
         .await?;
+
+        // TODO: fix event index.
+        sqlx::query!(
+            r#"INSERT INTO contract_events (
+                transaction_index,
+                event_index,
+                contract_index,
+                contract_sub_index
+            )
+            VALUES (
+                $1, $2, $3, $4
+            )"#,
+            self.tx_index,
+            0i64,
+            self.index,
+            self.sub_index
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }
