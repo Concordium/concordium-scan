@@ -73,7 +73,7 @@ With the environment variable `DATABASE_URL` set, use the `sqlx` CLI to setup th
 sqlx migrate run
 ```
 
-The project can now be build using `cargo build`
+The project can now be built using `cargo build`
 
 ### Database migrations
 
@@ -90,4 +90,3 @@ This will create two files in the directory:
 
 - `<database-version>_<description>.up.sql` for the SQL code to bring the database up from the previous version.
 - `<database-version>_<description>.down.sql` for the SQL code reverting back to the previous version.
-
