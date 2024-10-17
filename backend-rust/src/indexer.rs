@@ -138,11 +138,14 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         let (sender, receiver) = tokio::sync::mpsc::channel(self.config.max_processing_batch);
         let receiver = tokio_stream::wrappers::ReceiverStream::from(receiver)
             .ready_chunks(self.config.max_processing_batch);
-        let traverse_future = traverse_config.traverse(self.block_pre_processor, sender);
-        let process_future = processor_config.process_event_stream(self.block_processor, receiver);
+        let traverse_future =
+            tokio::spawn(traverse_config.traverse(self.block_pre_processor, sender));
+        let process_future =
+            tokio::spawn(processor_config.process_event_stream(self.block_processor, receiver));
         info!("Indexing from block height {}", self.start_height);
-        let (result, ()) = futures::join!(traverse_future, process_future);
-        Ok(result?)
+        let (traverse_result, process_result) = futures::join!(traverse_future, process_future);
+        process_result?;
+        Ok(traverse_result??)
     }
 }
 
