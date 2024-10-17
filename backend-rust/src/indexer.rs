@@ -399,12 +399,11 @@ impl BlockProcessor {
         max_successive_failures: u32,
         registry: &mut Registry,
     ) -> anyhow::Result<Self> {
-        let starting_context = sqlx::query_as!(
-            BlockProcessingContext,
+        let last_finalized_block = sqlx::query!(
             r#"
 SELECT
-  height as last_finalized_height,
-  hash as last_finalized_hash
+  height,
+  hash
 FROM blocks
 WHERE finalization_time IS NULL
 ORDER BY height ASC
@@ -414,6 +413,24 @@ LIMIT 1
         .fetch_one(&pool)
         .await
         .context("Failed to query data for save context")?;
+
+        let last_block = sqlx::query!(
+            r#"
+SELECT
+  slot_time
+FROM blocks
+ORDER BY height DESC
+LIMIT 1
+"#
+        )
+        .fetch_one(&pool)
+        .await
+        .context("Failed to query data for save context")?;
+
+        let starting_context = BlockProcessingContext {
+            last_finalized_hash:  last_finalized_block.hash,
+            last_block_slot_time: last_block.slot_time,
+        };
 
         let blocks_processed = Counter::default();
         registry.register(
@@ -466,22 +483,20 @@ impl ProcessEvent for BlockProcessor {
         let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
-        let mut override_context = None;
-        for data in batch {
-            let context = override_context.as_ref().unwrap_or(self.current_context.borrow());
-            let new_context = data.save(context, &mut tx).await.context("Failed saving block")?;
-            if new_context.is_some() {
-                override_context = new_context;
+
+        let new_context =
+            PreparedBlock::batch_save(batch, self.current_context.borrow(), &mut tx).await?;
+        for block in batch {
+            for item in block.prepared_block_items.iter() {
+                item.save(&mut tx).await?;
             }
-            out.push_str(format!("\n- {}:{}", data.height, data.hash).as_str())
+            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
         tx.commit().await.context("Failed to commit SQL transaction")?;
-        if let Some(context) = override_context {
-            self.current_context = context;
-        }
         let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64());
+        self.processing_duration_seconds.observe(duration.as_secs_f64() / batch.len() as f64);
         self.blocks_processed.inc_by(u64::try_from(batch.len())?);
+        self.current_context = new_context;
         Ok(out)
     }
 
@@ -505,13 +520,14 @@ impl ProcessEvent for BlockProcessor {
     }
 }
 
+#[derive(Clone)]
 struct BlockProcessingContext {
-    /// The last finalized block height according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_height: i64,
     /// The last finalized block hash according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash:   String,
+    /// This is used when computing the finalization time.
+    last_finalized_hash:  String,
+    /// The slot time of the last processed block.
+    /// This is used when computing the block time.
+    last_block_slot_time: NaiveDateTime,
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -672,59 +688,86 @@ impl PreparedBlock {
         })
     }
 
-    async fn save(
-        &self,
+    async fn batch_save(
+        batch: &Vec<Self>,
         context: &BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<Option<BlockProcessingContext>> {
+    ) -> anyhow::Result<BlockProcessingContext> {
+        let mut height = Vec::new();
+        let mut hash = Vec::new();
+        let mut slot_time = Vec::new();
+        let mut baker_id = Vec::new();
+        let mut total_amount = Vec::new();
+        let mut total_staked = Vec::new();
+        let mut block_time = Vec::new();
+
+        let mut finalizers = Vec::new();
+        let mut last_finalized = Vec::new();
+        let mut finalizers_slot_time = Vec::new();
+
+        let mut new_context = context.clone();
+        for block in batch {
+            height.push(block.height);
+            hash.push(block.hash.clone());
+            slot_time.push(block.slot_time);
+            baker_id.push(block.baker_id);
+            total_amount.push(block.total_amount);
+            total_staked.push(block.total_staked);
+            block_time.push(
+                block
+                    .slot_time
+                    .signed_duration_since(new_context.last_block_slot_time)
+                    .num_milliseconds(),
+            );
+            new_context.last_block_slot_time = block.slot_time;
+
+            if block.block_last_finalized != new_context.last_finalized_hash {
+                finalizers.push(block.height);
+                finalizers_slot_time.push(block.slot_time);
+                last_finalized.push(block.block_last_finalized.clone());
+
+                new_context.last_finalized_hash = block.block_last_finalized.clone();
+            }
+        }
+
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
-VALUES ($1, $2, $3,
-  (SELECT EXTRACT("MILLISECONDS" FROM $3 - b.slot_time) FROM blocks b WHERE b.height=($1 - 1::bigint)),
-  $4, $5, $6);"#,
-            self.height,
-            self.hash,
-            self.slot_time,
-            self.baker_id,
-            self.total_amount,
-            self.total_staked
+            r#"INSERT INTO blocks
+  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
+SELECT * FROM UNNEST(
+  $1::BIGINT[],
+  $2::text[],
+  $3::timestamp[],
+  $4::bigint[],
+  $5::bigint[],
+  $6::bigint[],
+  $7::bigint[]
+);"#,
+            &height,
+            &hash,
+            &slot_time,
+            &block_time,
+            &baker_id as &[Option<i64>],
+            &total_amount,
+            &total_staked
         )
         .execute(tx.as_mut())
-            .await?;
+        .await?;
 
-        // Check if this block knows of a new finalized block.
-        // If so, mark the blocks since last time as finalized by this block.
-        let new_context = if self.block_last_finalized != context.last_finalized_hash {
-            let last_height = context.last_finalized_height;
-
-            let rec = sqlx::query!(
-                r#"
-WITH finalizer
-   AS (SELECT height FROM blocks WHERE hash = $1)
+        let rec = sqlx::query!(
+            r#"
 UPDATE blocks b
-   SET finalization_time = EXTRACT("MILLISECONDS" FROM $3 - b.slot_time),
+   SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - b.slot_time),
        finalized_by = finalizer.height
-FROM finalizer
-WHERE $2 <= b.height AND b.height < finalizer.height
-RETURNING finalizer.height"#,
-                self.block_last_finalized,
-                last_height,
-                self.slot_time
-            )
-            .fetch_one(tx.as_mut())
-            .await
-            .context("Failed updating finalization_time")?;
-            let new_context = BlockProcessingContext {
-                last_finalized_hash:   self.block_last_finalized.clone(),
-                last_finalized_height: rec.height,
-            };
-            Some(new_context)
-        } else {
-            None
-        };
-        for item in self.prepared_block_items.iter() {
-            item.save(tx).await?;
-        }
+FROM UNNEST($1::BIGINT[], $2::text[], $3::timestamp[]) AS finalizer(height, finalized, slot_time)
+JOIN blocks l ON finalizer.finalized = l.hash
+WHERE b.finalization_time IS NULL AND b.height <= l.height
+"#,
+            &finalizers,
+            &last_finalized,
+            &finalizers_slot_time
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(new_context)
     }
 }
