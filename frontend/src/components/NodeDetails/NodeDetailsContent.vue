@@ -41,7 +41,7 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>packetsReceived</template>
+					<template #title>Packets Received</template>
 					<template #default
 						>{{ node.packetsReceived }} ({{
 							formatBytesPerSecond(node.averageBytesPerSecondIn)
