@@ -18,7 +18,11 @@ macro_rules! todo_api {
 
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource, types::{self, connection}, ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult, Interface, MergedObject, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union, Value
+    http::GraphiQLSource,
+    types::{self, connection},
+    ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult,
+    Interface, MergedObject, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union,
+    Value,
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
@@ -27,10 +31,10 @@ use context_ext::ContextExt;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use transaction_metrics::TransactionMetricsQuery;
 use std::{error::Error, str::FromStr as _, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
+use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -438,9 +442,7 @@ SELECT * FROM (
         ctx: &Context<'a>,
         transaction_hash: TransactionHash,
     ) -> ApiResult<Transaction> {
-        Transaction::query_by_hash(ctx.pool()?, transaction_hash)
-            .await?
-            .ok_or(ApiError::NotFound)
+        Transaction::query_by_hash(ctx.pool()?, transaction_hash).await?.ok_or(ApiError::NotFound)
     }
 
     async fn transactions<'a>(

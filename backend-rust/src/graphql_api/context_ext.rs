@@ -1,4 +1,5 @@
-//! Simple extension trait for the GraphQL context to make it easier to extract certain data.
+//! Simple extension trait for the GraphQL context to make it easier to extract
+//! certain data.
 
 use async_graphql::Context;
 use sqlx::PgPool;
@@ -14,9 +15,7 @@ pub(crate) trait ContextExt {
 }
 
 impl ContextExt for Context<'_> {
-    fn pool(&self) -> ApiResult<&PgPool> {
-        self.data::<PgPool>().map_err(ApiError::NoDatabasePool)
-    }
+    fn pool(&self) -> ApiResult<&PgPool> { self.data::<PgPool>().map_err(ApiError::NoDatabasePool) }
 
     fn config(&self) -> ApiResult<&ApiServiceConfig> {
         self.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)

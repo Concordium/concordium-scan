@@ -25,11 +25,13 @@ struct TransactionMetricsBuckets {
     #[graphql(name = "x_Time")]
     x_time: Vec<DateTime>,
 
-    /// Total number of transactions (all time) at the end of the bucket period. Intended y-axis value.
+    /// Total number of transactions (all time) at the end of the bucket period.
+    /// Intended y-axis value.
     #[graphql(name = "y_LastCumulativeTransactionCount")]
     y_last_cumulative_transaction_count: Vec<usize>,
 
-    /// Total number of transactions within the bucket time period. Intended y-axis value.
+    /// Total number of transactions within the bucket time period. Intended
+    /// y-axis value.
     #[graphql(name = "y_TransactionCount")]
     y_transaction_count: Vec<usize>,
 }
