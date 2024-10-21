@@ -400,6 +400,10 @@ impl Query {
             before,
             config.block_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Block,
             r#"
@@ -469,6 +473,10 @@ SELECT * FROM (
             before,
             config.transaction_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Transaction,
             r#"
@@ -549,6 +557,10 @@ SELECT * FROM (
             before,
             config.account_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Account,
             r#"
@@ -821,6 +833,10 @@ contract_address_index.0 as i64,contract_address_sub_index.0 as i64
             config.contract_connection_limit,
         )?;
 
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query!(
             r#"
 SELECT * FROM (
