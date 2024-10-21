@@ -31,7 +31,6 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::borrow::Borrow;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -405,11 +404,10 @@ impl BlockProcessor {
         let last_finalized_block = sqlx::query!(
             r#"
 SELECT
-  height,
   hash
 FROM blocks
-WHERE finalization_time IS NULL
-ORDER BY height ASC
+WHERE finalization_time IS NOT NULL
+ORDER BY height DESC
 LIMIT 1
 "#
         )
@@ -486,9 +484,10 @@ impl ProcessEvent for BlockProcessor {
         let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
-
-        let new_context =
-            PreparedBlock::batch_save(batch, self.current_context.borrow(), &mut tx).await?;
+        // Clone the context, to avoid mutating the current context until we are certain
+        // nothing fails.
+        let mut new_context = self.current_context.clone();
+        PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
@@ -496,9 +495,12 @@ impl ProcessEvent for BlockProcessor {
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
         tx.commit().await.context("Failed to commit SQL transaction")?;
+        // Update metrics.
         let duration = start_time.elapsed();
         self.processing_duration_seconds.observe(duration.as_secs_f64() / batch.len() as f64);
         self.blocks_processed.inc_by(u64::try_from(batch.len())?);
+        // Update the current context when we are certain that nothing failed during
+        // processing.
         self.current_context = new_context;
         Ok(out)
     }
@@ -692,44 +694,46 @@ impl PreparedBlock {
     }
 
     async fn batch_save(
-        batch: &Vec<Self>,
-        context: &BlockProcessingContext,
+        batch: &[Self],
+        context: &mut BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<BlockProcessingContext> {
-        let mut height = Vec::new();
-        let mut hash = Vec::new();
-        let mut slot_time = Vec::new();
-        let mut baker_id = Vec::new();
-        let mut total_amount = Vec::new();
+    ) -> anyhow::Result<()> {
+        let mut heights = Vec::new();
+        let mut hashes = Vec::new();
+        let mut slot_times = Vec::new();
+        let mut baker_ids = Vec::new();
+        let mut total_amounts = Vec::new();
         let mut total_staked = Vec::new();
-        let mut block_time = Vec::new();
+        let mut block_times = Vec::new();
 
         let mut finalizers = Vec::new();
-        let mut last_finalized = Vec::new();
+        let mut last_finalizeds = Vec::new();
         let mut finalizers_slot_time = Vec::new();
 
-        let mut new_context = context.clone();
         for block in batch {
-            height.push(block.height);
-            hash.push(block.hash.clone());
-            slot_time.push(block.slot_time);
-            baker_id.push(block.baker_id);
-            total_amount.push(block.total_amount);
+            heights.push(block.height);
+            hashes.push(block.hash.clone());
+            slot_times.push(block.slot_time);
+            baker_ids.push(block.baker_id);
+            total_amounts.push(block.total_amount);
             total_staked.push(block.total_staked);
-            block_time.push(
+            block_times.push(
                 block
                     .slot_time
-                    .signed_duration_since(new_context.last_block_slot_time)
+                    .signed_duration_since(context.last_block_slot_time)
                     .num_milliseconds(),
             );
-            new_context.last_block_slot_time = block.slot_time;
+            context.last_block_slot_time = block.slot_time;
 
-            if block.block_last_finalized != new_context.last_finalized_hash {
+            // Check if this block knows of a new finalized block.
+            // If so, note it down so we can mark the blocks since last time as finalized by
+            // this block.
+            if block.block_last_finalized != context.last_finalized_hash {
                 finalizers.push(block.height);
                 finalizers_slot_time.push(block.slot_time);
-                last_finalized.push(block.block_last_finalized.clone());
+                last_finalizeds.push(block.block_last_finalized.clone());
 
-                new_context.last_finalized_hash = block.block_last_finalized.clone();
+                context.last_finalized_hash = block.block_last_finalized.clone();
             }
         }
 
@@ -738,40 +742,46 @@ impl PreparedBlock {
   (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
 SELECT * FROM UNNEST(
   $1::BIGINT[],
-  $2::text[],
-  $3::timestamp[],
-  $4::bigint[],
-  $5::bigint[],
-  $6::bigint[],
-  $7::bigint[]
+  $2::TEXT[],
+  $3::TIMESTAMP[],
+  $4::BIGINT[],
+  $5::BIGINT[],
+  $6::BIGINT[],
+  $7::BIGINT[]
 );"#,
-            &height,
-            &hash,
-            &slot_time,
-            &block_time,
-            &baker_id as &[Option<i64>],
-            &total_amount,
+            &heights,
+            &hashes,
+            &slot_times,
+            &block_times,
+            &baker_ids as &[Option<i64>],
+            &total_amounts,
             &total_staked
         )
         .execute(tx.as_mut())
         .await?;
 
+        // With all blocks in the batch inserted we update blocks which we now can
+        // compute the finalization time for. Using the list of finalizer blocks
+        // (those containing a last finalized block different from its predecessor)
+        // we update the blocks below which does not contain finalization time and
+        // compute it to be the difference between the slot_time of the block and the
+        // finalizer block.
         let rec = sqlx::query!(
             r#"
-UPDATE blocks b
-   SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - b.slot_time),
+UPDATE blocks
+   SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - blocks.slot_time),
        finalized_by = finalizer.height
-FROM UNNEST($1::BIGINT[], $2::text[], $3::timestamp[]) AS finalizer(height, finalized, slot_time)
-JOIN blocks l ON finalizer.finalized = l.hash
-WHERE b.finalization_time IS NULL AND b.height <= l.height
+FROM UNNEST($1::BIGINT[], $2::TEXT[], $3::TIMESTAMP[]) AS finalizer(height, finalized, slot_time)
+JOIN blocks last ON finalizer.finalized = last.hash
+WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
 "#,
             &finalizers,
-            &last_finalized,
+            &last_finalizeds,
             &finalizers_slot_time
         )
         .execute(tx.as_mut())
         .await?;
-        Ok(new_context)
+        Ok(())
     }
 }
 
