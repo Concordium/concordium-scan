@@ -22,7 +22,11 @@ use async_graphql::{
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
-use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
+use concordium_rust_sdk::{
+    base::contracts_common::{from_bytes, schema::VersionedModuleSchema},
+    id::types as sdk_types,
+    types::AmountFraction,
+};
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
@@ -277,6 +281,8 @@ enum ApiError {
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
     UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
+    #[error("Schema in database should be valid")]
+    InvalidModuleSchema,
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -938,13 +944,19 @@ WHERE module_reference=$1
         ).fetch_optional(pool).await?
          .ok_or(ApiError::NotFound)?;
 
+        let display_schema = row.display_schema.as_ref().map_or(Ok(None), |s| {
+            from_bytes::<VersionedModuleSchema>(s)
+                .map(|opt_schema| Some(opt_schema.to_string()))
+                .map_err(|_| ApiError::InvalidModuleSchema)
+        })?;
+
         Ok(ModuleReferenceEvent {
             module_reference,
             sender: row.sender.into(),
             block_height: row.block_height,
             transaction_hash: row.transaction_hash,
             block_slot_time: row.block_slot_time,
-            display_schema: row.display_schema,
+            display_schema,
         })
     }
 }

@@ -264,7 +264,7 @@ CREATE TABLE smart_contract_modules(
         BIGINT
         NOT NULL,
     -- Embedded schema in the module if present.
-    schema TEXT
+    schema BYTEA
 );
 
 -- Every contract instance on chain.

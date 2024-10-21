@@ -8,7 +8,7 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
-    base::smart_contracts::WasmVersion,
+    base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
@@ -1385,7 +1385,7 @@ struct PreparedModuleDeployed {
     block_height: i64,
     deployment_transaction_index: i64,
     module_reference: String,
-    schema: Option<String>,
+    schema: Option<Vec<u8>>,
 }
 
 impl PreparedModuleDeployed {
@@ -1408,7 +1408,7 @@ impl PreparedModuleDeployed {
         }
         .ok();
 
-        let schema = schema.as_ref().map(|s| s.to_string());
+        let schema = schema.as_ref().map(to_bytes);
 
         Ok(Self {
             block_height: i64::try_from(block_height.height)?,
