@@ -112,8 +112,14 @@ CREATE TABLE blocks(
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
-    -- Index of the transaction within the block.
+    -- Global index of the transaction, i.e. across blocks.
+    -- This is used to quickly determine counts of transactions, so
+    -- this _must_ be strictly increasing without skipping any values.
     index
+        BIGINT
+        PRIMARY KEY,
+    -- Index of the transaction within the block.
+    block_index
         BIGINT
         NOT NULL,
     -- Absolute height of the block containing the transaction.
@@ -164,8 +170,8 @@ CREATE TABLE transactions(
     reject
         JSONB,
 
-    -- Make the block height and transaction index the primary key.
-    PRIMARY KEY (block_height, index)
+    -- Within a single block, two transactions cannot share the same index.
+    UNIQUE (block_height, block_index)
 );
 
 -- Every account on chain.
@@ -193,7 +199,7 @@ CREATE TABLE accounts(
         BIGINT
         NOT NULL,
     -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions(block_height, index)
+    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, block_index)
     -- credential_registration_id
 );
 
@@ -266,4 +272,3 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER block_added_notify_trigger AFTER INSERT
 ON blocks
 FOR EACH ROW EXECUTE PROCEDURE block_added_notify_trigger_function();
-

@@ -844,9 +844,9 @@ impl PreparedBlockItem {
     ) -> anyhow::Result<()> {
         sqlx::query!(
                 r#"INSERT INTO transactions
-(index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
+(index, block_index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)
 VALUES
-($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
+((SELECT COALESCE(MAX(index) + 1, 0) FROM transactions), $1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);"#,
             self.block_item_index,
             self.block_item_hash,
             self.ccd_cost,

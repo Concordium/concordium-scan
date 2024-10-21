@@ -5,6 +5,9 @@
 
 #![allow(unused_variables)]
 
+mod context_ext;
+mod transaction_metrics;
+
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
 macro_rules! todo_api {
@@ -15,17 +18,16 @@ macro_rules! todo_api {
 
 use anyhow::Context as _;
 use async_graphql::{
-    http::GraphiQLSource,
-    types::{self, connection},
-    ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult,
-    Interface, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union, Value,
+    http::GraphiQLSource, types::{self, connection}, ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult, Interface, MergedObject, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union, Value
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
+use context_ext::ContextExt;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
+use transaction_metrics::TransactionMetricsQuery;
 use std::{error::Error, str::FromStr as _, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
@@ -52,6 +54,9 @@ pub struct ApiServiceConfig {
     transaction_event_connection_limit: i64,
 }
 
+#[derive(MergedObject, Default)]
+pub struct Query(BaseQuery, TransactionMetricsQuery);
+
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
 }
@@ -62,7 +67,7 @@ impl Service {
         pool: PgPool,
         config: ApiServiceConfig,
     ) -> Self {
-        let schema = Schema::build(Query, EmptyMutation, subscription)
+        let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
             .data(pool)
@@ -281,16 +286,6 @@ impl From<sqlx::Error> for ApiError {
 
 type ApiResult<A> = Result<A, ApiError>;
 
-/// Get the database pool from the context.
-fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
-    ctx.data::<PgPool>().map_err(ApiError::NoDatabasePool)
-}
-
-/// Get service configuration from the context.
-fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
-    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
-}
-
 trait ConnectionCursor {
     const MIN: Self;
     const MAX: Self;
@@ -354,10 +349,12 @@ impl<A> ConnectionQuery<A> {
     }
 }
 
-pub struct Query;
+#[derive(Default)]
+pub struct BaseQuery;
+
 #[Object]
 #[allow(clippy::too_many_arguments)]
-impl Query {
+impl BaseQuery {
     async fn versions(&self) -> Versions {
         Versions {
             backend_versions: VERSION.to_string(),
@@ -366,7 +363,7 @@ impl Query {
 
     async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
         let height: BlockHeight = height_id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Block::query_by_height(get_pool(ctx)?, height).await
+        Block::query_by_height(ctx.pool()?, height).await
     }
 
     async fn block_by_block_hash<'a>(
@@ -374,7 +371,7 @@ impl Query {
         ctx: &Context<'a>,
         block_hash: BlockHash,
     ) -> ApiResult<Block> {
-        Block::query_by_hash(get_pool(ctx)?, block_hash).await
+        Block::query_by_hash(ctx.pool()?, block_hash).await
     }
 
     async fn blocks<'a>(
@@ -387,8 +384,8 @@ impl Query {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
+        let config = ctx.config()?;
+        let pool = ctx.pool()?;
         let query = ConnectionQuery::<BlockHeight>::new(
             first,
             after,
@@ -433,7 +430,7 @@ SELECT * FROM (
 
     async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
         let id = IdTransaction::try_from(id)?;
-        Transaction::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
+        Transaction::query_by_id(ctx.pool()?, id).await?.ok_or(ApiError::NotFound)
     }
 
     async fn transaction_by_transaction_hash<'a>(
@@ -441,7 +438,7 @@ SELECT * FROM (
         ctx: &Context<'a>,
         transaction_hash: TransactionHash,
     ) -> ApiResult<Transaction> {
-        Transaction::query_by_hash(get_pool(ctx)?, transaction_hash)
+        Transaction::query_by_hash(ctx.pool()?, transaction_hash)
             .await?
             .ok_or(ApiError::NotFound)
     }
@@ -456,8 +453,8 @@ SELECT * FROM (
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
+        let config = ctx.config()?;
+        let pool = ctx.pool()?;
         let query = ConnectionQuery::<IdTransaction>::new(
             first,
             after,
@@ -512,7 +509,7 @@ SELECT * FROM (
 
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Account::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(ctx.pool()?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn account_by_address<'a>(
@@ -520,7 +517,7 @@ SELECT * FROM (
         ctx: &Context<'a>,
         account_address: String,
     ) -> ApiResult<Account> {
-        Account::query_by_address(get_pool(ctx)?, account_address).await?.ok_or(ApiError::NotFound)
+        Account::query_by_address(ctx.pool()?, account_address).await?.ok_or(ApiError::NotFound)
     }
 
     async fn accounts<'a>(
@@ -536,8 +533,8 @@ SELECT * FROM (
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         // TODO: include sort and filter
-        let pool = get_pool(ctx)?;
-        let config = get_config(ctx)?;
+        let pool = ctx.pool()?;
+        let config = ctx.config()?;
         let query = ConnectionQuery::<AccountIndex>::new(
             first,
             after,
@@ -578,11 +575,11 @@ SELECT * FROM (
 
     async fn baker<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Baker> {
         let id = IdBaker::try_from(id)?.baker_id;
-        Baker::query_by_id(get_pool(ctx)?, id).await
+        Baker::query_by_id(ctx.pool()?, id).await
     }
 
     async fn baker_by_baker_id<'a>(&self, ctx: &Context<'a>, id: BakerId) -> ApiResult<Baker> {
-        Baker::query_by_id(get_pool(ctx)?, id).await
+        Baker::query_by_id(ctx.pool()?, id).await
     }
 
     async fn bakers(
@@ -610,8 +607,8 @@ SELECT * FROM (
         ctx: &Context<'a>,
         period: MetricsPeriod,
     ) -> ApiResult<BlockMetrics> {
-        let pool = get_pool(ctx)?;
-        let config = get_config(ctx)?;
+        let pool = ctx.pool()?;
+        let config = ctx.config()?;
         let non_circulating_accounts =
             config.non_circulating_account.iter().map(|a| a.to_string()).collect::<Vec<_>>();
 
@@ -721,7 +718,6 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     }
 
     // accountsMetrics(period: MetricsPeriod!): AccountsMetrics
-    // transactionMetrics(period: MetricsPeriod!): TransactionMetrics
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
@@ -1022,7 +1018,7 @@ impl Block {
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let result =
             sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height=$1", self.height)
-                .fetch_one(get_pool(ctx)?)
+                .fetch_one(ctx.pool()?)
                 .await?;
         Ok(result.count.unwrap_or(0))
     }
@@ -2196,7 +2192,7 @@ impl Transaction {
     async fn energy_cost(&self) -> Energy { self.energy_cost }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
-        Block::query_by_height(get_pool(ctx)?, self.block_height).await
+        Block::query_by_height(ctx.pool()?, self.block_height).await
     }
 
     async fn sender_account_address<'a>(
@@ -2207,7 +2203,7 @@ impl Transaction {
             return Ok(None);
         };
         let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)
-            .fetch_one(get_pool(ctx)?)
+            .fetch_one(ctx.pool()?)
             .await?;
         Ok(Some(result.address.into()))
     }
@@ -2548,7 +2544,7 @@ impl Account {
     /// Timestamp of the block where this account was created.
     async fn created_at<'a>(&self, ctx: &Context<'a>) -> ApiResult<DateTime> {
         let rec = sqlx::query!("SELECT slot_time FROM blocks WHERE height=$1", self.created_block)
-            .fetch_one(get_pool(ctx)?)
+            .fetch_one(ctx.pool()?)
             .await?;
         Ok(rec.slot_time)
     }
@@ -2556,7 +2552,7 @@ impl Account {
     /// Number of transactions where this account is used as sender.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let rec = sqlx::query!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
-            .fetch_one(get_pool(ctx)?)
+            .fetch_one(ctx.pool()?)
             .await?;
         Ok(rec.count.unwrap_or(0))
     }
@@ -2723,7 +2719,7 @@ impl Baker {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.id).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(ctx.pool()?, self.id).await?.ok_or(ApiError::NotFound)
     }
 
     // transactions("Returns the first _n_ elements from the list." first: Int
@@ -4489,6 +4485,7 @@ impl MetricsPeriod {
             MetricsPeriod::Last24Hours => Duration::hours(24),
             MetricsPeriod::Last7Days => Duration::days(7),
             MetricsPeriod::Last30Days => Duration::days(30),
+            // TODO: Explain why this isn't 365.
             MetricsPeriod::LastYear => Duration::days(364),
         }
     }

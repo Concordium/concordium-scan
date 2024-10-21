@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO transactions\n(index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)\nVALUES\n($1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);",
+  "query": "INSERT INTO transactions\n(index, block_index, hash, ccd_cost, energy_cost, block_height, sender, type, type_account, type_credential_deployment, type_update, success, events, reject)\nVALUES\n((SELECT COALESCE(MAX(index) + 1, 0) FROM transactions), $1, $2, $3, $4, $5, (SELECT index FROM accounts WHERE address=$6), $7, $8, $9, $10, $11, $12, $13);",
   "describe": {
     "columns": [],
     "parameters": {
@@ -103,5 +103,5 @@
     },
     "nullable": []
   },
-  "hash": "fba71388ff31763f6cae9d853cd4eb3032a01758be41d968d987b0dde5de2a4e"
+  "hash": "059b4309a88b3c66d069a3a1a79c11cee2aa64f700dc1289a703b076afb8833f"
 }
