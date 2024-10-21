@@ -8,7 +8,7 @@
         "Int8",
         "Int8",
         "Bpchar",
-        "Text",
+        "Varchar",
         "Int8",
         "Int8",
         "Int8"

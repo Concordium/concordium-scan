@@ -20,19 +20,20 @@ To run the services, the following dependencies are required to be available on 
 For instructions on how to use the indexer run:
 
 ```
-cargo run --bin ccdscan-indexer -- --help
+ccdscan-indexer --help
 ```
 
-Example:
+## Run the Indexer Service during development
+
+Examples:
 
 ```
 cargo run --bin ccdscan-indexer -- --node http://localhost:20001 --max-parallel-block-preprocessors 20 --max-processing-batch 20
-cargo run --bin ccdscan-indexer -- --node http://node.testnet.concordium.com:20000
-cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000
+cargo run --bin ccdscan-indexer -- --node https://grpc.testnet.concordium.com:20000 --max-parallel-block-preprocessors 20 --max-processing-batch 20
 ```
 
-Note: Queries like `getSourceModule` might timeout (are disabled) on our public-facing nodes. The recommendation is to run
-your own local node during development.
+Note: Since the indexer puts a lot of load on the node, use your own local node whenever possible.
+If using the public nodes, run the indexer as short as possible.
 
 <!-- TODO When service become stable: add documentation of arguments and environment variables. -->
 
@@ -41,8 +42,10 @@ your own local node during development.
 For instructions on how to use the API service run:
 
 ```
-cargo run --bin ccdscan-api -- --help
+ccdscan-api --help
 ```
+
+## Run the GraphQL API Service during development
 
 Example:
 
@@ -173,7 +176,7 @@ This will generate type metadata for the queries in the `.sqlx` folder.
 
 - Feature 2:
 
-If you want to update your database to a new schema, execute the command:
+If you want to drop the entire database and start with an empty database that uses the current schema, execute the command:
 
 ```
 sqlx database reset --force

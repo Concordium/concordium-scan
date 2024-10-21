@@ -276,7 +276,7 @@ enum ApiError {
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
-    UnsignedLongParse(#[from] UnsignedLongParseError),
+    UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -1046,21 +1046,13 @@ impl ScalarType for UnsignedLong {
 }
 
 #[derive(Debug, thiserror::Error, Clone)]
-enum UnsignedLongParseError {
-    #[error("Negative number cannot be converted to UnsignedLong.")]
-    NotNegative,
-}
+#[error("Negative number cannot be converted to UnsignedLong.")]
+struct UnsignedLongNotNegativeError;
 
 impl TryFrom<i64> for UnsignedLong {
-    type Error = UnsignedLongParseError;
+    type Error = <u64 as TryFrom<i64>>::Error;
 
-    fn try_from(number: i64) -> Result<Self, Self::Error> {
-        if number < 0 {
-            Err(UnsignedLongParseError::NotNegative)?
-        } else {
-            Ok(UnsignedLong(number as u64))
-        }
-    }
+    fn try_from(number: i64) -> Result<Self, Self::Error> { Ok(UnsignedLong(number.try_into()?)) }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric

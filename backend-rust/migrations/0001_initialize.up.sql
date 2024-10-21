@@ -247,15 +247,13 @@ CREATE TABLE bakers(
         BIGINT
 );
 
--- Every WASM module on chain.
+-- Every module on chain.
 CREATE TABLE smart_contract_modules(
-    index
-        BIGINT
-        PRIMARY KEY,
-    -- Module reference of the wasm module.
+    -- Module reference of the module.
     module_reference
         CHAR(64)
         UNIQUE
+        PRIMARY KEY
         NOT NULL,
     -- The absolute block height when the module was deployed.
     deployment_block_height
@@ -265,7 +263,7 @@ CREATE TABLE smart_contract_modules(
     deployment_transaction_index
         BIGINT
         NOT NULL,
-    -- Embedded schema in the wasm module if present.
+    -- Embedded schema in the module if present.
     schema TEXT
 );
 
@@ -280,13 +278,13 @@ CREATE TABLE contracts(
         BIGINT
         NOT NULL,
     -- Note: It might be better to use `module_reference_index` which would save storage space but would require more work in inserting/querying by the indexer.
-    -- Module reference of the wasm module.
+    -- Module reference of the module.
     module_reference
         CHAR(64)
         NOT NULL,
     -- The contract name.
     name
-        TEXT
+        VARCHAR(100)
         NOT NULL,
     -- The total balance of the contract in micro CCD.
     amount

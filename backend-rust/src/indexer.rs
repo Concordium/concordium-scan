@@ -1425,13 +1425,11 @@ impl PreparedModuleDeployed {
         sqlx::query!(
             r#"
 INSERT INTO smart_contract_modules (
-    index,
     module_reference,
     deployment_block_height,
     deployment_transaction_index,
     schema
 ) VALUES (
-  (SELECT COALESCE(MAX(index) + 1, 0) FROM smart_contract_modules),
   $1, $2, $3, $4
 )"#,
             self.module_reference,
