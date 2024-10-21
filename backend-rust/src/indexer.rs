@@ -8,12 +8,14 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
+    base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
+    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -128,7 +130,24 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
-        let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
+        // Set up endpoints to the node.
+        let mut endpoints_with_schema = Vec::new();
+        for endpoint in self.endpoints {
+            if endpoint
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            {
+                let new_endpoint = endpoint
+                    .tls_config(tonic::transport::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium node.")?;
+                endpoints_with_schema.push(new_endpoint);
+            } else {
+                endpoints_with_schema.push(endpoint);
+            }
+        }
+
+        let traverse_config = TraverseConfig::new(endpoints_with_schema, self.start_height.into())
             .context("Failed setting up TraverseConfig")?
             .set_max_parallel(self.config.max_parallel_block_preprocessors)
             .set_max_behind(std::time::Duration::from_secs(self.config.node_max_behind));
@@ -325,7 +344,8 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block = PreparedBlock::prepare(&data).map_err(RPCError::ParseError)?;
+            let prepared_block =
+                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -643,7 +663,7 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -658,7 +678,8 @@ impl PreparedBlock {
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
-            prepared_block_items.push(PreparedBlockItem::prepare(data, block_item)?)
+            prepared_block_items
+                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -769,7 +790,11 @@ struct PreparedBlockItem {
 }
 
 impl PreparedBlockItem {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_index = i64::try_from(block_item.index.index)?;
         let block_item_hash = block_item.hash.to_string();
@@ -796,7 +821,7 @@ impl PreparedBlockItem {
             };
         let success = block_item.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(&events_from_summary(block_item.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(block_item.details.clone())?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -818,7 +843,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(data, block_item)?;
+        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -876,11 +901,19 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    /// Smart contract module got deployed.
+    ModuleDeployed(PreparedModuleDeployed),
+    /// Contract got initialized.
+    ContractInitialized(PreparedContractInitialized),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
 impl PreparedEvent {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Option<Self>> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Option<Self>> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -894,10 +927,15 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => None,
+                } => Some(PreparedEvent::ModuleDeployed(
+                    PreparedModuleDeployed::prepare(node_client, data, block_item, *module_ref)
+                        .await?,
+                )),
                 AccountTransactionEffects::ContractInitialized {
-                    data,
-                } => None,
+                    data: event_data,
+                } => Some(PreparedEvent::ContractInitialized(
+                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => None,
@@ -1034,6 +1072,8 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
+            PreparedEvent::ContractInitialized(event) => event.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1337,6 +1377,135 @@ impl PreparedBakerEvent {
             }
             PreparedBakerEvent::NoOperation => (),
         }
+        Ok(())
+    }
+}
+
+struct PreparedModuleDeployed {
+    block_height: i64,
+    deployment_transaction_index: i64,
+    module_reference: String,
+    schema: Option<Vec<u8>>,
+}
+
+impl PreparedModuleDeployed {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        module_reference: sdk_types::hashes::ModuleReference,
+    ) -> anyhow::Result<Self> {
+        let block_height = data.finalized_block_info.height;
+        let deployment_transaction_index = block_item.index.index.try_into()?;
+
+        let wasm_module = node_client
+            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
+        let schema = match wasm_module.version {
+            WasmVersion::V0 => get_embedded_schema_v0(wasm_module.source.as_ref()),
+            WasmVersion::V1 => get_embedded_schema_v1(wasm_module.source.as_ref()),
+        }
+        .ok();
+
+        let schema = schema.as_ref().map(to_bytes);
+
+        Ok(Self {
+            block_height: i64::try_from(block_height.height)?,
+            deployment_transaction_index,
+            module_reference: module_reference.into(),
+            schema,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+INSERT INTO smart_contract_modules (
+    module_reference,
+    deployment_block_height,
+    deployment_transaction_index,
+    schema
+) VALUES (
+  $1, $2, $3, $4
+)"#,
+            self.module_reference,
+            self.block_height,
+            self.deployment_transaction_index,
+            self.schema
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedContractInitialized {
+    index:            i64,
+    sub_index:        i64,
+    module_reference: String,
+    name:             String,
+    amount:           i64,
+    height:           i64,
+    tx_index:         i64,
+}
+
+impl PreparedContractInitialized {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractInitializedEvent,
+    ) -> anyhow::Result<Self> {
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let tx_index = block_item.index.index.try_into()?;
+
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let module_reference = event.origin_ref;
+        let name = event.init_name.to_string();
+
+        Ok(Self {
+            index,
+            sub_index,
+            module_reference: module_reference.into(),
+            amount,
+            name,
+            height,
+            tx_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contracts (
+                index,
+                sub_index,
+                module_reference,
+                name,
+                amount,
+                init_block_height,
+                init_transaction_index
+                )
+             VALUES (
+                $1, $2, $3, $4, $5, $6, $7
+            )"#,
+            self.index,
+            self.sub_index,
+            self.module_reference,
+            self.name,
+            self.amount,
+            self.height,
+            self.tx_index,
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
