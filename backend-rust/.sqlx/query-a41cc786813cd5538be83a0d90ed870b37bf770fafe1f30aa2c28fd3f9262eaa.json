@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE blocks b\n   SET finalization_time = EXTRACT(\"MILLISECONDS\" FROM finalizer.slot_time - b.slot_time),\n       finalized_by = finalizer.height\nFROM UNNEST($1::BIGINT[], $2::text[], $3::timestamp[]) AS finalizer(height, finalized, slot_time)\nJOIN blocks l ON finalizer.finalized = l.hash\nWHERE b.finalization_time IS NULL AND b.height <= l.height\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TextArray",
+        "TimestampArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a41cc786813cd5538be83a0d90ed870b37bf770fafe1f30aa2c28fd3f9262eaa"
+}
