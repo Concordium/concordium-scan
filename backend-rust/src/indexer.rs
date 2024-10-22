@@ -15,7 +15,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, ContractTraceElement, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -1055,6 +1055,8 @@ enum PreparedEvent {
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
+    /// Contract got updated.
+    ContractUpdate(Vec<PreparedContractUpdate>),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -1088,7 +1090,15 @@ impl PreparedEventData {
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
-                } => None,
+                } => Some(PreparedEvent::ContractUpdate(
+                    effects
+                        .iter()
+                        .enumerate()
+                        .map(|(index, effect)| {
+                            PreparedContractUpdate::prepare(data, block_item, effect)
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
                     to,
@@ -1250,6 +1260,14 @@ impl PreparedEventData {
                 } else {
                     Ok(())
                 }
+            }
+            PreparedEvent::ContractUpdate(events) => {
+                if self.success {
+                    for event in events {
+                        event.save(tx).await?;
+                    }
+                }
+                Ok(())
             }
             PreparedEvent::NoOperation => Ok(()),
         }
@@ -1648,7 +1666,7 @@ impl PreparedContractInitialized {
         let sub_index = i64::try_from(event.address.subindex)?;
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let module_reference = event.origin_ref;
-        let name = event.init_name.to_string();
+        let name = event.init_name.to_string().replace("init_", "");
         let version = i32::try_from(event.contract_version as u32)?;
 
         Ok(Self {
@@ -1688,21 +1706,74 @@ impl PreparedContractInitialized {
         .execute(tx.as_mut())
         .await?;
 
-        // TODO: fix event index.
+        Ok(())
+    }
+}
+
+struct PreparedContractUpdate {
+    tx_index:           i64,
+    contract_index:     i64,
+    contract_sub_index: i64,
+}
+
+impl PreparedContractUpdate {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractTraceElement,
+    ) -> anyhow::Result<Self> {
+        let tx_index = block_item.index.index.try_into()?;
+
+        let contract_address = match event {
+            ContractTraceElement::Updated {
+                data,
+            } => data.address,
+            ContractTraceElement::Transferred {
+                from,
+                amount,
+                to,
+            } => *from,
+            ContractTraceElement::Interrupted {
+                address,
+                events,
+            } => *address,
+            ContractTraceElement::Resumed {
+                address,
+                success,
+            } => *address,
+            ContractTraceElement::Upgraded {
+                address,
+                from,
+                to,
+            } => *address,
+        };
+
+        let index = i64::try_from(contract_address.index)?;
+        let sub_index = i64::try_from(contract_address.subindex)?;
+
+        Ok(Self {
+            tx_index,
+            contract_index: index,
+            contract_sub_index: sub_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
         sqlx::query!(
             r#"INSERT INTO contract_events (
                 transaction_index,
-                event_index,
                 contract_index,
                 contract_sub_index
             )
             VALUES (
-                $1, $2, $3, $4
+                $1, $2, $3
             )"#,
             self.tx_index,
-            0i64,
-            self.index,
-            self.sub_index
+            self.contract_index,
+            self.contract_sub_index
         )
         .execute(tx.as_mut())
         .await?;

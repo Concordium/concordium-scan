@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO contract_events (\n                transaction_index,\n                contract_index,\n                contract_sub_index\n            )\n            VALUES (\n                $1, $2, $3\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "400990b63507f21d65c36b8f13fe822c45e6eaa327bc7b7d7125b058bd2daeb8"
+}

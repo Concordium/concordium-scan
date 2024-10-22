@@ -1356,7 +1356,13 @@ impl Contract {
 
         let pool = get_pool(ctx)?;
 
-        let row = sqlx::query!(
+        let include_initial_event = true;
+
+        let mut contract_events = vec![];
+        let mut total_events_count = 0;
+
+        if include_initial_event {
+            let row = sqlx::query!(
             r#"
 SELECT
   module_reference,
@@ -1377,13 +1383,7 @@ self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
         ).fetch_optional(pool).await?
          .ok_or(ApiError::NotFound)?;
 
-        Ok(ContractEventsCollectionSegment {
-            // TODO: add pagination info
-            page_info:   CollectionSegmentInfo {
-                has_next_page:     false,
-                has_previous_page: false,
-            },
-            items:       Some(vec![ContractEvent {
+            let initial_event = ContractEvent {
                 contract_address_index: self.contract_address_index,
                 contract_address_sub_index: self.contract_address_sub_index,
                 sender: row.creator.into(),
@@ -1394,15 +1394,26 @@ self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
                         self.contract_address_sub_index,
                     ),
                     amount:           row.amount,
-                    // Check name or have to add `init_` to the name
-                    init_name:        row.contract_name,
+                    init_name:        format!("init_{:}", row.contract_name),
                     version:          row.version.try_into()?,
                 }),
                 block_height: row.block_height,
                 transaction_hash: row.transaction_hash,
                 block_slot_time: row.block_slot_time,
-            }]),
-            total_count: 1,
+            };
+
+            contract_events.push(initial_event);
+            total_events_count += 1;
+        }
+
+        Ok(ContractEventsCollectionSegment {
+            // TODO: add pagination info
+            page_info:   CollectionSegmentInfo {
+                has_next_page:     false,
+                has_previous_page: false,
+            },
+            items:       Some(contract_events),
+            total_count: total_events_count,
         })
     }
 

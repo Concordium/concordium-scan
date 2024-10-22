@@ -389,10 +389,6 @@ CREATE TABLE contract_events (
     transaction_index
         BIGINT
         NOT NULL,
-    -- Event index of the event.
-    event_index
-        BIGINT
-        NOT NULL,
     -- Contract index that event is associated with.
     contract_index
         BIGINT
