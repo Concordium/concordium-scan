@@ -107,7 +107,14 @@ CREATE TABLE blocks(
     -- The total staked amount of CCD at the time of this block was created in micro CCD.
     total_staked
         BIGINT
+        NOT NULL,
+    -- Number of transactions in all blocks up to and including this one.
+    -- This is a denormalized value used to quickly calculate transaction counts
+    -- without having to scan through the transactions table.
+    cumulative_num_txs
+        BIGINT
         NOT NULL
+        CONSTRAINT cumulative_num_txs_non_negative CHECK (0 <= cumulative_num_txs)
 );
 
 -- Every transaction on chain.

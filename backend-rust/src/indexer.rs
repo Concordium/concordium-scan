@@ -404,7 +404,8 @@ impl BlockProcessor {
             r#"
 SELECT
   height as last_finalized_height,
-  hash as last_finalized_hash
+  hash as last_finalized_hash,
+  cumulative_num_txs as last_cumulative_num_txs
 FROM blocks
 WHERE finalization_time IS NULL
 ORDER BY height ASC
@@ -512,6 +513,10 @@ struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
     last_finalized_hash:   String,
+    /// The value of cumulative_num_txs from the last block.
+    /// This, along with the number of transactions in the current block,
+    /// is used to calculate the next cumulative_num_txs.
+    last_cumulative_num_txs: i64,
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -551,12 +556,19 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let total_amount =
             i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, total_amount, total_staked) VALUES ($1, $2, $3, 0, $4, $5);"#,
-            0,
+            "INSERT INTO blocks (
+                height,
+                hash,
+                slot_time,
+                block_time,
+                total_amount,
+                total_staked,
+                cumulative_num_txs
+            ) VALUES (0, $1, $2, 0, $3, $4, 0);",
             block_hash,
             slot_time,
             total_amount,
-            total_staked
+            total_staked,
         ).execute(&mut *tx)
         .await?;
     }
@@ -677,17 +689,35 @@ impl PreparedBlock {
         context: &BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<Option<BlockProcessingContext>> {
+        let cumulative_num_txs = context.last_cumulative_num_txs + self.prepared_block_items.len() as i64;
+
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
-VALUES ($1, $2, $3,
-  (SELECT EXTRACT("MILLISECONDS" FROM $3 - b.slot_time) FROM blocks b WHERE b.height=($1 - 1::bigint)),
-  $4, $5, $6);"#,
+            "INSERT INTO blocks (
+                height,
+                hash,
+                slot_time,
+                block_time,
+                baker_id,
+                total_amount,
+                total_staked,
+                cumulative_num_txs
+            ) VALUES (
+                $1,
+                $2,
+                $3,
+                (SELECT EXTRACT(MILLISECONDS FROM $3 - b.slot_time) FROM blocks b WHERE b.height = ($1 - 1::bigint)),
+                $4,
+                $5,
+                $6,
+                $7
+            );",
             self.height,
             self.hash,
             self.slot_time,
             self.baker_id,
             self.total_amount,
-            self.total_staked
+            self.total_staked,
+            cumulative_num_txs
         )
         .execute(tx.as_mut())
             .await?;
@@ -717,6 +747,7 @@ RETURNING finalizer.height"#,
             let new_context = BlockProcessingContext {
                 last_finalized_hash:   self.block_last_finalized.clone(),
                 last_finalized_height: rec.height,
+                last_cumulative_num_txs: cumulative_num_txs,
             };
             Some(new_context)
         } else {

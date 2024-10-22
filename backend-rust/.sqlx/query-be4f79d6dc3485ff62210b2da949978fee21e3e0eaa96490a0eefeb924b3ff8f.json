@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO blocks (\n                height,\n                hash,\n                slot_time,\n                block_time,\n                total_amount,\n                total_staked,\n                cumulative_num_txs\n            ) VALUES (0, $1, $2, 0, $3, $4, 0);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Timestamp",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "be4f79d6dc3485ff62210b2da949978fee21e3e0eaa96490a0eefeb924b3ff8f"
+}
