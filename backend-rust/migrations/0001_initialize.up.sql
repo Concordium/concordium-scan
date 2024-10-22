@@ -389,6 +389,14 @@ CREATE TABLE contract_events (
     transaction_index
         BIGINT
         NOT NULL,
+    -- Trace element index of the event traces from above transaction.
+    trace_element_index
+        BIGINT
+        NOT NULL,
+    -- The absolute block height of the block that includes the event.
+    block_height
+        BIGINT
+        NOT NULL,
     -- Contract index that event is associated with.
     contract_index
         BIGINT

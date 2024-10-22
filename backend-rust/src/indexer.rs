@@ -1094,8 +1094,13 @@ impl PreparedEventData {
                     effects
                         .iter()
                         .enumerate()
-                        .map(|(index, effect)| {
-                            PreparedContractUpdate::prepare(data, block_item, effect)
+                        .map(|(trace_element_index, effect)| {
+                            PreparedContractUpdate::prepare(
+                                data,
+                                block_item,
+                                effect,
+                                trace_element_index,
+                            )
                         })
                         .collect::<anyhow::Result<Vec<_>>>()?,
                 )),
@@ -1711,9 +1716,11 @@ impl PreparedContractInitialized {
 }
 
 struct PreparedContractUpdate {
-    tx_index:           i64,
-    contract_index:     i64,
-    contract_sub_index: i64,
+    tx_index:            i64,
+    trace_element_index: i64,
+    height:              i64,
+    contract_index:      i64,
+    contract_sub_index:  i64,
 }
 
 impl PreparedContractUpdate {
@@ -1721,9 +1728,8 @@ impl PreparedContractUpdate {
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractTraceElement,
+        trace_element_index: usize,
     ) -> anyhow::Result<Self> {
-        let tx_index = block_item.index.index.try_into()?;
-
         let contract_address = match event {
             ContractTraceElement::Updated {
                 data,
@@ -1748,11 +1754,16 @@ impl PreparedContractUpdate {
             } => *address,
         };
 
+        let tx_index = block_item.index.index.try_into()?;
+        let trace_element_index = trace_element_index.try_into()?;
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
         Ok(Self {
             tx_index,
+            trace_element_index,
+            height,
             contract_index: index,
             contract_sub_index: sub_index,
         })
@@ -1765,13 +1776,17 @@ impl PreparedContractUpdate {
         sqlx::query!(
             r#"INSERT INTO contract_events (
                 transaction_index,
+                trace_element_index,
+                block_height,
                 contract_index,
                 contract_sub_index
             )
             VALUES (
-                $1, $2, $3
+                $1, $2, $3, $4, $5
             )"#,
             self.tx_index,
+            self.trace_element_index,
+            self.height,
             self.contract_index,
             self.contract_sub_index
         )

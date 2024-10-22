@@ -1356,6 +1356,8 @@ impl Contract {
 
         let pool = get_pool(ctx)?;
 
+        // TODO: depending on `skip` and `take` values, we either include or not include
+        // the initial event.
         let include_initial_event = true;
 
         let mut contract_events = vec![];
@@ -1405,6 +1407,37 @@ self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
             contract_events.push(initial_event);
             total_events_count += 1;
         }
+
+        // TODO: add `take` and `skip` to the query.
+        let limit = 3;
+
+        // TODO: add events and extract/decode it based on the `trace_element_index`
+        let row_stream = sqlx::query!(
+            r#"
+                    SELECT * FROM (
+                        SELECT
+                            contract_events.index,
+                            contract_events.transaction_index,
+                            trace_element_index,
+                            contract_events.block_height AS event_block_height,
+                            transactions.hash as transaction_hash,
+                            blocks.slot_time as block_slot_time
+                        FROM contract_events
+                        JOIN transactions
+                        ON contract_events.block_height = transactions.block_height
+                        AND contract_events.transaction_index = transactions.index
+                        JOIN blocks ON contract_events.block_height = blocks.height
+                        WHERE contract_events.contract_index = $1
+                        AND contract_events.contract_sub_index <= $2
+                        LIMIT $3
+                    ) AS contract_data
+                    ORDER BY contract_data.index ASC
+                    "#,
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            limit
+        )
+        .fetch(pool);
 
         Ok(ContractEventsCollectionSegment {
             // TODO: add pagination info
