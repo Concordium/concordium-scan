@@ -299,6 +299,10 @@ CREATE TABLE contracts(
     init_transaction_index
         BIGINT
         NOT NULL,
+    -- The version of the smart contract.
+    version
+        INT
+        NOT NULL,
 
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
@@ -308,7 +312,7 @@ CREATE TABLE contracts(
 CREATE TABLE module_contract_link_events(
     -- An index/id for this event (row number).
     index
-        BIGSERIAL
+        BIGINT GENERATED ALWAYS AS IDENTITY
         PRIMARY KEY
         NOT NULL,
     -- Event index of the event.
@@ -344,7 +348,7 @@ CREATE TABLE module_contract_link_events(
 CREATE TABLE contract_events (
     -- An index/id for this event (row number).
     index
-        BIGSERIAL
+        BIGINT GENERATED ALWAYS AS IDENTITY
         PRIMARY KEY
         NOT NULL,
     -- Transaction index including the event.
@@ -372,7 +376,7 @@ CREATE TABLE contract_events (
 CREATE TABLE contract_reject_events(
     -- An index/id for this event (row number).
     index
-        BIGSERIAL
+        BIGINT GENERATED ALWAYS AS IDENTITY
         PRIMARY KEY
         NOT NULL,
     -- Transaction index including the event.

@@ -1487,6 +1487,7 @@ struct PreparedContractInitialized {
     amount:           i64,
     height:           i64,
     tx_index:         i64,
+    version:          i32,
 }
 
 impl PreparedContractInitialized {
@@ -1503,6 +1504,7 @@ impl PreparedContractInitialized {
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let module_reference = event.origin_ref;
         let name = event.init_name.to_string();
+        let version = i32::try_from(event.contract_version as u32)?;
 
         Ok(Self {
             index,
@@ -1512,6 +1514,7 @@ impl PreparedContractInitialized {
             name,
             height,
             tx_index,
+            version,
         })
     }
 
@@ -1527,10 +1530,11 @@ impl PreparedContractInitialized {
                 name,
                 amount,
                 init_block_height,
-                init_transaction_index
+                init_transaction_index,
+                version
                 )
              VALUES (
-                $1, $2, $3, $4, $5, $6, $7
+                $1, $2, $3, $4, $5, $6, $7, $8
             )"#,
             self.index,
             self.sub_index,
@@ -1539,6 +1543,7 @@ impl PreparedContractInitialized {
             self.amount,
             self.height,
             self.tx_index,
+            self.version
         )
         .execute(tx.as_mut())
         .await?;
