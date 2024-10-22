@@ -1630,6 +1630,9 @@ struct PreparedContractInitialized {
     module_reference: String,
     name:             String,
     amount:           i64,
+    height:           i64,
+    tx_index:         i64,
+    version:          i32,
 }
 
 impl PreparedContractInitialized {
@@ -1638,12 +1641,25 @@ impl PreparedContractInitialized {
         block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
     ) -> anyhow::Result<Self> {
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let tx_index = block_item.index.index.try_into()?;
+
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let module_reference = event.origin_ref;
+        let name = event.init_name.to_string();
+        let version = i32::try_from(event.contract_version as u32)?;
+
         Ok(Self {
-            index:            i64::try_from(event.address.index)?,
-            sub_index:        i64::try_from(event.address.subindex)?,
-            amount:           i64::try_from(event.amount.micro_ccd)?,
-            module_reference: event.origin_ref.into(),
-            name:             event.init_name.to_string(),
+            index,
+            sub_index,
+            module_reference: module_reference.into(),
+            amount,
+            name,
+            height,
+            tx_index,
+            version,
         })
     }
 
@@ -1659,14 +1675,15 @@ impl PreparedContractInitialized {
                 module_reference,
                 name,
                 amount,
-                transaction_index
-            ) VALUES ($1, $2, $3, $4, $5, $6)",
+                transaction_index,
+                version
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             self.index,
             self.sub_index,
             self.module_reference,
             self.name,
             self.amount,
-            transaction_index,
+            self.version
         )
         .execute(tx.as_mut())
         .await?;

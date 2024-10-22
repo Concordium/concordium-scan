@@ -285,6 +285,10 @@ enum ApiError {
     InvalidInt(#[from] std::num::TryFromIntError),
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
+    #[error("Parse error: {0}")]
+    InvalidContractVersion(#[from] InvalidContractVersionError),
+    #[error("Parse error: {0}")]
+    UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
     #[error("Schema in database should be valid")]
     InvalidModuleSchema,
 }
@@ -1336,14 +1340,70 @@ struct Contract {
     block_slot_time:            DateTime,
     snapshot:                   ContractSnapshot,
 }
+
+// TODO
 #[ComplexObject]
 impl Contract {
     async fn contract_events(
         &self,
+        ctx: &Context<'_>,
         skip: i32,
         take: i32,
     ) -> ApiResult<ContractEventsCollectionSegment> {
-        todo_api!()
+        // take some events from the `contract_events` table.
+
+        // take sometimes initial event from `contracts` table.
+
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  module_reference,
+  name as contract_name,
+  contracts.amount as amount,
+  blocks.slot_time as block_slot_time,
+  init_block_height as block_height,
+  transactions.hash as transaction_hash,
+  accounts.address as creator,
+  version
+FROM contracts
+JOIN blocks ON init_block_height=blocks.height
+JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
+JOIN accounts ON transactions.sender=accounts.index
+WHERE contracts.index=$1 AND contracts.sub_index=$2
+"#,
+self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
+        ).fetch_optional(pool).await?
+         .ok_or(ApiError::NotFound)?;
+
+        Ok(ContractEventsCollectionSegment {
+            // TODO: add pagination info
+            page_info:   CollectionSegmentInfo {
+                has_next_page:     false,
+                has_previous_page: false,
+            },
+            items:       Some(vec![ContractEvent {
+                contract_address_index: self.contract_address_index,
+                contract_address_sub_index: self.contract_address_sub_index,
+                sender: row.creator.into(),
+                event: Event::ContractInitialized(ContractInitialized {
+                    module_ref:       row.module_reference,
+                    contract_address: ContractAddress::from(
+                        self.contract_address_index,
+                        self.contract_address_sub_index,
+                    ),
+                    amount:           row.amount,
+                    // Check name or have to add `init_` to the name
+                    init_name:        row.contract_name,
+                    version:          row.version.try_into()?,
+                }),
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+            }]),
+            total_count: 1,
+        })
     }
 
     async fn contract_reject_events(
@@ -3506,6 +3566,16 @@ struct ContractAddress {
     as_string: String,
 }
 
+impl ContractAddress {
+    fn from(index: ContractIndex, sub_index: ContractIndex) -> Self {
+        Self {
+            index,
+            sub_index,
+            as_string: format!("<{},{}>", index, sub_index),
+        }
+    }
+}
+
 impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
     fn from(value: concordium_rust_sdk::types::ContractAddress) -> Self {
         Self {
@@ -4500,6 +4570,26 @@ impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for Contract
         match value {
             WasmVersion::V0 => ContractVersion::V0,
             WasmVersion::V1 => ContractVersion::V1,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error, Clone)]
+#[error("Invalid contract version: {value}")]
+pub struct InvalidContractVersionError {
+    value: i32,
+}
+
+impl TryFrom<i32> for ContractVersion {
+    type Error = InvalidContractVersionError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ContractVersion::V0),
+            1 => Ok(ContractVersion::V1),
+            _ => Err(InvalidContractVersionError {
+                value,
+            }),
         }
     }
 }
