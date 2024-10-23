@@ -8,12 +8,14 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::NaiveDateTime;
 use concordium_rust_sdk::{
+    base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
+    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -31,7 +33,6 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::borrow::Borrow;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -128,7 +129,24 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
     /// Run the service. This future will only stop when signaled by the
     /// `cancel_token`.
     pub async fn run(self, cancel_token: CancellationToken) -> anyhow::Result<()> {
-        let traverse_config = TraverseConfig::new(self.endpoints, self.start_height.into())
+        // Set up endpoints to the node.
+        let mut endpoints_with_schema = Vec::new();
+        for endpoint in self.endpoints {
+            if endpoint
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &concordium_rust_sdk::v2::Scheme::HTTPS)
+            {
+                let new_endpoint = endpoint
+                    .tls_config(tonic::transport::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium node.")?;
+                endpoints_with_schema.push(new_endpoint);
+            } else {
+                endpoints_with_schema.push(endpoint);
+            }
+        }
+
+        let traverse_config = TraverseConfig::new(endpoints_with_schema, self.start_height.into())
             .context("Failed setting up TraverseConfig")?
             .set_max_parallel(self.config.max_parallel_block_preprocessors)
             .set_max_behind(std::time::Duration::from_secs(self.config.node_max_behind));
@@ -138,11 +156,17 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         let (sender, receiver) = tokio::sync::mpsc::channel(self.config.max_processing_batch);
         let receiver = tokio_stream::wrappers::ReceiverStream::from(receiver)
             .ready_chunks(self.config.max_processing_batch);
-        let traverse_future = traverse_config.traverse(self.block_pre_processor, sender);
-        let process_future = processor_config.process_event_stream(self.block_processor, receiver);
+        let traverse_future =
+            tokio::spawn(traverse_config.traverse(self.block_pre_processor, sender));
+        let process_future =
+            tokio::spawn(processor_config.process_event_stream(self.block_processor, receiver));
         info!("Indexing from block height {}", self.start_height);
-        let (result, ()) = futures::join!(traverse_future, process_future);
-        Ok(result?)
+        // Wait for both processes to exit, in case one of them results in an error,
+        // wait for the other which then eventually will stop gracefully as either end
+        // of their channel will get dropped.
+        let (traverse_result, process_result) = futures::join!(traverse_future, process_future);
+        process_result?;
+        Ok(traverse_result??)
     }
 }
 
@@ -325,7 +349,8 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block = PreparedBlock::prepare(&data).map_err(RPCError::ParseError)?;
+            let prepared_block =
+                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -399,22 +424,39 @@ impl BlockProcessor {
         max_successive_failures: u32,
         registry: &mut Registry,
     ) -> anyhow::Result<Self> {
-        let starting_context = sqlx::query_as!(
-            BlockProcessingContext,
+        let last_finalized_block = sqlx::query!(
             r#"
 SELECT
-  height as last_finalized_height,
-  hash as last_finalized_hash,
-  cumulative_num_txs as last_cumulative_num_txs
+  hash
 FROM blocks
-WHERE finalization_time IS NULL
-ORDER BY height ASC
+WHERE finalization_time IS NOT NULL
+ORDER BY height DESC
 LIMIT 1
 "#
         )
         .fetch_one(&pool)
         .await
         .context("Failed to query data for save context")?;
+
+        let last_block = sqlx::query!(
+            r#"
+SELECT
+  slot_time,
+  cumulative_num_txs
+FROM blocks
+ORDER BY height DESC
+LIMIT 1
+"#
+        )
+        .fetch_one(&pool)
+        .await
+        .context("Failed to query data for save context")?;
+
+        let starting_context = BlockProcessingContext {
+            last_finalized_hash:  last_finalized_block.hash,
+            last_block_slot_time: last_block.slot_time,
+            last_cumulative_num_txs: last_block.cumulative_num_txs
+        };
 
         let blocks_processed = Counter::default();
         registry.register(
@@ -467,22 +509,24 @@ impl ProcessEvent for BlockProcessor {
         let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
-        let mut override_context = None;
-        for data in batch {
-            let context = override_context.as_ref().unwrap_or(self.current_context.borrow());
-            let new_context = data.save(context, &mut tx).await.context("Failed saving block")?;
-            if new_context.is_some() {
-                override_context = new_context;
+        // Clone the context, to avoid mutating the current context until we are certain
+        // nothing fails.
+        let mut new_context = self.current_context.clone();
+        PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
+        for block in batch {
+            for item in block.prepared_block_items.iter() {
+                item.save(&mut tx).await?;
             }
-            out.push_str(format!("\n- {}:{}", data.height, data.hash).as_str())
+            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
         tx.commit().await.context("Failed to commit SQL transaction")?;
-        if let Some(context) = override_context {
-            self.current_context = context;
-        }
+        // Update metrics.
         let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64());
+        self.processing_duration_seconds.observe(duration.as_secs_f64() / batch.len() as f64);
         self.blocks_processed.inc_by(u64::try_from(batch.len())?);
+        // Update the current context when we are certain that nothing failed during
+        // processing.
+        self.current_context = new_context;
         Ok(out)
     }
 
@@ -506,13 +550,14 @@ impl ProcessEvent for BlockProcessor {
     }
 }
 
+#[derive(Clone)]
 struct BlockProcessingContext {
-    /// The last finalized block height according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_height:   i64,
     /// The last finalized block hash according to the latest indexed block.
-    /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash:     String,
+    /// This is used when computing the finalization time.
+    last_finalized_hash:  String,
+    /// The slot time of the last processed block.
+    /// This is used when computing the block time.
+    last_block_slot_time: NaiveDateTime,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
@@ -561,10 +606,11 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
                 hash,
                 slot_time,
                 block_time,
+                finalization_time,
                 total_amount,
                 total_staked,
                 cumulative_num_txs
-            ) VALUES (0, $1, $2, 0, $3, $4, 0);",
+            ) VALUES (0, $1, $2, 0, 0, $3, $4, 0);",
             block_hash,
             slot_time,
             total_amount,
@@ -656,7 +702,7 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    fn prepare(data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -671,7 +717,8 @@ impl PreparedBlock {
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
-            prepared_block_items.push(PreparedBlockItem::prepare(data, block_item)?)
+            prepared_block_items
+                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -685,81 +732,101 @@ impl PreparedBlock {
         })
     }
 
-    async fn save(
-        &self,
-        context: &BlockProcessingContext,
+    async fn batch_save(
+        batch: &[Self],
+        context: &mut BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<Option<BlockProcessingContext>> {
-        let cumulative_num_txs =
-            context.last_cumulative_num_txs + self.prepared_block_items.len() as i64;
+    ) -> anyhow::Result<()> {
+        let mut heights = Vec::with_capacity(batch.len());
+        let mut hashes = Vec::with_capacity(batch.len());
+        let mut slot_times = Vec::with_capacity(batch.len());
+        let mut baker_ids = Vec::with_capacity(batch.len());
+        let mut total_amounts = Vec::with_capacity(batch.len());
+        let mut total_staked = Vec::with_capacity(batch.len());
+        let mut block_times = Vec::with_capacity(batch.len());
+        let mut cumulative_num_txss = Vec::with_capacity(batch.len());
+
+        let mut finalizers = Vec::with_capacity(batch.len());
+        let mut last_finalizeds = Vec::with_capacity(batch.len());
+        let mut finalizers_slot_time = Vec::with_capacity(batch.len());
+
+        let mut cumulative_num_txs = context.last_cumulative_num_txs;
+        for block in batch {
+            heights.push(block.height);
+            hashes.push(block.hash.clone());
+            slot_times.push(block.slot_time);
+            baker_ids.push(block.baker_id);
+            total_amounts.push(block.total_amount);
+            total_staked.push(block.total_staked);
+            block_times.push(
+                block
+                    .slot_time
+                    .signed_duration_since(context.last_block_slot_time)
+                    .num_milliseconds(),
+            );
+            cumulative_num_txs += block.prepared_block_items.len() as i64;
+            cumulative_num_txss.push(cumulative_num_txs);
+            context.last_block_slot_time = block.slot_time;
+
+            // Check if this block knows of a new finalized block.
+            // If so, note it down so we can mark the blocks since last time as finalized by
+            // this block.
+            if block.block_last_finalized != context.last_finalized_hash {
+                finalizers.push(block.height);
+                finalizers_slot_time.push(block.slot_time);
+                last_finalizeds.push(block.block_last_finalized.clone());
+
+                context.last_finalized_hash = block.block_last_finalized.clone();
+            }
+        }
 
         sqlx::query!(
-            "INSERT INTO blocks (
-                height,
-                hash,
-                slot_time,
-                block_time,
-                baker_id,
-                total_amount,
-                total_staked,
-                cumulative_num_txs
-            ) VALUES (
-                $1,
-                $2,
-                $3,
-                (SELECT EXTRACT(MILLISECONDS FROM $3 - b.slot_time) FROM blocks b WHERE b.height = \
-             ($1 - 1::bigint)),
-                $4,
-                $5,
-                $6,
-                $7
-            );",
-            self.height,
-            self.hash,
-            self.slot_time,
-            self.baker_id,
-            self.total_amount,
-            self.total_staked,
-            cumulative_num_txs
+            r#"INSERT INTO blocks
+  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked, cumulative_num_txs)
+SELECT * FROM UNNEST(
+  $1::BIGINT[],
+  $2::TEXT[],
+  $3::TIMESTAMP[],
+  $4::BIGINT[],
+  $5::BIGINT[],
+  $6::BIGINT[],
+  $7::BIGINT[],
+  $8::BIGINT[]
+);"#,
+            &heights,
+            &hashes,
+            &slot_times,
+            &block_times,
+            &baker_ids as &[Option<i64>],
+            &total_amounts,
+            &total_staked,
+            &cumulative_num_txss
         )
         .execute(tx.as_mut())
         .await?;
 
-        // Check if this block knows of a new finalized block.
-        // If so, mark the blocks since last time as finalized by this block.
-        let new_context = if self.block_last_finalized != context.last_finalized_hash {
-            let last_height = context.last_finalized_height;
-
-            let rec = sqlx::query!(
-                r#"
-WITH finalizer
-   AS (SELECT height FROM blocks WHERE hash = $1)
-UPDATE blocks b
-   SET finalization_time = EXTRACT("MILLISECONDS" FROM $3 - b.slot_time),
+        // With all blocks in the batch inserted we update blocks which we now can
+        // compute the finalization time for. Using the list of finalizer blocks
+        // (those containing a last finalized block different from its predecessor)
+        // we update the blocks below which does not contain finalization time and
+        // compute it to be the difference between the slot_time of the block and the
+        // finalizer block.
+        let rec = sqlx::query!(
+            r#"
+UPDATE blocks
+   SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - blocks.slot_time),
        finalized_by = finalizer.height
-FROM finalizer
-WHERE $2 <= b.height AND b.height < finalizer.height
-RETURNING finalizer.height"#,
-                self.block_last_finalized,
-                last_height,
-                self.slot_time
-            )
-            .fetch_one(tx.as_mut())
-            .await
-            .context("Failed updating finalization_time")?;
-            let new_context = BlockProcessingContext {
-                last_finalized_hash:     self.block_last_finalized.clone(),
-                last_finalized_height:   rec.height,
-                last_cumulative_num_txs: cumulative_num_txs,
-            };
-            Some(new_context)
-        } else {
-            None
-        };
-        for item in self.prepared_block_items.iter() {
-            item.save(tx).await?;
-        }
-        Ok(new_context)
+FROM UNNEST($1::BIGINT[], $2::TEXT[], $3::TIMESTAMP[]) AS finalizer(height, finalized, slot_time)
+JOIN blocks last ON finalizer.finalized = last.hash
+WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
+"#,
+            &finalizers,
+            &last_finalizeds,
+            &finalizers_slot_time
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
     }
 }
 
@@ -803,7 +870,11 @@ struct PreparedBlockItem {
 }
 
 impl PreparedBlockItem {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Self> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
         let block_item_index = i64::try_from(block_item.index.index)?;
         let block_item_hash = block_item.hash.to_string();
@@ -830,7 +901,7 @@ impl PreparedBlockItem {
             };
         let success = block_item.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(&events_from_summary(block_item.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(block_item.details.clone())?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -852,7 +923,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(data, block_item)?;
+        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -910,11 +981,19 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    /// Smart contract module got deployed.
+    ModuleDeployed(PreparedModuleDeployed),
+    /// Contract got initialized.
+    ContractInitialized(PreparedContractInitialized),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
 impl PreparedEvent {
-    fn prepare(data: &BlockData, block_item: &BlockItemSummary) -> anyhow::Result<Option<Self>> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+    ) -> anyhow::Result<Option<Self>> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -928,10 +1007,15 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => None,
+                } => Some(PreparedEvent::ModuleDeployed(
+                    PreparedModuleDeployed::prepare(node_client, data, block_item, *module_ref)
+                        .await?,
+                )),
                 AccountTransactionEffects::ContractInitialized {
-                    data,
-                } => None,
+                    data: event_data,
+                } => Some(PreparedEvent::ContractInitialized(
+                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => None,
@@ -1068,6 +1152,8 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
+            PreparedEvent::ContractInitialized(event) => event.save(tx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1371,6 +1457,135 @@ impl PreparedBakerEvent {
             }
             PreparedBakerEvent::NoOperation => (),
         }
+        Ok(())
+    }
+}
+
+struct PreparedModuleDeployed {
+    block_height: i64,
+    deployment_transaction_index: i64,
+    module_reference: String,
+    schema: Option<Vec<u8>>,
+}
+
+impl PreparedModuleDeployed {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        module_reference: sdk_types::hashes::ModuleReference,
+    ) -> anyhow::Result<Self> {
+        let block_height = data.finalized_block_info.height;
+        let deployment_transaction_index = block_item.index.index.try_into()?;
+
+        let wasm_module = node_client
+            .get_module_source(&module_reference, BlockIdentifier::AbsoluteHeight(block_height))
+            .await?
+            .response;
+        let schema = match wasm_module.version {
+            WasmVersion::V0 => get_embedded_schema_v0(wasm_module.source.as_ref()),
+            WasmVersion::V1 => get_embedded_schema_v1(wasm_module.source.as_ref()),
+        }
+        .ok();
+
+        let schema = schema.as_ref().map(to_bytes);
+
+        Ok(Self {
+            block_height: i64::try_from(block_height.height)?,
+            deployment_transaction_index,
+            module_reference: module_reference.into(),
+            schema,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"
+INSERT INTO smart_contract_modules (
+    module_reference,
+    deployment_block_height,
+    deployment_transaction_index,
+    schema
+) VALUES (
+  $1, $2, $3, $4
+)"#,
+            self.module_reference,
+            self.block_height,
+            self.deployment_transaction_index,
+            self.schema
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedContractInitialized {
+    index:            i64,
+    sub_index:        i64,
+    module_reference: String,
+    name:             String,
+    amount:           i64,
+    height:           i64,
+    tx_index:         i64,
+}
+
+impl PreparedContractInitialized {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractInitializedEvent,
+    ) -> anyhow::Result<Self> {
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let tx_index = block_item.index.index.try_into()?;
+
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let module_reference = event.origin_ref;
+        let name = event.init_name.to_string();
+
+        Ok(Self {
+            index,
+            sub_index,
+            module_reference: module_reference.into(),
+            amount,
+            name,
+            height,
+            tx_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contracts (
+                index,
+                sub_index,
+                module_reference,
+                name,
+                amount,
+                init_block_height,
+                init_transaction_index
+                )
+             VALUES (
+                $1, $2, $3, $4, $5, $6, $7
+            )"#,
+            self.index,
+            self.sub_index,
+            self.module_reference,
+            self.name,
+            self.amount,
+            self.height,
+            self.tx_index,
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }

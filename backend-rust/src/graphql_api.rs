@@ -25,11 +25,15 @@ use async_graphql::{
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
-use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
+use concordium_rust_sdk::{
+    base::contracts_common::{from_bytes, schema::VersionedModuleSchema},
+    id::types as sdk_types,
+    types::AmountFraction,
+};
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use std::{error::Error, str::FromStr as _, sync::Arc};
+use std::{error::Error, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
 use transaction_metrics::TransactionMetricsQuery;
@@ -48,6 +52,8 @@ pub struct ApiServiceConfig {
     block_connection_limit:             i64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
     account_connection_limit:           i64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
+    contract_connection_limit:          i64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -280,6 +286,10 @@ enum ApiError {
     InvalidInt(#[from] std::num::TryFromIntError),
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
+    #[error("Parse error: {0}")]
+    UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
+    #[error("Schema in database should be valid")]
+    InvalidModuleSchema,
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -405,6 +415,10 @@ impl BaseQuery {
             before,
             config.block_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Block,
             r#"
@@ -474,6 +488,10 @@ SELECT * FROM (
             before,
             config.transaction_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Transaction,
             r#"
@@ -554,6 +572,10 @@ SELECT * FROM (
             before,
             config.account_connection_limit,
         )?;
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
         let mut row_stream = sqlx::query_as!(
             Account,
             r#"
@@ -752,13 +774,199 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come before the specified cursor." before:
     // String): TokensConnection token(contractIndex: UnsignedLong!
     // contractSubIndex: UnsignedLong! tokenId: String!): Token!
-    // contract(contractAddressIndex: UnsignedLong! contractAddressSubIndex:
-    // UnsignedLong!): Contract contracts("Returns the first _n_ elements from
-    // the list." first: Int "Returns the elements in the list that come
-    // after the specified cursor." after: String "Returns the last _n_ elements
-    // from the list." last: Int "Returns the elements in the list that come
-    // before the specified cursor." before: String): ContractsConnection
-    // moduleReferenceEvent(moduleReference: String!): ModuleReferenceEvent
+
+    async fn contract<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_address_index: ContractIndex,
+        contract_address_sub_index: ContractIndex,
+    ) -> ApiResult<Contract> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  module_reference,
+  name as contract_name,
+  contracts.amount,
+  blocks.slot_time as block_slot_time,
+  init_block_height as block_height,
+  transactions.hash as transaction_hash,
+  accounts.address as creator
+FROM contracts
+JOIN blocks ON init_block_height=blocks.height
+JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
+JOIN accounts ON transactions.sender=accounts.index
+WHERE contracts.index=$1 AND contracts.sub_index=$2
+"#,
+contract_address_index.0 as i64,contract_address_sub_index.0 as i64
+        ).fetch_optional(pool).await?
+         .ok_or(ApiError::NotFound)?;
+
+        let snapshot = ContractSnapshot {
+            block_height: row.block_height,
+            contract_address_index,
+            contract_address_sub_index,
+            contract_name: row.contract_name,
+            module_reference: row.module_reference,
+            amount: row.amount,
+        };
+
+        Ok(Contract {
+            contract_address_index,
+            contract_address_sub_index,
+            contract_address: format!(
+                "<{},{}>",
+                contract_address_index, contract_address_sub_index
+            ),
+            creator: row.creator.into(),
+            block_height: row.block_height,
+            transaction_hash: row.transaction_hash,
+            block_slot_time: row.block_slot_time,
+            snapshot,
+        })
+    }
+
+    async fn contracts<'a>(
+        &self,
+        ctx: &Context<'a>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Contract>> {
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+
+        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
+        // get the correct nodes/edges selected based on the `after/before` key
+        // specified.
+        let mut row_stream = sqlx::query!(
+            r#"
+SELECT * FROM (
+    SELECT
+        contracts.index as index,
+        sub_index,
+        module_reference,
+        name as contract_name,
+        contracts.amount,
+        blocks.slot_time as block_slot_time,
+        init_block_height as block_height,
+        transactions.hash as transaction_hash,
+        accounts.address as creator
+    FROM contracts
+    JOIN blocks ON init_block_height=blocks.height
+    JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
+    JOIN accounts ON transactions.sender=accounts.index
+    WHERE contracts.index > $1 AND contracts.index < $2
+    ORDER BY
+        (CASE WHEN $4 THEN contracts.index END) DESC,
+        (CASE WHEN NOT $4 THEN contracts.index END) ASC
+    LIMIT $3
+) AS contract_data
+ORDER BY contract_data.index ASC"#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(true, true);
+
+        while let Some(row) = row_stream.try_next().await? {
+            let contract_address_index = row.index.try_into()?;
+            let contract_address_sub_index = row.sub_index.try_into()?;
+
+            let snapshot = ContractSnapshot {
+                block_height: row.block_height,
+                contract_address_index,
+                contract_address_sub_index,
+                contract_name: row.contract_name,
+                module_reference: row.module_reference,
+                amount: row.amount,
+            };
+
+            let contract = Contract {
+                contract_address_index,
+                contract_address_sub_index,
+                contract_address: format!(
+                    "<{},{}>",
+                    contract_address_index, contract_address_sub_index
+                ),
+                creator: row.creator.into(),
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+                snapshot,
+            };
+            connection
+                .edges
+                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
+        }
+
+        if last.is_some() {
+            if let Some(edge) = connection.edges.last() {
+                connection.has_previous_page = edge.node.contract_address_index.0 != 0;
+            }
+        } else if let Some(edge) = connection.edges.first() {
+            connection.has_previous_page = edge.node.contract_address_index.0 != 0;
+        }
+
+        Ok(connection)
+    }
+
+    async fn module_reference_event<'a>(
+        &self,
+        ctx: &Context<'a>,
+        module_reference: String,
+    ) -> ApiResult<ModuleReferenceEvent> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  deployment_block_height as block_height,
+  deployment_transaction_index,
+  schema as display_schema,
+  blocks.slot_time as block_slot_time,
+  transactions.hash as transaction_hash,
+  accounts.address as sender
+FROM smart_contract_modules
+JOIN blocks ON deployment_block_height=blocks.height
+JOIN transactions ON deployment_block_height=transactions.block_height AND deployment_transaction_index=transactions.index
+JOIN accounts ON transactions.sender=accounts.index
+WHERE module_reference=$1
+"#,
+            module_reference
+        ).fetch_optional(pool).await?
+         .ok_or(ApiError::NotFound)?;
+
+        let display_schema = row.display_schema.as_ref().map_or(Ok(None), |s| {
+            from_bytes::<VersionedModuleSchema>(s)
+                .map(|opt_schema| Some(opt_schema.to_string()))
+                .map_err(|_| ApiError::InvalidModuleSchema)
+        })?;
+
+        Ok(ModuleReferenceEvent {
+            module_reference,
+            sender: row.sender.into(),
+            block_height: row.block_height,
+            transaction_hash: row.transaction_hash,
+            block_slot_time: row.block_slot_time,
+            display_schema,
+        })
+    }
 }
 
 pub struct Subscription {
@@ -828,7 +1036,16 @@ impl SubscriptionContext {
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
 /// non-fractional value greater than or equal to 0.
-#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[derive(
+    Clone,
+    Copy,
+    derive_more::Display,
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
+    derive_more::From,
+    derive_more::FromStr,
+)]
 #[repr(transparent)]
 #[serde(transparent)]
 struct UnsignedLong(u64);
@@ -846,6 +1063,16 @@ impl ScalarType for UnsignedLong {
     }
 
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}
+
+#[derive(Debug, thiserror::Error, Clone)]
+#[error("Negative number cannot be converted to UnsignedLong.")]
+struct UnsignedLongNotNegativeError;
+
+impl TryFrom<i64> for UnsignedLong {
+    type Error = <u64 as TryFrom<i64>>::Error;
+
+    fn try_from(number: i64) -> Result<Self, Self::Error> { Ok(UnsignedLong(number.try_into()?)) }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric
@@ -4266,7 +4493,7 @@ pub struct ModuleReferenceEvent {
     block_height:     BlockHeight,
     transaction_hash: String,
     block_slot_time:  DateTime,
-    display_schema:   String,
+    display_schema:   Option<String>,
     // TODO:
     // moduleReferenceRejectEvents(skip: Int take: Int):
     // ModuleReferenceRejectEventsCollectionSegment moduleReferenceContractLinkEvents(skip: Int
