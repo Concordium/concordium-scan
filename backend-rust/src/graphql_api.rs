@@ -287,8 +287,6 @@ enum ApiError {
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
     InvalidContractVersion(#[from] InvalidContractVersionError),
-    #[error("Parse error: {0}")]
-    UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
     #[error("Schema in database should be valid")]
     InvalidModuleSchema,
 }
@@ -916,8 +914,14 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         let mut connection = connection::Connection::new(true, true);
 
         while let Some(row) = row_stream.try_next().await? {
-            let contract_address_index = row.index.try_into()?;
-            let contract_address_sub_index = row.sub_index.try_into()?;
+            let contract_address_index =
+                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+            let contract_address_sub_index =
+                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
 
             let snapshot = ContractSnapshot {
                 block_height: row.block_height,
@@ -1356,12 +1360,80 @@ impl Contract {
 
         let pool = get_pool(ctx)?;
 
+        let mut contract_events = vec![];
+        let mut total_events_count = 0;
+
+        // TODO: add `take` and `skip` to the query.
+        let limit = 3;
+
+        let mut row_stream = sqlx::query!(
+            r#"
+                            SELECT * FROM (
+                                SELECT
+                                    contract_events.index,
+                                    contract_events.transaction_index,
+                                    trace_element_index,
+                                    contract_events.block_height AS event_block_height,
+                                    transactions.hash as transaction_hash,
+                                    transactions.events,
+                                    accounts.address as creator,
+                                    blocks.slot_time as block_slot_time,
+                                    blocks.height as block_height
+                                FROM contract_events
+                                JOIN transactions
+                                ON contract_events.block_height = transactions.block_height
+                                AND contract_events.transaction_index = transactions.index
+                                JOIN accounts
+                                ON transactions.sender = accounts.index
+                                JOIN blocks ON contract_events.block_height = blocks.height
+                                WHERE contract_events.contract_index = $1
+                                AND contract_events.contract_sub_index <= $2
+                                LIMIT $3
+                            ) AS contract_data
+                            ORDER BY contract_data.index DESC
+                            "#,
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            limit
+        )
+        .fetch(pool);
+
+        while let Some(row) = row_stream.try_next().await? {
+            let Some(events) = row.events else {
+                return Err(ApiError::InternalError(
+                    "Missing events in database".to_string(),
+                ));
+            };
+
+            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
+                ApiError::InternalError("Failed to deserialize events from database".to_string())
+            })?;
+
+            if row.trace_element_index as usize >= events.len() {
+                return Err(ApiError::InternalError(
+                    "Trace element index does not exist in events".to_string(),
+                ));
+            }
+
+            let event = events.swap_remove(row.trace_element_index as usize);
+
+            let contract_event = ContractEvent {
+                contract_address_index: self.contract_address_index,
+                contract_address_sub_index: self.contract_address_sub_index,
+                sender: row.creator.into(),
+                event,
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+            };
+
+            contract_events.push(contract_event);
+            total_events_count += 1;
+        }
+
         // TODO: depending on `skip` and `take` values, we either include or not include
         // the initial event.
         let include_initial_event = true;
-
-        let mut contract_events = vec![];
-        let mut total_events_count = 0;
 
         if include_initial_event {
             let row = sqlx::query!(
@@ -1407,37 +1479,6 @@ self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
             contract_events.push(initial_event);
             total_events_count += 1;
         }
-
-        // TODO: add `take` and `skip` to the query.
-        let limit = 3;
-
-        // TODO: add events and extract/decode it based on the `trace_element_index`
-        let row_stream = sqlx::query!(
-            r#"
-                    SELECT * FROM (
-                        SELECT
-                            contract_events.index,
-                            contract_events.transaction_index,
-                            trace_element_index,
-                            contract_events.block_height AS event_block_height,
-                            transactions.hash as transaction_hash,
-                            blocks.slot_time as block_slot_time
-                        FROM contract_events
-                        JOIN transactions
-                        ON contract_events.block_height = transactions.block_height
-                        AND contract_events.transaction_index = transactions.index
-                        JOIN blocks ON contract_events.block_height = blocks.height
-                        WHERE contract_events.contract_index = $1
-                        AND contract_events.contract_sub_index <= $2
-                        LIMIT $3
-                    ) AS contract_data
-                    ORDER BY contract_data.index ASC
-                    "#,
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64,
-            limit
-        )
-        .fetch(pool);
 
         Ok(ContractEventsCollectionSegment {
             // TODO: add pagination info
