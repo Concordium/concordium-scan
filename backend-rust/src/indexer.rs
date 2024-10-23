@@ -509,10 +509,10 @@ impl ProcessEvent for BlockProcessor {
 struct BlockProcessingContext {
     /// The last finalized block height according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_height: i64,
+    last_finalized_height:   i64,
     /// The last finalized block hash according to the latest indexed block.
     /// This is needed in order to compute the finalization time of blocks.
-    last_finalized_hash:   String,
+    last_finalized_hash:     String,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
@@ -569,7 +569,8 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             slot_time,
             total_amount,
             total_staked,
-        ).execute(&mut *tx)
+        )
+        .execute(&mut *tx)
         .await?;
     }
 
@@ -689,7 +690,8 @@ impl PreparedBlock {
         context: &BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<Option<BlockProcessingContext>> {
-        let cumulative_num_txs = context.last_cumulative_num_txs + self.prepared_block_items.len() as i64;
+        let cumulative_num_txs =
+            context.last_cumulative_num_txs + self.prepared_block_items.len() as i64;
 
         sqlx::query!(
             "INSERT INTO blocks (
@@ -705,7 +707,8 @@ impl PreparedBlock {
                 $1,
                 $2,
                 $3,
-                (SELECT EXTRACT(MILLISECONDS FROM $3 - b.slot_time) FROM blocks b WHERE b.height = ($1 - 1::bigint)),
+                (SELECT EXTRACT(MILLISECONDS FROM $3 - b.slot_time) FROM blocks b WHERE b.height = \
+             ($1 - 1::bigint)),
                 $4,
                 $5,
                 $6,
@@ -720,7 +723,7 @@ impl PreparedBlock {
             cumulative_num_txs
         )
         .execute(tx.as_mut())
-            .await?;
+        .await?;
 
         // Check if this block knows of a new finalized block.
         // If so, mark the blocks since last time as finalized by this block.
@@ -745,8 +748,8 @@ RETURNING finalizer.height"#,
             .await
             .context("Failed updating finalization_time")?;
             let new_context = BlockProcessingContext {
-                last_finalized_hash:   self.block_last_finalized.clone(),
-                last_finalized_height: rec.height,
+                last_finalized_hash:     self.block_last_finalized.clone(),
+                last_finalized_height:   rec.height,
                 last_cumulative_num_txs: cumulative_num_txs,
             };
             Some(new_context)

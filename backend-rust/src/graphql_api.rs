@@ -5,7 +5,6 @@
 
 #![allow(unused_variables)]
 
-mod context_ext;
 mod transaction_metrics;
 
 // TODO remove this macro, when done with first iteration
@@ -27,7 +26,6 @@ use async_graphql::{
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{id::types as sdk_types, types::AmountFraction};
-use context_ext::ContextExt;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
@@ -290,6 +288,16 @@ impl From<sqlx::Error> for ApiError {
 
 type ApiResult<A> = Result<A, ApiError>;
 
+/// Get the database pool from the context.
+fn get_pool<'a>(ctx: &Context<'a>) -> ApiResult<&'a PgPool> {
+    ctx.data::<PgPool>().map_err(ApiError::NoDatabasePool)
+}
+
+/// Get service configuration from the context.
+fn get_config<'a>(ctx: &Context<'a>) -> ApiResult<&'a ApiServiceConfig> {
+    ctx.data::<ApiServiceConfig>().map_err(ApiError::NoServiceConfig)
+}
+
 trait ConnectionCursor {
     const MIN: Self;
     const MAX: Self;
@@ -367,7 +375,7 @@ impl BaseQuery {
 
     async fn block<'a>(&self, ctx: &Context<'a>, height_id: types::ID) -> ApiResult<Block> {
         let height: BlockHeight = height_id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Block::query_by_height(ctx.pool()?, height).await
+        Block::query_by_height(get_pool(ctx)?, height).await
     }
 
     async fn block_by_block_hash<'a>(
@@ -375,7 +383,7 @@ impl BaseQuery {
         ctx: &Context<'a>,
         block_hash: BlockHash,
     ) -> ApiResult<Block> {
-        Block::query_by_hash(ctx.pool()?, block_hash).await
+        Block::query_by_hash(get_pool(ctx)?, block_hash).await
     }
 
     async fn blocks<'a>(
@@ -388,8 +396,8 @@ impl BaseQuery {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
-        let config = ctx.config()?;
-        let pool = ctx.pool()?;
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<BlockHeight>::new(
             first,
             after,
@@ -434,7 +442,7 @@ SELECT * FROM (
 
     async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
         let id = IdTransaction::try_from(id)?;
-        Transaction::query_by_id(ctx.pool()?, id).await?.ok_or(ApiError::NotFound)
+        Transaction::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
     }
 
     async fn transaction_by_transaction_hash<'a>(
@@ -442,7 +450,9 @@ SELECT * FROM (
         ctx: &Context<'a>,
         transaction_hash: TransactionHash,
     ) -> ApiResult<Transaction> {
-        Transaction::query_by_hash(ctx.pool()?, transaction_hash).await?.ok_or(ApiError::NotFound)
+        Transaction::query_by_hash(get_pool(ctx)?, transaction_hash)
+            .await?
+            .ok_or(ApiError::NotFound)
     }
 
     async fn transactions<'a>(
@@ -455,8 +465,8 @@ SELECT * FROM (
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
-        let config = ctx.config()?;
-        let pool = ctx.pool()?;
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<IdTransaction>::new(
             first,
             after,
@@ -511,7 +521,7 @@ SELECT * FROM (
 
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Account::query_by_index(ctx.pool()?, index).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn account_by_address<'a>(
@@ -519,7 +529,7 @@ SELECT * FROM (
         ctx: &Context<'a>,
         account_address: String,
     ) -> ApiResult<Account> {
-        Account::query_by_address(ctx.pool()?, account_address).await?.ok_or(ApiError::NotFound)
+        Account::query_by_address(get_pool(ctx)?, account_address).await?.ok_or(ApiError::NotFound)
     }
 
     async fn accounts<'a>(
@@ -535,8 +545,8 @@ SELECT * FROM (
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
         // TODO: include sort and filter
-        let pool = ctx.pool()?;
-        let config = ctx.config()?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
         let query = ConnectionQuery::<AccountIndex>::new(
             first,
             after,
@@ -577,11 +587,11 @@ SELECT * FROM (
 
     async fn baker<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Baker> {
         let id = IdBaker::try_from(id)?.baker_id;
-        Baker::query_by_id(ctx.pool()?, id).await
+        Baker::query_by_id(get_pool(ctx)?, id).await
     }
 
     async fn baker_by_baker_id<'a>(&self, ctx: &Context<'a>, id: BakerId) -> ApiResult<Baker> {
-        Baker::query_by_id(ctx.pool()?, id).await
+        Baker::query_by_id(get_pool(ctx)?, id).await
     }
 
     async fn bakers(
@@ -609,8 +619,8 @@ SELECT * FROM (
         ctx: &Context<'a>,
         period: MetricsPeriod,
     ) -> ApiResult<BlockMetrics> {
-        let pool = ctx.pool()?;
-        let config = ctx.config()?;
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
         let non_circulating_accounts =
             config.non_circulating_account.iter().map(|a| a.to_string()).collect::<Vec<_>>();
 
@@ -1020,7 +1030,7 @@ impl Block {
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let result =
             sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height=$1", self.height)
-                .fetch_one(ctx.pool()?)
+                .fetch_one(get_pool(ctx)?)
                 .await?;
         Ok(result.count.unwrap_or(0))
     }
@@ -2194,7 +2204,7 @@ impl Transaction {
     async fn energy_cost(&self) -> Energy { self.energy_cost }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
-        Block::query_by_height(ctx.pool()?, self.block_height).await
+        Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
 
     async fn sender_account_address<'a>(
@@ -2205,7 +2215,7 @@ impl Transaction {
             return Ok(None);
         };
         let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)
-            .fetch_one(ctx.pool()?)
+            .fetch_one(get_pool(ctx)?)
             .await?;
         Ok(Some(result.address.into()))
     }
@@ -2546,7 +2556,7 @@ impl Account {
     /// Timestamp of the block where this account was created.
     async fn created_at<'a>(&self, ctx: &Context<'a>) -> ApiResult<DateTime> {
         let rec = sqlx::query!("SELECT slot_time FROM blocks WHERE height=$1", self.created_block)
-            .fetch_one(ctx.pool()?)
+            .fetch_one(get_pool(ctx)?)
             .await?;
         Ok(rec.slot_time)
     }
@@ -2554,7 +2564,7 @@ impl Account {
     /// Number of transactions where this account is used as sender.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let rec = sqlx::query!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
-            .fetch_one(ctx.pool()?)
+            .fetch_one(get_pool(ctx)?)
             .await?;
         Ok(rec.count.unwrap_or(0))
     }
@@ -2721,7 +2731,7 @@ impl Baker {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(ctx.pool()?, self.id).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, self.id).await?.ok_or(ApiError::NotFound)
     }
 
     // transactions("Returns the first _n_ elements from the list." first: Int

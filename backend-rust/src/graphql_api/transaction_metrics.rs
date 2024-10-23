@@ -1,8 +1,6 @@
 use async_graphql::{Context, Object, SimpleObject};
 
-use crate::graphql_api::{context_ext::ContextExt, ApiResult, MetricsPeriod};
-
-use super::{DateTime, TimeSpan};
+use crate::graphql_api::{get_pool, ApiResult, DateTime, MetricsPeriod, TimeSpan};
 
 #[derive(Default)]
 pub(crate) struct TransactionMetricsQuery;
@@ -45,7 +43,7 @@ impl TransactionMetricsQuery {
         ctx: &Context<'_>,
         period: MetricsPeriod,
     ) -> ApiResult<TransactionMetrics> {
-        let pool = ctx.pool()?;
+        let pool = get_pool(ctx)?;
 
         todo!()
     }
