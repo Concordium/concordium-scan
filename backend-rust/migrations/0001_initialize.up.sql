@@ -86,11 +86,12 @@ CREATE TABLE blocks(
     block_time
         INTEGER
         NOT NULL,
-    -- Milliseconds between the slot_time of this block and the block above causing this block to be finalized.
+    -- Milliseconds between the slot_time of this block and the first block above where this was
+    -- recorded as finalized.
     -- This is NULL until the indexer have processed the block marking this a finalized.
     finalization_time
         INTEGER,
-    -- Block causing this block to become finalized.
+    -- Block where this block was first recorded as finalized.
     -- This is NULL until the indexer have processed the block marking this a finalized.
     finalized_by
         BIGINT
