@@ -142,6 +142,9 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
         let process_future =
             tokio::spawn(processor_config.process_event_stream(self.block_processor, receiver));
         info!("Indexing from block height {}", self.start_height);
+        // Wait for both processes to exit, in case one of them results in an error,
+        // wait for the other which then eventually will stop gracefully as either end
+        // of their channel will get dropped.
         let (traverse_result, process_result) = futures::join!(traverse_future, process_future);
         process_result?;
         Ok(traverse_result??)
@@ -572,7 +575,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let total_amount =
             i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, total_amount, total_staked) VALUES ($1, $2, $3, 0, $4, $5);"#,
+            r#"INSERT INTO blocks (height, hash, slot_time, block_time, finalization_time, total_amount, total_staked) VALUES ($1, $2, $3, 0, 0, $4, $5);"#,
             0,
             block_hash,
             slot_time,
