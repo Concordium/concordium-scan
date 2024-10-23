@@ -701,17 +701,17 @@ impl PreparedBlock {
         context: &mut BlockProcessingContext,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        let mut heights = Vec::new();
-        let mut hashes = Vec::new();
-        let mut slot_times = Vec::new();
-        let mut baker_ids = Vec::new();
-        let mut total_amounts = Vec::new();
-        let mut total_staked = Vec::new();
-        let mut block_times = Vec::new();
+        let mut heights = Vec::with_capacity(batch.len());
+        let mut hashes = Vec::with_capacity(batch.len());
+        let mut slot_times = Vec::with_capacity(batch.len());
+        let mut baker_ids = Vec::with_capacity(batch.len());
+        let mut total_amounts = Vec::with_capacity(batch.len());
+        let mut total_staked = Vec::with_capacity(batch.len());
+        let mut block_times = Vec::with_capacity(batch.len());
 
-        let mut finalizers = Vec::new();
-        let mut last_finalizeds = Vec::new();
-        let mut finalizers_slot_time = Vec::new();
+        let mut finalizers = Vec::with_capacity(batch.len());
+        let mut last_finalizeds = Vec::with_capacity(batch.len());
+        let mut finalizers_slot_time = Vec::with_capacity(batch.len());
 
         for block in batch {
             heights.push(block.height);
