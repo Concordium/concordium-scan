@@ -1,6 +1,9 @@
-use async_graphql::{Context, Object, SimpleObject};
+use std::sync::Arc;
 
-use crate::graphql_api::{get_pool, ApiResult, DateTime, MetricsPeriod, TimeSpan};
+use async_graphql::{Context, Object, SimpleObject};
+use sqlx::postgres::types::PgInterval;
+
+use crate::graphql_api::{get_pool, ApiError, ApiResult, DateTime, MetricsPeriod, TimeSpan};
 
 #[derive(Default)]
 pub(crate) struct TransactionMetricsQuery;
@@ -8,9 +11,9 @@ pub(crate) struct TransactionMetricsQuery;
 #[derive(SimpleObject)]
 struct TransactionMetrics {
     /// Total number of transactions (all time).
-    last_cumulative_transaction_count: usize,
+    last_cumulative_transaction_count: i64,
     /// Total number of transactions in the requested period.
-    transaction_count: usize,
+    transaction_count: i64,
     buckets: TransactionMetricsBuckets,
 }
 
@@ -45,6 +48,32 @@ impl TransactionMetricsQuery {
     ) -> ApiResult<TransactionMetrics> {
         let pool = get_pool(ctx)?;
 
-        todo!()
+        let last_cumulative_transaction_count = sqlx::query_scalar!(
+            "SELECT cumulative_num_txs FROM blocks ORDER BY height DESC LIMIT 1"
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let interval: PgInterval = period.as_duration().try_into().map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
+
+        let cumulative_transaction_count_before_period = sqlx::query_scalar!(
+            "SELECT cumulative_num_txs
+            FROM blocks
+            WHERE slot_time < (now() - $1::interval)
+            ORDER BY height DESC
+            LIMIT 1",
+            interval,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let transaction_count =
+            last_cumulative_transaction_count - cumulative_transaction_count_before_period;
+
+        Ok(TransactionMetrics {
+            last_cumulative_transaction_count,
+            transaction_count,
+            buckets: todo!(),
+        })
     }
 }
