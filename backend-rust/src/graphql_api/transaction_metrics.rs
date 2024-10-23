@@ -54,7 +54,10 @@ impl TransactionMetricsQuery {
         .fetch_one(pool)
         .await?;
 
-        let interval: PgInterval = period.as_duration().try_into().map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
+        let interval: PgInterval = period
+            .as_duration()
+            .try_into()
+            .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         let cumulative_transaction_count_before_period = sqlx::query_scalar!(
             "SELECT cumulative_num_txs

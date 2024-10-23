@@ -453,9 +453,9 @@ LIMIT 1
         .context("Failed to query data for save context")?;
 
         let starting_context = BlockProcessingContext {
-            last_finalized_hash:  last_finalized_block.hash,
-            last_block_slot_time: last_block.slot_time,
-            last_cumulative_num_txs: last_block.cumulative_num_txs
+            last_finalized_hash:     last_finalized_block.hash,
+            last_block_slot_time:    last_block.slot_time,
+            last_cumulative_num_txs: last_block.cumulative_num_txs,
         };
 
         let blocks_processed = Counter::default();
@@ -554,10 +554,10 @@ impl ProcessEvent for BlockProcessor {
 struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is used when computing the finalization time.
-    last_finalized_hash:  String,
+    last_finalized_hash:     String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time: NaiveDateTime,
+    last_block_slot_time:    NaiveDateTime,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
