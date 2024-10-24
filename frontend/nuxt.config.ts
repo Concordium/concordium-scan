@@ -1,6 +1,17 @@
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
+	vite: {
+		server: {
+			proxy: {
+				'/api': 'http://127.0.0.1:8000',
+				'/ws': {
+					target: 'ws://127.0.0.1:8000',
+					ws: true,
+				},
+			},
+		},
+	},
 	// Configuration available to the application at runtime, note the `public` object will be
 	// expose directly in the client-side code and therefore should not contain secrets.
 	// Below values are default and can be overwritten by environment variables at runtime.
@@ -36,6 +47,9 @@ export default defineNuxtConfig({
 		},
 	},
 	// Directory for finding the source files.
+
+
+
 	srcDir: 'src/',
 	// Directories to search for components.
 	components: [
