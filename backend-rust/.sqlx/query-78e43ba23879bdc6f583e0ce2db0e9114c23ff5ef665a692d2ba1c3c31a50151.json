@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n  module_reference,\n  name as contract_name,\n  contracts.amount,\n  blocks.slot_time as block_slot_time,\n  init_block_height as block_height,\n  transactions.hash as transaction_hash,\n  accounts.address as creator\nFROM contracts\nJOIN blocks ON init_block_height=blocks.height\nJOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index\nJOIN accounts ON transactions.sender=accounts.index\nWHERE contracts.index=$1 AND contracts.sub_index=$2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module_reference",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "block_slot_time",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "block_height",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_hash",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "creator",
+        "type_info": "Bpchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "78e43ba23879bdc6f583e0ce2db0e9114c23ff5ef665a692d2ba1c3c31a50151"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n   index, created_block, address, amount\nFROM accounts\nWHERE index=$1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "created_block",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "address",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "25a3b7685ce9f461524249bdff68480d2fee392b1814f1de2ff8249eaa879b92"
+}

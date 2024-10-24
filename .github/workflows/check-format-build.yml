@@ -1,0 +1,59 @@
+name: Backend (Rust) Check formatting and build
+
+on:
+  push:
+    branches: main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main ]
+
+env:
+  RUST_FMT: "nightly-2023-04-01"
+  RUST_VERSION: "1.80"
+
+jobs:
+  rustfmt:
+    name: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check formatting
+        working-directory: backend-rust
+        run: |
+          rustup default ${{ env.RUST_FMT }}
+          rustup component add rustfmt
+          cargo fmt -- --color=always --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Setup Rust
+        run: |
+          rustup default ${{ env.RUST_VERSION }}
+          rustup component add clippy
+      - name: Run clippy
+        working-directory: backend-rust
+        run: |
+          cargo clippy --color=always --tests -- -D warnings
+
+  test:
+    name: test
+    # Don't run on draft pull requests
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run unit tests
+        working-directory: backend-rust
+        run: |
+          rustup default ${{ env.RUST_VERSION }}
+          cargo test
