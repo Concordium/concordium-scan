@@ -17,7 +17,7 @@ use tracing::{error, info};
 struct Cli {
     /// The URL used for the database, something of the form
     /// "postgres://postgres:example@localhost/ccd-scan".
-    /// Use environmental variable when the connection contains a password, as
+    /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
     database_url:   String,

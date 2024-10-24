@@ -13,17 +13,17 @@ use tracing::{error, info};
 struct Cli {
     /// The URL used for the database, something of the form:
     /// "postgres://postgres:example@localhost/ccd-scan".
-    /// Use environmental variable when the connection contains a password, as
+    /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
     database_url:   String,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
     schema_out:     Option<PathBuf>,
-    /// Address to listen for API requests
+    /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen:         SocketAddr,
-    /// Address to listen for API requests
+    /// Address to listen to for metrics requests.
     #[arg(long, env = "CCDSCAN_API_METRICS_ADDRESS", default_value = "127.0.0.1:8003")]
     metrics_listen: SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]

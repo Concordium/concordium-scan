@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT cumulative_num_txs\n            FROM blocks\n            WHERE slot_time < (now() - $1::interval)\n            ORDER BY height DESC\n            LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cumulative_num_txs",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3c07608cf7487c664cd83373b7ad6434955e1ca24bee3fdc14c6ef8f1fc33e36"
+}
