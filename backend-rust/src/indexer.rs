@@ -15,7 +15,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, ContractTraceElement, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -843,9 +843,8 @@ struct PreparedBlockItem {
     events:           Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
     reject:           Option<serde_json::Value>,
-    // This is an option temporarily, until we are able to handle every type of event.
     /// Block item events prepared for inserting into the database.
-    prepared_event:   Option<PreparedEvent>,
+    prepared_event:   PreparedEventData,
 }
 
 impl PreparedBlockItem {
@@ -902,7 +901,7 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
 
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+        let prepared_event = PreparedEventData::prepare(node_client, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -947,11 +946,22 @@ VALUES
             .execute(tx.as_mut())
             .await?;
 
-        if let Some(prepared_event) = &self.prepared_event {
-            prepared_event.save(tx).await?;
-        }
+        self.prepared_event.save(tx).await?;
+
         Ok(())
     }
+}
+
+/// Different types of block item events that can be prepared and the
+/// status of the event (if the event was in a successful or rejected
+/// transaction).
+struct PreparedEventData {
+    /// The prepared event. Note: this is optional temporarily until we can
+    /// handle all events.
+    event:   Option<PreparedEvent>,
+    /// The status of the event (if the event belongs to a successful or
+    /// rejected transaction).
+    success: bool,
 }
 
 /// Different types of block item events that can be prepared.
@@ -964,15 +974,17 @@ enum PreparedEvent {
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
+    /// Contract got updated.
+    ContractUpdate(Vec<PreparedContractUpdate>),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
-impl PreparedEvent {
+impl PreparedEventData {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
         block_item: &BlockItemSummary,
-    ) -> anyhow::Result<Option<Self>> {
+    ) -> anyhow::Result<Self> {
         let prepared_event = match &block_item.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
@@ -997,7 +1009,20 @@ impl PreparedEvent {
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
-                } => None,
+                } => Some(PreparedEvent::ContractUpdate(
+                    effects
+                        .iter()
+                        .enumerate()
+                        .map(|(trace_element_index, effect)| {
+                            PreparedContractUpdate::prepare(
+                                data,
+                                block_item,
+                                effect,
+                                trace_element_index,
+                            )
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
                     to,
@@ -1116,23 +1141,57 @@ impl PreparedEvent {
                 None
             }
         };
-        Ok(prepared_event)
+        Ok(PreparedEventData {
+            event:   prepared_event,
+            success: block_item.is_success(),
+        })
     }
 
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        match self {
+        let Some(event) = &self.event else {
+            return Ok(());
+        };
+
+        match event {
             PreparedEvent::AccountCreation(event) => event.save(tx).await,
+            // TODO: need to handle `rejected` baker events properly.
             PreparedEvent::BakerEvents(events) => {
                 for event in events {
                     event.save(tx).await?;
                 }
                 Ok(())
             }
-            PreparedEvent::ModuleDeployed(event) => event.save(tx).await,
-            PreparedEvent::ContractInitialized(event) => event.save(tx).await,
+            PreparedEvent::ModuleDeployed(event) =>
+            // Only save the module into the `modules` table if the transaction was
+            // successful.
+            {
+                if self.success {
+                    event.save(tx).await
+                } else {
+                    Ok(())
+                }
+            }
+            PreparedEvent::ContractInitialized(event) =>
+            // Only save the contract into the `contracts` table if the transaction was
+            // successful.
+            {
+                if self.success {
+                    event.save(tx).await
+                } else {
+                    Ok(())
+                }
+            }
+            PreparedEvent::ContractUpdate(events) => {
+                if self.success {
+                    for event in events {
+                        event.save(tx).await?;
+                    }
+                }
+                Ok(())
+            }
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1510,6 +1569,7 @@ struct PreparedContractInitialized {
     amount:           i64,
     height:           i64,
     tx_index:         i64,
+    version:          i32,
 }
 
 impl PreparedContractInitialized {
@@ -1525,7 +1585,8 @@ impl PreparedContractInitialized {
         let sub_index = i64::try_from(event.address.subindex)?;
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let module_reference = event.origin_ref;
-        let name = event.init_name.to_string();
+        let name = event.init_name.to_string().replace("init_", "");
+        let version = i32::try_from(event.contract_version as u32)?;
 
         Ok(Self {
             index,
@@ -1535,6 +1596,7 @@ impl PreparedContractInitialized {
             name,
             height,
             tx_index,
+            version,
         })
     }
 
@@ -1550,10 +1612,11 @@ impl PreparedContractInitialized {
                 name,
                 amount,
                 init_block_height,
-                init_transaction_index
+                init_transaction_index,
+                version
                 )
              VALUES (
-                $1, $2, $3, $4, $5, $6, $7
+                $1, $2, $3, $4, $5, $6, $7, $8
             )"#,
             self.index,
             self.sub_index,
@@ -1562,9 +1625,93 @@ impl PreparedContractInitialized {
             self.amount,
             self.height,
             self.tx_index,
+            self.version
         )
         .execute(tx.as_mut())
         .await?;
+
+        Ok(())
+    }
+}
+
+struct PreparedContractUpdate {
+    tx_index:            i64,
+    trace_element_index: i64,
+    height:              i64,
+    contract_index:      i64,
+    contract_sub_index:  i64,
+}
+
+impl PreparedContractUpdate {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractTraceElement,
+        trace_element_index: usize,
+    ) -> anyhow::Result<Self> {
+        let contract_address = match event {
+            ContractTraceElement::Updated {
+                data,
+            } => data.address,
+            ContractTraceElement::Transferred {
+                from,
+                amount,
+                to,
+            } => *from,
+            ContractTraceElement::Interrupted {
+                address,
+                events,
+            } => *address,
+            ContractTraceElement::Resumed {
+                address,
+                success,
+            } => *address,
+            ContractTraceElement::Upgraded {
+                address,
+                from,
+                to,
+            } => *address,
+        };
+
+        let tx_index = block_item.index.index.try_into()?;
+        let trace_element_index = trace_element_index.try_into()?;
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let index = i64::try_from(contract_address.index)?;
+        let sub_index = i64::try_from(contract_address.subindex)?;
+
+        Ok(Self {
+            tx_index,
+            trace_element_index,
+            height,
+            contract_index: index,
+            contract_sub_index: sub_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contract_events (
+                transaction_index,
+                trace_element_index,
+                block_height,
+                contract_index,
+                contract_sub_index
+            )
+            VALUES (
+                $1, $2, $3, $4, $5
+            )"#,
+            self.tx_index,
+            self.trace_element_index,
+            self.height,
+            self.contract_index,
+            self.contract_sub_index
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }

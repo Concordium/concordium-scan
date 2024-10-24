@@ -159,6 +159,7 @@ CREATE TABLE transactions(
         BOOLEAN
         NOT NULL,
     -- Transaction details. Events if success is true.
+    -- TODO: It would be nice to have every event in a separate row in a table to easily query a specific event from a specific transaction.
     events
         JSONB,
     -- Transaction details. Reject reason if success is false.
@@ -299,9 +300,108 @@ CREATE TABLE contracts(
     init_transaction_index
         BIGINT
         NOT NULL,
+    -- The version of the smart contract.
+    version
+        INT
+        NOT NULL,
 
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
+);
+
+-- Every event that links or unlinks a contract to a module.
+CREATE TABLE module_contract_link_events(
+    -- An index/id for this event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY
+        NOT NULL,
+    -- Event index of the event.
+    event_index
+        BIGINT
+        NOT NULL,
+    -- Transaction index including the event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- Module index that gets linked/unlinked.
+    module_index
+        BIGINT
+        NOT NULL,
+    -- Contract index that gets linked/unlinked.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that gets linked/unlinked.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- True if contract gets linked to the given module, false if contract gets unlinked to the given module.
+    is_linked
+        BOOLEAN
+        NOT NULL
+
+    -- TODO: link_action = int? source = int?
+);
+
+-- Every successful event associated to a contract.
+-- TODO: add index over the contract (index,subindex)
+CREATE TABLE contract_events (
+    -- An index/id for this event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY
+        NOT NULL,
+    -- Transaction index including the event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- Trace element index of the event traces from above transaction.
+    trace_element_index
+        BIGINT
+        NOT NULL,
+    -- The absolute block height of the block that includes the event.
+    block_height
+        BIGINT
+        NOT NULL,
+    -- Contract index that event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL
+
+    -- TODO: source = int?
+);
+
+-- Every rejected event associated to a contract.
+-- TODO: add index over the contract (index,subindex)
+CREATE TABLE contract_reject_events(
+    -- An index/id for this event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY
+        NOT NULL,
+    -- Transaction index including the event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- Event index of the event.
+    event_index
+        BIGINT
+        NOT NULL,
+    -- Contract index that event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL
+
+    -- TODO: source = int?
 );
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
