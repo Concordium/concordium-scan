@@ -79,7 +79,7 @@ CREATE TABLE blocks(
         NOT NULL,
     -- Timestamp for when the block was baked.
     slot_time
-        TIMESTAMP
+        TIMESTAMPTZ
         NOT NULL,
     -- Milliseconds between the slot_time of this block and the block below (height - 1).
     -- For the genesis block it will be 0.

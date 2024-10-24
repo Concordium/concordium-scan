@@ -6,7 +6,7 @@ use crate::graphql_api::{
     CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
 };
 use anyhow::Context;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
     common::types::Amount,
@@ -555,7 +555,7 @@ struct BlockProcessingContext {
     last_finalized_hash:  String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time: NaiveDateTime,
+    last_block_slot_time: DateTime<Utc>,
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -577,7 +577,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
     {
         let genesis_block_info = client.get_block_info(genesis_height).await?.response;
         let block_hash = genesis_block_info.block_hash.to_string();
-        let slot_time = genesis_block_info.block_slot_time.naive_utc();
+        let slot_time = genesis_block_info.block_slot_time;
         let genesis_tokenomics = client.get_tokenomics_info(genesis_height).await?.response;
         let total_staked = match genesis_tokenomics {
             RewardsOverview::V0 {
@@ -672,7 +672,7 @@ struct PreparedBlock {
     /// Absolute height of the block.
     height:               i64,
     /// Block slot time (UTC).
-    slot_time:            NaiveDateTime,
+    slot_time:            DateTime<Utc>,
     /// Id of the validator which constructed the block. Is only None for the
     /// genesis block.
     baker_id:             Option<i64>,
@@ -691,7 +691,7 @@ impl PreparedBlock {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
-        let slot_time = data.block_info.block_slot_time.naive_utc();
+        let slot_time = data.block_info.block_slot_time;
         let baker_id = if let Some(index) = data.block_info.block_baker {
             Some(i64::try_from(index.id.index)?)
         } else {
@@ -767,7 +767,7 @@ impl PreparedBlock {
 SELECT * FROM UNNEST(
   $1::BIGINT[],
   $2::TEXT[],
-  $3::TIMESTAMP[],
+  $3::TIMESTAMPTZ[],
   $4::BIGINT[],
   $5::BIGINT[],
   $6::BIGINT[],
@@ -795,7 +795,7 @@ SELECT * FROM UNNEST(
 UPDATE blocks
    SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - blocks.slot_time),
        finalized_by = finalizer.height
-FROM UNNEST($1::BIGINT[], $2::TEXT[], $3::TIMESTAMP[]) AS finalizer(height, finalized, slot_time)
+FROM UNNEST($1::BIGINT[], $2::TEXT[], $3::TIMESTAMPTZ[]) AS finalizer(height, finalized, slot_time)
 JOIN blocks last ON finalizer.finalized = last.hash
 WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
 "#,
