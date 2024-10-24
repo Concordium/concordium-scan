@@ -6,7 +6,7 @@
       {
         "ordinal": 0,
         "name": "slot_time",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {

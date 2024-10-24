@@ -31,7 +31,7 @@
       {
         "ordinal": 5,
         "name": "block_slot_time",
-        "type_info": "Timestamp"
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 6,

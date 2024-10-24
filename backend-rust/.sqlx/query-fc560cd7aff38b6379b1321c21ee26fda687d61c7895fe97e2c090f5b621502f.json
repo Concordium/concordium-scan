@@ -7,7 +7,7 @@
       "Left": [
         "Int8",
         "Bpchar",
-        "Timestamp",
+        "Timestamptz",
         "Int8",
         "Int8"
       ]
