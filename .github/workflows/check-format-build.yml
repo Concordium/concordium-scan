@@ -4,7 +4,8 @@ on:
   push:
     branches: main
   pull_request:
-    branches: [ main, rust-backend ]
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main ]
 
 env:
   RUST_FMT: "nightly-2023-04-01"

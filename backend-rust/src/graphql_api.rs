@@ -1182,7 +1182,7 @@ type AccountIndex = i64;
 type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
-type DateTime = chrono::NaiveDateTime; // TODO check format matches.
+type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
 type BigInteger = u64; // TODO check format.
 type MetadataUrl = String;
@@ -3877,12 +3877,11 @@ pub fn events_from_summary(
         }
         BlockItemSummaryDetails::Update(details) => {
             vec![Event::ChainUpdateEnqueued(ChainUpdateEnqueued {
-                effective_time: chrono::DateTime::from_timestamp(
+                effective_time: DateTime::from_timestamp(
                     details.effective_time.seconds.try_into()?,
                     0,
                 )
-                .context("Failed to parse effective time")?
-                .naive_utc(),
+                .context("Failed to parse effective time")?,
                 payload:        true, // placeholder
             })]
         }

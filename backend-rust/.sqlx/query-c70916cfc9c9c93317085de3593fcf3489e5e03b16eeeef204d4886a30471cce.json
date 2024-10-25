@@ -6,7 +6,7 @@
     "parameters": {
       "Left": [
         "Bpchar",
-        "Timestamp",
+        "Timestamptz",
         "Int8",
         "Int8"
       ]
