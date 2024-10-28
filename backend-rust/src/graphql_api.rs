@@ -293,6 +293,8 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
+    #[error("Schema error: {0}")]
+    SchemaError(String),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -1444,43 +1446,56 @@ impl Contract {
             let row = sqlx::query!(
             r#"
 SELECT
-  module_reference,
-  name as contract_name,
-  contracts.amount as amount,
-  blocks.slot_time as block_slot_time,
-  init_block_height as block_height,
-  transactions.hash as transaction_hash,
-  accounts.address as creator,
-  version
+    module_reference,
+    name as contract_name,
+    contracts.amount as amount,
+    blocks.slot_time as block_slot_time,
+    init_block_height as block_height,
+    transactions.events,
+    transactions.hash as transaction_hash,
+    accounts.address as creator,
+    version
 FROM contracts
 JOIN blocks ON init_block_height=blocks.height
 JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
 JOIN accounts ON transactions.sender=accounts.index
 WHERE contracts.index=$1 AND contracts.sub_index=$2
 "#,
-self.contract_address_index.0 as i64,self.contract_address_sub_index.0 as i64
-        ).fetch_optional(pool).await?
-         .ok_or(ApiError::NotFound)?;
+                self.contract_address_index.0 as i64,
+                self.contract_address_sub_index.0 as i64
+            )
+            .fetch_optional(pool)
+            .await?
+            .ok_or(ApiError::NotFound)?;
+
+            let Some(events) = row.events else {
+                return Err(ApiError::InternalError("Missing events in database".to_string()));
+            };
+
+            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
+                ApiError::InternalError("Failed to deserialize events from database".to_string())
+            })?;
+
+            // Add check if not `initEvent` return error.
+
+            if events.len() != 1 {
+                return Err(ApiError::InternalError(
+                    "Contract init transaction expects exactly one event".to_string(),
+                ));
+            }
+
+            // Contract init transactions have exactly one top-level event.
+            let event = events.swap_remove(0_usize);
 
             let initial_event = ContractEvent {
                 contract_address_index: self.contract_address_index,
                 contract_address_sub_index: self.contract_address_sub_index,
                 sender: row.creator.into(),
-                event: Event::ContractInitialized(ContractInitialized {
-                    module_ref:       row.module_reference,
-                    contract_address: ContractAddress::from(
-                        self.contract_address_index,
-                        self.contract_address_sub_index,
-                    ),
-                    amount:           row.amount,
-                    init_name:        format!("init_{:}", row.contract_name),
-                    version:          row.version.try_into()?,
-                }),
+                event,
                 block_height: row.block_height,
                 transaction_hash: row.transaction_hash,
                 block_slot_time: row.block_slot_time,
             };
-
             contract_events.push(initial_event);
             total_events_count += 1;
         }
@@ -3656,16 +3671,6 @@ struct ContractAddress {
     as_string: String,
 }
 
-impl ContractAddress {
-    fn from(index: ContractIndex, sub_index: ContractIndex) -> Self {
-        Self {
-            index,
-            sub_index,
-            as_string: format!("<{},{}>", index, sub_index),
-        }
-    }
-}
-
 impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
     fn from(value: concordium_rust_sdk::types::ContractAddress) -> Self {
         Self {
@@ -3762,6 +3767,11 @@ pub fn events_from_summary(
                     amount:           i64::try_from(data.amount.micro_ccd)?,
                     init_name:        data.init_name.to_string(),
                     version:          data.contract_version.into(),
+                    // TODO: the send message/input parameter is missing and not exposed by the
+                    // node and rust SDK currently, it should be added when available.
+                    //
+                    // input_parameter: data.message.as_ref().to_vec(),
+                    contract_logs:    data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
                 })]
             }
             AccountTransactionEffects::ContractUpdateIssued {
@@ -3780,7 +3790,7 @@ pub fn events_from_summary(
                             receive_name:     data.receive_name.to_string(),
                             version:          data.contract_version.into(),
                             input_parameter:  data.message.as_ref().to_vec(),
-                            contrat_logs:     data
+                            contract_logs:    data
                                 .events
                                 .iter()
                                 .map(|e| e.as_ref().to_vec())
@@ -4628,20 +4638,114 @@ impl BakerStakeIncreased {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractInitialized {
     module_ref:       String,
     contract_address: ContractAddress,
     amount:           Amount,
     init_name:        String,
     version:          ContractVersion,
-    // TODO: eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): StringConnection TODO: events("Returns the first
-    // _n_ elements from the list." first: Int "Returns the elements in the list that come after
-    // the specified cursor." after: String "Returns the last _n_ elements from the list." last:
-    // Int "Returns the elements in the list that come before the specified cursor." before:
-    // String): StringConnection
+    // All logged events by the smart contract during the transaction execution.
+    contract_logs:    Vec<Vec<u8>>,
+    // TODO: the send message/input parameter is missing and not exposed by the node and rust SDK
+    // currently, it should be added when available.
+    //
+    // input_parameter:  Vec<u8>,
+}
+
+#[ComplexObject]
+impl ContractInitialized {
+    // TODO: the send message/input parameter is missing and not exposed by the node
+    // and rust SDK currently, it should be added when available.
+    //
+    // async fn message(&self) -> ApiResult<String> {
+    //     // TODO: decode input-parameter/message with schema.
+
+    //     Ok(hex::encode(self.input_parameter.clone()))
+    // }
+
+    // TODO: the send message/input parameter is missing and not exposed by the node
+    // and rust SDK currently, it should be added when available.
+    //
+    // async fn message_as_hex(&self) -> ApiResult<String> {
+    // Ok(hex::encode(self.input_parameter.clone())) }
+
+    async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  contracts.module_reference as module_reference,
+  name as contract_name,
+  schema as display_schema
+FROM contracts
+JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
+WHERE index=$1 AND sub_index=$2
+"#,
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_event_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_event_schema(&row.contract_name).ok()
+            });
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs.iter().enumerate() {
+            // Note: Shall we use something better than empty string if no event schema is
+            // available for decoding.
+            let decoded_logs =
+                opt_event_schema.as_ref().map_or(Ok("".to_string()), |event_schema| {
+                    let mut cursor = Cursor::new(&log);
+                    event_schema
+                        .to_json(&mut cursor)
+                        .map_err(|e| {
+                            ApiError::SchemaError(format!(
+                                "Failed to deserialize event schema: {:?}",
+                                e.display(true)
+                            ))
+                        })
+                        .and_then(|v| {
+                            to_string(&v).map_err(|e| {
+                                ApiError::SchemaError(format!(
+                                    "Failed to deserialize event schema into string: {:?}",
+                                    e
+                                ))
+                            })
+                        })
+                })?;
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_logs));
+        }
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -4880,7 +4984,7 @@ pub struct ContractUpdated {
     receive_name:     String,
     version:          ContractVersion,
     // All logged events by the smart contract during the transaction execution.
-    contrat_logs:     Vec<Vec<u8>>,
+    contract_logs:    Vec<Vec<u8>>,
     input_parameter:  Vec<u8>,
 }
 
@@ -4899,10 +5003,8 @@ impl ContractUpdated {
     async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contrat_logs.iter().enumerate().for_each(|(index, log)| {
-            connection
-                .edges
-                .push(connection::Edge::new(index.to_string(), hex::encode(log.clone())));
+        self.contract_logs.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
         // Nice-to-have: pagination info but not used at front-end currently.
@@ -4943,24 +5045,32 @@ WHERE index=$1 AND sub_index=$2
 
         let mut connection = connection::Connection::new(true, true);
 
-        self.contrat_logs.iter().enumerate().for_each(|(index, log)| {
-            let decoded_logs = if let Some(event_schema) = &opt_event_schema {
-                let mut cursor = Cursor::new(&log);
-                match event_schema.to_json(&mut cursor) {
-                    Ok(v) => to_string(&v).map_err(|_| {
-                        ApiError::InternalError("Failed to serialize event schema".into())
-                    }),
-                    Err(e) => Err(ApiError::InternalError(e.display(true))),
-                }
-            } else {
-                // Note: Shall we use something better than empty string if no event schema is
-                // available for decoding.
-                Ok("".to_string())
-            }
-            .unwrap();
+        for (index, log) in self.contract_logs.iter().enumerate() {
+            // Note: Shall we use something better than empty string if no event schema is
+            // available for decoding.
+            let decoded_logs =
+                opt_event_schema.as_ref().map_or(Ok("".to_string()), |event_schema| {
+                    let mut cursor = Cursor::new(&log);
+                    event_schema
+                        .to_json(&mut cursor)
+                        .map_err(|e| {
+                            ApiError::SchemaError(format!(
+                                "Failed to deserialize event schema: {:?}",
+                                e.display(true)
+                            ))
+                        })
+                        .and_then(|v| {
+                            to_string(&v).map_err(|e| {
+                                ApiError::SchemaError(format!(
+                                    "Failed to deserialize event schema into string: {:?}",
+                                    e
+                                ))
+                            })
+                        })
+                })?;
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_logs));
-        });
+        }
 
         // Nice-to-have: pagination info but not used at front-end currently.
 
