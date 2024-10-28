@@ -19,8 +19,6 @@ To run the services, the following dependencies are required to be available on 
 
 The indexer talks to a Concordium node in order to gather data about the chain, which it then inserts into a PostgreSQL database.
 Note that only one instance of the indexer may run at any one time, as multiple instances would conflict with each other.
-The indexer purposefully performs insertions in a sequential manner, such that table indices can be strictly increasing without skipping any values.
-Since no rows are ever deleted, this allows using the table indices to quickly calculate the number of rows in a table, without having to actually count all rows via a table scan.
 
 For instructions on how to use the indexer run:
 

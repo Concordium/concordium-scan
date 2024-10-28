@@ -38,6 +38,12 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 /// Service traversing each block of the chain, indexing it into a database.
+///
+/// The indexer purposefully performs insertions in a sequential manner, such
+/// that table indices can be strictly increasing without skipping any values.
+/// Since no rows are ever deleted, this allows using the table indices to
+/// quickly calculate the number of rows in a table, without having to actually
+/// count all rows via a table scan.
 pub struct IndexerService {
     /// List of Concordium nodes to cycle through when traversing.
     endpoints:           Vec<v2::Endpoint>,
