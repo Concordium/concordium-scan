@@ -557,7 +557,7 @@ struct BlockProcessingContext {
     last_finalized_hash:     String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time: DateTime<Utc>,
+    last_block_slot_time:    DateTime<Utc>,
     /// The value of cumulative_num_txs from the last block.
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
@@ -750,7 +750,6 @@ impl PreparedBlock {
         let mut last_finalizeds = Vec::with_capacity(batch.len());
         let mut finalizers_slot_time = Vec::with_capacity(batch.len());
 
-        let mut cumulative_num_txs = context.last_cumulative_num_txs;
         for block in batch {
             heights.push(block.height);
             hashes.push(block.hash.clone());
@@ -764,8 +763,8 @@ impl PreparedBlock {
                     .signed_duration_since(context.last_block_slot_time)
                     .num_milliseconds(),
             );
-            cumulative_num_txs += block.prepared_block_items.len() as i64;
-            cumulative_num_txss.push(cumulative_num_txs);
+            context.last_cumulative_num_txs += block.prepared_block_items.len() as i64;
+            cumulative_num_txss.push(context.last_cumulative_num_txs);
             context.last_block_slot_time = block.slot_time;
 
             // Check if this block knows of a new finalized block.

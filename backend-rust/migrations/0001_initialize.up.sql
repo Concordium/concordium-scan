@@ -118,6 +118,9 @@ CREATE TABLE blocks(
         CONSTRAINT cumulative_num_txs_non_negative CHECK (0 <= cumulative_num_txs)
 );
 
+-- Important for quickly filtering blocks by slot time, such as is done in the transactions metrics query.
+CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
+
 -- Every transaction on chain.
 CREATE TABLE transactions(
     -- Index of the transaction within the block.
