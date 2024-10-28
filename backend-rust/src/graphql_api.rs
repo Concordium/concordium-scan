@@ -28,12 +28,16 @@ use async_graphql::{
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{
-    base::contracts_common::{from_bytes, schema::VersionedModuleSchema},
+    base::contracts_common::{
+        schema::{VersionedModuleSchema, VersionedSchemaError},
+        Cursor,
+    },
     id::types as sdk_types,
     types::AmountFraction,
 };
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
+use serde_json::to_string;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
@@ -287,8 +291,8 @@ enum ApiError {
     InvalidIntString(#[from] std::num::ParseIntError),
     #[error("Parse error: {0}")]
     InvalidContractVersion(#[from] InvalidContractVersionError),
-    #[error("Schema in database should be valid")]
-    InvalidModuleSchema,
+    #[error("Schema in database should be a valid versioned module schema")]
+    InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -987,11 +991,11 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let display_schema = row.display_schema.as_ref().map_or(Ok(None), |s| {
-            from_bytes::<VersionedModuleSchema>(s)
-                .map(|opt_schema| Some(opt_schema.to_string()))
-                .map_err(|_| ApiError::InvalidModuleSchema)
-        })?;
+        let display_schema = row
+            .display_schema
+            .as_ref()
+            .map(|s| VersionedModuleSchema::new(s, &None).map(|schema| schema.to_string()))
+            .transpose()?;
 
         Ok(ModuleReferenceEvent {
             module_reference,
@@ -4875,7 +4879,7 @@ pub struct ContractUpdated {
     amount:           Amount,
     receive_name:     String,
     version:          ContractVersion,
-    // All logged events by smart contracts during the transaction execution.
+    // All logged events by the smart contract during the transaction execution.
     contrat_logs:     Vec<Vec<u8>>,
     input_parameter:  Vec<u8>,
 }
@@ -4906,16 +4910,57 @@ impl ContractUpdated {
         Ok(connection)
     }
 
-    async fn events<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  contracts.module_reference as module_reference,
+  name as contract_name,
+  schema as display_schema
+FROM contracts
+JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
+WHERE index=$1 AND sub_index=$2
+"#,
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_event_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_event_schema(&row.contract_name).ok()
+            });
+
         let mut connection = connection::Connection::new(true, true);
 
         self.contrat_logs.iter().enumerate().for_each(|(index, log)| {
-            connection
-                .edges
-                .push(connection::Edge::new(index.to_string(), hex::encode(log.clone())));
-        });
+            let decoded_logs = if let Some(event_schema) = &opt_event_schema {
+                let mut cursor = Cursor::new(&log);
+                match event_schema.to_json(&mut cursor) {
+                    Ok(v) => to_string(&v).map_err(|_| {
+                        ApiError::InternalError("Failed to serialize event schema".into())
+                    }),
+                    Err(e) => Err(ApiError::InternalError(e.display(true))),
+                }
+            } else {
+                // Note: Shall we use something better than empty string if no event schema is
+                // available for decoding.
+                Ok("".to_string())
+            }
+            .unwrap();
 
-        // TODO: decode event with schema.
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_logs));
+        });
 
         // Nice-to-have: pagination info but not used at front-end currently.
 
