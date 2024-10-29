@@ -1394,7 +1394,7 @@ impl Contract {
         let mut total_events_count = 0;
 
         // Get the events from the `contract_events` table.
-        let mut row_stream = sqlx::query!(
+        let row_stream = sqlx::query!(
             r#"
                             SELECT * FROM (
                                 SELECT
@@ -1423,12 +1423,24 @@ impl Contract {
                             "#,
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
-            limit,
+            limit + 1,
             skip_without_initial_event
         )
         .fetch(pool);
 
-        while let Some(row) = row_stream.try_next().await? {
+        // Collect the stream into a vector to inspect the number of rows.
+        let mut rows: Vec<_> = row_stream.take(limit as usize + 1).try_collect().await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = rows.len() > limit as usize;
+
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            rows.pop();
+        }
+
+        for row in rows {
             let Some(events) = row.events else {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
             };
@@ -1437,9 +1449,6 @@ impl Contract {
                 ApiError::InternalError("Failed to deserialize events from database".to_string())
             })?;
 
-            // Add check if not `initEvent`, `interrupt`, `upgrade`, `resume` ... return
-            // error.
-
             if row.trace_element_index as usize >= events.len() {
                 return Err(ApiError::InternalError(
                     "Trace element index does not exist in events".to_string(),
@@ -1447,6 +1456,20 @@ impl Contract {
             }
 
             let event = events.swap_remove(row.trace_element_index as usize);
+
+            if let Event::ContractInterrupted(_)
+            | Event::ContractResumed(_)
+            | Event::ContractUpgraded(_)
+            | Event::ContractUpdated(_) = event
+            {
+                Ok(())
+            } else {
+                Err(ApiError::InternalError(
+                    "Not ContractInterrupted, ContractResumed, ContractUpgraded, or \
+                     ContractUpdated event"
+                        .to_string(),
+                ))
+            }?;
 
             let contract_event = ContractEvent {
                 contract_address_index: self.contract_address_index,
@@ -1508,6 +1531,11 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
             // Contract init transactions have exactly one top-level event.
             let event = events.swap_remove(0_usize);
 
+            match event {
+                Event::ContractInitialized(_) => Ok(()),
+                _ => Err(ApiError::InternalError("Not ContractInitialized event".to_string())),
+            }?;
+
             let initial_event = ContractEvent {
                 contract_address_index: self.contract_address_index,
                 contract_address_sub_index: self.contract_address_sub_index,
@@ -1522,10 +1550,9 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
         }
 
         Ok(ContractEventsCollectionSegment {
-            // TODO: add pagination info
             page_info:   CollectionSegmentInfo {
-                has_next_page:     false,
-                has_previous_page: false,
+                has_next_page,
+                has_previous_page: skip > 0,
             },
             items:       Some(contract_events),
             total_count: total_events_count,
