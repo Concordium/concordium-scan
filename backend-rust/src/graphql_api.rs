@@ -62,6 +62,12 @@ pub struct ApiServiceConfig {
     contract_connection_limit:          u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_events_collection_limit:   i64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
@@ -1351,27 +1357,43 @@ struct Contract {
     snapshot:                   ContractSnapshot,
 }
 
-// TODO
+// TODOTODO
 #[ComplexObject]
 impl Contract {
+    // This function returns events from the `contract_events` table as well as
+    // one `init_transaction_event` from when the contract was initialized. The
+    // `skip` and `take` parameters are used to paginate the events.
     async fn contract_events(
         &self,
         ctx: &Context<'_>,
         skip: i32,
         take: i32,
     ) -> ApiResult<ContractEventsCollectionSegment> {
-        // take some events from the `contract_events` table.
-
-        // take sometimes initial event from `contracts` table.
-
+        let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
+
+        // If `skip` is 0 and at least one event is taken, include the
+        // `init_transaction_event`.
+        let include_initial_event = skip == 0 && take > 0;
+        // Adjust the `take` and `skip` values considering if the
+        // `init_transaction_event` is requested to be included or not.
+        let take_without_initial_event =
+            std::cmp::max(0, take as i64 - include_initial_event as i64);
+        let skip_without_initial_event = std::cmp::max(0, skip as i64 - 1i64);
+
+        // Limit the number of events to be fetched from the `contract_events` table.
+        let limit = std::cmp::min(
+            take_without_initial_event,
+            std::cmp::max(
+                0,
+                config.contract_events_collection_limit - include_initial_event as i64,
+            ),
+        );
 
         let mut contract_events = vec![];
         let mut total_events_count = 0;
 
-        // TODO: add `take` and `skip` to the query.
-        let limit = 3;
-
+        // Get the events from the `contract_events` table.
         let mut row_stream = sqlx::query!(
             r#"
                             SELECT * FROM (
@@ -1395,12 +1417,14 @@ impl Contract {
                                 WHERE contract_events.contract_index = $1
                                 AND contract_events.contract_sub_index <= $2
                                 LIMIT $3
+                                OFFSET $4
                             ) AS contract_data
                             ORDER BY contract_data.index DESC
                             "#,
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
-            limit
+            limit,
+            skip_without_initial_event
         )
         .fetch(pool);
 
@@ -1438,10 +1462,7 @@ impl Contract {
             total_events_count += 1;
         }
 
-        // TODO: depending on `skip` and `take` values, we either include or not include
-        // the initial event.
-        let include_initial_event = true;
-
+        // Get the `init_transaction_event`.
         if include_initial_event {
             let row = sqlx::query!(
             r#"
@@ -3762,16 +3783,16 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::ContractInitialized(ContractInitialized {
-                    module_ref:       data.origin_ref.to_string(),
-                    contract_address: data.address.into(),
-                    amount:           i64::try_from(data.amount.micro_ccd)?,
-                    init_name:        data.init_name.to_string(),
-                    version:          data.contract_version.into(),
+                    module_ref:        data.origin_ref.to_string(),
+                    contract_address:  data.address.into(),
+                    amount:            i64::try_from(data.amount.micro_ccd)?,
+                    init_name:         data.init_name.to_string(),
+                    version:           data.contract_version.into(),
                     // TODO: the send message/input parameter is missing and not exposed by the
                     // node and rust SDK currently, it should be added when available.
                     //
                     // input_parameter: data.message.as_ref().to_vec(),
-                    contract_logs:    data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
+                    contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
                 })]
             }
             AccountTransactionEffects::ContractUpdateIssued {
@@ -3784,13 +3805,13 @@ pub fn events_from_summary(
                         ContractTraceElement::Updated {
                             data,
                         } => Ok(Event::ContractUpdated(ContractUpdated {
-                            contract_address: data.address.into(),
-                            instigator:       data.instigator.into(),
-                            amount:           data.amount.micro_ccd().try_into()?,
-                            receive_name:     data.receive_name.to_string(),
-                            version:          data.contract_version.into(),
-                            input_parameter:  data.message.as_ref().to_vec(),
-                            contract_logs:    data
+                            contract_address:  data.address.into(),
+                            instigator:        data.instigator.into(),
+                            amount:            data.amount.micro_ccd().try_into()?,
+                            receive_name:      data.receive_name.to_string(),
+                            version:           data.contract_version.into(),
+                            input_parameter:   data.message.as_ref().to_vec(),
+                            contract_logs_raw: data
                                 .events
                                 .iter()
                                 .map(|e| e.as_ref().to_vec())
@@ -4640,13 +4661,13 @@ impl BakerStakeIncreased {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct ContractInitialized {
-    module_ref:       String,
-    contract_address: ContractAddress,
-    amount:           Amount,
-    init_name:        String,
-    version:          ContractVersion,
+    module_ref:        String,
+    contract_address:  ContractAddress,
+    amount:            Amount,
+    init_name:         String,
+    version:           ContractVersion,
     // All logged events by the smart contract during the transaction execution.
-    contract_logs:    Vec<Vec<u8>>,
+    contract_logs_raw: Vec<Vec<u8>>,
     // TODO: the send message/input parameter is missing and not exposed by the node and rust SDK
     // currently, it should be added when available.
     //
@@ -4673,7 +4694,7 @@ impl ContractInitialized {
     async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contract_logs.iter().enumerate().for_each(|(index, log)| {
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
@@ -4715,7 +4736,7 @@ WHERE index=$1 AND sub_index=$2
 
         let mut connection = connection::Connection::new(true, true);
 
-        for (index, log) in self.contract_logs.iter().enumerate() {
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
             // Note: Shall we use something better than empty string if no event schema is
             // available for decoding.
             let decoded_logs =
@@ -4978,14 +4999,14 @@ pub struct ContractResumed {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct ContractUpdated {
-    contract_address: ContractAddress,
-    instigator:       Address,
-    amount:           Amount,
-    receive_name:     String,
-    version:          ContractVersion,
+    contract_address:  ContractAddress,
+    instigator:        Address,
+    amount:            Amount,
+    receive_name:      String,
+    version:           ContractVersion,
     // All logged events by the smart contract during the transaction execution.
-    contract_logs:    Vec<Vec<u8>>,
-    input_parameter:  Vec<u8>,
+    contract_logs_raw: Vec<Vec<u8>>,
+    input_parameter:   Vec<u8>,
 }
 
 #[ComplexObject]
@@ -5003,7 +5024,7 @@ impl ContractUpdated {
     async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
-        self.contract_logs.iter().enumerate().for_each(|(index, log)| {
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
@@ -5045,7 +5066,7 @@ WHERE index=$1 AND sub_index=$2
 
         let mut connection = connection::Connection::new(true, true);
 
-        for (index, log) in self.contract_logs.iter().enumerate() {
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
             // Note: Shall we use something better than empty string if no event schema is
             // available for decoding.
             let decoded_logs =
