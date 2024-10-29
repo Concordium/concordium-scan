@@ -258,8 +258,9 @@ mod monitor {
 
 /// All the errors that may be produced by the GraphQL API.
 ///
-/// Note that `async_graphql` requires this to be `Clone`, as it is used as a return type in queries.
-/// However, some of the underlying error types are not `Clone`, so we wrap those in `Arc`s to make them `Clone`.
+/// Note that `async_graphql` requires this to be `Clone`, as it is used as a
+/// return type in queries. However, some of the underlying error types are not
+/// `Clone`, so we wrap those in `Arc`s to make them `Clone`.
 #[derive(Debug, thiserror::Error, Clone)]
 enum ApiError {
     #[error("Could not find resource")]
