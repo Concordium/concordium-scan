@@ -5,6 +5,8 @@
 
 #![allow(unused_variables)]
 
+mod transaction_metrics;
+
 // TODO remove this macro, when done with first iteration
 /// Short hand for returning API error with the message not implemented.
 macro_rules! todo_api {
@@ -18,7 +20,8 @@ use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
     ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult,
-    Interface, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union, Value,
+    Interface, MergedObject, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union,
+    Value,
 };
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
@@ -33,6 +36,7 @@ use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
+use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -58,6 +62,9 @@ pub struct ApiServiceConfig {
     transaction_event_connection_limit: i64,
 }
 
+#[derive(MergedObject, Default)]
+pub struct Query(BaseQuery, TransactionMetricsQuery);
+
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
 }
@@ -68,7 +75,7 @@ impl Service {
         pool: PgPool,
         config: ApiServiceConfig,
     ) -> Self {
-        let schema = Schema::build(Query, EmptyMutation, subscription)
+        let schema = Schema::build(Query::default(), EmptyMutation, subscription)
             .extension(async_graphql::extensions::Tracing)
             .extension(monitor::MonitorExtension::new(registry))
             .data(pool)
@@ -364,10 +371,12 @@ impl<A> ConnectionQuery<A> {
     }
 }
 
-pub struct Query;
+#[derive(Default)]
+pub struct BaseQuery;
+
 #[Object]
 #[allow(clippy::too_many_arguments)]
-impl Query {
+impl BaseQuery {
     async fn versions(&self) -> Versions {
         Versions {
             backend_versions: VERSION.to_string(),
@@ -743,7 +752,6 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     }
 
     // accountsMetrics(period: MetricsPeriod!): AccountsMetrics
-    // transactionMetrics(period: MetricsPeriod!): TransactionMetrics
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
@@ -4715,6 +4723,7 @@ impl MetricsPeriod {
             MetricsPeriod::Last24Hours => Duration::hours(24),
             MetricsPeriod::Last7Days => Duration::days(7),
             MetricsPeriod::Last30Days => Duration::days(30),
+            // TODO: Explain why this isn't 365.
             MetricsPeriod::LastYear => Duration::days(364),
         }
     }

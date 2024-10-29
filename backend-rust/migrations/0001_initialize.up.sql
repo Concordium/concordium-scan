@@ -108,8 +108,18 @@ CREATE TABLE blocks(
     -- The total staked amount of CCD at the time of this block was created in micro CCD.
     total_staked
         BIGINT
+        NOT NULL,
+    -- Number of transactions in all blocks up to and including this one.
+    -- This is a denormalized value used to quickly calculate transaction counts
+    -- without having to scan through the transactions table.
+    cumulative_num_txs
+        BIGINT
         NOT NULL
+        CONSTRAINT cumulative_num_txs_non_negative CHECK (0 <= cumulative_num_txs)
 );
+
+-- Important for quickly filtering blocks by slot time, such as is done in the transactions metrics query.
+CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
@@ -165,7 +175,7 @@ CREATE TABLE transactions(
     reject
         JSONB,
 
-    -- Make the block height and transaction index the primary key.
+    -- Within a single block, two transactions cannot share the same index.
     PRIMARY KEY (block_height, index)
 );
 
@@ -194,7 +204,7 @@ CREATE TABLE accounts(
         BIGINT
         NOT NULL,
     -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions(block_height, index)
+    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, index)
     -- credential_registration_id
 );
 
@@ -322,4 +332,3 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER block_added_notify_trigger AFTER INSERT
 ON blocks
 FOR EACH ROW EXECUTE PROCEDURE block_added_notify_trigger_function();
-

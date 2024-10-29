@@ -38,6 +38,12 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 /// Service traversing each block of the chain, indexing it into a database.
+///
+/// The indexer purposefully performs insertions in a sequential manner, such
+/// that table indices can be strictly increasing without skipping any values.
+/// Since no rows are ever deleted, this allows using the table indices to
+/// quickly calculate the number of rows in a table, without having to actually
+/// count all rows via a table scan.
 pub struct IndexerService {
     /// List of Concordium nodes to cycle through when traversing.
     endpoints:           Vec<v2::Endpoint>,
@@ -441,7 +447,8 @@ LIMIT 1
         let last_block = sqlx::query!(
             r#"
 SELECT
-  slot_time
+  slot_time,
+  cumulative_num_txs
 FROM blocks
 ORDER BY height DESC
 LIMIT 1
@@ -452,8 +459,9 @@ LIMIT 1
         .context("Failed to query data for save context")?;
 
         let starting_context = BlockProcessingContext {
-            last_finalized_hash:  last_finalized_block.hash,
-            last_block_slot_time: last_block.slot_time,
+            last_finalized_hash:     last_finalized_block.hash,
+            last_block_slot_time:    last_block.slot_time,
+            last_cumulative_num_txs: last_block.cumulative_num_txs,
         };
 
         let blocks_processed = Counter::default();
@@ -552,10 +560,14 @@ impl ProcessEvent for BlockProcessor {
 struct BlockProcessingContext {
     /// The last finalized block hash according to the latest indexed block.
     /// This is used when computing the finalization time.
-    last_finalized_hash:  String,
+    last_finalized_hash:     String,
     /// The slot time of the last processed block.
     /// This is used when computing the block time.
-    last_block_slot_time: DateTime<Utc>,
+    last_block_slot_time:    DateTime<Utc>,
+    /// The value of cumulative_num_txs from the last block.
+    /// This, along with the number of transactions in the current block,
+    /// is used to calculate the next cumulative_num_txs.
+    last_cumulative_num_txs: i64,
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -595,13 +607,22 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let total_amount =
             i64::try_from(genesis_tokenomics.common_reward_data().total_amount.micro_ccd())?;
         sqlx::query!(
-            r#"INSERT INTO blocks (height, hash, slot_time, block_time, finalization_time, total_amount, total_staked) VALUES ($1, $2, $3, 0, 0, $4, $5);"#,
-            0,
+            "INSERT INTO blocks (
+                height,
+                hash,
+                slot_time,
+                block_time,
+                finalization_time,
+                total_amount,
+                total_staked,
+                cumulative_num_txs
+            ) VALUES (0, $1, $2, 0, 0, $3, $4, 0);",
             block_hash,
             slot_time,
             total_amount,
-            total_staked
-        ).execute(&mut *tx)
+            total_staked,
+        )
+        .execute(&mut *tx)
         .await?;
     }
 
@@ -729,6 +750,7 @@ impl PreparedBlock {
         let mut total_amounts = Vec::with_capacity(batch.len());
         let mut total_staked = Vec::with_capacity(batch.len());
         let mut block_times = Vec::with_capacity(batch.len());
+        let mut cumulative_num_txss = Vec::with_capacity(batch.len());
 
         let mut finalizers = Vec::with_capacity(batch.len());
         let mut last_finalizeds = Vec::with_capacity(batch.len());
@@ -747,6 +769,8 @@ impl PreparedBlock {
                     .signed_duration_since(context.last_block_slot_time)
                     .num_milliseconds(),
             );
+            context.last_cumulative_num_txs += block.prepared_block_items.len() as i64;
+            cumulative_num_txss.push(context.last_cumulative_num_txs);
             context.last_block_slot_time = block.slot_time;
 
             // Check if this block knows of a new finalized block.
@@ -763,7 +787,7 @@ impl PreparedBlock {
 
         sqlx::query!(
             r#"INSERT INTO blocks
-  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked)
+  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked, cumulative_num_txs)
 SELECT * FROM UNNEST(
   $1::BIGINT[],
   $2::TEXT[],
@@ -771,7 +795,8 @@ SELECT * FROM UNNEST(
   $4::BIGINT[],
   $5::BIGINT[],
   $6::BIGINT[],
-  $7::BIGINT[]
+  $7::BIGINT[],
+  $8::BIGINT[]
 );"#,
             &heights,
             &hashes,
@@ -779,7 +804,8 @@ SELECT * FROM UNNEST(
             &block_times,
             &baker_ids as &[Option<i64>],
             &total_amounts,
-            &total_staked
+            &total_staked,
+            &cumulative_num_txss
         )
         .execute(tx.as_mut())
         .await?;

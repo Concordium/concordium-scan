@@ -4,7 +4,7 @@ This is the backend for the [CCDScan](https://ccdscan.io/) Blockchain explorer f
 
 The backend consists of two binaries:
 
-- `ccdscan-indexer`: Traversing the chain indexing events into the database.
+- `ccdscan-indexer`: Traversing the chain, inserting data into the database as it is generated in the blockchain.
 - `ccdscan-api`: Providing a GraphQL API for querying the database.
 
 The service is split to allow for running several instances of the GraphQL API and while having a single instance of the indexer.
@@ -16,6 +16,9 @@ To run the services, the following dependencies are required to be available on 
 - PostgreSQL server 16
 
 ## Run the Indexer Service
+
+The indexer talks to a Concordium node in order to gather data about the chain, which it then inserts into a PostgreSQL database.
+Note that only one instance of the indexer may run at any one time, as multiple instances would conflict with each other.
 
 For instructions on how to use the indexer run:
 
