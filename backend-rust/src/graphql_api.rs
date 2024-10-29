@@ -256,6 +256,11 @@ mod monitor {
     }
 }
 
+/// All the errors that may be produced by the GraphQL API.
+///
+/// Note that `async_graphql` requires this to be `Clone`, as it is used as a
+/// return type in queries. However, some of the underlying error types are not
+/// `Clone`, so we wrap those in `Arc`s to make them `Clone`.
 #[derive(Debug, thiserror::Error, Clone)]
 enum ApiError {
     #[error("Could not find resource")]
@@ -286,8 +291,6 @@ enum ApiError {
     InvalidInt(#[from] std::num::TryFromIntError),
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
-    #[error("Parse error: {0}")]
-    UnsignedLongNotNegative(#[from] UnsignedLongNotNegativeError),
     #[error("Schema in database should be valid")]
     InvalidModuleSchema,
 }
@@ -1064,10 +1067,6 @@ impl ScalarType for UnsignedLong {
 
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
 }
-
-#[derive(Debug, thiserror::Error, Clone)]
-#[error("Negative number cannot be converted to UnsignedLong.")]
-struct UnsignedLongNotNegativeError;
 
 impl TryFrom<i64> for UnsignedLong {
     type Error = <u64 as TryFrom<i64>>::Error;
@@ -4723,8 +4722,7 @@ impl MetricsPeriod {
             MetricsPeriod::Last24Hours => Duration::hours(24),
             MetricsPeriod::Last7Days => Duration::days(7),
             MetricsPeriod::Last30Days => Duration::days(30),
-            // TODO: Explain why this isn't 365.
-            MetricsPeriod::LastYear => Duration::days(364),
+            MetricsPeriod::LastYear => Duration::days(365),
         }
     }
 

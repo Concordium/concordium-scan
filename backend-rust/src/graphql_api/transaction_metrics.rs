@@ -52,7 +52,8 @@ impl TransactionMetricsQuery {
         .fetch_one(pool)
         .await?;
 
-        let interval: PgInterval = period
+        // The full period interval, e.g. 7 days.
+        let period_interval: PgInterval = period
             .as_duration()
             .try_into()
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
@@ -63,7 +64,7 @@ impl TransactionMetricsQuery {
             WHERE slot_time < (now() - $1::interval)
             ORDER BY height DESC
             LIMIT 1",
-            interval,
+            period_interval,
         )
         .fetch_one(pool)
         .await?;
@@ -72,12 +73,6 @@ impl TransactionMetricsQuery {
             last_cumulative_transaction_count - cumulative_transaction_count_before_period;
 
         let bucket_width = period.bucket_width();
-
-        // The full period interval, e.g. 7 days.
-        let period_interval: PgInterval = period
-            .as_duration()
-            .try_into()
-            .map_err(|err| ApiError::DurationOutOfRange(Arc::new(err)))?;
 
         // The bucket interval, e.g. 6 hours.
         let bucket_interval: PgInterval =
