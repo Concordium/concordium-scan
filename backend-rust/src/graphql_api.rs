@@ -39,7 +39,7 @@ use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use serde_json::to_string;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
 use transaction_metrics::TransactionMetricsQuery;
@@ -1457,18 +1457,19 @@ impl Contract {
 
             let event = events.swap_remove(row.trace_element_index as usize);
 
-            if let Event::ContractInterrupted(_)
+            if let Event::Transferred(_)
+            | Event::ContractInterrupted(_)
             | Event::ContractResumed(_)
             | Event::ContractUpgraded(_)
             | Event::ContractUpdated(_) = event
             {
                 Ok(())
             } else {
-                Err(ApiError::InternalError(
-                    "Not ContractInterrupted, ContractResumed, ContractUpgraded, or \
-                     ContractUpdated event"
-                        .to_string(),
-                ))
+                Err(ApiError::InternalError(format!(
+                    "Not Transferred, ContractInterrupted, ContractResumed, ContractUpgraded, or \
+                     ContractUpdated event; Wrong event enum tag: {:?}",
+                    mem::discriminant(&event)
+                )))
             }?;
 
             let contract_event = ContractEvent {
@@ -1520,8 +1521,6 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
                 ApiError::InternalError("Failed to deserialize events from database".to_string())
             })?;
 
-            // Add check if not `initEvent` return error.
-
             if events.len() != 1 {
                 return Err(ApiError::InternalError(
                     "Contract init transaction expects exactly one event".to_string(),
@@ -1533,7 +1532,10 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
 
             match event {
                 Event::ContractInitialized(_) => Ok(()),
-                _ => Err(ApiError::InternalError("Not ContractInitialized event".to_string())),
+                _ => Err(ApiError::InternalError(format!(
+                    "Not ContractInitialized event; Wrong event enum tag: {:?}",
+                    mem::discriminant(&event)
+                ))),
             }?;
 
             let initial_event = ContractEvent {
@@ -4718,7 +4720,7 @@ impl ContractInitialized {
     // async fn message_as_hex(&self) -> ApiResult<String> {
     // Ok(hex::encode(self.input_parameter.clone())) }
 
-    async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
         self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
@@ -5038,17 +5040,85 @@ pub struct ContractUpdated {
 
 #[ComplexObject]
 impl ContractUpdated {
-    async fn message(&self) -> ApiResult<String> {
-        // TODO: decode input-parameter/message with schema.
-
-        Ok(hex::encode(self.input_parameter.clone()))
-    }
-
     async fn message_as_hex(&self) -> ApiResult<String> {
         Ok(hex::encode(self.input_parameter.clone()))
     }
 
-    async fn events_as_hex<'a>(&self) -> ApiResult<connection::Connection<String, String>> {
+    async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            r#"
+SELECT
+  contracts.module_reference as module_reference,
+  name as contract_name,
+  schema as display_schema
+FROM contracts
+JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
+WHERE index=$1 AND sub_index=$2
+"#,
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_init_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_init_param_schema(&row.contract_name).ok()
+            });
+
+        let decoded_input_parameter = match opt_init_schema.as_ref() {
+            Some(init_schema) => {
+                let mut cursor = Cursor::new(&self.input_parameter);
+                match init_schema.to_json(&mut cursor) {
+                    Ok(v) => {
+                        to_string(&v).unwrap_or_else(|e| {
+                            // We don't return an error here since the query is correctly formed and
+                            // the CCDScan backend is working as
+                            // expected. A wrong/missing schema is a
+                            // mistake by the smart contract
+                            // developer which in general cannot be fixed after the deployment of
+                            // the contract. We display the error
+                            // message (instead of the decoded value) in the block explorer
+                            // to make it visible to the smart contract developer for debugging
+                            // purposes here.
+                            format!(
+                                "Failed to deserialize input parameter with init schema into \
+                                 string: {:?}",
+                                e
+                            )
+                        })
+                    }
+                    Err(e) => {
+                        // We don't return an error here since the query is correctly formed and the
+                        // CCDScan backend is working as expected.
+                        // A wrong/missing schema is a mistake by the smart contract
+                        // developer which in general cannot be fixed after the deployment of the
+                        // contract. We display the error message (instead
+                        // of the decoded value) in the block explorer
+                        // to make it visible to the smart contract developer for debugging purposes
+                        // here.
+                        format!(
+                            "Failed to deserialize input parameter with init schema: {:?}",
+                            e.display(true)
+                        )
+                    }
+                }
+            }
+            // Note: Shall we use something better than empty string if no init schema is
+            // available for decoding.
+            None => "".to_string(),
+        };
+
+        Ok(decoded_input_parameter)
+    }
+
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
         self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
@@ -5103,14 +5173,15 @@ WHERE index=$1 AND sub_index=$2
                         .to_json(&mut cursor)
                         .map_err(|e| {
                             ApiError::SchemaError(format!(
-                                "Failed to deserialize event schema: {:?}",
+                                "Failed to deserialize contract log with event schema: {:?}",
                                 e.display(true)
                             ))
                         })
                         .and_then(|v| {
                             to_string(&v).map_err(|e| {
                                 ApiError::SchemaError(format!(
-                                    "Failed to deserialize event schema into string: {:?}",
+                                    "Failed to deserialize contract log with event schema into \
+                                     string: {:?}",
                                     e
                                 ))
                             })
