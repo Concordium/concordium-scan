@@ -342,43 +342,7 @@ CREATE TABLE contracts(
     PRIMARY KEY (index, sub_index)
 );
 
--- Every event that links or unlinks a contract to a module.
-CREATE TABLE module_contract_link_events(
-    -- An index/id for this event (row number).
-    index
-        BIGINT GENERATED ALWAYS AS IDENTITY
-        PRIMARY KEY
-        NOT NULL,
-    -- Event index of the event.
-    event_index
-        BIGINT
-        NOT NULL,
-    -- Transaction index including the event.
-    transaction_index
-        BIGINT
-        NOT NULL,
-    -- Module index that gets linked/unlinked.
-    module_index
-        BIGINT
-        NOT NULL,
-    -- Contract index that gets linked/unlinked.
-    contract_index
-        BIGINT
-        NOT NULL,
-    -- Contract subindex that gets linked/unlinked.
-    contract_sub_index
-        BIGINT
-        NOT NULL,
-    -- True if contract gets linked to the given module, false if contract gets unlinked to the given module.
-    is_linked
-        BOOLEAN
-        NOT NULL
-
-    -- TODO: link_action = int? source = int?
-);
-
 -- Every successful event associated to a contract.
--- TODO: add index over the contract (index,subindex)
 CREATE TABLE contract_events (
     -- An index/id for this event (row number).
     index
@@ -405,37 +369,10 @@ CREATE TABLE contract_events (
     contract_sub_index
         BIGINT
         NOT NULL
-
-    -- TODO: source = int?
 );
 
--- Every rejected event associated to a contract.
--- TODO: add index over the contract (index,subindex)
-CREATE TABLE contract_reject_events(
-    -- An index/id for this event (row number).
-    index
-        BIGINT GENERATED ALWAYS AS IDENTITY
-        PRIMARY KEY
-        NOT NULL,
-    -- Transaction index including the event.
-    transaction_index
-        BIGINT
-        NOT NULL,
-    -- Event index of the event.
-    event_index
-        BIGINT
-        NOT NULL,
-    -- Contract index that event is associated with.
-    contract_index
-        BIGINT
-        NOT NULL,
-    -- Contract subindex that event is associated with.
-    contract_sub_index
-        BIGINT
-        NOT NULL
-
-    -- TODO: source = int?
-);
+-- Important for quickly filtering contract events by a specific contract.
+CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

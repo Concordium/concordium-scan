@@ -1355,7 +1355,6 @@ struct Contract {
     snapshot:                   ContractSnapshot,
 }
 
-// TODOTODO
 #[ComplexObject]
 impl Contract {
     // This function returns events from the `contract_events` table as well as
@@ -1453,6 +1452,7 @@ impl Contract {
                 ));
             }
 
+            // Get the associated contract event from the `events` vector.
             let event = events.swap_remove(row.trace_element_index as usize);
 
             if let Event::Transferred(_)
@@ -3713,12 +3713,12 @@ impl SearchResult {
 }
 
 fn decode_value_with_schema(
-    opt_schema: Option<Type>,
+    opt_schema: &Option<Type>,
     schema_name: &str,
     value: &Vec<u8>,
     value_name: &str,
 ) -> String {
-    match opt_schema.as_ref() {
+    match opt_schema {
         Some(schema) => {
             let mut cursor = Cursor::new(&value);
             match schema.to_json(&mut cursor) {
@@ -3754,10 +3754,10 @@ fn decode_value_with_schema(
                 }
             }
         }
-        // Note: Shall we use something better than this string if no init schema is
+        // Note: Shall we use something better than this string if no schema is
         // available for decoding.
         None => {
-            format!("No embedded {} schema in smart contract available for decoding", schema_name,)
+            format!("No embedded {} schema in smart contract available for decoding", schema_name)
         }
     }
 }
@@ -4759,14 +4759,14 @@ impl ContractInitialized {
     // async fn message(&self) -> ApiResult<String> {
     //     // TODO: decode input-parameter/message with schema.
 
-    //     Ok(hex::encode(self.input_parameter.clone()))
+    //     Ok(self.input_parameter)
     // }
 
     // TODO: the send message/input parameter is missing and not exposed by the node
     // and rust SDK currently, it should be added when available.
     //
     // async fn message_as_hex(&self) -> ApiResult<String> {
-    // Ok(hex::encode(self.input_parameter.clone())) }
+    // Ok(hex::encode(self.input_parameter)) }
 
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
@@ -4815,7 +4815,7 @@ WHERE index=$1 AND sub_index=$2
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
             let decoded_log =
-                decode_value_with_schema(opt_event_schema.clone(), "event", log, "contract_log");
+                decode_value_with_schema(&opt_event_schema, "event", log, "contract_log");
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
@@ -5068,9 +5068,7 @@ pub struct ContractUpdated {
 
 #[ComplexObject]
 impl ContractUpdated {
-    async fn message_as_hex(&self) -> ApiResult<String> {
-        Ok(hex::encode(self.input_parameter.clone()))
-    }
+    async fn message_as_hex(&self) -> ApiResult<String> { Ok(hex::encode(&self.input_parameter)) }
 
     async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
         let pool = get_pool(ctx)?;
@@ -5101,7 +5099,7 @@ WHERE index=$1 AND sub_index=$2
             });
 
         let decoded_input_parameter = decode_value_with_schema(
-            opt_init_schema,
+            &opt_init_schema,
             "init",
             &self.input_parameter,
             "init_parameter",
@@ -5157,7 +5155,7 @@ WHERE index=$1 AND sub_index=$2
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
             let decoded_log =
-                decode_value_with_schema(opt_event_schema.clone(), "event", log, "contract_log");
+                decode_value_with_schema(&opt_event_schema, "event", log, "contract_log");
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
