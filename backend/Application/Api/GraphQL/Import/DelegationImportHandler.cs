@@ -29,20 +29,20 @@ public class DelegationImportHandler
         // meaning we can just return for blocks from a protocol version prior to that.
         if (payload.BlockInfo.ProtocolVersion < ProtocolVersion.P4) return resultBuilder.Build();
 
-        // Handle effective pending changes for delegators and update the resultBuilder.
-        if (importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday) {
-            if (payload.BlockInfo.ProtocolVersion < ProtocolVersion.P7) {
-                // Stake changes only take effect from the first block in each payday.
-                await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
-                    account => ApplyPendingChange(account, resultBuilder));
-            } else if (payload.BlockInfo.ProtocolVersion == ProtocolVersion.P7) {
-                // Starting from Concordium Protocol Version 7 stake changes are immediate,
-                // meaning no delegators are expected to have pending changes from this point.
-                // Only the first reward day in P7 should this do anything, afterwards it is a
-                // no-op, since no accounts with pending changes are expected.
-                await _writer.UpdateAccountsWithPendingDelegationChange(DateTimeOffset.MaxValue,
-                    account => ApplyPendingChange(account, resultBuilder));
-            }
+        if (payload.BlockInfo.ProtocolVersion < ProtocolVersion.P7 && importPaydayStatus is FirstBlockAfterPayday firstBlockAfterPayday) {
+            // Handle effective pending changes for delegators and update the resultBuilder.
+            // Stake changes only take effect from the first block in each payday.
+            await _writer.UpdateAccountsWithPendingDelegationChange(firstBlockAfterPayday.PaydayTimestamp,
+                account => ApplyPendingChange(account, resultBuilder));
+
+        } else if (payload.BlockInfo.ProtocolVersion == ProtocolVersion.P7) {
+            // Starting from Concordium Protocol Version 7 stake changes are immediate,
+            // meaning no delegators are expected to have pending changes from this point.
+            // Only the block in P7 should this do anything, afterwards it is a
+            // no-op, since no accounts with pending changes are expected.
+            await _writer.UpdateAccountsWithPendingDelegationChange(DateTimeOffset.MaxValue,
+                account => ApplyPendingChange(account, resultBuilder));
+
         }
 
         // Handle delegation state changes due to pools that are either removed or closed for delegation.
