@@ -1,5 +1,10 @@
 ## Unreleased changes
 
+## 1.9.2
+
+- Bugfix
+  - Run P6-P7 migration logic for pending changes of delegators in every P7 blocks instead of only at paydays.
+
 ## 1.9.1
 
 - Bugfix
