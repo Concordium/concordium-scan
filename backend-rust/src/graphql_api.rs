@@ -29,7 +29,7 @@ use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{
     base::contracts_common::{
-        schema::{VersionedModuleSchema, VersionedSchemaError},
+        schema::{Type, VersionedModuleSchema, VersionedSchemaError},
         Cursor,
     },
     id::types as sdk_types,
@@ -299,8 +299,6 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
-    #[error("Schema error: {0}")]
-    SchemaError(String),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -3714,6 +3712,56 @@ impl SearchResult {
     }
 }
 
+fn decode_value_with_schema(
+    opt_schema: Option<Type>,
+    schema_name: &str,
+    value: &Vec<u8>,
+    value_name: &str,
+) -> String {
+    match opt_schema.as_ref() {
+        Some(schema) => {
+            let mut cursor = Cursor::new(&value);
+            match schema.to_json(&mut cursor) {
+                Ok(v) => {
+                    to_string(&v).unwrap_or_else(|e| {
+                        // We don't return an error here since the query is correctly formed and
+                        // the CCDScan backend is working as expected.
+                        // A wrong/missing schema is a mistake by the smart contract
+                        // developer which in general cannot be fixed after the deployment of
+                        // the contract. We display the error message (instead of the decoded
+                        // value) in the block explorer to make the info visible to the smart
+                        // contract developer for debugging purposes here.
+                        format!(
+                            "Failed to deserialize {} with {} schema into string: {:?}",
+                            value_name, schema_name, e
+                        )
+                    })
+                }
+                Err(e) => {
+                    // We don't return an error here since the query is correctly formed and
+                    // the CCDScan backend is working as expected.
+                    // A wrong/missing schema is a mistake by the smart contract
+                    // developer which in general cannot be fixed after the deployment of
+                    // the contract. We display the error message (instead of the decoded
+                    // value) in the block explorer to make the info visible to the smart
+                    // contract developer for debugging purposes here.
+                    format!(
+                        "Failed to deserialize {} with {} schema: {:?}",
+                        value_name,
+                        schema_name,
+                        e.display(true)
+                    )
+                }
+            }
+        }
+        // Note: Shall we use something better than this string if no init schema is
+        // available for decoding.
+        None => {
+            format!("No embedded {} schema in smart contract available for decoding", schema_name,)
+        }
+    }
+}
+
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractAddress {
     index:     ContractIndex,
@@ -4766,30 +4814,10 @@ WHERE index=$1 AND sub_index=$2
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            // Note: Shall we use something better than empty string if no event schema is
-            // available for decoding.
-            let decoded_logs =
-                opt_event_schema.as_ref().map_or(Ok("".to_string()), |event_schema| {
-                    let mut cursor = Cursor::new(&log);
-                    event_schema
-                        .to_json(&mut cursor)
-                        .map_err(|e| {
-                            ApiError::SchemaError(format!(
-                                "Failed to deserialize event schema: {:?}",
-                                e.display(true)
-                            ))
-                        })
-                        .and_then(|v| {
-                            to_string(&v).map_err(|e| {
-                                ApiError::SchemaError(format!(
-                                    "Failed to deserialize event schema into string: {:?}",
-                                    e
-                                ))
-                            })
-                        })
-                })?;
+            let decoded_log =
+                decode_value_with_schema(opt_event_schema.clone(), "event", log, "contract_log");
 
-            connection.edges.push(connection::Edge::new(index.to_string(), decoded_logs));
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
         // Nice-to-have: pagination info but not used at front-end currently.
@@ -5072,48 +5100,12 @@ WHERE index=$1 AND sub_index=$2
                 versioned_schema.get_init_param_schema(&row.contract_name).ok()
             });
 
-        let decoded_input_parameter = match opt_init_schema.as_ref() {
-            Some(init_schema) => {
-                let mut cursor = Cursor::new(&self.input_parameter);
-                match init_schema.to_json(&mut cursor) {
-                    Ok(v) => {
-                        to_string(&v).unwrap_or_else(|e| {
-                            // We don't return an error here since the query is correctly formed and
-                            // the CCDScan backend is working as
-                            // expected. A wrong/missing schema is a
-                            // mistake by the smart contract
-                            // developer which in general cannot be fixed after the deployment of
-                            // the contract. We display the error
-                            // message (instead of the decoded value) in the block explorer
-                            // to make it visible to the smart contract developer for debugging
-                            // purposes here.
-                            format!(
-                                "Failed to deserialize input parameter with init schema into \
-                                 string: {:?}",
-                                e
-                            )
-                        })
-                    }
-                    Err(e) => {
-                        // We don't return an error here since the query is correctly formed and the
-                        // CCDScan backend is working as expected.
-                        // A wrong/missing schema is a mistake by the smart contract
-                        // developer which in general cannot be fixed after the deployment of the
-                        // contract. We display the error message (instead
-                        // of the decoded value) in the block explorer
-                        // to make it visible to the smart contract developer for debugging purposes
-                        // here.
-                        format!(
-                            "Failed to deserialize input parameter with init schema: {:?}",
-                            e.display(true)
-                        )
-                    }
-                }
-            }
-            // Note: Shall we use something better than empty string if no init schema is
-            // available for decoding.
-            None => "".to_string(),
-        };
+        let decoded_input_parameter = decode_value_with_schema(
+            opt_init_schema,
+            "init",
+            &self.input_parameter,
+            "init_parameter",
+        );
 
         Ok(decoded_input_parameter)
     }
@@ -5164,31 +5156,10 @@ WHERE index=$1 AND sub_index=$2
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            // Note: Shall we use something better than empty string if no event schema is
-            // available for decoding.
-            let decoded_logs =
-                opt_event_schema.as_ref().map_or(Ok("".to_string()), |event_schema| {
-                    let mut cursor = Cursor::new(&log);
-                    event_schema
-                        .to_json(&mut cursor)
-                        .map_err(|e| {
-                            ApiError::SchemaError(format!(
-                                "Failed to deserialize contract log with event schema: {:?}",
-                                e.display(true)
-                            ))
-                        })
-                        .and_then(|v| {
-                            to_string(&v).map_err(|e| {
-                                ApiError::SchemaError(format!(
-                                    "Failed to deserialize contract log with event schema into \
-                                     string: {:?}",
-                                    e
-                                ))
-                            })
-                        })
-                })?;
+            let decoded_log =
+                decode_value_with_schema(opt_event_schema.clone(), "event", log, "contract_log");
 
-            connection.edges.push(connection::Edge::new(index.to_string(), decoded_logs));
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
         // Nice-to-have: pagination info but not used at front-end currently.
