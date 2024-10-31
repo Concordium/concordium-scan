@@ -5,6 +5,7 @@
 
 #![allow(unused_variables)]
 
+mod account_metrics;
 mod transaction_metrics;
 
 // TODO remove this macro, when done with first iteration
@@ -15,6 +16,7 @@ macro_rules! todo_api {
     };
 }
 
+use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
@@ -63,7 +65,7 @@ pub struct ApiServiceConfig {
 }
 
 #[derive(MergedObject, Default)]
-pub struct Query(BaseQuery, TransactionMetricsQuery);
+pub struct Query(BaseQuery, AccountMetricsQuery, TransactionMetricsQuery);
 
 pub struct Service {
     pub schema: Schema<Query, EmptyMutation, Subscription>,
@@ -754,7 +756,6 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         })
     }
 
-    // accountsMetrics(period: MetricsPeriod!): AccountsMetrics
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):

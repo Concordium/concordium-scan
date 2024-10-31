@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT MAX(index)\n            FROM accounts\n            LEFT JOIN blocks ON created_block = height\n            WHERE slot_time < (now() - $1::interval)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6f86c21afa841bd2f5ec85d9bd5211a60e5da36b197d1d0413257c4dd7c81f1a"
+}
