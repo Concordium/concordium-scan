@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT MAX(index) FROM accounts",
+  "query": "SELECT COALESCE(MAX(index), 0) FROM accounts",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "max",
+        "name": "coalesce",
         "type_info": "Int8"
       }
     ],
@@ -16,5 +16,5 @@
       null
     ]
   },
-  "hash": "777579f8558dafccec538f9e7401e14e601c438d3d5d7e9f4f16360eb53e4ecd"
+  "hash": "163cc788cf5c4fd22a1f8e0289ad322fa7d92a7dd503a03a517622f2942c4d60"
 }

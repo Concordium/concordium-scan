@@ -49,7 +49,10 @@ impl AccountMetricsQuery {
         let pool = get_pool(ctx)?;
 
         let last_cumulative_accounts_created =
-            sqlx::query_scalar!("SELECT MAX(index) FROM accounts").fetch_one(pool).await?.unwrap();
+            sqlx::query_scalar!("SELECT COALESCE(MAX(index), 0) FROM accounts")
+                .fetch_one(pool)
+                .await?
+                .expect("coalesced");
 
         // The full period interval, e.g. 7 days.
         let period_interval: PgInterval = period
@@ -58,7 +61,7 @@ impl AccountMetricsQuery {
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         let cumulative_accounts_created_before_period = sqlx::query_scalar!(
-            "SELECT MAX(index)
+            "SELECT COALESCE(MAX(index), 0)
             FROM accounts
             LEFT JOIN blocks ON created_block = height
             WHERE slot_time < (now() - $1::interval)",
@@ -66,7 +69,7 @@ impl AccountMetricsQuery {
         )
         .fetch_one(pool)
         .await?
-        .unwrap();
+        .expect("coalesced");
 
         let accounts_created =
             last_cumulative_accounts_created - cumulative_accounts_created_before_period;
