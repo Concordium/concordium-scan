@@ -2,13 +2,6 @@
 	<div v-if="baker.state.__typename === 'ActiveBakerState' && baker.state.pool">
 		<BakerDetailsHeader :baker="baker" />
 		<DrawerContent>
-			<BakerDetailsPendingChange
-				v-if="baker.state.pendingChange"
-				:pending-change="baker.state.pendingChange"
-				:next-pay-day-time="nextPaydayTime"
-				:payday-duration-ms="paydayDurationMs"
-			/>
-
 			<div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mb-8">
 				<DetailsCard class="sm:col-span-2 lg:col-span-3">
 					<template #title>Total stake</template>
@@ -227,7 +220,6 @@
 import { computed } from 'vue'
 import CommissionRates from '../Staking/CommissionRates.vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
-import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import BakerDetailsDelegators from './BakerDetailsDelegators.vue'
 import BakerDetailsPoolAPY from './BakerDetailsPoolAPY.vue'
