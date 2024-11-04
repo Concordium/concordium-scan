@@ -3,7 +3,7 @@
 		<Title>CCDScan</Title>
 		<Link rel="icon" href="/favicon.svg" />
 
-		<Breakpoint v-if="environment === 'dev'" />
+		<Breakpoint v-if="enableBreakpointHint" />
 
 		<ClientOnly>
 			<GraphQLClient>
@@ -52,7 +52,7 @@ import { useDrawer } from '~/composables/useDrawer'
 useHead({ meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }] })
 
 const {
-	public: { environment },
+	public: { enableBreakpointHint },
 } = useRuntimeConfig()
 
 const route = useRoute()

@@ -1,7 +1,6 @@
 // Params in JobDSL file
 // 'https://github.com/Concordium/concordium-infra-jenkins-jobs/blob/master/ccdscan_frontend.groovy':
 // - VERSION
-// - TARGET_NET
 pipeline {
   agent any
 	environment {
@@ -21,7 +20,6 @@ pipeline {
       steps {
         sh '''\
           docker build \
-            --build-arg ENVIRONMENT=${TARGET_NET} \
             -f "frontend/Dockerfile" \
             -t "${image_name}" \
             ./frontend

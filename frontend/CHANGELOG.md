@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - Migrate project to Nuxt `3.13`.
 - Update NodeJS runtime version to `18.12.1`.
+- Frontend image is now independent on the network being used, and can be configured at runtime.
 
 ### Removed
 
