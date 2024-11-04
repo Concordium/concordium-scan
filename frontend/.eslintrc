@@ -24,7 +24,7 @@
 		"plugin:vue/vue3-recommended",
 		"prettier"
 	],
-	"ignorePatterns": ["src/types/generated.ts"],
+	"ignorePatterns": ["src/types/generated.ts", "dist", ".output"],
 	"rules": {
 		"vue/multi-word-component-names": "off",
 		"testing-library/await-async-utils": "off",

@@ -15,6 +15,7 @@
 		"test:watch": "cross-env TZ=Universal jest --watch",
 		"typecheck": "vue-tsc --noEmit",
 		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue .",
+		"format": "prettier src --write",
 		"gql-codegen": "graphql-codegen --config graphql-codegen.yml"
 	},
 	"dependencies": {
@@ -26,7 +27,6 @@
 		"date-fns": "^2.27.0",
 		"duration-fns": "^3.0.0",
 		"graphql": "^16.1.0",
-		"nuxt3": "3.0.0-27356801.e9128f3",
 		"subscriptions-transport-ws": "^0.11.0",
 		"tailwindcss": "^2.2.19",
 		"vue": "^3.2.36",
@@ -60,11 +60,15 @@
 		"jest": "^28",
 		"jest-environment-jsdom": "^28.1.0",
 		"lint-staged": "^12.4.3",
+		"nuxt": "^3.13.2",
 		"postcss": "^8.4.14",
 		"prettier": "^2.6.2",
 		"ts-jest": "^28",
 		"ts-node": "^10.8.0",
 		"typescript": "^4.7.2",
 		"vue-tsc": "^0.35.2"
+	},
+	"volta": {
+		"node": "18.12.1"
 	}
 }

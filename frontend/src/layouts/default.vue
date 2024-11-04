@@ -34,11 +34,11 @@ import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
-useMeta({
-	meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }],
-})
+useHead({ meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }] })
 
-const { environment } = useRuntimeConfig()
+const {
+	public: { environment },
+} = useRuntimeConfig()
 
 const route = useRoute()
 const {
