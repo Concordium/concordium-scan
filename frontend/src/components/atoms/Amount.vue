@@ -1,8 +1,5 @@
 <template>
-	<span
-		class="inline-block"
-		data-testid="amount"
-	>
+	<span class="inline-block" data-testid="amount">
 		{{ symbol }}
 		<span class="numerical"> {{ formatNumber(amounts[0]) }}</span>
 

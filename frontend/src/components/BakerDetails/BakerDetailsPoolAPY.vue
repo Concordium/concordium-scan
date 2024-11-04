@@ -30,7 +30,7 @@
 		<template #title>Total APY ({{ periodText }})</template>
 		<template #default>
 			<span v-if="data && Number.isFinite(data.totalApy)" class="numerical">
-				{{formatPercentage(data.totalApy!)}}%
+				{{ formatPercentage(data.totalApy!) }}%
 			</span>
 			<span v-else>-</span>
 		</template>
@@ -39,7 +39,7 @@
 		<template #title>Validator APY ({{ periodText }})</template>
 		<template #default>
 			<span v-if="data && Number.isFinite(data.bakerApy)" class="numerical">
-				{{formatPercentage(data.bakerApy!)}}%
+				{{ formatPercentage(data.bakerApy!) }}%
 			</span>
 			<span v-else>-</span>
 		</template>
@@ -51,7 +51,7 @@
 				v-if="data && Number.isFinite(data.delegatorsApy)"
 				class="numerical"
 			>
-				{{formatPercentage(data.delegatorsApy!)}}%
+				{{ formatPercentage(data.delegatorsApy!) }}%
 			</span>
 			<span v-else>-</span>
 		</template>

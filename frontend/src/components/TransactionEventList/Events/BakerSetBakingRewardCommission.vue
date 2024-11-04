@@ -1,7 +1,7 @@
 ﻿<template>
 	<span>
-		Validator <BakerLink :id="event.bakerId" /> set block reward commission
-		to {{ event.bakingRewardCommission * 100 }}%</span
+		Validator <BakerLink :id="event.bakerId" /> set block reward commission to
+		{{ event.bakingRewardCommission * 100 }}%</span
 	>
 </template>
 

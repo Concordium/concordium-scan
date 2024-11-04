@@ -30,7 +30,7 @@
 							"
 							class="numerical"
 						>
-							{{formatPercentage(passiveDelegationData.apy7days!)}}%
+							{{ formatPercentage(passiveDelegationData.apy7days!) }}%
 						</span>
 						<span v-else>-</span>
 					</template>
@@ -46,7 +46,7 @@
 							"
 							class="numerical"
 						>
-							{{formatPercentage(passiveDelegationData.apy30days!)}}%
+							{{ formatPercentage(passiveDelegationData.apy30days!) }}%
 						</span>
 						<span v-else>-</span>
 					</template>
