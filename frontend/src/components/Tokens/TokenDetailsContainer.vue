@@ -13,15 +13,15 @@
 	/>
 </template>
 <script lang="ts" setup>
-import { ComputedRef } from 'vue'
+import type { ComputedRef } from 'vue'
 import TokenDetailsContent from './TokenDetailsContent.vue'
 import Error from '~/components/molecules/Error.vue'
 import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
-import { usePaginationOffset } from '~~/src/composables/usePaginationOffset'
-import { usePageDropdown } from '~~/src/composables/usePageDropdown'
-import { useTokenQuery } from '~~/src/queries/useTokenQuery'
-import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
+import { usePaginationOffset } from '~/composables/usePaginationOffset'
+import { usePageDropdown } from '~/composables/usePageDropdown'
+import { useTokenQuery } from '~/queries/useTokenQuery'
+import { type TokenWithMetadata, fetchMetadata } from '~/types/tokens'
 
 type Props = {
 	tokenId: string

@@ -18,10 +18,10 @@
 	<Log v-if="event.parsed" :log="event.parsed" />
 </template>
 <script lang="ts" setup>
-import { CisTransferEvent } from '../../../../src/types/generated'
 import Log from '../../Details/Log.vue'
-import TokenAmount from '../../atoms/TokenAmount.vue'
-import AddressLink from '../../molecules/AddressLink.vue'
+import type { CisTransferEvent } from '~/types/generated'
+import TokenAmount from '~/components/atoms/TokenAmount.vue'
+import AddressLink from '~/components/molecules/AddressLink.vue'
 
 type Props = {
 	event: CisTransferEvent

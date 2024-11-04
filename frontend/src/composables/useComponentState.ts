@@ -1,4 +1,4 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import type { UseQueryState } from '@urql/vue'
 
 export type ComponentState = 'idle' | 'loading' | 'empty' | 'error' | 'success'

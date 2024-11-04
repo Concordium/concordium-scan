@@ -1,5 +1,5 @@
 ﻿import { useQuery, gql } from '@urql/vue'
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { useComponentState } from '~/composables/useComponentState'
 import type { Account } from '~/types/generated'
 import type { QueryVariables } from '~/types/queryVariables'

@@ -25,10 +25,10 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { Maybe, StringConnection } from '../../types/generated'
-import TextCopy from '../../components/atoms/TextCopy.vue'
-import InfoTooltip from '../atoms/InfoTooltip.vue'
 import Modal from './Modal.vue'
+import type { Maybe, StringConnection } from '~/types/generated'
+import TextCopy from '~/components/atoms/TextCopy.vue'
+import InfoTooltip from '~/components/atoms/InfoTooltip.vue'
 
 type Props = {
 	events?: Maybe<StringConnection>

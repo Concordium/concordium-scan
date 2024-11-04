@@ -108,14 +108,14 @@ import ContractDetailsEvents from './ContractDetailsEvents.vue'
 import ContractDetailsTokens from './ContractDetailsTokens.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { Contract } from '~~/src/types/generated'
+import type { Contract } from '~~/src/types/generated'
 import {
 	convertTimestampToRelative,
 	formatTimestamp,
 } from '~~/src/utils/format'
 import ContractDetailsRejectEvents from '~/components/Contracts/ContractDetailsRejectEvents.vue'
-import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
-import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import type { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import type { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
 import { Breakpoint } from '~~/src/composables/useBreakpoint'
 
 const { NOW } = useDateNow()

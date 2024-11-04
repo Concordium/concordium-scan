@@ -1,7 +1,8 @@
 <template>
 	<div class="w-full">
-		<div>Logs (hexadecimal):
-			<InfoTooltip text="Logs produced by contract execution."/>
+		<div>
+			Logs (hexadecimal):
+			<InfoTooltip text="Logs produced by contract execution." />
 		</div>
 		<template v-if="eventsAsHex?.nodes?.length">
 			<div v-for="(event, i) in eventsAsHex.nodes" :key="i" class="flex">
@@ -17,9 +18,9 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { Maybe, StringConnection } from '../../types/generated'
-import TextCopy from '../../components/atoms/TextCopy.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
+import type { Maybe, StringConnection } from '~/types/generated'
+import TextCopy from '~/components/atoms/TextCopy.vue'
 
 type Props = {
 	eventsAsHex?: Maybe<StringConnection>

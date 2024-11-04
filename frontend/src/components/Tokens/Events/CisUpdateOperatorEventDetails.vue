@@ -11,8 +11,8 @@
 	<div>{{ event.update }}</div>
 </template>
 <script lang="ts" setup>
-import { CisUpdateOperatorEvent } from '../../../../src/types/generated'
-import AddressLink from '../../molecules/AddressLink.vue'
+import type { CisUpdateOperatorEvent } from '~/types/generated'
+import AddressLink from '~/components/molecules/AddressLink.vue'
 
 type Props = {
 	event: CisUpdateOperatorEvent

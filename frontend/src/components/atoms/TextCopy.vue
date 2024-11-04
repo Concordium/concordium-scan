@@ -23,7 +23,7 @@
 import { ref } from 'vue'
 import Tooltip from '~/components/atoms/Tooltip.vue'
 import ClipboardIcon from '~/components/icons/ClipboardIcon.vue'
-import { Position } from '~~/src/composables/useTooltip'
+import type { Position } from '~~/src/composables/useTooltip'
 
 type Props = {
 	text: string

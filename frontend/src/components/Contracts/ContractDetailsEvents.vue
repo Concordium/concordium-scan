@@ -8,7 +8,10 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="(contractEvent, i) in contractEvents" :key="contractEvent">
+		<TableRow
+			v-for="(contractEvent, i) in contractEvents"
+			:key="contractEvent.transactionHash + contractEvent.event.__typename"
+		>
 			<TableTd class="numerical">
 				<TransactionLink :hash="contractEvent.transactionHash" />
 			</TableTd>
@@ -50,14 +53,14 @@
 						<div>From Module</div>
 						<div>
 							<!-- Uses alias from query -->
-							<ModuleLink :module-reference="contractEvent.event.fromModule" />
+							<ModuleLink :module-reference="contractEvent.event.from" />
 						</div>
 					</div>
 					<div>
 						<div>To Module</div>
 						<div>
 							<!-- Uses alias from query -->
-							<ModuleLink :module-reference="contractEvent.event.toModule" />
+							<ModuleLink :module-reference="contractEvent.event.to" />
 						</div>
 					</div>
 				</DetailsView>
@@ -104,7 +107,7 @@ import ContractTransfer from './Events/ContractTransfer.vue'
 import ModuleLink from '~/components/molecules/ModuleLink.vue'
 import ContractUpdated from '~/components/Contracts/Events/ContractUpdated.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { ContractEvent } from '~~/src/types/generated'
+import type { ContractEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import { convertTimestampToRelative } from '~~/src/utils/format'
 

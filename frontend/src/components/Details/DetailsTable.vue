@@ -1,29 +1,32 @@
 <template>
 	<div>
-		<PageDropdown 
+		<PageDropdown
 			v-if="MIN_PAGE_SIZE < totalCount"
-			:page-dropdown-info="props.pageDropdownInfo"/>
-		<Table 
+			:page-dropdown-info="props.pageDropdownInfo"
+		/>
+		<Table
 			:class="[
 				'contract-detail',
-				 {
+				{
 					'no-last': totalCount <= props.pageOffsetInfo.take.value,
-					'fetching': fetching
-				}]">
+					fetching: fetching,
+				},
+			]"
+		>
 			<slot />
 		</Table>
-		<PaginationOffset 
-			:total-count="props.totalCount"
-			:info="pageOffsetInfo"
-		/>
+		<PaginationOffset :total-count="props.totalCount" :info="pageOffsetInfo" />
 	</div>
 </template>
 
 <script lang="ts" setup>
 import PaginationOffset from '../PaginationOffset.vue'
 import PageDropdown from '../PageDropdown.vue'
-import { MIN_PAGE_SIZE, PageDropdownInfo } from '~~/src/composables/usePageDropdown'
-import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+import {
+	MIN_PAGE_SIZE,
+	type PageDropdownInfo,
+} from '~~/src/composables/usePageDropdown'
+import type { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
 
 type Props = {
 	totalCount: number
@@ -33,7 +36,6 @@ type Props = {
 }
 
 const props = defineProps<Props>()
-
 </script>
 <style>
 .contract-detail table td {
@@ -58,5 +60,4 @@ const props = defineProps<Props>()
 .no-last table tr:last-child {
 	border-bottom: none;
 }
-
 </style>

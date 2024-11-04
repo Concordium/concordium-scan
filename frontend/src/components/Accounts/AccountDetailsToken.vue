@@ -50,7 +50,7 @@
 import TokenLink from '../molecules/TokenLink.vue'
 import ContractLink from '../molecules/ContractLink.vue'
 import TokenId from '../molecules/TokenId.vue'
-import { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
+import type { Account, AccountToken, PageInfo } from '~~/src/types/generated.js'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PaginationTarget } from '~/composables/usePagination'
 import TokenAmount from '~/components/atoms/TokenAmount.vue'

@@ -4,13 +4,19 @@
 			<TableTh>Transaction</TableTh>
 			<TableTh>Contract Address</TableTh>
 			<TableTh>Age</TableTh>
-			<TableTh>Action
-				<InfoTooltip text="Action which defines if a contract was linked (added) or unlinked (removed) to the module execution code."/>							
+			<TableTh
+				>Action
+				<InfoTooltip
+					text="Action which defines if a contract was linked (added) or unlinked (removed) to the module execution code."
+				/>
 			</TableTh>
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="linkEvent in linkEvents" :key="linkEvent">
+		<TableRow
+			v-for="linkEvent in linkEvents"
+			:key="linkEvent.transactionHash + linkEvent.moduleReference"
+		>
 			<TableTd class="numerical">
 				<TransactionLink :hash="linkEvent.transactionHash" />
 			</TableTd>
@@ -40,7 +46,7 @@ import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import ContractLink from '../molecules/ContractLink.vue'
 import InfoTooltip from '../atoms/InfoTooltip.vue'
 import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { ModuleReferenceContractLinkEvent } from '~~/src/types/generated'
+import type { ModuleReferenceContractLinkEvent } from '~~/src/types/generated'
 import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
 import { convertTimestampToRelative } from '~~/src/utils/format'
 

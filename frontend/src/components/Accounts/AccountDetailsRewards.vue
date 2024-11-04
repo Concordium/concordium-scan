@@ -71,7 +71,7 @@ import { useDateNow } from '~/composables/useDateNow'
 import {
 	type PageInfo,
 	type AccountReward,
-	Account,
+	type Account,
 	MetricsPeriod,
 } from '~/types/generated'
 import { useAccountRewardMetricsQuery } from '~/queries/useAccountRewardMetricsQuery'

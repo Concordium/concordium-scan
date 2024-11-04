@@ -79,7 +79,7 @@
 </template>
 <script lang="ts" setup>
 import {
-	PaginationOffsetInfo,
+	type PaginationOffsetInfo,
 	useNavigationSize,
 } from '../composables/usePaginationOffset'
 import { Breakpoint } from '../composables/useBreakpoint'

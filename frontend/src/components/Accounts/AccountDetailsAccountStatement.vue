@@ -133,7 +133,7 @@
 			<div class="col-span-1 flex justify-end">
 				<a
 					class="bg-theme-button-primary px-8 py-3 hover:bg-theme-button-primary-hover rounded"
-					:href="exportUrl(accountAddress, chosenMonth)"
+					:href="exportUrl(accountAddress, chosenMonth!)"
 				>
 					<span class="hidden md:inline">Export</span>
 					<DownloadIcon class="h-4 inline align-text-top" />
@@ -149,7 +149,7 @@
 				:max-date="currentMonth"
 				:default-month="currentMonth.getMonth() + 1"
 				@change="
-					update => {
+					(update: any) => {
 						chosenMonth = buildMonthInput(update.year, update.monthIndex)
 					}
 				"
@@ -159,6 +159,7 @@
 </template>
 
 <script lang="ts" setup>
+// @ts-expect-error No tyoe definitions for 'vue-month-picker' library.
 import { MonthPickerInput } from 'vue-month-picker'
 import { DownloadIcon } from '@heroicons/vue/solid/index.js'
 import Amount from '~/components/atoms/Amount.vue'
@@ -196,7 +197,6 @@ function buildMonthInput(year: number, month: number) {
 /// if no date is given, undefined is returned.
 function toMonthInput(date?: Date): string | undefined {
 	if (date) {
-		const year = date.getFullYear()
 		return buildMonthInput(date.getFullYear(), date.getMonth() + 1)
 	}
 	return undefined

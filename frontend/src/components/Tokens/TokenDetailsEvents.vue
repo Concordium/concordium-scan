@@ -7,7 +7,7 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="(tokenEvent, i) in tokenEvents" :key="tokenEvent">
+		<TableRow v-for="(tokenEvent, i) in tokenEvents" :key="tokenEvent.id">
 			<TableTd>
 				<TransactionLink :hash="tokenEvent.transaction!.transactionHash" />
 			</TableTd>
@@ -73,7 +73,7 @@ import CisBurnEventDetails from './Events/CisBurnEventDetails.vue'
 import CisMintEventDetails from './Events/CisMintEventDetails.vue'
 import CisUpdateOperatorEventDetails from './Events/CisUpdateOperatorEventDetails.vue'
 import CisTransferEventDetails from './Events/CisTransferEventDetails.vue'
-import { TokenEvent } from '~~/src/types/generated'
+import type { TokenEvent } from '~~/src/types/generated'
 
 type Props = {
 	tokenEvents: TokenEvent[]

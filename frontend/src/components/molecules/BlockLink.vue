@@ -18,7 +18,7 @@
 			</Tooltip>
 		</LinkButton>
 		<TextCopy
-			:text="props.hash"
+			:text="props.hash ?? ''"
 			label="Click to copy block hash to clipboard"
 			class="h-5 inline align-baseline"
 			tooltip-class="font-sans"

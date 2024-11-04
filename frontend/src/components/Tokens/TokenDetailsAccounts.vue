@@ -6,7 +6,7 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="account in accounts" :key="account">
+		<TableRow v-for="account in accounts" :key="account.accountId">
 			<TableTd>
 				<AccountLink :address="account.account.address.asString" />
 			</TableTd>
@@ -23,7 +23,7 @@
 <script lang="ts" setup>
 import TokenAmount from '../atoms/TokenAmount.vue'
 import AccountLink from '../molecules/AccountLink.vue'
-import { AccountToken } from '~~/src/types/generated'
+import type { AccountToken } from '~~/src/types/generated'
 
 type Props = {
 	accounts: AccountToken[]

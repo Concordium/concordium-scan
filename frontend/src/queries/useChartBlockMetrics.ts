@@ -1,6 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
-import { Ref } from 'vue'
-import { BlockMetrics, MetricsPeriod } from '~/types/generated'
+import type { Ref } from 'vue'
+import type { BlockMetrics, MetricsPeriod } from '~/types/generated'
 
 export type BlockMetricsQueryResponse = {
 	blockMetrics: BlockMetrics

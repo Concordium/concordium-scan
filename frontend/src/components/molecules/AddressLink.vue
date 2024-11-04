@@ -13,7 +13,7 @@
 <script lang="ts" setup>
 import AccountLink from './AccountLink.vue'
 import ContractLink from './ContractLink.vue'
-import { Address } from '~~/src/types/generated'
+import type { Address } from '~/types/generated'
 type Props = {
 	address: Address
 }
