@@ -14,7 +14,9 @@ import {
 import { SubscriptionClient } from 'subscriptions-transport-ws'
 import { composeBackendUrls } from '~/utils/composeBackendUrls'
 
-const { apiUrl, wsUrl, includeDevTools } = useRuntimeConfig()
+const {
+	public: { apiUrl, wsUrl, includeDevTools },
+} = useRuntimeConfig()
 
 const [composedApiUrl, composedWsUrl] = composeBackendUrls(
 	apiUrl,

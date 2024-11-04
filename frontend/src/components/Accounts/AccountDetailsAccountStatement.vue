@@ -217,7 +217,9 @@ createdAtMonth.setUTCDate(0)
 const currentMonth = NOW.value
 const chosenMonth = ref(toMonthInput(currentMonth))
 
-const { apiUrl } = useRuntimeConfig()
+const {
+	public: { apiUrl },
+} = useRuntimeConfig()
 
 function exportUrl(accountAddress: string, rawMonth: string) {
 	const url = new URL(apiUrl)

@@ -1,4 +1,4 @@
-import { defineNuxtConfig } from 'nuxt3'
+import { defineNuxtConfig } from 'nuxt/config'
 
 type Environment = 'dev' | 'stagenet' | 'testnet' | 'mainnet'
 type Config = {
@@ -45,19 +45,27 @@ export default defineNuxtConfig({
 		'~/components/Drawer',
 		'~/components/BlockDetails',
 	],
-	publicRuntimeConfig: {
-		...getConfig(ENVIRONMENT),
-		version: process.env.npm_package_version,
-		environment: ENVIRONMENT,
-		includeDevTools:
-			ENVIRONMENT === 'dev' ||
-			ENVIRONMENT === 'stagenet' ||
-			ENVIRONMENT === 'testnet',
-	},
-	css: ['@/assets/css/styles.css'],
-	build: {
-		postcss: {
-			postcssOptions: require('./postcss.config.cjs'),
+
+	runtimeConfig: {
+		public: {
+			...getConfig(ENVIRONMENT),
+			version: process.env.npm_package_version,
+			environment: ENVIRONMENT,
+			includeDevTools:
+				ENVIRONMENT === 'dev' ||
+				ENVIRONMENT === 'stagenet' ||
+				ENVIRONMENT === 'testnet',
 		},
 	},
+
+	css: ['~/assets/css/styles.css'],
+
+	postcss: {
+		plugins: {
+			tailwindcss: {},
+			autoprefixer: {},
+		},
+	},
+
+	compatibilityDate: '2024-11-01',
 })
