@@ -9,6 +9,20 @@
 			<GraphQLClient>
 				<DrawerContainer />
 				<div id="app">
+					<Alert class="xl:container xl:mx-auto"
+						>We are renovating CCDScan
+						<template #secondary
+							>If something is off, please try to refresh or check it on
+							<OpenLinkButton url="http://ccdexplorer.io/"
+								>ccdexplorer.io</OpenLinkButton
+							>
+							and get in touch with the team. You can follow the progress in the
+							<OpenLinkButton
+								url="https://github.com/Concordium/concordium-scan"
+								>GitHub repository</OpenLinkButton
+							>.</template
+						>
+					</Alert>
 					<PageHeader :class="[isLoading ? 'pointer-events-none' : ' ']" />
 					<main class="p-4 xl:container xl:mx-auto">
 						<slot />
@@ -29,6 +43,7 @@
 import PageFooter from '../components/PageFooter/PageFooter.vue'
 import PageHeader from '~/components/PageHeader.vue'
 import Breakpoint from '~/components/molecules/Breakpoint.vue'
+import OpenLinkButton from '~/components/PageFooter/OpenLinkButton.vue'
 import GraphQLClient from '~/components/molecules/GraphQLClient.vue'
 import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
