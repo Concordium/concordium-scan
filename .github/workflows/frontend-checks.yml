@@ -1,0 +1,41 @@
+name: Check frontend
+
+on:
+  push:
+    branches: main
+    paths:
+        - frontend/**
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [ main ]
+    paths:
+        - frontend/**
+
+env:
+  NODE_VERSION: "18.18.2"
+
+jobs:
+  checks:
+    name: Formatting and types
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+      - name: Install deps
+        working-directory: frontend
+        run: yarn install --frozen-lockfile --immutable
+      - name: Check formatting
+        working-directory: frontend
+        run: yarn run formatcheck
+      - name: Check types
+        working-directory: frontend
+        run: yarn run typecheck
+      # - name: Linting
+      #   working-directory: frontend
+      #   run: yarn run lintcheck

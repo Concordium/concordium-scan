@@ -1,11 +1,15 @@
-name: Backend (Rust) Check formatting and build
+name: Check backend (Rust)
 
 on:
   push:
     branches: main
+    paths:
+        - backend-rust/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ main ]
+    paths:
+        - backend-rust/**
 
 env:
   RUST_FMT: "nightly-2023-04-01"

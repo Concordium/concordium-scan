@@ -1,7 +1,7 @@
 {
 	"name": "ccscan-frontend",
 	"description": "CCDScan frontend",
-	"version": "1.5.41",
+	"version": "1.6.0",
 	"engine": "16",
 	"type": "module",
 	"private": true,
@@ -13,9 +13,11 @@
 		"generate": "nuxt generate",
 		"test": "cross-env TZ=Universal jest",
 		"test:watch": "cross-env TZ=Universal jest --watch",
-		"typecheck": "vue-tsc --noEmit",
+		"typecheck": "nuxi typecheck",
 		"lint": "eslint --fix --max-warnings 0 --ext .js,.ts,.vue .",
+		"lintcheck": "eslint --max-warnings 0 src",
 		"format": "prettier src --write",
+		"formatcheck": "prettier src --check",
 		"gql-codegen": "graphql-codegen --config graphql-codegen.yml"
 	},
 	"dependencies": {
