@@ -51,7 +51,7 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { ComputedRef } from 'vue'
+import type { ComputedRef } from 'vue'
 import Pagination from '~/components/Pagination.vue'
 import Table from '~~/src/components/Table/Table.vue'
 import TableBody from '~~/src/components/Table/TableBody.vue'
@@ -61,7 +61,7 @@ import TableTd from '~~/src/components/Table/TableTd.vue'
 import TableTh from '~~/src/components/Table/TableTh.vue'
 import TokenLink from '~~/src/components/molecules/TokenLink.vue'
 import { useTokensListQuery } from '~~/src/queries/useTokensListQuery'
-import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
+import { type TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
 import ContractLink from '~~/src/components/molecules/ContractLink.vue'
 import TokenAmount from '~~/src/components/atoms/TokenAmount.vue'
 import TokenId from '~~/src/components/molecules/TokenId.vue'

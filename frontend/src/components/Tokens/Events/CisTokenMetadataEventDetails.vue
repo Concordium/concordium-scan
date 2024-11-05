@@ -9,8 +9,8 @@
 	</div>
 </template>
 <script lang="ts" setup>
-import { CisTokenMetadataEvent } from '../../../../src/types/generated'
-import TokenMetadataLink from '../../molecules/TokenMetadataLink.vue'
+import type { CisTokenMetadataEvent } from '~/types/generated'
+import TokenMetadataLink from '~/components/molecules/TokenMetadataLink.vue'
 
 type Props = {
 	event: CisTokenMetadataEvent

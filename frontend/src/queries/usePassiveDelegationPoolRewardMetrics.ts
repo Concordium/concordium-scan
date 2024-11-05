@@ -1,6 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
-import { Ref } from 'vue'
-import { MetricsPeriod, PoolRewardMetrics } from '~/types/generated'
+import type { Ref } from 'vue'
+import type { MetricsPeriod, PoolRewardMetrics } from '~/types/generated'
 
 export type PoolRewardMetricsForPassiveDelegationResponse = {
 	poolRewardMetricsForPassiveDelegation: PoolRewardMetrics

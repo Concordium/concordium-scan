@@ -33,7 +33,7 @@
 import type { TooltipItem } from 'chart.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { PoolRewardMetricsForPassiveDelegationResponse } from '~/queries/usePassiveDelegationPoolRewardMetrics'
+import type { PoolRewardMetricsForPassiveDelegationResponse } from '~/queries/usePassiveDelegationPoolRewardMetrics'
 type Props = {
 	rewardMetricsData?: PoolRewardMetricsForPassiveDelegationResponse
 	isLoading?: boolean

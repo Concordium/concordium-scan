@@ -7,7 +7,10 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="contractToken in tokensWithMetadata" :key="contractToken">
+		<TableRow
+			v-for="contractToken in tokensWithMetadata"
+			:key="contractToken.tokenAddress"
+		>
 			<TableTd>
 				<TokenLink
 					:token-address="contractToken.tokenAddress"
@@ -31,12 +34,12 @@
 	</TableBody>
 </template>
 <script lang="ts" setup>
-import { ComputedRef } from 'vue'
+import type { ComputedRef } from 'vue'
 import TokenLink from '../molecules/TokenLink.vue'
 import TokenId from '../molecules/TokenId.vue'
 import TokenAmount from '../atoms/TokenAmount.vue'
-import { Token } from '~~/src/types/generated'
-import { TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
+import type { Token } from '~~/src/types/generated'
+import { type TokenWithMetadata, fetchMetadata } from '~~/src/types/tokens'
 
 type Props = {
 	contractTokens: Token[]

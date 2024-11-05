@@ -20,8 +20,9 @@
 					</template>
 				</DetailsCard>
 				<DetailsCard>
-					<template #title>Creator					
-						<InfoTooltip text="Account address of module creator"/>
+					<template #title
+						>Creator
+						<InfoTooltip text="Account address of module creator" />
 					</template>
 					<template #default>
 						<AccountLink :address="moduleReferenceEvent.sender.asString" />
@@ -30,9 +31,8 @@
 			</div>
 			<div
 				v-if="moduleReferenceEvent.displaySchema"
-				class="schema-section">
-
-			</div>
+				class="schema-section"
+			></div>
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable
@@ -50,9 +50,12 @@
 				<template #tabPanel-2>
 					<DetailsTable
 						v-if="
-							moduleReferenceEvent.moduleReferenceContractLinkEvents?.items?.length
+							moduleReferenceEvent.moduleReferenceContractLinkEvents?.items
+								?.length
 						"
-						:total-count="moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount"
+						:total-count="
+							moduleReferenceEvent.moduleReferenceContractLinkEvents.totalCount
+						"
 						:page-offset-info="paginationLinkingEvents"
 						:page-dropdown-info="pageDropdownEvents"
 						:fetching="fetching"
@@ -67,7 +70,9 @@
 						v-if="
 							moduleReferenceEvent.moduleReferenceRejectEvents?.items?.length
 						"
-						:total-count="moduleReferenceEvent.moduleReferenceRejectEvents.totalCount"
+						:total-count="
+							moduleReferenceEvent.moduleReferenceRejectEvents.totalCount
+						"
 						:page-offset-info="paginationRejectEvents"
 						:page-dropdown-info="pageDropdownRejectedEvents"
 						:fetching="fetching"
@@ -77,10 +82,8 @@
 						/>
 					</DetailsTable>
 				</template>
-				<template
-					v-if="moduleReferenceEvent.displaySchema"
-				 	#tabPanel-4>
-					 <div class="schema">
+				<template v-if="moduleReferenceEvent.displaySchema" #tabPanel-4>
+					<div class="schema">
 						<code>
 							<pre>{{ moduleReferenceEvent.displaySchema }}</pre>
 						</code>
@@ -101,10 +104,10 @@ import ModuleDetailsLinkedContracts from './ModuleDetailsLinkedContracts.vue'
 import ModuleDetailsRejectEvents from './ModuleDetailsRejectEvents.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import DetailsCard from '~/components/DetailsCard.vue'
-import { ModuleReferenceEvent } from '~~/src/types/generated'
-import { convertTimestampToRelative, formatTimestamp } from '~~/src/utils/format'
-import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
-import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
+import type { ModuleReferenceEvent } from '~/types/generated'
+import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
+import type { PaginationOffsetInfo } from '~/composables/usePaginationOffset'
+import type { PageDropdownInfo } from '~/composables/usePageDropdown'
 
 const { NOW } = useDateNow()
 
@@ -115,8 +118,8 @@ type Props = {
 	paginationLinkedContracts: PaginationOffsetInfo
 	pageDropdownEvents: PageDropdownInfo
 	pageDropdownRejectedEvents: PageDropdownInfo
-	pageDropdownLinkedContracts: PageDropdownInfo	
-	fetching: boolean	
+	pageDropdownLinkedContracts: PageDropdownInfo
+	fetching: boolean
 }
 const props = defineProps<Props>()
 const tabList = computed(() => {
@@ -131,23 +134,21 @@ const tabList = computed(() => {
 		`Rejected events (${
 			props.moduleReferenceEvent.moduleReferenceRejectEvents?.totalCount ?? 0
 		})`,
-	];
+	]
 	if (props.moduleReferenceEvent.displaySchema) {
-		tabList.push(
-			"Schema"
-		)
+		tabList.push('Schema')
 	}
 
-	return tabList;
+	return tabList
 })
 </script>
 <style>
 .schema {
 	padding: 5px;
 	font-size: 0.9rem;
-	
+
 	@media screen and (max-width: 1024px) {
-        font-size: 1rem;
-    }
+		font-size: 1rem;
+	}
 }
 </style>

@@ -49,7 +49,7 @@ import DrawerContainer from '~/components/Drawer/DrawerContainer.vue'
 import BWCubeLogoIcon from '~/components/icons/BWCubeLogoIcon.vue'
 import { useDrawer } from '~/composables/useDrawer'
 
-useHead({ meta: [{ link: [{ rel: 'icon', href: '/favicon.svg' }] }] })
+useHead({ link: [{ rel: 'icon', href: '/favicon.svg' }] })
 
 const {
 	public: { enableBreakpointHint },

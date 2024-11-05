@@ -34,9 +34,9 @@
 <script lang="ts" setup>
 import LogsHEX from '../../Details/LogsHEX.vue'
 import Logs from '../../Details/Logs.vue'
-import { ContractInitialized } from '../../../../src/types/generated'
 import InfoTooltip from '../../atoms/InfoTooltip.vue'
 import ModuleLink from '../../molecules/ModuleLink.vue'
+import type { ContractInitialized } from '~~/src/types/generated'
 import Amount from '~/components/atoms/Amount.vue'
 import { MODULE } from '~~/src/utils/infoTooltips'
 

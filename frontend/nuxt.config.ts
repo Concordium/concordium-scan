@@ -59,10 +59,10 @@ export default defineNuxtConfig({
 	// Lock default values for Nuxt to what they were at this date.
 	compatibilityDate: '2024-11-01',
 	// TypeScript configurations.
-	// typescript: {
-	// 	// Enable strict checks.
-	// 	strict: true,
-	// 	// Enable type-checking at build time.
-	// 	typeCheck: true,
-	// },
+	typescript: {
+		// Enable strict checks.
+		strict: true,
+		// Enable type-checking at build time.
+		typeCheck: true,
+	},
 })

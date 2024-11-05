@@ -1,7 +1,7 @@
 import { gql, useQuery } from '@urql/vue'
-import { Ref } from 'vue'
-import { PageInfo, Token } from '../types/generated'
-import { QueryVariables } from '../types/queryVariables'
+import type { Ref } from 'vue'
+import type { PageInfo, Token } from '../types/generated'
+import type { QueryVariables } from '../types/queryVariables'
 
 type ListResponse = {
 	tokens: {

@@ -1,8 +1,8 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
-import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
-import { Token } from '../types/generated'
-import { ComponentState } from '../composables/useComponentState'
+import type { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
+import type { Token } from '../types/generated'
+import type { ComponentState } from '../composables/useComponentState'
 
 type QueryParams = {
 	tokenId: Ref<string>

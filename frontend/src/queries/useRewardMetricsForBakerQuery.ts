@@ -1,6 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
-import { Ref } from 'vue'
-import { RewardMetrics, MetricsPeriod } from '~/types/generated'
+import type { Ref } from 'vue'
+import type { RewardMetrics, MetricsPeriod } from '~/types/generated'
 
 export type RewardMetricsForBakerQueryResponse = {
 	rewardMetricsForBaker: RewardMetrics

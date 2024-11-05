@@ -1,9 +1,9 @@
 ﻿// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore : This alias exists, but tsc doesn't see it
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import {
 	useRouter,
-	RouteLocationNormalizedLoaded,
+	type RouteLocationNormalizedLoaded,
 	type Router,
 } from 'vue-router'
 import { useState } from '#app'
@@ -183,7 +183,8 @@ export const pushToRouter =
 		const dentity = drawerItem.entityTypeName
 
 		switch (dentity) {
-			case 'block' || 'transaction':
+			case 'block':
+			case 'transaction':
 				router.push({
 					query: {
 						dcount,

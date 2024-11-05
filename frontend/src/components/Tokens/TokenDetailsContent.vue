@@ -139,23 +139,20 @@
 <script lang="ts" setup>
 import DrawerContent from '../Drawer/DrawerContent.vue'
 import DetailsCard from '../DetailsCard.vue'
-import TokenAmount from '../atoms/TokenAmount.vue'
 import Tabs from '../Tabs.vue'
 import DetailsTable from '../Details/DetailsTable.vue'
-import ContractLink from '../molecules/ContractLink.vue'
-import TokenMetadataLink from '../molecules/TokenMetadataLink.vue'
-import TokenId from '../molecules/TokenId.vue'
 import TokenDetailsHeader from './TokenDetailsHeader.vue'
 import TokenDetailsEvents from './TokenDetailsEvents.vue'
 import TokenDetailsAccounts from './TokenDetailsAccounts.vue'
-import { PageDropdownInfo } from '~~/src/composables/usePageDropdown'
-import { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
-import {
-	convertTimestampToRelative,
-	formatTimestamp,
-} from '~~/src/utils/format'
-import { Breakpoint } from '~~/src/composables/useBreakpoint'
-import { TokenWithMetadata } from '~~/src/types/tokens'
+import ContractLink from '~/components/molecules/ContractLink.vue'
+import TokenMetadataLink from '~/components/molecules/TokenMetadataLink.vue'
+import TokenId from '~/components/molecules/TokenId.vue'
+import TokenAmount from '~/components/atoms/TokenAmount.vue'
+import type { PageDropdownInfo } from '~/composables/usePageDropdown'
+import type { PaginationOffsetInfo } from '~/composables/usePaginationOffset'
+import { convertTimestampToRelative, formatTimestamp } from '~/utils/format'
+import { Breakpoint } from '~/composables/useBreakpoint'
+import type { TokenWithMetadata } from '~/types/tokens'
 
 const { NOW } = useDateNow()
 

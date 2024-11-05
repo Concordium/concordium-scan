@@ -21,8 +21,6 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
-import SpinnerIcon from '~/components/icons/SpinnerIcon.vue'
 import ChevronForwardIcon from '~/components/icons/ChevronForwardIcon.vue'
 
 const {
@@ -35,8 +33,10 @@ const colorClass =
 	explorer.name.toLowerCase().trim() === 'mainnet'
 		? 'select--green'
 		: 'select--blue'
-const handleOnChange = (event: Event<HTMLSelectElement>) =>
-	location.assign(event.target.value)
+const handleOnChange = (event: Event) => {
+	const target = event.target as HTMLSelectElement
+	location.assign(target.value)
+}
 </script>
 
 <style scoped>

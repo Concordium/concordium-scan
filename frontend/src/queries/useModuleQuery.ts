@@ -1,8 +1,8 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
-import { ComponentState } from '../composables/useComponentState'
-import { ModuleReferenceEvent } from '../types/generated'
-import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
+import type { ComponentState } from '../composables/useComponentState'
+import type { ModuleReferenceEvent } from '../types/generated'
+import type { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 const ContractQuery = gql`
 	query (
@@ -22,10 +22,7 @@ const ContractQuery = gql`
 				asString
 			}
 			displaySchema
-			linkedContracts(
-				skip: $skipLinkedContract
-				take: $takeLinkedContract
-			) {
+			linkedContracts(skip: $skipLinkedContract, take: $takeLinkedContract) {
 				items {
 					linkedDateTime
 					contractAddress {
@@ -60,10 +57,7 @@ const ContractQuery = gql`
 				}
 				totalCount
 			}
-			moduleReferenceContractLinkEvents(
-				skip: $skipEvent
-				take: $takeEvent
-			) {
+			moduleReferenceContractLinkEvents(skip: $skipEvent, take: $takeEvent) {
 				items {
 					blockSlotTime
 					transactionHash
@@ -99,7 +93,7 @@ export const useModuleReferenceEventQuery = ({
 }: QueryParams): {
 	data: Ref<ModuleReferenceEventResponse | undefined>
 	error: Ref<CombinedError | undefined>
-	componentState: Ref<ComponentState | undefined>,
+	componentState: Ref<ComponentState | undefined>
 	fetching: Ref<boolean>
 } => {
 	const { data, fetching, error } = useQuery<ModuleReferenceEventResponse>({
@@ -116,7 +110,9 @@ export const useModuleReferenceEventQuery = ({
 		},
 	})
 
-	const componentState = useComponentState<ModuleReferenceEventResponse | undefined>({
+	const componentState = useComponentState<
+		ModuleReferenceEventResponse | undefined
+	>({
 		fetching,
 		error,
 		data,

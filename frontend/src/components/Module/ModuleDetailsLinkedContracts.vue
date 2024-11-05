@@ -6,7 +6,10 @@
 		</TableRow>
 	</TableHead>
 	<TableBody>
-		<TableRow v-for="linkedContract in linkedContracts" :key="linkedContract">
+		<TableRow
+			v-for="linkedContract in linkedContracts"
+			:key="linkedContract.contractAddress.asString"
+		>
 			<TableTd class="numerical">
 				<ContractLink
 					:address="linkedContract.contractAddress.asString"
@@ -28,9 +31,9 @@
 <script lang="ts" setup>
 import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import ContractLink from '../molecules/ContractLink.vue'
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { LinkedContract } from '~~/src/types/generated'
-import { convertTimestampToRelative } from '~~/src/utils/format'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import type { LinkedContract } from '~/types/generated'
+import { convertTimestampToRelative } from '~/utils/format'
 
 const { NOW } = useDateNow()
 
