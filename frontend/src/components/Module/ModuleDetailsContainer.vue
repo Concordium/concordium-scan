@@ -27,13 +27,17 @@ type Props = {
 	moduleReference: string
 }
 
-const pageDropdownEvents = usePageDropdown();
-const pageDropdownRejectedEvents = usePageDropdown();
-const pageDropdownLinkedContracts = usePageDropdown();
+const pageDropdownEvents = usePageDropdown()
+const pageDropdownRejectedEvents = usePageDropdown()
+const pageDropdownLinkedContracts = usePageDropdown()
 
-const pageOffsetInfoLinkingEvents = usePaginationOffset(pageDropdownEvents.take);
-const pageOffsetInfoRejectedEvents = usePaginationOffset(pageDropdownRejectedEvents.take);
-const pageOffsetInfoLinkedContracts = usePaginationOffset(pageDropdownLinkedContracts.take);
+const pageOffsetInfoLinkingEvents = usePaginationOffset(pageDropdownEvents.take)
+const pageOffsetInfoRejectedEvents = usePaginationOffset(
+	pageDropdownRejectedEvents.take
+)
+const pageOffsetInfoLinkedContracts = usePaginationOffset(
+	pageDropdownLinkedContracts.take
+)
 
 const props = defineProps<Props>()
 const moduleReference = ref(props.moduleReference)
