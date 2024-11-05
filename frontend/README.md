@@ -48,7 +48,7 @@ To build the image run:
 docker build -t IMAGE_NAME:VERSION .
 ```
 
-where `IMAGE_NAME` and `VERSION` are some container name.
+where `IMAGE_NAME` and `VERSION` are some container name and version.
 
 
 The image can be run against Testnet by providing the `.env.testnet` configuration.
