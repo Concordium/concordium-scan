@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(MAX(index), 0)\n            FROM accounts\n            LEFT JOIN blocks ON created_block = height\n            WHERE slot_time < (now() - $1::interval)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coalesce",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d6bccf668d544b1649962a5f0fb358bada7fbdbb4f78de19cc2ab8d0be5a83d5"
+}
