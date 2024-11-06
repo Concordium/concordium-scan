@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.6.0] - 2024-11-05
+
 ### Added
 
 - Temporary maintenance banner.
