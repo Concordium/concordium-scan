@@ -9,11 +9,6 @@ jobs:
     with:
       SERVICE_NAME: "ccdscan"
       BUILD_ARGS: |
-        RUST_VERSION=1.74.1
-        GHC_VERSION=9.6.4
-        PROTOC_VERSION=3.15.3
-        FLATBUFFERS_TAG=v22.12.06
-        NVM_SH_VERSION=v0.37.2
-        CMAKE_VERSION=3.25.1
-      DOCKER_FILE_PATH: docker/base.Dockerfile
+        DOTNET_VERSION=6.0
+      DOCKER_FILE_PATH: backend/Dockerfile
     secrets: inherit
