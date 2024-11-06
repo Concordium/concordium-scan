@@ -1,14 +1,15 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-bookworm-slim AS base
+ARG DOTNET_VERSION
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-bookworm-slim AS base
 WORKDIR /app
 EXPOSE 5000
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0-bookworm-slim AS publish
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}-bookworm-slim AS publish
 RUN apt-get update && apt-get install -y build-essential
 # Installing Rust to build Concordium.Sdk.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.80 --profile minimal -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /src
-COPY . .
+COPY ./backend .
 RUN dotnet publish Application -c Release -o /app/publish
 
 FROM base AS final
@@ -16,5 +17,6 @@ FROM base AS final
 RUN apt-get update && apt-get install ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=publish /app/publish .
+LABEL dotnet_version=${DOTNET_VERSION}
 ENV ASPNETCORE_URLS=http://+:5000
 ENTRYPOINT ["dotnet", "Application.dll"]
