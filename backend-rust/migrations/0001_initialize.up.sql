@@ -123,8 +123,12 @@ CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
-    -- Index of the transaction within the block.
+    -- Global index of the transaction.
     index
+        BIGINT
+        NOT NULL,
+    -- Index of the transaction within its block.
+    block_index
         BIGINT
         NOT NULL,
     -- Absolute height of the block containing the transaction.
@@ -176,16 +180,17 @@ CREATE TABLE transactions(
         JSONB,
 
     -- Within a single block, two transactions cannot share the same index.
-    PRIMARY KEY (block_height, index)
+    PRIMARY KEY (block_height, block_index)
 );
+
+CREATE INDEX transactions_index_idx ON transactions (index);
 
 -- Every account on chain.
 CREATE TABLE accounts(
     -- Index of the account.
     index
         BIGINT
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Account address bytes encoded using base58check.
     address
         CHAR(50)
@@ -204,7 +209,7 @@ CREATE TABLE accounts(
         BIGINT
         NOT NULL,
     -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, index)
+    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, block_index)
     -- credential_registration_id
 );
 

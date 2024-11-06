@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT true\n            FROM transactions\n            WHERE sender = $1 AND $2 <= index\n            LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a29a0a84d01b3e9b20a0deecdc18a5dbe3bdf7c68013a76da3632c804bc24de6"
+}
