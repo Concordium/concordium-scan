@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT * FROM (\n  SELECT\n    index,\n    block_height,\n    block_index,\n    hash,\n    ccd_cost,\n    energy_cost,\n    sender,\n    type as \"tx_type: DbTransactionType\",\n    type_account as \"type_account: AccountTransactionType\",\n    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n    type_update as \"type_update: UpdateTransactionType\",\n    success,\n    events as \"events: sqlx::types::Json<Vec<Event>>\",\n    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n  FROM transactions\n  WHERE block_height > $1 AND block_height < $2\n     OR ((block_height = $1 AND block_index > $3) AND NOT (block_height = $2 AND block_index >= $4))\n     OR ((block_height = $2 AND block_index < $4) AND NOT (block_height = $1 AND block_index <= $3))\n  ORDER BY (CASE WHEN $6 THEN block_height END) DESC,\n         (CASE WHEN $6 THEN block_index END) DESC,\n         (CASE WHEN NOT $6 THEN block_height END) ASC,\n         (CASE WHEN NOT $6 THEN block_index END) ASC\n  LIMIT $5\n) ORDER BY block_height ASC, block_index ASC\n",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    block_height,\n                    hash,\n                    ccd_cost,\n                    energy_cost,\n                    sender,\n                    type as \"tx_type: DbTransactionType\",\n                    type_account as \"type_account: AccountTransactionType\",\n                    type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                    type_update as \"type_update: UpdateTransactionType\",\n                    success,\n                    events as \"events: sqlx::types::Json<Vec<Event>>\",\n                    reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n                FROM transactions\n                WHERE $1 < index AND index < $2\n                ORDER BY\n                    (CASE WHEN $3 THEN index END) DESC,\n                    (CASE WHEN NOT $3 THEN index END) ASC\n                LIMIT $4\n            ) ORDER BY index ASC",
   "describe": {
     "columns": [
       {
@@ -15,31 +15,26 @@
       },
       {
         "ordinal": 2,
-        "name": "block_index",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 3,
         "name": "hash",
         "type_info": "Bpchar"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "ccd_cost",
         "type_info": "Int8"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "energy_cost",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "sender",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "tx_type: DbTransactionType",
         "type_info": {
           "Custom": {
@@ -55,7 +50,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "type_account: AccountTransactionType",
         "type_info": {
           "Custom": {
@@ -89,7 +84,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "type_credential_deployment: CredentialDeploymentTransactionType",
         "type_info": {
           "Custom": {
@@ -104,7 +99,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "type_update: UpdateTransactionType",
         "type_info": {
           "Custom": {
@@ -140,17 +135,17 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "success",
         "type_info": "Bool"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "events: sqlx::types::Json<Vec<Event>>",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "reject: sqlx::types::Json<TransactionRejectReason>",
         "type_info": "Jsonb"
       }
@@ -159,14 +154,11 @@
       "Left": [
         "Int8",
         "Int8",
-        "Int8",
-        "Int8",
-        "Int8",
-        "Bool"
+        "Bool",
+        "Int8"
       ]
     },
     "nullable": [
-      false,
       false,
       false,
       false,
@@ -182,5 +174,5 @@
       true
     ]
   },
-  "hash": "2cbddd5f60d88452c6988e83c25fc884a4bea8cd4b5660039dabb4caef1370a8"
+  "hash": "0155bbfea3d65a2b39bd5f4d3516afc4fd72e4ab84a57d775b9fabe56999a245"
 }

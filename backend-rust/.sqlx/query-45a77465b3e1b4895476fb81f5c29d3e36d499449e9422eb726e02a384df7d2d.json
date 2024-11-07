@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT\n  deployment_block_height as block_height,\n  deployment_transaction_index,\n  schema as display_schema,\n  blocks.slot_time as block_slot_time,\n  transactions.hash as transaction_hash,\n  accounts.address as sender\nFROM smart_contract_modules\nJOIN blocks ON deployment_block_height=blocks.height\nJOIN transactions ON deployment_block_height=transactions.block_height AND deployment_transaction_index=transactions.block_index\nJOIN accounts ON transactions.sender=accounts.index\nWHERE module_reference=$1\n",
+  "query": "SELECT\n                blocks.height as block_height,\n                smart_contract_modules.transaction_index,\n                schema as display_schema,\n                blocks.slot_time as block_slot_time,\n                transactions.hash as transaction_hash,\n                accounts.address as sender\n            FROM smart_contract_modules\n            JOIN transactions ON smart_contract_modules.transaction_index = transactions.index\n            JOIN blocks ON transactions.block_height = blocks.height\n            JOIN accounts ON transactions.sender = accounts.index\n            WHERE module_reference = $1",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "deployment_transaction_index",
+        "name": "transaction_index",
         "type_info": "Int8"
       },
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "9143454221eecac596f6c570f7da1a33831277a9e86f3a3b4df07a7fede84317"
+  "hash": "45a77465b3e1b4895476fb81f5c29d3e36d499449e9422eb726e02a384df7d2d"
 }

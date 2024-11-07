@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT * FROM (\n  SELECT\n    index,\n    created_block,\n    address,\n    amount\n  FROM accounts\n  WHERE index > $1 AND index < $2\n  ORDER BY\n     (CASE WHEN $4 THEN index END) DESC,\n     (CASE WHEN NOT $4 THEN index END) ASC\n  LIMIT $3\n) ORDER BY index ASC\n        ",
+  "query": "SELECT index, transaction_index, address, amount FROM accounts WHERE address = $1",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "created_block",
+        "name": "transaction_index",
         "type_info": "Int8"
       },
       {
@@ -26,18 +26,15 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
-        "Int8",
-        "Bool"
+        "Bpchar"
       ]
     },
     "nullable": [
       false,
-      false,
+      true,
       false,
       false
     ]
   },
-  "hash": "5384fa76bb898ea40ec7d8679c65141ad88d42bb22e4d6e1b5c1eab654c03c63"
+  "hash": "c27491147639caabae221c195683f2a32d2fe8f18156467bc79e5e78335c9267"
 }

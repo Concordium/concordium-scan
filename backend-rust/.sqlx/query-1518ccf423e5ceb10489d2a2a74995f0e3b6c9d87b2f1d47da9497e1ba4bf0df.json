@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO accounts (index, address, transaction_index, amount)\n            VALUES ($1, $2, 0, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bpchar",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1518ccf423e5ceb10489d2a2a74995f0e3b6c9d87b2f1d47da9497e1ba4bf0df"
+}

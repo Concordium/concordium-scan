@@ -126,11 +126,7 @@ CREATE TABLE transactions(
     -- Global index of the transaction.
     index
         BIGINT
-        NOT NULL,
-    -- Index of the transaction within its block.
-    block_index
-        BIGINT
-        NOT NULL,
+        PRIMARY KEY,
     -- Absolute height of the block containing the transaction.
     block_height
         BIGINT
@@ -177,13 +173,8 @@ CREATE TABLE transactions(
         JSONB,
     -- Transaction details. Reject reason if success is false.
     reject
-        JSONB,
-
-    -- Within a single block, two transactions cannot share the same index.
-    PRIMARY KEY (block_height, block_index)
+        JSONB
 );
-
-CREATE INDEX transactions_index_idx ON transactions (index);
 
 -- Every account on chain.
 CREATE TABLE accounts(
@@ -196,25 +187,20 @@ CREATE TABLE accounts(
         CHAR(50)
         UNIQUE
         NOT NULL,
-    -- Block height where this account was created.
-    created_block
-        BIGINT
-        NOT NULL,
-    -- Index of the transaction in the block creating this account.
+    -- Index of the transaction creating this account.
     -- Only NULL for genesis accounts
-    created_index
-        BIGINT,
+    transaction_index
+        BIGINT
+        REFERENCES transactions,
     -- The total balance of this account in micro CCD.
     amount
         BIGINT
-        NOT NULL,
-    -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, block_index)
+        NOT NULL
     -- credential_registration_id
 );
 
--- Important for performance when joining accounts with its associated creation block.
-CREATE INDEX accounts_created_block_idx ON accounts (created_block);
+-- Important for performance when joining accounts with its associated creation transaction.
+CREATE INDEX accounts_transaction_index_idx ON accounts (transaction_index);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
@@ -274,14 +260,11 @@ CREATE TABLE smart_contract_modules(
         UNIQUE
         PRIMARY KEY
         NOT NULL,
-    -- The absolute block height when the module was deployed.
-    deployment_block_height
+    -- Index of the transaction deploying the module.
+    transaction_index
         BIGINT
-        NOT NULL,
-    -- Transaction index in the block deploying the module.
-    deployment_transaction_index
-        BIGINT
-        NOT NULL,
+        NOT NULL
+        REFERENCES transactions,
     -- Embedded schema in the module if present.
     schema BYTEA
 );
@@ -309,14 +292,11 @@ CREATE TABLE contracts(
     amount
         BIGINT
         NOT NULL,
-    -- The absolute block height when the module was initialized.
-    init_block_height
+    -- The index of the transaction initializing the contract.
+    transaction_index
         BIGINT
-        NOT NULL,
-    -- Transaction index in the block initializing the contract.
-    init_transaction_index
-        BIGINT
-        NOT NULL,
+        NOT NULL
+        REFERENCES transactions,
 
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
