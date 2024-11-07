@@ -2791,7 +2791,13 @@ impl Account {
         let has_previous_page = sqlx::query_scalar!(
             "SELECT true
             FROM transactions
-            WHERE sender = $1 AND index <= $2
+            WHERE
+                $1 IN (
+                    SELECT account_index
+                    FROM affected_accounts
+                    WHERE transaction_index = index
+                )
+                AND index <= $2
             LIMIT 1",
             self.index,
             query.from,
@@ -2804,7 +2810,13 @@ impl Account {
         let has_next_page = sqlx::query_scalar!(
             "SELECT true
             FROM transactions
-            WHERE sender = $1 AND $2 <= index
+            WHERE
+                $1 IN (
+                    SELECT account_index
+                    FROM affected_accounts
+                    WHERE transaction_index = index
+                )
+                AND $2 <= index
             LIMIT 1",
             self.index,
             query.to,
