@@ -206,13 +206,31 @@ CREATE INDEX accounts_transaction_index_idx ON accounts (transaction_index);
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_sender
     FOREIGN KEY (sender)
-    REFERENCES accounts(index);
+    REFERENCES accounts;
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE blocks
     ADD CONSTRAINT fk_block_baker_id
     FOREIGN KEY (baker_id)
-    REFERENCES accounts(index);
+    REFERENCES accounts;
+
+-- All the accounts that are affected by transactions are logged in this table.
+-- This is used to decide which transactions to display under an account.
+CREATE TABLE affected_accounts (
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- An account affected by this transaction.
+    account_index
+        BIGINT
+        NOT NULL
+        REFERENCES accounts,
+
+    -- A transaction can only affect an account once.
+    PRIMARY KEY (transaction_index, account_index)
+);
 
 -- Current active bakers
 CREATE TABLE bakers(
@@ -221,7 +239,7 @@ CREATE TABLE bakers(
         BIGINT
         PRIMARY KEY
         NOT NULL
-        REFERENCES accounts(index),
+        REFERENCES accounts,
     -- Amount staked at present.
     staked
         BIGINT

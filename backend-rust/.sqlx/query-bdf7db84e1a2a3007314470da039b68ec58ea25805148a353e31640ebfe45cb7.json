@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n                accounts (index, address, transaction_index, amount)\n            VALUES\n                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, 0)\n            RETURNING index",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bdf7db84e1a2a3007314470da039b68ec58ea25805148a353e31640ebfe45cb7"
+}

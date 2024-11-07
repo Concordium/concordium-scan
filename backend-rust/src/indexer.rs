@@ -837,40 +837,43 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
 /// Prepared block item (transaction), ready to be inserted in the database.
 struct PreparedBlockItem {
     /// Index of the block item within the block.
-    block_item_index: i64,
+    block_item_index:  i64,
     /// Hash of the transaction
-    block_item_hash:  String,
+    block_item_hash:   String,
     /// Cost for the account signing the block item (in microCCD), always 0 for
     /// update and credential deployments.
-    ccd_cost:         i64,
+    ccd_cost:          i64,
     /// Energy cost of the execution of the block item.
-    energy_cost:      i64,
+    energy_cost:       i64,
     /// Absolute height of the block.
-    block_height:     i64,
+    block_height:      i64,
     /// Base58check representation of the account address which signed the
     /// block, none for update and credential deployments.
-    sender:           Option<String>,
+    sender:            Option<String>,
     /// Whether the block item is an account transaction, update or credential
     /// deployment.
-    transaction_type: DbTransactionType,
+    transaction_type:  DbTransactionType,
     /// The type of account transaction, is none if not an account transaction
     /// or if the account transaction got rejected due to deserialization
     /// failing.
-    account_type:     Option<AccountTransactionType>,
+    account_type:      Option<AccountTransactionType>,
     /// The type of credential deployment transaction, is none if not a
     /// credential deployment transaction.
-    credential_type:  Option<CredentialDeploymentTransactionType>,
+    credential_type:   Option<CredentialDeploymentTransactionType>,
     /// The type of update transaction, is none if not an update transaction.
-    update_type:      Option<UpdateTransactionType>,
+    update_type:       Option<UpdateTransactionType>,
     /// Whether the block item was successful i.e. not rejected.
-    success:          bool,
+    success:           bool,
     /// Events of the block item. Is none for rejected block items.
-    events:           Option<serde_json::Value>,
+    events:            Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
-    reject:           Option<serde_json::Value>,
+    reject:            Option<serde_json::Value>,
+    /// All affected accounts for this transaction. Each entry is the `String`
+    /// representation of an account address.
+    affected_accounts: Vec<String>,
     // This is an option temporarily, until we are able to handle every type of event.
     /// Block item events prepared for inserting into the database.
-    prepared_event:   Option<PreparedEvent>,
+    prepared_event:    Option<PreparedEvent>,
 }
 
 impl PreparedBlockItem {
@@ -926,6 +929,8 @@ impl PreparedBlockItem {
                 };
             (None, Some(reject))
         };
+        let affected_accounts =
+            block_item.affected_addresses().into_iter().map(|a| a.to_string()).collect();
 
         let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
 
@@ -943,6 +948,7 @@ impl PreparedBlockItem {
             success,
             events,
             reject,
+            affected_accounts,
             prepared_event,
         })
     }
@@ -995,6 +1001,17 @@ impl PreparedBlockItem {
             self.reject
         )
         .fetch_one(tx.as_mut())
+        .await?;
+
+        // Note that this does not include account creation. We handle that when saving
+        // the account creation event.
+        sqlx::query!(
+            "INSERT INTO affected_accounts (transaction_index, account_index)
+            SELECT $1, index FROM accounts WHERE address = ANY($2)",
+            tx_idx,
+            &self.affected_accounts,
+        )
+        .execute(tx.as_mut())
         .await?;
 
         if let Some(prepared_event) = &self.prepared_event {
@@ -1218,13 +1235,23 @@ impl PreparedAccountCreation {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
     ) -> anyhow::Result<()> {
-        sqlx::query!(
-            r#"INSERT INTO
+        let account_index = sqlx::query_scalar!(
+            "INSERT INTO
                 accounts (index, address, transaction_index, amount)
             VALUES
-                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, 0)"#,
+                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, 0)
+            RETURNING index",
             self.account_address,
             transaction_index,
+        )
+        .fetch_one(tx.as_mut())
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO affected_accounts (transaction_index, account_index)
+            VALUES ($1, $2)",
+            transaction_index,
+            account_index
         )
         .execute(tx.as_mut())
         .await?;

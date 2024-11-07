@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO affected_accounts (transaction_index, account_index)\n            SELECT $1, index FROM accounts WHERE address = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "BpcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "373de7dea3ae7994dff8fdfae038e3de77eb8ccc57c5a747ce8e7f3f585f4f50"
+}

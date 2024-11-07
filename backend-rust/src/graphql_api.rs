@@ -2767,7 +2767,11 @@ impl Account {
                     reject as "reject: sqlx::types::Json<TransactionRejectReason>"
                 FROM transactions
                 WHERE
-                    sender = $1
+                    $1 IN (
+                        SELECT account_index
+                        FROM affected_accounts
+                        WHERE transaction_index = index
+                    )
                     AND $2 < index
                     AND index < $3
                 ORDER BY
