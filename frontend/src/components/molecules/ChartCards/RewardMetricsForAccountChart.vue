@@ -28,7 +28,7 @@
 import type { TooltipItem } from 'chart.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { AccountRewardMetricsQueryResponse } from '~/queries/useAccountRewardMetricsQuery'
+import type { AccountRewardMetricsQueryResponse } from '~/queries/useAccountRewardMetricsQuery'
 type Props = {
 	rewardMetricsData?: AccountRewardMetricsQueryResponse
 	isLoading?: boolean

@@ -1,5 +1,5 @@
 <template>
-	<aside class="w-full my-8 border-l-4 flex rounded alert" role="alert">
+	<aside class="w-full border-l-4 flex rounded alert" role="alert">
 		<div class="p-4 icon-container flex items-center">
 			<InfoIcon class="w-6 h-6" />
 		</div>

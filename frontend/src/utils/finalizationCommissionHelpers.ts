@@ -6,7 +6,10 @@
  * the will always be zero after the tokenomic changes.
  */
 
-import { FinalizationRewardsSpecialEvent, Scalars } from '../types/generated'
+import type {
+	FinalizationRewardsSpecialEvent,
+	Scalars,
+} from '../types/generated'
 
 interface FinalizationReward {
 	finalizationReward: Scalars['UnsignedLong']

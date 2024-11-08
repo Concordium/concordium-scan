@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { useDrawer } from '~/composables/useDrawer'
 import LinkButton from '~/components/atoms/LinkButton.vue'
-import { NodeStatus } from '~/types/generated'
+import type { NodeStatus } from '~/types/generated'
 import NodeIcon from '~/components/icons/NodeIcon.vue'
 
 type Props = {

@@ -10,7 +10,7 @@
 	<TableBody>
 		<TableRow
 			v-for="(contractRejectEvent, i) in contractRejectEvents"
-			:key="contractRejectEvent"
+			:key="contractRejectEvent.transactionHash"
 		>
 			<TableTd class="numerical">
 				<TransactionLink :hash="contractRejectEvent.transactionHash" />
@@ -92,13 +92,13 @@ import DateTimeWithLineBreak from '../Details/DateTimeWithLineBreak.vue'
 import MessageHEX from '../Details/MessageHEX.vue'
 import Message from '../Details/Message.vue'
 import DetailsView from '../Details/DetailsView.vue'
-import InfoTooltip from '../atoms/InfoTooltip.vue'
 import { getEntrypoint } from './Events/contractEvents'
-import { ContractRejectEvent } from '~~/src/types/generated'
-import TransactionLink from '~~/src/components/molecules/TransactionLink.vue'
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { formatTimestamp } from '~~/src/utils/format'
-import { RECEIVE_NAME } from '~~/src/utils/infoTooltips'
+import InfoTooltip from '~/components/atoms/InfoTooltip.vue'
+import type { ContractRejectEvent } from '~/types/generated'
+import TransactionLink from '~/components/molecules/TransactionLink.vue'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import { formatTimestamp } from '~/utils/format'
+import { RECEIVE_NAME } from '~/utils/infoTooltips'
 
 type Props = {
 	contractRejectEvents: ContractRejectEvent[]

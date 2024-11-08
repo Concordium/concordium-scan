@@ -12,7 +12,9 @@ import type { CombinedError } from '@urql/vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import WarningIcon from '~/components/icons/WarningIcon.vue'
 
-const { environment } = useRuntimeConfig()
+const {
+	public: { environment },
+} = useRuntimeConfig()
 
 type Props = {
 	error?: CombinedError

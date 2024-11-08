@@ -25,8 +25,8 @@
 	</Tooltip>
 </template>
 <script lang="ts" setup>
-import Tooltip from '~~/src/components/atoms/Tooltip.vue'
-import { Position } from '~~/src/composables/useTooltip'
+import Tooltip from '~/components/atoms/Tooltip.vue'
+import type { Position } from '~/composables/useTooltip'
 
 type Props = {
 	text: string

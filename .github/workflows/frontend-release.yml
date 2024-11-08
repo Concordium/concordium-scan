@@ -1,0 +1,48 @@
+name: Publish frontend docker image on DockerHub
+
+on:
+  push:
+    tags:
+      - frontend/*
+
+jobs:
+  publish-docker-image:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          flavor: latest=false
+          images: concordium/ccdscan-frontend
+          tags: type=match,pattern=frontend/(.*),group=1
+      - name: Ensure tag matches version in package.json
+        run: |
+          EXPECTED=$(jq -r .version frontend/package.json)
+          EXTRACTED="${{ steps.meta.outputs.version }}"
+          if [ "$EXPECTED" = "$EXTRACTED" ]; then
+            printf "Extracted version matches the version in package.json ($EXTRACTED).\n"
+            exit 0
+          else
+            printf "ERROR: Extracted version does not match the version in package.json. \nExtracted: '$EXTRACTED'\nExpected: '$EXPECTED'\n"
+            exit 1
+          fi
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: concordium
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

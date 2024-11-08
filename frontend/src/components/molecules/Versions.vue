@@ -9,7 +9,9 @@
 <script setup lang="ts">
 import { useVersionsQuery } from '~/queries/useVersionsQuery'
 
-const { version: frontendVersion } = useRuntimeConfig()
+const {
+	public: { version: frontendVersion },
+} = useRuntimeConfig()
 const { data } = useVersionsQuery()
 </script>
 

@@ -1,8 +1,8 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { CombinedError, gql, useQuery } from '@urql/vue'
-import { Contract } from '../types/generated'
-import { ComponentState } from '../composables/useComponentState'
-import { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
+import type { Contract } from '../types/generated'
+import type { ComponentState } from '../composables/useComponentState'
+import type { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'
 
 // Uses alias in `ContractUpgraded` since fields `to` and `from`
 // since they in this event refers to modules, and in event `Transferred`
@@ -49,7 +49,7 @@ event {
 	... on ContractResumed {
 		contractAddress {
 			__typename
-			asString			
+			asString
 			index
 			subIndex
 		}
@@ -125,8 +125,8 @@ event {
 			index
 			subIndex
 		}
-		fromModule: from
-		toModule: to
+		from
+		to
 	}
 	... on Transferred {
 		amount
@@ -144,7 +144,7 @@ event {
 				asString
 			}
 		}
-	}	
+	}
 }
 `
 
@@ -162,7 +162,7 @@ rejectedEvent {
 			index
 			subIndex
 		}
-	}        
+	}
 }
 `
 
@@ -173,7 +173,7 @@ const ContractQuery = gql`
 		$skipRejectEvent: Int
 		$takeRejectEvent: Int
 		$skipTokens: Int
-		$takeTokens: Int		
+		$takeTokens: Int
 		$contractAddressIndex: UnsignedLong!
 		$contractAddressSubIndex: UnsignedLong!
 	) {
@@ -197,10 +197,10 @@ const ContractQuery = gql`
 				  contractSubIndex
 				  contractAddressFormatted
 				  totalSupply
-				  metadataUrl				  
+				  metadataUrl
 				}
 				totalCount
-			}			
+			}
 			creator {
 				asString
 			}

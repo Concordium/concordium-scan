@@ -1,7 +1,7 @@
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import type { PageInfo } from '~/types/generated'
 
-export const PAGE_SIZE = 25
+const PAGE_SIZE = 25
 export const MAX_PAGE_SIZE = 50
 
 /**

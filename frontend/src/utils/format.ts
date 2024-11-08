@@ -1,5 +1,4 @@
 import {
-	addHours,
 	addMilliseconds,
 	formatDistance,
 	parseISO,
@@ -7,7 +6,7 @@ import {
 } from 'date-fns'
 
 import * as duration from 'duration-fns'
-import { UnwrapRef } from 'vue'
+import type { UnwrapRef } from 'vue'
 
 /**
  * Converts an ISO 8601 duration (e.g. PT10M) to an object with the amount in years, days, months, hours, seconds, etc.

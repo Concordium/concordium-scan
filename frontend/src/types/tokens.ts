@@ -3,7 +3,7 @@
  * Interfaces specified at https://proposals.concordium.software/CIS/cis-2.html#abstract
  */
 
-import { Token } from './generated'
+import type { Token } from './generated'
 
 interface UrlJson {
 	url: string

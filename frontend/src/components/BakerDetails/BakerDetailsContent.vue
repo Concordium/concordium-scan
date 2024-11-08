@@ -2,16 +2,6 @@
 	<div>
 		<BakerDetailsHeader :baker="baker" />
 		<DrawerContent>
-			<BakerDetailsPendingChange
-				v-if="
-					baker.state.__typename === 'ActiveBakerState' &&
-					baker.state.pendingChange
-				"
-				:pending-change="baker.state.pendingChange"
-				:next-pay-day-time="nextPayDayTime"
-				:payday-duration-ms="paydayDurationMs"
-			/>
-
 			<div class="grid gap-8 md:grid-cols-2 mb-16">
 				<DetailsCard v-if="baker.state.__typename === 'ActiveBakerState'">
 					<template #title>Staked amount</template>
@@ -65,7 +55,6 @@
 import { computed } from 'vue'
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import BakerDetailsRewards from './BakerDetailsRewards.vue'
-import BakerDetailsPendingChange from './BakerDetailsPendingChange.vue'
 import BakerDetailsTransactions from './BakerDetailsTransactions.vue'
 import DrawerContent from '~/components/Drawer/DrawerContent.vue'
 import Accordion from '~/components/Accordion.vue'

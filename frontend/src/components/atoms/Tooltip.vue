@@ -19,7 +19,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { Position, useTooltip } from '~/composables/useTooltip'
+import { type Position, useTooltip } from '~/composables/useTooltip'
 
 const isVisible = ref(false)
 

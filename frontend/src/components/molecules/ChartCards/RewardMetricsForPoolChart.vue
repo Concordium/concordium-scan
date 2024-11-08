@@ -22,7 +22,7 @@
 </template>
 <script lang="ts" setup>
 import type { TooltipItem } from 'chart.js'
-import { Ref } from 'vue'
+import type { Ref } from 'vue'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
 import { type PoolRewardMetricsForBakerPoolResponse } from '~/queries/useBakerPoolRewardMetrics'
