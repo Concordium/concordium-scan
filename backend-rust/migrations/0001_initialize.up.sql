@@ -199,9 +199,6 @@ CREATE TABLE accounts(
     -- credential_registration_id
 );
 
--- Important for performance when joining accounts with its associated creation transaction.
-CREATE INDEX accounts_transaction_index_idx ON accounts (transaction_index);
-
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_sender

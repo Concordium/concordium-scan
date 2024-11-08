@@ -633,8 +633,8 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let account_address = account.to_string();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
         sqlx::query!(
-            "INSERT INTO accounts (index, address, transaction_index, amount)
-            VALUES ($1, $2, 0, $3)",
+            "INSERT INTO accounts (index, address, amount)
+            VALUES ($1, $2, $3)",
             index,
             account_address,
             amount,

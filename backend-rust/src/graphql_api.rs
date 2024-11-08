@@ -444,7 +444,8 @@ impl BaseQuery {
         Ok(connection)
     }
 
-    async fn transaction(&self, ctx: &Context<'_>, index: i64) -> ApiResult<Transaction> {
+    async fn transaction(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<Transaction> {
+        let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
         Transaction::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
@@ -2352,6 +2353,9 @@ impl Transaction {
 
 #[Object]
 impl Transaction {
+    /// Transaction index as a string.
+    async fn id(&self) -> types::ID { self.index.into() }
+
     async fn transaction_index(&self) -> i64 { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
