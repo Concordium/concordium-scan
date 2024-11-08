@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO smart_contract_modules (\n                module_reference,\n                transaction_index,\n                schema\n            ) VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad4d53ad6ac9abd40ac4445ccd775134662021d2eadb2d3240891130eaa4f273"
+}

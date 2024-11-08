@@ -49,19 +49,19 @@ pub struct ApiServiceConfig {
     non_circulating_account:            Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       i64,
+    transaction_connection_limit:       u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             i64,
+    block_connection_limit:             u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           i64,
+    account_connection_limit:           u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          i64,
+    contract_connection_limit:          u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: i64,
+    transaction_event_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -275,18 +275,10 @@ enum ApiError {
     FailedDatabaseQuery(Arc<sqlx::Error>),
     #[error("Invalid ID format: {0}")]
     InvalidIdInt(std::num::ParseIntError),
-    // #[error("Invalid ID format: {0}")]
-    // InvalidIdIntSize(std::num::TryFromIntError),
-    #[error("Invalid ID for transaction, must be of the format 'block:index'")]
-    InvalidIdTransaction,
     #[error("The period cannot be converted")]
     DurationOutOfRange(Arc<Box<dyn Error + Send + Sync>>),
     #[error("The \"first\" and \"last\" parameters cannot exist at the same time")]
     QueryConnectionFirstLast,
-    #[error("The \"first\" parameter must be a non-negative number")]
-    QueryConnectionNegativeFirst,
-    #[error("The \"last\" parameter must be a non-negative number")]
-    QueryConnectionNegativeLast,
     #[error("Internal error: {0}")]
     InternalError(String),
     #[error("Invalid integer: {0}")]
@@ -334,11 +326,11 @@ struct ConnectionQuery<A> {
 }
 impl<A> ConnectionQuery<A> {
     fn new<E>(
-        first: Option<i64>,
+        first: Option<u64>,
         after: Option<String>,
-        last: Option<i64>,
+        last: Option<u64>,
         before: Option<String>,
-        connection_limit: i64,
+        connection_limit: u64,
     ) -> ApiResult<Self>
     where
         A: std::str::FromStr<Err = E> + ConnectionCursor,
@@ -346,27 +338,22 @@ impl<A> ConnectionQuery<A> {
         if first.is_some() && last.is_some() {
             return Err(ApiError::QueryConnectionFirstLast);
         }
-        if let Some(first) = first {
-            if first < 0 {
-                return Err(ApiError::QueryConnectionNegativeFirst);
-            }
-        };
-        if let Some(last) = last {
-            if last < 0 {
-                return Err(ApiError::QueryConnectionNegativeLast);
-            }
-        };
+
         let from = if let Some(a) = after {
             a.parse::<A>().map_err(|e| e.into())?
         } else {
             A::MIN
         };
+
         let to = if let Some(b) = before {
             b.parse::<A>().map_err(|e| e.into())?
         } else {
             A::MAX
         };
-        let limit = first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit));
+
+        let limit =
+            first.or(last).map_or(connection_limit, |limit| connection_limit.min(limit)) as i64;
+
         Ok(Self {
             from,
             to,
@@ -404,10 +391,10 @@ impl BaseQuery {
     async fn blocks<'a>(
         &self,
         ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
@@ -426,24 +413,22 @@ impl BaseQuery {
         // specified.
         let mut row_stream = sqlx::query_as!(
             Block,
-            r#"
-SELECT * FROM (
-  SELECT
-    hash, height, slot_time, baker_id, total_amount
-  FROM blocks
-  WHERE height > $1 AND height < $2
-  ORDER BY
-     (CASE WHEN $4 THEN height END) DESC,
-     (CASE WHEN NOT $4 THEN height END) ASC
-  LIMIT $3
-) ORDER BY height ASC
-"#,
+            "SELECT * FROM (
+                SELECT hash, height, slot_time, baker_id, total_amount
+                FROM blocks
+                WHERE height > $1 AND height < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN height END) DESC,
+                    (CASE WHEN NOT $4 THEN height END) ASC
+                LIMIT $3
+            ) ORDER BY height ASC",
             query.from,
             query.to,
             query.limit,
             query.desc
         )
         .fetch(pool);
+
         let mut connection = connection::Connection::new(true, true);
         while let Some(block) = row_stream.try_next().await? {
             connection.edges.push(connection::Edge::new(block.height.to_string(), block));
@@ -459,9 +444,9 @@ SELECT * FROM (
         Ok(connection)
     }
 
-    async fn transaction<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Transaction> {
-        let id = IdTransaction::try_from(id)?;
-        Transaction::query_by_id(get_pool(ctx)?, id).await?.ok_or(ApiError::NotFound)
+    async fn transaction(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<Transaction> {
+        let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
+        Transaction::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
     }
 
     async fn transaction_by_transaction_hash<'a>(
@@ -477,16 +462,16 @@ SELECT * FROM (
     async fn transactions<'a>(
         &self,
         ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<IdTransaction>::new(
+        let query = ConnectionQuery::<i64>::new(
             first,
             after,
             last,
@@ -499,46 +484,42 @@ SELECT * FROM (
         // specified.
         let mut row_stream = sqlx::query_as!(
             Transaction,
-            r#"
-SELECT * FROM (
-  SELECT
-    block_height,
-    index,
-    hash,
-    ccd_cost,
-    energy_cost,
-    sender,
-    type as "tx_type: DbTransactionType",
-    type_account as "type_account: AccountTransactionType",
-    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-    type_update as "type_update: UpdateTransactionType",
-    success,
-    events as "events: sqlx::types::Json<Vec<Event>>",
-    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-  FROM transactions
-  WHERE block_height > $1 AND block_height < $2
-     OR ((block_height = $1 AND index > $3) AND NOT (block_height = $2 AND index >= $4))
-     OR ((block_height = $2 AND index < $4) AND NOT (block_height = $1 AND index <= $3))
-  ORDER BY (CASE WHEN $6 THEN block_height END) DESC,
-         (CASE WHEN $6 THEN index END) DESC,
-         (CASE WHEN NOT $6 THEN block_height END) ASC,
-         (CASE WHEN NOT $6 THEN index END) ASC
-  LIMIT $5
-) ORDER BY block_height ASC, index ASC
-"#,
-            query.from.block,
-            query.to.block,
-            query.from.index,
-            query.to.index,
+            r#"SELECT * FROM (
+                SELECT
+                    index,
+                    block_height,
+                    hash,
+                    ccd_cost,
+                    energy_cost,
+                    sender,
+                    type as "tx_type: DbTransactionType",
+                    type_account as "type_account: AccountTransactionType",
+                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                    type_update as "type_update: UpdateTransactionType",
+                    success,
+                    events as "events: sqlx::types::Json<Vec<Event>>",
+                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                FROM transactions
+                WHERE $1 < index AND index < $2
+                ORDER BY
+                    (CASE WHEN $3 THEN index END) DESC,
+                    (CASE WHEN NOT $3 THEN index END) ASC
+                LIMIT $4
+            ) ORDER BY index ASC"#,
+            query.from,
+            query.to,
+            query.desc,
             query.limit,
-            query.desc
         )
         .fetch(pool);
+
         // TODO Update page prev/next
         let mut connection = connection::Connection::new(true, true);
+
         while let Some(row) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(row.id_transaction().to_string(), row));
+            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
         }
+
         Ok(connection)
     }
 
@@ -560,10 +541,10 @@ SELECT * FROM (
         ctx: &Context<'a>,
         #[graphql(default)] _sort: AccountSort,
         _filter: Option<AccountFilterInput>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
@@ -577,27 +558,26 @@ SELECT * FROM (
             before,
             config.account_connection_limit,
         )?;
+
         // The CCDScan front-end currently expects an ASC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on the `after/before` key
         // specified.
         let mut row_stream = sqlx::query_as!(
             Account,
-            r#"
-SELECT * FROM (
-  SELECT
-    index,
-    created_block,
-    address,
-    amount
-  FROM accounts
-  WHERE index > $1 AND index < $2
-  ORDER BY
-     (CASE WHEN $4 THEN index END) DESC,
-     (CASE WHEN NOT $4 THEN index END) ASC
-  LIMIT $3
-) ORDER BY index ASC
-        "#,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    transaction_index,
+                    address,
+                    amount
+                FROM accounts
+                WHERE index > $1 AND index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN index END) DESC,
+                    (CASE WHEN NOT $4 THEN index END) ASC
+                LIMIT $3
+            ) ORDER BY index ASC",
             query.from,
             query.to,
             query.limit,
@@ -788,24 +768,25 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         let pool = get_pool(ctx)?;
 
         let row = sqlx::query!(
-            r#"
-SELECT
-  module_reference,
-  name as contract_name,
-  contracts.amount,
-  blocks.slot_time as block_slot_time,
-  init_block_height as block_height,
-  transactions.hash as transaction_hash,
-  accounts.address as creator
-FROM contracts
-JOIN blocks ON init_block_height=blocks.height
-JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
-JOIN accounts ON transactions.sender=accounts.index
-WHERE contracts.index=$1 AND contracts.sub_index=$2
-"#,
-contract_address_index.0 as i64,contract_address_sub_index.0 as i64
-        ).fetch_optional(pool).await?
-         .ok_or(ApiError::NotFound)?;
+            r#"SELECT
+                module_reference,
+                name as contract_name,
+                contracts.amount,
+                blocks.slot_time as block_slot_time,
+                transactions.block_height,
+                transactions.hash as transaction_hash,
+                accounts.address as creator
+            FROM contracts
+            JOIN transactions ON transaction_index = transactions.index
+            JOIN blocks ON transactions.block_height = blocks.height
+            JOIN accounts ON transactions.sender = accounts.index
+            WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
+            contract_address_index.0 as i64,
+            contract_address_sub_index.0 as i64,
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
 
         let snapshot = ContractSnapshot {
             block_height: row.block_height,
@@ -834,10 +815,10 @@ contract_address_index.0 as i64,contract_address_sub_index.0 as i64
     async fn contracts<'a>(
         &self,
         ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Contract>> {
@@ -856,29 +837,28 @@ contract_address_index.0 as i64,contract_address_sub_index.0 as i64
         // get the correct nodes/edges selected based on the `after/before` key
         // specified.
         let mut row_stream = sqlx::query!(
-            r#"
-SELECT * FROM (
-    SELECT
-        contracts.index as index,
-        sub_index,
-        module_reference,
-        name as contract_name,
-        contracts.amount,
-        blocks.slot_time as block_slot_time,
-        init_block_height as block_height,
-        transactions.hash as transaction_hash,
-        accounts.address as creator
-    FROM contracts
-    JOIN blocks ON init_block_height=blocks.height
-    JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
-    JOIN accounts ON transactions.sender=accounts.index
-    WHERE contracts.index > $1 AND contracts.index < $2
-    ORDER BY
-        (CASE WHEN $4 THEN contracts.index END) DESC,
-        (CASE WHEN NOT $4 THEN contracts.index END) ASC
-    LIMIT $3
-) AS contract_data
-ORDER BY contract_data.index ASC"#,
+            "SELECT * FROM (
+                SELECT
+                    contracts.index as index,
+                    sub_index,
+                    module_reference,
+                    name as contract_name,
+                    contracts.amount,
+                    blocks.slot_time as block_slot_time,
+                    transactions.block_height,
+                    transactions.hash as transaction_hash,
+                    accounts.address as creator
+                FROM contracts
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON transactions.block_height = blocks.height
+                JOIN accounts ON transactions.sender = accounts.index
+                WHERE contracts.index > $1 AND contracts.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN contracts.index END) DESC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
+                LIMIT $3
+            ) AS contract_data
+            ORDER BY contract_data.index ASC",
             query.from,
             query.to,
             query.limit,
@@ -938,23 +918,23 @@ ORDER BY contract_data.index ASC"#,
         let pool = get_pool(ctx)?;
 
         let row = sqlx::query!(
-            r#"
-SELECT
-  deployment_block_height as block_height,
-  deployment_transaction_index,
-  schema as display_schema,
-  blocks.slot_time as block_slot_time,
-  transactions.hash as transaction_hash,
-  accounts.address as sender
-FROM smart_contract_modules
-JOIN blocks ON deployment_block_height=blocks.height
-JOIN transactions ON deployment_block_height=transactions.block_height AND deployment_transaction_index=transactions.index
-JOIN accounts ON transactions.sender=accounts.index
-WHERE module_reference=$1
-"#,
+            r#"SELECT
+                blocks.height as block_height,
+                smart_contract_modules.transaction_index,
+                schema as display_schema,
+                blocks.slot_time as block_slot_time,
+                transactions.hash as transaction_hash,
+                accounts.address as sender
+            FROM smart_contract_modules
+            JOIN transactions ON smart_contract_modules.transaction_index = transactions.index
+            JOIN blocks ON transactions.block_height = blocks.height
+            JOIN accounts ON transactions.sender = accounts.index
+            WHERE module_reference = $1"#,
             module_reference
-        ).fetch_optional(pool).await?
-         .ok_or(ApiError::NotFound)?;
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
 
         let display_schema = row.display_schema.as_ref().map_or(Ok(None), |s| {
             from_bytes::<VersionedModuleSchema>(s)
@@ -1179,7 +1159,6 @@ type BlockHash = String;
 type TransactionHash = String;
 type BakerId = i64;
 type AccountIndex = i64;
-type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
@@ -2298,48 +2277,9 @@ impl From<String> for AccountAddress {
     }
 }
 
-#[derive(Copy, Clone)]
-struct IdTransaction {
-    block: BlockHeight,
-    index: TransactionIndex,
-}
-impl ConnectionCursor for IdTransaction {
-    const MAX: IdTransaction = IdTransaction {
-        block: BlockHeight::MAX,
-        index: TransactionIndex::MAX,
-    };
-    const MIN: IdTransaction = IdTransaction {
-        block: BlockHeight::MIN,
-        index: TransactionIndex::MIN,
-    };
-}
-
-impl std::str::FromStr for IdTransaction {
-    type Err = ApiError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let (height_str, index_str) =
-            value.split_once(':').ok_or(ApiError::InvalidIdTransaction)?;
-        Ok(IdTransaction {
-            block: height_str.parse().map_err(ApiError::InvalidIdInt)?,
-            index: index_str.parse().map_err(ApiError::InvalidIdInt)?,
-        })
-    }
-}
-impl TryFrom<types::ID> for IdTransaction {
-    type Error = ApiError;
-
-    fn try_from(value: types::ID) -> Result<Self, Self::Error> { value.0.parse() }
-}
-impl std::fmt::Display for IdTransaction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.block, self.index)
-    }
-}
-
 struct Transaction {
+    index: i64,
     block_height: BlockHeight,
-    index: TransactionIndex,
     hash: TransactionHash,
     ccd_cost: Amount,
     energy_cost: Energy,
@@ -2352,38 +2292,32 @@ struct Transaction {
     events: Option<sqlx::types::Json<Vec<Event>>>,
     reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
-impl Transaction {
-    fn id_transaction(&self) -> IdTransaction {
-        IdTransaction {
-            block: self.block_height,
-            index: self.index,
-        }
-    }
 
-    async fn query_by_id(pool: &PgPool, id: IdTransaction) -> ApiResult<Option<Self>> {
+impl Transaction {
+    async fn query_by_index(pool: &PgPool, index: i64) -> ApiResult<Option<Self>> {
         let transaction = sqlx::query_as!(
             Transaction,
             r#"SELECT
-  block_height,
-  index,
-  hash,
-  ccd_cost,
-  energy_cost,
-  sender,
-  type as "tx_type: DbTransactionType",
-  type_account as "type_account: AccountTransactionType",
-  type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-  type_update as "type_update: UpdateTransactionType",
-  success,
-  events as "events: sqlx::types::Json<Vec<Event>>",
-  reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-FROM transactions
-WHERE block_height=$1 AND index=$2"#,
-            id.block,
-            id.index
+                index,
+                block_height,
+                hash,
+                ccd_cost,
+                energy_cost,
+                sender,
+                type as "tx_type: DbTransactionType",
+                type_account as "type_account: AccountTransactionType",
+                type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                type_update as "type_update: UpdateTransactionType",
+                success,
+                events as "events: sqlx::types::Json<Vec<Event>>",
+                reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+            FROM transactions
+            WHERE index = $1"#,
+            index
         )
         .fetch_optional(pool)
         .await?;
+
         Ok(transaction)
     }
 
@@ -2394,21 +2328,21 @@ WHERE block_height=$1 AND index=$2"#,
         let transaction = sqlx::query_as!(
             Transaction,
             r#"SELECT
-  block_height,
-  index,
-  hash,
-  ccd_cost,
-  energy_cost,
-  sender,
-  type as "tx_type: DbTransactionType",
-  type_account as "type_account: AccountTransactionType",
-  type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-  type_update as "type_update: UpdateTransactionType",
-  success,
-  events as "events: sqlx::types::Json<Vec<Event>>",
-  reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-FROM transactions
-WHERE hash=$1"#,
+                index,
+                block_height,
+                hash,
+                ccd_cost,
+                energy_cost,
+                sender,
+                type as "tx_type: DbTransactionType",
+                type_account as "type_account: AccountTransactionType",
+                type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                type_update as "type_update: UpdateTransactionType",
+                success,
+                events as "events: sqlx::types::Json<Vec<Event>>",
+                reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+            FROM transactions
+            WHERE hash = $1"#,
             transaction_hash
         )
         .fetch_optional(pool)
@@ -2419,10 +2353,10 @@ WHERE hash=$1"#,
 
 #[Object]
 impl Transaction {
-    /// Transaction query ID, formatted as "<block_height>:<block_item_index>".
-    async fn id(&self) -> types::ID { self.id_transaction().into() }
+    /// Transaction index as a string.
+    async fn id(&self) -> types::ID { self.index.into() }
 
-    async fn transaction_index(&self) -> TransactionIndex { self.index }
+    async fn transaction_index(&self) -> i64 { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
 
@@ -2670,10 +2604,10 @@ struct Success<'a> {
 impl Success<'_> {
     async fn events(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i64>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, &Event>> {
@@ -2691,17 +2625,9 @@ impl Success<'_> {
             self.events.len()
         };
         if let Some(first) = first {
-            if first < 0 {
-                return Err(ApiError::QueryConnectionNegativeFirst);
-            }
-            let first = usize::try_from(first)?;
             end = usize::min(end, start + first);
         }
         if let Some(last) = last {
-            if last < 0 {
-                return Err(ApiError::QueryConnectionNegativeLast);
-            }
-            let last = usize::try_from(last)?;
             if let Some(new_end) = end.checked_sub(last) {
                 start = usize::max(start, new_end);
             }
@@ -2724,14 +2650,15 @@ struct Rejected<'a> {
 #[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
-    index:         i64,
-    /// Height of the block with the transaction creating this account.
-    created_block: BlockHeight,
+    index:             i64,
+    /// Index of the transaction creating this account.
+    /// Only `None` for genesis accounts.
+    transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
-    address:       AccountAddress,
+    address:           AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount:        Amount,
+    amount:            Amount,
     // Get baker information if this account is baking.
     // baker: Option<Baker>,
     // delegation: Option<Delegation>,
@@ -2740,12 +2667,7 @@ impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            r#"
-SELECT
-   index, created_block, address, amount
-FROM accounts
-WHERE index=$1
-"#,
+            "SELECT index, transaction_index, address, amount FROM accounts WHERE index = $1",
             index
         )
         .fetch_optional(pool)
@@ -2756,12 +2678,7 @@ WHERE index=$1
     async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            r#"
-SELECT
-   index, created_block, address, amount
-FROM accounts
-WHERE address=$1
-"#,
+            "SELECT index, transaction_index, address, amount FROM accounts WHERE address = $1",
             address
         )
         .fetch_optional(pool)
@@ -2781,11 +2698,18 @@ impl Account {
     async fn amount(&self) -> Amount { self.amount }
 
     /// Timestamp of the block where this account was created.
-    async fn created_at<'a>(&self, ctx: &Context<'a>) -> ApiResult<DateTime> {
-        let rec = sqlx::query!("SELECT slot_time FROM blocks WHERE height=$1", self.created_block)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(rec.slot_time)
+    async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
+        let slot_time = sqlx::query_scalar!(
+            "SELECT slot_time
+            FROM transactions
+            JOIN blocks ON transactions.block_height = blocks.height
+            WHERE transactions.index = $1",
+            self.transaction_index
+        )
+        .fetch_one(get_pool(ctx)?)
+        .await?;
+
+        Ok(slot_time)
     }
 
     /// Number of transactions where this account is used as sender.
@@ -2810,14 +2734,114 @@ impl Account {
 
     async fn transactions(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountTransactionRelation>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+
+        let mut txs = sqlx::query_as!(
+            Transaction,
+            r#"SELECT * FROM (
+                SELECT
+                    index,
+                    block_height,
+                    hash,
+                    ccd_cost,
+                    energy_cost,
+                    sender,
+                    type as "tx_type: DbTransactionType",
+                    type_account as "type_account: AccountTransactionType",
+                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                    type_update as "type_update: UpdateTransactionType",
+                    success,
+                    events as "events: sqlx::types::Json<Vec<Event>>",
+                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                FROM transactions
+                WHERE
+                    $1 IN (
+                        SELECT account_index
+                        FROM affected_accounts
+                        WHERE transaction_index = index
+                    )
+                    AND $2 < index
+                    AND index < $3
+                ORDER BY
+                    (CASE WHEN $4 THEN index END) DESC,
+                    (CASE WHEN NOT $4 THEN index END) ASC
+                LIMIT $5
+            ) ORDER BY index ASC
+            "#,
+            self.index,
+            query.from,
+            query.to,
+            query.desc,
+            query.limit,
+        )
+        .fetch(pool);
+
+        let has_previous_page = sqlx::query_scalar!(
+            "SELECT true
+            FROM transactions
+            WHERE
+                $1 IN (
+                    SELECT account_index
+                    FROM affected_accounts
+                    WHERE transaction_index = index
+                )
+                AND index <= $2
+            LIMIT 1",
+            self.index,
+            query.from,
+        )
+        .fetch_optional(pool)
+        .await?
+        .flatten()
+        .unwrap_or_default();
+
+        let has_next_page = sqlx::query_scalar!(
+            "SELECT true
+            FROM transactions
+            WHERE
+                $1 IN (
+                    SELECT account_index
+                    FROM affected_accounts
+                    WHERE transaction_index = index
+                )
+                AND $2 <= index
+            LIMIT 1",
+            self.index,
+            query.to,
+        )
+        .fetch_optional(pool)
+        .await?
+        .flatten()
+        .unwrap_or_default();
+
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+
+        while let Some(tx) = txs.try_next().await? {
+            connection.edges.push(connection::Edge::new(
+                tx.index.to_string(),
+                AccountTransactionRelation {
+                    transaction: tx,
+                },
+            ));
+        }
+
+        Ok(connection)
     }
 
     async fn account_statement(

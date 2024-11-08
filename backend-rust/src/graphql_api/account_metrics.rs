@@ -61,9 +61,10 @@ impl AccountMetricsQuery {
             .map_err(|e| ApiError::DurationOutOfRange(Arc::new(e)))?;
 
         let cumulative_accounts_created_before_period = sqlx::query_scalar!(
-            "SELECT COALESCE(MAX(index), 0)
+            "SELECT COALESCE(MAX(accounts.index), 0)
             FROM accounts
-            LEFT JOIN blocks ON created_block = height
+            LEFT JOIN transactions on transaction_index = transactions.index
+            LEFT JOIN blocks ON transactions.block_height = height
             WHERE slot_time < (now() - $1::interval)",
             period_interval,
         )

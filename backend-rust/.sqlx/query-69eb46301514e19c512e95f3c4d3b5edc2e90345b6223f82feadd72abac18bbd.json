@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT\n   index, created_block, address, amount\nFROM accounts\nWHERE index=$1\n",
+  "query": "SELECT index, transaction_index, address, amount FROM accounts WHERE index = $1",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "created_block",
+        "name": "transaction_index",
         "type_info": "Int8"
       },
       {
@@ -31,10 +31,10 @@
     },
     "nullable": [
       false,
-      false,
+      true,
       false,
       false
     ]
   },
-  "hash": "25a3b7685ce9f461524249bdff68480d2fee392b1814f1de2ff8249eaa879b92"
+  "hash": "69eb46301514e19c512e95f3c4d3b5edc2e90345b6223f82feadd72abac18bbd"
 }

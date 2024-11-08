@@ -24,18 +24,20 @@ FROM
     ) AS bucket_time
 LEFT JOIN LATERAL (
     -- Selects the index at or before the start of the bucket.
-    SELECT index
+    SELECT accounts.index
     FROM accounts
-    LEFT JOIN blocks ON created_block = height
+    LEFT JOIN transactions on transaction_index = transactions.index
+    LEFT JOIN blocks ON transactions.block_height = height
     WHERE slot_time <= bucket_time
     ORDER BY slot_time DESC
     LIMIT 1
 ) before_bucket ON true
 LEFT JOIN LATERAL (
     -- Selects the index at the end of the bucket.
-    SELECT index
+    SELECT accounts.index
     FROM accounts
-    LEFT JOIN blocks ON created_block = height
+    LEFT JOIN transactions on transaction_index = transactions.index
+    LEFT JOIN blocks ON transactions.block_height = height
     WHERE slot_time < bucket_time + $2::interval
     ORDER BY slot_time DESC
     LIMIT 1

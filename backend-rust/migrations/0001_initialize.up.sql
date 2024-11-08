@@ -123,10 +123,10 @@ CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
-    -- Index of the transaction within the block.
+    -- Global index of the transaction.
     index
         BIGINT
-        NOT NULL,
+        PRIMARY KEY,
     -- Absolute height of the block containing the transaction.
     block_height
         BIGINT
@@ -173,10 +173,7 @@ CREATE TABLE transactions(
         JSONB,
     -- Transaction details. Reject reason if success is false.
     reject
-        JSONB,
-
-    -- Within a single block, two transactions cannot share the same index.
-    PRIMARY KEY (block_height, index)
+        JSONB
 );
 
 -- Every account on chain.
@@ -184,44 +181,52 @@ CREATE TABLE accounts(
     -- Index of the account.
     index
         BIGINT
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Account address bytes encoded using base58check.
     address
         CHAR(50)
         UNIQUE
         NOT NULL,
-    -- Block height where this account was created.
-    created_block
-        BIGINT
-        NOT NULL,
-    -- Index of the transaction in the block creating this account.
+    -- Index of the transaction creating this account.
     -- Only NULL for genesis accounts
-    created_index
-        BIGINT,
+    transaction_index
+        BIGINT
+        REFERENCES transactions,
     -- The total balance of this account in micro CCD.
     amount
         BIGINT
-        NOT NULL,
-    -- Connect the account with the transaction creating it.
-    FOREIGN KEY (created_block, created_index) REFERENCES transactions (block_height, index)
-    -- credential_registration_id
+        NOT NULL
 );
-
--- Important for performance when joining accounts with its associated creation block.
-CREATE INDEX accounts_created_block_idx ON accounts (created_block);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
     ADD CONSTRAINT fk_transaction_sender
     FOREIGN KEY (sender)
-    REFERENCES accounts(index);
+    REFERENCES accounts;
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE blocks
     ADD CONSTRAINT fk_block_baker_id
     FOREIGN KEY (baker_id)
-    REFERENCES accounts(index);
+    REFERENCES accounts;
+
+-- All the accounts that are affected by transactions are logged in this table.
+-- This is used to decide which transactions to display under an account.
+CREATE TABLE affected_accounts (
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- An account affected by this transaction.
+    account_index
+        BIGINT
+        NOT NULL
+        REFERENCES accounts,
+
+    -- A transaction can only affect an account once.
+    PRIMARY KEY (transaction_index, account_index)
+);
 
 -- Current active bakers
 CREATE TABLE bakers(
@@ -230,7 +235,7 @@ CREATE TABLE bakers(
         BIGINT
         PRIMARY KEY
         NOT NULL
-        REFERENCES accounts(index),
+        REFERENCES accounts,
     -- Amount staked at present.
     staked
         BIGINT
@@ -269,14 +274,11 @@ CREATE TABLE smart_contract_modules(
         UNIQUE
         PRIMARY KEY
         NOT NULL,
-    -- The absolute block height when the module was deployed.
-    deployment_block_height
+    -- Index of the transaction deploying the module.
+    transaction_index
         BIGINT
-        NOT NULL,
-    -- Transaction index in the block deploying the module.
-    deployment_transaction_index
-        BIGINT
-        NOT NULL,
+        NOT NULL
+        REFERENCES transactions,
     -- Embedded schema in the module if present.
     schema BYTEA
 );
@@ -304,14 +306,11 @@ CREATE TABLE contracts(
     amount
         BIGINT
         NOT NULL,
-    -- The absolute block height when the module was initialized.
-    init_block_height
+    -- The index of the transaction initializing the contract.
+    transaction_index
         BIGINT
-        NOT NULL,
-    -- Transaction index in the block initializing the contract.
-    init_transaction_index
-        BIGINT
-        NOT NULL,
+        NOT NULL
+        REFERENCES transactions,
 
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
