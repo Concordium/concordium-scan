@@ -196,7 +196,6 @@ CREATE TABLE accounts(
     amount
         BIGINT
         NOT NULL
-    -- credential_registration_id
 );
 
 -- Add foreign key constraint now that the account table is created.
