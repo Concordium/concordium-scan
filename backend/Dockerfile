@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y build-essential
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.80 --profile minimal -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /src
-COPY ./backend .
+COPY . .
 RUN dotnet publish Application -c Release -o /app/publish
 
 FROM base AS final
