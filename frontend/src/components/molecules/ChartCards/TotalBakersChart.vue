@@ -9,7 +9,7 @@
 		:is-loading="isLoading"
 		:label-formatter="formatLabel"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Validators</template>
 		<template #icon><BakerIcon /></template>
 		<template #value>{{

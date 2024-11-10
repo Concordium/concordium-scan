@@ -149,8 +149,7 @@ import { NodeSortField, NodeSortDirection } from '~/types/generated'
 
 const { NOW } = useDateNow()
 const { breakpoint } = useBreakpoint()
-const { first, last, after, before, goToPage, resetPagination } =
-	usePagination()
+const { first, last, after, before, goToPage } = usePagination()
 const tableSortField = ref<NodeSortField>(NodeSortField.NodeName)
 const tableSortDirection = ref<NodeSortDirection>(NodeSortDirection.Asc)
 const { data, error, componentState } = useNodeQuery(

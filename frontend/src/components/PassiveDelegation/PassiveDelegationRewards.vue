@@ -35,7 +35,6 @@
 
 <script lang="ts" setup>
 import PassiveDelegationRewardsItem from './PassiveDelegationRewardsItem.vue'
-import { translateBakerRewardType } from '~/utils/translateBakerRewardType'
 import { usePassiveDelegationPoolRewardMetrics } from '~/queries/usePassiveDelegationPoolRewardMetrics'
 import PoolRewardTotalChart from '~/components/molecules/ChartCards/PoolRewardTotalChart.vue'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
