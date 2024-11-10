@@ -122,7 +122,7 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div :class="$style.threeColumns"></div>
+							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
 								Age
 								<Tooltip :text="formatTimestamp(account.createdAt)">
@@ -178,7 +178,7 @@
 								:contract-address-sub-index="token.contractSubIndex"
 								:width="80"
 							/>
-							<div :class="$style.threeColumns"></div>
+							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
 								<TransactionLink
 									:hash="token.initialTransaction.transactionHash"
@@ -201,7 +201,7 @@
 								:hide-tooltip="true"
 								@blur="lostFocusOnSearch"
 							/>
-							<div :class="$style.threeColumns"></div>
+							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
 								Age
 								<Tooltip :text="formatTimestamp(module.blockSlotTime)">
@@ -222,7 +222,7 @@
 							:class="$style.searchColumns"
 						>
 							<BakerLink :id="baker.bakerId" @blur="lostFocusOnSearch" />
-							<div :class="$style.threeColumns"></div>
+							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
 								<AccountLink
 									:address="baker.account.address.asString"
@@ -244,7 +244,7 @@
 							:class="$style.searchColumns"
 						>
 							<NodeLink :node="node" @blur="lostFocusOnSearch" />
-							<div :class="$style.threeColumns"></div>
+							<div :class="$style.threeColumns" />
 							<div :class="$style.twoColumns">
 								<BakerLink
 									v-if="Number.isInteger(node.consensusBakerId)"
@@ -298,7 +298,7 @@ watch(data, () => {
 	}
 })
 
-watch(searchValue, (newValue, _oldValue) => {
+watch(searchValue, newValue => {
 	if (searchQueryTimeout) clearTimeout(searchQueryTimeout)
 	status.value = 'loading'
 	isMaskVisible.value = true

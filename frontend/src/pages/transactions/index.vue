@@ -136,7 +136,7 @@ const {
 } = usePagedData<Transaction>()
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)
 const newItems = ref(0)
-const subscriptionHandler = (_prevData: void, newData: Subscription) => {
+const subscriptionHandler = (_prevData: unknown, newData: Subscription) => {
 	newItems.value += newData.blockAdded.transactionCount
 }
 

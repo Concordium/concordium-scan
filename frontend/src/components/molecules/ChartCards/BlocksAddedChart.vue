@@ -8,8 +8,8 @@
 		:begin-at-zero="true"
 		:is-loading="isLoading"
 	>
-		<template #topRight></template>
-		<template #icon><BlockIcon></BlockIcon></template>
+		<template #topRight />
+		<template #icon><BlockIcon /></template>
 		<template #title>Blocks added</template>
 		<template #value>{{
 			formatNumber(blockMetricsData?.blockMetrics?.blocksAdded || 0)

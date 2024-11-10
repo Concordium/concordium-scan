@@ -73,7 +73,6 @@ import { formatTimestamp, convertTimestampToRelative } from '~/utils/format'
 import { useDateNow } from '~/composables/useDateNow'
 import { useDrawer } from '~/composables/useDrawer'
 import { usePaydayStatusQuery } from '~/queries/usePaydayStatusQuery'
-import type { BlockMetrics } from '~/types/generated'
 
 const { NOW } = useDateNow()
 const drawer = useDrawer()
@@ -86,7 +85,7 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = (hash?: string) => {
-	hash && drawer.push({ entityTypeName: 'block', hash })
+	if (hash) drawer.push({ entityTypeName: 'block', hash })
 }
 </script>
 

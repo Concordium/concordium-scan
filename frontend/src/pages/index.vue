@@ -215,7 +215,7 @@ let loopInterval: NodeJS.Timeout
 
 const { breakpoint } = useBreakpoint()
 
-const subscriptionHandler = (_prevData: void, newData: Subscription) => {
+const subscriptionHandler = (_prevData: unknown, newData: Subscription) => {
 	if (newData && newData.blockAdded) {
 		if (
 			!blocksQueue.value.some(

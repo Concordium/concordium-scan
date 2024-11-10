@@ -22,7 +22,7 @@ import Loader from '~/components/molecules/Loader.vue'
 import NotFound from '~/components/molecules/NotFound.vue'
 import AccountDetailsContent from '~/components/Accounts/AccountDetailsContent.vue'
 import { usePagination, PAGE_SIZE_SMALL } from '~/composables/usePagination'
-import { type Subscription } from '~/types/generated'
+import type { Subscription } from '~/types/generated'
 import { useAccountsUpdatedSubscription } from '~/subscriptions/useAccountsUpdatedSubscription'
 
 type Props = {
@@ -102,7 +102,7 @@ const { data, error, componentState, executeQuery } = useAccountQuery({
 	transactionVariables,
 })
 
-const subscriptionHandler = (_prevData: void, newData: Subscription) => {
+const subscriptionHandler = (_prevData: unknown, newData: Subscription) => {
 	if (
 		newData.accountsUpdated.address === props.address &&
 		componentState.value !== 'loading'

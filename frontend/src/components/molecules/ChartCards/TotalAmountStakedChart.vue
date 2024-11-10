@@ -11,7 +11,7 @@
 		:is-loading="isLoading"
 		:label-formatter="formatLabel"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #icon>Ͼ</template>
 		<template #title>Staked</template>
 		<template #value>{{

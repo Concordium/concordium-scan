@@ -12,7 +12,7 @@
 		]"
 		:is-loading="isLoading"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Transactions</template>
 		<template #icon><TransactionIcon /></template>
 		<template #value>{{

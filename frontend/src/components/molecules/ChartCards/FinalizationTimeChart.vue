@@ -7,7 +7,7 @@
 		:y-values="[blockMetricsData?.blockMetrics?.buckets.y_FinalizationTimeAvg]"
 		:is-loading="isLoading"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Finalization time</template>
 		<template #icon><StopwatchIcon /></template>
 		<template #value>{{

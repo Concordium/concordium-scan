@@ -23,5 +23,5 @@ type Props = {
 	node: NodeStatus
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>

@@ -19,7 +19,7 @@
 			<Tooltip text-class="text-left">
 				<template #content>
 					<div v-if="reward.bakerReward.totalAmount">
-						<span class="legend"></span>
+						<span class="legend" />
 						Block reward:
 						<Amount
 							:amount="reward.bakerReward.totalAmount"
@@ -28,7 +28,7 @@
 						/>
 					</div>
 					<div v-if="reward.finalizationReward.totalAmount">
-						<span class="legend legend-pink"></span>
+						<span class="legend legend-pink" />
 						Finalization reward:
 						<Amount
 							:amount="reward.finalizationReward.totalAmount"
@@ -37,7 +37,7 @@
 						/>
 					</div>
 					<div v-if="reward.transactionFees.totalAmount">
-						<span class="legend legend-green"></span>
+						<span class="legend legend-green" />
 						Transaction fee:
 						<Amount
 							:amount="reward.transactionFees.totalAmount"

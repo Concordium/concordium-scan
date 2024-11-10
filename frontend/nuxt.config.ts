@@ -65,4 +65,5 @@ export default defineNuxtConfig({
 		// Enable type-checking at build time.
 		typeCheck: true,
 	},
+	modules: ['@nuxt/eslint'],
 })

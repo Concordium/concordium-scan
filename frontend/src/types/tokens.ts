@@ -50,5 +50,7 @@ export async function fetchMetadata(
 			keepalive: false,
 		})
 		return response.json() as TokenMetadata
-	} catch {}
+	} catch {
+		return undefined
+	}
 }

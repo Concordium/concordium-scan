@@ -1,5 +1,5 @@
 ﻿<template>
-	<slide class="lg:block"><slot></slot></slide>
+	<slide class="lg:block"><slot /></slide>
 </template>
 
 <script lang="ts" setup>

@@ -56,7 +56,9 @@ watchEffect(() => {
 		.forEach(async t => {
 			try {
 				t.metadata = await fetchMetadata(String(t.metadataUrl))
-			} catch {}
+			} catch {
+				return
+			}
 		})
 })
 </script>

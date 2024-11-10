@@ -60,7 +60,7 @@
 						'ModuleHashAlreadyExists'
 					"
 				>
-					<div></div>
+					<div />
 				</div>
 			</TableTd>
 		</TableRow>

@@ -1,5 +1,5 @@
 ﻿import { useSubscription, gql } from '@urql/vue'
-import { type Subscription } from '~/types/generated'
+import type { Subscription } from '~/types/generated'
 
 type BlockSubscriptionHandler<Subscription, R> = (
 	previousData: R | undefined,

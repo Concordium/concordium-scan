@@ -113,7 +113,7 @@ type Props = {
 const props = defineProps<Props>()
 const route = useRoute()
 // Since this is used in both the drawer and other places, this is a quick way to make sure the drawer closes on route change.
-watch(route, _to => {
+watch(route, () => {
 	selectedTxId.value = ''
 })
 </script>

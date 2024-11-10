@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { CombinedError, gql, useQuery } from '@urql/vue'
+import { type CombinedError, gql, useQuery } from '@urql/vue'
 import type { ComponentState } from '../composables/useComponentState'
 import type { ModuleReferenceEvent } from '../types/generated'
 import type { PaginationOffsetQueryVariables } from '../composables/usePaginationOffset'

@@ -11,7 +11,7 @@
 		>
 			{{ text }}
 			<slot name="content" />
-			<span class="tooltip-triangle"></span>
+			<span class="tooltip-triangle" />
 		</span>
 		<slot />
 	</span>
