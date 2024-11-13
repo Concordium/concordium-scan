@@ -1,0 +1,15 @@
+on:
+  push:
+    tags:
+      - ccdscan/*
+
+jobs:
+  release-base-image:
+    uses: concordium/.github/.github/workflows/docker-release-workflow.yaml@v1
+    with:
+      SERVICE_NAME: "ccdscan"
+      BUILD_ARGS: |
+        DOTNET_VERSION=6.0
+      DOCKER_FILE_PATH: backend/Dockerfile
+      DOCKER_CONTEXT: backend
+    secrets: inherit
