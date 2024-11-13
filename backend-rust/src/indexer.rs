@@ -1014,6 +1014,17 @@ impl PreparedBlockItem {
         .execute(tx.as_mut())
         .await?;
 
+        // We also need to keep track of the number of transactions on the accounts
+        // table.
+        sqlx::query!(
+            "UPDATE accounts
+            SET num_txs = num_txs + 1
+            WHERE address = ANY($1)",
+            &self.affected_accounts,
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         if let Some(prepared_event) = &self.prepared_event {
             prepared_event.save(tx, tx_idx).await?;
         }
@@ -1237,9 +1248,9 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<()> {
         let account_index = sqlx::query_scalar!(
             "INSERT INTO
-                accounts (index, address, transaction_index, amount)
+                accounts (index, address, transaction_index)
             VALUES
-                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, 0)
+                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2)
             RETURNING index",
             self.account_address,
             transaction_index,

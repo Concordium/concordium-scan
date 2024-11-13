@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n            SET num_txs = num_txs + 1\n            WHERE address = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "BpcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9d92fb18c25f73694ade310a0789709fe48098616a468bdf4b639f7b2b18aef9"
+}

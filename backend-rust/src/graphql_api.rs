@@ -536,11 +536,11 @@ impl BaseQuery {
         Account::query_by_address(get_pool(ctx)?, account_address).await?.ok_or(ApiError::NotFound)
     }
 
-    async fn accounts<'a>(
+    async fn accounts(
         &self,
-        ctx: &Context<'a>,
-        #[graphql(default)] _sort: AccountSort,
-        _filter: Option<AccountFilterInput>,
+        ctx: &Context<'_>,
+        #[graphql(default)] sort: AccountSort,
+        filter: Option<AccountFilterInput>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
@@ -548,10 +548,12 @@ impl BaseQuery {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        // TODO: include sort and filter
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
-        let query = ConnectionQuery::<AccountIndex>::new(
+
+        let order: AccountOrder = sort.into();
+
+        let query = ConnectionQuery::<i64>::new(
             first,
             after,
             last,
@@ -563,32 +565,73 @@ impl BaseQuery {
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
         // get the correct nodes/edges selected based on the `after/before` key
         // specified.
-        let mut row_stream = sqlx::query_as!(
+        let mut accounts = sqlx::query_as!(
             Account,
-            "SELECT * FROM (
+            r"SELECT * FROM (
                 SELECT
                     index,
                     transaction_index,
                     address,
-                    amount
+                    amount,
+                    delegated_stake,
+                    num_txs
                 FROM accounts
-                WHERE index > $1 AND index < $2
+                WHERE
+                    -- Filter for only the accounts that are within the
+                    -- range that correspond to the requested page.
+                    -- The first condition is true only if we don't order by that field.
+                    -- Then the whole OR condition will be true, so the filter for that
+                    -- field will be ignored.
+                    (NOT $3 OR index           > $1 AND index           < $2) AND
+                    (NOT $4 OR amount          > $1 AND amount          < $2) AND
+                    (NOT $5 OR num_txs         > $1 AND num_txs         < $2) AND
+                    (NOT $6 OR delegated_stake > $1 AND delegated_stake < $2) AND
+                    -- Need to filter for only delegators if the user requests this.
+                    (NOT $7 OR delegated_stake > 0)
                 ORDER BY
-                    (CASE WHEN $4 THEN index END) DESC,
-                    (CASE WHEN NOT $4 THEN index END) ASC
-                LIMIT $3
-            ) ORDER BY index ASC",
+                    -- Order by the field requested, and by desc/asc as appropriate.
+                    -- The first condition is true if we order by that field.
+                    -- Otherwise false, which makes the CASE null, which means
+                    -- it will not affect the ordering at all.
+                    (CASE WHEN $3 AND $8     THEN index           END) DESC,
+                    (CASE WHEN $3 AND NOT $8 THEN index           END) ASC,
+                    (CASE WHEN $4 AND $8     THEN amount          END) DESC,
+                    (CASE WHEN $4 AND NOT $8 THEN amount          END) ASC,
+                    (CASE WHEN $5 AND $8     THEN num_txs         END) DESC,
+                    (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
+                    (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
+                    (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
+                LIMIT $9
+            )
+            -- We need to order each page ASC still, we only use the DESC/ASC ordering above
+            -- to select page items from the start/end of the range.
+            -- Each page must still independently be ordered ascending.
+            -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
+            ORDER BY CASE
+                WHEN $3 THEN index
+                WHEN $4 THEN amount
+                WHEN $5 THEN num_txs
+                WHEN $6 THEN delegated_stake
+            END ASC",
             query.from,
             query.to,
+            matches!(order.field, AccountOrderField::Age),
+            matches!(order.field, AccountOrderField::Amount),
+            matches!(order.field, AccountOrderField::TransactionCount),
+            matches!(order.field, AccountOrderField::DelegatedStake),
+            filter.map(|f| f.is_delegator).unwrap_or_default(),
+            matches!(order.dir, OrderDir::Desc),
             query.limit,
-            query.desc
         )
         .fetch(pool);
+
         // TODO Update page prev/next
         let mut connection = connection::Connection::new(true, true);
-        while let Some(row) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
+
+        while let Some(account) = accounts.try_next().await? {
+            connection.edges.push(connection::Edge::new(order.cursor(&account), account));
         }
+
         Ok(connection)
     }
 
@@ -2659,6 +2702,11 @@ struct Account {
     address:           AccountAddress,
     /// The total amount of CCD hold by the account.
     amount:            Amount,
+    /// The total delegated stake of this account.
+    delegated_stake:   Amount,
+    /// The total number of transactions this account has been involved in or
+    /// affected by.
+    num_txs:           i64,
     // Get baker information if this account is baking.
     // baker: Option<Baker>,
     // delegation: Option<Delegation>,
@@ -2667,7 +2715,9 @@ impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount FROM accounts WHERE index = $1",
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            FROM accounts
+            WHERE index = $1",
             index
         )
         .fetch_optional(pool)
@@ -2678,7 +2728,9 @@ impl Account {
     async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount FROM accounts WHERE address = $1",
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            FROM accounts
+            WHERE address = $1",
             address
         )
         .fetch_optional(pool)
@@ -3235,6 +3287,82 @@ enum AccountSort {
     TransactionCountDesc,
     DelegatedStakeAsc,
     DelegatedStakeDesc,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct AccountOrder {
+    field: AccountOrderField,
+    dir:   OrderDir,
+}
+
+impl AccountOrder {
+    /// Returns a string that represents a GraphQL cursor, when ordering
+    /// accounts by the given field.
+    fn cursor(&self, account: &Account) -> String {
+        match self.field {
+            // Index and age correspond monotonically.
+            AccountOrderField::Age => account.index,
+            AccountOrderField::Amount => account.amount,
+            AccountOrderField::TransactionCount => account.num_txs,
+            AccountOrderField::DelegatedStake => account.delegated_stake,
+        }
+        .to_string()
+    }
+}
+
+impl From<AccountSort> for AccountOrder {
+    fn from(sort: AccountSort) -> Self {
+        match sort {
+            AccountSort::AgeAsc => Self {
+                field: AccountOrderField::Age,
+                dir:   OrderDir::Asc,
+            },
+            AccountSort::AgeDesc => Self {
+                field: AccountOrderField::Age,
+                dir:   OrderDir::Desc,
+            },
+            AccountSort::AmountAsc => Self {
+                field: AccountOrderField::Amount,
+                dir:   OrderDir::Asc,
+            },
+            AccountSort::AmountDesc => Self {
+                field: AccountOrderField::Amount,
+                dir:   OrderDir::Desc,
+            },
+            AccountSort::TransactionCountAsc => Self {
+                field: AccountOrderField::TransactionCount,
+                dir:   OrderDir::Asc,
+            },
+            AccountSort::TransactionCountDesc => Self {
+                field: AccountOrderField::TransactionCount,
+                dir:   OrderDir::Desc,
+            },
+            AccountSort::DelegatedStakeAsc => Self {
+                field: AccountOrderField::DelegatedStake,
+                dir:   OrderDir::Asc,
+            },
+            AccountSort::DelegatedStakeDesc => Self {
+                field: AccountOrderField::DelegatedStake,
+                dir:   OrderDir::Desc,
+            },
+        }
+    }
+}
+
+/// The fields that may be sorted by when querying accounts.
+#[derive(Debug, Clone, Copy)]
+enum AccountOrderField {
+    Age,
+    Amount,
+    TransactionCount,
+    DelegatedStake,
+}
+
+/// A sort direction, either ascending or descending.
+#[derive(Debug, Clone, Copy)]
+enum OrderDir {
+    Asc,
+    Desc,
 }
 
 #[derive(InputObject)]
