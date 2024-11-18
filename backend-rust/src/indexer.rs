@@ -632,9 +632,12 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
+
+        // Note that we override the usual default num_txs = 1 here
+        // because the genesis accounts do not have a creation transaction.
         sqlx::query!(
-            "INSERT INTO accounts (index, address, amount)
-            VALUES ($1, $2, $3)",
+            "INSERT INTO accounts (index, address, amount, num_txs)
+            VALUES ($1, $2, $3, 0)",
             index,
             account_address,
             amount,
