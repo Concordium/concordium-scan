@@ -193,10 +193,31 @@ CREATE TABLE accounts(
         BIGINT
         REFERENCES transactions,
     -- The total balance of this account in micro CCD.
+    -- TODO: Actually populate this in the indexer.
     amount
         BIGINT
         NOT NULL
+        DEFAULT 0,
+    -- The total number of transactions this account has been involved in or affected by.
+    -- This is a denormalized value that should correspond to a count over the affected_accounts table,
+    -- but we don't want to scan that table every time to calculate this.
+    num_txs
+        BIGINT
+        NOT NULL
+        -- Starting at 1 to count the transaction that made the account.
+        DEFAULT 1,
+    -- The total delegated stake of this account in micro CCD.
+    -- TODO: Actually populate this in the indexer.
+    delegated_stake
+        BIGINT
+        NOT NULL
+        DEFAULT 0
 );
+
+-- These are important for the sorting options on the accounts query.
+CREATE INDEX accounts_amount_idx ON accounts (amount);
+CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
+CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions

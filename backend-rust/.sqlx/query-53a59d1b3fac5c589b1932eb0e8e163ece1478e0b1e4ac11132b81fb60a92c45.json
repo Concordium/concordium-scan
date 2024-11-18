@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT index, transaction_index, address, amount FROM accounts WHERE index = $1",
+  "query": "SELECT index, transaction_index, address, amount, delegated_stake, num_txs\n            FROM accounts\n            WHERE address = $1",
   "describe": {
     "columns": [
       {
@@ -22,19 +22,31 @@
         "ordinal": 3,
         "name": "amount",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "delegated_stake",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "num_txs",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Bpchar"
       ]
     },
     "nullable": [
       false,
       true,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "69eb46301514e19c512e95f3c4d3b5edc2e90345b6223f82feadd72abac18bbd"
+  "hash": "53a59d1b3fac5c589b1932eb0e8e163ece1478e0b1e4ac11132b81fb60a92c45"
 }

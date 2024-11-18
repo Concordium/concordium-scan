@@ -632,9 +632,12 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
         let index = i64::try_from(info.account_index.index)?;
         let account_address = account.to_string();
         let amount = i64::try_from(info.account_amount.micro_ccd)?;
+
+        // Note that we override the usual default num_txs = 1 here
+        // because the genesis accounts do not have a creation transaction.
         sqlx::query!(
-            "INSERT INTO accounts (index, address, amount)
-            VALUES ($1, $2, $3)",
+            "INSERT INTO accounts (index, address, amount, num_txs)
+            VALUES ($1, $2, $3, 0)",
             index,
             account_address,
             amount,
@@ -1014,6 +1017,17 @@ impl PreparedBlockItem {
         .execute(tx.as_mut())
         .await?;
 
+        // We also need to keep track of the number of transactions on the accounts
+        // table.
+        sqlx::query!(
+            "UPDATE accounts
+            SET num_txs = num_txs + 1
+            WHERE address = ANY($1)",
+            &self.affected_accounts,
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         if let Some(prepared_event) = &self.prepared_event {
             prepared_event.save(tx, tx_idx).await?;
         }
@@ -1237,9 +1251,9 @@ impl PreparedAccountCreation {
     ) -> anyhow::Result<()> {
         let account_index = sqlx::query_scalar!(
             "INSERT INTO
-                accounts (index, address, transaction_index, amount)
+                accounts (index, address, transaction_index)
             VALUES
-                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2, 0)
+                ((SELECT COALESCE(MAX(index) + 1, 0) FROM accounts), $1, $2)
             RETURNING index",
             self.account_address,
             transaction_index,
