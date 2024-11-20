@@ -1487,20 +1487,21 @@ impl Contract {
         // Get the `init_transaction_event`.
         if include_initial_event {
             let row = sqlx::query!(
-            r#"
+                r#"
 SELECT
     module_reference,
     name as contract_name,
     contracts.amount as amount,
-    blocks.slot_time as block_slot_time,
-    init_block_height as block_height,
+    contracts.transaction_index as transaction_index,
     transactions.events,
     transactions.hash as transaction_hash,
+    transactions.block_height as block_height,
+    blocks.slot_time as block_slot_time,
     accounts.address as creator,
     version
 FROM contracts
-JOIN blocks ON init_block_height=blocks.height
-JOIN transactions ON init_block_height=transactions.block_height AND init_transaction_index=transactions.index
+JOIN transactions ON transaction_index=transactions.index
+JOIN blocks ON block_height=blocks.height
 JOIN accounts ON transactions.sender=accounts.index
 WHERE contracts.index=$1 AND contracts.sub_index=$2
 "#,
