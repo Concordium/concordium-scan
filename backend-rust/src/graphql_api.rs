@@ -44,6 +44,7 @@ use sqlx::{postgres::types::PgInterval, PgPool};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use transaction_metrics::TransactionMetricsQuery;
 
@@ -1025,7 +1026,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 }
 
 pub struct Subscription {
-    pub block_added: broadcast::Receiver<Block>,
+    pub block_added:      broadcast::Receiver<Block>,
     pub accounts_updated: broadcast::Receiver<AccountsUpdatedSubscriptionItem>,
 }
 
@@ -1048,29 +1049,25 @@ impl Subscription {
 
 #[Subscription]
 impl Subscription {
-    async fn block_added(
-        &self,
-    ) -> impl Stream<Item = Result<Block, BroadcastStreamRecvError>>
-    {
+    async fn block_added(&self) -> impl Stream<Item = Result<Block, BroadcastStreamRecvError>> {
         tokio_stream::wrappers::BroadcastStream::new(self.block_added.resubscribe())
     }
 
     async fn accounts_updated(
         &self,
-    ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>>
-    {
+    ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>> {
         tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe())
     }
 }
 
 pub struct SubscriptionContext {
-    block_added_sender: broadcast::Sender<Block>,
+    block_added_sender:      broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
 }
 
 impl SubscriptionContext {
-    const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
     const ACCOUNTS_UPDATED_CHANNEL: &'static str = "accounts_updated";
+    const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
         let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
@@ -1095,7 +1092,9 @@ impl SubscriptionContext {
                         }
 
                         Self::ACCOUNTS_UPDATED_CHANNEL => {
-                            self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem { address: notification.payload().to_string() })?;
+                            self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
+                                address: notification.payload().to_string(),
+                            })?;
                         }
 
                         unknown => {
@@ -1116,7 +1115,7 @@ impl SubscriptionContext {
 
 #[derive(Clone, Debug, SimpleObject)]
 pub struct AccountsUpdatedSubscriptionItem {
-    address: String
+    address: String,
 }
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
