@@ -414,8 +414,14 @@ impl BaseQuery {
         let mut row_stream = sqlx::query_as!(
             Block,
             "SELECT * FROM (
-                SELECT hash, height, slot_time, block_time, finalization_time, baker_id, \
-             total_amount
+                SELECT
+                    hash,
+                    height,
+                    slot_time,
+                    block_time,
+                    finalization_time,
+                    baker_id,
+                    total_amount
                 FROM blocks
                 WHERE height > $1 AND height < $2
                 ORDER BY
@@ -1196,8 +1202,16 @@ impl Block {
     async fn query_by_height(pool: &PgPool, height: BlockHeight) -> ApiResult<Self> {
         sqlx::query_as!(
             Block,
-            "SELECT hash, height, slot_time, block_time, finalization_time, baker_id, \
-             total_amount FROM blocks WHERE height=$1",
+            "SELECT
+                hash,
+                height,
+                slot_time,
+                block_time,
+                finalization_time,
+                baker_id,
+                total_amount
+            FROM blocks
+            WHERE height=$1",
             height
         )
         .fetch_optional(pool)
@@ -1208,8 +1222,16 @@ impl Block {
     async fn query_by_hash(pool: &PgPool, block_hash: BlockHash) -> ApiResult<Self> {
         sqlx::query_as!(
             Block,
-            "SELECT hash, height, slot_time, block_time, finalization_time, baker_id, \
-             total_amount FROM blocks WHERE hash=$1",
+            "SELECT
+                hash,
+                height,
+                slot_time,
+                block_time,
+                finalization_time,
+                baker_id,
+                total_amount
+            FROM blocks
+            WHERE hash=$1",
             block_hash
         )
         .fetch_optional(pool)
