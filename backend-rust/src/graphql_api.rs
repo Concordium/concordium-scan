@@ -414,7 +414,14 @@ impl BaseQuery {
         let mut row_stream = sqlx::query_as!(
             Block,
             "SELECT * FROM (
-                SELECT hash, height, slot_time, baker_id, total_amount
+                SELECT
+                    hash,
+                    height,
+                    slot_time,
+                    block_time,
+                    finalization_time,
+                    baker_id,
+                    total_amount
                 FROM blocks
                 WHERE height > $1 AND height < $2
                 ORDER BY
@@ -1216,15 +1223,21 @@ struct Versions {
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Block {
-    hash:         BlockHash,
-    height:       BlockHeight,
+    hash:              BlockHash,
+    height:            BlockHeight,
     /// Time of the block being baked.
-    slot_time:    DateTime,
-    // block_time:        i32,
-    // finalization_time: Option<i32>,
+    slot_time:         DateTime,
+    /// Number of milliseconds between the `slot_time` of this block and its
+    /// parent.
+    block_time:        i32,
+    /// If this block is finalized, the number of milliseconds between the
+    /// `slot_time` of this block and the first block that contains a
+    /// finalization proof or quorum certificate that justifies this block
+    /// being finalized.
+    finalization_time: Option<i32>,
     // finalized_by:      Option<BlockHeight>,
-    baker_id:     Option<BakerId>,
-    total_amount: Amount,
+    baker_id:          Option<BakerId>,
+    total_amount:      Amount,
     // total_staked:      Amount,
 }
 
@@ -1232,7 +1245,16 @@ impl Block {
     async fn query_by_height(pool: &PgPool, height: BlockHeight) -> ApiResult<Self> {
         sqlx::query_as!(
             Block,
-            "SELECT hash, height, slot_time, baker_id, total_amount FROM blocks WHERE height=$1",
+            "SELECT
+                hash,
+                height,
+                slot_time,
+                block_time,
+                finalization_time,
+                baker_id,
+                total_amount
+            FROM blocks
+            WHERE height=$1",
             height
         )
         .fetch_optional(pool)
@@ -1243,7 +1265,16 @@ impl Block {
     async fn query_by_hash(pool: &PgPool, block_hash: BlockHash) -> ApiResult<Self> {
         sqlx::query_as!(
             Block,
-            "SELECT hash, height, slot_time, baker_id, total_amount FROM blocks WHERE hash=$1",
+            "SELECT
+                hash,
+                height,
+                slot_time,
+                block_time,
+                finalization_time,
+                baker_id,
+                total_amount
+            FROM blocks
+            WHERE hash=$1",
             block_hash
         )
         .fetch_optional(pool)
@@ -1274,6 +1305,17 @@ impl Block {
 
     /// Whether the block is finalized.
     async fn finalized(&self) -> bool { true }
+
+    /// The block statistics:
+    ///   - The time difference from the parent block.
+    ///   - The time difference to the block that justifies the block being
+    ///     finalized.
+    async fn block_statistics(&self) -> BlockStatistics {
+        BlockStatistics {
+            block_time:        self.block_time as f64 / 1000.0,
+            finalization_time: self.finalization_time.map(|f| f as f64 / 1000.0),
+        }
+    }
 
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
@@ -2217,8 +2259,27 @@ struct BalanceStatistics {
 
 #[derive(SimpleObject)]
 struct BlockStatistics {
-    block_time:        f32,
-    finalization_time: f32,
+    /// Number of seconds between block slot time of this block and previous
+    /// block.
+    block_time:        f64,
+    /// Number of seconds between the block slot time of this block and the
+    /// block containing the finalization proof for this block.
+    ///
+    /// This is an objective measure of the finalization time (determined by
+    /// chain data alone) and will at least be the block time. The actual
+    /// finalization time will usually be lower than that but can only be
+    /// determined in a subjective manner by each node: That is the time a
+    /// node has first seen a block finalized. This is defined as the
+    /// difference between when a finalization proof is first constructed,
+    /// and the block slot time. However the time when a finalization proof
+    /// is first constructed is subjective, some nodes will receive the
+    /// necessary messages before others. Also, this number cannot be
+    /// reconstructed for blocks finalized before extracting data from the
+    /// node.
+    ///
+    /// Value will initially be `None` until the block containing the
+    /// finalization proof for this block is itself finalized.
+    finalization_time: Option<f64>,
 }
 
 #[derive(Interface)]
