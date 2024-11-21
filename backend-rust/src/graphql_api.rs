@@ -65,7 +65,7 @@ pub struct ApiServiceConfig {
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   i64,
+    contract_events_collection_limit:   u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -1296,7 +1296,7 @@ impl Block {
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let result =
-            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height=$1", self.height)
+            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height = $1", self.height)
                 .fetch_one(get_pool(ctx)?)
                 .await?;
         Ok(result.count.unwrap_or(0))
@@ -1363,8 +1363,8 @@ impl Contract {
     async fn contract_events(
         &self,
         ctx: &Context<'_>,
-        skip: i32,
-        take: i32,
+        skip: u32,
+        take: u32,
     ) -> ApiResult<ContractEventsCollectionSegment> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
@@ -1374,59 +1374,53 @@ impl Contract {
         let include_initial_event = skip == 0 && take > 0;
         // Adjust the `take` and `skip` values considering if the
         // `init_transaction_event` is requested to be included or not.
-        let take_without_initial_event =
-            std::cmp::max(0, take as i64 - include_initial_event as i64);
-        let skip_without_initial_event = std::cmp::max(0, skip as i64 - 1i64);
+        let take_without_initial_event = take.saturating_sub(include_initial_event as u32);
+        let skip_without_initial_event = skip.saturating_sub(1);
 
         // Limit the number of events to be fetched from the `contract_events` table.
         let limit = std::cmp::min(
-            take_without_initial_event,
-            std::cmp::max(
-                0,
-                config.contract_events_collection_limit - include_initial_event as i64,
-            ),
+            take_without_initial_event as u64,
+            config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
         );
 
         let mut contract_events = vec![];
         let mut total_events_count = 0;
 
         // Get the events from the `contract_events` table.
-        let row_stream = sqlx::query!(
-            r#"
-                            SELECT * FROM (
-                                SELECT
-                                    contract_events.index,
-                                    contract_events.transaction_index,
-                                    trace_element_index,
-                                    contract_events.block_height AS event_block_height,
-                                    transactions.hash as transaction_hash,
-                                    transactions.events,
-                                    accounts.address as creator,
-                                    blocks.slot_time as block_slot_time,
-                                    blocks.height as block_height
-                                FROM contract_events
-                                JOIN transactions
-                                ON contract_events.block_height = transactions.block_height
-                                AND contract_events.transaction_index = transactions.index
-                                JOIN accounts
-                                ON transactions.sender = accounts.index
-                                JOIN blocks ON contract_events.block_height = blocks.height
-                                WHERE contract_events.contract_index = $1
-                                AND contract_events.contract_sub_index <= $2
-                                LIMIT $3
-                                OFFSET $4
-                            ) AS contract_data
-                            ORDER BY contract_data.index DESC
-                            "#,
+        let mut rows = sqlx::query!(
+            "SELECT * FROM (
+                SELECT
+                    contract_events.index,
+                    contract_events.transaction_index,
+                    trace_element_index,
+                    contract_events.block_height AS event_block_height,
+                    transactions.hash as transaction_hash,
+                    transactions.events,
+                    accounts.address as creator,
+                    blocks.slot_time as block_slot_time,
+                    blocks.height as block_height
+                FROM contract_events
+                JOIN transactions
+                    ON contract_events.block_height = transactions.block_height
+                    AND contract_events.transaction_index = transactions.index
+                JOIN accounts
+                    ON transactions.sender = accounts.index
+                JOIN blocks
+                    ON contract_events.block_height = blocks.height
+                WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index \
+             <= $2
+                LIMIT $3
+                OFFSET $4
+                ) AS contract_data
+                ORDER BY contract_data.index DESC
+            ",
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
-            limit + 1,
-            skip_without_initial_event
+            limit as i64 + 1,
+            skip_without_initial_event as i64
         )
-        .fetch(pool);
-
-        // Collect the stream into a vector to inspect the number of rows.
-        let mut rows: Vec<_> = row_stream.take(limit as usize + 1).try_collect().await?;
+        .fetch_all(pool)
+        .await?;
 
         // Determine if there is a next page by checking if we got more than `limit`
         // rows.
@@ -1455,19 +1449,17 @@ impl Contract {
             // Get the associated contract event from the `events` vector.
             let event = events.swap_remove(row.trace_element_index as usize);
 
-            if let Event::Transferred(_)
-            | Event::ContractInterrupted(_)
-            | Event::ContractResumed(_)
-            | Event::ContractUpgraded(_)
-            | Event::ContractUpdated(_) = event
-            {
-                Ok(())
-            } else {
-                Err(ApiError::InternalError(format!(
+            match event {
+                Event::Transferred(_)
+                | Event::ContractInterrupted(_)
+                | Event::ContractResumed(_)
+                | Event::ContractUpgraded(_)
+                | Event::ContractUpdated(_) => Ok(()),
+                _ => Err(ApiError::InternalError(format!(
                     "Not Transferred, ContractInterrupted, ContractResumed, ContractUpgraded, or \
                      ContractUpdated event; Wrong event enum tag: {:?}",
                     mem::discriminant(&event)
-                )))
+                ))),
             }?;
 
             let contract_event = ContractEvent {
@@ -1487,24 +1479,24 @@ impl Contract {
         // Get the `init_transaction_event`.
         if include_initial_event {
             let row = sqlx::query!(
-                r#"
-SELECT
-    module_reference,
-    name as contract_name,
-    contracts.amount as amount,
-    contracts.transaction_index as transaction_index,
-    transactions.events,
-    transactions.hash as transaction_hash,
-    transactions.block_height as block_height,
-    blocks.slot_time as block_slot_time,
-    accounts.address as creator,
-    version
-FROM contracts
-JOIN transactions ON transaction_index=transactions.index
-JOIN blocks ON block_height=blocks.height
-JOIN accounts ON transactions.sender=accounts.index
-WHERE contracts.index=$1 AND contracts.sub_index=$2
-"#,
+                "
+                SELECT
+                    module_reference,
+                    name as contract_name,
+                    contracts.amount as amount,
+                    contracts.transaction_index as transaction_index,
+                    transactions.events,
+                    transactions.hash as transaction_hash,
+                    transactions.block_height as block_height,
+                    blocks.slot_time as block_slot_time,
+                    accounts.address as creator,
+                    version
+                FROM contracts
+                JOIN transactions ON transaction_index=transactions.index
+                JOIN blocks ON block_height = blocks.height
+                JOIN accounts ON transactions.sender = accounts.index
+                WHERE contracts.index = $1 AND contracts.sub_index = $2
+                ",
                 self.contract_address_index.0 as i64,
                 self.contract_address_sub_index.0 as i64
             )
@@ -1527,7 +1519,10 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
             }
 
             // Contract init transactions have exactly one top-level event.
-            let event = events.swap_remove(0_usize);
+            let event = events.pop().ok_or(ApiError::InternalError(
+                "Contract init transactions are suppose to have exactly one top-level event"
+                    .to_string(),
+            ))?;
 
             match event {
                 Event::ContractInitialized(_) => Ok(()),
@@ -1562,13 +1557,13 @@ WHERE contracts.index=$1 AND contracts.sub_index=$2
 
     async fn contract_reject_events(
         &self,
-        _skip: i32,
-        _take: i32,
+        _skip: u32,
+        _take: u32,
     ) -> ApiResult<ContractRejectEventsCollectionSegment> {
         todo_api!()
     }
 
-    async fn tokens(&self, skip: i32, take: i32) -> ApiResult<TokensCollectionSegment> {
+    async fn tokens(&self, skip: u32, take: u32) -> ApiResult<TokensCollectionSegment> {
         todo_api!()
     }
 }
@@ -4788,15 +4783,16 @@ impl ContractInitialized {
         let pool = get_pool(ctx)?;
 
         let row = sqlx::query!(
-            r#"
-SELECT
-  contracts.module_reference as module_reference,
-  name as contract_name,
-  schema as display_schema
-FROM contracts
-JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
-WHERE index=$1 AND sub_index=$2
-"#,
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
             self.contract_address.index.0 as i64,
             self.contract_address.sub_index.0 as i64
         )
@@ -5075,15 +5071,16 @@ impl ContractUpdated {
         let pool = get_pool(ctx)?;
 
         let row = sqlx::query!(
-            r#"
-SELECT
-  contracts.module_reference as module_reference,
-  name as contract_name,
-  schema as display_schema
-FROM contracts
-JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
-WHERE index=$1 AND sub_index=$2
-"#,
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
             self.contract_address.index.0 as i64,
             self.contract_address.sub_index.0 as i64
         )
@@ -5128,15 +5125,16 @@ WHERE index=$1 AND sub_index=$2
         let pool = get_pool(ctx)?;
 
         let row = sqlx::query!(
-            r#"
-SELECT
-  contracts.module_reference as module_reference,
-  name as contract_name,
-  schema as display_schema
-FROM contracts
-JOIN smart_contract_modules ON smart_contract_modules.module_reference=contracts.module_reference
-WHERE index=$1 AND sub_index=$2
-"#,
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
             self.contract_address.index.0 as i64,
             self.contract_address.sub_index.0 as i64
         )
