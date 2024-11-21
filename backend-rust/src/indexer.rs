@@ -1694,29 +1694,7 @@ impl PreparedContractUpdate {
         event: &ContractTraceElement,
         trace_element_index: usize,
     ) -> anyhow::Result<Self> {
-        let contract_address = match event {
-            ContractTraceElement::Updated {
-                data,
-            } => data.address,
-            ContractTraceElement::Transferred {
-                from,
-                amount,
-                to,
-            } => *from,
-            ContractTraceElement::Interrupted {
-                address,
-                events,
-            } => *address,
-            ContractTraceElement::Resumed {
-                address,
-                success,
-            } => *address,
-            ContractTraceElement::Upgraded {
-                address,
-                from,
-                to,
-            } => *address,
-        };
+        let contract_address = event.affected_address();
 
         let tx_index = block_item.index.index.try_into()?;
         let trace_element_index = trace_element_index.try_into()?;

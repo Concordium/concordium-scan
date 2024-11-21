@@ -37,7 +37,6 @@ use concordium_rust_sdk::{
 };
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
-use serde_json::to_string;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
@@ -1388,7 +1387,8 @@ impl Contract {
 
         // Get the events from the `contract_events` table.
         let mut rows = sqlx::query!(
-            "SELECT * FROM (
+            "
+            SELECT * FROM (
                 SELECT
                     contract_events.index,
                     contract_events.transaction_index,
@@ -1508,21 +1508,13 @@ impl Contract {
                 return Err(ApiError::InternalError("Missing events in database".to_string()));
             };
 
-            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
-                ApiError::InternalError("Failed to deserialize events from database".to_string())
+            let [event]: [Event; 1] = serde_json::from_value(events).map_err(|_| {
+                ApiError::InternalError(
+                    "Failed to deserialize events from database. Contract init transaction \
+                     expects exactly one event"
+                        .to_string(),
+                )
             })?;
-
-            if events.len() != 1 {
-                return Err(ApiError::InternalError(
-                    "Contract init transaction expects exactly one event".to_string(),
-                ));
-            }
-
-            // Contract init transactions have exactly one top-level event.
-            let event = events.pop().ok_or(ApiError::InternalError(
-                "Contract init transactions are suppose to have exactly one top-level event"
-                    .to_string(),
-            ))?;
 
             match event {
                 Event::ContractInitialized(_) => Ok(()),
@@ -3709,51 +3701,51 @@ impl SearchResult {
 }
 
 fn decode_value_with_schema(
-    opt_schema: &Option<Type>,
+    opt_schema: Option<&Type>,
     schema_name: &str,
-    value: &Vec<u8>,
+    value: &[u8],
     value_name: &str,
 ) -> String {
-    match opt_schema {
-        Some(schema) => {
-            let mut cursor = Cursor::new(&value);
-            match schema.to_json(&mut cursor) {
-                Ok(v) => {
-                    to_string(&v).unwrap_or_else(|e| {
-                        // We don't return an error here since the query is correctly formed and
-                        // the CCDScan backend is working as expected.
-                        // A wrong/missing schema is a mistake by the smart contract
-                        // developer which in general cannot be fixed after the deployment of
-                        // the contract. We display the error message (instead of the decoded
-                        // value) in the block explorer to make the info visible to the smart
-                        // contract developer for debugging purposes here.
-                        format!(
-                            "Failed to deserialize {} with {} schema into string: {:?}",
-                            value_name, schema_name, e
-                        )
-                    })
-                }
-                Err(e) => {
-                    // We don't return an error here since the query is correctly formed and
-                    // the CCDScan backend is working as expected.
-                    // A wrong/missing schema is a mistake by the smart contract
-                    // developer which in general cannot be fixed after the deployment of
-                    // the contract. We display the error message (instead of the decoded
-                    // value) in the block explorer to make the info visible to the smart
-                    // contract developer for debugging purposes here.
-                    format!(
-                        "Failed to deserialize {} with {} schema: {:?}",
-                        value_name,
-                        schema_name,
-                        e.display(true)
-                    )
-                }
-            }
+    let Some(schema) = opt_schema else {
+        // Note: There could be something better displayed than this string if no schema is
+        // available for decoding at the frontend long-term.
+        return format!(
+            "No embedded {} schema in smart contract available for decoding",
+            schema_name
+        );
+    };
+
+    let mut cursor = Cursor::new(&value);
+    match schema.to_json(&mut cursor) {
+        Ok(v) => {
+            serde_json::to_string(&v).unwrap_or_else(|e| {
+                // We don't return an error here since the query is correctly formed and
+                // the CCDScan backend is working as expected.
+                // A wrong/missing schema is a mistake by the smart contract
+                // developer which in general cannot be fixed after the deployment of
+                // the contract. We display the error message (instead of the decoded
+                // value) in the block explorer to make the info visible to the smart
+                // contract developer for debugging purposes here.
+                format!(
+                    "Failed to deserialize {} with {} schema into string: {:?}",
+                    value_name, schema_name, e
+                )
+            })
         }
-        // Note: Shall we use something better than this string if no schema is
-        // available for decoding.
-        None => {
-            format!("No embedded {} schema in smart contract available for decoding", schema_name)
+        Err(e) => {
+            // We don't return an error here since the query is correctly formed and
+            // the CCDScan backend is working as expected.
+            // A wrong/missing schema is a mistake by the smart contract
+            // developer which in general cannot be fixed after the deployment of
+            // the contract. We display the error message (instead of the decoded
+            // value) in the block explorer to make the info visible to the smart
+            // contract developer for debugging purposes here.
+            format!(
+                "Failed to deserialize {} with {} schema: {:?}",
+                value_name,
+                schema_name,
+                e.display(true)
+            )
         }
     }
 }
@@ -4812,7 +4804,7 @@ impl ContractInitialized {
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
             let decoded_log =
-                decode_value_with_schema(&opt_event_schema, "event", log, "contract_log");
+                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
@@ -4840,11 +4832,8 @@ impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for Contract
 }
 
 #[derive(Debug, thiserror::Error, Clone)]
-#[error("Invalid contract version: {value}")]
-pub struct InvalidContractVersionError {
-    value: i32,
-}
-
+#[error("Invalid contract version: {0}")]
+pub struct InvalidContractVersionError(i32);
 impl TryFrom<i32> for ContractVersion {
     type Error = InvalidContractVersionError;
 
@@ -4852,9 +4841,7 @@ impl TryFrom<i32> for ContractVersion {
         match value {
             0 => Ok(ContractVersion::V0),
             1 => Ok(ContractVersion::V1),
-            _ => Err(InvalidContractVersionError {
-                value,
-            }),
+            _ => Err(InvalidContractVersionError(value)),
         }
     }
 }
@@ -5097,7 +5084,7 @@ impl ContractUpdated {
             });
 
         let decoded_input_parameter = decode_value_with_schema(
-            &opt_init_schema,
+            opt_init_schema.as_ref(),
             "init",
             &self.input_parameter,
             "init_parameter",
@@ -5154,7 +5141,7 @@ impl ContractUpdated {
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
             let decoded_log =
-                decode_value_with_schema(&opt_event_schema, "event", log, "contract_log");
+                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }

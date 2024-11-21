@@ -70,8 +70,7 @@ CREATE TABLE blocks(
     -- The absolute height of the block.
     height
         BIGINT
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Block hash encoded using HEX.
     hash
         CHAR(64)
@@ -169,7 +168,6 @@ CREATE TABLE transactions(
         BOOLEAN
         NOT NULL,
     -- Transaction details. Events if success is true.
-    -- TODO: It would be nice to have every event in a separate row in a table to easily query a specific event from a specific transaction.
     events
         JSONB,
     -- Transaction details. Reject reason if success is false.
@@ -256,7 +254,6 @@ CREATE TABLE bakers(
     id
         BIGINT
         PRIMARY KEY
-        NOT NULL
         REFERENCES accounts,
     -- Amount staked at present.
     staked
@@ -294,8 +291,7 @@ CREATE TABLE smart_contract_modules(
     module_reference
         CHAR(64)
         UNIQUE
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Index of the transaction deploying the module.
     transaction_index
         BIGINT
@@ -347,8 +343,7 @@ CREATE TABLE contract_events (
     -- An index/id for this event (row number).
     index
         BIGINT GENERATED ALWAYS AS IDENTITY
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Transaction index including the event.
     transaction_index
         BIGINT
