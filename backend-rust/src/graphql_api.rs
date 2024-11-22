@@ -1055,6 +1055,8 @@ impl Subscription {
 
     async fn accounts_updated(
         &self,
+        // TODO: What to do with this?
+        account_address: String,
     ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>> {
         tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe())
     }
