@@ -1541,7 +1541,7 @@ impl Contract {
                 has_next_page,
                 has_previous_page: skip > 0,
             },
-            items:       Some(contract_events),
+            items:       contract_events,
             total_count: total_events_count,
         })
     }
@@ -2127,7 +2127,7 @@ struct ContractEventsCollectionSegment {
     /// Information to aid in pagination.
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
-    items:       Option<Vec<ContractEvent>>,
+    items:       Vec<ContractEvent>,
     total_count: i32,
 }
 
@@ -3852,10 +3852,6 @@ pub fn events_from_summary(
                     amount:            i64::try_from(data.amount.micro_ccd)?,
                     init_name:         data.init_name.to_string(),
                     version:           data.contract_version.into(),
-                    // TODO: the send message/input parameter is missing and not exposed by the
-                    // node and rust SDK currently, it should be added when available.
-                    //
-                    // input_parameter: data.message.as_ref().to_vec(),
                     contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
                 })]
             }
@@ -4732,29 +4728,10 @@ pub struct ContractInitialized {
     version:           ContractVersion,
     // All logged events by the smart contract during the transaction execution.
     contract_logs_raw: Vec<Vec<u8>>,
-    // TODO: the send message/input parameter is missing and not exposed by the node and rust SDK
-    // currently, it should be added when available.
-    //
-    // input_parameter:  Vec<u8>,
 }
 
 #[ComplexObject]
 impl ContractInitialized {
-    // TODO: the send message/input parameter is missing and not exposed by the node
-    // and rust SDK currently, it should be added when available.
-    //
-    // async fn message(&self) -> ApiResult<String> {
-    //     // TODO: decode input-parameter/message with schema.
-
-    //     Ok(self.input_parameter)
-    // }
-
-    // TODO: the send message/input parameter is missing and not exposed by the node
-    // and rust SDK currently, it should be added when available.
-    //
-    // async fn message_as_hex(&self) -> ApiResult<String> {
-    // Ok(hex::encode(self.input_parameter)) }
-
     async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
         let mut connection = connection::Connection::new(true, true);
 
