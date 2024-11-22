@@ -329,10 +329,6 @@ CREATE TABLE contracts(
         BIGINT
         NOT NULL
         REFERENCES transactions,
-    -- The version of the smart contract.
-    version
-        INT
-        NOT NULL,
 
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
@@ -340,10 +336,6 @@ CREATE TABLE contracts(
 
 -- Every successful event associated to a contract.
 CREATE TABLE contract_events (
-    -- An index/id for this event (row number).
-    index
-        BIGINT GENERATED ALWAYS AS IDENTITY
-        PRIMARY KEY,
     -- Transaction index including the event.
     transaction_index
         BIGINT
@@ -363,11 +355,19 @@ CREATE TABLE contract_events (
     -- Contract subindex that event is associated with.
     contract_sub_index
         BIGINT
-        NOT NULL
+        NOT NULL,
+    -- Every time an event is added to a contract, the index is incremented for that contract.
+    -- This value is used to quickly filter/sort events by the order they were emitted by a contract.
+    event_index_per_contract
+        BIGINT
+        NOT NULL,
+
+    -- Important for quickly filtering contract events by a specific contract.
+    PRIMARY KEY (contract_index, contract_sub_index)
 );
 
--- Important for quickly filtering contract events by a specific contract.
-CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
+-- Important for quickly filtering/sorting events by the order they were emitted by a contract.
+CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_contract);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

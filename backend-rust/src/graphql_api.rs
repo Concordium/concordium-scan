@@ -1390,7 +1390,7 @@ impl Contract {
             "
             SELECT * FROM (
                 SELECT
-                    contract_events.index,
+                    event_index_per_contract,
                     contract_events.transaction_index,
                     trace_element_index,
                     contract_events.block_height AS event_block_height,
@@ -1407,12 +1407,12 @@ impl Contract {
                     ON transactions.sender = accounts.index
                 JOIN blocks
                     ON contract_events.block_height = blocks.height
-                WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index \
-             <= $2
+                WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index = \
+             $2
+                AND event_index_per_contract >= $4
                 LIMIT $3
-                OFFSET $4
                 ) AS contract_data
-                ORDER BY contract_data.index DESC
+                ORDER BY event_index_per_contract DESC
             ",
             self.contract_address_index.0 as i64,
             self.contract_address_sub_index.0 as i64,
@@ -1489,8 +1489,7 @@ impl Contract {
                     transactions.hash as transaction_hash,
                     transactions.block_height as block_height,
                     blocks.slot_time as block_slot_time,
-                    accounts.address as creator,
-                    version
+                    accounts.address as creator
                 FROM contracts
                 JOIN transactions ON transaction_index=transactions.index
                 JOIN blocks ON block_height = blocks.height

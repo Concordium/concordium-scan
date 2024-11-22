@@ -1618,7 +1618,6 @@ struct PreparedContractInitialized {
     amount:           i64,
     height:           i64,
     tx_index:         i64,
-    version:          i32,
 }
 
 impl PreparedContractInitialized {
@@ -1634,8 +1633,8 @@ impl PreparedContractInitialized {
         let sub_index = i64::try_from(event.address.subindex)?;
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let module_reference = event.origin_ref;
-        let name = event.init_name.to_string().replace("init_", "");
-        let version = i32::try_from(event.contract_version as u32)?;
+        // We remove the `init_` prefix from the name to get the contract name.
+        let name = event.init_name.as_contract_name().contract_name().to_string();
 
         Ok(Self {
             index,
@@ -1645,7 +1644,6 @@ impl PreparedContractInitialized {
             name,
             height,
             tx_index,
-            version,
         })
     }
 
@@ -1661,16 +1659,14 @@ impl PreparedContractInitialized {
                 module_reference,
                 name,
                 amount,
-                transaction_index,
-                version
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                transaction_index
+            ) VALUES ($1, $2, $3, $4, $5, $6)",
             self.index,
             self.sub_index,
             self.module_reference,
             self.name,
             self.amount,
-            transaction_index,
-            self.version
+            transaction_index
         )
         .execute(tx.as_mut())
         .await?;
@@ -1721,10 +1717,11 @@ impl PreparedContractUpdate {
                 trace_element_index,
                 block_height,
                 contract_index,
-                contract_sub_index
+                contract_sub_index,
+                event_index_per_contract
             )
             VALUES (
-                $1, $2, $3, $4, $5
+                $1, $2, $3, $4, $5, (SELECT COALESCE(MAX(event_index_per_contract) + 1, 0) FROM contract_events WHERE contract_index = $4 AND contract_sub_index = $5)
             )"#,
             self.tx_index,
             self.trace_element_index,
