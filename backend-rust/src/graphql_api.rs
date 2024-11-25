@@ -28,9 +28,12 @@ use async_graphql::{
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{
-    base::contracts_common::{
-        schema::{Type, VersionedModuleSchema, VersionedSchemaError},
-        Cursor,
+    base::{
+        contracts_common::{
+            schema::{Type, VersionedModuleSchema, VersionedSchemaError},
+            Cursor,
+        },
+        smart_contracts::ReceiveName,
     },
     id::types as sdk_types,
     types::AmountFraction,
@@ -4810,6 +4813,7 @@ impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for Contract
 #[derive(Debug, thiserror::Error, Clone)]
 #[error("Invalid contract version: {0}")]
 pub struct InvalidContractVersionError(i32);
+
 impl TryFrom<i32> for ContractVersion {
     type Error = InvalidContractVersionError;
 
@@ -5051,19 +5055,24 @@ impl ContractUpdated {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_init_schema = row
+        let opt_receive_param_schema = row
             .display_schema
             .as_ref()
             .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
             .and_then(|versioned_schema| {
-                versioned_schema.get_init_param_schema(&row.contract_name).ok()
+                versioned_schema
+                    .get_receive_param_schema(
+                        &row.contract_name,
+                        ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+                    )
+                    .ok()
             });
 
         let decoded_input_parameter = decode_value_with_schema(
-            opt_init_schema.as_ref(),
-            "init",
+            opt_receive_param_schema.as_ref(),
+            "receive param",
             &self.input_parameter,
-            "init_parameter",
+            "input parameter of receive function",
         );
 
         Ok(decoded_input_parameter)

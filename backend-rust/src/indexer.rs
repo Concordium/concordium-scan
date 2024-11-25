@@ -1233,7 +1233,7 @@ impl PreparedEvent {
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(events) => {
                 for event in events {
-                    event.save(tx).await?;
+                    event.save(tx, tx_idx).await?;
                 }
                 Ok(())
             }
@@ -1617,7 +1617,6 @@ struct PreparedContractInitialized {
     name:             String,
     amount:           i64,
     height:           i64,
-    tx_index:         i64,
 }
 
 impl PreparedContractInitialized {
@@ -1626,24 +1625,21 @@ impl PreparedContractInitialized {
         block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
     ) -> anyhow::Result<Self> {
-        let height = i64::try_from(data.finalized_block_info.height.height)?;
-        let tx_index = block_item.index.index.try_into()?;
-
         let index = i64::try_from(event.address.index)?;
         let sub_index = i64::try_from(event.address.subindex)?;
-        let amount = i64::try_from(event.amount.micro_ccd)?;
         let module_reference = event.origin_ref;
         // We remove the `init_` prefix from the name to get the contract name.
         let name = event.init_name.as_contract_name().contract_name().to_string();
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
 
         Ok(Self {
             index,
             sub_index,
             module_reference: module_reference.into(),
-            amount,
             name,
+            amount,
             height,
-            tx_index,
         })
     }
 
@@ -1676,7 +1672,6 @@ impl PreparedContractInitialized {
 }
 
 struct PreparedContractUpdate {
-    tx_index:            i64,
     trace_element_index: i64,
     height:              i64,
     contract_index:      i64,
@@ -1692,14 +1687,12 @@ impl PreparedContractUpdate {
     ) -> anyhow::Result<Self> {
         let contract_address = event.affected_address();
 
-        let tx_index = block_item.index.index.try_into()?;
         let trace_element_index = trace_element_index.try_into()?;
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
         Ok(Self {
-            tx_index,
             trace_element_index,
             height,
             contract_index: index,
@@ -1710,6 +1703,7 @@ impl PreparedContractUpdate {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
             r#"INSERT INTO contract_events (
@@ -1723,7 +1717,7 @@ impl PreparedContractUpdate {
             VALUES (
                 $1, $2, $3, $4, $5, (SELECT COALESCE(MAX(event_index_per_contract) + 1, 0) FROM contract_events WHERE contract_index = $4 AND contract_sub_index = $5)
             )"#,
-            self.tx_index,
+            transaction_index,
             self.trace_element_index,
             self.height,
             self.contract_index,
