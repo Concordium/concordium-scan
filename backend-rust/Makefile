@@ -31,6 +31,6 @@ wait-for-db:
 
 create-tables:
 	@echo "Creating tables from SQL files..."
-	cargo sqlx prepare
+	sqlx migrate run
 
 .PHONY: setup setup-db all docker-up wait-for-db create-tables
