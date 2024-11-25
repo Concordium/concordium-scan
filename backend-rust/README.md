@@ -122,9 +122,11 @@ make setup && make
 
 where `make setup` is a one time command initialising the password to be used and `make` starts the database and initialises it
 
-### Reuse an initialised database
+### Reuse an already initialised database
 
-`cp .env.template .env` and replace the password and run `make`
+```
+make setup-env-with-password && make
+```
 
 ### Database migrations
 

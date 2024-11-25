@@ -1,20 +1,29 @@
 .DEFAULT_GOAL := all
 
-all: docker-up wait-for-db create-tables
+# Aggregate target for the full workflow
+all: start-docker wait-for-database apply-migrations
 
+# Setup application with a generated or user-provided password
 setup:
-	@echo "Setting default password"
+	@echo "Generating a random database password and setting up the environment..."
 	@DB_PASSWORD=$$(openssl rand -base64 12) && \
 	export DB_PASSWORD=$$DB_PASSWORD && \
 	cat .env.template | envsubst > .env
 
-docker-up:
-	@echo "Starting Docker containers..."
+setup-env-with-password:
+	@echo "Please enter the database password manually"
+	read DB_PASSWORD && \
+	export DB_PASSWORD=$$DB_PASSWORD; \
+	cat .env.template | envsubst > .env
+
+# Start Docker containers
+start-docker:
+	@echo "Starting Docker containers for database..."
 	docker compose up -d db
 
-# Target to wait for the PostgreSQL database to be ready.
-wait-for-db:
-	@echo "Waiting for the database to be ready..."
+# Wait for the PostgreSQL database to be ready
+wait-for-database:
+	@echo "Waiting for the database to become ready..."
 	@max_attempts=10; \
 	current_attempt=1; \
 	until docker compose exec -T db pg_isready -U postgres; do \
@@ -27,8 +36,9 @@ wait-for-db:
 		echo "Retrying ($$current_attempt/$$max_attempts)..."; \
 	done
 
-create-tables:
-	@echo "Creating tables from SQL files..."
+# Apply migrations to create tables
+apply-migrations:
+	@echo "Running SQL migrations to create tables..."
 	sqlx migrate run
 
-.PHONY: setup all docker-up wait-for-db create-tables
+.PHONY: setup all start-docker wait-for-database apply-migrations
