@@ -2,9 +2,7 @@
 
 all: docker-up wait-for-db create-tables
 
-setup: setup-db
-
-setup-db:
+setup:
 	@echo "Setting default password"
 	@DB_PASSWORD=$$(openssl rand -base64 12) && \
 	export DB_PASSWORD=$$DB_PASSWORD && \
@@ -33,4 +31,4 @@ create-tables:
 	@echo "Creating tables from SQL files..."
 	sqlx migrate run
 
-.PHONY: setup setup-db all docker-up wait-for-db create-tables
+.PHONY: setup all docker-up wait-for-db create-tables
