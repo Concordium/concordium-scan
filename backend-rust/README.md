@@ -114,37 +114,17 @@ This project has some dependencies tracked as Git submodules, so make sure to in
 git submodule update --init --recursive
 ```
 
-### Running the database server
-
-Both services depend on having a PostgreSQL server running, this can be done in several ways, but it can be done using [docker](https://www.docker.com/) with the command below:
+### Initializing a database from scratch
 
 ```
-docker run -p 5432:5432 -e 'POSTGRES_PASSWORD=example' -e 'POSTGRES_DB=ccd-scan' postgres:16
+make setup && make
 ```
 
-Alternatively set up the database from the `docker-compose` file with the command below:
+where `make setup` is a one time command initialising the password to be used and `make` starts the database and initialises it
 
-```
-docker compose up
-```
+### Reuse an initialised database
 
-### Initializing a database
-
-Then set the environment variable `DATABASE_URL` pointing to the location of the SQL database, this can be done by creating a `.env` file within this directory.
-Example:
-
-```
-# Postgres database connection used by sqlx-cli and this service.
-DATABASE_URL=postgres://postgres:example@localhost/ccd-scan
-```
-
-With the environment variable `DATABASE_URL` set, use the `sqlx` CLI to setup the database and tables and run all the migrations:
-
-```
-sqlx migrate run
-```
-
-The project can now be built using `cargo build`
+`cp .env.template .env` and replace the password and run `make`
 
 ### Database migrations
 
