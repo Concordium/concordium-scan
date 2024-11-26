@@ -1,0 +1,13 @@
+on:
+  push:
+    tags:
+      - ccdscan-fungus/*
+
+jobs:
+  release-base-image:
+    uses: concordium/.github/.github/workflows/docker-release-workflow.yaml@v1
+    with:
+      SERVICE_NAME: "ccdscan-fungus"
+      DOCKER_FILE_PATH: backend-rust/Dockerfile
+      DOCKER_CONTEXT: backend-rust
+    secrets: inherit
