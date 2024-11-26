@@ -28,14 +28,20 @@ use async_graphql::{
 use async_graphql_axum::GraphQLSubscription;
 use chrono::Duration;
 use concordium_rust_sdk::{
-    base::contracts_common::{from_bytes, schema::VersionedModuleSchema},
+    base::{
+        contracts_common::{
+            schema::{Type, VersionedModuleSchema, VersionedSchemaError},
+            Cursor,
+        },
+        smart_contracts::ReceiveName,
+    },
     id::types as sdk_types,
     types::AmountFraction,
 };
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
 use transaction_metrics::TransactionMetricsQuery;
@@ -56,6 +62,12 @@ pub struct ApiServiceConfig {
     account_connection_limit:           u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
     contract_connection_limit:          u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_events_collection_limit:   u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -285,8 +297,10 @@ enum ApiError {
     InvalidInt(#[from] std::num::TryFromIntError),
     #[error("Invalid integer: {0}")]
     InvalidIntString(#[from] std::num::ParseIntError),
-    #[error("Schema in database should be valid")]
-    InvalidModuleSchema,
+    #[error("Parse error: {0}")]
+    InvalidContractVersion(#[from] InvalidContractVersionError),
+    #[error("Schema in database should be a valid versioned module schema")]
+    InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -919,8 +933,14 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         let mut connection = connection::Connection::new(true, true);
 
         while let Some(row) = row_stream.try_next().await? {
-            let contract_address_index = row.index.try_into()?;
-            let contract_address_sub_index = row.sub_index.try_into()?;
+            let contract_address_index =
+                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
+            let contract_address_sub_index =
+                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
+                    ApiError::InternalError(e.to_string())
+                })?;
 
             let snapshot = ContractSnapshot {
                 block_height: row.block_height,
@@ -986,11 +1006,11 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let display_schema = row.display_schema.as_ref().map_or(Ok(None), |s| {
-            from_bytes::<VersionedModuleSchema>(s)
-                .map(|opt_schema| Some(opt_schema.to_string()))
-                .map_err(|_| ApiError::InvalidModuleSchema)
-        })?;
+        let display_schema = row
+            .display_schema
+            .as_ref()
+            .map(|s| VersionedModuleSchema::new(s, &None).map(|schema| schema.to_string()))
+            .transpose()?;
 
         Ok(ModuleReferenceEvent {
             module_reference,
@@ -1320,7 +1340,7 @@ impl Block {
     /// Number of transactions included in this block.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
         let result =
-            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height=$1", self.height)
+            sqlx::query!("SELECT COUNT(*) FROM transactions WHERE block_height = $1", self.height)
                 .fetch_one(get_pool(ctx)?)
                 .await?;
         Ok(result.count.unwrap_or(0))
@@ -1378,25 +1398,208 @@ struct Contract {
     block_slot_time:            DateTime,
     snapshot:                   ContractSnapshot,
 }
+
 #[ComplexObject]
 impl Contract {
+    // This function returns events from the `contract_events` table as well as
+    // one `init_transaction_event` from when the contract was initialized. The
+    // `skip` and `take` parameters are used to paginate the events.
     async fn contract_events(
         &self,
-        skip: i32,
-        take: i32,
+        ctx: &Context<'_>,
+        skip: u32,
+        take: u32,
     ) -> ApiResult<ContractEventsCollectionSegment> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+
+        // If `skip` is 0 and at least one event is taken, include the
+        // `init_transaction_event`.
+        let include_initial_event = skip == 0 && take > 0;
+        // Adjust the `take` and `skip` values considering if the
+        // `init_transaction_event` is requested to be included or not.
+        let take_without_initial_event = take.saturating_sub(include_initial_event as u32);
+        let skip_without_initial_event = skip.saturating_sub(1);
+
+        // Limit the number of events to be fetched from the `contract_events` table.
+        let limit = std::cmp::min(
+            take_without_initial_event as u64,
+            config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
+        );
+
+        let mut contract_events = vec![];
+        let mut total_events_count = 0;
+
+        // Get the events from the `contract_events` table.
+        let mut rows = sqlx::query!(
+            "
+            SELECT * FROM (
+                SELECT
+                    event_index_per_contract,
+                    contract_events.transaction_index,
+                    trace_element_index,
+                    contract_events.block_height AS event_block_height,
+                    transactions.hash as transaction_hash,
+                    transactions.events,
+                    accounts.address as creator,
+                    blocks.slot_time as block_slot_time,
+                    blocks.height as block_height
+                FROM contract_events
+                JOIN transactions
+                    ON contract_events.block_height = transactions.block_height
+                    AND contract_events.transaction_index = transactions.index
+                JOIN accounts
+                    ON transactions.sender = accounts.index
+                JOIN blocks
+                    ON contract_events.block_height = blocks.height
+                WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index = \
+             $2
+                AND event_index_per_contract >= $4
+                LIMIT $3
+                ) AS contract_data
+                ORDER BY event_index_per_contract DESC
+            ",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            limit as i64 + 1,
+            skip_without_initial_event as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = rows.len() > limit as usize;
+
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            rows.pop();
+        }
+
+        for row in rows {
+            let Some(events) = row.events else {
+                return Err(ApiError::InternalError("Missing events in database".to_string()));
+            };
+
+            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
+                ApiError::InternalError("Failed to deserialize events from database".to_string())
+            })?;
+
+            if row.trace_element_index as usize >= events.len() {
+                return Err(ApiError::InternalError(
+                    "Trace element index does not exist in events".to_string(),
+                ));
+            }
+
+            // Get the associated contract event from the `events` vector.
+            let event = events.swap_remove(row.trace_element_index as usize);
+
+            match event {
+                Event::Transferred(_)
+                | Event::ContractInterrupted(_)
+                | Event::ContractResumed(_)
+                | Event::ContractUpgraded(_)
+                | Event::ContractUpdated(_) => Ok(()),
+                _ => Err(ApiError::InternalError(format!(
+                    "Not Transferred, ContractInterrupted, ContractResumed, ContractUpgraded, or \
+                     ContractUpdated event; Wrong event enum tag: {:?}",
+                    mem::discriminant(&event)
+                ))),
+            }?;
+
+            let contract_event = ContractEvent {
+                contract_address_index: self.contract_address_index,
+                contract_address_sub_index: self.contract_address_sub_index,
+                sender: row.creator.into(),
+                event,
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+            };
+
+            contract_events.push(contract_event);
+            total_events_count += 1;
+        }
+
+        // Get the `init_transaction_event`.
+        if include_initial_event {
+            let row = sqlx::query!(
+                "
+                SELECT
+                    module_reference,
+                    name as contract_name,
+                    contracts.amount as amount,
+                    contracts.transaction_index as transaction_index,
+                    transactions.events,
+                    transactions.hash as transaction_hash,
+                    transactions.block_height as block_height,
+                    blocks.slot_time as block_slot_time,
+                    accounts.address as creator
+                FROM contracts
+                JOIN transactions ON transaction_index=transactions.index
+                JOIN blocks ON block_height = blocks.height
+                JOIN accounts ON transactions.sender = accounts.index
+                WHERE contracts.index = $1 AND contracts.sub_index = $2
+                ",
+                self.contract_address_index.0 as i64,
+                self.contract_address_sub_index.0 as i64
+            )
+            .fetch_optional(pool)
+            .await?
+            .ok_or(ApiError::NotFound)?;
+
+            let Some(events) = row.events else {
+                return Err(ApiError::InternalError("Missing events in database".to_string()));
+            };
+
+            let [event]: [Event; 1] = serde_json::from_value(events).map_err(|_| {
+                ApiError::InternalError(
+                    "Failed to deserialize events from database. Contract init transaction \
+                     expects exactly one event"
+                        .to_string(),
+                )
+            })?;
+
+            match event {
+                Event::ContractInitialized(_) => Ok(()),
+                _ => Err(ApiError::InternalError(format!(
+                    "Not ContractInitialized event; Wrong event enum tag: {:?}",
+                    mem::discriminant(&event)
+                ))),
+            }?;
+
+            let initial_event = ContractEvent {
+                contract_address_index: self.contract_address_index,
+                contract_address_sub_index: self.contract_address_sub_index,
+                sender: row.creator.into(),
+                event,
+                block_height: row.block_height,
+                transaction_hash: row.transaction_hash,
+                block_slot_time: row.block_slot_time,
+            };
+            contract_events.push(initial_event);
+            total_events_count += 1;
+        }
+
+        Ok(ContractEventsCollectionSegment {
+            page_info:   CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page: skip > 0,
+            },
+            items:       contract_events,
+            total_count: total_events_count,
+        })
     }
 
     async fn contract_reject_events(
         &self,
-        _skip: i32,
-        _take: i32,
+        _skip: u32,
+        _take: u32,
     ) -> ApiResult<ContractRejectEventsCollectionSegment> {
         todo_api!()
     }
 
-    async fn tokens(&self, skip: i32, take: i32) -> ApiResult<TokensCollectionSegment> {
+    async fn tokens(&self, skip: u32, take: u32) -> ApiResult<TokensCollectionSegment> {
         todo_api!()
     }
 }
@@ -1969,7 +2172,7 @@ struct ContractEventsCollectionSegment {
     /// Information to aid in pagination.
     page_info:   CollectionSegmentInfo,
     /// A flattened list of the items.
-    items:       Option<Vec<ContractEvent>>,
+    items:       Vec<ContractEvent>,
     total_count: i32,
 }
 
@@ -3560,6 +3763,56 @@ impl SearchResult {
     }
 }
 
+fn decode_value_with_schema(
+    opt_schema: Option<&Type>,
+    schema_name: &str,
+    value: &[u8],
+    value_name: &str,
+) -> String {
+    let Some(schema) = opt_schema else {
+        // Note: There could be something better displayed than this string if no schema is
+        // available for decoding at the frontend long-term.
+        return format!(
+            "No embedded {} schema in smart contract available for decoding",
+            schema_name
+        );
+    };
+
+    let mut cursor = Cursor::new(&value);
+    match schema.to_json(&mut cursor) {
+        Ok(v) => {
+            serde_json::to_string(&v).unwrap_or_else(|e| {
+                // We don't return an error here since the query is correctly formed and
+                // the CCDScan backend is working as expected.
+                // A wrong/missing schema is a mistake by the smart contract
+                // developer which in general cannot be fixed after the deployment of
+                // the contract. We display the error message (instead of the decoded
+                // value) in the block explorer to make the info visible to the smart
+                // contract developer for debugging purposes here.
+                format!(
+                    "Failed to deserialize {} with {} schema into string: {:?}",
+                    value_name, schema_name, e
+                )
+            })
+        }
+        Err(e) => {
+            // We don't return an error here since the query is correctly formed and
+            // the CCDScan backend is working as expected.
+            // A wrong/missing schema is a mistake by the smart contract
+            // developer which in general cannot be fixed after the deployment of
+            // the contract. We display the error message (instead of the decoded
+            // value) in the block explorer to make the info visible to the smart
+            // contract developer for debugging purposes here.
+            format!(
+                "Failed to deserialize {} with {} schema: {:?}",
+                value_name,
+                schema_name,
+                e.display(true)
+            )
+        }
+    }
+}
+
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 struct ContractAddress {
     index:     ContractIndex,
@@ -3641,214 +3894,230 @@ pub fn events_from_summary(
 ) -> anyhow::Result<Vec<Event>> {
     use concordium_rust_sdk::types::{AccountTransactionEffects, BlockItemSummaryDetails};
     let events = match value {
-        BlockItemSummaryDetails::AccountTransaction(details) => {
-            match details.effects {
-                AccountTransactionEffects::None {
-                    ..
-                } => {
-                    anyhow::bail!("Transaction was rejected")
-                }
-                AccountTransactionEffects::ModuleDeployed {
-                    module_ref,
-                } => {
-                    vec![Event::ContractModuleDeployed(ContractModuleDeployed {
-                        module_ref: module_ref.to_string(),
-                    })]
-                }
-                AccountTransactionEffects::ContractInitialized {
-                    data,
-                } => {
-                    vec![Event::ContractInitialized(ContractInitialized {
-                        module_ref:       data.origin_ref.to_string(),
-                        contract_address: data.address.into(),
-                        amount:           i64::try_from(data.amount.micro_ccd)?,
-                        init_name:        data.init_name.to_string(),
-                        version:          data.contract_version.into(),
-                    })]
-                }
-                AccountTransactionEffects::ContractUpdateIssued {
-                    effects,
-                } => {
-                    use concordium_rust_sdk::types::ContractTraceElement;
-                    effects
-                        .into_iter()
-                        .map(|effect| {
-                            match effect {
-                                ContractTraceElement::Updated {
-                                    data,
-                                } => {
-                                    Ok(Event::ContractUpdated(ContractUpdated {
-                                        contract_address: data.address.into(),
-                                        instigator:       data.instigator.into(),
-                                        amount:           data.amount.micro_ccd().try_into()?,
-                                        message_as_hex:   hex::encode(data.message.as_ref()),
-                                        receive_name:     data.receive_name.to_string(),
-                                        version:          data.contract_version.into(),
-                                        // TODO message: (),
-                                    }))
-                                }
-                                ContractTraceElement::Transferred {
-                                    from,
-                                    amount,
-                                    to,
-                                } => Ok(Event::Transferred(Transferred {
-                                    amount: amount.micro_ccd().try_into()?,
-                                    from:   Address::ContractAddress(from.into()),
-                                    to:     to.into(),
-                                })),
-                                ContractTraceElement::Interrupted {
-                                    address,
-                                    events,
-                                } => Ok(Event::ContractInterrupted(ContractInterrupted {
-                                    contract_address: address.into(),
-                                })),
-                                ContractTraceElement::Resumed {
-                                    address,
-                                    success,
-                                } => Ok(Event::ContractResumed(ContractResumed {
-                                    contract_address: address.into(),
-                                    success,
-                                })),
-                                ContractTraceElement::Upgraded {
-                                    address,
-                                    from,
-                                    to,
-                                } => Ok(Event::ContractUpgraded(ContractUpgraded {
-                                    contract_address: address.into(),
-                                    from:             from.to_string(),
-                                    to:               to.to_string(),
-                                })),
-                            }
-                        })
-                        .collect::<anyhow::Result<Vec<_>>>()?
-                }
-                AccountTransactionEffects::AccountTransfer {
-                    amount,
-                    to,
-                } => {
-                    vec![Event::Transferred(Transferred {
+        BlockItemSummaryDetails::AccountTransaction(details) => match details.effects {
+            AccountTransactionEffects::None {
+                ..
+            } => {
+                anyhow::bail!("Transaction was rejected")
+            }
+            AccountTransactionEffects::ModuleDeployed {
+                module_ref,
+            } => {
+                vec![Event::ContractModuleDeployed(ContractModuleDeployed {
+                    module_ref: module_ref.to_string(),
+                })]
+            }
+            AccountTransactionEffects::ContractInitialized {
+                data,
+            } => {
+                vec![Event::ContractInitialized(ContractInitialized {
+                    module_ref:        data.origin_ref.to_string(),
+                    contract_address:  data.address.into(),
+                    amount:            i64::try_from(data.amount.micro_ccd)?,
+                    init_name:         data.init_name.to_string(),
+                    version:           data.contract_version.into(),
+                    contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
+                })]
+            }
+            AccountTransactionEffects::ContractUpdateIssued {
+                effects,
+            } => {
+                use concordium_rust_sdk::types::ContractTraceElement;
+                effects
+                    .into_iter()
+                    .map(|effect| match effect {
+                        ContractTraceElement::Updated {
+                            data,
+                        } => Ok(Event::ContractUpdated(ContractUpdated {
+                            contract_address:  data.address.into(),
+                            instigator:        data.instigator.into(),
+                            amount:            data.amount.micro_ccd().try_into()?,
+                            receive_name:      data.receive_name.to_string(),
+                            version:           data.contract_version.into(),
+                            input_parameter:   data.message.as_ref().to_vec(),
+                            contract_logs_raw: data
+                                .events
+                                .iter()
+                                .map(|e| e.as_ref().to_vec())
+                                .collect(),
+                        })),
+                        ContractTraceElement::Transferred {
+                            from,
+                            amount,
+                            to,
+                        } => Ok(Event::Transferred(Transferred {
+                            amount: amount.micro_ccd().try_into()?,
+                            from:   Address::ContractAddress(from.into()),
+                            to:     to.into(),
+                        })),
+                        ContractTraceElement::Interrupted {
+                            address,
+                            events,
+                        } => Ok(Event::ContractInterrupted(ContractInterrupted {
+                            contract_address: address.into(),
+                        })),
+                        ContractTraceElement::Resumed {
+                            address,
+                            success,
+                        } => Ok(Event::ContractResumed(ContractResumed {
+                            contract_address: address.into(),
+                            success,
+                        })),
+                        ContractTraceElement::Upgraded {
+                            address,
+                            from,
+                            to,
+                        } => Ok(Event::ContractUpgraded(ContractUpgraded {
+                            contract_address: address.into(),
+                            from:             from.to_string(),
+                            to:               to.to_string(),
+                        })),
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?
+            }
+            AccountTransactionEffects::AccountTransfer {
+                amount,
+                to,
+            } => {
+                vec![Event::Transferred(Transferred {
+                    amount: i64::try_from(amount.micro_ccd)?,
+                    from:   Address::AccountAddress(details.sender.into()),
+                    to:     to.into(),
+                })]
+            }
+            AccountTransactionEffects::AccountTransferWithMemo {
+                amount,
+                to,
+                memo,
+            } => {
+                vec![
+                    Event::Transferred(Transferred {
                         amount: i64::try_from(amount.micro_ccd)?,
                         from:   Address::AccountAddress(details.sender.into()),
                         to:     to.into(),
-                    })]
-                }
-                AccountTransactionEffects::AccountTransferWithMemo {
-                    amount,
-                    to,
-                    memo,
-                } => {
-                    vec![
-                        Event::Transferred(Transferred {
-                            amount: i64::try_from(amount.micro_ccd)?,
-                            from:   Address::AccountAddress(details.sender.into()),
-                            to:     to.into(),
-                        }),
-                        Event::TransferMemo(memo.into()),
-                    ]
-                }
-                AccountTransactionEffects::BakerAdded {
-                    data,
-                } => {
-                    vec![Event::BakerAdded(BakerAdded {
-                        staked_amount:    data.stake.micro_ccd.try_into()?,
-                        restake_earnings: data.restake_earnings,
-                        baker_id:         data.keys_event.baker_id.id.index.try_into()?,
-                        sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
-                        election_key:     serde_json::to_string(&data.keys_event.election_key)?,
-                        aggregation_key:  serde_json::to_string(&data.keys_event.aggregation_key)?,
-                    })]
-                }
-                AccountTransactionEffects::BakerRemoved {
-                    baker_id,
-                } => {
-                    vec![Event::BakerRemoved(BakerRemoved {
-                        baker_id: baker_id.id.index.try_into()?,
-                    })]
-                }
-                AccountTransactionEffects::BakerStakeUpdated {
-                    data,
-                } => {
-                    if let Some(data) = data {
-                        if data.increased {
-                            vec![Event::BakerStakeIncreased(BakerStakeIncreased {
-                                baker_id:          data.baker_id.id.index.try_into()?,
-                                new_staked_amount: data.new_stake.micro_ccd.try_into()?,
-                            })]
-                        } else {
-                            vec![Event::BakerStakeDecreased(BakerStakeDecreased {
-                                baker_id:          data.baker_id.id.index.try_into()?,
-                                new_staked_amount: data.new_stake.micro_ccd.try_into()?,
-                            })]
-                        }
+                    }),
+                    Event::TransferMemo(memo.into()),
+                ]
+            }
+            AccountTransactionEffects::BakerAdded {
+                data,
+            } => {
+                vec![Event::BakerAdded(BakerAdded {
+                    staked_amount:    data.stake.micro_ccd.try_into()?,
+                    restake_earnings: data.restake_earnings,
+                    baker_id:         data.keys_event.baker_id.id.index.try_into()?,
+                    sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
+                    election_key:     serde_json::to_string(&data.keys_event.election_key)?,
+                    aggregation_key:  serde_json::to_string(&data.keys_event.aggregation_key)?,
+                })]
+            }
+            AccountTransactionEffects::BakerRemoved {
+                baker_id,
+            } => {
+                vec![Event::BakerRemoved(BakerRemoved {
+                    baker_id: baker_id.id.index.try_into()?,
+                })]
+            }
+            AccountTransactionEffects::BakerStakeUpdated {
+                data,
+            } => {
+                if let Some(data) = data {
+                    if data.increased {
+                        vec![Event::BakerStakeIncreased(BakerStakeIncreased {
+                            baker_id:          data.baker_id.id.index.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                        })]
                     } else {
-                        Vec::new()
+                        vec![Event::BakerStakeDecreased(BakerStakeDecreased {
+                            baker_id:          data.baker_id.id.index.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                        })]
                     }
+                } else {
+                    Vec::new()
                 }
-                AccountTransactionEffects::BakerRestakeEarningsUpdated {
-                    baker_id,
+            }
+            AccountTransactionEffects::BakerRestakeEarningsUpdated {
+                baker_id,
+                restake_earnings,
+            } => {
+                vec![Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
+                    baker_id: baker_id.id.index.try_into()?,
                     restake_earnings,
-                } => {
-                    vec![Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
-                        baker_id: baker_id.id.index.try_into()?,
-                        restake_earnings,
-                    })]
-                }
-                AccountTransactionEffects::BakerKeysUpdated {
-                    data,
-                } => {
-                    vec![Event::BakerKeysUpdated(BakerKeysUpdated {
-                        baker_id:        data.baker_id.id.index.try_into()?,
-                        sign_key:        serde_json::to_string(&data.sign_key)?,
-                        election_key:    serde_json::to_string(&data.election_key)?,
-                        aggregation_key: serde_json::to_string(&data.aggregation_key)?,
-                    })]
-                }
-                AccountTransactionEffects::EncryptedAmountTransferred {
-                    removed,
-                    added,
-                } => {
-                    vec![
-                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
-                        Event::NewEncryptedAmount((*added).try_into()?),
-                    ]
-                }
-                AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
-                    removed,
-                    added,
-                    memo,
-                } => {
-                    vec![
-                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
-                        Event::NewEncryptedAmount((*added).try_into()?),
-                        Event::TransferMemo(memo.into()),
-                    ]
-                }
-                AccountTransactionEffects::TransferredToEncrypted {
-                    data,
-                } => {
-                    vec![Event::EncryptedSelfAmountAdded(EncryptedSelfAmountAdded {
-                        account_address:      data.account.into(),
-                        new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
-                        amount:               data.amount.micro_ccd.try_into()?,
-                    })]
-                }
-                AccountTransactionEffects::TransferredToPublic {
-                    removed,
-                    amount,
-                } => {
-                    vec![
-                        Event::EncryptedAmountsRemoved((*removed).try_into()?),
-                        Event::AmountAddedByDecryption(AmountAddedByDecryption {
-                            amount:          amount.micro_ccd().try_into()?,
-                            account_address: details.sender.into(),
-                        }),
-                    ]
-                }
-                AccountTransactionEffects::TransferredWithSchedule {
-                    to,
-                    amount,
-                } => {
-                    vec![Event::TransferredWithSchedule(TransferredWithSchedule {
+                })]
+            }
+            AccountTransactionEffects::BakerKeysUpdated {
+                data,
+            } => {
+                vec![Event::BakerKeysUpdated(BakerKeysUpdated {
+                    baker_id:        data.baker_id.id.index.try_into()?,
+                    sign_key:        serde_json::to_string(&data.sign_key)?,
+                    election_key:    serde_json::to_string(&data.election_key)?,
+                    aggregation_key: serde_json::to_string(&data.aggregation_key)?,
+                })]
+            }
+            AccountTransactionEffects::EncryptedAmountTransferred {
+                removed,
+                added,
+            } => {
+                vec![
+                    Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                    Event::NewEncryptedAmount((*added).try_into()?),
+                ]
+            }
+            AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
+                removed,
+                added,
+                memo,
+            } => {
+                vec![
+                    Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                    Event::NewEncryptedAmount((*added).try_into()?),
+                    Event::TransferMemo(memo.into()),
+                ]
+            }
+            AccountTransactionEffects::TransferredToEncrypted {
+                data,
+            } => {
+                vec![Event::EncryptedSelfAmountAdded(EncryptedSelfAmountAdded {
+                    account_address:      data.account.into(),
+                    new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
+                    amount:               data.amount.micro_ccd.try_into()?,
+                })]
+            }
+            AccountTransactionEffects::TransferredToPublic {
+                removed,
+                amount,
+            } => {
+                vec![
+                    Event::EncryptedAmountsRemoved((*removed).try_into()?),
+                    Event::AmountAddedByDecryption(AmountAddedByDecryption {
+                        amount:          amount.micro_ccd().try_into()?,
+                        account_address: details.sender.into(),
+                    }),
+                ]
+            }
+            AccountTransactionEffects::TransferredWithSchedule {
+                to,
+                amount,
+            } => {
+                vec![Event::TransferredWithSchedule(TransferredWithSchedule {
+                    from_account_address: details.sender.into(),
+                    to_account_address:   to.into(),
+                    total_amount:         amount
+                        .into_iter()
+                        .map(|(_, amount)| amount.micro_ccd())
+                        .sum::<u64>()
+                        .try_into()?,
+                })]
+            }
+            AccountTransactionEffects::TransferredWithScheduleAndMemo {
+                to,
+                amount,
+                memo,
+            } => {
+                vec![
+                    Event::TransferredWithSchedule(TransferredWithSchedule {
                         from_account_address: details.sender.into(),
                         to_account_address:   to.into(),
                         total_amount:         amount
@@ -3856,233 +4125,214 @@ pub fn events_from_summary(
                             .map(|(_, amount)| amount.micro_ccd())
                             .sum::<u64>()
                             .try_into()?,
-                    })]
-                }
-                AccountTransactionEffects::TransferredWithScheduleAndMemo {
-                    to,
-                    amount,
-                    memo,
-                } => {
-                    vec![
-                        Event::TransferredWithSchedule(TransferredWithSchedule {
-                            from_account_address: details.sender.into(),
-                            to_account_address:   to.into(),
-                            total_amount:         amount
-                                .into_iter()
-                                .map(|(_, amount)| amount.micro_ccd())
-                                .sum::<u64>()
-                                .try_into()?,
-                        }),
-                        Event::TransferMemo(memo.into()),
-                    ]
-                }
-                AccountTransactionEffects::CredentialKeysUpdated {
-                    cred_id,
-                } => {
-                    vec![Event::CredentialKeysUpdated(CredentialKeysUpdated {
-                        cred_id: cred_id.to_string(),
-                    })]
-                }
-                AccountTransactionEffects::CredentialsUpdated {
-                    new_cred_ids,
-                    removed_cred_ids,
-                    new_threshold,
-                } => {
-                    vec![Event::CredentialsUpdated(CredentialsUpdated {
-                        account_address:  details.sender.into(),
-                        new_cred_ids:     new_cred_ids
-                            .into_iter()
-                            .map(|cred| cred.to_string())
-                            .collect(),
-                        removed_cred_ids: removed_cred_ids
-                            .into_iter()
-                            .map(|cred| cred.to_string())
-                            .collect(),
-                        new_threshold:    Byte(u8::from(new_threshold)),
-                    })]
-                }
-                AccountTransactionEffects::DataRegistered {
-                    data,
-                } => {
-                    vec![Event::DataRegistered(DataRegistered {
-                        data_as_hex: hex::encode(data.as_ref()),
-                        decoded:     DecodedText::from_bytes(data.as_ref()),
-                    })]
-                }
-                AccountTransactionEffects::BakerConfigured {
-                    data,
-                } => data
-                    .into_iter()
-                    .map(|baker_event| {
-                        use concordium_rust_sdk::types::BakerEvent;
-                        match baker_event {
-                            BakerEvent::BakerAdded {
-                                data,
-                            } => Ok(Event::BakerAdded(BakerAdded {
-                                staked_amount:    data.stake.micro_ccd.try_into()?,
-                                restake_earnings: data.restake_earnings,
-                                baker_id:         data.keys_event.baker_id.id.index.try_into()?,
-                                sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
-                                election_key:     serde_json::to_string(
-                                    &data.keys_event.election_key,
-                                )?,
-                                aggregation_key:  serde_json::to_string(
-                                    &data.keys_event.aggregation_key,
-                                )?,
-                            })),
-                            BakerEvent::BakerRemoved {
-                                baker_id,
-                            } => Ok(Event::BakerRemoved(BakerRemoved {
+                    }),
+                    Event::TransferMemo(memo.into()),
+                ]
+            }
+            AccountTransactionEffects::CredentialKeysUpdated {
+                cred_id,
+            } => {
+                vec![Event::CredentialKeysUpdated(CredentialKeysUpdated {
+                    cred_id: cred_id.to_string(),
+                })]
+            }
+            AccountTransactionEffects::CredentialsUpdated {
+                new_cred_ids,
+                removed_cred_ids,
+                new_threshold,
+            } => {
+                vec![Event::CredentialsUpdated(CredentialsUpdated {
+                    account_address:  details.sender.into(),
+                    new_cred_ids:     new_cred_ids
+                        .into_iter()
+                        .map(|cred| cred.to_string())
+                        .collect(),
+                    removed_cred_ids: removed_cred_ids
+                        .into_iter()
+                        .map(|cred| cred.to_string())
+                        .collect(),
+                    new_threshold:    Byte(u8::from(new_threshold)),
+                })]
+            }
+            AccountTransactionEffects::DataRegistered {
+                data,
+            } => {
+                vec![Event::DataRegistered(DataRegistered {
+                    data_as_hex: hex::encode(data.as_ref()),
+                    decoded:     DecodedText::from_bytes(data.as_ref()),
+                })]
+            }
+            AccountTransactionEffects::BakerConfigured {
+                data,
+            } => data
+                .into_iter()
+                .map(|baker_event| {
+                    use concordium_rust_sdk::types::BakerEvent;
+                    match baker_event {
+                        BakerEvent::BakerAdded {
+                            data,
+                        } => Ok(Event::BakerAdded(BakerAdded {
+                            staked_amount:    data.stake.micro_ccd.try_into()?,
+                            restake_earnings: data.restake_earnings,
+                            baker_id:         data.keys_event.baker_id.id.index.try_into()?,
+                            sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
+                            election_key:     serde_json::to_string(&data.keys_event.election_key)?,
+                            aggregation_key:  serde_json::to_string(
+                                &data.keys_event.aggregation_key,
+                            )?,
+                        })),
+                        BakerEvent::BakerRemoved {
+                            baker_id,
+                        } => Ok(Event::BakerRemoved(BakerRemoved {
+                            baker_id: baker_id.id.index.try_into()?,
+                        })),
+                        BakerEvent::BakerStakeIncreased {
+                            baker_id,
+                            new_stake,
+                        } => Ok(Event::BakerStakeIncreased(BakerStakeIncreased {
+                            baker_id:          baker_id.id.index.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                        })),
+                        BakerEvent::BakerStakeDecreased {
+                            baker_id,
+                            new_stake,
+                        } => Ok(Event::BakerStakeDecreased(BakerStakeDecreased {
+                            baker_id:          baker_id.id.index.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                        })),
+                        BakerEvent::BakerRestakeEarningsUpdated {
+                            baker_id,
+                            restake_earnings,
+                        } => Ok(Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
+                            baker_id: baker_id.id.index.try_into()?,
+                            restake_earnings,
+                        })),
+                        BakerEvent::BakerKeysUpdated {
+                            data,
+                        } => Ok(Event::BakerKeysUpdated(BakerKeysUpdated {
+                            baker_id:        data.baker_id.id.index.try_into()?,
+                            sign_key:        serde_json::to_string(&data.sign_key)?,
+                            election_key:    serde_json::to_string(&data.election_key)?,
+                            aggregation_key: serde_json::to_string(&data.aggregation_key)?,
+                        })),
+                        BakerEvent::BakerSetOpenStatus {
+                            baker_id,
+                            open_status,
+                        } => Ok(Event::BakerSetOpenStatus(BakerSetOpenStatus {
+                            baker_id:        baker_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                            open_status:     open_status.into(),
+                        })),
+                        BakerEvent::BakerSetMetadataURL {
+                            baker_id,
+                            metadata_url,
+                        } => Ok(Event::BakerSetMetadataURL(BakerSetMetadataURL {
+                            baker_id:        baker_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                            metadata_url:    metadata_url.into(),
+                        })),
+                        BakerEvent::BakerSetTransactionFeeCommission {
+                            baker_id,
+                            transaction_fee_commission,
+                        } => Ok(Event::BakerSetTransactionFeeCommission(
+                            BakerSetTransactionFeeCommission {
+                                baker_id:                   baker_id.id.index.try_into()?,
+                                account_address:            details.sender.into(),
+                                transaction_fee_commission: transaction_fee_commission.into(),
+                            },
+                        )),
+                        BakerEvent::BakerSetBakingRewardCommission {
+                            baker_id,
+                            baking_reward_commission,
+                        } => Ok(Event::BakerSetBakingRewardCommission(
+                            BakerSetBakingRewardCommission {
+                                baker_id:                 baker_id.id.index.try_into()?,
+                                account_address:          details.sender.into(),
+                                baking_reward_commission: baking_reward_commission.into(),
+                            },
+                        )),
+                        BakerEvent::BakerSetFinalizationRewardCommission {
+                            baker_id,
+                            finalization_reward_commission,
+                        } => Ok(Event::BakerSetFinalizationRewardCommission(
+                            BakerSetFinalizationRewardCommission {
                                 baker_id: baker_id.id.index.try_into()?,
-                            })),
-                            BakerEvent::BakerStakeIncreased {
-                                baker_id,
-                                new_stake,
-                            } => Ok(Event::BakerStakeIncreased(BakerStakeIncreased {
-                                baker_id:          baker_id.id.index.try_into()?,
-                                new_staked_amount: new_stake.micro_ccd.try_into()?,
-                            })),
-                            BakerEvent::BakerStakeDecreased {
-                                baker_id,
-                                new_stake,
-                            } => Ok(Event::BakerStakeDecreased(BakerStakeDecreased {
-                                baker_id:          baker_id.id.index.try_into()?,
-                                new_staked_amount: new_stake.micro_ccd.try_into()?,
-                            })),
-                            BakerEvent::BakerRestakeEarningsUpdated {
-                                baker_id,
-                                restake_earnings,
-                            } => Ok(Event::BakerSetRestakeEarnings(BakerSetRestakeEarnings {
-                                baker_id: baker_id.id.index.try_into()?,
-                                restake_earnings,
-                            })),
-                            BakerEvent::BakerKeysUpdated {
-                                data,
-                            } => Ok(Event::BakerKeysUpdated(BakerKeysUpdated {
-                                baker_id:        data.baker_id.id.index.try_into()?,
-                                sign_key:        serde_json::to_string(&data.sign_key)?,
-                                election_key:    serde_json::to_string(&data.election_key)?,
-                                aggregation_key: serde_json::to_string(&data.aggregation_key)?,
-                            })),
-                            BakerEvent::BakerSetOpenStatus {
-                                baker_id,
-                                open_status,
-                            } => Ok(Event::BakerSetOpenStatus(BakerSetOpenStatus {
-                                baker_id:        baker_id.id.index.try_into()?,
                                 account_address: details.sender.into(),
-                                open_status:     open_status.into(),
-                            })),
-                            BakerEvent::BakerSetMetadataURL {
-                                baker_id,
-                                metadata_url,
-                            } => Ok(Event::BakerSetMetadataURL(BakerSetMetadataURL {
-                                baker_id:        baker_id.id.index.try_into()?,
+                                finalization_reward_commission: finalization_reward_commission
+                                    .into(),
+                            },
+                        )),
+                        BakerEvent::DelegationRemoved {
+                            delegator_id,
+                        } => {
+                            unimplemented!()
+                        }
+                    }
+                })
+                .collect::<anyhow::Result<Vec<Event>>>()?,
+            AccountTransactionEffects::DelegationConfigured {
+                data,
+            } => {
+                use concordium_rust_sdk::types::DelegationEvent;
+                data.into_iter()
+                    .map(|event| match event {
+                        DelegationEvent::DelegationStakeIncreased {
+                            delegator_id,
+                            new_stake,
+                        } => Ok(Event::DelegationStakeIncreased(DelegationStakeIncreased {
+                            delegator_id:      delegator_id.id.index.try_into()?,
+                            account_address:   details.sender.into(),
+                            new_staked_amount: new_stake.micro_ccd().try_into()?,
+                        })),
+                        DelegationEvent::DelegationStakeDecreased {
+                            delegator_id,
+                            new_stake,
+                        } => Ok(Event::DelegationStakeDecreased(DelegationStakeDecreased {
+                            delegator_id:      delegator_id.id.index.try_into()?,
+                            account_address:   details.sender.into(),
+                            new_staked_amount: new_stake.micro_ccd().try_into()?,
+                        })),
+                        DelegationEvent::DelegationSetRestakeEarnings {
+                            delegator_id,
+                            restake_earnings,
+                        } => {
+                            Ok(Event::DelegationSetRestakeEarnings(DelegationSetRestakeEarnings {
+                                delegator_id: delegator_id.id.index.try_into()?,
                                 account_address: details.sender.into(),
-                                metadata_url:    metadata_url.into(),
-                            })),
-                            BakerEvent::BakerSetTransactionFeeCommission {
-                                baker_id,
-                                transaction_fee_commission,
-                            } => Ok(Event::BakerSetTransactionFeeCommission(
-                                BakerSetTransactionFeeCommission {
-                                    baker_id:                   baker_id.id.index.try_into()?,
-                                    account_address:            details.sender.into(),
-                                    transaction_fee_commission: transaction_fee_commission.into(),
-                                },
-                            )),
-                            BakerEvent::BakerSetBakingRewardCommission {
-                                baker_id,
-                                baking_reward_commission,
-                            } => Ok(Event::BakerSetBakingRewardCommission(
-                                BakerSetBakingRewardCommission {
-                                    baker_id:                 baker_id.id.index.try_into()?,
-                                    account_address:          details.sender.into(),
-                                    baking_reward_commission: baking_reward_commission.into(),
-                                },
-                            )),
-                            BakerEvent::BakerSetFinalizationRewardCommission {
-                                baker_id,
-                                finalization_reward_commission,
-                            } => Ok(Event::BakerSetFinalizationRewardCommission(
-                                BakerSetFinalizationRewardCommission {
-                                    baker_id: baker_id.id.index.try_into()?,
-                                    account_address: details.sender.into(),
-                                    finalization_reward_commission: finalization_reward_commission
-                                        .into(),
-                                },
-                            )),
-                            BakerEvent::DelegationRemoved {
-                                delegator_id,
-                            } => {
-                                unimplemented!()
-                            }
+                                restake_earnings,
+                            }))
+                        }
+                        DelegationEvent::DelegationSetDelegationTarget {
+                            delegator_id,
+                            delegation_target,
+                        } => Ok(Event::DelegationSetDelegationTarget(
+                            DelegationSetDelegationTarget {
+                                delegator_id:      delegator_id.id.index.try_into()?,
+                                account_address:   details.sender.into(),
+                                delegation_target: delegation_target.try_into()?,
+                            },
+                        )),
+                        DelegationEvent::DelegationAdded {
+                            delegator_id,
+                        } => Ok(Event::DelegationAdded(DelegationAdded {
+                            delegator_id:    delegator_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                        })),
+                        DelegationEvent::DelegationRemoved {
+                            delegator_id,
+                        } => Ok(Event::DelegationRemoved(DelegationRemoved {
+                            delegator_id:    delegator_id.id.index.try_into()?,
+                            account_address: details.sender.into(),
+                        })),
+                        DelegationEvent::BakerRemoved {
+                            baker_id,
+                        } => {
+                            unimplemented!();
                         }
                     })
-                    .collect::<anyhow::Result<Vec<Event>>>()?,
-                AccountTransactionEffects::DelegationConfigured {
-                    data,
-                } => {
-                    use concordium_rust_sdk::types::DelegationEvent;
-                    data.into_iter()
-                        .map(|event| match event {
-                            DelegationEvent::DelegationStakeIncreased {
-                                delegator_id,
-                                new_stake,
-                            } => Ok(Event::DelegationStakeIncreased(DelegationStakeIncreased {
-                                delegator_id:      delegator_id.id.index.try_into()?,
-                                account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
-                            })),
-                            DelegationEvent::DelegationStakeDecreased {
-                                delegator_id,
-                                new_stake,
-                            } => Ok(Event::DelegationStakeDecreased(DelegationStakeDecreased {
-                                delegator_id:      delegator_id.id.index.try_into()?,
-                                account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
-                            })),
-                            DelegationEvent::DelegationSetRestakeEarnings {
-                                delegator_id,
-                                restake_earnings,
-                            } => Ok(Event::DelegationSetRestakeEarnings(
-                                DelegationSetRestakeEarnings {
-                                    delegator_id: delegator_id.id.index.try_into()?,
-                                    account_address: details.sender.into(),
-                                    restake_earnings,
-                                },
-                            )),
-                            DelegationEvent::DelegationSetDelegationTarget {
-                                delegator_id,
-                                delegation_target,
-                            } => Ok(Event::DelegationSetDelegationTarget(
-                                DelegationSetDelegationTarget {
-                                    delegator_id:      delegator_id.id.index.try_into()?,
-                                    account_address:   details.sender.into(),
-                                    delegation_target: delegation_target.try_into()?,
-                                },
-                            )),
-                            DelegationEvent::DelegationAdded {
-                                delegator_id,
-                            } => Ok(Event::DelegationAdded(DelegationAdded {
-                                delegator_id:    delegator_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
-                            })),
-                            DelegationEvent::DelegationRemoved {
-                                delegator_id,
-                            } => Ok(Event::DelegationRemoved(DelegationRemoved {
-                                delegator_id:    delegator_id.id.index.try_into()?,
-                                account_address: details.sender.into(),
-                            })),
-                            DelegationEvent::BakerRemoved {
-                                baker_id,
-                            } => {
-                                unimplemented!();
-                            }
-                        })
-                        .collect::<anyhow::Result<Vec<_>>>()?
-                }
+                    .collect::<anyhow::Result<Vec<_>>>()?
             }
-        }
+        },
         BlockItemSummaryDetails::AccountCreation(details) => {
             vec![Event::AccountCreated(AccountCreated {
                 account_address: details.address.into(),
@@ -4533,20 +4783,76 @@ impl BakerStakeIncreased {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractInitialized {
-    module_ref:       String,
-    contract_address: ContractAddress,
-    amount:           Amount,
-    init_name:        String,
-    version:          ContractVersion,
-    // TODO: eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): StringConnection TODO: events("Returns the first
-    // _n_ elements from the list." first: Int "Returns the elements in the list that come after
-    // the specified cursor." after: String "Returns the last _n_ elements from the list." last:
-    // Int "Returns the elements in the list that come before the specified cursor." before:
-    // String): StringConnection
+    module_ref:        String,
+    contract_address:  ContractAddress,
+    amount:            Amount,
+    init_name:         String,
+    version:           ContractVersion,
+    // All logged events by the smart contract during the transaction execution.
+    contract_logs_raw: Vec<Vec<u8>>,
+}
+
+#[ComplexObject]
+impl ContractInitialized {
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_event_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_event_schema(&row.contract_name).ok()
+            });
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
+            let decoded_log =
+                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+        }
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -4561,6 +4867,22 @@ impl From<concordium_rust_sdk::types::smart_contracts::WasmVersion> for Contract
         match value {
             WasmVersion::V0 => ContractVersion::V0,
             WasmVersion::V1 => ContractVersion::V1,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error, Clone)]
+#[error("Invalid contract version: {0}")]
+pub struct InvalidContractVersionError(i32);
+
+impl TryFrom<i32> for ContractVersion {
+    type Error = InvalidContractVersionError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ContractVersion::V0),
+            1 => Ok(ContractVersion::V1),
+            _ => Err(InvalidContractVersionError(value)),
         }
     }
 }
@@ -4757,22 +5079,123 @@ pub struct ContractResumed {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractUpdated {
-    contract_address: ContractAddress,
-    instigator:       Address,
-    amount:           Amount,
-    message_as_hex:   String,
-    receive_name:     String,
-    version:          ContractVersion,
-    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
-    // in the list that come after the specified cursor." after: String "Returns the last _n_
-    // elements from the list." last: Int "Returns the elements in the list that come before the
-    // specified cursor." before: String): StringConnection events("Returns the first _n_
-    // elements from the list." first: Int "Returns the elements in the list that come after the
-    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor." before: String):
-    // StringConnection
-    // TODO message: String,
+    contract_address:  ContractAddress,
+    instigator:        Address,
+    amount:            Amount,
+    receive_name:      String,
+    version:           ContractVersion,
+    // All logged events by the smart contract during the transaction execution.
+    contract_logs_raw: Vec<Vec<u8>>,
+    input_parameter:   Vec<u8>,
+}
+
+#[ComplexObject]
+impl ContractUpdated {
+    async fn message_as_hex(&self) -> ApiResult<String> { Ok(hex::encode(&self.input_parameter)) }
+
+    async fn message<'a>(&self, ctx: &Context<'a>) -> ApiResult<String> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_receive_param_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema
+                    .get_receive_param_schema(
+                        &row.contract_name,
+                        ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+                    )
+                    .ok()
+            });
+
+        let decoded_input_parameter = decode_value_with_schema(
+            opt_receive_param_schema.as_ref(),
+            "receive param",
+            &self.input_parameter,
+            "input parameter of receive function",
+        );
+
+        Ok(decoded_input_parameter)
+    }
+
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_event_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_event_schema(&row.contract_name).ok()
+            });
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
+            let decoded_log =
+                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+        }
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]

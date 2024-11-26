@@ -70,8 +70,7 @@ CREATE TABLE blocks(
     -- The absolute height of the block.
     height
         BIGINT
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Block hash encoded using HEX.
     hash
         CHAR(64)
@@ -255,7 +254,6 @@ CREATE TABLE bakers(
     id
         BIGINT
         PRIMARY KEY
-        NOT NULL
         REFERENCES accounts,
     -- Amount staked at present.
     staked
@@ -293,8 +291,7 @@ CREATE TABLE smart_contract_modules(
     module_reference
         CHAR(64)
         UNIQUE
-        PRIMARY KEY
-        NOT NULL,
+        PRIMARY KEY,
     -- Index of the transaction deploying the module.
     transaction_index
         BIGINT
@@ -336,6 +333,45 @@ CREATE TABLE contracts(
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
 );
+
+-- Every successful event associated to a contract.
+CREATE TABLE contract_events (
+    -- An index/id for this event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- Transaction index including the event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- Trace element index of the event traces from above transaction.
+    trace_element_index
+        BIGINT
+        NOT NULL,
+    -- The absolute block height of the block that includes the event.
+    block_height
+        BIGINT
+        NOT NULL,
+    -- Contract index that the event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that the event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- Every time an event is associated with a contract, this index is incremented for that contract.
+    -- This value is used to quickly filter/sort events by the order they were emitted by a contract.
+    event_index_per_contract
+        BIGINT
+        NOT NULL
+);
+
+-- Important for quickly filtering/sorting events by the order they were emitted by a contract.
+CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_contract);
+
+-- Important for quickly filtering contract events by a specific contract.
+CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

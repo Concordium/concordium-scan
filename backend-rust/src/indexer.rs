@@ -15,7 +15,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        ContractInitializedEvent, PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, ContractTraceElement, PartsPerHundredThousands, RewardsOverview,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -1046,6 +1046,8 @@ enum PreparedEvent {
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
+    /// Contract got updated.
+    ContractUpdate(Vec<PreparedContractUpdate>),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -1079,7 +1081,20 @@ impl PreparedEvent {
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
-                } => None,
+                } => Some(PreparedEvent::ContractUpdate(
+                    effects
+                        .iter()
+                        .enumerate()
+                        .map(|(trace_element_index, effect)| {
+                            PreparedContractUpdate::prepare(
+                                data,
+                                block_item,
+                                effect,
+                                trace_element_index,
+                            )
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
                     to,
@@ -1216,6 +1231,12 @@ impl PreparedEvent {
             }
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::ContractUpdate(events) => {
+                for event in events {
+                    event.save(tx, tx_idx).await?;
+                }
+                Ok(())
+            }
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1595,6 +1616,7 @@ struct PreparedContractInitialized {
     module_reference: String,
     name:             String,
     amount:           i64,
+    height:           i64,
 }
 
 impl PreparedContractInitialized {
@@ -1603,12 +1625,21 @@ impl PreparedContractInitialized {
         block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
     ) -> anyhow::Result<Self> {
+        let index = i64::try_from(event.address.index)?;
+        let sub_index = i64::try_from(event.address.subindex)?;
+        let module_reference = event.origin_ref;
+        // We remove the `init_` prefix from the name to get the contract name.
+        let name = event.init_name.as_contract_name().contract_name().to_string();
+        let amount = i64::try_from(event.amount.micro_ccd)?;
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+
         Ok(Self {
-            index:            i64::try_from(event.address.index)?,
-            sub_index:        i64::try_from(event.address.subindex)?,
-            amount:           i64::try_from(event.amount.micro_ccd)?,
-            module_reference: event.origin_ref.into(),
-            name:             event.init_name.to_string(),
+            index,
+            sub_index,
+            module_reference: module_reference.into(),
+            name,
+            amount,
+            height,
         })
     }
 
@@ -1631,10 +1662,70 @@ impl PreparedContractInitialized {
             self.module_reference,
             self.name,
             self.amount,
-            transaction_index,
+            transaction_index
         )
         .execute(tx.as_mut())
         .await?;
+
+        Ok(())
+    }
+}
+
+struct PreparedContractUpdate {
+    trace_element_index: i64,
+    height:              i64,
+    contract_index:      i64,
+    contract_sub_index:  i64,
+}
+
+impl PreparedContractUpdate {
+    fn prepare(
+        data: &BlockData,
+        block_item: &BlockItemSummary,
+        event: &ContractTraceElement,
+        trace_element_index: usize,
+    ) -> anyhow::Result<Self> {
+        let contract_address = event.affected_address();
+
+        let trace_element_index = trace_element_index.try_into()?;
+        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let index = i64::try_from(contract_address.index)?;
+        let sub_index = i64::try_from(contract_address.subindex)?;
+
+        Ok(Self {
+            trace_element_index,
+            height,
+            contract_index: index,
+            contract_sub_index: sub_index,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO contract_events (
+                transaction_index,
+                trace_element_index,
+                block_height,
+                contract_index,
+                contract_sub_index,
+                event_index_per_contract
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, (SELECT COALESCE(MAX(event_index_per_contract) + 1, 0) FROM contract_events WHERE contract_index = $4 AND contract_sub_index = $5)
+            )"#,
+            transaction_index,
+            self.trace_element_index,
+            self.height,
+            self.contract_index,
+            self.contract_sub_index
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }
