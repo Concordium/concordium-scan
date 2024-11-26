@@ -41,4 +41,4 @@ apply-migrations:
 	@echo "Running SQL migrations to create tables..."
 	sqlx migrate run
 
-.PHONY: setup all start-docker wait-for-database apply-migrations
+.PHONY: setup setup-env-with-password all start-docker wait-for-database apply-migrations
