@@ -5,11 +5,13 @@ on:
     branches: main
     paths:
         - backend-rust/**
+        - .github/**
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [ main ]
     paths:
         - backend-rust/**
+        - .github/**
 
 env:
   RUST_FMT: "nightly-2023-04-01"
