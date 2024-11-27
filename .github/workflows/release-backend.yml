@@ -1,13 +1,73 @@
+name: Release CCDScan Backend
+
 on:
   push:
+    branches:
+      - lma/rust/release_flow
     tags:
       - ccdscan-backend/*
 
 jobs:
-  release-ccdscan-fungus:
-    uses: concordium/.github/.github/workflows/docker-release-workflow.yaml@v1
-    with:
-      SERVICE_NAME: "ccdscan-backend"
-      DOCKER_FILE_PATH: backend-rust/Dockerfile
-      DOCKER_CONTEXT: backend-rust
-    secrets: inherit
+  release-docker:
+    runs-on: ubuntu-latest
+    steps:
+#      - name: Login to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: 'concordium'
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Clone repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set image tag if correctly formatted
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          TAG_VERSION=${TAG##ccdscan-backend/}
+          if [ -n "${CARGO_FILE_PATH}" ] ; then
+            CARGO_VERSION=$(yq .package.version "${CARGO_FILE_PATH}")
+            if [ ! "$TAG_VERSION" = "$CARGO_VERSION" ] ; then
+              echo "::error::$CARGO_VERSION does not match $TAG_VERSION."
+              exit 1
+            fi
+          fi
+          echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_ENV
+
+      - name: Check if images exists
+        run: |
+          set +e
+          docker manifest inspect concordium/ccdscan-indexer:$TAG_VERSION
+          EXITCODE=$?
+          if [ $EXITCODE -eq "0" ]; then
+            echo "Error: ${{ env.FULL_IMAGE_TAG }} already exists."
+            exit 1
+          fi
+          docker manifest inspect concordium/ccdscan-backend:$TAG_VERSION
+          EXITCODE=$?
+          if [ $EXITCODE -eq "0" ]; then
+            echo "Error: ${{ env.FULL_IMAGE_TAG }} already exists."
+            exit 1
+          fi
+
+      - name: Build indexer docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend-rust
+          file: backend-rust/Dockerfile
+          tags: concordium/ccdscan-indexer:${{ TAG_VERSION }}
+          push: false
+          args: |
+            target_binary=ccdscan-indexer
+
+      - name: Build backend docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend-rust
+          file: backend-rust/Dockerfile
+          tags: concordium/ccdscan-backend:${{ TAG_VERSION }}
+          push: false
+          args: |
+            target_binary=ccdscan-api
