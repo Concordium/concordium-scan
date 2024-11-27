@@ -3,7 +3,7 @@ use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, metrics};
 use prometheus_client::registry::Registry;
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
@@ -16,18 +16,24 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
-    database_url:   String,
+    database_url:    String,
+    /// Minimum number of connections in the pool.
+    #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
+    min_connections: u32,
+    /// Maximum number of connections in the pool.
+    #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
+    max_connections: u32,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
-    schema_out:     Option<PathBuf>,
+    schema_out:      Option<PathBuf>,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
-    listen:         SocketAddr,
+    listen:          SocketAddr,
     /// Address to listen to for metrics requests.
     #[arg(long, env = "CCDSCAN_API_METRICS_ADDRESS", default_value = "127.0.0.1:8003")]
-    metrics_listen: SocketAddr,
+    metrics_listen:  SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
-    api_config:     graphql_api::ApiServiceConfig,
+    api_config:      graphql_api::ApiServiceConfig,
 }
 
 #[tokio::main]
@@ -35,7 +41,10 @@ async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
-    let pool = PgPool::connect(&cli.database_url)
+    let pool = PgPoolOptions::new()
+        .min_connections(cli.min_connections)
+        .max_connections(cli.max_connections)
+        .connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
