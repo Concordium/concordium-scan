@@ -26,12 +26,11 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           TAG_VERSION=${TAG##ccdscan-backend/}
-          if [ -n "${CARGO_FILE_PATH}" ] ; then
-            CARGO_VERSION=$(yq .package.version "${CARGO_FILE_PATH}")
-            if [ ! "$TAG_VERSION" = "$CARGO_VERSION" ] ; then
-              echo "::error::$CARGO_VERSION does not match $TAG_VERSION."
-              exit 1
-            fi
+          EXPECTED=$(yq .package.version Cargo.toml)
+          EXTRACTED="$TAG_VERSION"
+          if [ ! "$EXPECTED" = "$EXTRACTED" ] ; then
+            echo "::error::$EXPECTED does not match $EXTRACTED."
+            exit 1
           fi
           echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_ENV
 
@@ -41,13 +40,13 @@ jobs:
           docker manifest inspect concordium/ccdscan-indexer:$TAG_VERSION
           EXITCODE=$?
           if [ $EXITCODE -eq "0" ]; then
-            echo "Error: ${{ env.FULL_IMAGE_TAG }} already exists."
+            echo "::error::concordium/ccdscan-indexer:$TAG_VERSION already exists."
             exit 1
           fi
-          docker manifest inspect concordium/ccdscan-backend:$TAG_VERSION
+          docker manifest inspect concordium/ccdscan-api:$TAG_VERSION
           EXITCODE=$?
           if [ $EXITCODE -eq "0" ]; then
-            echo "Error: ${{ env.FULL_IMAGE_TAG }} already exists."
+            echo "::error::concordium/ccdscan-api:$TAG_VERSION already exists."
             exit 1
           fi
 
@@ -66,7 +65,7 @@ jobs:
         with:
           context: backend-rust
           file: backend-rust/Dockerfile
-          tags: concordium/ccdscan-backend:${{ env.TAG_VERSION }}
+          tags: concordium/ccdscan-api:${{ env.TAG_VERSION }}
           push: true
           build-args: |
             target_binary=ccdscan-api

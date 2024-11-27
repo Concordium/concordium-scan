@@ -1,6 +1,6 @@
 ARG build_image=rust:1.82-bookworm
 ARG base_image=debian:bookworm-slim
-ARG target_binary=ccdscan-api
+ARG target_binary
 FROM ${build_image} AS build
 
 WORKDIR /usr/app
