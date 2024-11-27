@@ -120,8 +120,6 @@ To set up the external dependencies required for development, including initiali
 
 #### Option 1: Start from Fresh
 
-If you want to initialize a fresh database:
-
 ```bash
 make setup && make
 ```
