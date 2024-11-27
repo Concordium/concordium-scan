@@ -6,7 +6,7 @@ use concordium_scan::{
     metrics,
 };
 use prometheus_client::registry::Registry;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;

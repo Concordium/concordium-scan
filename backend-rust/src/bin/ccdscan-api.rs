@@ -3,7 +3,7 @@ use async_graphql::SDLExportOptions;
 use clap::Parser;
 use concordium_scan::{graphql_api, metrics};
 use prometheus_client::registry::Registry;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
