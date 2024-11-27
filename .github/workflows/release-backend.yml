@@ -26,7 +26,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           TAG_VERSION=${TAG##ccdscan-backend/}
-          EXPECTED=$(yq .package.version Cargo.toml)
+          EXPECTED=$(yq .package.version backend-rust/Cargo.toml)
           EXTRACTED="$TAG_VERSION"
           if [ ! "$EXPECTED" = "$EXTRACTED" ] ; then
             echo "::error::$EXPECTED does not match $EXTRACTED."
