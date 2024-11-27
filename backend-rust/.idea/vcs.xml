@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="VcsDirectoryMappings">
-    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/concordium-rust-sdk" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/concordium-rust-sdk/concordium-base" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/concordium-rust-sdk/concordium-base/concordium-grpc-api" vcs="Git" />
-  </component>
-</project>
