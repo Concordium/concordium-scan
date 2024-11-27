@@ -114,18 +114,32 @@ This project has some dependencies tracked as Git submodules, so make sure to in
 git submodule update --init --recursive
 ```
 
-### Initializing a database from scratch
+### Initialize External Dependencies
 
-```
+To set up the external dependencies required for development, including initializing the database schema, you can choose one of the following options:
+
+#### Option 1: Start from Fresh
+
+If you want to initialize a fresh database:
+
+```bash
 make setup && make
 ```
 
-where `make setup` is a one time command initialising the password to be used and `make` starts the database and initialises it
+#### Option 2: Reuse an Already Initialized Database
 
-### Reuse an already initialised database
+```bash
+make setup-env-with-password && make
+```
+
+* `make setup`: Performs a one-time setup to generate the password and store it in the .env file
+* `make setup-env-with-password`: Asks for the password to the database and store it in the .env file
+* `make`: Starts the database service, and inserts the required SQL structure.
+
+Given that one wants follow the logs of the database:
 
 ```
-make setup-env-with-password && make
+docker logs -f postgres_db
 ```
 
 ### Database migrations
