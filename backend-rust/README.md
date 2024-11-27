@@ -114,37 +114,31 @@ This project has some dependencies tracked as Git submodules, so make sure to in
 git submodule update --init --recursive
 ```
 
-### Running the database server
+### Initialize External Dependencies
 
-Both services depend on having a PostgreSQL server running, this can be done in several ways, but it can be done using [docker](https://www.docker.com/) with the command below:
+To set up the external dependencies required for development, including initializing the database schema, you can choose one of the following options:
 
-```
-docker run -p 5432:5432 -e 'POSTGRES_PASSWORD=example' -e 'POSTGRES_DB=ccd-scan' postgres:16
-```
+#### Option 1: Start from Fresh
 
-Alternatively set up the database from the `docker-compose` file with the command below:
-
-```
-docker compose up
+```bash
+make setup && make
 ```
 
-### Initializing a database
+#### Option 2: Reuse an Already Initialized Database
 
-Then set the environment variable `DATABASE_URL` pointing to the location of the SQL database, this can be done by creating a `.env` file within this directory.
-Example:
-
-```
-# Postgres database connection used by sqlx-cli and this service.
-DATABASE_URL=postgres://postgres:example@localhost/ccd-scan
+```bash
+make setup-env-with-password && make
 ```
 
-With the environment variable `DATABASE_URL` set, use the `sqlx` CLI to setup the database and tables and run all the migrations:
+* `make setup`: Performs a one-time setup to generate the password and store it in the .env file
+* `make setup-env-with-password`: Asks for the password to the database and store it in the .env file
+* `make`: Starts the database service, and inserts the required SQL structure.
+
+Given that one wants follow the logs of the database:
 
 ```
-sqlx migrate run
+docker logs -f postgres_db
 ```
-
-The project can now be built using `cargo build`
 
 ### Database migrations
 
