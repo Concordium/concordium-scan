@@ -1,5 +1,6 @@
 ARG build_image=rust:1.82-bookworm
 ARG base_image=debian:bookworm-slim
+ARG target_binary=ccdscan-api
 FROM ${build_image} AS build
 
 WORKDIR /usr/app
@@ -17,7 +18,8 @@ FROM ${base_image}
 WORKDIR /usr/app
 
 COPY migrations /usr/app/migrations
-COPY --from=build /usr/app/target/release/ccdscan-api /usr/app/target/release/ccdscan-indexer /usr/bin/
+COPY --from=build /usr/app/target/release/${target_binary} /usr/bin/
 COPY --from=build /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 
-RUN chmod +x /usr/bin/ccdscan-api /usr/bin/ccdscan-indexer
+RUN chmod +x /usr/bin/${target_binary}
+CMD ["/usr/bin/${target_binary}"]
