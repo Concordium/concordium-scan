@@ -6,7 +6,7 @@ use concordium_scan::{
     metrics,
 };
 use prometheus_client::registry::Registry;
-use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
@@ -20,7 +20,13 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
-    database_url:   String,
+    database_url:    String,
+    /// Minimum number of connections in the pool.
+    #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
+    min_connections: u32,
+    /// Maximum number of connections in the pool.
+    #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
+    max_connections: u32,
     /// gRPC interface of the node. Several can be provided.
     #[arg(
         long,
@@ -29,12 +35,12 @@ struct Cli {
         num_args = 1..,
         default_value = "http://localhost:20000"
     )]
-    node:           Vec<v2::Endpoint>,
+    node:            Vec<v2::Endpoint>,
     /// Address to listen for metrics requests
     #[arg(long, env = "CCDSCAN_INDEXER_METRICS_ADDRESS", default_value = "127.0.0.1:8001")]
-    metrics_listen: SocketAddr,
+    metrics_listen:  SocketAddr,
     #[command(flatten, next_help_heading = "Performance tuning")]
-    indexer_config: IndexerServiceConfig,
+    indexer_config:  IndexerServiceConfig,
 }
 
 #[tokio::main]
@@ -42,7 +48,10 @@ async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
     let cli = Cli::parse();
     tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
-    let pool = PgPool::connect(&cli.database_url)
+    let pool = PgPoolOptions::new()
+        .min_connections(cli.min_connections)
+        .max_connections(cli.max_connections)
+        .connect(&cli.database_url)
         .await
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
