@@ -57,9 +57,9 @@ jobs:
         with:
           context: backend-rust
           file: backend-rust/Dockerfile
-          tags: concordium/ccdscan-indexer:${{ env.TAG_VERSION }}
+          tags: concordium/ccdscan-indexer:test # Replace me
           push: false
-          args: |
+          build-args: |
             target_binary=ccdscan-indexer
 
       - name: Build backend docker image
@@ -67,7 +67,7 @@ jobs:
         with:
           context: backend-rust
           file: backend-rust/Dockerfile
-          tags: concordium/ccdscan-backend:${{ env.TAG_VERSION }}
+          tags: concordium/ccdscan-backend:test # Replace me
           push: false
-          args: |
+          build-args: |
             target_binary=ccdscan-api
