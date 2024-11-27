@@ -3,7 +3,7 @@ use clap::Parser;
 use concordium_rust_sdk::v2;
 use concordium_scan::{
     indexer::{self, IndexerServiceConfig},
-    metrics,
+    router,
 };
 use prometheus_client::registry::Registry;
 use sqlx::postgres::PgPoolOptions;
@@ -76,12 +76,13 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { indexer.run(stop_signal).await })
     };
     let mut metrics_task = {
+        let pool = pool.clone();
         let tcp_listener = TcpListener::bind(cli.metrics_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Metrics server is running at {:?}", cli.metrics_listen);
-        tokio::spawn(metrics::serve(registry, tcp_listener, stop_signal))
+        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
     };
     // Await for signal to shutdown or any of the tasks to stop.
     tokio::select! {

@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, metrics};
+use concordium_scan::{graphql_api, router};
 use prometheus_client::registry::Registry;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
@@ -69,6 +69,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
+        let pool = pool.clone();
         let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
@@ -87,12 +88,13 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
     let mut metrics_task = {
+        let pool = pool.clone();
         let tcp_listener = TcpListener::bind(cli.metrics_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
         info!("Metrics server is running at {:?}", cli.metrics_listen);
-        tokio::spawn(metrics::serve(registry, tcp_listener, stop_signal))
+        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
