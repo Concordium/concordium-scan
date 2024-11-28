@@ -820,8 +820,61 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come after the specified cursor." after:
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection token(contractIndex: UnsignedLong!
+    // String): TokensConnection
+    // TODO
+    // token(contractIndex: UnsignedLong!
     // contractSubIndex: UnsignedLong! tokenId: String!): Token!
+
+    async fn token<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_address_index: ContractIndex,
+        contract_address_sub_index: ContractIndex,
+        token_id: String,
+    ) -> ApiResult<Token> {
+        let pool = get_pool(ctx)?;
+
+        // let row = sqlx::query!(
+        //     r#"SELECT
+        //         module_reference,
+        //         name as contract_name,
+        //         contracts.amount,
+        //         blocks.slot_time as block_slot_time,
+        //         transactions.block_height,
+        //         transactions.hash as transaction_hash,
+        //         accounts.address as creator
+        //     FROM contracts
+        //     JOIN transactions ON transaction_index = transactions.index
+        //     JOIN blocks ON transactions.block_height = blocks.height
+        //     JOIN accounts ON transactions.sender = accounts.index
+        //     WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
+        //     contract_address_index.0 as i64,
+        //     contract_address_sub_index.0 as i64,
+        // )
+        // .fetch_optional(pool)
+        // .await?
+        // .ok_or(ApiError::NotFound)?;
+
+        // let snapshot = ContractSnapshot {
+        //     block_height: row.block_height,
+        //     contract_address_index,
+        //     contract_address_sub_index,
+        //     contract_name: row.contract_name,
+        //     module_reference: row.module_reference,
+        //     amount: row.amount,
+        // };
+
+        Ok(Token {
+            initial_transaction:        Transaction,
+            contract_index:             ContractIndex,
+            contract_sub_index:         ContractIndex,
+            token_id:                   String,
+            metadata_url:               String,
+            total_supply:               BigInteger,
+            contract_address_formatted: String,
+            token_address:              String,
+        })
+    }
 
     async fn contract<'a>(
         &self,
@@ -2255,6 +2308,7 @@ struct AccountToken {
     account:            Account,
 }
 
+// TODO
 #[derive(SimpleObject)]
 struct Token {
     initial_transaction:        Transaction,
