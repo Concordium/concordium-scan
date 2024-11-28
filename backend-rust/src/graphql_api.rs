@@ -1068,7 +1068,7 @@ pub struct SubscriptionContext {
 }
 
 impl SubscriptionContext {
-    const ACCOUNTS_UPDATED_CHANNEL: &'static str = "accounts_updated";
+    const ACCOUNTS_UPDATED_CHANNEL: &'static str = "account_updated";
     const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
