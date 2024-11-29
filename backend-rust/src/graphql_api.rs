@@ -41,7 +41,6 @@ use concordium_rust_sdk::{
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
@@ -1055,10 +1054,37 @@ impl Subscription {
 
     async fn accounts_updated(
         &self,
-        // TODO: What to do with this?
-        account_address: String,
+        account_address: Option<String>,
     ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>> {
-        tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe())
+        let stream =
+            tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe());
+
+        // Apply filtering based on `account_address`.
+        stream.filter_map(
+            move |item: Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>| {
+                let address_filter = account_address.clone();
+                async move {
+                    match item {
+                        Ok(notification) => {
+                            if let Some(filter) = address_filter {
+                                if notification.address == filter {
+                                    // Pass on notification.
+                                    Some(Ok(notification))
+                                } else {
+                                    // Skip if filter does non match.
+                                    None
+                                }
+                            } else {
+                                // Pass on all notification if no filter is set.
+                                Some(Ok(notification))
+                            }
+                        }
+                        // Pass on errors.
+                        Err(e) => Some(Err(e)),
+                    }
+                }
+            },
+        )
     }
 }
 
@@ -1094,6 +1120,14 @@ impl SubscriptionContext {
                         }
 
                         Self::ACCOUNTS_UPDATED_CHANNEL => {
+                            // let address = notification.payload().to_string();
+
+                            // if let Some(ref filter) = account_address {
+                            //     if &address != filter {
+                            //         continue; // Skip if the address doesn't match the filter
+                            //     }
+                            // }
+
                             self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
                                 address: notification.payload().to_string(),
                             })?;
