@@ -1120,14 +1120,6 @@ impl SubscriptionContext {
                         }
 
                         Self::ACCOUNTS_UPDATED_CHANNEL => {
-                            // let address = notification.payload().to_string();
-
-                            // if let Some(ref filter) = account_address {
-                            //     if &address != filter {
-                            //         continue; // Skip if the address doesn't match the filter
-                            //     }
-                            // }
-
                             self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
                                 address: notification.payload().to_string(),
                             })?;
