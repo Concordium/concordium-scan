@@ -41,8 +41,7 @@ struct Cli {
                 `error`.",
         env = "LOG_LEVEL"
     )]
-    log_level: tracing_subscriber::filter::LevelFilter,
-
+    log_level:       tracing_subscriber::filter::LevelFilter,
 }
 
 #[tokio::main]
