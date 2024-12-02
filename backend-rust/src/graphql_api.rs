@@ -944,39 +944,8 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     //     //     module_reference: row.module_reference,
     //     //     amount: row.amount,
     //     // };
-
-    //     // https://proposals.concordium.software/CIS/cis-2.html#token-address
-
-    //     /// <summary>
-    //     /// Encode token address.
-    //     /// It is encoded by using leb128 encoding on contract index
-    //     /// and contract subindex.
-    //     /// The leb128 encodings are concatenated and the token id as bytes are
-    //     /// appended. Finally the whole byte array are base 58 encoded.
-    //     /// </summary>
-    //     // internal static string EncodeTokenAddress(
-    //     //     ulong contractIndex,
-    //     //     ulong contractSubindex,
-    //     //     string tokenId
-    //     // )
-    //     // {
-    //     //     var contractIndexBytes =
-    // Leb128.EncodeUnsignedLeb128(contractIndex);     //     var
-    // contractSubindexBytes = Leb128.EncodeUnsignedLeb128(contractSubindex);
-    //     //     var tokenIdBytes = Convert.FromHexString(tokenId).AsSpan();
-    //     //     Span<byte> bytes = new byte[1 + contractIndexBytes.Length +
-    //     // contractSubindexBytes.Length + tokenIdBytes.Length];     bytes[0] = 2;
-    //     //     contractIndexBytes.CopyTo(bytes.Slice(1,
-    //     //         contractIndexBytes.Length));
-    //     //     contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length
-    // + 1,     //         contractSubindexBytes.Length));
-    //     //     tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length +
-    //     // contractIndexBytes.Length + 1,         tokenIdBytes.Length));
-
-    //     //     return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
-    //     // }
-    //     // /concordium-scan/backend/Application/Aggregates/Contract/Entitie/
-    // Token.cs     Ok(Token {
+    //
+    //   Ok(Token {
     //         initial_transaction:        Transaction,
     //         contract_index:             ContractIndex,
     //         contract_sub_index:         ContractIndex,
