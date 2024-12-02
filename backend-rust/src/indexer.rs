@@ -2241,7 +2241,53 @@ impl PreparedContractUpdate {
                 owner,
             } = log
             {
+                let token_name = get_token_name(
+                    self.contract_index as u64,
+                    self.contract_sub_index as u64,
+                    token_id,
+                );
+                // Fetch the current `total_supply` for the given `token_name`.
+                let row = sqlx::query!(
+                    "
+                        SELECT total_supply FROM tokens WHERE token_name = $1",
+                    token_name,
+                )
+                .fetch_optional(pool)
+                .await?;
 
+                // If `current_total_supply` exists, decode it and subtract the `amount`.
+                let new_total_supply = if let Some(row) = row {
+                    let current_total_supply_bytes = row.total_supply;
+
+                    let decoded_amount: BigUint =
+                        BigUint::from_bytes_le(&current_total_supply_bytes);
+
+                    let updated_amount = decoded_amount - amount.0.clone();
+
+                    updated_amount.to_bytes_le()
+                } else {
+                    amount.0.to_bytes_le()
+                };
+
+                // If the `token_name` does not exist, insert the new token with its
+                // `total_supply` set to `-amount`. If the `token_name` exists,
+                // update the `total_supply` value by subtracting the `amount` from the existing
+                // value.
+                sqlx::query!(
+                    "
+                        INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
+                     total_supply)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (token_name)
+                        DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                    token_name,
+                    self.contract_index,
+                    self.contract_sub_index,
+                    new_total_supply
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
         }
 
         Ok(())
