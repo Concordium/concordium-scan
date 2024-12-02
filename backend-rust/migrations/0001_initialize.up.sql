@@ -373,6 +373,35 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
+-- All CIS2 tokens. A token is added in this table whenever a `CIS2 mint event` is logged for the first
+-- time by a contract claiming to follow the `CIS2 standard`.
+CREATE TABLE tokens (
+    -- An index/id for the token (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- Contract index that the event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that the event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- Unique token name (hash of ...).
+    token_name
+        TEXT
+        UNIQUE,
+    -- Metadata url.
+    metadata_url
+        TEXT,
+    -- Accumulated total supply of the token calculated by considering all `mint/burn` events associated
+    -- to the token.
+    total_supply
+        BYTEA
+        NOT NULL
+);
+
 CREATE OR REPLACE FUNCTION account_updated_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec affected_accounts;
@@ -385,7 +414,6 @@ BEGIN
             INTO lookup_result
             FROM accounts
             WHERE index = NEW.account_index;
-
             -- Include the lookup result in the payload
             PERFORM pg_notify('account_updated', lookup_result);
        ELSE NULL;
