@@ -820,61 +820,8 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come after the specified cursor." after:
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection
-    // TODO
-    // token(contractIndex: UnsignedLong!
+    // String): TokensConnection token(contractIndex: UnsignedLong!
     // contractSubIndex: UnsignedLong! tokenId: String!): Token!
-
-    async fn token<'a>(
-        &self,
-        ctx: &Context<'a>,
-        contract_address_index: ContractIndex,
-        contract_address_sub_index: ContractIndex,
-        token_id: String,
-    ) -> ApiResult<Token> {
-        let pool = get_pool(ctx)?;
-
-        // let row = sqlx::query!(
-        //     r#"SELECT
-        //         module_reference,
-        //         name as contract_name,
-        //         contracts.amount,
-        //         blocks.slot_time as block_slot_time,
-        //         transactions.block_height,
-        //         transactions.hash as transaction_hash,
-        //         accounts.address as creator
-        //     FROM contracts
-        //     JOIN transactions ON transaction_index = transactions.index
-        //     JOIN blocks ON transactions.block_height = blocks.height
-        //     JOIN accounts ON transactions.sender = accounts.index
-        //     WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
-        //     contract_address_index.0 as i64,
-        //     contract_address_sub_index.0 as i64,
-        // )
-        // .fetch_optional(pool)
-        // .await?
-        // .ok_or(ApiError::NotFound)?;
-
-        // let snapshot = ContractSnapshot {
-        //     block_height: row.block_height,
-        //     contract_address_index,
-        //     contract_address_sub_index,
-        //     contract_name: row.contract_name,
-        //     module_reference: row.module_reference,
-        //     amount: row.amount,
-        // };
-
-        Ok(Token {
-            initial_transaction:        Transaction,
-            contract_index:             ContractIndex,
-            contract_sub_index:         ContractIndex,
-            token_id:                   String,
-            metadata_url:               String,
-            total_supply:               BigInteger,
-            contract_address_formatted: String,
-            token_address:              String,
-        })
-    }
 
     async fn contract<'a>(
         &self,
@@ -2308,7 +2255,6 @@ struct AccountToken {
     account:            Account,
 }
 
-// TODO
 #[derive(SimpleObject)]
 struct Token {
     initial_transaction:        Transaction,
@@ -4008,7 +3954,8 @@ pub fn events_from_summary(
                             address,
                             events,
                         } => Ok(Event::ContractInterrupted(ContractInterrupted {
-                            contract_address: address.into(),
+                            contract_address:  address.into(),
+                            contract_logs_raw: events.iter().map(|e| e.as_ref().to_vec()).collect(),
                         })),
                         ContractTraceElement::Resumed {
                             address,
@@ -5115,15 +5062,70 @@ pub struct ChainUpdatePayload {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ContractInterrupted {
-    contract_address: ContractAddress,
-    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
-    // in the list that come after the specified cursor." after: String "Returns the last _n_
-    // elements from the list." last: Int "Returns the elements in the list that come before the
-    // specified cursor." before: String): StringConnection events("Returns the first _n_
-    // elements from the list." first: Int "Returns the elements in the list that come after the
-    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor." before: String):
-    // StringConnection
+    contract_address:  ContractAddress,
+    // All logged events by the smart contract during this section of the transaction execution.
+    contract_logs_raw: Vec<Vec<u8>>,
+}
+
+#[ComplexObject]
+impl ContractInterrupted {
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let opt_event_schema = row
+            .display_schema
+            .as_ref()
+            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
+            .and_then(|versioned_schema| {
+                versioned_schema.get_event_schema(&row.contract_name).ok()
+            });
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
+            let decoded_log =
+                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+        }
+
+        // Nice-to-have: pagination info but not used at front-end currently.
+
+        Ok(connection)
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5140,7 +5142,7 @@ pub struct ContractUpdated {
     amount:            Amount,
     receive_name:      String,
     version:           ContractVersion,
-    // All logged events by the smart contract during the transaction execution.
+    // All logged events by the smart contract during this section of the transaction execution.
     contract_logs_raw: Vec<Vec<u8>>,
     input_parameter:   Vec<u8>,
 }
