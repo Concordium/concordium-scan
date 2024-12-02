@@ -380,18 +380,19 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
--- All CIS2 tokens. A token is added in this table whenever a `CIS2 mint event` is logged for the first
+-- All CIS2 tokens. A token is added to this table whenever a `CIS2 mint event` is logged for the first
+-- time by a contract claiming to follow the `CIS2 standard` or a `CIS2 tokenMetadataUpdated event` is logged for the first
 -- time by a contract claiming to follow the `CIS2 standard`.
 CREATE TABLE tokens (
     -- An index/id for the token (row number).
     index
         BIGINT GENERATED ALWAYS AS IDENTITY
         PRIMARY KEY,
-    -- Contract index that the event is associated with.
+    -- Contract index that the token is associated with.
     contract_index
         BIGINT
         NOT NULL,
-    -- Contract subindex that the event is associated with.
+    -- Contract subindex that the token is associated with.
     contract_sub_index
         BIGINT
         NOT NULL,
