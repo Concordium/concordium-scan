@@ -376,7 +376,6 @@ CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_su
 CREATE OR REPLACE FUNCTION account_updated_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec affected_accounts;
-  payload TEXT;
   lookup_result TEXT;
 BEGIN
   CASE TG_OP

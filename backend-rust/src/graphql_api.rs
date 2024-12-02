@@ -1071,7 +1071,7 @@ impl Subscription {
                                     // Pass on notification.
                                     Some(Ok(notification))
                                 } else {
-                                    // Skip if filter does non match.
+                                    // Skip if filter does not match.
                                     None
                                 }
                             } else {
