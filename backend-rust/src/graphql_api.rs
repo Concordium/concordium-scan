@@ -865,6 +865,24 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         })
     }
 
+    // let opt_contract_logs= match self.event{
+    //     ContractTraceElement::Updated { data } => Some(data.events),
+    //     ContractTraceElement::Transferred { from, amount, to } => None,
+    //     ContractTraceElement::Interrupted { address, events } =>Some(*events),
+    //     ContractTraceElement::Resumed { address, success } => None,
+    //     ContractTraceElement::Upgraded { address, from, to } => None,
+    // };
+
+    /// For each contract those contract actions, which generates log
+    /// events, are processed (contract initialization, contract
+    /// interrupted and contract updated).
+    //     -- Specifies if the contract supports the CIS2 standard. If true, the
+    // contract is considered a token contract. -- The contract is querried when
+    // initialized if it supports the CIS2 standard and whenever the contract is `natively_upgraded`. -- https://proposals.concordium.software/CIS/cis-0.html#cis-0
+    // is_cis2
+    //     BOOLEAN
+    //     NOT NULL,
+
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
@@ -887,6 +905,88 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come before the specified cursor." before:
     // String): TokensConnection token(contractIndex: UnsignedLong!
     // contractSubIndex: UnsignedLong! tokenId: String!): Token!
+
+    // async fn token<'a>(
+    //     &self,
+    //     ctx: &Context<'a>,
+    //     contract_address_index: ContractIndex,
+    //     contract_address_sub_index: ContractIndex,
+    //     token_id: String,
+    // ) -> ApiResult<Token> {
+    //     let pool = get_pool(ctx)?;
+
+    //     // let row = sqlx::query!(
+    //     //     r#"SELECT
+    //     //         module_reference,
+    //     //         name as contract_name,
+    //     //         contracts.amount,
+    //     //         blocks.slot_time as block_slot_time,
+    //     //         transactions.block_height,
+    //     //         transactions.hash as transaction_hash,
+    //     //         accounts.address as creator
+    //     //     FROM contracts
+    //     //     JOIN transactions ON transaction_index = transactions.index
+    //     //     JOIN blocks ON transactions.block_height = blocks.height
+    //     //     JOIN accounts ON transactions.sender = accounts.index
+    //     //     WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
+    //     //     contract_address_index.0 as i64,
+    //     //     contract_address_sub_index.0 as i64,
+    //     // )
+    //     // .fetch_optional(pool)
+    //     // .await?
+    //     // .ok_or(ApiError::NotFound)?;
+
+    //     // let snapshot = ContractSnapshot {
+    //     //     block_height: row.block_height,
+    //     //     contract_address_index,
+    //     //     contract_address_sub_index,
+    //     //     contract_name: row.contract_name,
+    //     //     module_reference: row.module_reference,
+    //     //     amount: row.amount,
+    //     // };
+
+    //     // https://proposals.concordium.software/CIS/cis-2.html#token-address
+
+    //     /// <summary>
+    //     /// Encode token address.
+    //     /// It is encoded by using leb128 encoding on contract index
+    //     /// and contract subindex.
+    //     /// The leb128 encodings are concatenated and the token id as bytes are
+    //     /// appended. Finally the whole byte array are base 58 encoded.
+    //     /// </summary>
+    //     // internal static string EncodeTokenAddress(
+    //     //     ulong contractIndex,
+    //     //     ulong contractSubindex,
+    //     //     string tokenId
+    //     // )
+    //     // {
+    //     //     var contractIndexBytes =
+    // Leb128.EncodeUnsignedLeb128(contractIndex);     //     var
+    // contractSubindexBytes = Leb128.EncodeUnsignedLeb128(contractSubindex);
+    //     //     var tokenIdBytes = Convert.FromHexString(tokenId).AsSpan();
+    //     //     Span<byte> bytes = new byte[1 + contractIndexBytes.Length +
+    //     // contractSubindexBytes.Length + tokenIdBytes.Length];     bytes[0] = 2;
+    //     //     contractIndexBytes.CopyTo(bytes.Slice(1,
+    //     //         contractIndexBytes.Length));
+    //     //     contractSubindexBytes.CopyTo(bytes.Slice(contractIndexBytes.Length
+    // + 1,     //         contractSubindexBytes.Length));
+    //     //     tokenIdBytes.CopyTo(bytes.Slice(contractSubindexBytes.Length +
+    //     // contractIndexBytes.Length + 1,         tokenIdBytes.Length));
+
+    //     //     return Base58Encoder.Base58CheckEncoder.EncodeData(bytes);
+    //     // }
+    //     // /concordium-scan/backend/Application/Aggregates/Contract/Entitie/
+    // Token.cs     Ok(Token {
+    //         initial_transaction:        Transaction,
+    //         contract_index:             ContractIndex,
+    //         contract_sub_index:         ContractIndex,
+    //         token_id:                   String,
+    //         metadata_url:               String,
+    //         total_supply:               BigInteger,
+    //         contract_address_formatted: String,
+    //         token_address:              String,
+    //     })
+    // }
 
     async fn contract<'a>(
         &self,
