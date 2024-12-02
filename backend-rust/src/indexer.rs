@@ -2174,7 +2174,7 @@ impl PreparedContractUpdate {
         // TODO: it would be nice to check if the token supports CIS2 (CIS-0 standard)
 
         for log in self.potential_cis2_events.iter() {
-            // The `total_supply` value of a token is inserted/updated here.
+            // The `total_supply` value of a token is inserted/updated in the database here.
             // Only `Mint` and `Burn` events affect the `total_supply` of a
             // token.
             if let cis2::Event::Mint {
@@ -2232,7 +2232,7 @@ impl PreparedContractUpdate {
                 .await?;
             }
 
-            // The `total_supply` value of a token is inserted/updated here.
+            // The `total_supply` value of a token is inserted/updated in the database here.
             // Only `Mint` and `Burn` events affect the `total_supply` of a
             // token.
             if let cis2::Event::Burn {
@@ -2284,6 +2284,40 @@ impl PreparedContractUpdate {
                     self.contract_index,
                     self.contract_sub_index,
                     new_total_supply
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+
+            // The `metadata_url` of a token is inserted/updated in the database here.
+            // Only `TokenMetadata` events affect the `metadata_url` of a
+            // token.
+            if let cis2::Event::TokenMetadata {
+                token_id,
+                metadata_url,
+            } = log
+            {
+                let token_name = get_token_name(
+                    self.contract_index as u64,
+                    self.contract_sub_index as u64,
+                    token_id,
+                );
+
+                // If the `token_name` does not exist, insert the new token with its
+                // `total_supply` set to `-amount`. If the `token_name` exists,
+                // update the `total_supply` value by subtracting the `amount` from the existing
+                // value.
+                sqlx::query!(
+                    "
+                        INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
+                     metadata_url)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (token_name)
+                        DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
+                    token_name,
+                    self.contract_index,
+                    self.contract_sub_index,
+                    metadata_url.to_string()
                 )
                 .execute(tx.as_mut())
                 .await?;

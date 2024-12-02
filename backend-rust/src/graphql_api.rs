@@ -879,9 +879,6 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     //     -- Specifies if the contract supports the CIS2 standard. If true, the
     // contract is considered a token contract. -- The contract is querried when
     // initialized if it supports the CIS2 standard and whenever the contract is `natively_upgraded`. -- https://proposals.concordium.software/CIS/cis-0.html#cis-0
-    // is_cis2
-    //     BOOLEAN
-    //     NOT NULL,
 
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
