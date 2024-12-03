@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                        INSERT INTO tokens (token_name, contract_index, contract_sub_index, total_supply)\n                        VALUES ($1, $2, $3, $4)\n                        ON CONFLICT (token_name)\n                        DO UPDATE SET total_supply = EXCLUDED.total_supply",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac3fb8f26688727bd64f157c268f9f4818531c219fb07159d719de18e5fe7c3c"
+}
