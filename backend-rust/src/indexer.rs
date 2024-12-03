@@ -2035,7 +2035,7 @@ impl PreparedRejectModuleTransaction {
 /// encoding of the contract subindex concatenated with the token id in bytes.
 /// Finally the whole byte array is base 58 check encoded.
 /// https://proposals.concordium.software/CIS/cis-2.html#token-address
-fn get_token_name(contract_index: u64, contract_subindex: u64, token_id: &TokenId) -> String {
+pub fn get_token_name(contract_index: u64, contract_subindex: u64, token_id: &TokenId) -> String {
     // Encode the contract index and subindex as unsigned LEB128.
     let mut contract_index_bytes = Vec::new();
     encode_leb128(&mut contract_index_bytes, contract_index).unwrap();
@@ -2219,14 +2219,15 @@ impl PreparedContractUpdate {
                 sqlx::query!(
                     "
                     INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
-                     total_supply)
-                    VALUES ($1, $2, $3, $4)
+                     total_supply, init_transaction_index)
+                    VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT (token_name)
                     DO UPDATE SET total_supply = EXCLUDED.total_supply",
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply
+                    new_total_supply,
+                    transaction_index
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2276,14 +2277,15 @@ impl PreparedContractUpdate {
                 sqlx::query!(
                     "
                         INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
-                     total_supply)
-                        VALUES ($1, $2, $3, $4)
+                     total_supply, init_transaction_index)
+                        VALUES ($1, $2, $3, $4, $5)
                         ON CONFLICT (token_name)
                         DO UPDATE SET total_supply = EXCLUDED.total_supply",
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply
+                    new_total_supply,
+                    transaction_index
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2308,14 +2310,15 @@ impl PreparedContractUpdate {
                 sqlx::query!(
                     "
                         INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
-                     metadata_url)
-                        VALUES ($1, $2, $3, $4)
+                     metadata_url, init_transaction_index)
+                        VALUES ($1, $2, $3, $4, $5)
                         ON CONFLICT (token_name)
                         DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    to_bytes(metadata_url)
+                    to_bytes(metadata_url),
+                    transaction_index
                 )
                 .execute(tx.as_mut())
                 .await?;

@@ -14,6 +14,7 @@ macro_rules! todo_api {
     };
 }
 
+use crate::indexer::get_token_name;
 use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
@@ -28,15 +29,18 @@ use chrono::Duration;
 use concordium_rust_sdk::{
     base::{
         contracts_common::{
+            from_bytes,
             schema::{Type, VersionedModuleSchema, VersionedSchemaError},
             Cursor,
         },
         smart_contracts::ReceiveName,
     },
+    cis2::{self, TokenId},
     id::types as sdk_types,
     types::AmountFraction,
 };
 use futures::prelude::*;
+use num_bigint::BigUint;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
@@ -364,6 +368,8 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
+    #[error("Invalid token ID")]
+    InvalidTokenID,
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -900,59 +906,92 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come after the specified cursor." after:
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection token(contractIndex: UnsignedLong!
-    // contractSubIndex: UnsignedLong! tokenId: String!): Token!
+    // String): TokensConnection
 
-    // async fn token<'a>(
-    //     &self,
-    //     ctx: &Context<'a>,
-    //     contract_address_index: ContractIndex,
-    //     contract_address_sub_index: ContractIndex,
-    //     token_id: String,
-    // ) -> ApiResult<Token> {
-    //     let pool = get_pool(ctx)?;
+    async fn token<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_address_index: ContractIndex,
+        contract_address_sub_index: ContractIndex,
+        token_id: String,
+    ) -> ApiResult<Token> {
+        let pool = get_pool(ctx)?;
 
-    //     // let row = sqlx::query!(
-    //     //     r#"SELECT
-    //     //         module_reference,
-    //     //         name as contract_name,
-    //     //         contracts.amount,
-    //     //         blocks.slot_time as block_slot_time,
-    //     //         transactions.block_height,
-    //     //         transactions.hash as transaction_hash,
-    //     //         accounts.address as creator
-    //     //     FROM contracts
-    //     //     JOIN transactions ON transaction_index = transactions.index
-    //     //     JOIN blocks ON transactions.block_height = blocks.height
-    //     //     JOIN accounts ON transactions.sender = accounts.index
-    //     //     WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
-    //     //     contract_address_index.0 as i64,
-    //     //     contract_address_sub_index.0 as i64,
-    //     // )
-    //     // .fetch_optional(pool)
-    //     // .await?
-    //     // .ok_or(ApiError::NotFound)?;
+        let token_name = get_token_name(
+            contract_address_index.0,
+            contract_address_sub_index.0,
+            &TokenId::from_str(&token_id).map_err(|_| ApiError::InvalidTokenID)?,
+        );
 
-    //     // let snapshot = ContractSnapshot {
-    //     //     block_height: row.block_height,
-    //     //     contract_address_index,
-    //     //     contract_address_sub_index,
-    //     //     contract_name: row.contract_name,
-    //     //     module_reference: row.module_reference,
-    //     //     amount: row.amount,
-    //     // };
-    //
-    //   Ok(Token {
-    //         initial_transaction:        Transaction,
-    //         contract_index:             ContractIndex,
-    //         contract_sub_index:         ContractIndex,
-    //         token_id:                   String,
-    //         metadata_url:               String,
-    //         total_supply:               BigInteger,
-    //         contract_address_formatted: String,
-    //         token_address:              String,
-    //     })
-    // }
+        let row = sqlx::query_as!(
+            TokenRow,
+             r#"SELECT
+                total_supply,
+                metadata_url,
+                init_transaction_index AS "index",
+                transactions.block_height AS "block_height",
+                transactions.hash AS "hash",
+                transactions.ccd_cost AS "ccd_cost",
+                transactions.energy_cost AS "energy_cost",
+                transactions.sender,
+                transactions.type as "tx_type: DbTransactionType",
+                transactions.type_account as "type_account: AccountTransactionType",
+                transactions.type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                transactions.type_update as "type_update: UpdateTransactionType",
+                transactions.success,
+                transactions.events as "events: sqlx::types::Json<Vec<Event>>",
+                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+            FROM tokens
+            JOIN transactions ON transactions.index = tokens.init_transaction_index
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_name = $3"#,
+            contract_address_index.0 as i64,
+            contract_address_sub_index.0 as i64,
+            token_name
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let init_transaction = Transaction {
+            index: row.index,
+            block_height: row.block_height,
+            hash: row.hash,
+            ccd_cost: row.ccd_cost,
+            energy_cost: row.energy_cost,
+            sender: row.sender,
+            tx_type: row.tx_type,
+            type_account: row.type_account,
+            type_credential_deployment: row.type_credential_deployment,
+            type_update: row.type_update,
+            success: row.success,
+            events: row.events,
+            reject: row.reject,
+        };
+
+        let total_supply: BigUint = BigUint::from_bytes_le(&row.total_supply);
+
+        let metadata_url = if let Some(metadata) = row.metadata_url {
+            let metadata: cis2::MetadataUrl =
+                from_bytes(&metadata).map_err(|e| ApiError::InternalError(e.to_string()))?;
+            format!("{:?}", metadata)
+        } else {
+            "".to_string()
+        };
+
+        Ok(Token {
+            initial_transaction: init_transaction,
+            contract_index: contract_address_index,
+            contract_sub_index: contract_address_sub_index,
+            token_id,
+            metadata_url,
+            total_supply: total_supply.to_u64_digits(),
+            contract_address_formatted: format!(
+                "<{},{}>",
+                contract_address_index, contract_address_sub_index
+            ),
+            token_address: token_name,
+        })
+    }
 
     async fn contract<'a>(
         &self,
@@ -1423,7 +1462,7 @@ type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = u64; // TODO check format.
+type BigInteger = Vec<u64>;  // The type should be equivallent to the `num_bigint::BigUint` type.
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]
@@ -6013,4 +6052,24 @@ pub enum DbTransactionType {
     Account,
     CredentialDeployment,
     Update,
+}
+
+// A helper type to query the `tokens` table with its `init_transaction`.
+pub struct TokenRow {
+    metadata_url: Option<Vec<u8>>,
+    total_supply: Vec<u8>,
+    // Init_transaction fields below.
+    index: i64,
+    block_height: BlockHeight,
+    hash: TransactionHash,
+    ccd_cost: Amount,
+    energy_cost: Energy,
+    sender: Option<AccountIndex>,
+    tx_type: DbTransactionType,
+    type_account: Option<AccountTransactionType>,
+    type_credential_deployment: Option<CredentialDeploymentTransactionType>,
+    type_update: Option<UpdateTransactionType>,
+    success: bool,
+    events: Option<sqlx::types::Json<Vec<Event>>>,
+    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
