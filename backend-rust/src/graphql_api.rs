@@ -43,6 +43,7 @@ use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use transaction_metrics::TransactionMetricsQuery;
 
@@ -1024,42 +1025,85 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 }
 
 pub struct Subscription {
-    pub block_added: broadcast::Receiver<Arc<Block>>,
+    pub block_added:      broadcast::Receiver<Block>,
+    pub accounts_updated: broadcast::Receiver<AccountsUpdatedSubscriptionItem>,
 }
+
 impl Subscription {
     pub fn new() -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
+        let (accounts_updated_sender, accounts_updated) = broadcast::channel(100);
         (
             Subscription {
                 block_added,
+                accounts_updated,
             },
             SubscriptionContext {
                 block_added_sender,
+                accounts_updated_sender,
             },
         )
     }
 }
+
 #[Subscription]
 impl Subscription {
-    async fn block_added(
-        &self,
-    ) -> impl Stream<Item = Result<Arc<Block>, tokio_stream::wrappers::errors::BroadcastStreamRecvError>>
-    {
+    async fn block_added(&self) -> impl Stream<Item = Result<Block, BroadcastStreamRecvError>> {
         tokio_stream::wrappers::BroadcastStream::new(self.block_added.resubscribe())
     }
+
+    async fn accounts_updated(
+        &self,
+        account_address: Option<String>,
+    ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>> {
+        let stream =
+            tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe());
+
+        // Apply filtering based on `account_address`.
+        stream.filter_map(
+            move |item: Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>| {
+                let address_filter = account_address.clone();
+                async move {
+                    match item {
+                        Ok(notification) => {
+                            if let Some(filter) = address_filter {
+                                if notification.address == filter {
+                                    // Pass on notification.
+                                    Some(Ok(notification))
+                                } else {
+                                    // Skip if filter does not match.
+                                    None
+                                }
+                            } else {
+                                // Pass on all notification if no filter is set.
+                                Some(Ok(notification))
+                            }
+                        }
+                        // Pass on errors.
+                        Err(e) => Some(Err(e)),
+                    }
+                }
+            },
+        )
+    }
 }
+
 pub struct SubscriptionContext {
-    block_added_sender: broadcast::Sender<Arc<Block>>,
+    block_added_sender:      broadcast::Sender<Block>,
+    accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
 }
+
 impl SubscriptionContext {
+    const ACCOUNTS_UPDATED_CHANNEL: &'static str = "account_updated";
     const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
         let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
             .await
             .context("Failed to create a postgreSQL listener")?;
+
         listener
-            .listen_all([Self::BLOCK_ADDED_CHANNEL])
+            .listen_all([Self::BLOCK_ADDED_CHANNEL, Self::ACCOUNTS_UPDATED_CHANNEL])
             .await
             .context("Failed to listen to postgreSQL notifications")?;
 
@@ -1072,20 +1116,34 @@ impl SubscriptionContext {
                             let block_height = BlockHeight::from_str(notification.payload())
                                 .context("Failed to parse payload of block added")?;
                             let block = Block::query_by_height(&pool, block_height).await?;
-                            self.block_added_sender.send(Arc::new(block))?;
+                            self.block_added_sender.send(block)?;
                         }
+
+                        Self::ACCOUNTS_UPDATED_CHANNEL => {
+                            self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
+                                address: notification.payload().to_string(),
+                            })?;
+                        }
+
                         unknown => {
-                            anyhow::bail!("Unknown channel {}", unknown);
+                            anyhow::bail!("Received notification on unknown channel: {unknown}");
                         }
                     }
                 }
             })
             .await;
+
         if let Some(result) = exit {
             result.context("Failed listening")?;
         }
+
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, SimpleObject)]
+pub struct AccountsUpdatedSubscriptionItem {
+    address: String,
 }
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
@@ -1241,7 +1299,7 @@ struct Versions {
     backend_versions: String,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Block {
     hash:              BlockHash,
     height:            BlockHeight,
