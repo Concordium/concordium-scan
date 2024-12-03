@@ -4159,7 +4159,6 @@ pub fn events_from_summary(
             } => {
                 vec![Event::DataRegistered(DataRegistered {
                     data_as_hex: hex::encode(data.as_ref()),
-                    decoded:     DecodedText::from_bytes(data.as_ref()),
                 })]
             }
             AccountTransactionEffects::BakerConfigured {
@@ -4675,7 +4674,6 @@ impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReas
 impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
     fn from(value: concordium_rust_sdk::types::Memo) -> Self {
         TransferMemo {
-            decoded: DecodedText::from_bytes(value.as_ref()),
             raw_hex: hex::encode(value.as_ref()),
         }
     }
@@ -4918,7 +4916,6 @@ pub struct CredentialsUpdated {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct DataRegistered {
-    decoded:     DecodedText,
     data_as_hex: String,
 }
 
@@ -5005,7 +5002,6 @@ impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncrypt
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct TransferMemo {
-    decoded: DecodedText,
     raw_hex: String,
 }
 

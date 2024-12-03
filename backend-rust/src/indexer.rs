@@ -32,10 +32,11 @@ use prometheus_client::{
     },
     registry::Registry,
 };
-use sqlx::PgPool;
+use sqlx::{Execute, PgPool};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
+use base64::{encode, DecodeError};
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -786,6 +787,21 @@ impl PreparedBlock {
                 context.last_finalized_hash = block.block_last_finalized.clone();
             }
         }
+    // Log each argument
+    println!("Heights: {:?}", heights);
+    println!("Hashes: {:?}", hashes);
+    println!("Slot Times: {:?}", slot_times);
+    println!("Block Times: {:?}", block_times);
+    println!(
+        "Baker IDs: {:?}",
+        baker_ids
+            .iter()
+            .map(|id| id.map_or("NULL".to_string(), |v| v.to_string()))
+            .collect::<Vec<_>>()
+    );
+    println!("Total Amounts: {:?}", total_amounts);
+    println!("Total Staked: {:?}", total_staked);
+    println!("Cumulative Num TXs: {:?}", cumulative_num_txss);
 
         sqlx::query!(
             r#"INSERT INTO blocks
@@ -960,6 +976,7 @@ impl PreparedBlockItem {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
+
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
                 index,
@@ -1004,8 +1021,11 @@ impl PreparedBlockItem {
             self.reject
         )
         .fetch_one(tx.as_mut())
-        .await?;
+        .await;
+        let json_string = serde_json::to_string(&self.events)?;
+        println!("{:?}", encode(json_string));
 
+        let tx_idx = tx_idx?;
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
