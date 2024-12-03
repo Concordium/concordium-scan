@@ -472,7 +472,8 @@ CREATE TABLE scheduled_releases (
 CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
 
 -- All CIS2 tokens. A token is added to this table whenever a `CIS2 mint event` is logged for the first
--- time by a contract claiming to follow the `CIS2 standard` or a `CIS2 tokenMetadataUpdated event` is logged for the first
+-- time by a contract claiming to follow the `CIS2 standard` or a `CIS2 tokenMetadataUpdated event` is logged
+-- for the first time by a contract claiming to follow the `CIS2 standard`.
 CREATE TABLE tokens (
     -- An index/id for the token (row number).
     index
@@ -492,12 +493,15 @@ CREATE TABLE tokens (
         UNIQUE,
     -- Metadata url.
     metadata_url
-        TEXT,
+        BYTEA,
     -- Accumulated total supply of the token calculated by considering all `mint/burn` events associated
-    -- to the token.
+    -- to the token. If no total supply is specified when inserting a new token in the table,
+    -- the default total supply 0 is used. The token amount type is stored in bytes in `little_endian` format
+    -- to accommodated large numbers.
     total_supply
         BYTEA
         NOT NULL
+        DEFAULT '\x00'
 );
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$

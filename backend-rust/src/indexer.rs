@@ -2303,10 +2303,8 @@ impl PreparedContractUpdate {
                     token_id,
                 );
 
-                // If the `token_name` does not exist, insert the new token with its
-                // `total_supply` set to `-amount`. If the `token_name` exists,
-                // update the `total_supply` value by subtracting the `amount` from the existing
-                // value.
+                // If the `token_name` does not exist, insert the new token.
+                // If the `token_name` exists, update the `metadata_url` value in the database.
                 sqlx::query!(
                     "
                         INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
@@ -2317,7 +2315,7 @@ impl PreparedContractUpdate {
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    metadata_url.to_string()
+                    to_bytes(metadata_url)
                 )
                 .execute(tx.as_mut())
                 .await?;
