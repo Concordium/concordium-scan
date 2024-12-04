@@ -32,11 +32,10 @@ use prometheus_client::{
     },
     registry::Registry,
 };
-use sqlx::{Execute, PgPool};
+use sqlx::PgPool;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
-use base64::{encode, DecodeError};
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
