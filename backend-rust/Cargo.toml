@@ -39,6 +39,7 @@ tower-http = { version = "0.6", features = ["cors"] }
 num-bigint = "0.4.6"
 bs58 = { version = "0.5.1", features = ["check"] }
 leb128 = "0.2.5"
+num-traits = "0.2.19"
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]
