@@ -16,6 +16,7 @@ macro_rules! todo_api {
     };
 }
 
+use crate::indexer::get_token_name;
 use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
@@ -30,15 +31,18 @@ use chrono::Duration;
 use concordium_rust_sdk::{
     base::{
         contracts_common::{
+            from_bytes,
             schema::{Type, VersionedModuleSchema, VersionedSchemaError},
             Cursor,
         },
         smart_contracts::ReceiveName,
     },
+    cis2::{self, TokenId},
     id::types as sdk_types,
     types::AmountFraction,
 };
 use futures::prelude::*;
+use num_bigint::BigUint;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
@@ -342,6 +346,8 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
+    #[error("Invalid token ID")]
+    InvalidTokenID,
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -841,6 +847,21 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         })
     }
 
+    // let opt_contract_logs= match self.event{
+    //     ContractTraceElement::Updated { data } => Some(data.events),
+    //     ContractTraceElement::Transferred { from, amount, to } => None,
+    //     ContractTraceElement::Interrupted { address, events } =>Some(*events),
+    //     ContractTraceElement::Resumed { address, success } => None,
+    //     ContractTraceElement::Upgraded { address, from, to } => None,
+    // };
+
+    /// For each contract those contract actions, which generates log
+    /// events, are processed (contract initialization, contract
+    /// interrupted and contract updated).
+    //     -- Specifies if the contract supports the CIS2 standard. If true, the
+    // contract is considered a token contract. -- The contract is querried when
+    // initialized if it supports the CIS2 standard and whenever the contract is `natively_upgraded`. -- https://proposals.concordium.software/CIS/cis-0.html#cis-0
+
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
@@ -861,8 +882,92 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come after the specified cursor." after:
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection token(contractIndex: UnsignedLong!
-    // contractSubIndex: UnsignedLong! tokenId: String!): Token!
+    // String): TokensConnection
+
+    async fn token<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_address_index: ContractIndex,
+        contract_address_sub_index: ContractIndex,
+        token_id: String,
+    ) -> ApiResult<Token> {
+        let pool = get_pool(ctx)?;
+
+        let token_name = get_token_name(
+            contract_address_index.0,
+            contract_address_sub_index.0,
+            &TokenId::from_str(&token_id).map_err(|_| ApiError::InvalidTokenID)?,
+        );
+
+        let row = sqlx::query_as!(
+            TokenRow,
+             r#"SELECT
+                total_supply,
+                metadata_url,
+                init_transaction_index AS "index",
+                transactions.block_height AS "block_height",
+                transactions.hash AS "hash",
+                transactions.ccd_cost AS "ccd_cost",
+                transactions.energy_cost AS "energy_cost",
+                transactions.sender,
+                transactions.type as "tx_type: DbTransactionType",
+                transactions.type_account as "type_account: AccountTransactionType",
+                transactions.type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
+                transactions.type_update as "type_update: UpdateTransactionType",
+                transactions.success,
+                transactions.events as "events: sqlx::types::Json<Vec<Event>>",
+                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+            FROM tokens
+            JOIN transactions ON transactions.index = tokens.init_transaction_index
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_name = $3"#,
+            contract_address_index.0 as i64,
+            contract_address_sub_index.0 as i64,
+            token_name
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        let init_transaction = Transaction {
+            index: row.index,
+            block_height: row.block_height,
+            hash: row.hash,
+            ccd_cost: row.ccd_cost,
+            energy_cost: row.energy_cost,
+            sender: row.sender,
+            tx_type: row.tx_type,
+            type_account: row.type_account,
+            type_credential_deployment: row.type_credential_deployment,
+            type_update: row.type_update,
+            success: row.success,
+            events: row.events,
+            reject: row.reject,
+        };
+
+        let total_supply: BigUint = BigUint::from_bytes_le(&row.total_supply);
+
+        let metadata_url = if let Some(metadata) = row.metadata_url {
+            let metadata: cis2::MetadataUrl =
+                from_bytes(&metadata).map_err(|e| ApiError::InternalError(e.to_string()))?;
+            format!("{:?}", metadata)
+        } else {
+            "".to_string()
+        };
+
+        Ok(Token {
+            initial_transaction: init_transaction,
+            contract_index: contract_address_index,
+            contract_sub_index: contract_address_sub_index,
+            token_id,
+            metadata_url,
+            total_supply: total_supply.to_u64_digits(),
+            contract_address_formatted: format!(
+                "<{},{}>",
+                contract_address_index, contract_address_sub_index
+            ),
+            token_address: token_name,
+        })
+    }
 
     async fn contract<'a>(
         &self,
@@ -1331,7 +1436,7 @@ type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = u64; // TODO check format.
+type BigInteger = Vec<u64>; // The type should represent the `num_bigint::BigUint` type.
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]
@@ -4931,13 +5036,12 @@ impl ContractInitialized {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
@@ -5191,6 +5295,7 @@ pub struct ChainUpdatePayload {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractInterrupted {
     contract_address:  ContractAddress,
     // All logged events by the smart contract during this section of the transaction execution.
@@ -5236,13 +5341,12 @@ impl ContractInterrupted {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
@@ -5312,13 +5416,12 @@ impl ContractUpdated {
         .ok_or(ApiError::NotFound)?;
 
         // Get the receive param schema if it exists.
-        let opt_receive_param_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_receive_param_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema
                 .get_receive_param_schema(
@@ -5376,13 +5479,12 @@ impl ContractUpdated {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
@@ -5590,4 +5692,24 @@ pub enum DbTransactionType {
     Account,
     CredentialDeployment,
     Update,
+}
+
+// A helper type to query the `tokens` table with its `init_transaction`.
+pub struct TokenRow {
+    metadata_url: Option<Vec<u8>>,
+    total_supply: Vec<u8>,
+    // Init_transaction fields below.
+    index: i64,
+    block_height: BlockHeight,
+    hash: TransactionHash,
+    ccd_cost: Amount,
+    energy_cost: Energy,
+    sender: Option<AccountIndex>,
+    tx_type: DbTransactionType,
+    type_account: Option<AccountTransactionType>,
+    type_credential_deployment: Option<CredentialDeploymentTransactionType>,
+    type_update: Option<UpdateTransactionType>,
+    success: bool,
+    events: Option<sqlx::types::Json<Vec<Event>>>,
+    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
