@@ -44,6 +44,7 @@ use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_util::sync::CancellationToken;
+use tracing::error;
 use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
@@ -4915,8 +4916,24 @@ pub struct CredentialsUpdated {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct DataRegistered {
-    data_as_hex: String,
+    data_as_hex: String
+}
+
+#[ComplexObject]
+impl DataRegistered {
+    async fn decoded(&self) -> ApiResult<DecodedText> {
+        // Attempt to decode the hex string
+        let decoded_data = hex::decode(&self.data_as_hex)
+            .map_err(|e| {
+                // Log an error if the decoding fails
+                error!("Invalid hex encoding {:?} in a controlled environment", e);
+                ApiError::InternalError("Failed to decode hex data".to_string())
+            })?;
+
+        Ok(DecodedText::from_bytes(decoded_data.as_slice()))
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5001,8 +5018,24 @@ impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncrypt
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct TransferMemo {
     raw_hex: String,
+}
+
+#[ComplexObject]
+impl TransferMemo {
+    async fn decoded(&self) -> ApiResult<DecodedText> {
+        // Attempt to decode the hex string
+        let decoded_data = hex::decode(&self.raw_hex)
+            .map_err(|e| {
+                // Log an error if the decoding fails
+                error!("Invalid hex encoding {:?} in a controlled environment", e);
+                ApiError::InternalError("Failed to decode hex data".to_string())
+            })?;
+
+        Ok(DecodedText::from_bytes(decoded_data.as_slice()))
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
