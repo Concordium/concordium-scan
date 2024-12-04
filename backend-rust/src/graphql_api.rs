@@ -5194,13 +5194,12 @@ impl ContractInitialized {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
@@ -5454,6 +5453,7 @@ pub struct ChainUpdatePayload {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractInterrupted {
     contract_address:  ContractAddress,
     // All logged events by the smart contract during this section of the transaction execution.
@@ -5499,13 +5499,12 @@ impl ContractInterrupted {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
@@ -5575,13 +5574,12 @@ impl ContractUpdated {
         .ok_or(ApiError::NotFound)?;
 
         // Get the receive param schema if it exists.
-        let opt_receive_param_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_receive_param_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema
                 .get_receive_param_schema(
@@ -5639,13 +5637,12 @@ impl ContractUpdated {
         .ok_or(ApiError::NotFound)?;
 
         // Get the event schema if it exists.
-        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
-            let versioned_schema =
-                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
-                    ApiError::InternalError(
-                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
-                    )
-                })?;
+        let opt_event_schema = if let Some(schema) = row.display_schema.as_ref() {
+            let versioned_schema = VersionedModuleSchema::new(schema, &None).map_err(|_| {
+                ApiError::InternalError(
+                    "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                )
+            })?;
 
             versioned_schema.get_event_schema(&row.contract_name).ok()
         } else {
