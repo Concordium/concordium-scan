@@ -5026,10 +5026,8 @@ pub struct TransferMemo {
 #[ComplexObject]
 impl TransferMemo {
     async fn decoded(&self) -> ApiResult<DecodedText> {
-        // Attempt to decode the hex string
         let decoded_data = hex::decode(&self.raw_hex)
             .map_err(|e| {
-                // Log an error if the decoding fails
                 error!("Invalid hex encoding {:?} in a controlled environment", e);
                 ApiError::InternalError("Failed to decode hex data".to_string())
             })?;
