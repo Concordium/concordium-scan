@@ -49,6 +49,45 @@ use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
 
+struct SchemaName {
+    type_name:  &'static str,
+    value_name: &'static str,
+}
+
+enum SmartContractSchemaNames {
+    Event,
+    InputParameterReceiveFunction,
+}
+
+impl SmartContractSchemaNames {
+    pub const EVENT: SchemaName = SchemaName {
+        type_name:  "event",
+        value_name: "contract log",
+    };
+    pub const INPUT_PARAMETER_RECEIVE_FUNCTION: SchemaName = SchemaName {
+        type_name:  "receive parameter",
+        value_name: "input parameter of receive function",
+    };
+
+    pub fn value(&self) -> &'static str {
+        match self {
+            SmartContractSchemaNames::Event => Self::EVENT.value_name,
+            SmartContractSchemaNames::InputParameterReceiveFunction => {
+                Self::INPUT_PARAMETER_RECEIVE_FUNCTION.value_name
+            }
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            SmartContractSchemaNames::Event => Self::EVENT.type_name,
+            SmartContractSchemaNames::InputParameterReceiveFunction => {
+                Self::INPUT_PARAMETER_RECEIVE_FUNCTION.type_name
+            }
+        }
+    }
+}
+
 #[derive(clap::Args)]
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
@@ -3823,16 +3862,15 @@ impl SearchResult {
 
 fn decode_value_with_schema(
     opt_schema: Option<&Type>,
-    schema_name: &str,
     value: &[u8],
-    value_name: &str,
+    schema_name: SmartContractSchemaNames,
 ) -> String {
     let Some(schema) = opt_schema else {
         // Note: There could be something better displayed than this string if no schema is
         // available for decoding at the frontend long-term.
         return format!(
             "No embedded {} schema in smart contract available for decoding",
-            schema_name
+            schema_name.kind()
         );
     };
 
@@ -3849,7 +3887,9 @@ fn decode_value_with_schema(
                 // contract developer for debugging purposes here.
                 format!(
                     "Failed to deserialize {} with {} schema into string: {:?}",
-                    value_name, schema_name, e
+                    schema_name.value(),
+                    schema_name.kind(),
+                    e
                 )
             })
         }
@@ -3863,8 +3903,8 @@ fn decode_value_with_schema(
             // contract developer for debugging purposes here.
             format!(
                 "Failed to deserialize {} with {} schema: {:?}",
-                value_name,
-                schema_name,
+                schema_name.value(),
+                schema_name.kind(),
                 e.display(true)
             )
         }
@@ -4012,7 +4052,8 @@ pub fn events_from_summary(
                             address,
                             events,
                         } => Ok(Event::ContractInterrupted(ContractInterrupted {
-                            contract_address: address.into(),
+                            contract_address:  address.into(),
+                            contract_logs_raw: events.iter().map(|e| e.as_ref().to_vec()).collect(),
                         })),
                         ContractTraceElement::Resumed {
                             address,
@@ -4861,7 +4902,7 @@ impl ContractInitialized {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -4890,24 +4931,33 @@ impl ContractInitialized {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_event_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema.get_event_schema(&row.contract_name).ok()
-            });
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
 
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            let decoded_log =
-                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -5119,15 +5169,79 @@ pub struct ChainUpdatePayload {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ContractInterrupted {
-    contract_address: ContractAddress,
-    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
-    // in the list that come after the specified cursor." after: String "Returns the last _n_
-    // elements from the list." last: Int "Returns the elements in the list that come before the
-    // specified cursor." before: String): StringConnection events("Returns the first _n_
-    // elements from the list." first: Int "Returns the elements in the list that come after the
-    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor." before: String):
-    // StringConnection
+    contract_address:  ContractAddress,
+    // All logged events by the smart contract during this section of the transaction execution.
+    contract_logs_raw: Vec<Vec<u8>>,
+}
+
+#[ComplexObject]
+impl ContractInterrupted {
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // TODO: pagination info but not used at front-end currently (issue#318).
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+        }
+
+        // TODO: pagination info but not used at front-end currently (issue#318).
+
+        Ok(connection)
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5144,7 +5258,7 @@ pub struct ContractUpdated {
     amount:            Amount,
     receive_name:      String,
     version:           ContractVersion,
-    // All logged events by the smart contract during the transaction execution.
+    // All logged events by the smart contract during this section of the transaction execution.
     contract_logs_raw: Vec<Vec<u8>>,
     input_parameter:   Vec<u8>,
 }
@@ -5174,24 +5288,29 @@ impl ContractUpdated {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_receive_param_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema
-                    .get_receive_param_schema(
-                        &row.contract_name,
-                        ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+        // Get the receive param schema if it exists.
+        let opt_receive_param_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
                     )
-                    .ok()
-            });
+                })?;
+
+            versioned_schema
+                .get_receive_param_schema(
+                    &row.contract_name,
+                    ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+                )
+                .ok()
+        } else {
+            None
+        };
 
         let decoded_input_parameter = decode_value_with_schema(
             opt_receive_param_schema.as_ref(),
-            "receive param",
             &self.input_parameter,
-            "input parameter of receive function",
+            SmartContractSchemaNames::InputParameterReceiveFunction,
         );
 
         Ok(decoded_input_parameter)
@@ -5204,7 +5323,7 @@ impl ContractUpdated {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -5233,24 +5352,33 @@ impl ContractUpdated {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_event_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema.get_event_schema(&row.contract_name).ok()
-            });
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
 
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            let decoded_log =
-                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
