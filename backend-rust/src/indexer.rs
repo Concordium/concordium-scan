@@ -961,7 +961,6 @@ impl PreparedBlockItem {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
                 index,
