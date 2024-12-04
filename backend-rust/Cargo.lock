@@ -909,6 +909,7 @@ dependencies = [
  "iso8601-duration",
  "leb128",
  "num-bigint",
+ "num-traits",
  "prometheus-client",
  "rust_decimal",
  "serde",
