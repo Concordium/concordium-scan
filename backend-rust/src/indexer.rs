@@ -787,21 +787,6 @@ impl PreparedBlock {
                 context.last_finalized_hash = block.block_last_finalized.clone();
             }
         }
-    // Log each argument
-    println!("Heights: {:?}", heights);
-    println!("Hashes: {:?}", hashes);
-    println!("Slot Times: {:?}", slot_times);
-    println!("Block Times: {:?}", block_times);
-    println!(
-        "Baker IDs: {:?}",
-        baker_ids
-            .iter()
-            .map(|id| id.map_or("NULL".to_string(), |v| v.to_string()))
-            .collect::<Vec<_>>()
-    );
-    println!("Total Amounts: {:?}", total_amounts);
-    println!("Total Staked: {:?}", total_staked);
-    println!("Cumulative Num TXs: {:?}", cumulative_num_txss);
 
         sqlx::query!(
             r#"INSERT INTO blocks
