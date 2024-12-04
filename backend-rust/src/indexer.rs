@@ -1021,11 +1021,8 @@ impl PreparedBlockItem {
             self.reject
         )
         .fetch_one(tx.as_mut())
-        .await;
-        let json_string = serde_json::to_string(&self.events)?;
-        println!("{:?}", encode(json_string));
+        .await?;
 
-        let tx_idx = tx_idx?;
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
