@@ -507,7 +507,7 @@ CREATE TABLE tokens (
         BYTEA
         NOT NULL
         DEFAULT '\x00',
-    -- Index of the transaction with the first `CIS2 mint event` or `CIS2 tokenMetadata event` logged for the token.
+    -- Index of the transaction with the first `CIS2 mint event`, `CIS2 burn event` or `CIS2 tokenMetadata event` logged for the token.
     init_transaction_index
        BIGINT
        NOT NULL

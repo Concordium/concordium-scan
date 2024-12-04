@@ -1462,7 +1462,7 @@ type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = Vec<u64>;  // The type should be equivallent to the `num_bigint::BigUint` type.
+type BigInteger = Vec<u64>; // The type should represent the `num_bigint::BigUint` type.
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]

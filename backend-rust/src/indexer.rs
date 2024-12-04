@@ -33,6 +33,7 @@ use concordium_rust_sdk::{
 use futures::{StreamExt, TryStreamExt};
 use leb128::write::unsigned as encode_leb128;
 use num_bigint::BigUint;
+use num_traits::ops::checked::CheckedSub;
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -2198,24 +2199,23 @@ impl PreparedContractUpdate {
                 .fetch_optional(pool)
                 .await?;
 
-                // If `current_total_supply` exists, decode it and add the `amount`.
+                // If current `total_supply` exists, decode it and add the `amount`,
+                // otherwise use the `amount` as the new `total_supply`.
                 let new_total_supply = if let Some(row) = row {
                     let current_total_supply_bytes = row.total_supply;
 
-                    let decoded_amount: BigUint =
+                    let current_total_supply: BigUint =
                         BigUint::from_bytes_le(&current_total_supply_bytes);
 
-                    let updated_amount = decoded_amount + amount.0.clone();
-
-                    updated_amount.to_bytes_le()
+                    &(current_total_supply + &amount.0)
                 } else {
-                    amount.0.to_bytes_le()
+                    &amount.0
                 };
 
                 // If the `token_name` does not exist, insert the new token with its
                 // `total_supply` set to `amount`. If the `token_name` exists,
                 // update the `total_supply` value by subtracting the `amount` from the existing
-                // value.
+                // value in the database.
                 sqlx::query!(
                     "
                     INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
@@ -2226,7 +2226,7 @@ impl PreparedContractUpdate {
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply,
+                    new_total_supply.to_bytes_le(),
                     transaction_index
                 )
                 .execute(tx.as_mut())
@@ -2236,6 +2236,9 @@ impl PreparedContractUpdate {
             // The `total_supply` value of a token is inserted/updated in the database here.
             // Only `Mint` and `Burn` events affect the `total_supply` of a
             // token.
+            // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+            // initially minted. The `total_supply` will be set to 0 in that
+            // case (rather than underflowing the value).
             if let cis2::Event::Burn {
                 token_id,
                 amount,
@@ -2256,24 +2259,33 @@ impl PreparedContractUpdate {
                 .fetch_optional(pool)
                 .await?;
 
-                // If `current_total_supply` exists, decode it and subtract the `amount`.
+                // If current `total_supply` exists, decode it and subtract the `amount`,
+                // otherwise use `0` as the new `total_supply`.
+                // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+                // initially minted. The `total_supply` will be set to 0 (default value) in
+                // that case (rather than underflowing the value).
                 let new_total_supply = if let Some(row) = row {
                     let current_total_supply_bytes = row.total_supply;
 
-                    let decoded_amount: BigUint =
+                    let current_total_supply: BigUint =
                         BigUint::from_bytes_le(&current_total_supply_bytes);
 
-                    let updated_amount = decoded_amount - amount.0.clone();
-
-                    updated_amount.to_bytes_le()
+                    // Subtract the `amount` from the `current_total_supply`.
+                    // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+                    // initially minted. The `total_supply` will be set to 0 (default value) in
+                    // that case (rather than underflowing the value).
+                    &current_total_supply.checked_sub(&amount.0).unwrap_or_default()
                 } else {
-                    amount.0.to_bytes_le()
+                    // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+                    // initially minted. The `total_supply` will be set to 0 (default value) in that
+                    // case (rather than underflowing the value).
+                    &BigUint::default()
                 };
 
-                // If the `token_name` does not exist, insert the new token with its
-                // `total_supply` set to `-amount`. If the `token_name` exists,
-                // update the `total_supply` value by subtracting the `amount` from the existing
-                // value.
+                // If the `token_name` does not exist (likely a `buggy` CIS2 token contract),
+                // insert the new token with its `total_supply` set to `0`. If the `token_name`
+                // exists, update the `total_supply` value by subtracting the
+                // `amount` from the existing value in the database.
                 sqlx::query!(
                     "
                         INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
@@ -2284,7 +2296,7 @@ impl PreparedContractUpdate {
                     token_name,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply,
+                    new_total_supply.to_bytes_le(),
                     transaction_index
                 )
                 .execute(tx.as_mut())
@@ -2323,6 +2335,11 @@ impl PreparedContractUpdate {
                 .execute(tx.as_mut())
                 .await?;
             }
+
+            // Note: Some `buggy` CIS2 token contracts might have a `Transfer`
+            // event before minting the token. The token is not
+            // existing in the database in that case and the `Transfer` event
+            // will be ignored here.
         }
 
         Ok(())
