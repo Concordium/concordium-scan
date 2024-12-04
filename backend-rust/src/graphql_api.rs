@@ -4924,10 +4924,8 @@ pub struct DataRegistered {
 #[ComplexObject]
 impl DataRegistered {
     async fn decoded(&self) -> ApiResult<DecodedText> {
-        // Attempt to decode the hex string
         let decoded_data = hex::decode(&self.data_as_hex)
             .map_err(|e| {
-                // Log an error if the decoding fails
                 error!("Invalid hex encoding {:?} in a controlled environment", e);
                 ApiError::InternalError("Failed to decode hex data".to_string())
             })?;
