@@ -4918,17 +4918,16 @@ pub struct CredentialsUpdated {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 #[graphql(complex)]
 pub struct DataRegistered {
-    data_as_hex: String
+    data_as_hex: String,
 }
 
 #[ComplexObject]
 impl DataRegistered {
     async fn decoded(&self) -> ApiResult<DecodedText> {
-        let decoded_data = hex::decode(&self.data_as_hex)
-            .map_err(|e| {
-                error!("Invalid hex encoding {:?} in a controlled environment", e);
-                ApiError::InternalError("Failed to decode hex data".to_string())
-            })?;
+        let decoded_data = hex::decode(&self.data_as_hex).map_err(|e| {
+            error!("Invalid hex encoding {:?} in a controlled environment", e);
+            ApiError::InternalError("Failed to decode hex data".to_string())
+        })?;
 
         Ok(DecodedText::from_bytes(decoded_data.as_slice()))
     }
@@ -5024,11 +5023,10 @@ pub struct TransferMemo {
 #[ComplexObject]
 impl TransferMemo {
     async fn decoded(&self) -> ApiResult<DecodedText> {
-        let decoded_data = hex::decode(&self.raw_hex)
-            .map_err(|e| {
-                error!("Invalid hex encoding {:?} in a controlled environment", e);
-                ApiError::InternalError("Failed to decode hex data".to_string())
-            })?;
+        let decoded_data = hex::decode(&self.raw_hex).map_err(|e| {
+            error!("Invalid hex encoding {:?} in a controlled environment", e);
+            ApiError::InternalError("Failed to decode hex data".to_string())
+        })?;
 
         Ok(DecodedText::from_bytes(decoded_data.as_slice()))
     }
