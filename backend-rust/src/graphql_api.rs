@@ -45,7 +45,7 @@ use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::error;
 use transaction_metrics::TransactionMetricsQuery;
 
