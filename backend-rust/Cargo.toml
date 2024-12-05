@@ -35,6 +35,7 @@ iso8601-duration = { version = "0.2", features = ["chrono"] }
 tokio-util = "0.7"
 prometheus-client = "0.22"
 tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
+tower-http = { version = "0.6", features = ["cors"] }
 
 # Recommended by SQLx to speed up incremental builds
 [profile.dev.package.sqlx-macros]
