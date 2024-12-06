@@ -15,7 +15,8 @@ export default defineNuxtConfig({
 			wsUrl: 'ws://localhost:5090/graphql',
 			// URL to use when sending GraphQL queries to the fungy CCDscan API.
 			// (env NUXT_PUBLIC_FUNGY_API_URL)
-			fungyApiUrl: 'http://localhost:1234/api/graphql',
+			fungyApiUrl: 'http://localhost:8000/api/graphql',
+			// Settings for how to display the explorer.
 			explorer: {
 				// The name to display for the explorer.
 				// (env NUXT_PUBLIC_EXPLORER_NAME)
