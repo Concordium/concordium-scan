@@ -45,6 +45,7 @@ use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::error;
 use transaction_metrics::TransactionMetricsQuery;
 
@@ -146,13 +147,18 @@ impl Service {
         tcp_listener: TcpListener,
         stop_signal: CancellationToken,
     ) -> anyhow::Result<()> {
+        let cors_layer = CorsLayer::new()
+            .allow_origin(Any)  // Open access to selected route
+            .allow_methods(Any)
+            .allow_headers(Any);
         let app = axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(
                 "/api/graphql",
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
-            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema));
+            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
+            .layer(cors_layer);
 
         axum::serve(tcp_listener, app)
             .with_graceful_shutdown(stop_signal.cancelled_owned())
