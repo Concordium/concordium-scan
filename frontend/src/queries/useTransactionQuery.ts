@@ -633,8 +633,11 @@ export const useTransactionQuery = ({
 }: QueryParams) => {
 	const query = id?.value ? TransactionQuery : TransactionQueryByHash
 	const identifier = id?.value ? { id: id.value } : { hash: hash?.value }
-
+	const fungyApiUrl = inject<string>('fungyApiUrl')
 	const { data, fetching, error } = useQuery({
+		context: {
+			url: fungyApiUrl,
+		},
 		query,
 		requestPolicy: 'cache-first',
 		variables: {
