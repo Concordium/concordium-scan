@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO scheduled_releases (\n                transaction_index,\n                account_index,\n                release_time,\n                amount\n            )\n            SELECT\n                $1,\n                (SELECT index FROM accounts WHERE address = $2),\n                UNNEST($3::TIMESTAMPTZ[]),\n                UNNEST($4::BIGINT[])\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bpchar",
+        "TimestamptzArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "918548ae8e9e53eba8631e7d7ecc8a75bb8205eafb19d42ffba097ecd70f6d63"
+}

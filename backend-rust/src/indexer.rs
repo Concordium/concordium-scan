@@ -9,7 +9,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
-    common::types::Amount,
+    common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
@@ -1048,6 +1048,8 @@ enum PreparedEvent {
     ContractInitialized(PreparedContractInitialized),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
+    /// A scheduled transfer got executed.
+    ScheduledTransfer(PreparedScheduledReleases),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -1186,12 +1188,16 @@ impl PreparedEvent {
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
                     amount,
-                } => None,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(), amount,
+                )?)),
                 AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
                     amount,
                     memo,
-                } => None,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(), amount,
+                )?)),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     cred_id,
                 } => None,
@@ -1237,6 +1243,7 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1728,4 +1735,60 @@ impl PreparedContractUpdate {
 
         Ok(())
     }
+}
+
+struct PreparedScheduledReleases {
+    account_address: String,
+    release_times: Vec<DateTime<Utc>>,
+    amounts:       Vec<i64>,
+}
+
+impl PreparedScheduledReleases {
+    fn prepare(
+        to: String,
+        scheduled_releases: &[(Timestamp, Amount)],
+    ) -> anyhow::Result<Self> {
+        let capacity = scheduled_releases.len();
+        let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
+        let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
+        for (timestamp, amount) in scheduled_releases.iter() {
+            release_times.push(DateTime::<Utc>::try_from(*timestamp)?);
+            amounts.push(i64::try_from(amount.micro_ccd())?);
+        }
+
+        Ok(Self {
+            account_address: to,
+            release_times,
+            amounts,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO scheduled_releases (
+                transaction_index,
+                account_index,
+                release_time,
+                amount
+            )
+            SELECT
+                $1,
+                (SELECT index FROM accounts WHERE address = $2),
+                UNNEST($3::TIMESTAMPTZ[]),
+                UNNEST($4::BIGINT[])
+            ",
+            transaction_index,
+            self.account_address,
+            &self.release_times,
+            &self.amounts
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+    // fn prepare()
 }
