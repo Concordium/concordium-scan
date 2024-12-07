@@ -207,7 +207,7 @@
 						>
 							<template #content>
 								<div>
-									<span class="legend"></span>
+									<span class="legend" />
 									Validator
 									<span class="text-theme-faded"
 										>({{
@@ -221,7 +221,7 @@
 									>
 								</div>
 								<div v-if="baker.state.pool.delegatedStake">
-									<span class="legend legend-green"></span>
+									<span class="legend legend-green" />
 									Delegators
 									<span class="text-theme-faded"
 										>({{
@@ -309,7 +309,7 @@ import TableRow from '~/components/Table/TableRow.vue'
 import TableBody from '~/components/Table/TableBody.vue'
 import TableHead from '~/components/Table/TableHead.vue'
 import { useBakerListQuery } from '~/queries/useBakerListQuery'
-import { BakerSort, BakerPoolOpenStatus } from '~/types/generated'
+import type { BakerSort, BakerPoolOpenStatus } from '~/types/generated'
 
 import { formatPercentage, calculatePercentage } from '~/utils/format'
 import {

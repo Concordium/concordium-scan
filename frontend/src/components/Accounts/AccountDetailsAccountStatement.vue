@@ -103,11 +103,11 @@
 						><TransactionLink
 							v-if="accountStatementItem.reference.__typename === 'Transaction'"
 							:hash="accountStatementItem.reference.transactionHash"
-						></TransactionLink>
+						/>
 						<BlockLink
 							v-if="accountStatementItem.reference.__typename === 'Block'"
 							:hash="accountStatementItem.reference.blockHash"
-						></BlockLink>
+						/>
 					</TableTd>
 					<TableTd align="right" class="numerical">
 						<Amount :amount="accountStatementItem.amount" />

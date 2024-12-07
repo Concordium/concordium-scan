@@ -53,7 +53,6 @@
 
 <script lang="ts" setup>
 import { translateTransactionType } from '~/utils/translateTransactionTypes'
-import { PAGE_SIZE } from '~/composables/usePagination'
 import type { PaginationTarget } from '~/composables/usePagination'
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import type { PageInfo, Transaction } from '~/types/generated'

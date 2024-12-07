@@ -46,6 +46,6 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = (address?: string | null) => {
-	address && drawer.push({ entityTypeName: 'account', address })
+	if (address) drawer.push({ entityTypeName: 'account', address })
 }
 </script>

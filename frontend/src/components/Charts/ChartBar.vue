@@ -1,12 +1,16 @@
 ﻿<template>
 	<div class="relative">
-		<canvas ref="canvasRef"></canvas>
+		<canvas ref="canvasRef" />
 	</div>
 </template>
 <script lang="ts" setup>
-import { Chart, registerables, Scale } from 'chart.js/dist/chart.esm'
-import * as Chartjs from 'chart.js/dist/chart.esm'
-import type { TooltipItem } from 'chart.js'
+import {
+	Chart,
+	registerables,
+	type Scale,
+	type ChartOptions,
+	type TooltipItem,
+} from 'chart.js/dist/chart.esm'
 import type { LabelFormatterFunc } from './ChartUtils'
 import { prettyFormatBucketDuration } from '~/utils/format'
 
@@ -142,11 +146,10 @@ const defaultOptions = ref({
 })
 let chartInstance: Chart
 onMounted(() => {
-	/* eslint-disable no-new */
-	chartInstance = new Chartjs.Chart(canvasRef.value, {
+	chartInstance = new Chart(canvasRef.value, {
 		data: chartData,
 		type: 'bar',
-		options: defaultOptions.value as Chartjs.ChartOptions<'bar'>,
+		options: defaultOptions.value as ChartOptions<'bar'>,
 	})
 })
 </script>

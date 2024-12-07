@@ -10,7 +10,7 @@
 		:bucket-width="accountMetricsData?.accountsMetrics?.buckets?.bucketWidth"
 		:is-loading="isLoading"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Accounts Created</template>
 		<template #icon><UserIcon /></template>
 		<template #chip>sum</template>

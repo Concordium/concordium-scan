@@ -1,7 +1,6 @@
 ﻿import { useQuery, gql } from '@urql/vue'
 import { useComponentState } from '~/composables/useComponentState'
-import type { QueryVariables } from '~/types/queryVariables'
-import type { NodeStatus, PageInfo } from '~/types/generated'
+import type { NodeStatus } from '~/types/generated'
 
 type NodeDetailResponse = {
 	nodeStatus: NodeStatus

@@ -36,6 +36,6 @@ jobs:
       - name: Check types
         working-directory: frontend
         run: yarn run typecheck
-      # - name: Linting
-      #   working-directory: frontend
-      #   run: yarn run lintcheck
+      - name: Linting
+        working-directory: frontend
+        run: yarn run lintcheck

@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
-import { type TransactionResult } from '~/types/generated'
+import type { TransactionResult } from '~/types/generated'
 const { breakpoint } = useBreakpoint()
 type Props = {
 	result: TransactionResult

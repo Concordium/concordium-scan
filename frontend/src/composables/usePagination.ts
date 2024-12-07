@@ -19,8 +19,8 @@ export const usePagination = (
 
 	/**
 	 * CURRIED: Navigation handler to modify query variables
-	 * @param { PageInfo } - Most recent pageInfo
-	 * @param { PaginationTarget } - The target (e.g. "next")
+	 * @param { PageInfo } pageInfo - Most recent pageInfo
+	 * @param { PaginationTarget } target - The target (e.g. "next")
 	 */
 	const goToPage = (pageInfo: PageInfo) => (target: PaginationTarget) => {
 		after.value = undefined
@@ -37,7 +37,6 @@ export const usePagination = (
 			after.value = pageInfo.endCursor
 			first.value = pageSize
 		} else {
-			// eslint-disable-next-line no-console
 			console.error('Incorrect pagination arguments:', { target, ...pageInfo })
 		}
 	}

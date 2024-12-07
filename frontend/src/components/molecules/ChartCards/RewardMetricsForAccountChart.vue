@@ -13,7 +13,7 @@
 		:is-loading="isLoading"
 		:label-formatter="formatLabel"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Rewards</template>
 		<template #icon>Ͼ</template>
 		<template #value>{{

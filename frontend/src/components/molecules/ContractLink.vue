@@ -43,10 +43,12 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = () => {
-	props.contractAddressIndex !== null &&
+	if (
+		props.contractAddressIndex !== null &&
 		props.contractAddressIndex !== undefined &&
 		props.contractAddressSubIndex !== null &&
-		props.contractAddressSubIndex !== undefined &&
+		props.contractAddressSubIndex !== undefined
+	)
 		drawer.push({
 			entityTypeName: 'contract',
 			contractAddressIndex: props.contractAddressIndex,

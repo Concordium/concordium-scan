@@ -34,16 +34,12 @@ const props = defineProps<Props>()
 
 const choosen = ref(props.pageDropdownInfo.take.value)
 
-let dropDownValues = [MIN_PAGE_SIZE, DEFAULT_PAGE_SIZE, 25, 50, 100]
-const dropdowns = computed(() => {
-	if (!dropDownValues.includes(props.pageDropdownInfo.take.value)) {
-		dropDownValues.push(props.pageDropdownInfo.take.value)
-		dropDownValues = dropDownValues.sort(function (a, b) {
-			return a - b
-		})
-	}
-	return dropDownValues
-})
+const defaultDropDownValues = [MIN_PAGE_SIZE, DEFAULT_PAGE_SIZE, 25, 50, 100]
+// Merge in the value in props
+const dropdowns = computed(() => [
+	// remove duplicates values and sort by constructing a Set and then back to an array.
+	...new Set([...defaultDropDownValues, props.pageDropdownInfo.take.value]),
+])
 
 const onChange = (event: Event) => {
 	const target = event.target as HTMLSelectElement
