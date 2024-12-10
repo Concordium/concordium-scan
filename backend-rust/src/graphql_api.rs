@@ -3127,10 +3127,14 @@ impl Account {
             restake_earnings,
             staked_amount: self.delegated_stake,
             delegation_target: if let Some(target) = self.delegated_target_baker_id {
-                DelegationTarget::BakerDelegationTarget(BakerDelegationTarget { baker_id: target })
+                DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
+                    baker_id: target,
+                })
             } else {
-                DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget { dummy: false })
-            }
+                DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
+                    dummy: false,
+                })
+            },
         })
     }
 
