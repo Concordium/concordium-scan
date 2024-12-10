@@ -3122,24 +3122,16 @@ impl Account {
     async fn amount(&self) -> Amount { self.amount }
 
     async fn delegation(&self) -> Option<Delegation> {
-        if let Some(delegated_restake_earnings) = &self.delegated_restake_earnings {
-            Some(Delegation {
-                delegator_id:      self.index,
-                restake_earnings:  *delegated_restake_earnings,
-                staked_amount:     self.delegated_stake,
-                delegation_target: if let Some(target) = self.delegated_target_baker_id {
-                    DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                        baker_id: target,
-                    })
-                } else {
-                    DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
-                        dummy: false,
-                    })
-                },
-            })
-        } else {
-            None
-        }
+        self.delegated_restake_earnings.map(|restake_earnings| Delegation {
+            delegator_id: self.index,
+            restake_earnings,
+            staked_amount: self.delegated_stake,
+            delegation_target: if let Some(target) = self.delegated_target_baker_id {
+                DelegationTarget::BakerDelegationTarget(BakerDelegationTarget { baker_id: target })
+            } else {
+                DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget { dummy: false })
+            }
+        })
     }
 
     /// Timestamp of the block where this account was created.
