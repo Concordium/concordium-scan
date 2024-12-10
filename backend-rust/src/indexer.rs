@@ -22,6 +22,7 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
+use concordium_rust_sdk::types::DelegationTarget;
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -1042,6 +1043,8 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    // TODO
+    AccountDelegationEvents(Vec<PreparedAccountDelegationEvent>),
     /// Smart contract module got deployed.
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
@@ -1237,6 +1240,12 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::AccountDelegationEvents(events) => {
+                for event in events {
+                    event.save(tx).await?;
+                }
+                Ok(())
+            }
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1291,6 +1300,159 @@ impl PreparedAccountCreation {
         .execute(tx.as_mut())
         .await?;
 
+        Ok(())
+    }
+}
+
+enum PreparedAccountDelegationEvent {
+    StakeIncrease {
+        account_id: i64,
+        staked:   i64,
+    },
+    StakeDecrease {
+        account_id: i64,
+        staked:   i64,
+    },
+    SetRestakeEarnings {
+        account_id:         i64,
+        restake_earnings: bool,
+    },
+    Added {
+        account_id: i64
+    },
+    Removed {
+        account_id: i64
+    },
+    SetDelegationTarget {
+        account_id: i64,
+        target_id: Option<i64>
+    },
+    BakerRemoved {
+        baker_id: i64
+    }
+}
+
+impl PreparedAccountDelegationEvent {
+
+    fn prepare(event: &concordium_rust_sdk::types::DelegationEvent) -> anyhow::Result<Self> {
+        use concordium_rust_sdk::types::DelegationEvent;
+        let prepared = match event {
+            DelegationEvent::DelegationStakeIncreased {
+                delegator_id,
+                new_stake,
+            } => PreparedAccountDelegationEvent::StakeIncrease {
+                account_id: delegator_id.id.index.try_into()?,
+                staked: new_stake.micro_ccd.try_into()?
+            },
+            DelegationEvent::DelegationStakeDecreased {
+                delegator_id,
+                new_stake,
+            } => PreparedAccountDelegationEvent::StakeIncrease {
+                account_id: delegator_id.id.index.try_into()?,
+                staked: new_stake.micro_ccd.try_into()?
+            },
+            DelegationEvent::DelegationSetRestakeEarnings {
+                delegator_id,
+                restake_earnings,
+            } => PreparedAccountDelegationEvent::SetRestakeEarnings {
+                account_id: delegator_id.id.index.try_into()?,
+                restake_earnings: *restake_earnings
+            },
+            DelegationEvent::DelegationSetDelegationTarget {
+                delegator_id,
+                delegation_target
+            } => {
+                PreparedAccountDelegationEvent::SetDelegationTarget {
+                    account_id: delegator_id.id.index.try_into()?,
+                    target_id: if let DelegationTarget::Baker { baker_id } = delegation_target {
+                        Some(baker_id.id.index.try_into()?)
+                    } else {
+                        None
+                    }
+                }
+            },
+            DelegationEvent::DelegationAdded {
+                delegator_id
+            } => PreparedAccountDelegationEvent::Added {
+                account_id: delegator_id.id.index.try_into()?,
+            },
+            DelegationEvent::DelegationRemoved {
+                delegator_id
+            } => PreparedAccountDelegationEvent::Removed {
+                account_id: delegator_id.id.index.try_into()?
+            },
+            DelegationEvent::BakerRemoved {
+                baker_id
+            } => PreparedAccountDelegationEvent::BakerRemoved {
+                 baker_id: baker_id.id.index.try_into()?
+            }
+        };
+        Ok(prepared)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PreparedAccountDelegationEvent::StakeIncrease {
+                account_id,
+                staked
+            } | PreparedAccountDelegationEvent::StakeDecrease {
+                account_id,
+                staked
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = $1 WHERE index = $2"#,
+                    staked,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            },
+            PreparedAccountDelegationEvent::Added {
+                account_id
+            } | PreparedAccountDelegationEvent::Removed {
+                account_id
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            },
+
+            PreparedAccountDelegationEvent::SetRestakeEarnings {
+                account_id,
+                restake_earnings
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2"#,
+                    *restake_earnings,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            },
+            PreparedAccountDelegationEvent::SetDelegationTarget {
+                account_id,
+                target_id,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2"#,
+                    *target_id,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            },
+            PreparedAccountDelegationEvent::BakerRemoved {
+                baker_id
+            } => {
+                todo!()
+            }
+        }
         Ok(())
     }
 }

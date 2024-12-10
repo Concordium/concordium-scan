@@ -642,7 +642,9 @@ impl BaseQuery {
                     address,
                     amount,
                     delegated_stake,
-                    num_txs
+                    num_txs,
+                    delegated_restake_earnings,
+                    delegated_target_baker_id
                 FROM accounts
                 WHERE
                     -- Filter for only the accounts that are within the
@@ -3075,15 +3077,17 @@ struct Account {
     /// The total number of transactions this account has been involved in or
     /// affected by.
     num_txs:           i64,
+    delegated_restake_earnings: Option<bool>,
+    delegated_target_baker_id: Option<i64>
     // Get baker information if this account is baking.
     // baker: Option<Baker>,
-    // delegation: Option<Delegation>,
+
 }
 impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, delegated_restake_earnings, delegated_target_baker_id
             FROM accounts
             WHERE index = $1",
             index
@@ -3096,7 +3100,7 @@ impl Account {
     async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, delegated_restake_earnings, delegated_target_baker_id
             FROM accounts
             WHERE address = $1",
             address
@@ -3116,6 +3120,29 @@ impl Account {
 
     /// The total amount of CCD hold by the account.
     async fn amount(&self) -> Amount { self.amount }
+
+    async fn delegation(&self) -> Option<Delegation> {
+        if let Some(delegated_restake_earnings) = &self.delegated_restake_earnings {
+            Some(Delegation {
+                delegator_id: self.index,
+                restake_earnings: *delegated_restake_earnings,
+                staked_amount: self.delegated_stake,
+                delegation_target: if let Some(target) = self.delegated_target_baker_id {
+                   DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
+                    baker_id: target
+                })
+                } else {
+                    DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
+                        dummy: false
+                    })
+                }
+            })
+        } else {
+            None
+        }
+
+    }
+
 
     /// Timestamp of the block where this account was created.
     async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
@@ -3579,7 +3606,6 @@ struct Delegation {
     staked_amount:     Amount,
     restake_earnings:  bool,
     delegation_target: DelegationTarget,
-    pending_change:    PendingDelegationChange,
 }
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
