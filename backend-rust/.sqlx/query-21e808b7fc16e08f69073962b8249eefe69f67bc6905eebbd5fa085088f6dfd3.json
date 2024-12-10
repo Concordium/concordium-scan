@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "21e808b7fc16e08f69073962b8249eefe69f67bc6905eebbd5fa085088f6dfd3"
+}
