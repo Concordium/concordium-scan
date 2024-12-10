@@ -1043,7 +1043,7 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
-    // TODO
+    /// Account delegation events
     AccountDelegationEvents(Vec<PreparedAccountDelegationEvent>),
     /// Smart contract module got deployed.
     ModuleDeployed(PreparedModuleDeployed),
