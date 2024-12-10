@@ -14,7 +14,7 @@ import {
 import { SubscriptionClient } from 'subscriptions-transport-ws'
 
 const {
-	public: { apiUrl, wsUrl, enableUrqlDevtools },
+	public: { apiUrl, wsUrl, fungyApiUrl, enableUrqlDevtools },
 } = useRuntimeConfig()
 
 const subscriptionClient = new SubscriptionClient(wsUrl, {
@@ -37,6 +37,6 @@ const client = createClient({
 	url: apiUrl,
 	exchanges,
 })
-
 provideClient(client)
+provide('fungyApiUrl', fungyApiUrl)
 </script>
