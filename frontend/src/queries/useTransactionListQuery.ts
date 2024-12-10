@@ -59,10 +59,9 @@ const TransactionsQuery = gql<TransactionListResponse>`
 export const useTransactionsListQuery = (
 	variables: Partial<QueryVariables>
 ) => {
-	const fungyApiUrl = inject<string>('fungyApiUrl')
 	const { data, executeQuery } = useQuery({
 		context: {
-			url: fungyApiUrl,
+			url: inject<string>('fungyApiUrl'),
 		},
 		query: TransactionsQuery,
 		requestPolicy: 'cache-and-network',

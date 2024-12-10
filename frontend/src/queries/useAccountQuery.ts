@@ -320,9 +320,11 @@ export const useAccountQuery = ({
 }: QueryParams) => {
 	const query = id?.value ? AccountQuery : AccountQueryByAddress
 	const identifier = id?.value ? { id: id.value } : { address: address?.value }
-
 	const { data, fetching, error, executeQuery } = useQuery({
 		query,
+		context: {
+			url: inject<string>('fungyApiUrl'),
+		},
 		requestPolicy: 'network-only',
 		variables: {
 			...identifier,
