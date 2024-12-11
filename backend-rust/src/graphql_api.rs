@@ -4451,11 +4451,9 @@ pub fn events_from_summary(
                         })),
                         DelegationEvent::BakerRemoved {
                             baker_id,
-                        } => {
-                            Ok(Event::BakerRemoved(BakerRemoved {
-                                baker_id: baker_id.id.index.try_into()?
-                            }))
-                        }
+                        } => Ok(Event::BakerRemoved(BakerRemoved {
+                            baker_id: baker_id.id.index.try_into()?,
+                        })),
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
