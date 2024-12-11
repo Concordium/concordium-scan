@@ -3873,8 +3873,8 @@ fn decode_value_with_schema(
     schema_name: SmartContractSchemaNames,
 ) -> String {
     let Some(schema) = opt_schema else {
-        // Note: There could be something better displayed than this string if no schema is
-        // available for decoding at the frontend long-term.
+        // Note: There could be something better displayed than this string if no schema
+        // is available for decoding at the frontend long-term.
         return format!(
             "No embedded {} schema in smart contract available for decoding",
             schema_name.kind()

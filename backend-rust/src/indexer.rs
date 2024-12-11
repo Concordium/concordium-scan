@@ -1189,14 +1189,16 @@ impl PreparedEvent {
                     to,
                     amount,
                 } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                    to.to_string(), amount,
+                    to.to_string(),
+                    amount,
                 )?)),
                 AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
                     amount,
                     memo,
                 } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                    to.to_string(), amount,
+                    to.to_string(),
+                    amount,
                 )?)),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     cred_id,
@@ -1739,15 +1741,12 @@ impl PreparedContractUpdate {
 
 struct PreparedScheduledReleases {
     account_address: String,
-    release_times: Vec<DateTime<Utc>>,
-    amounts:       Vec<i64>,
+    release_times:   Vec<DateTime<Utc>>,
+    amounts:         Vec<i64>,
 }
 
 impl PreparedScheduledReleases {
-    fn prepare(
-        to: String,
-        scheduled_releases: &[(Timestamp, Amount)],
-    ) -> anyhow::Result<Self> {
+    fn prepare(to: String, scheduled_releases: &[(Timestamp, Amount)]) -> anyhow::Result<Self> {
         let capacity = scheduled_releases.len();
         let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
         let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
