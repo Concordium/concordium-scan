@@ -1452,7 +1452,15 @@ impl PreparedAccountDelegationEvent {
             PreparedAccountDelegationEvent::BakerRemoved {
                 baker_id,
             } => {
-                todo!()
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    *baker_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+                sqlx::query!(r#"DELETE FROM bakers WHERE id=$1"#, baker_id,)
+                    .execute(tx.as_mut())
+                    .await?;
             }
         }
         Ok(())
@@ -1710,10 +1718,14 @@ impl PreparedBakerEvent {
                 .await?;
             }
             PreparedBakerEvent::RemoveDelegation {
-                delegator_id: _,
+                delegator_id,
             } => {
-                // TODO: Implement this when database is tracking delegation as well.
-                todo!()
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    delegator_id
+                )
+                .execute(tx.as_mut())
+                .await?;
             }
             PreparedBakerEvent::NoOperation => (),
         }
