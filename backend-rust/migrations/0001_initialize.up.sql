@@ -192,7 +192,6 @@ CREATE TABLE accounts(
         BIGINT
         REFERENCES transactions,
     -- The total balance of this account in micro CCD.
-    -- TODO: Actually populate this in the indexer.
     amount
         BIGINT
         NOT NULL
@@ -206,11 +205,16 @@ CREATE TABLE accounts(
         -- Starting at 1 to count the transaction that made the account.
         DEFAULT 1,
     -- The total delegated stake of this account in micro CCD.
-    -- TODO: Actually populate this in the indexer.
     delegated_stake
         BIGINT
         NOT NULL
-        DEFAULT 0
+        DEFAULT 0,
+    delegated_restake_earnings
+        BOOLEAN
+        NULL,
+    delegated_target_baker_id
+        BIGINT
+        NULL
 );
 
 -- These are important for the sorting options on the accounts query.
