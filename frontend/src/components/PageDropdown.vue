@@ -38,7 +38,7 @@ const defaultDropDownValues = [MIN_PAGE_SIZE, DEFAULT_PAGE_SIZE, 25, 50, 100]
 // Merge in the value in props
 const dropdowns = computed(() => [
 	// remove duplicates values and sort by constructing a Set and then back to an array.
-	...new Set([...defaultDropDownValues, props.pageDropdownInfo.take.value]),
+	...new Set([...defaultDropDownValues, props.pageDropdownInfo.take.value].sort()),
 ])
 
 const onChange = (event: Event) => {
