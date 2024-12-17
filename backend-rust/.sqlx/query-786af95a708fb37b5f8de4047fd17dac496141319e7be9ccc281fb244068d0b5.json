@@ -1,12 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                total_supply,\n                metadata_url,\n                init_transaction_index AS \"index\",\n                transactions.block_height AS \"block_height\",\n                transactions.hash AS \"hash\",\n                transactions.ccd_cost AS \"ccd_cost\",\n                transactions.energy_cost AS \"energy_cost\",\n                transactions.sender,\n                transactions.type as \"tx_type: DbTransactionType\",\n                transactions.type_account as \"type_account: AccountTransactionType\",\n                transactions.type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                transactions.type_update as \"type_update: UpdateTransactionType\",\n                transactions.success,\n                transactions.events as \"events: sqlx::types::Json<Vec<Event>>\",\n                transactions.reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM tokens\n            JOIN transactions ON transactions.index = tokens.init_transaction_index\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_name = $3",
+  "query": "SELECT\n                total_supply,\n                metadata_url,\n                init_transaction_index AS \"index\",\n                transactions.block_height AS \"block_height\",\n                transactions.hash AS \"hash\",\n                transactions.ccd_cost AS \"ccd_cost\",\n                transactions.energy_cost AS \"energy_cost\",\n                transactions.sender,\n                transactions.type as \"tx_type: DbTransactionType\",\n                transactions.type_account as \"type_account: AccountTransactionType\",\n                transactions.type_credential_deployment as \"type_credential_deployment: CredentialDeploymentTransactionType\",\n                transactions.type_update as \"type_update: UpdateTransactionType\",\n                transactions.success,\n                transactions.events as \"events: sqlx::types::Json<Vec<Event>>\",\n                transactions.reject as \"reject: sqlx::types::Json<TransactionRejectReason>\"\n            FROM tokens\n            JOIN transactions ON transactions.index = tokens.init_transaction_index\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_address = $3",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "total_supply",
-        "type_info": "Bytea"
+        "type_info": "Numeric"
       },
       {
         "ordinal": 1,
@@ -185,5 +185,5 @@
       true
     ]
   },
-  "hash": "265b106bc6b84c1bb18d9b5c1784d105713e30f2d11174d226fce25e7493094d"
+  "hash": "786af95a708fb37b5f8de4047fd17dac496141319e7be9ccc281fb244068d0b5"
 }
