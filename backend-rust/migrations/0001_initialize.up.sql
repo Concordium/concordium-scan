@@ -219,7 +219,6 @@ CREATE TABLE accounts(
         NULL
 );
 
-
 -- These are important for the sorting options on the accounts query.
 CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
