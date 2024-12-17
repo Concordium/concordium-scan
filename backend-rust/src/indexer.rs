@@ -1445,8 +1445,7 @@ impl PreparedAccountDelegationEvent {
                 .execute(tx.as_mut())
                 .await?;
             }
-            PreparedAccountDelegationEvent::NoOperation {
-            } => (),
+            PreparedAccountDelegationEvent::NoOperation {} => (),
         }
         Ok(())
     }
