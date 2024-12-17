@@ -14,7 +14,7 @@ macro_rules! todo_api {
     };
 }
 
-use crate::indexer::get_token_name;
+use crate::indexer::get_token_address;
 use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
@@ -25,6 +25,7 @@ use async_graphql::{
     Value,
 };
 use async_graphql_axum::GraphQLSubscription;
+use bigdecimal::BigDecimal;
 use chrono::Duration;
 use concordium_rust_sdk::{
     base::{
@@ -40,7 +41,6 @@ use concordium_rust_sdk::{
     types::AmountFraction,
 };
 use futures::prelude::*;
-use num_bigint::BigUint;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
@@ -322,7 +322,7 @@ mod monitor {
             }
         }
     }
-    impl<'a> futures::stream::Stream for WrappedStream<'a> {
+    impl futures::stream::Stream for WrappedStream<'_> {
         type Item = async_graphql::Response;
 
         fn poll_next(
@@ -332,7 +332,7 @@ mod monitor {
             self.inner.poll_next_unpin(cx)
         }
     }
-    impl<'a> std::ops::Drop for WrappedStream<'a> {
+    impl std::ops::Drop for WrappedStream<'_> {
         fn drop(&mut self) { self.active_subscriptions.dec(); }
     }
 }
@@ -917,7 +917,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     ) -> ApiResult<Token> {
         let pool = get_pool(ctx)?;
 
-        let token_name = get_token_name(
+        let token_address = get_token_address(
             contract_address_index.0,
             contract_address_sub_index.0,
             &TokenId::from_str(&token_id).map_err(|_| ApiError::InvalidTokenID)?,
@@ -943,10 +943,10 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
                 transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>"
             FROM tokens
             JOIN transactions ON transactions.index = tokens.init_transaction_index
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_name = $3"#,
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_address = $3"#,
             contract_address_index.0 as i64,
             contract_address_sub_index.0 as i64,
-            token_name
+            token_address
         )
         .fetch_optional(pool)
         .await?
@@ -968,7 +968,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             reject: row.reject,
         };
 
-        let total_supply: BigUint = BigUint::from_bytes_le(&row.total_supply);
+        let total_supply_bytes: Vec<u8> = row.total_supply.to_string().into_bytes().to_vec();
 
         let metadata_url = if let Some(metadata) = row.metadata_url {
             let metadata: cis2::MetadataUrl =
@@ -984,12 +984,12 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             contract_sub_index: contract_address_sub_index,
             token_id,
             metadata_url,
-            total_supply: total_supply.to_u64_digits(),
+            total_supply: total_supply_bytes,
             contract_address_formatted: format!(
                 "<{},{}>",
                 contract_address_index, contract_address_sub_index
             ),
-            token_address: token_name,
+            token_address,
         })
     }
 
@@ -1462,7 +1462,7 @@ type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = Vec<u64>; // The type should represent the `num_bigint::BigUint` type.
+type BigInteger = Vec<u8>;
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]
@@ -6054,7 +6054,7 @@ pub enum DbTransactionType {
 // A helper type to query the `tokens` table with its `init_transaction`.
 pub struct TokenRow {
     metadata_url: Option<Vec<u8>>,
-    total_supply: Vec<u8>,
+    total_supply: BigDecimal,
     // Init_transaction fields below.
     index: i64,
     block_height: BlockHeight,

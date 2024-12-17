@@ -7,6 +7,7 @@ use crate::graphql_api::{
     UpdateTransactionType,
 };
 use anyhow::Context;
+use bigdecimal::BigDecimal;
 use bs58;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -30,10 +31,9 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
+use derive_more::FromStr;
 use futures::{StreamExt, TryStreamExt};
 use leb128::write::unsigned as encode_leb128;
-use num_bigint::BigUint;
-use num_traits::ops::checked::CheckedSub;
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -2036,7 +2036,11 @@ impl PreparedRejectModuleTransaction {
 /// encoding of the contract subindex concatenated with the token id in bytes.
 /// Finally the whole byte array is base 58 check encoded.
 /// https://proposals.concordium.software/CIS/cis-2.html#token-address
-pub fn get_token_name(contract_index: u64, contract_subindex: u64, token_id: &TokenId) -> String {
+pub fn get_token_address(
+    contract_index: u64,
+    contract_subindex: u64,
+    token_id: &TokenId,
+) -> String {
     // Encode the contract index and subindex as unsigned LEB128.
     let mut contract_index_bytes = Vec::new();
     encode_leb128(&mut contract_index_bytes, contract_index).unwrap();
@@ -2184,49 +2188,49 @@ impl PreparedContractUpdate {
                 owner,
             } = log
             {
-                let token_name = get_token_name(
+                let token_address = get_token_address(
                     self.contract_index as u64,
                     self.contract_sub_index as u64,
                     token_id,
                 );
 
-                // Fetch the current `total_supply` for the given `token_name`.
+                // Fetch the current `total_supply` for the given `token_address`.
                 let row = sqlx::query!(
                     "
-                    SELECT total_supply FROM tokens WHERE token_name = $1",
-                    token_name,
+                    SELECT total_supply FROM tokens WHERE token_address = $1",
+                    token_address,
                 )
                 .fetch_optional(pool)
                 .await?;
 
-                // If current `total_supply` exists, decode it and add the `amount`,
+                // If current `total_supply` exists, add the `amount` to it.
                 // otherwise use the `amount` as the new `total_supply`.
+                // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
+                // MAX::TOKEN_AMOUNT specified in the CIS-2 standard. The
+                // `total_supply` eventually overflows in that case.
                 let new_total_supply = if let Some(row) = row {
-                    let current_total_supply_bytes = row.total_supply;
+                    let current_total_supply: BigDecimal = row.total_supply;
 
-                    let current_total_supply: BigUint =
-                        BigUint::from_bytes_le(&current_total_supply_bytes);
-
-                    &(current_total_supply + &amount.0)
+                    current_total_supply + BigDecimal::from_str(&amount.0.to_string()).unwrap()
                 } else {
-                    &amount.0
+                    BigDecimal::from_str(&amount.0.to_string()).unwrap()
                 };
 
-                // If the `token_name` does not exist, insert the new token with its
-                // `total_supply` set to `amount`. If the `token_name` exists,
-                // update the `total_supply` value by subtracting the `amount` from the existing
+                // If the `token_address` does not exist, insert the new token with its
+                // `total_supply` set to `amount`. If the `token_address` exists,
+                // update the `total_supply` value by adding the `amount` to the existing
                 // value in the database.
                 sqlx::query!(
                     "
-                    INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
+                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
                      total_supply, init_transaction_index)
                     VALUES ($1, $2, $3, $4, $5)
-                    ON CONFLICT (token_name)
+                    ON CONFLICT (token_address)
                     DO UPDATE SET total_supply = EXCLUDED.total_supply",
-                    token_name,
+                    token_address,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply.to_bytes_le(),
+                    new_total_supply,
                     transaction_index
                 )
                 .execute(tx.as_mut())
@@ -2237,66 +2241,62 @@ impl PreparedContractUpdate {
             // Only `Mint` and `Burn` events affect the `total_supply` of a
             // token.
             // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-            // initially minted. The `total_supply` will be set to 0 in that
-            // case (rather than underflowing the value).
+            // initially minted. The `total_supply` can have a negative value in that case
+            // and even underflow.
             if let cis2::Event::Burn {
                 token_id,
                 amount,
                 owner,
             } = log
             {
-                let token_name = get_token_name(
+                let token_address = get_token_address(
                     self.contract_index as u64,
                     self.contract_sub_index as u64,
                     token_id,
                 );
-                // Fetch the current `total_supply` for the given `token_name`.
+                // Fetch the current `total_supply` for the given `token_address`.
                 let row = sqlx::query!(
                     "
-                        SELECT total_supply FROM tokens WHERE token_name = $1",
-                    token_name,
+                        SELECT total_supply FROM tokens WHERE token_address = $1",
+                    token_address,
                 )
                 .fetch_optional(pool)
                 .await?;
 
-                // If current `total_supply` exists, decode it and subtract the `amount`,
-                // otherwise use `0` as the new `total_supply`.
+                // If current `total_supply` exists, subtract the `amount` from it.
+                // If it does not exist (`buggy` CIS2 token contract), insert the new token with
+                // its `total_supply` set to `-amount`.
                 // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-                // initially minted. The `total_supply` will be set to 0 (default value) in
-                // that case (rather than underflowing the value).
+                // initially minted. The `total_supply` will be set to a negative value and
+                // eventually underflow in that case.
                 let new_total_supply = if let Some(row) = row {
-                    let current_total_supply_bytes = row.total_supply;
-
-                    let current_total_supply: BigUint =
-                        BigUint::from_bytes_le(&current_total_supply_bytes);
+                    let current_total_supply = row.total_supply;
 
                     // Subtract the `amount` from the `current_total_supply`.
-                    // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-                    // initially minted. The `total_supply` will be set to 0 (default value) in
-                    // that case (rather than underflowing the value).
-                    &current_total_supply.checked_sub(&amount.0).unwrap_or_default()
+                    current_total_supply - BigDecimal::from_str(&amount.0.to_string()).unwrap()
                 } else {
                     // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
                     // initially minted. The `total_supply` will be set to 0 (default value) in that
                     // case (rather than underflowing the value).
-                    &BigUint::default()
+                    -BigDecimal::from_str(&amount.0.to_string()).unwrap()
                 };
 
-                // If the `token_name` does not exist (likely a `buggy` CIS2 token contract),
-                // insert the new token with its `total_supply` set to `0`. If the `token_name`
-                // exists, update the `total_supply` value by subtracting the
-                // `amount` from the existing value in the database.
+                // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
+                // insert the new token with its `total_supply` set to `-amount`. If the
+                // `token_address` exists, update the `total_supply` value by
+                // subtracting the `amount` from the existing value in the
+                // database.
                 sqlx::query!(
                     "
-                        INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
+                        INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
                      total_supply, init_transaction_index)
                         VALUES ($1, $2, $3, $4, $5)
-                        ON CONFLICT (token_name)
+                        ON CONFLICT (token_address)
                         DO UPDATE SET total_supply = EXCLUDED.total_supply",
-                    token_name,
+                    token_address,
                     self.contract_index,
                     self.contract_sub_index,
-                    new_total_supply.to_bytes_le(),
+                    new_total_supply,
                     transaction_index
                 )
                 .execute(tx.as_mut())
@@ -2311,22 +2311,23 @@ impl PreparedContractUpdate {
                 metadata_url,
             } = log
             {
-                let token_name = get_token_name(
+                let token_address = get_token_address(
                     self.contract_index as u64,
                     self.contract_sub_index as u64,
                     token_id,
                 );
 
-                // If the `token_name` does not exist, insert the new token.
-                // If the `token_name` exists, update the `metadata_url` value in the database.
+                // If the `token_address` does not exist, insert the new token.
+                // If the `token_address` exists, update the `metadata_url` value in the
+                // database.
                 sqlx::query!(
                     "
-                        INSERT INTO tokens (token_name, contract_index, contract_sub_index, \
+                        INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
                      metadata_url, init_transaction_index)
                         VALUES ($1, $2, $3, $4, $5)
-                        ON CONFLICT (token_name)
+                        ON CONFLICT (token_address)
                         DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
-                    token_name,
+                    token_address,
                     self.contract_index,
                     self.contract_sub_index,
                     to_bytes(metadata_url),
@@ -2335,11 +2336,6 @@ impl PreparedContractUpdate {
                 .execute(tx.as_mut())
                 .await?;
             }
-
-            // Note: Some `buggy` CIS2 token contracts might have a `Transfer`
-            // event before minting the token. The token is not
-            // existing in the database in that case and the `Transfer` event
-            // will be ignored here.
         }
 
         Ok(())
