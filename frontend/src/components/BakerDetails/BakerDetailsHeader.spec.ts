@@ -1,6 +1,5 @@
 import BakerDetailsHeader from './BakerDetailsHeader.vue'
 import { setupComponent, screen } from '~/utils/testing'
-import { BakerPoolOpenStatus } from '~/types/generated'
 
 jest.mock('~/composables/useDrawer', () => ({
 	useDrawer: () => ({

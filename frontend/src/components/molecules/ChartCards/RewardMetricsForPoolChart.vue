@@ -13,7 +13,7 @@
 		:is-loading="isLoading"
 		:label-formatter="formatLabel"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Rewards</template>
 		<template #icon>Ͼ</template>
 		<template #value>{{ chipValue }}</template>
@@ -25,7 +25,7 @@ import type { TooltipItem } from 'chart.js'
 import type { Ref } from 'vue'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'
-import { type PoolRewardMetricsForBakerPoolResponse } from '~/queries/useBakerPoolRewardMetrics'
+import type { PoolRewardMetricsForBakerPoolResponse } from '~/queries/useBakerPoolRewardMetrics'
 import { RewardTakerTypes } from '~/types/rewardTakerTypes'
 type Props = {
 	rewardMetricsData?: PoolRewardMetricsForBakerPoolResponse

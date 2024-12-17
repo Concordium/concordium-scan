@@ -171,13 +171,16 @@ export const isItemOnTop = (
 
 /**
  * Curried function to add a new item to the drawer stack in router history.
- * @param { DrawerItem } drawerItem  - item to be pushed to the router
- * @param { boolean } resetList - whether or not list should be reset
- * @param { Router } router - (in returned fn) instance of vue-router
- * @param { Ref<DrawerList> } state - (in returned fn) state containing list of items in drawer
+ * @param drawerItem  - item to be pushed to the router
+ * @param resetList - whether or not list should be reset
  */
 export const pushToRouter =
 	(drawerItem: DrawerItem, resetList = true) =>
+	/**
+	 * Add the curried item to the drawer stack in router history.
+	 * @param router - (in returned fn) instance of vue-router
+	 * @param state - (in returned fn) state containing list of items in drawer
+	 */
 	(router: Router, state: Ref<DrawerList>) => {
 		const dcount = resetList ? state.value.items.length : 1
 		const dentity = drawerItem.entityTypeName
@@ -388,7 +391,7 @@ export const useDrawer = () => {
 
 		const item = {
 			...drawerItem,
-			scrollY: process.client ? window.scrollY : 0,
+			scrollY: import.meta.client ? window.scrollY : 0,
 		}
 
 		if (currentDrawerCount.value === 0 && resetList) {

@@ -5,7 +5,7 @@
 				<ConcordiumLogoNoTextIcon class="inline pr-1" /> Powered by Concordium
 				Blockchain
 			</div>
-			<div style="height: 12px"></div>
+			<div style="height: 12px" />
 			<div class="text-base">
 				Creating a future based on trust, privacy and safety
 				<br />
