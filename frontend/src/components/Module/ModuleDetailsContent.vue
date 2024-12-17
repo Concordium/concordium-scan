@@ -29,10 +29,7 @@
 					</template>
 				</DetailsCard>
 			</div>
-			<div
-				v-if="moduleReferenceEvent.displaySchema"
-				class="schema-section"
-			></div>
+			<div v-if="moduleReferenceEvent.displaySchema" class="schema-section" />
 			<Tabs :tab-list="tabList">
 				<template #tabPanel-1>
 					<DetailsTable

@@ -100,7 +100,7 @@ import { useBreakpoint, Breakpoint } from '~/composables/useBreakpoint'
 import { useBlockListQuery } from '~/queries/useBlockListQuery'
 import { useBlockSubscription } from '~/subscriptions/useBlockSubscription'
 import { useBlockMetricsQuery } from '~/queries/useChartBlockMetrics'
-import { MetricsPeriod, type Block, type Subscription } from '~/types/generated'
+import { MetricsPeriod, type Block } from '~/types/generated'
 import MetricsPeriodDropdown from '~/components/molecules/MetricsPeriodDropdown.vue'
 import FtbCarousel from '~/components/molecules/FtbCarousel.vue'
 import BakerLink from '~/components/molecules/BakerLink.vue'
@@ -123,7 +123,7 @@ const {
 	loadMore,
 } = usePagedData<Block>()
 const newItems = ref(0)
-const subscriptionHandler = (_prevData: void, _newData: Subscription) => {
+const subscriptionHandler = () => {
 	newItems.value++
 }
 const selectedMetricsPeriod = ref(MetricsPeriod.Last30Days)

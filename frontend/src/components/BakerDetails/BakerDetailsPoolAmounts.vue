@@ -2,7 +2,7 @@
 	<Tooltip text-class="text-left">
 		<template #content>
 			<div class="text-theme-body text-sm">
-				<span class="legend"></span>
+				<span class="legend" />
 				Validator:
 				<Amount
 					:amount="amounts.bakerAmount"
@@ -11,7 +11,7 @@
 				/>
 			</div>
 			<div v-if="amounts.delegatorsAmount">
-				<span class="legend legend-green"></span>
+				<span class="legend legend-green" />
 				Delegators:
 				<Amount
 					:amount="amounts.delegatorsAmount"

@@ -20,5 +20,5 @@ import Amount from '~/components/atoms/Amount.vue'
 type Props = {
 	contractEvent: Transferred
 }
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>

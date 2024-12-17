@@ -192,7 +192,6 @@ CREATE TABLE accounts(
         BIGINT
         REFERENCES transactions,
     -- The total balance of this account in micro CCD.
-    -- TODO: Actually populate this in the indexer.
     amount
         BIGINT
         NOT NULL
