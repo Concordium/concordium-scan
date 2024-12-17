@@ -223,9 +223,6 @@ CREATE TABLE accounts(
 CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
-CREATE INDEX accounts_delegated_target_baker_id_index
-    ON accounts (delegated_target_baker_id, delegated_stake DESC)
-    WHERE delegated_target_baker_id IS NOT NULL;
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions

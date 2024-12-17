@@ -1327,9 +1327,7 @@ enum PreparedAccountDelegationEvent {
         account_id: i64,
         target_id:  Option<i64>,
     },
-    BakerRemoved {
-        baker_id: i64,
-    },
+    NoOperation,
 }
 
 impl PreparedAccountDelegationEvent {
@@ -1383,9 +1381,7 @@ impl PreparedAccountDelegationEvent {
             },
             DelegationEvent::BakerRemoved {
                 baker_id,
-            } => PreparedAccountDelegationEvent::BakerRemoved {
-                baker_id: baker_id.id.index.try_into()?,
-            },
+            } => PreparedAccountDelegationEvent::NoOperation,
         };
         Ok(prepared)
     }
@@ -1449,21 +1445,8 @@ impl PreparedAccountDelegationEvent {
                 .execute(tx.as_mut())
                 .await?;
             }
-            PreparedAccountDelegationEvent::BakerRemoved {
-                baker_id,
-            } => {
-                // TODO: This could maybe be left out because the subsequent events should do
-                // the same.
-                sqlx::query!(
-                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
-                    *baker_id
-                )
-                .execute(tx.as_mut())
-                .await?;
-                sqlx::query!(r#"DELETE FROM bakers WHERE id=$1"#, baker_id,)
-                    .execute(tx.as_mut())
-                    .await?;
-            }
+            PreparedAccountDelegationEvent::NoOperation {
+            } => (),
         }
         Ok(())
     }
