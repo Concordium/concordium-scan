@@ -3139,18 +3139,21 @@ impl Account {
     }
 
     /// Timestamp of the block where this account was created.
-    async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
+    async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<Option<DateTime>> {
+        if let Some(transaction_index) = self.transaction_index {
         let slot_time = sqlx::query_scalar!(
-            "SELECT slot_time
-            FROM transactions
-            JOIN blocks ON transactions.block_height = blocks.height
-            WHERE transactions.index = $1",
-            self.transaction_index
-        )
-        .fetch_one(get_pool(ctx)?)
-        .await?;
-
-        Ok(slot_time)
+                "SELECT slot_time
+                FROM transactions
+                JOIN blocks ON transactions.block_height = blocks.height
+                WHERE transactions.index = $1",
+                transaction_index
+            )
+            .fetch_one(get_pool(ctx)?)
+            .await?;
+            Ok(Some(slot_time))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Number of transactions where this account is used as sender.
