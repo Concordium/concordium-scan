@@ -1452,6 +1452,7 @@ impl PreparedAccountDelegationEvent {
             PreparedAccountDelegationEvent::BakerRemoved {
                 baker_id,
             } => {
+                // TODO: This could maybe be left out because the subsequent events should do the same.
                 sqlx::query!(
                     r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
                     *baker_id
