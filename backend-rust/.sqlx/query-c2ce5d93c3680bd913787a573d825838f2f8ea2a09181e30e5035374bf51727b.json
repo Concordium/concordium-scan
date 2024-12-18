@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT slot_time\n                FROM blocks\n                WHERE height = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slot_time",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c2ce5d93c3680bd913787a573d825838f2f8ea2a09181e30e5035374bf51727b"
+}
