@@ -525,6 +525,9 @@ impl ProcessEvent for BlockProcessor {
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
+        process_release_schedules(new_context.last_block_slot_time, &mut tx)
+            .await
+            .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
         // Update metrics.
         let duration = start_time.elapsed();
@@ -568,6 +571,22 @@ struct BlockProcessingContext {
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
     last_cumulative_num_txs: i64,
+}
+
+/// Process schedule releases based on the slot time of the last processed
+/// block.
+async fn process_release_schedules(
+    last_block_slot_time: DateTime<Utc>,
+    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+) -> anyhow::Result<()> {
+    sqlx::query!(
+        "DELETE FROM scheduled_releases
+         WHERE release_time <= $1",
+        last_block_slot_time
+    )
+    .execute(tx.as_mut())
+    .await?;
+    Ok(())
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -1187,18 +1206,18 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
-                    amount,
+                    amount: scheduled_releases,
                 } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
                     to.to_string(),
-                    amount,
+                    scheduled_releases,
                 )?)),
                 AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
-                    amount,
+                    amount: scheduled_releases,
                     memo,
                 } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
                     to.to_string(),
-                    amount,
+                    scheduled_releases,
                 )?)),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     cred_id,
@@ -1743,6 +1762,7 @@ struct PreparedScheduledReleases {
     account_address: String,
     release_times:   Vec<DateTime<Utc>>,
     amounts:         Vec<i64>,
+    total_amount:    i64,
 }
 
 impl PreparedScheduledReleases {
@@ -1750,15 +1770,19 @@ impl PreparedScheduledReleases {
         let capacity = scheduled_releases.len();
         let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
         let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
+        let mut total_amount = 0;
         for (timestamp, amount) in scheduled_releases.iter() {
             release_times.push(DateTime::<Utc>::try_from(*timestamp)?);
-            amounts.push(i64::try_from(amount.micro_ccd())?);
+            let micro_ccd = i64::try_from(amount.micro_ccd())?;
+            amounts.push(micro_ccd);
+            total_amount += micro_ccd;
         }
 
         Ok(Self {
             account_address: to,
             release_times,
             amounts,
+            total_amount,
         })
     }
 
@@ -1787,7 +1811,15 @@ impl PreparedScheduledReleases {
         )
         .execute(tx.as_mut())
         .await?;
+        sqlx::query!(
+            "UPDATE accounts
+               SET amount = amount + $1
+             WHERE address = $2",
+            &self.total_amount,
+            self.account_address,
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
-    // fn prepare()
 }
