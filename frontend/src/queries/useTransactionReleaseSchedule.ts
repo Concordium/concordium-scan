@@ -58,6 +58,9 @@ export const useTransactionReleaseSchedule = (
 	const { data } = useQuery({
 		query: TransactionReleaseScheduleQuery,
 		requestPolicy: 'cache-first',
+		context: {
+			url: inject<string>('fungyApiUrl'),
+		},
 		variables: {
 			hash,
 			...schedulePaging,

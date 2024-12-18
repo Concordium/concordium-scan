@@ -60,6 +60,9 @@ export const useTransactionsListQuery = (
 	variables: Partial<QueryVariables>
 ) => {
 	const { data, executeQuery } = useQuery({
+		context: {
+			url: inject<string>('fungyApiUrl'),
+		},
 		query: TransactionsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
