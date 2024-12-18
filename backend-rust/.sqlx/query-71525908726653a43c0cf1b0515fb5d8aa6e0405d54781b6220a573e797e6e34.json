@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT slot_time\n                FROM blocks\n                WHERE height = 1",
+  "query": "SELECT slot_time\n                FROM blocks\n                WHERE height = 0",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "c2ce5d93c3680bd913787a573d825838f2f8ea2a09181e30e5035374bf51727b"
+  "hash": "71525908726653a43c0cf1b0515fb5d8aa6e0405d54781b6220a573e797e6e34"
 }
