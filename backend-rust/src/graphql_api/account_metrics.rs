@@ -41,7 +41,7 @@ pub(crate) struct AccountMetricsQuery;
 
 #[Object]
 impl AccountMetricsQuery {
-    async fn account_metrics(
+    async fn accounts_metrics(
         &self,
         ctx: &Context<'_>,
         period: MetricsPeriod,

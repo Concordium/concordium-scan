@@ -1235,8 +1235,13 @@ impl PreparedEvent {
                 } => None,
 
                 AccountTransactionEffects::DelegationConfigured {
-                    data,
-                } => None,
+                    data: events,
+                } => Some(PreparedEvent::AccountDelegationEvents(
+                    events
+                        .iter()
+                        .map(PreparedAccountDelegationEvent::prepare)
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
             },
             details => {
                 warn!("details = \n {:#?}", details);
