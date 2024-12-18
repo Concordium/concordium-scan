@@ -25,8 +25,8 @@ import PageDropdown from '../PageDropdown.vue'
 import {
 	MIN_PAGE_SIZE,
 	type PageDropdownInfo,
-} from '~~/src/composables/usePageDropdown'
-import type { PaginationOffsetInfo } from '~~/src/composables/usePaginationOffset'
+} from '~/composables/usePageDropdown'
+import type { PaginationOffsetInfo } from '~/composables/usePaginationOffset'
 
 type Props = {
 	totalCount: number

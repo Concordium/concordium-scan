@@ -5,13 +5,13 @@
 			class="grid mb-20 gap-4"
 			:class="props.nonCarouselClasses"
 		>
-			<slot></slot>
+			<slot />
 		</div>
 		<carousel v-else ref="carouselRef" slide-width="350px" :items-to-show="1">
 			<template #addons>
 				<pagination />
 			</template>
-			<slot></slot>
+			<slot />
 		</carousel>
 	</ClientOnly>
 </template>

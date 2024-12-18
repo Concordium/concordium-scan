@@ -66,6 +66,8 @@ watchEffect(async () => {
 		tokenWithMetadata.value.metadata = await fetchMetadata(
 			String(tokenWithMetadata.value.metadataUrl)
 		)
-	} catch {}
+	} catch {
+		return
+	}
 })
 </script>

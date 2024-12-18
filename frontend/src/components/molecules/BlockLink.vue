@@ -44,7 +44,6 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = (hash?: string, id?: string) => {
-	;(hash || id) &&
-		drawer.push({ entityTypeName: 'block', hash: hash || '', id })
+	if (hash || id) drawer.push({ entityTypeName: 'block', hash: hash || '', id })
 }
 </script>

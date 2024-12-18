@@ -206,11 +206,18 @@ CREATE TABLE accounts(
         -- Starting at 1 to count the transaction that made the account.
         DEFAULT 1,
     -- The total delegated stake of this account in micro CCD.
-    -- TODO: Actually populate this in the indexer.
     delegated_stake
         BIGINT
         NOT NULL
-        DEFAULT 0
+        DEFAULT 0,
+    -- Whether we are re-staking earnings. Null means we are not using delegation.
+    delegated_restake_earnings
+        BOOLEAN
+        NULL,
+    -- Target id of the baker When this is null it means that we are using passive delegation.
+    delegated_target_baker_id
+        BIGINT
+        NULL
 );
 
 -- These are important for the sorting options on the accounts query.
