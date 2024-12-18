@@ -3154,7 +3154,7 @@ impl Account {
             sqlx::query_scalar!(
                 "SELECT slot_time
                 FROM blocks
-                WHERE height = 1"
+                WHERE height = 0"
             )
             .fetch_one(get_pool(ctx)?)
             .await?
