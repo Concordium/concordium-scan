@@ -3139,9 +3139,9 @@ impl Account {
     }
 
     /// Timestamp of the block where this account was created.
-    async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<Option<DateTime>> {
-        if let Some(transaction_index) = self.transaction_index {
-        let slot_time = sqlx::query_scalar!(
+    async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
+        let slot_time = if let Some(transaction_index) = self.transaction_index {
+        sqlx::query_scalar!(
                 "SELECT slot_time
                 FROM transactions
                 JOIN blocks ON transactions.block_height = blocks.height
@@ -3149,11 +3149,17 @@ impl Account {
                 transaction_index
             )
             .fetch_one(get_pool(ctx)?)
-            .await?;
-            Ok(Some(slot_time))
+            .await?
         } else {
-            Ok(None)
-        }
+            sqlx::query_scalar!(
+                "SELECT slot_time
+                FROM blocks
+                WHERE height = 1"
+            )
+            .fetch_one(get_pool(ctx)?)
+            .await?
+        };
+        Ok(slot_time)
     }
 
     /// Number of transactions where this account is used as sender.
