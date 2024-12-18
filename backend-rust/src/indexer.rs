@@ -1208,7 +1208,7 @@ impl PreparedEvent {
                 } => None,
 
                 AccountTransactionEffects::DelegationConfigured {
-                    data: events
+                    data: events,
                 } => Some(PreparedEvent::AccountDelegationEvents(
                     events
                         .iter()

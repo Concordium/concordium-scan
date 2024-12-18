@@ -3141,7 +3141,7 @@ impl Account {
     /// Timestamp of the block where this account was created.
     async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
         let slot_time = if let Some(transaction_index) = self.transaction_index {
-        sqlx::query_scalar!(
+            sqlx::query_scalar!(
                 "SELECT slot_time
                 FROM transactions
                 JOIN blocks ON transactions.block_height = blocks.height
