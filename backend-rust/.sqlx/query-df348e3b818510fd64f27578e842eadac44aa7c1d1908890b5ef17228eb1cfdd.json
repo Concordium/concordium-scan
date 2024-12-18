@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT index, transaction_index, address, amount, delegated_stake, num_txs\n            FROM accounts\n            WHERE index = $1",
+  "query": "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, delegated_restake_earnings, delegated_target_baker_id\n            FROM accounts\n            WHERE index = $1",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,16 @@
         "ordinal": 5,
         "name": "num_txs",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "delegated_restake_earnings",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "delegated_target_baker_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -45,8 +55,10 @@
       false,
       false,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "c9ef64880eb1000b7a70b277a5e9f3e01cf8f0f6e47a65b034e7d468aedf60d6"
+  "hash": "df348e3b818510fd64f27578e842eadac44aa7c1d1908890b5ef17228eb1cfdd"
 }

@@ -133,8 +133,6 @@ import type { Account, PageInfo } from '~/types/generated'
 import { useDateNow } from '~/composables/useDateNow'
 import type { PaginationTarget } from '~/composables/usePagination'
 import AccountDetailsDelegation from '~/components/Accounts/AccountDetailsDelegation.vue'
-import Tooltip from '~/components/atoms/Tooltip.vue'
-import Amount from '~/components/atoms/Amount.vue'
 import AccountDetailsRewards from '~/components/Accounts/AccountDetailsRewards.vue'
 
 const { NOW } = useDateNow()

@@ -6,7 +6,7 @@
 				class="h-screen w-screen fixed top-0 left-0 z-20"
 				:class="$style.drawerMask"
 				@click="() => softReset()"
-			></div>
+			/>
 		</transition>
 		<TransitionGroup name="drawer">
 			<div

@@ -46,7 +46,7 @@ const emitBlur = (newTarget: FocusEvent) => {
 }
 
 const handleOnClick = () => {
-	props.moduleReference &&
+	if (props.moduleReference)
 		drawer.push({
 			entityTypeName: 'module',
 			moduleReference: props.moduleReference,

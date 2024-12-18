@@ -1,11 +1,11 @@
 import { translateTransactionType } from './translateTransactionTypes'
-import {
-	type AccountTransaction,
-	type AccountTransactionType,
-	type UpdateTransaction,
-	type UpdateTransactionType,
-	type CredentialDeploymentTransaction,
-	type CredentialDeploymentTransactionType,
+import type {
+	AccountTransaction,
+	AccountTransactionType,
+	UpdateTransaction,
+	UpdateTransactionType,
+	CredentialDeploymentTransaction,
+	CredentialDeploymentTransactionType,
 } from '~/types/generated'
 
 describe('translateTransactionTypes', () => {
