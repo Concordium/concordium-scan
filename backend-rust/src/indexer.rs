@@ -11,10 +11,14 @@ use bs58;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
+    cis0,
     cis2::{self, TokenId},
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
-    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
+    smart_contracts::{
+        engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
+        types::ContractName,
+    },
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
@@ -27,7 +31,7 @@ use concordium_rust_sdk::{
     },
 };
 use derive_more::FromStr;
-use futures::{StreamExt, TryStreamExt};
+use futures::{future::join_all, StreamExt, TryStreamExt};
 use leb128::write::unsigned as encode_leb128;
 use prometheus_client::{
     metrics::{
@@ -119,6 +123,7 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
                 .parse()?;
 
         let block_pre_processor = BlockPreProcessor::new(
+            pool.clone(),
             genesis_block_hash,
             config.max_successive_failures.into(),
             registry.sub_registry_with_prefix("preprocessor"),
@@ -201,25 +206,27 @@ impl NodeMetricLabels {
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
 /// preprocessors can run in parallel, this must be `Sync`.
 struct BlockPreProcessor {
+    pool: PgPool,
     /// Genesis hash, used to ensure the nodes are on the expected network.
-    genesis_hash:                 sdk_types::hashes::BlockHash,
+    genesis_hash: sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
+    preprocessing_failures: Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
-    node_response_time:           Family<NodeMetricLabels, Histogram>,
+    node_response_time: Family<NodeMetricLabels, Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:      u64,
+    max_successive_failures: u64,
 }
 impl BlockPreProcessor {
     fn new(
+        pool: PgPool,
         genesis_hash: sdk_types::hashes::BlockHash,
         max_successive_failures: u64,
         registry: &mut Registry,
@@ -253,6 +260,7 @@ impl BlockPreProcessor {
         );
 
         Self {
+            pool,
             genesis_hash,
             established_node_connections,
             preprocessing_failures,
@@ -362,8 +370,9 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block =
-                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
+            let prepared_block = PreparedBlock::prepare(&mut client, &self.pool, &data)
+                .await
+                .map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -718,7 +727,11 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        pool: &PgPool,
+        data: &BlockData,
+    ) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -734,7 +747,7 @@ impl PreparedBlock {
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, pool, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -890,6 +903,7 @@ struct PreparedBlockItem {
 impl PreparedBlockItem {
     async fn prepare(
         node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
     ) -> anyhow::Result<Self> {
@@ -943,7 +957,7 @@ impl PreparedBlockItem {
         let affected_accounts =
             block_item.affected_addresses().into_iter().map(|a| a.to_string()).collect();
 
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+        let prepared_event = PreparedEvent::prepare(node_client, pool, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -1065,6 +1079,7 @@ enum PreparedEvent {
 impl PreparedEvent {
     async fn prepare(
         node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
     ) -> anyhow::Result<Option<Self>> {
@@ -1093,18 +1108,24 @@ impl PreparedEvent {
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => Some(PreparedEvent::ContractUpdate(
-                    effects
-                        .iter()
-                        .enumerate()
-                        .map(|(trace_element_index, effect)| {
+                    join_all(effects.iter().enumerate().map(|(trace_element_index, effect)| {
+                        let mut node_client = node_client.clone();
+
+                        async move {
                             PreparedContractUpdate::prepare(
+                                &mut node_client,
+                                pool,
                                 data,
                                 block_item,
                                 effect,
                                 trace_element_index,
                             )
-                        })
-                        .collect::<anyhow::Result<Vec<_>>>()?,
+                            .await
+                        }
+                    }))
+                    .await
+                    .into_iter()
+                    .collect::<Result<Vec<_>, anyhow::Error>>()?,
                 )),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
@@ -1887,7 +1908,9 @@ struct PreparedContractUpdate {
 }
 
 impl PreparedContractUpdate {
-    fn prepare(
+    async fn prepare(
+        node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractTraceElement,
@@ -1922,6 +1945,35 @@ impl PreparedContractUpdate {
                 from,
                 to,
             } => vec![],
+        };
+
+        // Fetch the smart contract name for the given contract.
+        let row = sqlx::query!(
+            "
+                SELECT name FROM contracts WHERE index = $1 AND sub_index = $2
+            ",
+            index,
+            sub_index,
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let supports_cis2 = cis0::supports(
+            node_client,
+            &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+            contract_address,
+            ContractName::new_unchecked(&row.name),
+            cis0::StandardIdentifier::CIS2,
+        )
+        .await?;
+
+        let supports_cis2 = supports_cis2.response.is_support();
+        let potential_cis2_events = if supports_cis2 {
+            potential_cis2_events
+        } else {
+            // If contract does not support `CIS-2`, don't consider the events as cis2
+            // events.
+            vec![]
         };
 
         Ok(Self {
@@ -1960,8 +2012,6 @@ impl PreparedContractUpdate {
         )
         .execute(tx.as_mut())
         .await?;
-
-        // TODO: it would be nice to check if the token supports CIS2 (CIS-0 standard)
 
         for log in self.potential_cis2_events.iter() {
             // The `total_supply` value of a token is inserted/updated in the database here.
