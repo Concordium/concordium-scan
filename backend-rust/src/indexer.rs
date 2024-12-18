@@ -2111,7 +2111,6 @@ impl PreparedContractUpdate {
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
-
         let module_link_event = match event {
             &ContractTraceElement::Upgraded {
                 address,
@@ -2132,6 +2131,26 @@ impl PreparedContractUpdate {
             _ => None,
         };
 
+        // To track CIS2 tokens (e.g., token balances, total supply, token metadata
+        // URLs), we gather the CIS2 events here. We check if logged contract
+        // events can be parsed as CIS2 events. In addition, we check if the
+        // contract supports the `CIS2` standard by calling the on-chain
+        // `supports` endpoint before considering the CIS2 events valid.
+        //
+        // There are two edge cases that the index would not identify a CIS2 event
+        // correctly. Nonetheless, to avoid complexity it was deemed acceptable
+        // behavior.
+        // - Edge case 1: A contract code upgrades and no longer
+        // supports CIS2 then logging a CIS2-like event within the same block.
+        // - Edge case 2: A contract logs a CIS2-like event and then upgrades to add
+        // support for CIS2 in the same block.
+        //
+        // There are three chain events (ContractInitializedEvent,
+        // ContractInterruptedEvent and ContractUpdatedEvent) that can generate
+        // `contract_logs`. CIS2 events logged by the last two chain events are
+        // handled here while CIS2 events logged in the
+        // `ContractInitializedEvent` are handled at its corresponding
+        // transaction type.
         let potential_cis2_events = match event {
             ContractTraceElement::Updated {
                 data,
@@ -2180,7 +2199,7 @@ impl PreparedContractUpdate {
         let potential_cis2_events = if supports_cis2 {
             potential_cis2_events
         } else {
-            // If contract does not support `CIS-2`, don't consider the events as cis2
+            // If contract does not support `CIS2`, don't consider the events as CIS2
             // events.
             vec![]
         };
@@ -2256,7 +2275,7 @@ impl PreparedContractUpdate {
                 // If current `total_supply` exists, add the `amount` to it.
                 // otherwise use the `amount` as the new `total_supply`.
                 // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
-                // MAX::TOKEN_AMOUNT specified in the CIS-2 standard. The
+                // MAX::TOKEN_AMOUNT specified in the CIS2 standard. The
                 // `total_supply` eventually overflows in that case.
                 let new_total_supply = if let Some(row) = row {
                     let current_total_supply: BigDecimal = row.total_supply;

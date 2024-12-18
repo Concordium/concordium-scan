@@ -36,7 +36,7 @@ use concordium_rust_sdk::{
         },
         smart_contracts::ReceiveName,
     },
-    cis2::{self, TokenId},
+    cis2::{self, ParseTokenIdVecError, TokenId},
     id::types as sdk_types,
     types::AmountFraction,
 };
@@ -368,8 +368,8 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
-    #[error("Invalid token ID")]
-    InvalidTokenID,
+    #[error("Invalid token ID: {0}")]
+    InvalidTokenID(Arc<ParseTokenIdVecError>),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -871,21 +871,6 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         })
     }
 
-    // let opt_contract_logs= match self.event{
-    //     ContractTraceElement::Updated { data } => Some(data.events),
-    //     ContractTraceElement::Transferred { from, amount, to } => None,
-    //     ContractTraceElement::Interrupted { address, events } =>Some(*events),
-    //     ContractTraceElement::Resumed { address, success } => None,
-    //     ContractTraceElement::Upgraded { address, from, to } => None,
-    // };
-
-    /// For each contract those contract actions, which generates log
-    /// events, are processed (contract initialization, contract
-    /// interrupted and contract updated).
-    //     -- Specifies if the contract supports the CIS2 standard. If true, the
-    // contract is considered a token contract. -- The contract is querried when
-    // initialized if it supports the CIS2 standard and whenever the contract is `natively_upgraded`. -- https://proposals.concordium.software/CIS/cis-0.html#cis-0
-
     // bakerMetrics(period: MetricsPeriod!): BakerMetrics!
     // rewardMetrics(period: MetricsPeriod!): RewardMetrics!
     // rewardMetricsForAccount(accountId: ID! period: MetricsPeriod!):
@@ -920,7 +905,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
         let token_address = get_token_address(
             contract_address_index.0,
             contract_address_sub_index.0,
-            &TokenId::from_str(&token_id).map_err(|_| ApiError::InvalidTokenID)?,
+            &TokenId::from_str(&token_id).map_err(|e| ApiError::InvalidTokenID(e.into()))?,
         );
 
         let row = sqlx::query_as!(
