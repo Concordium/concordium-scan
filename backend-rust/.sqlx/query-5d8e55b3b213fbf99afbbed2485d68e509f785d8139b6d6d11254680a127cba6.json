@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT true\n                 FROM scheduled_releases\n                 WHERE\n                   account_index = $1\n                   AND $2 < index\n                 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5d8e55b3b213fbf99afbbed2485d68e509f785d8139b6d6d11254680a127cba6"
+}

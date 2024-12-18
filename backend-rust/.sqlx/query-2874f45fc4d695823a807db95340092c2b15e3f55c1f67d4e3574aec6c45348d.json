@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE accounts\n               SET amount = amount + $1\n             WHERE address = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bpchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2874f45fc4d695823a807db95340092c2b15e3f55c1f67d4e3574aec6c45348d"
+}
