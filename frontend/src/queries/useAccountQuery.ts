@@ -150,19 +150,6 @@ address {
 }
 amount
 transactionCount
-baker {
-	bakerId
-	state {
-		...on ActiveBakerState {
-			__typename
-			stakedAmount
-		}
-		...on RemovedBakerState {
-			__typename
-			removedAt
-		}
-	}
-}
 releaseSchedule {
 	totalAmount
 	schedule(
