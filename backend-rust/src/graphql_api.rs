@@ -635,8 +635,7 @@ impl BaseQuery {
         // specified.
         let mut accounts = sqlx::query_as!(
             Account,
-            r"SELECT * FROM (
-                SELECT
+            r"SELECT
                     index,
                     transaction_index,
                     address,
@@ -671,18 +670,7 @@ impl BaseQuery {
                     (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
                     (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
                     (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
-                LIMIT $9
-            )
-            -- We need to order each page ASC still, we only use the DESC/ASC ordering above
-            -- to select page items from the start/end of the range.
-            -- Each page must still independently be ordered ascending.
-            -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
-            ORDER BY CASE
-                WHEN $3 THEN index
-                WHEN $4 THEN amount
-                WHEN $5 THEN num_txs
-                WHEN $6 THEN delegated_stake
-            END ASC",
+                LIMIT $9",
             query.from,
             query.to,
             matches!(order.field, AccountOrderField::Age),
