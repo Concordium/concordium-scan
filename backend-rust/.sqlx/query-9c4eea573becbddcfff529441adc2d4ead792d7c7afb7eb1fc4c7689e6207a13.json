@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, metadata_url, token_id, init_transaction_index)\n                    VALUES ($1, $2, $3, $4, $5, $6)\n                    ON CONFLICT (token_address)\n                    DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9c4eea573becbddcfff529441adc2d4ead792d7c7afb7eb1fc4c7689e6207a13"
+}
