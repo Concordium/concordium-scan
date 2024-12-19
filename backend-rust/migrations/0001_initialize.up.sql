@@ -497,9 +497,16 @@ CREATE TABLE tokens (
         TEXT
         UNIQUE
         NOT NULL,
-    -- Metadata url type serialized as bytes. The value is `NULL` from the first `Mint/Burn` event until the first `TokenMetadata` event is observed for a given token.
+    -- Metadata url (this value only stores the url string and not the hash from the `MetadataUrl` type
+    -- https://docs.rs/concordium-rust-sdk/latest/concordium_rust_sdk/cis2/struct.MetadataUrl.html).
+    -- The value is `NULL` from the first `Mint/Burn` event until the first `TokenMetadata` event is
+    -- observed for a given token.
     metadata_url
         TEXT,
+    -- Token id of the token.
+    token_id
+        TEXT
+        NOT NULL,
     -- Accumulated total supply of the token calculated by considering all `mint/burn` events associated
     -- to the token. If no total supply is specified when inserting a new token in the table,
     -- the default total supply 0 is used.

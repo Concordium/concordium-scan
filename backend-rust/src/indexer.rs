@@ -20,10 +20,7 @@ use concordium_rust_sdk::{
     cis2::{self, TokenId},
     common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
-    smart_contracts::{
-        engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
-        types::ContractName,
-    },
+    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
@@ -2014,7 +2011,7 @@ impl PreparedContractInitialized {
                 node_client,
                 &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
                 contract_address,
-                ContractName::new_unchecked(&name),
+                event.init_name.as_contract_name(),
                 cis0::StandardIdentifier::CIS2,
             )
             .await?
@@ -2376,14 +2373,15 @@ async fn process_cis2_events(
             sqlx::query!(
                 "
                 INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
-                 total_supply, init_transaction_index)
-                VALUES ($1, $2, $3, $4, $5)
+                 total_supply, token_id, init_transaction_index)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (token_address)
                 DO UPDATE SET total_supply = EXCLUDED.total_supply",
                 token_address,
                 contract_index,
                 contract_sub_index,
                 new_total_supply,
+                token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2439,14 +2437,15 @@ async fn process_cis2_events(
             sqlx::query!(
                 "
                     INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
-                 total_supply, init_transaction_index)
-                    VALUES ($1, $2, $3, $4, $5)
+                 total_supply, token_id, init_transaction_index)
+                    VALUES ($1, $2, $3, $4, $5, $6)
                     ON CONFLICT (token_address)
                     DO UPDATE SET total_supply = EXCLUDED.total_supply",
                 token_address,
                 contract_index,
                 contract_sub_index,
                 new_total_supply,
+                token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
@@ -2470,14 +2469,15 @@ async fn process_cis2_events(
             sqlx::query!(
                 "
                     INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
-                 metadata_url, init_transaction_index)
-                    VALUES ($1, $2, $3, $4, $5)
+                 metadata_url, token_id, init_transaction_index)
+                    VALUES ($1, $2, $3, $4, $5, $6)
                     ON CONFLICT (token_address)
                     DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
                 token_address,
                 contract_index,
                 contract_sub_index,
                 metadata_url.url(),
+                token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())

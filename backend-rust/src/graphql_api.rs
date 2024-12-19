@@ -897,79 +897,40 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     async fn token<'a>(
         &self,
         ctx: &Context<'a>,
-        contract_address_index: ContractIndex,
-        contract_address_sub_index: ContractIndex,
+        contract_index: ContractIndex,
+        contract_sub_index: ContractIndex,
         token_id: String,
     ) -> ApiResult<Token> {
         let pool = get_pool(ctx)?;
 
         let token_address = get_token_address(
-            contract_address_index.0,
-            contract_address_sub_index.0,
+            contract_index.0,
+            contract_sub_index.0,
             &TokenId::from_str(&token_id).map_err(|e| ApiError::InvalidTokenID(e.into()))?,
         )
         .map_err(|e| ApiError::InvalidTokenAddress(Arc::new(e)))?;
 
-        let row = sqlx::query_as!(
-            TokenRow,
+        let token = sqlx::query_as!(
+            Token,
              r#"SELECT
-                total_supply,
+                total_supply as "raw_total_supply: BigDecimal",
+                token_id,
+                contract_index as "contract_index: i64",
+                contract_sub_index "contract_sub_index: i64",
+                token_address,
                 metadata_url,
-                init_transaction_index AS "index",
-                transactions.block_height AS "block_height",
-                transactions.hash AS "hash",
-                transactions.ccd_cost AS "ccd_cost",
-                transactions.energy_cost AS "energy_cost",
-                transactions.sender,
-                transactions.type as "tx_type: DbTransactionType",
-                transactions.type_account as "type_account: AccountTransactionType",
-                transactions.type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-                transactions.type_update as "type_update: UpdateTransactionType",
-                transactions.success,
-                transactions.events as "events: sqlx::types::Json<Vec<Event>>",
-                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>"
+                init_transaction_index
             FROM tokens
-            JOIN transactions ON transactions.index = tokens.init_transaction_index
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_address = $3"#,
-            contract_address_index.0 as i64,
-            contract_address_sub_index.0 as i64,
+            contract_index.0 as i64,
+            contract_sub_index.0 as i64,
             token_address
         )
         .fetch_optional(pool)
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let init_transaction = Transaction {
-            index: row.index,
-            block_height: row.block_height,
-            hash: row.hash,
-            ccd_cost: row.ccd_cost,
-            energy_cost: row.energy_cost,
-            sender: row.sender,
-            tx_type: row.tx_type,
-            type_account: row.type_account,
-            type_credential_deployment: row.type_credential_deployment,
-            type_update: row.type_update,
-            success: row.success,
-            events: row.events,
-            reject: row.reject,
-        };
-
-        let total_supply_bytes: Vec<u8> = row.total_supply.to_string().into_bytes().to_vec();
-
-        Ok(Token {
-            initial_transaction: init_transaction,
-            contract_index: contract_address_index,
-            contract_sub_index: contract_address_sub_index,
-            token_id,
-            metadata_url: row.metadata_url,
-            total_supply: total_supply_bytes,
-            contract_address_formatted: format!(
-                "<{},{}>",
-                contract_address_index, contract_address_sub_index
-            ),
-            token_address,
-        })
+        Ok(token)
     }
 
     async fn contract<'a>(
@@ -1435,6 +1396,7 @@ type BlockHash = String;
 type TransactionHash = String;
 type ModuleReference = String;
 type BakerId = i64;
+type TransactionIndex = i64;
 type AccountIndex = i64;
 type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
@@ -2482,17 +2444,36 @@ struct AccountToken {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct Token {
-    initial_transaction:        Transaction,
-    contract_index:             ContractIndex,
-    contract_sub_index:         ContractIndex,
-    token_id:                   String,
-    metadata_url:               Option<String>,
-    total_supply:               BigInteger,
-    contract_address_formatted: String,
-    token_address:              String,
+    #[graphql(skip)]
+    init_transaction_index: TransactionIndex,
+    contract_index:         i64,
+    contract_sub_index:     i64,
+    token_id:               String,
+    metadata_url:           Option<String>,
+    #[graphql(skip)]
+    raw_total_supply:       BigDecimal,
+    token_address:          String,
     // TODO accounts(skip: Int take: Int): AccountsCollectionSegment
     // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
+}
+
+#[ComplexObject]
+impl Token {
+    async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
+        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or(
+            ApiError::InternalError("Token: No transaction at init_transaction_index".to_string()),
+        )
+    }
+
+    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<String> {
+        Ok(self.raw_total_supply.to_string())
+    }
+
+    async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {
+        Ok(format!("<{},{}>", self.contract_index, self.contract_sub_index))
+    }
 }
 
 #[derive(Union)]
@@ -2810,6 +2791,8 @@ impl From<String> for AccountAddress {
     }
 }
 
+#[derive(SimpleObject)]
+#[graphql(complex)]
 struct Transaction {
     index: TransactionIndex,
     block_height: BlockHeight,
@@ -2817,12 +2800,15 @@ struct Transaction {
     ccd_cost: Amount,
     energy_cost: Energy,
     sender: Option<AccountIndex>,
+    #[graphql(skip)]
     tx_type: DbTransactionType,
     type_account: Option<AccountTransactionType>,
     type_credential_deployment: Option<CredentialDeploymentTransactionType>,
     type_update: Option<UpdateTransactionType>,
     success: bool,
+    #[graphql(skip)]
     events: Option<sqlx::types::Json<Vec<Event>>>,
+    #[graphql(skip)]
     reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
 
@@ -2884,7 +2870,7 @@ impl Transaction {
     }
 }
 
-#[Object]
+#[ComplexObject]
 impl Transaction {
     /// Transaction index as a string.
     async fn id(&self) -> types::ID { self.index.into() }
@@ -2892,10 +2878,6 @@ impl Transaction {
     async fn transaction_index(&self) -> TransactionIndex { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
-
-    async fn ccd_cost(&self) -> Amount { self.ccd_cost }
-
-    async fn energy_cost(&self) -> Energy { self.energy_cost }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
@@ -6028,24 +6010,4 @@ pub enum DbTransactionType {
     Account,
     CredentialDeployment,
     Update,
-}
-
-// A helper type to query the `tokens` table with its `init_transaction`.
-pub struct TokenRow {
-    metadata_url: Option<String>,
-    total_supply: BigDecimal,
-    // Init_transaction fields below.
-    index: i64,
-    block_height: BlockHeight,
-    hash: TransactionHash,
-    ccd_cost: Amount,
-    energy_cost: Energy,
-    sender: Option<AccountIndex>,
-    tx_type: DbTransactionType,
-    type_account: Option<AccountTransactionType>,
-    type_credential_deployment: Option<CredentialDeploymentTransactionType>,
-    type_update: Option<UpdateTransactionType>,
-    success: bool,
-    events: Option<sqlx::types::Json<Vec<Event>>>,
-    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
