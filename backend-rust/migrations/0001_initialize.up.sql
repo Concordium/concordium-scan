@@ -406,9 +406,9 @@ CREATE TABLE scheduled_releases (
         NOT NULL
 );
 
--- We typically want to find all scheduled releases for a specific account.
+-- We typically want to find all scheduled releases for a specific account after a specific time.
 -- This index is useful for that.
-CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index);
+CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

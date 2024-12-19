@@ -2353,6 +2353,8 @@ struct AccountAddressAmount {
 type AccountReleaseScheduleItemIndex = i64;
 
 struct AccountReleaseScheduleItem {
+    /// Table index
+    /// Used for the cursor in the connection
     index:             AccountReleaseScheduleItemIndex,
     transaction_index: TransactionIndex,
     timestamp:         DateTime,
@@ -3395,7 +3397,9 @@ impl AccountReleaseSchedule {
                     release_time as timestamp,
                     amount
                 FROM scheduled_releases
-                WHERE account_index = $5 AND index > $1 AND index < $2
+                WHERE account_index = $5
+                      AND NOW() < release_time
+                      AND index > $1 AND index < $2
                 ORDER BY
                     (CASE WHEN $4 THEN index END) DESC,
                     (CASE WHEN NOT $4 THEN index END) ASC
@@ -3415,8 +3419,9 @@ impl AccountReleaseSchedule {
                 "SELECT true
                  FROM scheduled_releases
                  WHERE
-                   account_index = $1
-                   AND index < $2
+                     account_index = $1
+                     AND NOW() < release_time
+                     AND index < $2
                  LIMIT 1",
                 self.account_index,
                 first_row.index,
@@ -3435,6 +3440,7 @@ impl AccountReleaseSchedule {
                  FROM scheduled_releases
                  WHERE
                    account_index = $1
+                   AND NOW() < release_time
                    AND $2 < index
                  LIMIT 1",
                 self.account_index,
