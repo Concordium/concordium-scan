@@ -2333,9 +2333,26 @@ struct AccountAddressAmount {
 
 #[derive(SimpleObject)]
 struct AccountReleaseScheduleItem {
-    transaction: Transaction,
-    timestamp:   DateTime,
-    amount:      Amount,
+    /// Table index
+    /// Used for the cursor in the connection
+    index:             AccountReleaseScheduleItemIndex,
+    transaction_index: TransactionIndex,
+    timestamp:         DateTime,
+    amount:            Amount,
+}
+#[Object]
+impl AccountReleaseScheduleItem {
+    async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
+            ApiError::InternalError(
+                "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
+            ),
+        )
+    }
+
+    async fn timestamp(&self) -> DateTime { self.timestamp }
+
+    async fn amount(&self) -> Amount { self.amount }
 }
 
 #[derive(SimpleObject)]
@@ -3323,7 +3340,86 @@ impl AccountReleaseSchedule {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: String,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_schedule_connection_limit,
+        )?;
+        let rows = sqlx::query_as!(
+            AccountReleaseScheduleItem,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    transaction_index,
+                    release_time as timestamp,
+                    amount
+                FROM scheduled_releases
+                WHERE account_index = $5
+                      AND NOW() < release_time
+                      AND index > $1 AND index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN index END) DESC,
+                    (CASE WHEN NOT $4 THEN index END) ASC
+                LIMIT $3
+            ) ORDER BY index ASC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            self.account_index
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let has_previous_page = if let Some(first_row) = rows.first() {
+            sqlx::query_scalar!(
+                "SELECT true
+                 FROM scheduled_releases
+                 WHERE
+                     account_index = $1
+                     AND NOW() < release_time
+                     AND index < $2
+                 LIMIT 1",
+                self.account_index,
+                first_row.index,
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        let has_next_page = if let Some(last_row) = rows.last() {
+            sqlx::query_scalar!(
+                "SELECT true
+                 FROM scheduled_releases
+                 WHERE
+                   account_index = $1
+                   AND NOW() < release_time
+                   AND $2 < index
+                 LIMIT 1",
+                self.account_index,
+                last_row.index,
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+        for row in rows {
+            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
+        }
+        Ok(connection)
     }
 }
 
