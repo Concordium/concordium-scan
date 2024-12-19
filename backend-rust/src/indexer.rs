@@ -1977,9 +1977,7 @@ impl PreparedScheduledReleases {
         .execute(tx.as_mut())
         .await?;
         sqlx::query!(
-            "UPDATE accounts
-               SET amount = amount + $1
-             WHERE address = $2",
+            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
             &self.total_amount,
             self.account_address,
         )
