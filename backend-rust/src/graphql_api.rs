@@ -3356,14 +3356,15 @@ impl AccountReleaseSchedule {
         .await?;
         Ok(total_amount.unwrap_or(0))
     }
+
     async fn schedule(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
@@ -3445,12 +3446,6 @@ impl AccountReleaseSchedule {
             connection.edges.push(connection::Edge::new(row.index.to_string(), row));
         }
         Ok(connection)
-    }
-
-    async fn release_schedule(&self) -> AccountReleaseSchedule {
-        AccountReleaseSchedule {
-            account_index: self.index,
-        }
     }
 }
 
