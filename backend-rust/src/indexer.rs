@@ -1890,33 +1890,29 @@ impl PreparedContractInitialized {
         let potential_cis2_events =
             event.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>();
 
-        // Fetch the smart contract name for the given contract.
-        let row = sqlx::query!(
-            "
-                    SELECT name FROM contracts WHERE index = $1 AND sub_index = $2
-                ",
-            index,
-            sub_index,
-        )
-        .fetch_one(pool)
-        .await?;
-
-        let supports_cis2 = cis0::supports(
-            node_client,
-            &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
-            contract_address,
-            ContractName::new_unchecked(&row.name),
-            cis0::StandardIdentifier::CIS2,
-        )
-        .await?;
-
-        let supports_cis2 = supports_cis2.response.is_support();
-        let cis2_events = if supports_cis2 {
-            potential_cis2_events
-        } else {
-            // If contract does not support `CIS2`, don't consider the events as CIS2
-            // events.
+        // If potential CIS2 events are parsed, we verify if the smart contract
+        // supports the CIS2 standard before accepting the events as valid.
+        let cis2_events = if potential_cis2_events.is_empty() {
             vec![]
+        } else {
+            let supports_cis2 = cis0::supports(
+                node_client,
+                &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                contract_address,
+                ContractName::new_unchecked(&name),
+                cis0::StandardIdentifier::CIS2,
+            )
+            .await?
+            .response
+            .is_support();
+
+            if supports_cis2 {
+                potential_cis2_events
+            } else {
+                // If contract does not support `CIS2`, don't consider the events as CIS2
+                // events.
+                vec![]
+            }
         };
 
         Ok(Self {
@@ -1976,13 +1972,13 @@ pub fn get_token_address(
     contract_index: u64,
     contract_subindex: u64,
     token_id: &TokenId,
-) -> String {
+) -> Result<String, anyhow::Error> {
     // Encode the contract index and subindex as unsigned LEB128.
     let mut contract_index_bytes = Vec::new();
-    encode_leb128(&mut contract_index_bytes, contract_index).unwrap();
+    encode_leb128(&mut contract_index_bytes, contract_index)?;
 
     let mut contract_subindex_bytes = Vec::new();
-    encode_leb128(&mut contract_subindex_bytes, contract_subindex).unwrap();
+    encode_leb128(&mut contract_subindex_bytes, contract_subindex)?;
 
     let token_id_bytes = token_id.as_ref();
 
@@ -1997,7 +1993,7 @@ pub fn get_token_address(
     bytes.extend_from_slice(token_id_bytes);
 
     // Base58 check encoding of the bytes.
-    bs58::encode(bytes).with_check().into_string()
+    Ok(bs58::encode(bytes).with_check().into_string())
 }
 
 struct PreparedContractUpdate {
@@ -2068,33 +2064,37 @@ impl PreparedContractUpdate {
             } => vec![],
         };
 
-        // Fetch the smart contract name for the given contract.
-        let row = sqlx::query!(
-            "
-                SELECT name FROM contracts WHERE index = $1 AND sub_index = $2
-            ",
-            index,
-            sub_index,
-        )
-        .fetch_one(pool)
-        .await?;
-
-        let supports_cis2 = cis0::supports(
-            node_client,
-            &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
-            contract_address,
-            ContractName::new_unchecked(&row.name),
-            cis0::StandardIdentifier::CIS2,
-        )
-        .await?;
-
-        let supports_cis2 = supports_cis2.response.is_support();
-        let cis2_events = if supports_cis2 {
-            potential_cis2_events
-        } else {
-            // If contract does not support `CIS2`, don't consider the events as CIS2
-            // events.
+        // If potential CIS2 events are parsed, we verify if the smart contract
+        // supports the CIS2 standard before accepting the events as valid.
+        let cis2_events = if potential_cis2_events.is_empty() {
             vec![]
+        } else {
+            let contract_info = node_client
+                .get_instance_info(
+                    contract_address,
+                    &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                )
+                .await?;
+            let contract_name = contract_info.response.name().as_contract_name();
+
+            let supports_cis2 = cis0::supports(
+                node_client,
+                &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                contract_address,
+                contract_name,
+                cis0::StandardIdentifier::CIS2,
+            )
+            .await?
+            .response
+            .is_support();
+
+            if supports_cis2 {
+                potential_cis2_events
+            } else {
+                // If contract does not support `CIS2`, don't consider the events as CIS2
+                // events.
+                vec![]
+            }
         };
 
         Ok(Self {
@@ -2165,7 +2165,7 @@ async fn process_cis2_events(
         } = log
         {
             let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id);
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
 
             // Fetch the current `total_supply` for the given `token_address`.
             let row = sqlx::query!(
@@ -2184,9 +2184,9 @@ async fn process_cis2_events(
             let new_total_supply = if let Some(row) = row {
                 let current_total_supply: BigDecimal = row.total_supply;
 
-                current_total_supply + BigDecimal::from_str(&amount.0.to_string()).unwrap()
+                current_total_supply + BigDecimal::from_str(&amount.0.to_string())?
             } else {
-                BigDecimal::from_str(&amount.0.to_string()).unwrap()
+                BigDecimal::from_str(&amount.0.to_string())?
             };
 
             // If the `token_address` does not exist, insert the new token with its
@@ -2223,7 +2223,7 @@ async fn process_cis2_events(
         } = log
         {
             let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id);
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
             // Fetch the current `total_supply` for the given `token_address`.
             let row = sqlx::query!(
                 "
@@ -2243,12 +2243,12 @@ async fn process_cis2_events(
                 let current_total_supply = row.total_supply;
 
                 // Subtract the `amount` from the `current_total_supply`.
-                current_total_supply - BigDecimal::from_str(&amount.0.to_string()).unwrap()
+                current_total_supply - BigDecimal::from_str(&amount.0.to_string())?
             } else {
                 // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
                 // initially minted. The `total_supply` will be set to 0 (default value) in that
                 // case (rather than underflowing the value).
-                -BigDecimal::from_str(&amount.0.to_string()).unwrap()
+                -BigDecimal::from_str(&amount.0.to_string())?
             };
 
             // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
@@ -2282,7 +2282,7 @@ async fn process_cis2_events(
         } = log
         {
             let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id);
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
 
             // If the `token_address` does not exist, insert the new token.
             // If the `token_address` exists, update the `metadata_url` value in the
