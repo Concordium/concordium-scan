@@ -102,12 +102,6 @@ pub struct ApiServiceConfig {
     block_connection_limit:             u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
     account_connection_limit:           u64,
-    #[arg(
-        long,
-        env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
-        default_value = "100"
-    )]
-    account_schedule_connection_limit:  u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
     contract_connection_limit:          u64,
     #[arg(
@@ -641,8 +635,7 @@ impl BaseQuery {
         // specified.
         let mut accounts = sqlx::query_as!(
             Account,
-            r"SELECT * FROM (
-                SELECT
+            r"SELECT
                     index,
                     transaction_index,
                     address,
@@ -677,18 +670,7 @@ impl BaseQuery {
                     (CASE WHEN $5 AND NOT $8 THEN num_txs         END) ASC,
                     (CASE WHEN $6 AND $8     THEN delegated_stake END) DESC,
                     (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
-                LIMIT $9
-            )
-            -- We need to order each page ASC still, we only use the DESC/ASC ordering above
-            -- to select page items from the start/end of the range.
-            -- Each page must still independently be ordered ascending.
-            -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
-            ORDER BY CASE
-                WHEN $3 THEN index
-                WHEN $4 THEN amount
-                WHEN $5 THEN num_txs
-                WHEN $6 THEN delegated_stake
-            END ASC",
+                LIMIT $9",
             query.from,
             query.to,
             matches!(order.field, AccountOrderField::Age),
@@ -1341,7 +1323,6 @@ type BlockHash = String;
 type TransactionHash = String;
 type BakerId = i64;
 type AccountIndex = i64;
-type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
@@ -2350,27 +2331,11 @@ struct AccountAddressAmount {
     amount:          Amount,
 }
 
-type AccountReleaseScheduleItemIndex = i64;
-
+#[derive(SimpleObject)]
 struct AccountReleaseScheduleItem {
-    index:             AccountReleaseScheduleItemIndex,
-    transaction_index: TransactionIndex,
-    timestamp:         DateTime,
-    amount:            Amount,
-}
-#[Object]
-impl AccountReleaseScheduleItem {
-    async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
-            ApiError::InternalError(
-                "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
-            ),
-        )
-    }
-
-    async fn timestamp(&self) -> DateTime { self.timestamp }
-
-    async fn amount(&self) -> Amount { self.amount }
+    transaction: Transaction,
+    timestamp:   DateTime,
+    amount:      Amount,
 }
 
 #[derive(SimpleObject)]
@@ -2714,7 +2679,7 @@ impl From<String> for AccountAddress {
 }
 
 struct Transaction {
-    index: TransactionIndex,
+    index: i64,
     block_height: BlockHeight,
     hash: TransactionHash,
     ccd_cost: Amount,
@@ -2730,7 +2695,7 @@ struct Transaction {
 }
 
 impl Transaction {
-    async fn query_by_index(pool: &PgPool, index: TransactionIndex) -> ApiResult<Option<Self>> {
+    async fn query_by_index(pool: &PgPool, index: i64) -> ApiResult<Option<Self>> {
         let transaction = sqlx::query_as!(
             Transaction,
             r#"SELECT
@@ -2792,7 +2757,7 @@ impl Transaction {
     /// Transaction index as a string.
     async fn id(&self) -> types::ID { self.index.into() }
 
-    async fn transaction_index(&self) -> TransactionIndex { self.index }
+    async fn transaction_index(&self) -> i64 { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
 
@@ -3331,136 +3296,34 @@ impl Account {
 
     async fn rewards(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i32>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i32>,
+        after: String,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
+        before: String,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
-            first,
-            after,
-            last,
-            before,
-            config.account_schedule_connection_limit,
-        )?;
-    }
-
-    async fn release_schedule(&self) -> AccountReleaseSchedule {
-        AccountReleaseSchedule {
-            account_index: self.index,
-        }
+        todo_api!()
     }
 }
 
+#[derive(SimpleObject)]
+#[graphql(complex)]
 struct AccountReleaseSchedule {
-    account_index: AccountIndex,
+    total_amount: Amount,
 }
-#[Object]
+#[ComplexObject]
 impl AccountReleaseSchedule {
-    async fn total_amount(&self, ctx: &Context<'_>) -> ApiResult<Amount> {
-        let pool = get_pool(ctx)?;
-        let total_amount = sqlx::query_scalar!(
-            "SELECT
-               SUM(amount)::BIGINT
-             FROM scheduled_releases
-             WHERE account_index = $1",
-            self.account_index,
-        )
-        .fetch_one(pool)
-        .await?;
-        Ok(total_amount.unwrap_or(0))
-    }
-
     async fn schedule(
         &self,
-        ctx: &Context<'_>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        after: String,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
+        before: String,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
-            first,
-            after,
-            last,
-            before,
-            config.account_schedule_connection_limit,
-        )?;
-        let rows = sqlx::query_as!(
-            AccountReleaseScheduleItem,
-            "SELECT * FROM (
-                SELECT
-                    index,
-                    transaction_index,
-                    release_time as timestamp,
-                    amount
-                FROM scheduled_releases
-                WHERE account_index = $5 AND index > $1 AND index < $2
-                ORDER BY
-                    (CASE WHEN $4 THEN index END) DESC,
-                    (CASE WHEN NOT $4 THEN index END) ASC
-                LIMIT $3
-            ) ORDER BY index ASC",
-            query.from,
-            query.to,
-            query.limit,
-            query.desc,
-            self.account_index
-        )
-        .fetch_all(pool)
-        .await?;
-
-        let has_previous_page = if let Some(first_row) = rows.first() {
-            sqlx::query_scalar!(
-                "SELECT true
-                 FROM scheduled_releases
-                 WHERE
-                   account_index = $1
-                   AND index < $2
-                 LIMIT 1",
-                self.account_index,
-                first_row.index,
-            )
-            .fetch_optional(pool)
-            .await?
-            .flatten()
-            .unwrap_or_default()
-        } else {
-            false
-        };
-
-        let has_next_page = if let Some(last_row) = rows.last() {
-            sqlx::query_scalar!(
-                "SELECT true
-                 FROM scheduled_releases
-                 WHERE
-                   account_index = $1
-                   AND $2 < index
-                 LIMIT 1",
-                self.account_index,
-                last_row.index,
-            )
-            .fetch_optional(pool)
-            .await?
-            .flatten()
-            .unwrap_or_default()
-        } else {
-            false
-        };
-
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-        for row in rows {
-            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
-        }
-        Ok(connection)
+        todo_api!()
     }
 }
 
@@ -4027,8 +3890,8 @@ fn decode_value_with_schema(
     schema_name: SmartContractSchemaNames,
 ) -> String {
     let Some(schema) = opt_schema else {
-        // Note: There could be something better displayed than this string if no schema
-        // is available for decoding at the frontend long-term.
+        // Note: There could be something better displayed than this string if no schema is
+        // available for decoding at the frontend long-term.
         return format!(
             "No embedded {} schema in smart contract available for decoding",
             schema_name.kind()
