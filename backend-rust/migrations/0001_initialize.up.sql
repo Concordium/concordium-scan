@@ -499,7 +499,7 @@ CREATE TABLE tokens (
         NOT NULL,
     -- Metadata url type serialized as bytes. The value is `NULL` from the first `Mint/Burn` event until the first `TokenMetadata` event is observed for a given token.
     metadata_url
-        BYTEA,
+        TEXT,
     -- Accumulated total supply of the token calculated by considering all `mint/burn` events associated
     -- to the token. If no total supply is specified when inserting a new token in the table,
     -- the default total supply 0 is used.

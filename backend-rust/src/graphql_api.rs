@@ -30,13 +30,12 @@ use chrono::Duration;
 use concordium_rust_sdk::{
     base::{
         contracts_common::{
-            from_bytes,
             schema::{Type, VersionedModuleSchema, VersionedSchemaError},
             Cursor,
         },
         smart_contracts::ReceiveName,
     },
-    cis2::{self, ParseTokenIdVecError, TokenId},
+    cis2::{ParseTokenIdVecError, TokenId},
     id::types as sdk_types,
     types::AmountFraction,
 };
@@ -955,20 +954,12 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 
         let total_supply_bytes: Vec<u8> = row.total_supply.to_string().into_bytes().to_vec();
 
-        let metadata_url = if let Some(metadata) = row.metadata_url {
-            let metadata: cis2::MetadataUrl =
-                from_bytes(&metadata).map_err(|e| ApiError::InternalError(e.to_string()))?;
-            format!("{:?}", metadata)
-        } else {
-            "".to_string()
-        };
-
         Ok(Token {
             initial_transaction: init_transaction,
             contract_index: contract_address_index,
             contract_sub_index: contract_address_sub_index,
             token_id,
-            metadata_url,
+            metadata_url: row.metadata_url,
             total_supply: total_supply_bytes,
             contract_address_formatted: format!(
                 "<{},{}>",
@@ -2493,7 +2484,7 @@ struct Token {
     contract_index:             ContractIndex,
     contract_sub_index:         ContractIndex,
     token_id:                   String,
-    metadata_url:               String,
+    metadata_url:               Option<String>,
     total_supply:               BigInteger,
     contract_address_formatted: String,
     token_address:              String,
@@ -6038,7 +6029,7 @@ pub enum DbTransactionType {
 
 // A helper type to query the `tokens` table with its `init_transaction`.
 pub struct TokenRow {
-    metadata_url: Option<Vec<u8>>,
+    metadata_url: Option<String>,
     total_supply: BigDecimal,
     // Init_transaction fields below.
     index: i64,

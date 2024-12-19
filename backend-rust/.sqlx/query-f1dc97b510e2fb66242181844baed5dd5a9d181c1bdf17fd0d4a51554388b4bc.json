@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                        SELECT total_supply FROM tokens WHERE token_address = $1",
+  "query": "\n                SELECT total_supply FROM tokens WHERE token_address = $1",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "d47ca17ccf4f8ca1b25f94095d087e2f8137062481195a10568dc24a4b478072"
+  "hash": "f1dc97b510e2fb66242181844baed5dd5a9d181c1bdf17fd0d4a51554388b4bc"
 }
