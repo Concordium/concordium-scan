@@ -1398,7 +1398,6 @@ type ModuleReference = String;
 type BakerId = i64;
 type TransactionIndex = i64;
 type AccountIndex = i64;
-type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
