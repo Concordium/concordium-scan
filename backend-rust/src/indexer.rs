@@ -23,6 +23,7 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
+use concordium_rust_sdk::types::SpecialTransactionOutcome;
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -312,6 +313,11 @@ impl Indexer for BlockPreProcessor {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
+            let special_events = {
+                let stream = client.get_block_special_events(fbi.height).await?.response;
+                stream.try_collect::<Vec<SpecialTransactionOutcome>>().await?
+            };
+
             let get_events = async move {
                 let events = client3
                     .get_block_transaction_events(fbi.height)
@@ -323,11 +329,12 @@ impl Indexer for BlockPreProcessor {
             };
 
             let start_fetching = Instant::now();
+
             let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
                 client1.get_block_info(fbi.height),
                 client2.get_block_chain_parameters(fbi.height),
                 get_events,
-                client.get_tokenomics_info(fbi.height)
+                client.get_tokenomics_info(fbi.height),
             )?;
             let total_staked_capital = match tokenomics_info.response {
                 RewardsOverview::V0 {
@@ -344,7 +351,6 @@ impl Indexer for BlockPreProcessor {
                     ..
                 } => total_staked_capital,
             };
-
             let node_response_time = start_fetching.elapsed();
             self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
 
@@ -355,7 +361,9 @@ impl Indexer for BlockPreProcessor {
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
+                special_events
             };
+
             let prepared_block =
                 PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
@@ -598,6 +606,7 @@ struct BlockData {
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
+    special_events:       Vec<SpecialTransactionOutcome>
 }
 
 /// Function for initializing the database with the genesis block.
@@ -727,6 +736,8 @@ struct PreparedBlock {
     block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
     prepared_block_items: Vec<PreparedBlockItem>,
+    /// Preprocessed
+    special_items: Vec< PreparedBlockSpecialEvent>,
 }
 
 impl PreparedBlock {
@@ -854,6 +865,23 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
         .execute(tx.as_mut())
         .await?;
         Ok(())
+    }
+}
+
+struct PreparedBlockSpecialEvent {
+
+}
+
+impl PreparedBlockSpecialEvent {
+    async fn prepare(event: &BlockSpecialEvent) -> anyhow::Result<Self> {
+        todo!()
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        todo!()
     }
 }
 
