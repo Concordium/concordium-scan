@@ -11,7 +11,7 @@
       {
         "ordinal": 1,
         "name": "metadata_url",
-        "type_info": "Bytea"
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
