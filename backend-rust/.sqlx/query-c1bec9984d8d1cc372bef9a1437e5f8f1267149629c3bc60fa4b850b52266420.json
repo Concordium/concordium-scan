@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n               SUM(amount)::BIGINT\n             FROM scheduled_releases\n             WHERE account_index = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sum",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c1bec9984d8d1cc372bef9a1437e5f8f1267149629c3bc60fa4b850b52266420"
+}

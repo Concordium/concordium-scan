@@ -380,6 +380,36 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
+-- Every scheduled release on chain.
+CREATE TABLE scheduled_releases (
+    -- An index/id for this scheduled release (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- The index of the transaction creating the scheduled transfer.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- The account receiving the scheduled transfer.
+    account_index
+        BIGINT
+        NOT NULL
+        REFERENCES accounts,
+    -- The scheduled release time.
+    release_time
+        TIMESTAMPTZ
+        NOT NULL,
+    -- The amount locked in the scheduled release.
+    amount
+        BIGINT
+        NOT NULL
+);
+
+-- We typically want to find all scheduled releases for a specific account after a specific time.
+-- This index is useful for that.
+CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
+
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;

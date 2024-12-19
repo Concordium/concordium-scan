@@ -9,7 +9,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
-    common::types::Amount,
+    common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
@@ -526,6 +526,9 @@ impl ProcessEvent for BlockProcessor {
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
+        process_release_schedules(new_context.last_block_slot_time, &mut tx)
+            .await
+            .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
         // Update metrics.
         let duration = start_time.elapsed();
@@ -569,6 +572,22 @@ struct BlockProcessingContext {
     /// This, along with the number of transactions in the current block,
     /// is used to calculate the next cumulative_num_txs.
     last_cumulative_num_txs: i64,
+}
+
+/// Process schedule releases based on the slot time of the last processed
+/// block.
+async fn process_release_schedules(
+    last_block_slot_time: DateTime<Utc>,
+    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+) -> anyhow::Result<()> {
+    sqlx::query!(
+        "DELETE FROM scheduled_releases
+         WHERE release_time <= $1",
+        last_block_slot_time
+    )
+    .execute(tx.as_mut())
+    .await?;
+    Ok(())
 }
 
 /// Raw block information fetched from a Concordium Node.
@@ -1051,6 +1070,8 @@ enum PreparedEvent {
     ContractInitialized(PreparedContractInitialized),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
+    /// A scheduled transfer got executed.
+    ScheduledTransfer(PreparedScheduledReleases),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -1188,13 +1209,19 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
-                    amount,
-                } => None,
+                    amount: scheduled_releases,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(),
+                    scheduled_releases,
+                )?)),
                 AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
-                    amount,
+                    amount: scheduled_releases,
                     memo,
-                } => None,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(),
+                    scheduled_releases,
+                )?)),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     cred_id,
                 } => None,
@@ -1251,6 +1278,7 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1891,6 +1919,70 @@ impl PreparedContractUpdate {
         .execute(tx.as_mut())
         .await?;
 
+        Ok(())
+    }
+}
+
+struct PreparedScheduledReleases {
+    account_address: String,
+    release_times:   Vec<DateTime<Utc>>,
+    amounts:         Vec<i64>,
+    total_amount:    i64,
+}
+
+impl PreparedScheduledReleases {
+    fn prepare(to: String, scheduled_releases: &[(Timestamp, Amount)]) -> anyhow::Result<Self> {
+        let capacity = scheduled_releases.len();
+        let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
+        let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
+        let mut total_amount = 0;
+        for (timestamp, amount) in scheduled_releases.iter() {
+            release_times.push(DateTime::<Utc>::try_from(*timestamp)?);
+            let micro_ccd = i64::try_from(amount.micro_ccd())?;
+            amounts.push(micro_ccd);
+            total_amount += micro_ccd;
+        }
+
+        Ok(Self {
+            account_address: to,
+            release_times,
+            amounts,
+            total_amount,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO scheduled_releases (
+                transaction_index,
+                account_index,
+                release_time,
+                amount
+            )
+            SELECT
+                $1,
+                (SELECT index FROM accounts WHERE address = $2),
+                UNNEST($3::TIMESTAMPTZ[]),
+                UNNEST($4::BIGINT[])
+            ",
+            transaction_index,
+            self.account_address,
+            &self.release_times,
+            &self.amounts
+        )
+        .execute(tx.as_mut())
+        .await?;
+        sqlx::query!(
+            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
+            &self.total_amount,
+            self.account_address,
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
