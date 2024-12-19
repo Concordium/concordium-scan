@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO blocks\n  (height, hash, slot_time, block_time, baker_id, total_amount, total_staked, cumulative_num_txs)\nSELECT * FROM UNNEST(\n  $1::BIGINT[],\n  $2::TEXT[],\n  $3::TIMESTAMPTZ[],\n  $4::BIGINT[],\n  $5::BIGINT[],\n  $6::BIGINT[],\n  $7::BIGINT[],\n  $8::BIGINT[]\n);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TextArray",
+        "TimestamptzArray",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1462f7eafb87af50c1984f390543b7ea23b96b6b60f85f0bbfecd235a3c0f43e"
+}
