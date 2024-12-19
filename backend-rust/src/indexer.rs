@@ -2119,7 +2119,7 @@ impl PreparedContractUpdate {
 }
 
 async fn process_cis2_events(
-    cis2_events: &Vec<cis2::Event>,
+    cis2_events: &[cis2::Event],
     contract_index: i64,
     contract_sub_index: i64,
     pool: &PgPool,
@@ -2269,7 +2269,7 @@ async fn process_cis2_events(
                 token_address,
                 contract_index,
                 contract_sub_index,
-                to_bytes(metadata_url),
+                metadata_url.url(),
                 transaction_index
             )
             .execute(tx.as_mut())
