@@ -3331,14 +3331,22 @@ impl Account {
 
     async fn rewards(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_schedule_connection_limit,
+        )?;
     }
 
     async fn release_schedule(&self) -> AccountReleaseSchedule {
