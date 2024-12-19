@@ -1323,6 +1323,7 @@ type BlockHash = String;
 type TransactionHash = String;
 type BakerId = i64;
 type AccountIndex = i64;
+type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
@@ -2331,7 +2332,8 @@ struct AccountAddressAmount {
     amount:          Amount,
 }
 
-#[derive(SimpleObject)]
+type AccountReleaseScheduleItemIndex = i64;
+
 struct AccountReleaseScheduleItem {
     /// Table index
     /// Used for the cursor in the connection
@@ -2696,7 +2698,7 @@ impl From<String> for AccountAddress {
 }
 
 struct Transaction {
-    index: i64,
+    index: TransactionIndex,
     block_height: BlockHeight,
     hash: TransactionHash,
     ccd_cost: Amount,
@@ -2712,7 +2714,7 @@ struct Transaction {
 }
 
 impl Transaction {
-    async fn query_by_index(pool: &PgPool, index: i64) -> ApiResult<Option<Self>> {
+    async fn query_by_index(pool: &PgPool, index: TransactionIndex) -> ApiResult<Option<Self>> {
         let transaction = sqlx::query_as!(
             Transaction,
             r#"SELECT
@@ -2774,7 +2776,7 @@ impl Transaction {
     /// Transaction index as a string.
     async fn id(&self) -> types::ID { self.index.into() }
 
-    async fn transaction_index(&self) -> i64 { self.index }
+    async fn transaction_index(&self) -> TransactionIndex { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
 
@@ -3327,10 +3329,23 @@ impl Account {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct AccountReleaseSchedule {
-    total_amount: Amount,
+    account_index: AccountIndex,
 }
 #[ComplexObject]
 impl AccountReleaseSchedule {
+    async fn total_amount(&self, ctx: &Context<'_>) -> ApiResult<Amount> {
+        let pool = get_pool(ctx)?;
+        let total_amount = sqlx::query_scalar!(
+            "SELECT
+               SUM(amount)::BIGINT
+             FROM scheduled_releases
+             WHERE account_index = $1",
+            self.account_index,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(total_amount.unwrap_or(0))
+    }
     async fn schedule(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
@@ -3420,6 +3435,12 @@ impl AccountReleaseSchedule {
             connection.edges.push(connection::Edge::new(row.index.to_string(), row));
         }
         Ok(connection)
+    }
+
+    async fn release_schedule(&self) -> AccountReleaseSchedule {
+        AccountReleaseSchedule {
+            account_index: self.index,
+        }
     }
 }
 
@@ -3986,8 +4007,8 @@ fn decode_value_with_schema(
     schema_name: SmartContractSchemaNames,
 ) -> String {
     let Some(schema) = opt_schema else {
-        // Note: There could be something better displayed than this string if no schema is
-        // available for decoding at the frontend long-term.
+        // Note: There could be something better displayed than this string if no schema
+        // is available for decoding at the frontend long-term.
         return format!(
             "No embedded {} schema in smart contract available for decoding",
             schema_name.kind()
