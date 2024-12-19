@@ -6,12 +6,19 @@ use crate::graphql_api::{
     CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
 };
 use anyhow::Context;
+use bigdecimal::BigDecimal;
+use bs58;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
+    cis0,
+    cis2::{self, TokenId},
     common::types::Amount,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
-    smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
+    smart_contracts::{
+        engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
+        types::ContractName,
+    },
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
@@ -23,7 +30,9 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
-use futures::{StreamExt, TryStreamExt};
+use derive_more::FromStr;
+use futures::{future::join_all, StreamExt, TryStreamExt};
+use leb128::write::unsigned as encode_leb128;
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -34,6 +43,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
+use std::convert::TryInto;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -91,9 +101,9 @@ impl IndexerService {
         config: IndexerServiceConfig,
     ) -> anyhow::Result<Self> {
         let last_height_stored = sqlx::query!(
-            r#"
+            "
 SELECT height FROM blocks ORDER BY height DESC LIMIT 1
-"#
+"
         )
         .fetch_optional(&pool)
         .await?
@@ -106,13 +116,14 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
             1
         };
         let genesis_block_hash: sdk_types::hashes::BlockHash =
-            sqlx::query!(r#"SELECT hash FROM blocks WHERE height=0"#)
+            sqlx::query!("SELECT hash FROM blocks WHERE height=0")
                 .fetch_one(&pool)
                 .await?
                 .hash
                 .parse()?;
 
         let block_pre_processor = BlockPreProcessor::new(
+            pool.clone(),
             genesis_block_hash,
             config.max_successive_failures.into(),
             registry.sub_registry_with_prefix("preprocessor"),
@@ -195,25 +206,27 @@ impl NodeMetricLabels {
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
 /// preprocessors can run in parallel, this must be `Sync`.
 struct BlockPreProcessor {
+    pool: PgPool,
     /// Genesis hash, used to ensure the nodes are on the expected network.
-    genesis_hash:                 sdk_types::hashes::BlockHash,
+    genesis_hash: sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
+    preprocessing_failures: Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
-    node_response_time:           Family<NodeMetricLabels, Histogram>,
+    node_response_time: Family<NodeMetricLabels, Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures:      u64,
+    max_successive_failures: u64,
 }
 impl BlockPreProcessor {
     fn new(
+        pool: PgPool,
         genesis_hash: sdk_types::hashes::BlockHash,
         max_successive_failures: u64,
         registry: &mut Registry,
@@ -247,6 +260,7 @@ impl BlockPreProcessor {
         );
 
         Self {
+            pool,
             genesis_hash,
             established_node_connections,
             preprocessing_failures,
@@ -356,8 +370,9 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block =
-                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
+            let prepared_block = PreparedBlock::prepare(&mut client, &self.pool, &data)
+                .await
+                .map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -432,28 +447,28 @@ impl BlockProcessor {
         registry: &mut Registry,
     ) -> anyhow::Result<Self> {
         let last_finalized_block = sqlx::query!(
-            r#"
+            "
 SELECT
   hash
 FROM blocks
 WHERE finalization_time IS NOT NULL
 ORDER BY height DESC
 LIMIT 1
-"#
+"
         )
         .fetch_one(&pool)
         .await
         .context("Failed to query data for save context")?;
 
         let last_block = sqlx::query!(
-            r#"
+            "
 SELECT
   slot_time,
   cumulative_num_txs
 FROM blocks
 ORDER BY height DESC
 LIMIT 1
-"#
+"
         )
         .fetch_one(&pool)
         .await
@@ -522,7 +537,7 @@ impl ProcessEvent for BlockProcessor {
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             for item in block.prepared_block_items.iter() {
-                item.save(&mut tx).await?;
+                item.save(&mut tx, &self.pool).await?;
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
@@ -669,8 +684,9 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
                 )))
             });
             sqlx::query!(
-                r#"INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, transaction_commission, baking_commission, finalization_commission)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
+                "INSERT INTO bakers (id, staked, restake_earnings, open_status, metadata_url, \
+                 transaction_commission, baking_commission, finalization_commission)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
                 index,
                 stake,
                 restake_earnings,
@@ -711,7 +727,11 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
+    async fn prepare(
+        node_client: &mut v2::Client,
+        pool: &PgPool,
+        data: &BlockData,
+    ) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -727,7 +747,7 @@ impl PreparedBlock {
         let mut prepared_block_items = Vec::new();
         for block_item in data.events.iter() {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, pool, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -789,7 +809,7 @@ impl PreparedBlock {
         }
 
         sqlx::query!(
-            r#"INSERT INTO blocks
+            "INSERT INTO blocks
   (height, hash, slot_time, block_time, baker_id, total_amount, total_staked, cumulative_num_txs)
 SELECT * FROM UNNEST(
   $1::BIGINT[],
@@ -800,7 +820,7 @@ SELECT * FROM UNNEST(
   $6::BIGINT[],
   $7::BIGINT[],
   $8::BIGINT[]
-);"#,
+);",
             &heights,
             &hashes,
             &slot_times,
@@ -883,6 +903,7 @@ struct PreparedBlockItem {
 impl PreparedBlockItem {
     async fn prepare(
         node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
     ) -> anyhow::Result<Self> {
@@ -936,7 +957,7 @@ impl PreparedBlockItem {
         let affected_accounts =
             block_item.affected_addresses().into_iter().map(|a| a.to_string()).collect();
 
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+        let prepared_event = PreparedEvent::prepare(node_client, pool, data, block_item).await?;
 
         Ok(Self {
             block_item_index,
@@ -960,6 +981,7 @@ impl PreparedBlockItem {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        pool: &PgPool,
     ) -> anyhow::Result<()> {
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
@@ -1030,7 +1052,7 @@ impl PreparedBlockItem {
         .await?;
 
         if let Some(prepared_event) = &self.prepared_event {
-            prepared_event.save(tx, tx_idx).await?;
+            prepared_event.save(tx, tx_idx, pool).await?;
         }
 
         Ok(())
@@ -1057,6 +1079,7 @@ enum PreparedEvent {
 impl PreparedEvent {
     async fn prepare(
         node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
     ) -> anyhow::Result<Option<Self>> {
@@ -1080,23 +1103,36 @@ impl PreparedEvent {
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
                 } => Some(PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                    PreparedContractInitialized::prepare(
+                        node_client,
+                        pool,
+                        data,
+                        block_item,
+                        event_data,
+                    )
+                    .await?,
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
                 } => Some(PreparedEvent::ContractUpdate(
-                    effects
-                        .iter()
-                        .enumerate()
-                        .map(|(trace_element_index, effect)| {
+                    join_all(effects.iter().enumerate().map(|(trace_element_index, effect)| {
+                        let mut node_client = node_client.clone();
+
+                        async move {
                             PreparedContractUpdate::prepare(
+                                &mut node_client,
+                                pool,
                                 data,
                                 block_item,
                                 effect,
                                 trace_element_index,
                             )
-                        })
-                        .collect::<anyhow::Result<Vec<_>>>()?,
+                            .await
+                        }
+                    }))
+                    .await
+                    .into_iter()
+                    .collect::<Result<Vec<_>, anyhow::Error>>()?,
                 )),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
@@ -1228,6 +1264,7 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
+        pool: &PgPool,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::AccountCreation(event) => event.save(tx, tx_idx).await,
@@ -1238,10 +1275,10 @@ impl PreparedEvent {
                 Ok(())
             }
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
-            PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx, pool).await,
             PreparedEvent::ContractUpdate(events) => {
                 for event in events {
-                    event.save(tx, tx_idx).await?;
+                    event.save(tx, tx_idx, pool).await?;
                 }
                 Ok(())
             }
@@ -1603,7 +1640,7 @@ impl PreparedBakerEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    r#"INSERT INTO bakers (id, staked, restake_earnings) VALUES ($1, $2, $3)"#,
+                    "INSERT INTO bakers (id, staked, restake_earnings) VALUES ($1, $2, $3)",
                     baker_id,
                     staked,
                     restake_earnings,
@@ -1614,7 +1651,7 @@ impl PreparedBakerEvent {
             PreparedBakerEvent::Remove {
                 baker_id,
             } => {
-                sqlx::query!(r#"DELETE FROM bakers WHERE id=$1"#, baker_id,)
+                sqlx::query!("DELETE FROM bakers WHERE id=$1", baker_id,)
                     .execute(tx.as_mut())
                     .await?;
             }
@@ -1622,7 +1659,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!(r#"UPDATE bakers SET staked = $2 WHERE id=$1"#, baker_id, staked,)
+                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
                     .execute(tx.as_mut())
                     .await?;
             }
@@ -1630,7 +1667,7 @@ impl PreparedBakerEvent {
                 baker_id,
                 staked,
             } => {
-                sqlx::query!(r#"UPDATE bakers SET staked = $2 WHERE id=$1"#, baker_id, staked,)
+                sqlx::query!("UPDATE bakers SET staked = $2 WHERE id=$1", baker_id, staked,)
                     .execute(tx.as_mut())
                     .await?;
             }
@@ -1639,7 +1676,7 @@ impl PreparedBakerEvent {
                 restake_earnings,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET restake_earnings = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET restake_earnings = $2 WHERE id=$1",
                     baker_id,
                     restake_earnings,
                 )
@@ -1651,7 +1688,7 @@ impl PreparedBakerEvent {
                 open_status,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET open_status = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET open_status = $2 WHERE id=$1",
                     baker_id,
                     *open_status as BakerPoolOpenStatus,
                 )
@@ -1663,7 +1700,7 @@ impl PreparedBakerEvent {
                 metadata_url,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET metadata_url = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET metadata_url = $2 WHERE id=$1",
                     baker_id,
                     metadata_url
                 )
@@ -1675,7 +1712,7 @@ impl PreparedBakerEvent {
                 commission,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET transaction_commission = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET transaction_commission = $2 WHERE id=$1",
                     baker_id,
                     commission
                 )
@@ -1687,7 +1724,7 @@ impl PreparedBakerEvent {
                 commission,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET baking_commission = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET baking_commission = $2 WHERE id=$1",
                     baker_id,
                     commission
                 )
@@ -1699,7 +1736,7 @@ impl PreparedBakerEvent {
                 commission,
             } => {
                 sqlx::query!(
-                    r#"UPDATE bakers SET finalization_commission = $2 WHERE id=$1"#,
+                    "UPDATE bakers SET finalization_commission = $2 WHERE id=$1",
                     baker_id,
                     commission
                 )
@@ -1782,14 +1819,18 @@ struct PreparedContractInitialized {
     name:             String,
     amount:           i64,
     height:           i64,
+    cis2_events:      Vec<cis2::Event>,
 }
 
 impl PreparedContractInitialized {
-    fn prepare(
+    async fn prepare(
+        node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
     ) -> anyhow::Result<Self> {
+        let contract_address = event.address;
         let index = i64::try_from(event.address.index)?;
         let sub_index = i64::try_from(event.address.subindex)?;
         let module_reference = event.origin_ref;
@@ -1798,6 +1839,54 @@ impl PreparedContractInitialized {
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let height = i64::try_from(data.finalized_block_info.height.height)?;
 
+        // To track CIS2 tokens (e.g., token balances, total supply, token metadata
+        // URLs), we gather the CIS2 events here. We check if logged contract
+        // events can be parsed as CIS2 events. In addition, we check if the
+        // contract supports the `CIS2` standard by calling the on-chain
+        // `supports` endpoint before considering the CIS2 events valid.
+        //
+        // There are two edge cases that the index would not identify a CIS2 event
+        // correctly. Nonetheless, to avoid complexity it was deemed acceptable
+        // behavior.
+        // - Edge case 1: A contract code upgrades and no longer
+        // supports CIS2 then logging a CIS2-like event within the same block.
+        // - Edge case 2: A contract logs a CIS2-like event and then upgrades to add
+        // support for CIS2 in the same block.
+        //
+        // There are three chain events (ContractInitializedEvent,
+        // ContractInterruptedEvent and ContractUpdatedEvent) that can generate
+        // `contract_logs`. CIS2 events logged by the first chain event are
+        // handled here while CIS2 events logged in the `ContractInterruptedEvent` and
+        // `ContractUpdatedEvent` are handled at its corresponding
+        // transaction type.
+        let potential_cis2_events =
+            event.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>();
+
+        // If potential CIS2 events are parsed, we verify if the smart contract
+        // supports the CIS2 standard before accepting the events as valid.
+        let cis2_events = if potential_cis2_events.is_empty() {
+            vec![]
+        } else {
+            let supports_cis2 = cis0::supports(
+                node_client,
+                &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                contract_address,
+                ContractName::new_unchecked(&name),
+                cis0::StandardIdentifier::CIS2,
+            )
+            .await?
+            .response
+            .is_support();
+
+            if supports_cis2 {
+                potential_cis2_events
+            } else {
+                // If contract does not support `CIS2`, don't consider the events as CIS2
+                // events.
+                vec![]
+            }
+        };
+
         Ok(Self {
             index,
             sub_index,
@@ -1805,6 +1894,7 @@ impl PreparedContractInitialized {
             name,
             amount,
             height,
+            cis2_events,
         })
     }
 
@@ -1812,6 +1902,7 @@ impl PreparedContractInitialized {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        pool: &PgPool,
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO contracts (
@@ -1832,8 +1923,49 @@ impl PreparedContractInitialized {
         .execute(tx.as_mut())
         .await?;
 
-        Ok(())
+        process_cis2_events(
+            &self.cis2_events,
+            self.index,
+            self.sub_index,
+            pool,
+            transaction_index,
+            tx,
+        )
+        .await
     }
+}
+
+/// The token name is generated by using a `version byte 2` and concatenating it
+/// with the leb128 byte encoding of the contract index and the leb128 byte
+/// encoding of the contract subindex concatenated with the token id in bytes.
+/// Finally the whole byte array is base 58 check encoded.
+/// https://proposals.concordium.software/CIS/cis-2.html#token-address
+pub fn get_token_address(
+    contract_index: u64,
+    contract_subindex: u64,
+    token_id: &TokenId,
+) -> Result<String, anyhow::Error> {
+    // Encode the contract index and subindex as unsigned LEB128.
+    let mut contract_index_bytes = Vec::new();
+    encode_leb128(&mut contract_index_bytes, contract_index)?;
+
+    let mut contract_subindex_bytes = Vec::new();
+    encode_leb128(&mut contract_subindex_bytes, contract_subindex)?;
+
+    let token_id_bytes = token_id.as_ref();
+
+    let total_length =
+        1 + contract_index_bytes.len() + contract_subindex_bytes.len() + token_id_bytes.len();
+    let mut bytes = Vec::with_capacity(total_length);
+
+    // Fill in the byte buffer.
+    bytes.push(2); // version byte 2
+    bytes.extend_from_slice(&contract_index_bytes);
+    bytes.extend_from_slice(&contract_subindex_bytes);
+    bytes.extend_from_slice(token_id_bytes);
+
+    // Base58 check encoding of the bytes.
+    Ok(bs58::encode(bytes).with_check().into_string())
 }
 
 struct PreparedContractUpdate {
@@ -1841,10 +1973,13 @@ struct PreparedContractUpdate {
     height:              i64,
     contract_index:      i64,
     contract_sub_index:  i64,
+    cis2_events:         Vec<cis2::Event>,
 }
 
 impl PreparedContractUpdate {
-    fn prepare(
+    async fn prepare(
+        node_client: &mut v2::Client,
+        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractTraceElement,
@@ -1857,11 +1992,89 @@ impl PreparedContractUpdate {
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
+        // To track CIS2 tokens (e.g., token balances, total supply, token metadata
+        // URLs), we gather the CIS2 events here. We check if logged contract
+        // events can be parsed as CIS2 events. In addition, we check if the
+        // contract supports the `CIS2` standard by calling the on-chain
+        // `supports` endpoint before considering the CIS2 events valid.
+        //
+        // There are two edge cases that the index would not identify a CIS2 event
+        // correctly. Nonetheless, to avoid complexity it was deemed acceptable
+        // behavior.
+        // - Edge case 1: A contract code upgrades and no longer
+        // supports CIS2 then logging a CIS2-like event within the same block.
+        // - Edge case 2: A contract logs a CIS2-like event and then upgrades to add
+        // support for CIS2 in the same block.
+        //
+        // There are three chain events (ContractInitializedEvent,
+        // ContractInterruptedEvent and ContractUpdatedEvent) that can generate
+        // `contract_logs`. CIS2 events logged by the last two chain events are
+        // handled here while CIS2 events logged in the
+        // `ContractInitializedEvent` are handled at its corresponding
+        // transaction type.
+        let potential_cis2_events = match event {
+            ContractTraceElement::Updated {
+                data,
+            } => data.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
+            ContractTraceElement::Transferred {
+                from,
+                amount,
+                to,
+            } => vec![],
+            ContractTraceElement::Interrupted {
+                address,
+                events,
+            } => events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
+            ContractTraceElement::Resumed {
+                address,
+                success,
+            } => vec![],
+            ContractTraceElement::Upgraded {
+                address,
+                from,
+                to,
+            } => vec![],
+        };
+
+        // If potential CIS2 events are parsed, we verify if the smart contract
+        // supports the CIS2 standard before accepting the events as valid.
+        let cis2_events = if potential_cis2_events.is_empty() {
+            vec![]
+        } else {
+            let contract_info = node_client
+                .get_instance_info(
+                    contract_address,
+                    &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                )
+                .await?;
+            let contract_name = contract_info.response.name().as_contract_name();
+
+            let supports_cis2 = cis0::supports(
+                node_client,
+                &BlockIdentifier::AbsoluteHeight(data.block_info.block_height),
+                contract_address,
+                contract_name,
+                cis0::StandardIdentifier::CIS2,
+            )
+            .await?
+            .response
+            .is_support();
+
+            if supports_cis2 {
+                potential_cis2_events
+            } else {
+                // If contract does not support `CIS2`, don't consider the events as CIS2
+                // events.
+                vec![]
+            }
+        };
+
         Ok(Self {
             trace_element_index,
             height,
             contract_index: index,
             contract_sub_index: sub_index,
+            cis2_events,
         })
     }
 
@@ -1869,9 +2082,10 @@ impl PreparedContractUpdate {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
+        pool: &PgPool,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            r#"INSERT INTO contract_events (
+            "INSERT INTO contract_events (
                 transaction_index,
                 trace_element_index,
                 block_height,
@@ -1880,8 +2094,9 @@ impl PreparedContractUpdate {
                 event_index_per_contract
             )
             VALUES (
-                $1, $2, $3, $4, $5, (SELECT COALESCE(MAX(event_index_per_contract) + 1, 0) FROM contract_events WHERE contract_index = $4 AND contract_sub_index = $5)
-            )"#,
+                $1, $2, $3, $4, $5, (SELECT COALESCE(MAX(event_index_per_contract) + 1, 0) FROM \
+             contract_events WHERE contract_index = $4 AND contract_sub_index = $5)
+            )",
             transaction_index,
             self.trace_element_index,
             self.height,
@@ -1891,6 +2106,175 @@ impl PreparedContractUpdate {
         .execute(tx.as_mut())
         .await?;
 
-        Ok(())
+        process_cis2_events(
+            &self.cis2_events,
+            self.contract_index,
+            self.contract_sub_index,
+            pool,
+            transaction_index,
+            tx,
+        )
+        .await
     }
+}
+
+async fn process_cis2_events(
+    cis2_events: &[cis2::Event],
+    contract_index: i64,
+    contract_sub_index: i64,
+    pool: &PgPool,
+    transaction_index: i64,
+    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+) -> anyhow::Result<()> {
+    for log in cis2_events.iter() {
+        // The `total_supply` value of a token is inserted/updated in the database here.
+        // Only `Mint` and `Burn` events affect the `total_supply` of a
+        // token.
+        if let cis2::Event::Mint {
+            token_id,
+            amount,
+            owner,
+        } = log
+        {
+            let token_address =
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+
+            // Fetch the current `total_supply` for the given `token_address`.
+            let row = sqlx::query!(
+                "
+                SELECT total_supply FROM tokens WHERE token_address = $1",
+                token_address,
+            )
+            .fetch_optional(pool)
+            .await?;
+
+            // If current `total_supply` exists, add the `amount` to it.
+            // otherwise use the `amount` as the new `total_supply`.
+            // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
+            // MAX::TOKEN_AMOUNT specified in the CIS2 standard. The
+            // `total_supply` eventually overflows in that case.
+            let new_total_supply = if let Some(row) = row {
+                let current_total_supply: BigDecimal = row.total_supply;
+
+                current_total_supply + BigDecimal::from_str(&amount.0.to_string())?
+            } else {
+                BigDecimal::from_str(&amount.0.to_string())?
+            };
+
+            // If the `token_address` does not exist, insert the new token with its
+            // `total_supply` set to `amount`. If the `token_address` exists,
+            // update the `total_supply` value by adding the `amount` to the existing
+            // value in the database.
+            sqlx::query!(
+                "
+                INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                 total_supply, init_transaction_index)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (token_address)
+                DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                token_address,
+                contract_index,
+                contract_sub_index,
+                new_total_supply,
+                transaction_index
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
+        // The `total_supply` value of a token is inserted/updated in the database here.
+        // Only `Mint` and `Burn` events affect the `total_supply` of a
+        // token.
+        // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+        // initially minted. The `total_supply` can have a negative value in that case
+        // and even underflow.
+        if let cis2::Event::Burn {
+            token_id,
+            amount,
+            owner,
+        } = log
+        {
+            let token_address =
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+            // Fetch the current `total_supply` for the given `token_address`.
+            let row = sqlx::query!(
+                "
+                    SELECT total_supply FROM tokens WHERE token_address = $1",
+                token_address,
+            )
+            .fetch_optional(pool)
+            .await?;
+
+            // If current `total_supply` exists, subtract the `amount` from it.
+            // If it does not exist (`buggy` CIS2 token contract), insert the new token with
+            // its `total_supply` set to `-amount`.
+            // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+            // initially minted. The `total_supply` will be set to a negative value and
+            // eventually underflow in that case.
+            let new_total_supply = if let Some(row) = row {
+                let current_total_supply = row.total_supply;
+
+                // Subtract the `amount` from the `current_total_supply`.
+                current_total_supply - BigDecimal::from_str(&amount.0.to_string())?
+            } else {
+                // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
+                // initially minted. The `total_supply` will be set to 0 (default value) in that
+                // case (rather than underflowing the value).
+                -BigDecimal::from_str(&amount.0.to_string())?
+            };
+
+            // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
+            // insert the new token with its `total_supply` set to `-amount`. If the
+            // `token_address` exists, update the `total_supply` value by
+            // subtracting the `amount` from the existing value in the
+            // database.
+            sqlx::query!(
+                "
+                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                 total_supply, init_transaction_index)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (token_address)
+                    DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                token_address,
+                contract_index,
+                contract_sub_index,
+                new_total_supply,
+                transaction_index
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
+        // The `metadata_url` of a token is inserted/updated in the database here.
+        // Only `TokenMetadata` events affect the `metadata_url` of a
+        // token.
+        if let cis2::Event::TokenMetadata {
+            token_id,
+            metadata_url,
+        } = log
+        {
+            let token_address =
+                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+
+            // If the `token_address` does not exist, insert the new token.
+            // If the `token_address` exists, update the `metadata_url` value in the
+            // database.
+            sqlx::query!(
+                "
+                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                 metadata_url, init_transaction_index)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (token_address)
+                    DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
+                token_address,
+                contract_index,
+                contract_sub_index,
+                metadata_url.url(),
+                transaction_index
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+    }
+    Ok(())
 }
