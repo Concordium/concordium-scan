@@ -3330,14 +3330,18 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         todo_api!()
     }
+
+    async fn release_schedule(&self) -> AccountReleaseSchedule {
+        AccountReleaseSchedule {
+            account_index: self.index,
+        }
+    }
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
 struct AccountReleaseSchedule {
     account_index: AccountIndex,
 }
-#[ComplexObject]
+#[Object]
 impl AccountReleaseSchedule {
     async fn total_amount(&self, ctx: &Context<'_>) -> ApiResult<Amount> {
         let pool = get_pool(ctx)?;
