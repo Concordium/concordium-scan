@@ -369,6 +369,8 @@ enum ApiError {
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
     #[error("Invalid token ID: {0}")]
     InvalidTokenID(Arc<ParseTokenIdVecError>),
+    #[error("Invalid token address: {0}")]
+    InvalidTokenAddress(Arc<anyhow::Error>),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -905,7 +907,8 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
             contract_address_index.0,
             contract_address_sub_index.0,
             &TokenId::from_str(&token_id).map_err(|e| ApiError::InvalidTokenID(e.into()))?,
-        );
+        )
+        .map_err(|e| ApiError::InvalidTokenAddress(Arc::new(e)))?;
 
         let row = sqlx::query_as!(
             TokenRow,

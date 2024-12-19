@@ -36,10 +36,8 @@ tokio-util = "0.7"
 prometheus-client = "0.22"
 tonic = { version = "0.10.2", features = ["tls-roots", "tls"]}
 tower-http = { version = "0.6", features = ["cors"] }
-num-bigint = "0.4.6"
 bs58 = { version = "0.5.1", features = ["check"] }
 leb128 = "0.2.5"
-num-traits = "0.2.19"
 bigdecimal = "0.4.7"
 
 # Recommended by SQLx to speed up incremental builds
