@@ -5415,7 +5415,7 @@ impl ModuleReferenceEvent {
                 config.module_reference_contract_link_events.min(t)
             }))?;
 
-        let items = sqlx::query_as!(
+        let mut items = sqlx::query_as!(
             ModuleReferenceContractLinkEvent,
             r#"SELECT
                    link_action as "link_action: ModuleReferenceContractLinkAction",
@@ -5432,24 +5432,18 @@ impl ModuleReferenceEvent {
         "#,
             self.module_reference,
             min_index,
-            limit
+            limit + 1
         )
         .fetch_all(pool)
         .await?;
 
-        let has_next_page = sqlx::query_scalar!(
-            r#"SELECT true
-               FROM link_smart_contract_module_transactions
-               WHERE
-                   module_reference = $1
-                   AND link_smart_contract_module_transactions.index = $2"#,
-            self.module_reference,
-            min_index + limit
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
         let has_previous_page = min_index > 0;
 
         Ok(ModuleReferenceContractLinkEventsCollectionSegment {
