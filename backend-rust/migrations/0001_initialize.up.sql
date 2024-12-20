@@ -477,7 +477,7 @@ CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, releas
 CREATE TABLE tokens (
     -- An index/id for the token (row number).
     index
-        BIGINT GENERATED ALWAYS AS IDENTITY
+        BIGINT
         PRIMARY KEY,
     -- Contract index that the token is associated with.
     contract_index
