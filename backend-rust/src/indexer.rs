@@ -2422,12 +2422,8 @@ async fn process_cis2_events(
             let new_total_supply = if let Some(row) = row {
                 let current_total_supply = row.total_supply;
 
-                // Subtract the `amount` from the `current_total_supply`.
                 current_total_supply - BigDecimal::from_str(&amount.0.to_string())?
             } else {
-                // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-                // initially minted. The `total_supply` will be set to 0 (default value) in that
-                // case (rather than underflowing the value).
                 -BigDecimal::from_str(&amount.0.to_string())?
             };
 
