@@ -2193,11 +2193,12 @@ async fn process_cis2_events(
             // value in the database.
             sqlx::query!(
                 "
-                INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
                  total_supply, token_id, init_transaction_index)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT (token_address)
-                DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
+                 $6)
+                    ON CONFLICT (token_address)
+                    DO UPDATE SET total_supply = EXCLUDED.total_supply",
                 token_address,
                 contract_index,
                 contract_sub_index,
@@ -2257,9 +2258,10 @@ async fn process_cis2_events(
             // database.
             sqlx::query!(
                 "
-                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
                  total_supply, token_id, init_transaction_index)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
+                 $6)
                     ON CONFLICT (token_address)
                     DO UPDATE SET total_supply = EXCLUDED.total_supply",
                 token_address,
@@ -2289,9 +2291,10 @@ async fn process_cis2_events(
             // database.
             sqlx::query!(
                 "
-                    INSERT INTO tokens (token_address, contract_index, contract_sub_index, \
+                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
                  metadata_url, token_id, init_transaction_index)
-                    VALUES ($1, $2, $3, $4, $5, $6)
+                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
+                 $6)
                     ON CONFLICT (token_address)
                     DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
                 token_address,
