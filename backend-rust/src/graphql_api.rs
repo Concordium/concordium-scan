@@ -94,34 +94,34 @@ impl SmartContractSchemaNames {
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:            Vec<sdk_types::AccountAddress>,
+    non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       u64,
+    transaction_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             u64,
+    block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           u64,
+    account_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_schedule_connection_limit:  u64,
+    account_schedule_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          u64,
+    contract_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   u64,
+    contract_events_collection_limit: u64,
     #[arg(
         long,
-        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_CONNECTION_LIMIT",
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    module_reference_reject_events:     u64,
+    module_reference_reject_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -5341,11 +5341,13 @@ impl ModuleReferenceEvent {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(take.map_or(config.module_reference_reject_events, |t| {
-            config.module_reference_reject_events.min(t)
-        }))?;
+        let limit = i64::try_from(
+            take.map_or(config.module_reference_reject_events_collection_limit, |t| {
+                config.module_reference_reject_events_collection_limit.min(t)
+            }),
+        )?;
 
-        let items = sqlx::query_as!(
+        let mut items = sqlx::query_as!(
             ModuleReferenceRejectEvent,
             r#"SELECT
                 module_reference,
@@ -5362,24 +5364,18 @@ impl ModuleReferenceEvent {
         "#,
             self.module_reference,
             min_index,
-            limit
+            limit + 1
         )
         .fetch_all(pool)
         .await?;
 
-        let has_next_page = sqlx::query_scalar!(
-            r#"SELECT true
-               FROM rejected_smart_contract_module_transactions
-               WHERE
-                   module_reference = $1
-                   AND rejected_smart_contract_module_transactions.index = $2"#,
-            self.module_reference,
-            min_index + limit
-        )
-        .fetch_optional(pool)
-        .await?
-        .flatten()
-        .unwrap_or_default();
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
         let has_previous_page = min_index > 0;
         Ok(ModuleReferenceRejectEventsCollectionSegment {
             page_info: CollectionSegmentInfo {
