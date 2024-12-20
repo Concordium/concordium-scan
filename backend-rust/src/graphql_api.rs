@@ -94,28 +94,34 @@ impl SmartContractSchemaNames {
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:            Vec<sdk_types::AccountAddress>,
+    non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       u64,
+    transaction_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             u64,
+    block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           u64,
+    account_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_schedule_connection_limit:  u64,
+    account_schedule_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          u64,
+    contract_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   u64,
+    contract_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    module_reference_reject_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -1339,6 +1345,7 @@ impl From<Duration> for TimeSpan {
 type BlockHeight = i64;
 type BlockHash = String;
 type TransactionHash = String;
+type ModuleReference = String;
 type BakerId = i64;
 type AccountIndex = i64;
 type TransactionIndex = i64;
@@ -5310,18 +5317,105 @@ pub struct TransferredWithSchedule {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ModuleReferenceEvent {
-    module_reference: String,
+    module_reference: ModuleReference,
     sender:           AccountAddress,
     block_height:     BlockHeight,
-    transaction_hash: String,
+    transaction_hash: TransactionHash,
     block_slot_time:  DateTime,
     display_schema:   Option<String>,
     // TODO:
-    // moduleReferenceRejectEvents(skip: Int take: Int):
-    // ModuleReferenceRejectEventsCollectionSegment moduleReferenceContractLinkEvents(skip: Int
-    // take: Int): ModuleReferenceContractLinkEventsCollectionSegment linkedContracts(skip: Int
-    // take: Int): LinkedContractsCollectionSegment
+    // moduleReferenceContractLinkEvents(skip: Int take: Int):
+    // ModuleReferenceContractLinkEventsCollectionSegment linkedContracts(skip: Int take: Int):
+    // LinkedContractsCollectionSegment
+}
+#[ComplexObject]
+impl ModuleReferenceEvent {
+    async fn module_reference_reject_events(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<ModuleReferenceRejectEventsCollectionSegment> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let min_index = i64::try_from(skip.unwrap_or(0))?;
+        let limit = i64::try_from(
+            take.map_or(config.module_reference_reject_events_collection_limit, |t| {
+                config.module_reference_reject_events_collection_limit.min(t)
+            }),
+        )?;
+
+        let mut items = sqlx::query_as!(
+            ModuleReferenceRejectEvent,
+            r#"SELECT
+                module_reference,
+                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>",
+                transactions.block_height,
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
+            FROM rejected_smart_contract_module_transactions
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE module_reference = $1
+                AND rejected_smart_contract_module_transactions.index >= $2
+            LIMIT $3
+        "#,
+            self.module_reference,
+            min_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = min_index > 0;
+        Ok(ModuleReferenceRejectEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
+    }
+}
+
+#[derive(SimpleObject)]
+struct ModuleReferenceRejectEventsCollectionSegment {
+    page_info:   CollectionSegmentInfo,
+    items:       Vec<ModuleReferenceRejectEvent>,
+    total_count: u64,
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+struct ModuleReferenceRejectEvent {
+    module_reference: ModuleReference,
+    #[graphql(skip)]
+    reject:           Option<sqlx::types::Json<TransactionRejectReason>>,
+    block_height:     BlockHeight,
+    transaction_hash: TransactionHash,
+    block_slot_time:  DateTime,
+}
+#[ComplexObject]
+impl ModuleReferenceRejectEvent {
+    async fn rejected_event(&self) -> ApiResult<&TransactionRejectReason> {
+        if let Some(sqlx::types::Json(reason)) = self.reject.as_ref() {
+            Ok(reason)
+        } else {
+            Err(ApiError::InternalError(
+                "ModuleReferenceRejectEvent: No reject reason found".to_string(),
+            ))
+        }
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]

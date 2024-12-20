@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO rejected_smart_contract_module_transactions (\n                index,\n                module_reference,\n                transaction_index\n            ) VALUES (\n                (SELECT\n                    COALESCE(MAX(index) + 1, 0)\n                FROM rejected_smart_contract_module_transactions\n                WHERE module_reference = $1),\n            $1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2c9c630ca05638b96ae7cbd4f2e205c10af8ed92acb227454e30f2800175eeb0"
+}
