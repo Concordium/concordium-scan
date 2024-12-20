@@ -1087,8 +1087,8 @@ enum PreparedEvent {
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
-    /// Rejected transaction attempting to initialized a smart contract
-    /// instance.
+    /// Rejected transaction attempting to initialize a smart contract
+    /// instance or redeploying a module reference.
     RejectModuleTransaction(PreparedRejectModuleTransaction),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
@@ -2003,7 +2003,7 @@ impl PreparedRejectModuleTransaction {
         transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
-            r#"INSERT INTO rejected_smart_contract_module_transactions (
+            "INSERT INTO rejected_smart_contract_module_transactions (
                 index,
                 module_reference,
                 transaction_index
@@ -2012,7 +2012,7 @@ impl PreparedRejectModuleTransaction {
                     COALESCE(MAX(index) + 1, 0)
                 FROM rejected_smart_contract_module_transactions
                 WHERE module_reference = $1),
-            $1, $2)"#,
+            $1, $2)",
             self.module_reference,
             transaction_index
         )
