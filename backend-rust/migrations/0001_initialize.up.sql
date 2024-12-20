@@ -471,9 +471,9 @@ CREATE TABLE scheduled_releases (
 -- This index is useful for that.
 CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
 
--- All CIS2 tokens. A token is added to this table whenever a `CIS2 mint event` is logged for the first
--- time by a contract claiming to follow the `CIS2 standard` or a `CIS2 tokenMetadataUpdated event` is logged
--- for the first time by a contract claiming to follow the `CIS2 standard`.
+-- All CIS2 tokens. A token is added to this table whenever a CIS2 `MintEvent`/`BurnEvent`
+-- or `TokenMetadataEvent` is logged for the first time by a contract claiming
+-- to follow the `CIS2 standard`.
 CREATE TABLE tokens (
     -- An index/id for the token (row number).
     index
@@ -507,18 +507,21 @@ CREATE TABLE tokens (
     token_id
         TEXT
         NOT NULL,
-    -- Accumulated total supply of the token calculated by considering all `mint/burn` events associated
+    -- Accumulated total supply of the token calculated by considering all `MintEvents` and `BurnEvents` associated
     -- to the token. If no total supply is specified when inserting a new token in the table,
     -- the default total supply 0 is used.
     total_supply
         NUMERIC
         NOT NULL
         DEFAULT 0,
-    -- Index of the transaction with the first `CIS2 mint event`, `CIS2 burn event` or `CIS2 tokenMetadata event` logged for the token.
+    -- Index of the transaction with the first CIS2 `MintEvent`, `BurnEvent` or `TokenMetadataEvent` logged for the token.
     init_transaction_index
        BIGINT
        NOT NULL
 );
+
+-- We want to find a specific token (this index should be removed once the front-end querries a token by `token_address`).
+CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

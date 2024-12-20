@@ -2118,16 +2118,17 @@ impl PreparedRejectModuleTransaction {
 /// encoding of the contract subindex concatenated with the token id in bytes.
 /// Finally the whole byte array is base 58 check encoded.
 /// https://proposals.concordium.software/CIS/cis-2.html#token-address
+/// The token address is a unique identifier used to distinguish tokens across
+/// all smart contracts.
 pub fn get_token_address(
     contract_index: u64,
     contract_subindex: u64,
     token_id: &TokenId,
 ) -> Result<String, anyhow::Error> {
-    // Encode the contract index and subindex as unsigned LEB128.
-    let mut contract_index_bytes = Vec::new();
+    let mut contract_index_bytes = Vec::with_capacity(64);
     encode_leb128(&mut contract_index_bytes, contract_index)?;
 
-    let mut contract_subindex_bytes = Vec::new();
+    let mut contract_subindex_bytes = Vec::with_capacity(64);
     encode_leb128(&mut contract_subindex_bytes, contract_subindex)?;
 
     let token_id_bytes = token_id.as_ref();
@@ -2136,7 +2137,7 @@ pub fn get_token_address(
         1 + contract_index_bytes.len() + contract_subindex_bytes.len() + token_id_bytes.len();
     let mut bytes = Vec::with_capacity(total_length);
 
-    // Fill in the byte buffer.
+    // Fill in the bytes.
     bytes.push(2); // version byte 2
     bytes.extend_from_slice(&contract_index_bytes);
     bytes.extend_from_slice(&contract_subindex_bytes);

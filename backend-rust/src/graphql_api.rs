@@ -14,7 +14,6 @@ macro_rules! todo_api {
     };
 }
 
-use crate::indexer::get_token_address;
 use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
@@ -35,7 +34,6 @@ use concordium_rust_sdk::{
         },
         smart_contracts::ReceiveName,
     },
-    cis2::{ParseTokenIdVecError, TokenId},
     id::types as sdk_types,
     types::AmountFraction,
 };
@@ -367,10 +365,6 @@ enum ApiError {
     InvalidContractVersion(#[from] InvalidContractVersionError),
     #[error("Schema in database should be a valid versioned module schema")]
     InvalidVersionedModuleSchema(#[from] VersionedSchemaError),
-    #[error("Invalid token ID: {0}")]
-    InvalidTokenID(Arc<ParseTokenIdVecError>),
-    #[error("Invalid token address: {0}")]
-    InvalidTokenAddress(Arc<anyhow::Error>),
 }
 
 impl From<sqlx::Error> for ApiError {
@@ -903,16 +897,9 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     ) -> ApiResult<Token> {
         let pool = get_pool(ctx)?;
 
-        let token_address = get_token_address(
-            contract_index.0,
-            contract_sub_index.0,
-            &TokenId::from_str(&token_id).map_err(|e| ApiError::InvalidTokenID(e.into()))?,
-        )
-        .map_err(|e| ApiError::InvalidTokenAddress(Arc::new(e)))?;
-
         let token = sqlx::query_as!(
             Token,
-             r#"SELECT
+            r#"SELECT
                 total_supply as "raw_total_supply: BigDecimal",
                 token_id,
                 contract_index as "contract_index: i64",
@@ -921,10 +908,10 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
                 metadata_url,
                 init_transaction_index
             FROM tokens
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_address = $3"#,
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3"#,
             contract_index.0 as i64,
             contract_sub_index.0 as i64,
-            token_address
+            token_id
         )
         .fetch_optional(pool)
         .await?
@@ -1402,7 +1389,7 @@ type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = Vec<u8>;
+type BigInteger = BigDecimal;
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]
@@ -2436,10 +2423,18 @@ struct AccountToken {
     contract_index:     ContractIndex,
     contract_sub_index: ContractIndex,
     token_id:           String,
-    balance:            BigInteger,
+    #[graphql(skip)]
+    raw_balance:        BigInteger,
     token:              Token,
     account_id:         i64,
     account:            Account,
+}
+
+#[ComplexObject]
+impl AccountToken {
+    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<String> {
+        Ok(self.raw_balance.to_string())
+    }
 }
 
 #[derive(SimpleObject)]

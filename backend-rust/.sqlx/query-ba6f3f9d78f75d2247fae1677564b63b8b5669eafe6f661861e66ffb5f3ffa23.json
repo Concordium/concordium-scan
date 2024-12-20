@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                total_supply as \"raw_total_supply: BigDecimal\",\n                token_id,\n                contract_index as \"contract_index: i64\",\n                contract_sub_index \"contract_sub_index: i64\",\n                token_address,\n                metadata_url,\n                init_transaction_index\n            FROM tokens\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_address = $3",
+  "query": "SELECT\n                total_supply as \"raw_total_supply: BigDecimal\",\n                token_id,\n                contract_index as \"contract_index: i64\",\n                contract_sub_index \"contract_sub_index: i64\",\n                token_address,\n                metadata_url,\n                init_transaction_index\n            FROM tokens\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3",
   "describe": {
     "columns": [
       {
@@ -56,5 +56,5 @@
       false
     ]
   },
-  "hash": "392672a3e1068f6e9f9610d605b0916ad8a07650c9a238b37a1f1e2b38301364"
+  "hash": "ba6f3f9d78f75d2247fae1677564b63b8b5669eafe6f661861e66ffb5f3ffa23"
 }
