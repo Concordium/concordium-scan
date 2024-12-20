@@ -8,7 +8,11 @@ use crate::graphql_api::{
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
-    base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
+    base::{
+        contracts_common::to_bytes,
+        smart_contracts::WasmVersion,
+        transactions::{BlockItem, EncodedPayload, Payload},
+    },
     common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
@@ -16,7 +20,7 @@ use concordium_rust_sdk::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
         ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
-        RewardsOverview,
+        RejectReason, RewardsOverview, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -312,6 +316,7 @@ impl Indexer for BlockPreProcessor {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
+            let mut client4 = client.clone();
             let get_events = async move {
                 let events = client3
                     .get_block_transaction_events(fbi.height)
@@ -322,11 +327,22 @@ impl Indexer for BlockPreProcessor {
                 Ok(events)
             };
 
+            let get_items = async move {
+                let items = client4
+                    .get_block_items(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(items)
+            };
+
             let start_fetching = Instant::now();
-            let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
+            let (block_info, chain_parameters, events, items, tokenomics_info) = try_join!(
                 client1.get_block_info(fbi.height),
                 client2.get_block_chain_parameters(fbi.height),
                 get_events,
+                get_items,
                 client.get_tokenomics_info(fbi.height)
             )?;
             let total_staked_capital = match tokenomics_info.response {
@@ -352,6 +368,7 @@ impl Indexer for BlockPreProcessor {
                 finalized_block_info: fbi,
                 block_info: block_info.response,
                 events,
+                items,
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
@@ -595,6 +612,7 @@ struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
     block_info:           BlockInfo,
     events:               Vec<BlockItemSummary>,
+    items:                Vec<BlockItem<EncodedPayload>>,
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
@@ -744,9 +762,9 @@ impl PreparedBlock {
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
-        for block_item in data.events.iter() {
+        for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
         Ok(Self {
             hash,
@@ -903,17 +921,18 @@ impl PreparedBlockItem {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
+        item_summary: &BlockItemSummary,
+        item: &BlockItem<EncodedPayload>,
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_item_index = i64::try_from(block_item.index.index)?;
-        let block_item_hash = block_item.hash.to_string();
+        let block_item_index = i64::try_from(item_summary.index.index)?;
+        let block_item_hash = item_summary.hash.to_string();
         let ccd_cost =
-            i64::try_from(data.chain_parameters.ccd_cost(block_item.energy_cost).micro_ccd)?;
-        let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
-        let sender = block_item.sender_account().map(|a| a.to_string());
+            i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?;
+        let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
+        let sender = item_summary.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =
-            match &block_item.details {
+            match &item_summary.details {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
                     let account_transaction_type =
                         details.transaction_type().map(AccountTransactionType::from);
@@ -929,9 +948,9 @@ impl PreparedBlockItem {
                     (DbTransactionType::Update, None, None, Some(update_type))
                 }
             };
-        let success = block_item.is_success();
+        let success = item_summary.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(events_from_summary(block_item.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(item_summary.details.clone())?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -942,7 +961,7 @@ impl PreparedBlockItem {
                             ..
                         },
                     ..
-                }) = &block_item.details
+                }) = &item_summary.details
                 {
                     serde_json::to_value(crate::graphql_api::TransactionRejectReason::try_from(
                         reject_reason.clone(),
@@ -953,9 +972,8 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
         let affected_accounts =
-            block_item.affected_addresses().into_iter().map(|a| a.to_string()).collect();
-
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+            item_summary.affected_addresses().into_iter().map(|a| a.to_string()).collect();
+        let prepared_event = PreparedEvent::prepare(node_client, data, item_summary, item).await?;
 
         Ok(Self {
             block_item_index,
@@ -1068,6 +1086,9 @@ enum PreparedEvent {
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
+    /// Rejected transaction attempting to initialized a smart contract
+    /// instance.
+    RejectModuleTransaction(PreparedRejectModuleTransaction),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
     /// A scheduled transfer got executed.
@@ -1079,29 +1100,69 @@ impl PreparedEvent {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
+        item_summary: &BlockItemSummary,
+        item: &BlockItem<EncodedPayload>,
     ) -> anyhow::Result<Option<Self>> {
-        let prepared_event = match &block_item.details {
+        let prepared_event = match &item_summary.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data, block_item, details,
+                    data,
+                    item_summary,
+                    details,
                 )?))
             }
             BlockItemSummaryDetails::AccountTransaction(details) => match &details.effects {
                 AccountTransactionEffects::None {
                     transaction_type,
                     reject_reason,
-                } => None,
+                } => match transaction_type.as_ref() {
+                    Some(&TransactionType::InitContract) | Some(&TransactionType::DeployModule) => {
+                        if let RejectReason::InvalidModuleReference {
+                            ..
+                        } = reject_reason
+                        {
+                            // Trying to initialize a smart contract from invalid module
+                            // reference is not tracked.
+                            None
+                        } else {
+                            let decoded = if let BlockItem::AccountTransaction(ac) = item {
+                                ac.payload
+                                    .decode()
+                                    .context("Failed decoding account transaction payload")?
+                            } else {
+                                anyhow::bail!(
+                                    "Block item was expected to be an account transaction"
+                                )
+                            };
+                            let module_reference = match decoded {
+                                Payload::InitContract {
+                                    payload,
+                                } => payload.mod_ref,
+                                Payload::DeployModule {
+                                    module,
+                                } => module.get_module_ref(),
+                                _ => anyhow::bail!(
+                                    "Payload did not match InitContract or DeployModule as \
+                                     expected"
+                                ),
+                            };
+                            Some(PreparedEvent::RejectModuleTransaction(
+                                PreparedRejectModuleTransaction::prepare(module_reference)?,
+                            ))
+                        }
+                    }
+                    _ => None,
+                },
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
                 } => Some(PreparedEvent::ModuleDeployed(
-                    PreparedModuleDeployed::prepare(node_client, data, block_item, *module_ref)
+                    PreparedModuleDeployed::prepare(node_client, data, item_summary, *module_ref)
                         .await?,
                 )),
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
                 } => Some(PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                    PreparedContractInitialized::prepare(data, item_summary, event_data)?,
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
@@ -1112,7 +1173,7 @@ impl PreparedEvent {
                         .map(|(trace_element_index, effect)| {
                             PreparedContractUpdate::prepare(
                                 data,
-                                block_item,
+                                item_summary,
                                 effect,
                                 trace_element_index,
                             )
@@ -1266,6 +1327,7 @@ impl PreparedEvent {
             }
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::RejectModuleTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(events) => {
                 for event in events {
                     event.save(tx, tx_idx).await?;
@@ -1859,7 +1921,42 @@ impl PreparedContractInitialized {
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+}
 
+struct PreparedRejectModuleTransaction {
+    module_reference: String,
+}
+
+impl PreparedRejectModuleTransaction {
+    fn prepare(module_reference: sdk_types::hashes::ModuleReference) -> anyhow::Result<Self> {
+        Ok(Self {
+            module_reference: module_reference.into(),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO rejected_smart_contract_module_transactions (
+                index,
+                module_reference,
+                transaction_index
+            ) VALUES (
+                (SELECT
+                    COALESCE(MAX(index) + 1, 0)
+                FROM rejected_smart_contract_module_transactions
+                WHERE module_reference = $1),
+            $1, $2)"#,
+            self.module_reference,
+            transaction_index
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }

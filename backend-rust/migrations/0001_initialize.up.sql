@@ -308,6 +308,27 @@ CREATE TABLE smart_contract_modules(
     schema BYTEA
 );
 
+-- Indexing of rejected transactions for a deployed smart contract module, such as redeploying a
+-- module or a failed initialization.
+CREATE TABLE rejected_smart_contract_module_transactions (
+    -- Gapless incrementing index for each module reference, used for efficiently skipping in the
+    -- query for this collection.
+    index
+        BIGINT
+        NOT NULL,
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- A smart contract module affected by this transaction.
+    module_reference
+        CHAR(64)
+        NOT NULL
+        REFERENCES smart_contract_modules,
+    PRIMARY KEY (module_reference, index)
+);
+
 -- Every contract instance on chain.
 CREATE TABLE contracts(
     -- Index of the contract.
