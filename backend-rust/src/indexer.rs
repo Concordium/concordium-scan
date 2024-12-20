@@ -1117,12 +1117,14 @@ impl PreparedEvent {
                     reject_reason,
                 } => match transaction_type.as_ref() {
                     Some(&TransactionType::InitContract) | Some(&TransactionType::DeployModule) => {
-                        if let RejectReason::InvalidModuleReference {
+                        if let RejectReason::ModuleNotWF
+                        | RejectReason::InvalidModuleReference {
                             ..
                         } = reject_reason
                         {
                             // Trying to initialize a smart contract from invalid module
-                            // reference is not tracked.
+                            // reference or deploying invalid smart contract modules are not indexed
+                            // further.
                             None
                         } else {
                             let decoded = if let BlockItem::AccountTransaction(ac) = item {
