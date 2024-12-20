@@ -122,10 +122,10 @@ pub struct ApiServiceConfig {
     module_reference_reject_events_collection_limit: u64,
     #[arg(
         long,
-        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_CONTRACT_LINK_EVENTS_CONNECTION_LIMIT",
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_CONTRACT_LINK_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    module_reference_contract_link_events: u64,
+    module_reference_contract_link_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -5410,19 +5410,20 @@ impl ModuleReferenceEvent {
         let pool = get_pool(ctx)?;
         let config = get_config(ctx)?;
         let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit =
-            i64::try_from(take.map_or(config.module_reference_contract_link_events, |t| {
-                config.module_reference_contract_link_events.min(t)
-            }))?;
+        let limit = i64::try_from(
+            take.map_or(config.module_reference_contract_link_events_collection_limit, |t| {
+                config.module_reference_contract_link_events_collection_limit.min(t)
+            }),
+        )?;
 
         let mut items = sqlx::query_as!(
             ModuleReferenceContractLinkEvent,
             r#"SELECT
-                   link_action as "link_action: ModuleReferenceContractLinkAction",
-                   contract_index,
-                   contract_sub_index,
-                   transactions.hash as transaction_hash,
-                   blocks.slot_time as block_slot_time
+                link_action as "link_action: ModuleReferenceContractLinkAction",
+                contract_index,
+                contract_sub_index,
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
             FROM link_smart_contract_module_transactions
                 JOIN transactions ON transaction_index = transactions.index
                 JOIN blocks ON blocks.height = transactions.block_height
