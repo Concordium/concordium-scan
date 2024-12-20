@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT true\n               FROM link_smart_contract_module_transactions\n               WHERE\n                   module_reference = $1\n                   AND link_smart_contract_module_transactions.index = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d4ec23e15ea8568e0ad489478a61cb3346b10c1a81bc70ffb75712c38963f114"
+}

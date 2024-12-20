@@ -65,6 +65,11 @@ CREATE TYPE pool_open_status AS ENUM (
     'ClosedForAll'
 );
 
+CREATE TYPE module_reference_contract_link_action AS ENUM (
+    'Added',
+    'Removed'
+);
+
 -- Every block on chain.
 CREATE TABLE blocks(
     -- The absolute height of the block.
@@ -400,6 +405,41 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
+
+-- Indexing of transactions linking smart contract modules to a smart contract instance.
+-- Such as init contract or contract upgrades.
+CREATE TABLE link_smart_contract_module_transactions (
+    -- Gapless incrementing index for each module reference, used for efficiently skipping in the
+    -- query for this collection.
+    index
+        BIGINT
+        NOT NULL,
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- A smart contract module affected by this transaction.
+    module_reference
+        CHAR(64)
+        NOT NULL
+        REFERENCES smart_contract_modules,
+    -- Contract index that the event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that the event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- Whether the relevant smart contract instance is linking or unlinking from the module
+    -- reference.
+    link_action
+        module_reference_contract_link_action
+        NOT NULL,
+    PRIMARY KEY (module_reference, index),
+    FOREIGN KEY (contract_index, contract_sub_index) REFERENCES contracts(index, sub_index)
+);
 
 -- Every scheduled release on chain.
 CREATE TABLE scheduled_releases (

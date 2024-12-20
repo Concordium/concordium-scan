@@ -1,6 +1,4 @@
 //! TODO
-//! - Introduce default LIMITS for connections
-//! - Introduce a MAX LIMIT for connections
 //! - Enable GraphiQL through flag instead of always.
 
 #![allow(unused_variables)]
@@ -94,40 +92,46 @@ impl SmartContractSchemaNames {
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:            Vec<sdk_types::AccountAddress>,
+    non_circulating_account:               Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       u64,
+    transaction_connection_limit:          u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             u64,
+    block_connection_limit:                u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           u64,
+    account_connection_limit:              u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_schedule_connection_limit:  u64,
+    account_schedule_connection_limit:     u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          u64,
+    contract_connection_limit:             u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   u64,
+    contract_events_collection_limit:      u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    module_reference_reject_events:     u64,
+    module_reference_reject_events:        u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_CONTRACT_LINK_EVENTS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    module_reference_contract_link_events: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: u64,
+    transaction_event_connection_limit:    u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -4078,10 +4082,24 @@ fn decode_value_with_schema(
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct ContractAddress {
     index:     ContractIndex,
     sub_index: ContractIndex,
-    as_string: String,
+}
+#[ComplexObject]
+impl ContractAddress {
+    async fn as_string(&self) -> String {
+        concordium_rust_sdk::types::ContractAddress::new(self.index.0, self.sub_index.0).to_string()
+    }
+}
+impl ContractAddress {
+    fn new(index: i64, sub_index: i64) -> ApiResult<Self> {
+        Ok(Self {
+            index:     u64::try_from(index)?.into(),
+            sub_index: u64::try_from(index)?.into(),
+        })
+    }
 }
 
 impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
@@ -4089,7 +4107,6 @@ impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
         Self {
             index:     value.index.into(),
             sub_index: value.subindex.into(),
-            as_string: value.to_string(),
         }
     }
 }
@@ -5325,10 +5342,7 @@ pub struct ModuleReferenceEvent {
     transaction_hash: TransactionHash,
     block_slot_time:  DateTime,
     display_schema:   Option<String>,
-    // TODO:
-    // moduleReferenceContractLinkEvents(skip: Int take: Int):
-    // ModuleReferenceContractLinkEventsCollectionSegment linkedContracts(skip: Int take: Int):
-    // LinkedContractsCollectionSegment
+    // TODO: linkedContracts(skip: Int take: Int): LinkedContractsCollectionSegment
 }
 #[ComplexObject]
 impl ModuleReferenceEvent {
@@ -5390,6 +5404,67 @@ impl ModuleReferenceEvent {
             items,
         })
     }
+
+    async fn module_reference_contract_link_events(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<ModuleReferenceContractLinkEventsCollectionSegment> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let min_index = i64::try_from(skip.unwrap_or(0))?;
+        let limit =
+            i64::try_from(take.map_or(config.module_reference_contract_link_events, |t| {
+                config.module_reference_contract_link_events.min(t)
+            }))?;
+
+        let items = sqlx::query_as!(
+            ModuleReferenceContractLinkEvent,
+            r#"SELECT
+                   link_action as "link_action: ModuleReferenceContractLinkAction",
+                   contract_index,
+                   contract_sub_index,
+                   transactions.hash as transaction_hash,
+                   blocks.slot_time as block_slot_time
+            FROM link_smart_contract_module_transactions
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE module_reference = $1
+                AND link_smart_contract_module_transactions.index >= $2
+            LIMIT $3
+        "#,
+            self.module_reference,
+            min_index,
+            limit
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let has_next_page = sqlx::query_scalar!(
+            r#"SELECT true
+               FROM link_smart_contract_module_transactions
+               WHERE
+                   module_reference = $1
+                   AND link_smart_contract_module_transactions.index = $2"#,
+            self.module_reference,
+            min_index + limit
+        )
+        .fetch_optional(pool)
+        .await?
+        .flatten()
+        .unwrap_or_default();
+        let has_previous_page = min_index > 0;
+
+        Ok(ModuleReferenceContractLinkEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
+    }
 }
 
 #[derive(SimpleObject)]
@@ -5420,6 +5495,41 @@ impl ModuleReferenceRejectEvent {
             ))
         }
     }
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+struct ModuleReferenceContractLinkEvent {
+    block_slot_time:    DateTime,
+    transaction_hash:   TransactionHash,
+    link_action:        ModuleReferenceContractLinkAction,
+    #[graphql(skip)]
+    contract_index:     i64,
+    #[graphql(skip)]
+    contract_sub_index: i64,
+}
+#[ComplexObject]
+impl ModuleReferenceContractLinkEvent {
+    async fn contract_address(&self) -> ApiResult<ContractAddress> {
+        ContractAddress::new(self.contract_index, self.contract_sub_index)
+    }
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "module_reference_contract_link_action")]
+pub enum ModuleReferenceContractLinkAction {
+    Added,
+    Removed,
+}
+
+/// A segment of a collection.
+#[derive(SimpleObject)]
+struct ModuleReferenceContractLinkEventsCollectionSegment {
+    /// Information to aid in pagination.
+    page_info:   CollectionSegmentInfo,
+    /// A flattened list of the items.
+    items:       Vec<ModuleReferenceContractLinkEvent>,
+    total_count: u64,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
