@@ -64,6 +64,9 @@ const AccountsQuery = gql<AccountsListResponse>`
 
 export const useAccountsListQuery = (variables: AccountListVariables) => {
 	const { data } = useQuery({
+		context: {
+			url: inject<string>('fungyApiUrl'),
+		},
 		query: AccountsQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
