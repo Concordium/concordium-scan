@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO link_smart_contract_module_transactions (\n                index,\n                module_reference,\n                transaction_index,\n                contract_index,\n                contract_sub_index,\n                link_action\n            ) VALUES (\n                (SELECT COALESCE(MAX(index) + 1, 0)\n                 FROM link_smart_contract_module_transactions\n                 WHERE module_reference = $1),\n                $1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8",
+        "Int8",
+        "Int8",
+        {
+          "Custom": {
+            "name": "module_reference_contract_link_action",
+            "kind": {
+              "Enum": [
+                "Added",
+                "Removed"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7d5750614ce368eccc0bb51765932f8ecc27d493f15b61c01ab5f937511e1ee"
+}

@@ -3,7 +3,8 @@
 
 use crate::graphql_api::{
     events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
-    CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
+    CredentialDeploymentTransactionType, DbTransactionType, ModuleReferenceContractLinkAction,
+    UpdateTransactionType,
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
@@ -1867,13 +1868,64 @@ impl PreparedModuleDeployed {
     }
 }
 
+struct PreparedModuleLinkAction {
+    module_reference:   String,
+    contract_index:     i64,
+    contract_sub_index: i64,
+    link_action:        ModuleReferenceContractLinkAction,
+}
+impl PreparedModuleLinkAction {
+    fn prepare(
+        module_reference: sdk_types::hashes::ModuleReference,
+        contract_address: sdk_types::ContractAddress,
+        link_action: ModuleReferenceContractLinkAction,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            contract_index: i64::try_from(contract_address.index)?,
+            contract_sub_index: i64::try_from(contract_address.subindex)?,
+            module_reference: module_reference.into(),
+            link_action,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO link_smart_contract_module_transactions (
+                index,
+                module_reference,
+                transaction_index,
+                contract_index,
+                contract_sub_index,
+                link_action
+            ) VALUES (
+                (SELECT COALESCE(MAX(index) + 1, 0)
+                 FROM link_smart_contract_module_transactions
+                 WHERE module_reference = $1),
+                $1, $2, $3, $4, $5)"#,
+            self.module_reference,
+            transaction_index,
+            self.contract_index,
+            self.contract_sub_index,
+            self.link_action as ModuleReferenceContractLinkAction
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
 struct PreparedContractInitialized {
-    index:            i64,
-    sub_index:        i64,
-    module_reference: String,
-    name:             String,
-    amount:           i64,
-    height:           i64,
+    index:             i64,
+    sub_index:         i64,
+    module_reference:  String,
+    name:              String,
+    amount:            i64,
+    height:            i64,
+    module_link_event: PreparedModuleLinkAction,
 }
 
 impl PreparedContractInitialized {
@@ -1890,6 +1942,11 @@ impl PreparedContractInitialized {
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let height = i64::try_from(data.finalized_block_info.height.height)?;
 
+        let module_link_event = PreparedModuleLinkAction::prepare(
+            module_reference,
+            event.address,
+            ModuleReferenceContractLinkAction::Added,
+        )?;
         Ok(Self {
             index,
             sub_index,
@@ -1897,6 +1954,7 @@ impl PreparedContractInitialized {
             name,
             amount,
             height,
+            module_link_event,
         })
     }
 
@@ -1923,6 +1981,7 @@ impl PreparedContractInitialized {
         )
         .execute(tx.as_mut())
         .await?;
+        self.module_link_event.save(tx, transaction_index).await?;
         Ok(())
     }
 }
@@ -1968,6 +2027,8 @@ struct PreparedContractUpdate {
     height:              i64,
     contract_index:      i64,
     contract_sub_index:  i64,
+    /// Potential module link events from a smart contract upgrade
+    module_link_event:   Option<(PreparedModuleLinkAction, PreparedModuleLinkAction)>,
 }
 
 impl PreparedContractUpdate {
@@ -1984,11 +2045,32 @@ impl PreparedContractUpdate {
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
+        let module_link_event = match event {
+            &ContractTraceElement::Upgraded {
+                address,
+                from,
+                to,
+            } => Some((
+                PreparedModuleLinkAction::prepare(
+                    from,
+                    address,
+                    ModuleReferenceContractLinkAction::Removed,
+                )?,
+                PreparedModuleLinkAction::prepare(
+                    to,
+                    address,
+                    ModuleReferenceContractLinkAction::Added,
+                )?,
+            )),
+            _ => None,
+        };
+
         Ok(Self {
             trace_element_index,
             height,
             contract_index: index,
             contract_sub_index: sub_index,
+            module_link_event,
         })
     }
 
@@ -2016,7 +2098,12 @@ impl PreparedContractUpdate {
             self.contract_sub_index
         )
         .execute(tx.as_mut())
-        .await?;
+            .await?;
+
+        if let Some((remove, add)) = self.module_link_event.as_ref() {
+            remove.save(tx, transaction_index).await?;
+            add.save(tx, transaction_index).await?;
+        }
 
         Ok(())
     }
