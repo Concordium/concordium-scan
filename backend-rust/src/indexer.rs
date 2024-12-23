@@ -310,10 +310,7 @@ impl Indexer for BlockPreProcessor {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
-            let special_events = {
-                let stream = client.get_block_special_events(fbi.height).await?.response;
-                stream.try_collect::<Vec<SpecialTransactionOutcome>>().await?
-            };
+            let mut client4 = client.clone();
 
             let get_events = async move {
                 let events = client3
@@ -326,12 +323,12 @@ impl Indexer for BlockPreProcessor {
             };
 
             let start_fetching = Instant::now();
-
-            let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
+            let (block_info, chain_parameters, events, tokenomics_info, special_events) = try_join!(
                 client1.get_block_info(fbi.height),
                 client2.get_block_chain_parameters(fbi.height),
                 get_events,
                 client.get_tokenomics_info(fbi.height),
+                client4.get_block_special_events(fbi.height)
             )?;
             let total_staked_capital = match tokenomics_info.response {
                 RewardsOverview::V0 {
@@ -358,14 +355,13 @@ impl Indexer for BlockPreProcessor {
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
-                special_events
+                special_events: special_events.response.try_collect::<Vec<SpecialTransactionOutcome>>().await?
             };
 
             let prepared_block =
                 PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
-        }
-        .await;
+        }.await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
         result
     }
@@ -986,11 +982,22 @@ impl PreparedBlockSpecialEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-        todo!()
+                // Note that this does not include account creation. We handle that when saving
+        // the account creation event.
+        sqlx::query!(
+            "INSERT INTO account_statements (account_id, slot_time, entry_type, amount, block_height) VALUES ((SELECT index FROM accounts WHERE address = $1) $2, $3, $4, $5)"
+            &self.account_address,
+            &self.slot_time,
+            &self.transaction_type,
+            &self.amount,
+            &self.block_height
+        )
+        .execute(tx.as_mut())
+        .await?;
     }
 }
 
-/// Prepared block item (transaction), ready to be inserted in the database.
+/// Prepared block item (transaction), ready to be inserted in the database
 struct PreparedBlockItem {
     /// Index of the block item within the block.
     block_item_index:  i64,

@@ -65,12 +65,6 @@ CREATE TYPE pool_open_status AS ENUM (
     'ClosedForAll'
 );
 
-CREATE TYPE pool_open_status AS ENUM (
-    'OpenForAll',
-    'ClosedForNew',
-    'ClosedForAll'
-);
-
 CREATE TYPE account_statement_entry_type AS ENUM (
     'TransferIn',
     'TransferOut',
@@ -80,7 +74,7 @@ CREATE TYPE account_statement_entry_type AS ENUM (
     'FinalizationReward',
     'FoundationReward',
     'BakerReward',
-    'TransactionFeeReward',
+    'TransactionFeeReward'
 );
 
 -- Every block on chain.
@@ -473,12 +467,11 @@ CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
 ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
-CREATE TABLE account_statements
-    index           BIGINT                              GENERATED ALWAYS AS IDENTITY,
+CREATE TABLE account_statements (
+    index           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
     slot_time       TIMESTAMPTZ                         NOT NULL,
     entry_type      account_statement_entry_type        NOT NULL,
     amount          BIGINT                              NOT NULL,
-    block_height    BIGINT REFERENCES blocks(height)    NOT NULL,
-    PRIMARY KEY (account_id, index)
+    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
 );
