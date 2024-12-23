@@ -770,7 +770,7 @@ impl PreparedBlock {
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
         Ok(Self {
             hash,
@@ -1171,7 +1171,13 @@ impl PreparedEvent {
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
                 } => Some(PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(data, item_summary, event_data)?,
+                    PreparedContractInitialized::prepare(
+                        node_client,
+                        data,
+                        item_summary,
+                        event_data,
+                    )
+                    .await?,
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
@@ -1345,7 +1351,7 @@ impl PreparedEvent {
             PreparedEvent::RejectModuleTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(events) => {
                 for event in events {
-                    event.save(tx, tx_idx, pool).await?;
+                    event.save(tx, tx_idx).await?;
                 }
                 Ok(())
             }
@@ -1938,7 +1944,7 @@ struct PreparedContractInitialized {
     amount:            i64,
     height:            i64,
     module_link_event: PreparedModuleLinkAction,
-    cis2_events:      Vec<cis2::Event>,
+    cis2_events:       Vec<cis2::Event>,
 }
 
 impl PreparedContractInitialized {
@@ -2027,7 +2033,6 @@ impl PreparedContractInitialized {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
-        pool: &PgPool,
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO contracts (
@@ -2051,10 +2056,9 @@ impl PreparedContractInitialized {
         self.module_link_event.save(tx, transaction_index).await?;
 
         for log in self.cis2_events.iter() {
-            process_cis2_event(log, self.index, self.sub_index, pool, transaction_index, tx).await?
+            process_cis2_event(log, self.index, self.sub_index, transaction_index, tx).await?
         }
         Ok(())
-
     }
 }
 
@@ -2235,6 +2239,7 @@ impl PreparedContractUpdate {
             height,
             contract_index: index,
             contract_sub_index: sub_index,
+            module_link_event,
             cis2_events,
         })
     }
@@ -2243,7 +2248,6 @@ impl PreparedContractUpdate {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         transaction_index: i64,
-        pool: &PgPool,
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "INSERT INTO contract_events (
@@ -2265,7 +2269,7 @@ impl PreparedContractUpdate {
             self.contract_sub_index
         )
         .execute(tx.as_mut())
-            .await?;
+        .await?;
 
         if let Some((remove, add)) = self.module_link_event.as_ref() {
             remove.save(tx, transaction_index).await?;
@@ -2277,7 +2281,6 @@ impl PreparedContractUpdate {
                 log,
                 self.contract_index,
                 self.contract_sub_index,
-                pool,
                 transaction_index,
                 tx,
             )
@@ -2291,7 +2294,6 @@ async fn process_cis2_event(
     cis2_event: &cis2::Event,
     contract_index: i64,
     contract_sub_index: i64,
-    pool: &PgPool,
     transaction_index: i64,
     tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
@@ -2351,15 +2353,6 @@ async fn process_cis2_event(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
                 token_id.clone(),
             )?;
-
-            // Fetch the current `total_supply` for the given `token_address`.
-            let row = sqlx::query!(
-                "
-                    SELECT total_supply FROM tokens WHERE token_address = $1",
-                token_address,
-            )
-            .fetch_optional(pool)
-            .await?;
 
             // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
             // initially minted. The `total_supply` will be set to a negative value and
