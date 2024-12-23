@@ -899,16 +899,17 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 
         let token = sqlx::query_as!(
             Token,
-            r#"SELECT
-                total_supply as "raw_total_supply: BigDecimal",
+            "SELECT
+                total_supply as raw_total_supply,
                 token_id,
-                contract_index as "contract_index: i64",
-                contract_sub_index "contract_sub_index: i64",
+                contract_index,
+                contract_sub_index,
                 token_address,
                 metadata_url,
                 init_transaction_index
             FROM tokens
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3"#,
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
+                tokens.token_id = $3",
             contract_index.0 as i64,
             contract_sub_index.0 as i64,
             token_id
@@ -1378,18 +1379,50 @@ impl From<Duration> for TimeSpan {
     fn from(duration: Duration) -> Self { TimeSpan(duration) }
 }
 
+/// The `BigInteger` scalar represents an `BigDecimal` compliant type.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[repr(transparent)]
+#[serde(try_from = "String", into = "String")]
+struct BigInteger(BigDecimal);
+#[Scalar]
+impl ScalarType for BigInteger {
+    fn parse(value: Value) -> InputValueResult<Self> {
+        let Value::String(string) = value else {
+            return Err(InputValueError::expected_type(value));
+        };
+        Ok(Self::try_from(string)?)
+    }
+
+    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
+}
+impl TryFrom<String> for BigInteger {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let big_decimal = BigDecimal::from_str(&value)
+            .map_err(|err| anyhow::anyhow!("Invalid BigDecimal format: {}", err))?;
+
+        Ok(Self(big_decimal))
+    }
+}
+impl From<BigInteger> for String {
+    fn from(value: BigInteger) -> Self { value.0.to_string() }
+}
+impl From<BigDecimal> for BigInteger {
+    fn from(value: BigDecimal) -> Self { BigInteger(value) }
+}
+
 type BlockHeight = i64;
 type BlockHash = String;
 type TransactionHash = String;
 type ModuleReference = String;
 type BakerId = i64;
-type TransactionIndex = i64;
 type AccountIndex = i64;
+type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 type ContractIndex = UnsignedLong; // TODO check format.
-type BigInteger = BigDecimal;
 type MetadataUrl = String;
 
 #[derive(SimpleObject)]
@@ -2424,7 +2457,7 @@ struct AccountToken {
     contract_sub_index: ContractIndex,
     token_id:           String,
     #[graphql(skip)]
-    raw_balance:        BigInteger,
+    raw_balance:        BigDecimal,
     token:              Token,
     account_id:         i64,
     account:            Account,
@@ -2432,8 +2465,8 @@ struct AccountToken {
 
 #[ComplexObject]
 impl AccountToken {
-    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<String> {
-        Ok(self.raw_balance.to_string())
+    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+        Ok(BigInteger::from(self.raw_balance.clone()))
     }
 }
 
@@ -2461,8 +2494,8 @@ impl Token {
         )
     }
 
-    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<String> {
-        Ok(self.raw_total_supply.to_string())
+    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+        Ok(BigInteger::from(self.raw_total_supply.clone()))
     }
 
     async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {

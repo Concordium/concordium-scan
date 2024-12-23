@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                total_supply as \"raw_total_supply: BigDecimal\",\n                token_id,\n                contract_index as \"contract_index: i64\",\n                contract_sub_index \"contract_sub_index: i64\",\n                token_address,\n                metadata_url,\n                init_transaction_index\n            FROM tokens\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3",
+  "query": "SELECT\n                total_supply as raw_total_supply,\n                token_id,\n                contract_index,\n                contract_sub_index,\n                token_address,\n                metadata_url,\n                init_transaction_index\n            FROM tokens\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "raw_total_supply: BigDecimal",
+        "name": "raw_total_supply",
         "type_info": "Numeric"
       },
       {
@@ -15,12 +15,12 @@
       },
       {
         "ordinal": 2,
-        "name": "contract_index: i64",
+        "name": "contract_index",
         "type_info": "Int8"
       },
       {
         "ordinal": 3,
-        "name": "contract_sub_index: i64",
+        "name": "contract_sub_index",
         "type_info": "Int8"
       },
       {
@@ -56,5 +56,5 @@
       false
     ]
   },
-  "hash": "ba6f3f9d78f75d2247fae1677564b63b8b5669eafe6f661861e66ffb5f3ffa23"
+  "hash": "cc0fcd56e807ddb51f77eeeeeb39b4debb38411e9423143bac264038e90f2426"
 }

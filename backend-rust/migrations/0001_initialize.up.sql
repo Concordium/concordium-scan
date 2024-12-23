@@ -520,7 +520,7 @@ CREATE TABLE tokens (
        NOT NULL
 );
 
--- We want to find a specific token (this index should be removed once the front-end querries a token by `token_address`).
+-- We want to find a specific token (this index should be removed once the front-end queries a token by `token_address`).
 CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
