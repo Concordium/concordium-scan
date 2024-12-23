@@ -2818,8 +2818,6 @@ impl From<String> for AccountAddress {
     }
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
 struct Transaction {
     index: TransactionIndex,
     block_height: BlockHeight,
@@ -2827,15 +2825,12 @@ struct Transaction {
     ccd_cost: Amount,
     energy_cost: Energy,
     sender: Option<AccountIndex>,
-    #[graphql(skip)]
     tx_type: DbTransactionType,
     type_account: Option<AccountTransactionType>,
     type_credential_deployment: Option<CredentialDeploymentTransactionType>,
     type_update: Option<UpdateTransactionType>,
     success: bool,
-    #[graphql(skip)]
     events: Option<sqlx::types::Json<Vec<Event>>>,
-    #[graphql(skip)]
     reject: Option<sqlx::types::Json<TransactionRejectReason>>,
 }
 
@@ -2897,7 +2892,7 @@ impl Transaction {
     }
 }
 
-#[ComplexObject]
+#[Object]
 impl Transaction {
     /// Transaction index as a string.
     async fn id(&self) -> types::ID { self.index.into() }
@@ -2905,6 +2900,10 @@ impl Transaction {
     async fn transaction_index(&self) -> TransactionIndex { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
+
+    async fn ccd_cost(&self) -> Amount { self.ccd_cost }
+
+    async fn energy_cost(&self) -> Energy { self.energy_cost }
 
     async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
@@ -3129,6 +3128,7 @@ impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
             UpdateType::UpdateFinalizationCommitteeParameters => {
                 UpdateTransactionType::FinalizationCommitteeParametersUpdate
             }
+            UpdateType::UpdateValidatorScoreParameters => todo!(),
         }
     }
 }

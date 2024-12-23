@@ -8,7 +8,6 @@ use crate::graphql_api::{
 };
 use anyhow::Context;
 use bigdecimal::BigDecimal;
-use bs58;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
     base::{
@@ -17,13 +16,13 @@ use concordium_rust_sdk::{
         transactions::{BlockItem, EncodedPayload, Payload},
     },
     cis0,
-    cis2::{self, TokenId},
+    cis2::{self, TokenAddress, TokenId},
     common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
+        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails, ContractAddress,
         ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
         RejectReason, RewardsOverview, TransactionType,
     },
@@ -33,7 +32,6 @@ use concordium_rust_sdk::{
     },
 };
 use futures::{future::join_all, StreamExt, TryStreamExt};
-use leb128::write::unsigned as encode_leb128;
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -2053,8 +2051,7 @@ impl PreparedContractInitialized {
         self.module_link_event.save(tx, transaction_index).await?;
 
         for log in self.cis2_events.iter() {
-            process_cis2_events(log, self.index, self.sub_index, pool, transaction_index, tx)
-                .await?
+            process_cis2_event(log, self.index, self.sub_index, pool, transaction_index, tx).await?
         }
         Ok(())
 
@@ -2105,30 +2102,10 @@ impl PreparedRejectModuleTransaction {
 /// The token address is a unique identifier used to distinguish tokens across
 /// all smart contracts.
 pub fn get_token_address(
-    contract_index: u64,
-    contract_subindex: u64,
-    token_id: &TokenId,
+    contract_address: ContractAddress,
+    token_id: TokenId,
 ) -> Result<String, anyhow::Error> {
-    let mut contract_index_bytes = Vec::with_capacity(64);
-    encode_leb128(&mut contract_index_bytes, contract_index)?;
-
-    let mut contract_subindex_bytes = Vec::with_capacity(64);
-    encode_leb128(&mut contract_subindex_bytes, contract_subindex)?;
-
-    let token_id_bytes = token_id.as_ref();
-
-    let total_length =
-        1 + contract_index_bytes.len() + contract_subindex_bytes.len() + token_id_bytes.len();
-    let mut bytes = Vec::with_capacity(total_length);
-
-    // Fill in the bytes.
-    bytes.push(2); // version byte 2
-    bytes.extend_from_slice(&contract_index_bytes);
-    bytes.extend_from_slice(&contract_subindex_bytes);
-    bytes.extend_from_slice(token_id_bytes);
-
-    // Base58 check encoding of the bytes.
-    Ok(bs58::encode(bytes).with_check().into_string())
+    Ok(format!("{}", TokenAddress::new(contract_address, token_id)))
 }
 
 struct PreparedContractUpdate {
@@ -2296,7 +2273,7 @@ impl PreparedContractUpdate {
         }
 
         for log in self.cis2_events.iter() {
-            process_cis2_events(
+            process_cis2_event(
                 log,
                 self.contract_index,
                 self.contract_sub_index,
@@ -2310,7 +2287,7 @@ impl PreparedContractUpdate {
     }
 }
 
-async fn process_cis2_events(
+async fn process_cis2_event(
     cis2_event: &cis2::Event,
     contract_index: i64,
     contract_sub_index: i64,
@@ -2327,8 +2304,10 @@ async fn process_cis2_events(
             amount,
             owner,
         } => {
-            let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+            let token_address = get_token_address(
+                ContractAddress::new(contract_index as u64, contract_sub_index as u64),
+                token_id.clone(),
+            )?;
 
             // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
             // MAX::TOKEN_AMOUNT specified in the CIS2 standard. The
@@ -2368,8 +2347,11 @@ async fn process_cis2_events(
             amount,
             owner,
         } => {
-            let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+            let token_address = get_token_address(
+                ContractAddress::new(contract_index as u64, contract_sub_index as u64),
+                token_id.clone(),
+            )?;
+
             // Fetch the current `total_supply` for the given `token_address`.
             let row = sqlx::query!(
                 "
@@ -2414,8 +2396,10 @@ async fn process_cis2_events(
             token_id,
             metadata_url,
         } => {
-            let token_address =
-                get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
+            let token_address = get_token_address(
+                ContractAddress::new(contract_index as u64, contract_sub_index as u64),
+                token_id.clone(),
+            )?;
 
             // If the `token_address` does not exist, insert the new token.
             // If the `token_address` exists, update the `metadata_url` value in the
@@ -2438,6 +2422,7 @@ async fn process_cis2_events(
             .execute(tx.as_mut())
             .await?;
         }
+
         _ => {}
     }
     Ok(())
