@@ -909,7 +909,7 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
                 init_transaction_index
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
-                tokens.token_id = $3",
+             tokens.token_id = $3",
             contract_index.0 as i64,
             contract_sub_index.0 as i64,
             token_id

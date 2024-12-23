@@ -32,7 +32,6 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
-use derive_more::FromStr;
 use futures::{future::join_all, StreamExt, TryStreamExt};
 use leb128::write::unsigned as encode_leb128;
 use prometheus_client::{
@@ -125,7 +124,6 @@ SELECT height FROM blocks ORDER BY height DESC LIMIT 1
                 .parse()?;
 
         let block_pre_processor = BlockPreProcessor::new(
-            pool.clone(),
             genesis_block_hash,
             config.max_successive_failures.into(),
             registry.sub_registry_with_prefix("preprocessor"),
@@ -208,27 +206,25 @@ impl NodeMetricLabels {
 /// of [`Indexer`](concordium_rust_sdk::indexer::Indexer). Since several
 /// preprocessors can run in parallel, this must be `Sync`.
 struct BlockPreProcessor {
-    pool: PgPool,
     /// Genesis hash, used to ensure the nodes are on the expected network.
-    genesis_hash: sdk_types::hashes::BlockHash,
+    genesis_hash:                 sdk_types::hashes::BlockHash,
     /// Metric counting the total number of connections ever established to a
     /// node.
     established_node_connections: Family<NodeMetricLabels, Counter>,
     /// Metric counting the total number of failed attempts to preprocess
     /// blocks.
-    preprocessing_failures: Family<NodeMetricLabels, Counter>,
+    preprocessing_failures:       Family<NodeMetricLabels, Counter>,
     /// Metric tracking the number of blocks currently being preprocessed.
-    blocks_being_preprocessed: Family<NodeMetricLabels, Gauge>,
+    blocks_being_preprocessed:    Family<NodeMetricLabels, Gauge>,
     /// Histogram collecting the time it takes for fetching all the block data
     /// from the node.
-    node_response_time: Family<NodeMetricLabels, Histogram>,
+    node_response_time:           Family<NodeMetricLabels, Histogram>,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
-    max_successive_failures: u64,
+    max_successive_failures:      u64,
 }
 impl BlockPreProcessor {
     fn new(
-        pool: PgPool,
         genesis_hash: sdk_types::hashes::BlockHash,
         max_successive_failures: u64,
         registry: &mut Registry,
@@ -262,7 +258,6 @@ impl BlockPreProcessor {
         );
 
         Self {
-            pool,
             genesis_hash,
             established_node_connections,
             preprocessing_failures,
@@ -385,9 +380,8 @@ impl Indexer for BlockPreProcessor {
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
             };
-            let prepared_block = PreparedBlock::prepare(&mut client, &self.pool, &data)
-                .await
-                .map_err(RPCError::ParseError)?;
+            let prepared_block =
+                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
         }
         .await;
@@ -762,11 +756,7 @@ struct PreparedBlock {
 }
 
 impl PreparedBlock {
-    async fn prepare(
-        node_client: &mut v2::Client,
-        pool: &PgPool,
-        data: &BlockData,
-    ) -> anyhow::Result<Self> {
+    async fn prepare(node_client: &mut v2::Client, data: &BlockData) -> anyhow::Result<Self> {
         let height = i64::try_from(data.finalized_block_info.height.height)?;
         let hash = data.finalized_block_info.block_hash.to_string();
         let block_last_finalized = data.block_info.block_last_finalized.to_string();
@@ -782,7 +772,7 @@ impl PreparedBlock {
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, pool, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
         Ok(Self {
             hash,
@@ -938,7 +928,6 @@ struct PreparedBlockItem {
 impl PreparedBlockItem {
     async fn prepare(
         node_client: &mut v2::Client,
-        pool: &PgPool,
         data: &BlockData,
         item_summary: &BlockItemSummary,
         item: &BlockItem<EncodedPayload>,
@@ -1119,7 +1108,6 @@ enum PreparedEvent {
 impl PreparedEvent {
     async fn prepare(
         node_client: &mut v2::Client,
-        pool: &PgPool,
         data: &BlockData,
         item_summary: &BlockItemSummary,
         item: &BlockItem<EncodedPayload>,
@@ -1196,7 +1184,6 @@ impl PreparedEvent {
                         async move {
                             PreparedContractUpdate::prepare(
                                 &mut node_client,
-                                pool,
                                 data,
                                 item_summary,
                                 effect,
@@ -1959,7 +1946,6 @@ struct PreparedContractInitialized {
 impl PreparedContractInitialized {
     async fn prepare(
         node_client: &mut v2::Client,
-        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
@@ -2063,17 +2049,15 @@ impl PreparedContractInitialized {
         )
         .execute(tx.as_mut())
         .await?;
+
         self.module_link_event.save(tx, transaction_index).await?;
-     
-        process_cis2_events(
-            &self.cis2_events,
-            self.index,
-            self.sub_index,
-            pool,
-            transaction_index,
-            tx,
-        )
-        .await
+
+        for log in self.cis2_events.iter() {
+            process_cis2_events(log, self.index, self.sub_index, pool, transaction_index, tx)
+                .await?
+        }
+        Ok(())
+
     }
 }
 
@@ -2160,7 +2144,6 @@ struct PreparedContractUpdate {
 impl PreparedContractUpdate {
     async fn prepare(
         node_client: &mut v2::Client,
-        pool: &PgPool,
         data: &BlockData,
         block_item: &BlockItemSummary,
         event: &ContractTraceElement,
@@ -2312,61 +2295,45 @@ impl PreparedContractUpdate {
             add.save(tx, transaction_index).await?;
         }
 
-        process_cis2_events(
-            &self.cis2_events,
-            self.contract_index,
-            self.contract_sub_index,
-            pool,
-            transaction_index,
-            tx,
-        )
-        .await
+        for log in self.cis2_events.iter() {
+            process_cis2_events(
+                log,
+                self.contract_index,
+                self.contract_sub_index,
+                pool,
+                transaction_index,
+                tx,
+            )
+            .await?
+        }
+        Ok(())
     }
 }
 
 async fn process_cis2_events(
-    cis2_events: &[cis2::Event],
+    cis2_event: &cis2::Event,
     contract_index: i64,
     contract_sub_index: i64,
     pool: &PgPool,
     transaction_index: i64,
     tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
-    for log in cis2_events.iter() {
+    match cis2_event {
         // The `total_supply` value of a token is inserted/updated in the database here.
         // Only `Mint` and `Burn` events affect the `total_supply` of a
         // token.
-        if let cis2::Event::Mint {
+        cis2::Event::Mint {
             token_id,
             amount,
             owner,
-        } = log
-        {
+        } => {
             let token_address =
                 get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
 
-            // Fetch the current `total_supply` for the given `token_address`.
-            let row = sqlx::query!(
-                "
-                SELECT total_supply FROM tokens WHERE token_address = $1",
-                token_address,
-            )
-            .fetch_optional(pool)
-            .await?;
-
-            // If current `total_supply` exists, add the `amount` to it.
-            // otherwise use the `amount` as the new `total_supply`.
             // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
             // MAX::TOKEN_AMOUNT specified in the CIS2 standard. The
             // `total_supply` eventually overflows in that case.
-            let new_total_supply = if let Some(row) = row {
-                let current_total_supply: BigDecimal = row.total_supply;
-
-                current_total_supply + BigDecimal::from_str(&amount.0.to_string())?
-            } else {
-                BigDecimal::from_str(&amount.0.to_string())?
-            };
-
+            let tokens_minted = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist, insert the new token with its
             // `total_supply` set to `amount`. If the `token_address` exists,
             // update the `total_supply` value by adding the `amount` to the existing
@@ -2378,11 +2345,11 @@ async fn process_cis2_events(
                     VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
                  $6)
                     ON CONFLICT (token_address)
-                    DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                    DO UPDATE SET total_supply = tokens.total_supply + EXCLUDED.total_supply",
                 token_address,
                 contract_index,
                 contract_sub_index,
-                new_total_supply,
+                tokens_minted,
                 token_id.to_string(),
                 transaction_index
             )
@@ -2396,12 +2363,11 @@ async fn process_cis2_events(
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
         // initially minted. The `total_supply` can have a negative value in that case
         // and even underflow.
-        if let cis2::Event::Burn {
+        cis2::Event::Burn {
             token_id,
             amount,
             owner,
-        } = log
-        {
+        } => {
             let token_address =
                 get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
             // Fetch the current `total_supply` for the given `token_address`.
@@ -2413,20 +2379,10 @@ async fn process_cis2_events(
             .fetch_optional(pool)
             .await?;
 
-            // If current `total_supply` exists, subtract the `amount` from it.
-            // If it does not exist (`buggy` CIS2 token contract), insert the new token with
-            // its `total_supply` set to `-amount`.
             // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
             // initially minted. The `total_supply` will be set to a negative value and
             // eventually underflow in that case.
-            let new_total_supply = if let Some(row) = row {
-                let current_total_supply = row.total_supply;
-
-                current_total_supply - BigDecimal::from_str(&amount.0.to_string())?
-            } else {
-                -BigDecimal::from_str(&amount.0.to_string())?
-            };
-
+            let tokens_burned = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
             // insert the new token with its `total_supply` set to `-amount`. If the
             // `token_address` exists, update the `total_supply` value by
@@ -2439,11 +2395,11 @@ async fn process_cis2_events(
                     VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
                  $6)
                     ON CONFLICT (token_address)
-                    DO UPDATE SET total_supply = EXCLUDED.total_supply",
+                    DO UPDATE SET total_supply = tokens.total_supply + EXCLUDED.total_supply",
                 token_address,
                 contract_index,
                 contract_sub_index,
-                new_total_supply,
+                -tokens_burned,
                 token_id.to_string(),
                 transaction_index
             )
@@ -2454,11 +2410,10 @@ async fn process_cis2_events(
         // The `metadata_url` of a token is inserted/updated in the database here.
         // Only `TokenMetadata` events affect the `metadata_url` of a
         // token.
-        if let cis2::Event::TokenMetadata {
+        cis2::Event::TokenMetadata {
             token_id,
             metadata_url,
-        } = log
-        {
+        } => {
             let token_address =
                 get_token_address(contract_index as u64, contract_sub_index as u64, token_id)?;
 
@@ -2483,6 +2438,7 @@ async fn process_cis2_events(
             .execute(tx.as_mut())
             .await?;
         }
+        _ => {}
     }
     Ok(())
 }
