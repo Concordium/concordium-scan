@@ -77,6 +77,13 @@ CREATE TYPE account_statement_entry_type AS ENUM (
     'TransactionFeeReward'
 );
 
+CREATE TYPE account_statement_reward_type AS ENUM (
+    'FinalizationReward',
+    'FoundationReward',
+    'BakerReward',
+    'TransactionFeeReward'
+);
+
 -- Every block on chain.
 CREATE TABLE blocks(
     -- The absolute height of the block.
@@ -468,10 +475,17 @@ ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
 CREATE TABLE account_statements (
-    index           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
-    slot_time       TIMESTAMPTZ                         NOT NULL,
+    timestamp       TIMESTAMPTZ                         NOT NULL,
     entry_type      account_statement_entry_type        NOT NULL,
     amount          BIGINT                              NOT NULL,
     block_height    BIGINT REFERENCES blocks(height)    NOT NULL
 );
+
+CREATE INDEX account_statements_entry_type_idx ON account_statements (entry_type);
+
+CREATE VIEW account_rewards AS
+SELECT id, account_id, timestamp, entry_type::TEXT::account_statement_reward_type AS reward_type, amount, block_height
+FROM account_statements
+WHERE entry_type::TEXT IN (SELECT unnest(enum_range(NULL::account_statement_reward_type))::TEXT);

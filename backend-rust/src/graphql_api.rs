@@ -104,6 +104,12 @@ pub struct ApiServiceConfig {
     account_connection_limit:           u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_ACCOUNT_STATEMENTS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    account_statements_connection_limit:  u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
@@ -2300,17 +2306,20 @@ struct CollectionSegmentInfo {
 }
 
 #[derive(SimpleObject)]
-struct AccountReward {
-    block:       Block,
-    id:          types::ID,
-    timestamp:   DateTime,
-    reward_type: RewardType,
-    amount:      Amount,
+struct AccountRewardRelation {
+    reward: AccountReward,
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
-#[allow(clippy::enum_variant_names)]
-enum RewardType {
+#[derive(SimpleObject)]
+pub struct AccountReward {
+    index: i64,
+    block_height:   BlockHeight,
+}
+
+#[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "account_statement_reward_type")]
+#[sqlx(rename_all = "lowercase")]
+pub enum RewardType {
     FinalizationReward,
     FoundationReward,
     BakerReward,
@@ -2319,12 +2328,10 @@ enum RewardType {
 
 #[derive(SimpleObject)]
 struct AccountStatementEntry {
-    reference:       BlockOrTransaction,
     id:              types::ID,
     timestamp:       DateTime,
     entry_type:      AccountStatementEntryType,
     amount:          i64,
-    account_balance: Amount,
 }
 
 #[derive(SimpleObject)]
@@ -3090,6 +3097,7 @@ struct Account {
     /// The total number of transactions this account has been involved in or
     /// affected by.
     num_txs: i64,
+
     delegated_restake_earnings: Option<bool>,
     delegated_target_baker_id: Option<i64>, /* Get baker information if this account is baking.
                                              * baker: Option<Baker>, */
@@ -3307,27 +3315,75 @@ impl Account {
         Ok(connection)
     }
 
-    async fn account_statement(
+    async fn account_statements(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-        todo_api!()
+//            index           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+//    account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
+//    timestamp       TIMESTAMPTZ                         NOT NULL,
+//    entry_type      account_statement_entry_type        NOT NULL,
+//    amount          BIGINT                              NOT NULL,
+//    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
+
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let mut account_statements = sqlx::query_as!(
+            AccountStatementEntry,
+            r#"
+                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp FROM account_statements WHERE account_id = $1
+            "#,
+            &self.index
+        )
+        .fetch(pool);
+        let (has_previous_page, has_next_page) = (false, false);
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+
+        while let Some(statement) = account_statements.try_next().await? {
+            connection.edges.push(connection::Edge::new(
+                statement.id.to_string(),
+                statement
+            ));
+        }
+
+        Ok(connection)
+
+
     }
 
     async fn rewards(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
+//#        let config = get_config(ctx)?;
+//        let pool = get_pool(ctx)?;
+//        let rewards = sqlx::query_as!(
+//            AccountReward,
+//            "SELECT index, block_height FROM account_rewards"
+//        )
+//        .fetch(pool);
+//        let (has_previous_page, has_next_page) = (false, false);
+//        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+//
+//        for row in rewards {
+//            connection.edges.push(connection::Edge::new(row.index.to_string(), AccountRewardRelation {
+//                reward: row
+//            }));
+//        }
+//
+//        Ok(connection)
         todo_api!()
     }
 

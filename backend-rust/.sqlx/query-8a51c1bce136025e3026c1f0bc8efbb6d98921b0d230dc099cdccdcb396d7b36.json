@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO account_statements (account_id, timestamp, entry_type, amount, block_height) VALUES ((SELECT index FROM accounts WHERE address = $1), $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a51c1bce136025e3026c1f0bc8efbb6d98921b0d230dc099cdccdcb396d7b36"
+}
