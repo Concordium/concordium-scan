@@ -94,40 +94,40 @@ impl SmartContractSchemaNames {
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:            Vec<sdk_types::AccountAddress>,
+    non_circulating_account:             Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       u64,
+    transaction_connection_limit:        u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             u64,
+    block_connection_limit:              u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           u64,
+    account_connection_limit:            u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_STATEMENTS_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_statements_connection_limit:  u64,
+    account_statements_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_schedule_connection_limit:  u64,
+    account_schedule_connection_limit:   u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          u64,
+    contract_connection_limit:           u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   u64,
+    contract_events_collection_limit:    u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: u64,
+    transaction_event_connection_limit:  u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -2312,8 +2312,8 @@ struct AccountRewardRelation {
 
 #[derive(SimpleObject)]
 pub struct AccountReward {
-    index: i64,
-    block_height:   BlockHeight,
+    index:        i64,
+    block_height: BlockHeight,
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
@@ -2328,10 +2328,10 @@ pub enum RewardType {
 
 #[derive(SimpleObject)]
 struct AccountStatementEntry {
-    id:              types::ID,
-    timestamp:       DateTime,
-    entry_type:      AccountStatementEntryType,
-    amount:          i64,
+    id:         types::ID,
+    timestamp:  DateTime,
+    entry_type: AccountStatementEntryType,
+    amount:     i64,
 }
 
 #[derive(SimpleObject)]
@@ -3083,24 +3083,24 @@ struct Rejected<'a> {
 #[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
-    index: i64,
+    index:             i64,
     /// Index of the transaction creating this account.
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
-    address: AccountAddress,
+    address:           AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount: Amount,
+    amount:            Amount,
     /// The total delegated stake of this account.
-    delegated_stake: Amount,
+    delegated_stake:   Amount,
     /// The total number of transactions this account has been involved in or
     /// affected by.
-    num_txs: i64,
+    num_txs:           i64,
 
     delegated_restake_earnings: Option<bool>,
-    delegated_target_baker_id: Option<i64>, /* Get baker information if this account is baking.
-                                             * baker: Option<Baker>, */
+    delegated_target_baker_id:  Option<i64>, /* Get baker information if this account is baking.
+                                              * baker: Option<Baker>, */
 }
 impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
@@ -3325,12 +3325,12 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-//            index           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-//    account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
-//    timestamp       TIMESTAMPTZ                         NOT NULL,
-//    entry_type      account_statement_entry_type        NOT NULL,
-//    amount          BIGINT                              NOT NULL,
-//    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
+        //            index           BIGINT                              GENERATED
+        // ALWAYS AS IDENTITY PRIMARY KEY,    account_id      BIGINT REFERENCES
+        // accounts(index)   NOT NULL,    timestamp       TIMESTAMPTZ
+        // NOT NULL,    entry_type      account_statement_entry_type        NOT
+        // NULL,    amount          BIGINT                              NOT
+        // NULL,    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
 
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
@@ -3346,15 +3346,10 @@ impl Account {
         let mut connection = connection::Connection::new(has_previous_page, has_next_page);
 
         while let Some(statement) = account_statements.try_next().await? {
-            connection.edges.push(connection::Edge::new(
-                statement.id.to_string(),
-                statement
-            ));
+            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
 
         Ok(connection)
-
-
     }
 
     async fn rewards(
@@ -3367,23 +3362,24 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-//#        let config = get_config(ctx)?;
-//        let pool = get_pool(ctx)?;
-//        let rewards = sqlx::query_as!(
-//            AccountReward,
-//            "SELECT index, block_height FROM account_rewards"
-//        )
-//        .fetch(pool);
-//        let (has_previous_page, has_next_page) = (false, false);
-//        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-//
-//        for row in rewards {
-//            connection.edges.push(connection::Edge::new(row.index.to_string(), AccountRewardRelation {
-//                reward: row
-//            }));
-//        }
-//
-//        Ok(connection)
+        //#        let config = get_config(ctx)?;
+        //        let pool = get_pool(ctx)?;
+        //        let rewards = sqlx::query_as!(
+        //            AccountReward,
+        //            "SELECT index, block_height FROM account_rewards"
+        //        )
+        //        .fetch(pool);
+        //        let (has_previous_page, has_next_page) = (false, false);
+        //        let mut connection = connection::Connection::new(has_previous_page,
+        // has_next_page);
+        //
+        //        for row in rewards {
+        //            connection.edges.push(connection::Edge::new(row.index.to_string(),
+        // AccountRewardRelation {                reward: row
+        //            }));
+        //        }
+        //
+        //        Ok(connection)
         todo_api!()
     }
 
