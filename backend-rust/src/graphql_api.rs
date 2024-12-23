@@ -3765,7 +3765,8 @@ struct PendingDelegationReduceStake {
     effective_time:    DateTime,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "account_statement_entry_type")]
 pub enum AccountStatementEntryType {
     TransferIn,
     TransferOut,

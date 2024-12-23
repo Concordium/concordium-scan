@@ -1,7 +1,10 @@
 #![allow(unused_variables)] // TODO Remove before first release
 #![allow(dead_code)] // TODO Remove before first release
 
-use crate::graphql_api::{events_from_summary, AccountStatementEntryType, AccountTransactionType, BakerPoolOpenStatus, CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType};
+use crate::graphql_api::{
+    events_from_summary, AccountStatementEntryType, AccountTransactionType, BakerPoolOpenStatus,
+    CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
+};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -10,17 +13,16 @@ use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
-        self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
-        RewardsOverview,
+        self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
+        AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+        BlockItemSummaryDetails, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
+        PartsPerHundredThousands, RewardsOverview, SpecialTransactionOutcome,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
         RPCError,
     },
 };
-use concordium_rust_sdk::types::{AbsoluteBlockHeight, SpecialTransactionOutcome};
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -355,13 +357,17 @@ impl Indexer for BlockPreProcessor {
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
-                special_events: special_events.response.try_collect::<Vec<SpecialTransactionOutcome>>().await?
+                special_events: special_events
+                    .response
+                    .try_collect::<Vec<SpecialTransactionOutcome>>()
+                    .await?,
             };
 
             let prepared_block =
                 PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
             Ok(prepared_block)
-        }.await;
+        }
+        .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
         result
     }
@@ -599,7 +605,7 @@ struct BlockData {
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
-    special_events:       Vec<SpecialTransactionOutcome>
+    special_events:       Vec<SpecialTransactionOutcome>,
 }
 
 /// Function for initializing the database with the genesis block.
@@ -730,7 +736,7 @@ struct PreparedBlock {
     /// Preprocessed block items, ready to be saved in the database.
     prepared_block_items: Vec<PreparedBlockItem>,
     /// Preprocessed
-    special_items: Vec< PreparedBlockSpecialEvent>,
+    special_items:        Vec<PreparedBlockSpecialEvent>,
 }
 
 impl PreparedBlock {
@@ -752,7 +758,19 @@ impl PreparedBlock {
             prepared_block_items
                 .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
-        let special_items = data.special_events.iter().flat_map(|event| PreparedBlockSpecialEvent::prepare(event, data.block_info.block_slot_time, data.block_info.block_height)).flatten().filter(|event| event.amount > 0).collect();
+        let special_items = data
+            .special_events
+            .iter()
+            .flat_map(|event| {
+                PreparedBlockSpecialEvent::prepare(
+                    event,
+                    data.block_info.block_slot_time,
+                    data.block_info.block_height,
+                )
+            })
+            .flatten()
+            .filter(|event| event.amount > 0)
+            .collect();
         Ok(Self {
             hash,
             height,
@@ -864,11 +882,11 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
 }
 
 struct PreparedBlockSpecialEvent {
-    account_address:    String,
-    amount:             i64,
-    block_height:       i64,
-    slot_time:          DateTime<Utc>,
-    transaction_type:   AccountStatementEntryType,
+    account_address:  String,
+    amount:           i64,
+    block_height:     i64,
+    slot_time:        DateTime<Utc>,
+    transaction_type: AccountStatementEntryType,
 }
 
 impl PreparedBlockSpecialEvent {
@@ -878,17 +896,18 @@ impl PreparedBlockSpecialEvent {
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Vec<Self>> {
         let results: Box<dyn Iterator<Item = Result<Self, anyhow::Error>>> = match &event {
-            SpecialTransactionOutcome::BakingRewards { baker_rewards, .. } => {
-                Box::new(baker_rewards.iter().map(move |(account_address, amount)| {
-                    Ok(PreparedBlockSpecialEvent {
-                        account_address: account_address.to_string(),
-                        amount: amount.micro_ccd.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        slot_time,
-                        transaction_type: AccountStatementEntryType::BakerReward,
-                    })
-                }))
-            }
+            SpecialTransactionOutcome::BakingRewards {
+                baker_rewards,
+                ..
+            } => Box::new(baker_rewards.iter().map(move |(account_address, amount)| {
+                Ok(PreparedBlockSpecialEvent {
+                    account_address: account_address.to_string(),
+                    amount: amount.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::BakerReward,
+                })
+            })),
             SpecialTransactionOutcome::Mint {
                 foundation_account,
                 mint_platform_development_charge,
@@ -918,22 +937,26 @@ impl PreparedBlockSpecialEvent {
                 baker_reward,
                 foundation_charge,
                 ..
-            } => Box::new(vec![
-                PreparedBlockSpecialEvent {
-                    account_address: foundation_account.to_string(),
-                    amount: foundation_charge.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
-                    transaction_type: AccountStatementEntryType::FoundationReward,
-                },
-                PreparedBlockSpecialEvent {
-                    account_address: baker.to_string(),
-                    amount: baker_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
-                    transaction_type: AccountStatementEntryType::BakerReward,
-                },
-            ].into_iter().map(Ok)),
+            } => Box::new(
+                vec![
+                    PreparedBlockSpecialEvent {
+                        account_address: foundation_account.to_string(),
+                        amount: foundation_charge.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::FoundationReward,
+                    },
+                    PreparedBlockSpecialEvent {
+                        account_address: baker.to_string(),
+                        amount: baker_reward.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::BakerReward,
+                    },
+                ]
+                .into_iter()
+                .map(Ok),
+            ),
             SpecialTransactionOutcome::PaydayFoundationReward {
                 foundation_account,
                 development_charge,
@@ -949,31 +972,39 @@ impl PreparedBlockSpecialEvent {
                 transaction_fees,
                 baker_reward,
                 finalization_reward,
-            } => Box::new(vec![
-                PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: transaction_fees.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
-                    transaction_type: AccountStatementEntryType::TransactionFeeReward,
-                },
-                PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: baker_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
-                    transaction_type: AccountStatementEntryType::BakerReward,
-                },
-                PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: finalization_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
-                    transaction_type: AccountStatementEntryType::FinalizationReward,
-                },
-            ].into_iter().map(Ok)),
-            SpecialTransactionOutcome::BlockAccrueReward { .. } => Box::new(std::iter::empty()),
-            SpecialTransactionOutcome::PaydayPoolReward { .. } => Box::new(std::iter::empty()),
+            } => Box::new(
+                vec![
+                    PreparedBlockSpecialEvent {
+                        account_address: account.to_string(),
+                        amount: transaction_fees.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::TransactionFeeReward,
+                    },
+                    PreparedBlockSpecialEvent {
+                        account_address: account.to_string(),
+                        amount: baker_reward.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::BakerReward,
+                    },
+                    PreparedBlockSpecialEvent {
+                        account_address: account.to_string(),
+                        amount: finalization_reward.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::FinalizationReward,
+                    },
+                ]
+                .into_iter()
+                .map(Ok),
+            ),
+            SpecialTransactionOutcome::BlockAccrueReward {
+                ..
+            } => Box::new(std::iter::empty()),
+            SpecialTransactionOutcome::PaydayPoolReward {
+                ..
+            } => Box::new(std::iter::empty()),
         };
         results.collect::<Result<Vec<_>, _>>()
     }
@@ -982,18 +1013,21 @@ impl PreparedBlockSpecialEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
-                // Note that this does not include account creation. We handle that when saving
+        // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
-            "INSERT INTO account_statements (account_id, slot_time, entry_type, amount, block_height) VALUES ((SELECT index FROM accounts WHERE address = $1) $2, $3, $4, $5)"
-            &self.account_address,
-            &self.slot_time,
-            &self.transaction_type,
-            &self.amount,
-            &self.block_height
+            "INSERT INTO account_statements (account_id, slot_time, entry_type, amount, \
+             block_height) VALUES ((SELECT index FROM accounts WHERE address = $1), $2, $3, $4, \
+             $5)",
+            self.account_address,
+            self.slot_time,
+            self.transaction_type as AccountStatementEntryType,
+            self.amount,
+            self.block_height
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
     }
 }
 
