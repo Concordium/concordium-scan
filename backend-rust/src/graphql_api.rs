@@ -3364,6 +3364,7 @@ impl AccountReleaseSchedule {
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         after: Option<String>,
         #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
         let config = get_config(ctx)?;
@@ -3765,7 +3766,7 @@ struct PendingDelegationReduceStake {
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]
-enum AccountStatementEntryType {
+pub enum AccountStatementEntryType {
     TransferIn,
     TransferOut,
     AmountDecrypted,

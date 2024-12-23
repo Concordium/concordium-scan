@@ -65,6 +65,24 @@ CREATE TYPE pool_open_status AS ENUM (
     'ClosedForAll'
 );
 
+CREATE TYPE pool_open_status AS ENUM (
+    'OpenForAll',
+    'ClosedForNew',
+    'ClosedForAll'
+);
+
+CREATE TYPE account_statement_entry_type AS ENUM (
+    'TransferIn',
+    'TransferOut',
+    'AmountDecrypted',
+    'AmountEncrypted',
+    'TransactionFee',
+    'FinalizationReward',
+    'FoundationReward',
+    'BakerReward',
+    'TransactionFeeReward',
+);
+
 -- Every block on chain.
 CREATE TABLE blocks(
     -- The absolute height of the block.
@@ -224,6 +242,7 @@ CREATE TABLE accounts(
 CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
+CREATE INDEX accounts_address_index ON accounts (address);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
@@ -453,3 +472,13 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
 ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
+
+CREATE TABLE account_statements
+    index           BIGINT                              GENERATED ALWAYS AS IDENTITY,
+    account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
+    slot_time       TIMESTAMPTZ                         NOT NULL,
+    entry_type      account_statement_entry_type        NOT NULL,
+    amount          BIGINT                              NOT NULL,
+    block_height    BIGINT REFERENCES blocks(height)    NOT NULL,
+    PRIMARY KEY (account_id, index)
+);

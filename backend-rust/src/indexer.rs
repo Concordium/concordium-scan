@@ -1,10 +1,7 @@
 #![allow(unused_variables)] // TODO Remove before first release
 #![allow(dead_code)] // TODO Remove before first release
 
-use crate::graphql_api::{
-    events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
-    CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
-};
+use crate::graphql_api::{events_from_summary, AccountStatementEntryType, AccountTransactionType, BakerPoolOpenStatus, CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -23,7 +20,7 @@ use concordium_rust_sdk::{
         RPCError,
     },
 };
-use concordium_rust_sdk::types::SpecialTransactionOutcome;
+use concordium_rust_sdk::types::{AbsoluteBlockHeight, SpecialTransactionOutcome};
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -759,6 +756,7 @@ impl PreparedBlock {
             prepared_block_items
                 .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
         }
+        let special_items = data.special_events.iter().flat_map(|event| PreparedBlockSpecialEvent::prepare(event, data.block_info.block_slot_time, data.block_info.block_height)).flatten().filter(|event| event.amount > 0).collect();
         Ok(Self {
             hash,
             height,
@@ -768,6 +766,7 @@ impl PreparedBlock {
             total_staked,
             block_last_finalized,
             prepared_block_items,
+            special_items,
         })
     }
 
@@ -869,12 +868,118 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
 }
 
 struct PreparedBlockSpecialEvent {
-
+    account_address:    String,
+    amount:             i64,
+    block_height:       i64,
+    slot_time:          DateTime<Utc>,
+    transaction_type:   AccountStatementEntryType,
 }
 
 impl PreparedBlockSpecialEvent {
-    async fn prepare(event: &BlockSpecialEvent) -> anyhow::Result<Self> {
-        todo!()
+    fn prepare(
+        event: &SpecialTransactionOutcome,
+        slot_time: DateTime<Utc>,
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Vec<Self>> {
+        let results: Box<dyn Iterator<Item = Result<Self, anyhow::Error>>> = match &event {
+            SpecialTransactionOutcome::BakingRewards { baker_rewards, .. } => {
+                Box::new(baker_rewards.iter().map(move |(account_address, amount)| {
+                    Ok(PreparedBlockSpecialEvent {
+                        account_address: account_address.to_string(),
+                        amount: amount.micro_ccd.try_into()?,
+                        block_height: block_height.height.try_into()?,
+                        slot_time,
+                        transaction_type: AccountStatementEntryType::BakerReward,
+                    })
+                }))
+            }
+            SpecialTransactionOutcome::Mint {
+                foundation_account,
+                mint_platform_development_charge,
+                ..
+            } => Box::new(std::iter::once(Ok(PreparedBlockSpecialEvent {
+                account_address: foundation_account.to_string(),
+                amount: mint_platform_development_charge.micro_ccd.try_into()?,
+                block_height: block_height.height.try_into()?,
+                slot_time,
+                transaction_type: AccountStatementEntryType::FoundationReward,
+            }))),
+            SpecialTransactionOutcome::FinalizationRewards {
+                finalization_rewards,
+                ..
+            } => Box::new(finalization_rewards.iter().map(move |(account_address, amount)| {
+                Ok(PreparedBlockSpecialEvent {
+                    account_address: account_address.to_string(),
+                    amount: amount.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::FinalizationReward,
+                })
+            })),
+            SpecialTransactionOutcome::BlockReward {
+                baker,
+                foundation_account,
+                baker_reward,
+                foundation_charge,
+                ..
+            } => Box::new(vec![
+                PreparedBlockSpecialEvent {
+                    account_address: foundation_account.to_string(),
+                    amount: foundation_charge.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::FoundationReward,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address: baker.to_string(),
+                    amount: baker_reward.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::BakerReward,
+                },
+            ].into_iter().map(Ok)),
+            SpecialTransactionOutcome::PaydayFoundationReward {
+                foundation_account,
+                development_charge,
+            } => Box::new(std::iter::once(Ok(PreparedBlockSpecialEvent {
+                account_address: foundation_account.to_string(),
+                amount: development_charge.micro_ccd.try_into()?,
+                block_height: block_height.height.try_into()?,
+                slot_time,
+                transaction_type: AccountStatementEntryType::FoundationReward,
+            }))),
+            SpecialTransactionOutcome::PaydayAccountReward {
+                account,
+                transaction_fees,
+                baker_reward,
+                finalization_reward,
+            } => Box::new(vec![
+                PreparedBlockSpecialEvent {
+                    account_address: account.to_string(),
+                    amount: transaction_fees.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::TransactionFeeReward,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address: account.to_string(),
+                    amount: baker_reward.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::BakerReward,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address: account.to_string(),
+                    amount: finalization_reward.micro_ccd.try_into()?,
+                    block_height: block_height.height.try_into()?,
+                    slot_time,
+                    transaction_type: AccountStatementEntryType::FinalizationReward,
+                },
+            ].into_iter().map(Ok)),
+            SpecialTransactionOutcome::BlockAccrueReward { .. } => Box::new(std::iter::empty()),
+            SpecialTransactionOutcome::PaydayPoolReward { .. } => Box::new(std::iter::empty()),
+        };
+        results.collect::<Result<Vec<_>, _>>()
     }
 
     async fn save(
