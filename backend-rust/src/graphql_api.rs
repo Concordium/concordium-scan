@@ -2343,6 +2343,8 @@ struct AccountStatementEntry {
     timestamp:  DateTime,
     entry_type: AccountStatementEntryType,
     amount:     i64,
+    account_balance: i64
+
 }
 
 #[derive(SimpleObject)]
@@ -3326,7 +3328,7 @@ impl Account {
         Ok(connection)
     }
 
-    async fn account_statements(
+    async fn account_statement(
         &self,
         ctx: &Context<'_>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
@@ -3341,7 +3343,7 @@ impl Account {
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp
+                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp, account_balance
                 FROM account_statements WHERE account_id = $1
             "#,
             &self.index

@@ -1048,7 +1048,7 @@ impl PreparedBlockSpecialEvent {
         // the account creation event.
         sqlx::query!(
         "WITH account_info AS (
-            SELECT index AS account_index, amount AS current_balance
+            SELECT index AS account_index, amount + $4 AS current_balance
             FROM accounts
             WHERE address = $1
         )
@@ -1076,6 +1076,17 @@ impl PreparedBlockSpecialEvent {
         )
         .execute(tx.as_mut())
         .await?;
+
+        sqlx::query!(
+            "UPDATE accounts
+            SET amount = amount + $1
+            WHERE address = $2",
+            self.amount,
+            self.account_address
+        )
+        .execute(tx.as_mut())
+        .await?;
+
         Ok(())
     }
 }
