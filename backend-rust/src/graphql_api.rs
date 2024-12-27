@@ -40,6 +40,7 @@ use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
+use std::cmp::{max, min};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -2340,7 +2341,7 @@ pub enum RewardType {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct AccountStatementEntry {
-    id:         types::ID,
+    id:         i64,
     timestamp:  DateTime,
     entry_type: AccountStatementEntryType,
     amount:     i64,
@@ -3387,13 +3388,35 @@ impl Account {
             &self.index
         )
         .fetch(pool);
-        let (has_previous_page, has_next_page) = (false, false);
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
 
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
         while let Some(statement) = account_statements.try_next().await? {
+            min_index = min(min_index, Some(statement.id));
+            max_index = max(max_index, Some(statement.id));
             connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
+
+        if let (Some(min_id), Some(max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(id) as max_id, MIN(id) as min_id
+                    FROM account_statements
+                    WHERE account_index = $1
+                      AND NOW() > timestamp
+                "#,
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page = result.min_id.map_or(false, |db_min| db_min < min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > max_id);
+        }
+
         Ok(connection)
+
     }
 
     async fn rewards(
