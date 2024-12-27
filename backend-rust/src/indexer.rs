@@ -1,7 +1,11 @@
 #![allow(unused_variables)] // TODO Remove before first release
 #![allow(dead_code)] // TODO Remove before first release
 
-use crate::graphql_api::{events_from_summary, AccountStatementEntryType, AccountTransactionType, BakerPoolOpenStatus, CredentialDeploymentTransactionType, DbTransactionType, ModuleReferenceContractLinkAction, UpdateTransactionType};
+use crate::graphql_api::{
+    events_from_summary, AccountStatementEntryType, AccountTransactionType, BakerPoolOpenStatus,
+    CredentialDeploymentTransactionType, DbTransactionType, ModuleReferenceContractLinkAction,
+    UpdateTransactionType,
+};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
@@ -17,14 +21,14 @@ use concordium_rust_sdk::{
         self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
         AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
         BlockItemSummaryDetails, ContractInitializedEvent, ContractTraceElement, DelegationTarget,
-        PartsPerHundredThousands, RewardsOverview, SpecialTransactionOutcome, TransactionType
+        PartsPerHundredThousands, RejectReason, RewardsOverview, SpecialTransactionOutcome,
+        TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
         RPCError,
     },
 };
-use concordium_rust_sdk::types::RejectReason;
 use futures::{StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
@@ -310,85 +314,90 @@ impl Indexer for BlockPreProcessor {
         self.blocks_being_preprocessed.get_or_create(label).inc();
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
-        let result = async move {
-            let mut client1 = client.clone();
-            let mut client2 = client.clone();
-            let mut client3 = client.clone();
-            let mut client4 = client.clone();
-            let mut client5 = client.clone();
-            let get_events = async move {
-                let events = client3
-                    .get_block_transaction_events(fbi.height)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?;
-                Ok(events)
-            };
+        let result =
+            async move {
+                let mut client1 = client.clone();
+                let mut client2 = client.clone();
+                let mut client3 = client.clone();
+                let mut client4 = client.clone();
+                let mut client5 = client.clone();
+                let get_events = async move {
+                    let events = client3
+                        .get_block_transaction_events(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(events)
+                };
 
-            let get_items = async move {
-                let items = client4
-                    .get_block_items(fbi.height)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?;
-                Ok(items)
-            };
+                let get_items = async move {
+                    let items = client4
+                        .get_block_items(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(items)
+                };
 
-            let get_special_items = async move {
-                let items = client5
-                    .get_block_special_events(fbi.height)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?;
-                Ok(items)
-            };
+                let get_special_items = async move {
+                    let items = client5
+                        .get_block_special_events(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(items)
+                };
 
-            let start_fetching = Instant::now();
-            let (block_info, chain_parameters, events, items, tokenomics_info, special_events) = try_join!(
-                client1.get_block_info(fbi.height),
-                client2.get_block_chain_parameters(fbi.height),
-                get_events,
-                get_items,
-                client.get_tokenomics_info(fbi.height),
-                get_special_items
-            )?;
-            let total_staked_capital = match tokenomics_info.response {
-                RewardsOverview::V0 {
-                    ..
-                } => {
-                    compute_total_stake_capital(
-                        &mut client,
-                        BlockIdentifier::AbsoluteHeight(fbi.height),
-                    )
-                    .await?
-                }
-                RewardsOverview::V1 {
+                let start_fetching = Instant::now();
+                let (block_info, chain_parameters, events, items, tokenomics_info, special_events) =
+                    try_join!(
+                        client1.get_block_info(fbi.height),
+                        client2.get_block_chain_parameters(fbi.height),
+                        get_events,
+                        get_items,
+                        client.get_tokenomics_info(fbi.height),
+                        get_special_items
+                    )?;
+                let total_staked_capital = match tokenomics_info.response {
+                    RewardsOverview::V0 {
+                        ..
+                    } => {
+                        compute_total_stake_capital(
+                            &mut client,
+                            BlockIdentifier::AbsoluteHeight(fbi.height),
+                        )
+                        .await?
+                    }
+                    RewardsOverview::V1 {
+                        total_staked_capital,
+                        ..
+                    } => total_staked_capital,
+                };
+                let node_response_time = start_fetching.elapsed();
+                self.node_response_time
+                    .get_or_create(label)
+                    .observe(node_response_time.as_secs_f64());
+
+                let data = BlockData {
+                    finalized_block_info: fbi,
+                    block_info: block_info.response,
+                    events,
+                    items,
+                    chain_parameters: chain_parameters.response,
+                    tokenomics_info: tokenomics_info.response,
                     total_staked_capital,
-                    ..
-                } => total_staked_capital,
-            };
-            let node_response_time = start_fetching.elapsed();
-            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
+                    special_events,
+                };
 
-            let data = BlockData {
-                finalized_block_info: fbi,
-                block_info: block_info.response,
-                events,
-                items,
-                chain_parameters: chain_parameters.response,
-                tokenomics_info: tokenomics_info.response,
-                total_staked_capital,
-                special_events,
-            };
-
-            let prepared_block =
-                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
-            Ok(prepared_block)
-        }
-        .await;
+                let prepared_block = PreparedBlock::prepare(&mut client, &data)
+                    .await
+                    .map_err(RPCError::ParseError)?;
+                Ok(prepared_block)
+            }
+            .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
         result
     }

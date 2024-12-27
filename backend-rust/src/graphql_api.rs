@@ -92,14 +92,14 @@ impl SmartContractSchemaNames {
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:             Vec<sdk_types::AccountAddress>,
+    non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:        u64,
+    transaction_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:              u64,
+    block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:            u64,
+    account_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_STATEMENTS_CONNECTION_LIMIT",
@@ -111,9 +111,9 @@ pub struct ApiServiceConfig {
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    account_schedule_connection_limit:   u64,
+    account_schedule_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:           u64,
+    contract_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
@@ -137,7 +137,7 @@ pub struct ApiServiceConfig {
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit:  u64,
+    transaction_event_connection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -3336,7 +3336,6 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let mut account_statements = sqlx::query_as!(
