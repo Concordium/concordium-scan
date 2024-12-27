@@ -3398,7 +3398,7 @@ impl Account {
             connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
 
-        if let (Some(min_id), Some(max_id)) = (min_index, max_index) {
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(id) as max_id, MIN(id) as min_id
@@ -3411,8 +3411,8 @@ impl Account {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page = result.min_id.map_or(false, |db_min| db_min < min_id);
-            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > max_id);
+            connection.has_previous_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
         }
 
         Ok(connection)
