@@ -475,11 +475,12 @@ ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
 CREATE TABLE account_statements (
-    id           BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id              BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
     timestamp       TIMESTAMPTZ                         NOT NULL,
     entry_type      account_statement_entry_type        NOT NULL,
     amount          BIGINT                              NOT NULL,
+    account_balance BIGINT                              NOT NULL,
     block_height    BIGINT REFERENCES blocks(height)    NOT NULL
 );
 

@@ -3325,19 +3325,14 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-        //            index           BIGINT                              GENERATED
-        // ALWAYS AS IDENTITY PRIMARY KEY,    account_id      BIGINT REFERENCES
-        // accounts(index)   NOT NULL,    timestamp       TIMESTAMPTZ
-        // NOT NULL,    entry_type      account_statement_entry_type        NOT
-        // NULL,    amount          BIGINT                              NOT
-        // NULL,    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
 
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp FROM account_statements WHERE account_id = $1
+                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp
+                FROM account_statements WHERE account_id = $1
             "#,
             &self.index
         )
