@@ -2338,13 +2338,35 @@ pub enum RewardType {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct AccountStatementEntry {
     id:         types::ID,
     timestamp:  DateTime,
     entry_type: AccountStatementEntryType,
     amount:     i64,
-    account_balance: i64
+    account_balance: i64,
+    transaction_id: Option<TransactionIndex>,
+    block_height: BlockHeight
+}
 
+#[ComplexObject]
+impl AccountStatementEntry {
+    async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
+        if let Some(id) = self.transaction_id {
+            let transaction = Transaction::query_by_index(get_pool(ctx)?, id).await?;
+            let transaction = transaction.ok_or_else(|| {
+                ApiError::InternalError(
+                    "AccountStatementEntry: No transaction at transaction_index".to_string(),
+                )
+            })?;
+            Ok(BlockOrTransaction::Transaction(transaction))
+
+        } else {
+            Ok(BlockOrTransaction::Block(
+                Block::query_by_height(get_pool(ctx)?, self.block_height).await?
+            ))
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -2390,7 +2412,7 @@ struct AccountToken {
     token_id:           String,
     balance:            BigInteger,
     token:              Token,
-    account_id:         i64,
+    account_index:         i64,
     account:            Account,
 }
 
@@ -3340,12 +3362,28 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_statements_connection_limit,
+        )?;
+
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp, account_balance
-                FROM account_statements WHERE account_id = $1
+                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp, account_balance, transaction_id, block_height
+                FROM account_statements
+                WHERE account_index = $4
+                  AND NOW() > timestamp
+                  AND id > $1 AND id < $2
+                ORDER BY id ASC
+                LIMIT $3
             "#,
+            query.from,
+            query.to,
+            query.limit,
             &self.index
         )
         .fetch(pool);
@@ -3355,7 +3393,6 @@ impl Account {
         while let Some(statement) = account_statements.try_next().await? {
             connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
-
         Ok(connection)
     }
 
@@ -3369,24 +3406,22 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-        //#        let config = get_config(ctx)?;
-        //        let pool = get_pool(ctx)?;
-        //        let rewards = sqlx::query_as!(
-        //            AccountReward,
-        //            "SELECT index, block_height FROM account_rewards"
-        //        )
-        //        .fetch(pool);
-        //        let (has_previous_page, has_next_page) = (false, false);
-        //        let mut connection = connection::Connection::new(has_previous_page,
-        // has_next_page);
-        //
-        //        for row in rewards {
-        //            connection.edges.push(connection::Edge::new(row.index.to_string(),
-        // AccountRewardRelation {                reward: row
-        //            }));
-        //        }
-        //
-        //        Ok(connection)
+//        let config = get_config(ctx)?;
+//        let pool = get_pool(ctx)?;
+//        let rewards = sqlx::query_as!(
+//            AccountReward,
+//            "SELECT index, block_height FROM account_rewards"
+//        )
+//        .fetch(pool);
+//        let (has_previous_page, has_next_page) = (false, false);
+//        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+//
+//        for row in rewards {
+//            connection.edges.push(connection::Edge::new(row.index.to_string(),
+// AccountRewardRelation {                reward: row
+//            }));
+//        }
+//        Ok(connection)
         todo_api!()
     }
 

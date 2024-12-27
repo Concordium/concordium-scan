@@ -1047,13 +1047,13 @@ impl PreparedBlockSpecialEvent {
         // Note that this does not include account creation. We handle that when saving
         // the account creation event.
         sqlx::query!(
-        "WITH account_info AS (
+            "WITH account_info AS (
             SELECT index AS account_index, amount + $4 AS current_balance
             FROM accounts
             WHERE address = $1
         )
         INSERT INTO account_statements (
-            account_id,
+            account_index,
             timestamp,
             entry_type,
             amount,

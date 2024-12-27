@@ -537,17 +537,18 @@ FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
 CREATE TABLE account_statements (
     id              BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    account_id      BIGINT REFERENCES accounts(index)   NOT NULL,
+    account_index   BIGINT REFERENCES accounts(index)   NOT NULL,
     timestamp       TIMESTAMPTZ                         NOT NULL,
     entry_type      account_statement_entry_type        NOT NULL,
     amount          BIGINT                              NOT NULL,
     account_balance BIGINT                              NOT NULL,
-    block_height    BIGINT REFERENCES blocks(height)    NOT NULL
+    block_height    BIGINT REFERENCES blocks(height)    NOT NULL,
+    transaction_id  BIGINT                              NULL
 );
 
 CREATE INDEX account_statements_entry_type_idx ON account_statements (entry_type);
 
 CREATE VIEW account_rewards AS
-SELECT id, account_id, timestamp, entry_type::TEXT::account_statement_reward_type AS reward_type, amount, block_height
+SELECT id, account_index, timestamp, entry_type::TEXT::account_statement_reward_type AS reward_type, amount, block_height
 FROM account_statements
 WHERE entry_type::TEXT IN (SELECT unnest(enum_range(NULL::account_statement_reward_type))::TEXT);
