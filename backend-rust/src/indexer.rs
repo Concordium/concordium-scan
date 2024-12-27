@@ -1048,13 +1048,14 @@ impl PreparedBlockSpecialEvent {
         // the account creation event.
         sqlx::query!(
             "INSERT INTO account_statements (account_id, timestamp, entry_type, amount, \
-             block_height) VALUES ((SELECT index FROM accounts WHERE address = $1), $2, $3, $4, \
-             $5)",
+             block_height, account_balance) VALUES ((SELECT index FROM accounts WHERE address = $1), $2, $3, $4, \
+             $5, $6)",
             self.account_address,
             self.slot_time,
             self.transaction_type as AccountStatementEntryType,
             self.amount,
             self.block_height
+            self.
         )
         .execute(tx.as_mut())
         .await?;
