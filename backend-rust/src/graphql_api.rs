@@ -135,6 +135,12 @@ pub struct ApiServiceConfig {
     module_reference_contract_link_events_collection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    reward_connection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
         default_value = "100"
     )]
@@ -2324,12 +2330,15 @@ struct AccountRewardRelation {
 
 #[derive(SimpleObject)]
 pub struct AccountReward {
-    index:        i64,
+    id:        i64,
     block_height: BlockHeight,
+    timestamp:  DateTime,
+    reward_type: RewardType,
+    amount:     i64,
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "account_statement_reward_type")]
+#[sqlx(type_name = "reward_type")]
 #[sqlx(rename_all = "lowercase")]
 pub enum RewardType {
     FinalizationReward,
@@ -3377,7 +3386,6 @@ impl Account {
                 SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp, account_balance, transaction_id, block_height
                 FROM account_statements
                 WHERE account_index = $4
-                  AND NOW() > timestamp
                   AND id > $1 AND id < $2
                 ORDER BY id ASC
                 LIMIT $3
@@ -3404,7 +3412,6 @@ impl Account {
                     SELECT MAX(id) as max_id, MIN(id) as min_id
                     FROM account_statements
                     WHERE account_index = $1
-                      AND NOW() > timestamp
                 "#,
                 &self.index
             )
@@ -3429,23 +3436,29 @@ impl Account {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-//        let config = get_config(ctx)?;
-//        let pool = get_pool(ctx)?;
-//        let rewards = sqlx::query_as!(
-//            AccountReward,
-//            "SELECT index, block_height FROM account_rewards"
-//        )
-//        .fetch(pool);
-//        let (has_previous_page, has_next_page) = (false, false);
-//        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-//
-//        for row in rewards {
-//            connection.edges.push(connection::Edge::new(row.index.to_string(),
-// AccountRewardRelation {                reward: row
-//            }));
-//        }
-//        Ok(connection)
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let mut rewards = sqlx::query_as!(
+            AccountReward,
+            r#"
+            SELECT
+                id as "id!",
+                block_height as "block_height!",
+                timestamp as "timestamp!",
+                reward_type as "reward_type!: RewardType",
+                amount as "amount!"
+            FROM account_rewards
+            WHERE account_index = $1
+            "#,
+            &self.index
+        )
+        .fetch(pool);
+        let (has_previous_page, has_next_page) = (false, false);
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+        while let Some(row) = rewards.try_next().await? {
+            connection.edges.push(connection::Edge::new(row.id.to_string(),row));
+        }
+        Ok(connection)
     }
 
     async fn release_schedule(&self) -> AccountReleaseSchedule {
