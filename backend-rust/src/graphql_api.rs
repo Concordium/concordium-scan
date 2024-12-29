@@ -2330,12 +2330,20 @@ struct AccountRewardRelation {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 pub struct AccountReward {
     id:           i64,
+    #[graphql(skip)]
     block_height: BlockHeight,
     timestamp:    DateTime,
     reward_type:  RewardType,
     amount:       i64,
+}
+#[ComplexObject]
+impl AccountReward {
+    async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
+        Block::query_by_height(get_pool(ctx)?, self.block_height).await
+    }
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
