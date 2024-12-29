@@ -39,8 +39,13 @@ use concordium_rust_sdk::{
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
-use std::{error::Error, mem, str::FromStr, sync::Arc};
-use std::cmp::{max, min};
+use std::{
+    cmp::{max, min},
+    error::Error,
+    mem,
+    str::FromStr,
+    sync::Arc,
+};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -133,11 +138,7 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     module_reference_contract_link_events_collection_limit: u64,
-    #[arg(
-        long,
-        env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT",
-        default_value = "100"
-    )]
+    #[arg(long, env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT", default_value = "100")]
     reward_connection_limit: u64,
     #[arg(
         long,
@@ -2330,11 +2331,11 @@ struct AccountRewardRelation {
 
 #[derive(SimpleObject)]
 pub struct AccountReward {
-    id:        i64,
+    id:           i64,
     block_height: BlockHeight,
-    timestamp:  DateTime,
-    reward_type: RewardType,
-    amount:     i64,
+    timestamp:    DateTime,
+    reward_type:  RewardType,
+    amount:       i64,
 }
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
@@ -2350,13 +2351,13 @@ pub enum RewardType {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct AccountStatementEntry {
-    id:         i64,
-    timestamp:  DateTime,
-    entry_type: AccountStatementEntryType,
-    amount:     i64,
+    id:              i64,
+    timestamp:       DateTime,
+    entry_type:      AccountStatementEntryType,
+    amount:          i64,
     account_balance: i64,
-    transaction_id: Option<TransactionIndex>,
-    block_height: BlockHeight
+    transaction_id:  Option<TransactionIndex>,
+    block_height:    BlockHeight,
 }
 
 #[ComplexObject]
@@ -2370,10 +2371,9 @@ impl AccountStatementEntry {
                 )
             })?;
             Ok(BlockOrTransaction::Transaction(transaction))
-
         } else {
             Ok(BlockOrTransaction::Block(
-                Block::query_by_height(get_pool(ctx)?, self.block_height).await?
+                Block::query_by_height(get_pool(ctx)?, self.block_height).await?,
             ))
         }
     }
@@ -2422,7 +2422,7 @@ struct AccountToken {
     token_id:           String,
     balance:            BigInteger,
     token:              Token,
-    account_index:         i64,
+    account_index:      i64,
     account:            Account,
 }
 
@@ -3418,12 +3418,12 @@ impl Account {
             .fetch_one(pool)
             .await?;
 
-            connection.has_previous_page = result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
             connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
         }
 
         Ok(connection)
-
     }
 
     async fn rewards(
@@ -3438,6 +3438,13 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.reward_connection_limit,
+        )?;
         let mut rewards = sqlx::query_as!(
             AccountReward,
             r#"
@@ -3448,15 +3455,42 @@ impl Account {
                 reward_type as "reward_type!: RewardType",
                 amount as "amount!"
             FROM account_rewards
-            WHERE account_index = $1
+            WHERE account_index = $4
+                AND id > $1 AND id < $2
+                ORDER BY id ASC
+                LIMIT $3
             "#,
+            query.from,
+            query.to,
+            query.limit,
             &self.index
         )
         .fetch(pool);
-        let (has_previous_page, has_next_page) = (false, false);
-        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
-        while let Some(row) = rewards.try_next().await? {
-            connection.edges.push(connection::Edge::new(row.id.to_string(),row));
+
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+        while let Some(statement) = rewards.try_next().await? {
+            min_index = min(min_index, Some(statement.id));
+            max_index = max(max_index, Some(statement.id));
+            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(id) as max_id, MIN(id) as min_id
+                    FROM account_rewards
+                    WHERE account_index = $1
+                "#,
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
         }
         Ok(connection)
     }
