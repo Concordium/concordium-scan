@@ -803,6 +803,7 @@ impl PreparedBlock {
                 )
             })
             .flatten()
+            .filter(|event| event.amount > 0)
             .collect();
         Ok(Self {
             hash,
