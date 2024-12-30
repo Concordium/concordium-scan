@@ -2344,15 +2344,18 @@ struct AccountRewardRelation {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct AccountReward {
+    #[graphql(skip)]
     id:           i64,
     #[graphql(skip)]
     block_height: BlockHeight,
     timestamp:    DateTime,
     reward_type:  RewardType,
-    amount:       i64,
+    amount:       Amount,
 }
 #[ComplexObject]
 impl AccountReward {
+    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
     async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
@@ -2371,17 +2374,20 @@ pub enum RewardType {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 struct AccountStatementEntry {
+    #[graphql(skip)]
     id:              i64,
     timestamp:       DateTime,
     entry_type:      AccountStatementEntryType,
-    amount:          i64,
-    account_balance: i64,
+    amount:          Amount,
+    account_balance: Amount,
     transaction_id:  Option<TransactionIndex>,
     block_height:    BlockHeight,
 }
 
 #[ComplexObject]
 impl AccountStatementEntry {
+    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
     async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
         if let Some(id) = self.transaction_id {
             let transaction = Transaction::query_by_index(get_pool(ctx)?, id).await?;
