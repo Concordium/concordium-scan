@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT MAX(id) as max_id, MIN(id) as min_id\n                    FROM account_statements\n                    WHERE account_index = $1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "min_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "39f6da6927615568330ce266b1fac47298ea8a0f559042fde440da5da174a1df"
+}

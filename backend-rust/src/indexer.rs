@@ -936,7 +936,7 @@ impl PreparedBlockSpecialEvent {
             } => baker_rewards
                 .iter()
                 .map(|(account_address, amount)| {
-                    Ok(PreparedBlockSpecialEvent {
+                    Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
                         account_address: account_address.to_string(),
                         amount: amount.micro_ccd.try_into()?,
                         block_height: block_height.height.try_into()?,
@@ -962,7 +962,7 @@ impl PreparedBlockSpecialEvent {
             } => finalization_rewards
                 .iter()
                 .map(|(account_address, amount)| {
-                    Ok(PreparedBlockSpecialEvent {
+                    Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
                         account_address: account_address.to_string(),
                         amount: amount.micro_ccd.try_into()?,
                         block_height: block_height.height.try_into()?,

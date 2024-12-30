@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT id, amount, entry_type as \"entry_type: AccountStatementEntryType\", timestamp, account_balance, transaction_id, block_height\n                FROM account_statements\n                WHERE account_index = $4\n                  AND id > $1 AND id < $2\n                ORDER BY id ASC\n                LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "entry_type: AccountStatementEntryType",
+        "type_info": {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "block_height",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "d8340af1051c647fe8cbf28fb0bc84ce13ee77b70ab225093e2f2139223cfdcb"
+}

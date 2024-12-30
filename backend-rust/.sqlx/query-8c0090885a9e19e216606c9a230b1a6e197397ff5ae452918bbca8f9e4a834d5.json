@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO account_statements (account_id, timestamp, entry_type, amount, block_height) VALUES ((SELECT index FROM accounts WHERE address = $1), $2, $3, $4, $5)",
+  "query": "WITH account_info AS (\n            SELECT index AS account_index, amount + $4 AS current_balance\n            FROM accounts\n            WHERE address = $1\n        )\n        INSERT INTO account_statements (\n            account_index,\n            timestamp,\n            entry_type,\n            amount,\n            block_height,\n            account_balance\n        )\n        SELECT\n            account_index,\n            $2,\n            $3,\n            $4,\n            $5,\n            current_balance + $4\n        FROM account_info",
   "describe": {
     "columns": [],
     "parameters": {
@@ -31,5 +31,5 @@
     },
     "nullable": []
   },
-  "hash": "8a51c1bce136025e3026c1f0bc8efbb6d98921b0d230dc099cdccdcb396d7b36"
+  "hash": "8c0090885a9e19e216606c9a230b1a6e197397ff5ae452918bbca8f9e4a834d5"
 }
