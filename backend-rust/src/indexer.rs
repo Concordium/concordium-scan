@@ -561,6 +561,9 @@ impl ProcessEvent for BlockProcessor {
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
             }
+            for item in block.special_items.iter() {
+                item.save(&mut tx).await?;
+            }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -789,7 +792,7 @@ impl PreparedBlock {
             prepared_block_items
                 .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
-        let special_items = data
+        let special_items: Vec<_> = data
             .special_events
             .iter()
             .flat_map(|event| {
@@ -800,7 +803,6 @@ impl PreparedBlock {
                 )
             })
             .flatten()
-            .filter(|event| event.amount > 0)
             .collect();
         Ok(Self {
             hash,
