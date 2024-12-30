@@ -2337,11 +2337,6 @@ struct CollectionSegmentInfo {
 }
 
 #[derive(SimpleObject)]
-struct AccountRewardRelation {
-    reward: AccountReward,
-}
-
-#[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct AccountReward {
     #[graphql(skip)]
@@ -2363,7 +2358,6 @@ impl AccountReward {
 
 #[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "reward_type")]
-#[sqlx(rename_all = "lowercase")]
 pub enum RewardType {
     FinalizationReward,
     FoundationReward,
