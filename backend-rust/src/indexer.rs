@@ -769,7 +769,7 @@ struct PreparedBlock {
     block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
     prepared_block_items: Vec<PreparedBlockItem>,
-    /// Preprocessed
+    /// Preprocessed block special items, ready to be saved in the database.
     special_items:        Vec<PreparedBlockSpecialEvent>,
 }
 
