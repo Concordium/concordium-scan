@@ -3392,7 +3392,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+        let query = ConnectionQuery::<i64>::new(
             first,
             after,
             last,
@@ -3421,8 +3421,15 @@ impl Account {
         let mut min_index = None;
         let mut max_index = None;
         while let Some(statement) = account_statements.try_next().await? {
-            min_index = min(min_index, Some(statement.id));
-            max_index = max(max_index, Some(statement.id));
+            min_index = Some(match min_index {
+                None => statement.id,
+                Some(current_min) => min(current_min, statement.id),
+            });
+
+            max_index = Some(match max_index {
+                None => statement.id,
+                Some(current_max) => max(current_max, statement.id),
+            });
             connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
 
@@ -3458,7 +3465,7 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+        let query = ConnectionQuery::<i64>::new(
             first,
             after,
             last,
@@ -3491,8 +3498,15 @@ impl Account {
         let mut min_index = None;
         let mut max_index = None;
         while let Some(statement) = rewards.try_next().await? {
-            min_index = min(min_index, Some(statement.id));
-            max_index = max(max_index, Some(statement.id));
+            min_index = Some(match min_index {
+                None => statement.id,
+                Some(current_min) => min(current_min, statement.id),
+            });
+
+            max_index = Some(match max_index {
+                None => statement.id,
+                Some(current_max) => max(current_max, statement.id),
+            });
             connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
         }
 

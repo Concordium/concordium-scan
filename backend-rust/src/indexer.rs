@@ -1065,7 +1065,7 @@ impl PreparedBlockSpecialEvent {
             $3,
             $4,
             $5,
-            current_balance + $4
+            current_balance
         FROM account_info",
             self.account_address,
             self.slot_time,
