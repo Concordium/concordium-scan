@@ -1047,13 +1047,12 @@ impl PreparedBlockSpecialEvent {
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "WITH account_info AS (
-            SELECT index AS account_index, amount + $4 AS current_balance
+            SELECT index AS account_index, amount + $3 AS current_balance
             FROM accounts
             WHERE address = $1
         )
         INSERT INTO account_statements (
             account_index,
-            timestamp,
             entry_type,
             amount,
             block_height,
@@ -1064,14 +1063,12 @@ impl PreparedBlockSpecialEvent {
             $2,
             $3,
             $4,
-            $5,
             current_balance
         FROM account_info",
             self.account_address,
-            self.slot_time,
             self.transaction_type as AccountStatementEntryType,
             self.amount,
-            self.block_height
+            self.block_height,
         )
         .execute(tx.as_mut())
         .await?;

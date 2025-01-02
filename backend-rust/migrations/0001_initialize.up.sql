@@ -77,13 +77,6 @@ CREATE TYPE account_statement_entry_type AS ENUM (
     'TransactionFeeReward'
 );
 
-CREATE TYPE account_statement_reward_type AS ENUM (
-    'FinalizationReward',
-    'FoundationReward',
-    'BakerReward',
-    'TransactionFeeReward'
-);
-
 CREATE TYPE module_reference_contract_link_action AS ENUM (
     'Added',
     'Removed'
@@ -534,20 +527,59 @@ CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
 ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
 
+-- Table for logging all account-related activities on-chain.
+-- This table tracks individual entries related to changes in account balances.
 CREATE TABLE account_statements (
-    id              BIGINT                              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    account_index   BIGINT REFERENCES accounts(index)   NOT NULL,
-    timestamp       TIMESTAMPTZ                         NOT NULL,
-    entry_type      account_statement_entry_type        NOT NULL,
-    amount          BIGINT                              NOT NULL,
-    account_balance BIGINT                              NOT NULL,
-    block_height    BIGINT REFERENCES blocks(height)    NOT NULL,
-    transaction_id  BIGINT                              NULL
+    -- Unique identifier for each account statement entry.
+    id
+        BIGINT
+        GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- Index of the account associated with this entry.
+    account_index
+        BIGINT
+        REFERENCES accounts(index)
+        NOT NULL,
+    -- Type of the account statement entry.
+    entry_type
+        account_statement_entry_type
+        NOT NULL,
+    -- Amount associated with the entry in micro CCD.
+    -- This represents the change in balance caused by the transaction or activity.
+    -- Will be negative when an amount is being subtracted from the account.
+    amount
+        BIGINT
+        NOT NULL,
+    -- The resulting balance of the account after applying this entry.
+    -- This is used to track the account's total CCD at the time of the transaction.
+    account_balance
+        BIGINT
+        NOT NULL,
+    -- Block height at which the entry occurred.
+    -- Links to the blocks table to associate the entry with a specific block.
+    block_height
+        BIGINT
+        REFERENCES blocks(height)
+        NOT NULL,
+    -- Used as reference for all events but PaydayFoundationReward, PaydayAccountReward and BlockAccrueReward
+    transaction_id
+        BIGINT
+        NULL
 );
 
 CREATE INDEX account_statements_entry_type_idx ON account_statements (entry_type);
 
 CREATE VIEW account_rewards AS
-SELECT id, account_index, timestamp, entry_type::TEXT::account_statement_reward_type AS reward_type, amount, block_height
-FROM account_statements
-WHERE entry_type::TEXT IN (SELECT unnest(enum_range(NULL::account_statement_reward_type))::TEXT);
+    SELECT
+        id,
+        account_index,
+        entry_type,
+        amount,
+        block_height
+    FROM account_statements
+    WHERE entry_type::TEXT IN (
+        'FinalizationReward',
+        'FoundationReward',
+        'BakerReward',
+        'TransactionFeeReward'
+    );

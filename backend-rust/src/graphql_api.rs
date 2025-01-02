@@ -15,7 +15,7 @@ macro_rules! todo_api {
 }
 
 use account_metrics::AccountMetricsQuery;
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
@@ -36,6 +36,7 @@ use concordium_rust_sdk::{
     id::types as sdk_types,
     types::AmountFraction,
 };
+use derive_more::Display;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
@@ -2344,7 +2345,8 @@ pub struct AccountReward {
     #[graphql(skip)]
     block_height: BlockHeight,
     timestamp:    DateTime,
-    reward_type:  RewardType,
+    #[graphql(skip)]
+    entry_type:   AccountStatementEntryType,
     amount:       Amount,
 }
 #[ComplexObject]
@@ -2353,6 +2355,16 @@ impl AccountReward {
 
     async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
+    }
+
+    async fn reward_type(&self, ctx: &Context<'_>) -> ApiResult<RewardType> {
+        let transaction: RewardType = self.entry_type.try_into().or_else(|_| {
+            Err(ApiError::InternalError(format!(
+                "AccountStatementEntryType: Not a valid reward type: {}",
+                &self.entry_type
+            )))
+        })?;
+        Ok(transaction)
     }
 }
 
@@ -2363,6 +2375,23 @@ pub enum RewardType {
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
+}
+
+impl TryFrom<AccountStatementEntryType> for RewardType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: AccountStatementEntryType) -> Result<Self, Self::Error> {
+        match value {
+            AccountStatementEntryType::FinalizationReward => Ok(RewardType::FinalizationReward),
+            AccountStatementEntryType::FoundationReward => Ok(RewardType::FoundationReward),
+            AccountStatementEntryType::BakerReward => Ok(RewardType::BakerReward),
+            AccountStatementEntryType::TransactionFeeReward => Ok(RewardType::TransactionFeeReward),
+            other => Err(anyhow!(
+                "AccountStatementEntryType '{}' cannot be converted to RewardType",
+                other
+            )),
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -3405,12 +3434,27 @@ impl Account {
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-                SELECT id, amount, entry_type as "entry_type: AccountStatementEntryType", timestamp, account_balance, transaction_id, block_height
-                FROM account_statements
-                WHERE account_index = $4
-                  AND id > $1 AND id < $2
-                ORDER BY id ASC
-                LIMIT $3
+            SELECT
+                id,
+                amount,
+                entry_type as "entry_type: AccountStatementEntryType",
+                blocks.slot_time as timestamp,
+                account_balance,
+                transaction_id,
+                block_height
+            FROM
+                account_statements
+            JOIN
+                blocks
+            ON
+                blocks.height = account_statements.block_height
+            WHERE
+                account_index = $4
+                AND id > $1
+                AND id < $2
+            ORDER BY
+                id ASC
+            LIMIT $3;
             "#,
             query.from,
             query.to,
@@ -3480,14 +3524,19 @@ impl Account {
             SELECT
                 id as "id!",
                 block_height as "block_height!",
-                timestamp as "timestamp!",
-                reward_type as "reward_type!: RewardType",
+                blocks.slot_time as "timestamp",
+                entry_type as "entry_type!: AccountStatementEntryType",
                 amount as "amount!"
             FROM account_rewards
-            WHERE account_index = $4
+            JOIN
+                blocks
+            ON
+                blocks.height = account_rewards.block_height
+            WHERE
+                account_index = $4
                 AND id > $1 AND id < $2
                 ORDER BY id ASC
-                LIMIT $3
+            LIMIT $3;
             "#,
             query.from,
             query.to,
@@ -3965,7 +4014,7 @@ struct PendingDelegationReduceStake {
     effective_time:    DateTime,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "account_statement_entry_type")]
 pub enum AccountStatementEntryType {
     TransferIn,
