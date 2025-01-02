@@ -1170,7 +1170,6 @@ impl SubscriptionContext {
                     break; // Graceful exit, stop the loop
                 }
                 Err(err) => {
-                    println!("err: {:?}", err);
                     error!("PgListener encountered an error: {}. Retrying...", err);
 
                     // Check if the stop signal has been triggered before retrying
@@ -1204,7 +1203,6 @@ impl SubscriptionContext {
         let exit = stop_signal
             .run_until_cancelled(async move {
                 loop {
-                    println!("Listening for notifications...");
                     let notification = listener.recv().await?;
                     match notification.channel() {
                         Self::BLOCK_ADDED_CHANNEL => {
