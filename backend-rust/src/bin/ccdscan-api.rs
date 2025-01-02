@@ -33,7 +33,7 @@ struct Cli {
     listen:                    SocketAddr,
     /// Address to listen for monitoring related requests
     #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
-    monitoring_listen:  SocketAddr,
+    monitoring_listen:         SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config:                graphql_api::ApiServiceConfig,
     #[arg(
