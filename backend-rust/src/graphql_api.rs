@@ -1235,7 +1235,6 @@ impl SubscriptionContext {
 
         Ok(())
     }
-
 }
 
 #[derive(Clone, Debug, SimpleObject)]
