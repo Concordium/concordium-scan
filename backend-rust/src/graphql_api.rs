@@ -693,12 +693,15 @@ impl BaseQuery {
             -- to select page items from the start/end of the range.
             -- Each page must still independently be ordered ascending.
             -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
-            ORDER BY CASE
-                WHEN $3 THEN index
-                WHEN $4 THEN amount
-                WHEN $5 THEN num_txs
-                WHEN $6 THEN delegated_stake
-            END ASC",
+            ORDER BY
+                (CASE WHEN $3 AND $10     THEN index           END) DESC,
+                (CASE WHEN $3 AND NOT $10 THEN index           END) ASC,
+                (CASE WHEN $4 AND $10     THEN amount          END) DESC,
+                (CASE WHEN $4 AND NOT $10 THEN amount          END) ASC,
+                (CASE WHEN $5 AND $10     THEN num_txs         END) DESC,
+                (CASE WHEN $5 AND NOT $10 THEN num_txs         END) ASC,
+                (CASE WHEN $6 AND $10     THEN delegated_stake END) DESC,
+                (CASE WHEN $6 AND NOT $10 THEN delegated_stake END) ASC",
             query.from,
             query.to,
             matches!(order.field, AccountOrderField::Age),
@@ -706,8 +709,9 @@ impl BaseQuery {
             matches!(order.field, AccountOrderField::TransactionCount),
             matches!(order.field, AccountOrderField::DelegatedStake),
             filter.map(|f| f.is_delegator).unwrap_or_default(),
-            matches!(order.dir, OrderDir::Desc),
+            query.desc != matches!(order.dir, OrderDir::Desc),
             query.limit,
+            matches!(order.dir, OrderDir::Desc),
         )
         .fetch(pool);
 
