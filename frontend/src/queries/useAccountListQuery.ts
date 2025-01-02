@@ -37,17 +37,6 @@ const AccountsQuery = gql<AccountsListResponse>`
 				}
 				createdAt
 				amount
-				transactions {
-					nodes {
-						transaction {
-							transactionHash
-							block {
-								blockSlotTime
-							}
-							id
-						}
-					}
-				}
 				delegation {
 					stakedAmount
 				}

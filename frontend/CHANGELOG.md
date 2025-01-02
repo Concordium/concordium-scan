@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+
+- Remove unused sub-query for account transactions in the accounts page.
+
 ## [1.6.0] - 2024-11-05
 
 ### Added
