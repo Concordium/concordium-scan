@@ -544,7 +544,7 @@ impl ProcessEvent for BlockProcessor {
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
             for item in block.prepared_block_items.iter() {
-                item.save(&mut tx, &self.pool).await?;
+                item.save(&mut tx).await?;
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
@@ -1003,7 +1003,6 @@ impl PreparedBlockItem {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        pool: &PgPool,
     ) -> anyhow::Result<()> {
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
@@ -1074,7 +1073,7 @@ impl PreparedBlockItem {
         .await?;
 
         if let Some(prepared_event) = &self.prepared_event {
-            prepared_event.save(tx, tx_idx, pool).await?;
+            prepared_event.save(tx, tx_idx).await?;
         }
 
         Ok(())
@@ -1336,7 +1335,6 @@ impl PreparedEvent {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
         tx_idx: i64,
-        pool: &PgPool,
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::AccountCreation(event) => event.save(tx, tx_idx).await,
@@ -1975,7 +1973,7 @@ impl PreparedContractInitialized {
         // contract supports the `CIS2` standard by calling the on-chain
         // `supports` endpoint before considering the CIS2 events valid.
         //
-        // There are two edge cases that the index would not identify a CIS2 event
+        // There are two edge cases that the indexer would not identify a CIS2 event
         // correctly. Nonetheless, to avoid complexity it was deemed acceptable
         // behavior.
         // - Edge case 1: A contract code upgrades and no longer
@@ -1983,8 +1981,8 @@ impl PreparedContractInitialized {
         // - Edge case 2: A contract logs a CIS2-like event and then upgrades to add
         // support for CIS2 in the same block.
         //
-        // There are three chain events (ContractInitializedEvent,
-        // ContractInterruptedEvent and ContractUpdatedEvent) that can generate
+        // There are three chain events (`ContractInitializedEvent`,
+        // `ContractInterruptedEvent` and `ContractUpdatedEvent`) that can generate
         // `contract_logs`. CIS2 events logged by the first chain event are
         // handled here while CIS2 events logged in the `ContractInterruptedEvent` and
         // `ContractUpdatedEvent` are handled at its corresponding
@@ -1992,8 +1990,9 @@ impl PreparedContractInitialized {
         let potential_cis2_events =
             event.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>();
 
-        // If potential CIS2 events are parsed, we verify if the smart contract
-        // supports the CIS2 standard before accepting the events as valid.
+        // If the vector `potential_cis2_events` is not empty, we verify that the smart
+        // contract supports the CIS2 standard before accepting the events as
+        // valid.
         let cis2_events = if potential_cis2_events.is_empty() {
             vec![]
         } else {
@@ -2163,7 +2162,7 @@ impl PreparedContractUpdate {
         // contract supports the `CIS2` standard by calling the on-chain
         // `supports` endpoint before considering the CIS2 events valid.
         //
-        // There are two edge cases that the index would not identify a CIS2 event
+        // There are two edge cases that the indexer would not identify a CIS2 event
         // correctly. Nonetheless, to avoid complexity it was deemed acceptable
         // behavior.
         // - Edge case 1: A contract code upgrades and no longer
@@ -2171,8 +2170,8 @@ impl PreparedContractUpdate {
         // - Edge case 2: A contract logs a CIS2-like event and then upgrades to add
         // support for CIS2 in the same block.
         //
-        // There are three chain events (ContractInitializedEvent,
-        // ContractInterruptedEvent and ContractUpdatedEvent) that can generate
+        // There are three chain events (`ContractInitializedEvent`,
+        // `ContractInterruptedEvent` and `ContractUpdatedEvent`) that can generate
         // `contract_logs`. CIS2 events logged by the last two chain events are
         // handled here while CIS2 events logged in the
         // `ContractInitializedEvent` are handled at its corresponding
@@ -2201,8 +2200,9 @@ impl PreparedContractUpdate {
             } => vec![],
         };
 
-        // If potential CIS2 events are parsed, we verify if the smart contract
-        // supports the CIS2 standard before accepting the events as valid.
+        // If the vector `potential_cis2_events` is not empty, we verify that the smart
+        // contract supports the CIS2 standard before accepting the events as
+        // valid.
         let cis2_events = if potential_cis2_events.is_empty() {
             vec![]
         } else {
@@ -2316,8 +2316,8 @@ async fn process_cis2_event(
             // `total_supply` eventually overflows in that case.
             let tokens_minted = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist, insert the new token with its
-            // `total_supply` set to `amount`. If the `token_address` exists,
-            // update the `total_supply` value by adding the `amount` to the existing
+            // `total_supply` set to `tokens_minted`. If the `token_address` exists,
+            // update the `total_supply` value by adding the `tokens_minted` to the existing
             // value in the database.
             sqlx::query!(
                 "
@@ -2359,9 +2359,9 @@ async fn process_cis2_event(
             // eventually underflow in that case.
             let tokens_burned = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
-            // insert the new token with its `total_supply` set to `-amount`. If the
+            // insert the new token with its `total_supply` set to `-tokens_burned`. If the
             // `token_address` exists, update the `total_supply` value by
-            // subtracting the `amount` from the existing value in the
+            // subtracting the `tokens_burned` from the existing value in the
             // database.
             sqlx::query!(
                 "

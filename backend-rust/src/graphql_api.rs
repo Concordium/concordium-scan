@@ -18,6 +18,7 @@ use account_metrics::AccountMetricsQuery;
 use anyhow::Context as _;
 use async_graphql::{
     http::GraphiQLSource,
+    scalar,
     types::{self, connection},
     ComplexObject, Context, EmptyMutation, Enum, InputObject, InputValueError, InputValueResult,
     Interface, MergedObject, Object, Scalar, ScalarType, Schema, SimpleObject, Subscription, Union,
@@ -1384,22 +1385,14 @@ impl From<Duration> for TimeSpan {
 #[repr(transparent)]
 #[serde(try_from = "String", into = "String")]
 struct BigInteger(BigDecimal);
-#[Scalar]
-impl ScalarType for BigInteger {
-    fn parse(value: Value) -> InputValueResult<Self> {
-        let Value::String(string) = value else {
-            return Err(InputValueError::expected_type(value));
-        };
-        Ok(Self::try_from(string)?)
-    }
 
-    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
-}
+scalar!(BigInteger);
+
 impl TryFrom<String> for BigInteger {
     type Error = anyhow::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let big_decimal = BigDecimal::from_str(&value)
+        let big_decimal = BigDecimal::from_str(value.as_str())
             .map_err(|err| anyhow::anyhow!("Invalid BigDecimal format: {}", err))?;
 
         Ok(Self(big_decimal))
@@ -2452,6 +2445,7 @@ impl AccountReleaseScheduleItem {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct AccountToken {
     contract_index:     ContractIndex,
     contract_sub_index: ContractIndex,

@@ -134,8 +134,8 @@ CREATE TABLE transactions(
     -- Absolute height of the block containing the transaction.
     block_height
         BIGINT
-        REFERENCES blocks(height)
-        NOT NULL,
+        NOT NULL
+        REFERENCES blocks(height),
     -- Transaction hash encoded using HEX.
     hash
         CHAR(64)
