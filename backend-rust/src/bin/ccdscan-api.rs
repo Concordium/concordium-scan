@@ -96,7 +96,6 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
     let mut metrics_task = {
-        let pool = pool.clone();
         let tcp_listener = TcpListener::bind(cli.metrics_listen)
             .await
             .context("Parsing TCP listener address failed")?;
