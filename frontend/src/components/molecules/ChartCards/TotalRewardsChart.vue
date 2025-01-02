@@ -9,7 +9,7 @@
 		:is-loading="isLoading"
 		:label-formatter="formatLabel"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Rewards</template>
 		<template #icon>Ͼ</template>
 		<template #value>{{
@@ -22,7 +22,6 @@
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import type { TooltipItem } from 'chart.js'
 import { convertMicroCcdToCcd } from '~/utils/format'
 import KeyValueChartCard from '~/components/molecules/KeyValueChartCard.vue'

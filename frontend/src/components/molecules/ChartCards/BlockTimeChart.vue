@@ -7,7 +7,7 @@
 		:y-values="[blockMetricsData?.blockMetrics?.buckets?.y_BlockTimeAvg]"
 		:is-loading="isLoading"
 	>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Block time</template>
 		<template #icon><StopwatchIcon /></template>
 		<template #value>{{
@@ -20,7 +20,6 @@
 	</KeyValueChartCard>
 </template>
 <script lang="ts" setup>
-import type { Ref } from 'vue'
 import type { BlockMetricsQueryResponse } from '~/queries/useChartBlockMetrics'
 import { formatNumber } from '~/utils/format'
 

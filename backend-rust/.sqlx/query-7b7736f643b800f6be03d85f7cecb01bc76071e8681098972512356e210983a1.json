@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM (\n                SELECT\n                    index,\n                    transaction_index,\n                    release_time as timestamp,\n                    amount\n                FROM scheduled_releases\n                WHERE account_index = $5\n                      AND NOW() < release_time\n                      AND index > $1 AND index < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN index END) DESC,\n                    (CASE WHEN NOT $4 THEN index END) ASC\n                LIMIT $3\n            ) ORDER BY index ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7b7736f643b800f6be03d85f7cecb01bc76071e8681098972512356e210983a1"
+}

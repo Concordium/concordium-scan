@@ -12,7 +12,7 @@
 			stroke-linejoin="round"
 			stroke-width="48"
 			d="M184 112l144 144-144 144"
-		></path>
+		/>
 	</SVG>
 </template>
 

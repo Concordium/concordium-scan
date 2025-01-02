@@ -65,6 +65,11 @@ CREATE TYPE pool_open_status AS ENUM (
     'ClosedForAll'
 );
 
+CREATE TYPE module_reference_contract_link_action AS ENUM (
+    'Added',
+    'Removed'
+);
+
 -- Every block on chain.
 CREATE TABLE blocks(
     -- The absolute height of the block.
@@ -206,11 +211,18 @@ CREATE TABLE accounts(
         -- Starting at 1 to count the transaction that made the account.
         DEFAULT 1,
     -- The total delegated stake of this account in micro CCD.
-    -- TODO: Actually populate this in the indexer.
     delegated_stake
         BIGINT
         NOT NULL
-        DEFAULT 0
+        DEFAULT 0,
+    -- Whether we are re-staking earnings. Null means we are not using delegation.
+    delegated_restake_earnings
+        BOOLEAN
+        NULL,
+    -- Target id of the baker When this is null it means that we are using passive delegation.
+    delegated_target_baker_id
+        BIGINT
+        NULL
 );
 
 -- These are important for the sorting options on the accounts query.
@@ -301,6 +313,27 @@ CREATE TABLE smart_contract_modules(
     schema BYTEA
 );
 
+-- Indexing of rejected transactions for a deployed smart contract module, such as redeploying a
+-- module or a failed initialization.
+CREATE TABLE rejected_smart_contract_module_transactions (
+    -- Gapless incrementing index for each module reference, used for efficiently skipping in the
+    -- query for this collection.
+    index
+        BIGINT
+        NOT NULL,
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- A smart contract module affected by this transaction.
+    module_reference
+        CHAR(64)
+        NOT NULL
+        REFERENCES smart_contract_modules,
+    PRIMARY KEY (module_reference, index)
+);
+
 -- Every contract instance on chain.
 CREATE TABLE contracts(
     -- Index of the contract.
@@ -373,6 +406,71 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
+-- Indexing of transactions linking smart contract modules to a smart contract instance.
+-- Such as init contract or contract upgrades.
+CREATE TABLE link_smart_contract_module_transactions (
+    -- Gapless incrementing index for each module reference, used for efficiently skipping in the
+    -- query for this collection.
+    index
+        BIGINT
+        NOT NULL,
+    -- The transaction in question.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- A smart contract module affected by this transaction.
+    module_reference
+        CHAR(64)
+        NOT NULL
+        REFERENCES smart_contract_modules,
+    -- Contract index that the event is associated with.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Contract subindex that the event is associated with.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- Whether the relevant smart contract instance is linking or unlinking from the module
+    -- reference.
+    link_action
+        module_reference_contract_link_action
+        NOT NULL,
+    PRIMARY KEY (module_reference, index),
+    FOREIGN KEY (contract_index, contract_sub_index) REFERENCES contracts(index, sub_index)
+);
+
+-- Every scheduled release on chain.
+CREATE TABLE scheduled_releases (
+    -- An index/id for this scheduled release (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- The index of the transaction creating the scheduled transfer.
+    transaction_index
+        BIGINT
+        NOT NULL
+        REFERENCES transactions,
+    -- The account receiving the scheduled transfer.
+    account_index
+        BIGINT
+        NOT NULL
+        REFERENCES accounts,
+    -- The scheduled release time.
+    release_time
+        TIMESTAMPTZ
+        NOT NULL,
+    -- The amount locked in the scheduled release.
+    amount
+        BIGINT
+        NOT NULL
+);
+
+-- We typically want to find all scheduled releases for a specific account after a specific time.
+-- This index is useful for that.
+CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
+
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;
@@ -391,3 +489,28 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER block_added_notify_trigger AFTER INSERT
 ON blocks
 FOR EACH ROW EXECUTE PROCEDURE block_added_notify_trigger_function();
+
+CREATE OR REPLACE FUNCTION account_updated_notify_trigger_function() RETURNS trigger AS $trigger$
+DECLARE
+  rec affected_accounts;
+  lookup_result TEXT;
+BEGIN
+  CASE TG_OP
+       WHEN 'INSERT' THEN
+            -- Lookup the account address associated with the account index.
+            SELECT address
+            INTO lookup_result
+            FROM accounts
+            WHERE index = NEW.account_index;
+
+            -- Include the lookup result in the payload
+            PERFORM pg_notify('account_updated', lookup_result);
+       ELSE NULL;
+  END CASE;
+  RETURN NEW;
+END;
+$trigger$ LANGUAGE plpgsql;
+
+CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
+ON affected_accounts
+FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT slot_time\n            FROM transactions\n            JOIN blocks ON transactions.block_height = blocks.height\n            WHERE transactions.index = $1",
+  "query": "SELECT slot_time\n                FROM transactions\n                JOIN blocks ON transactions.block_height = blocks.height\n                WHERE transactions.index = $1",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "97a2898e60a267e365312cdedf1d15245a355a3460e88ec2bce6ba571277e0be"
+  "hash": "6af2928df158730d8a4cc3f4e7284ac67825a548794ce2b9c3246d642cc013d5"
 }

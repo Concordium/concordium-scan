@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                link_action as \"link_action: ModuleReferenceContractLinkAction\",\n                contract_index,\n                contract_sub_index,\n                transactions.hash as transaction_hash,\n                blocks.slot_time as block_slot_time\n            FROM link_smart_contract_module_transactions\n                JOIN transactions ON transaction_index = transactions.index\n                JOIN blocks ON blocks.height = transactions.block_height\n            WHERE module_reference = $1\n                AND link_smart_contract_module_transactions.index >= $2\n            LIMIT $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "link_action: ModuleReferenceContractLinkAction",
+        "type_info": {
+          "Custom": {
+            "name": "module_reference_contract_link_action",
+            "kind": {
+              "Enum": [
+                "Added",
+                "Removed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_hash",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "block_slot_time",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bpchar",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "998838bc13a2cbeefd45aeac96f6d93a1aaa1b90b119e1761ead70ce05da6924"
+}

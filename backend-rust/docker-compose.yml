@@ -9,4 +9,4 @@ services:
       - ./data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: ${PGPASSWORD}
-      POSTGRES_DB: ccd-scan
+      POSTGRES_DB: ccdscan

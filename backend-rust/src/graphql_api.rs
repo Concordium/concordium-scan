@@ -1,6 +1,4 @@
 //! TODO
-//! - Introduce default LIMITS for connections
-//! - Introduce a MAX LIMIT for connections
 //! - Enable GraphiQL through flag instead of always.
 
 #![allow(unused_variables)]
@@ -43,31 +41,91 @@ use prometheus_client::registry::Registry;
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::{error::Error, mem, str::FromStr, sync::Arc};
 use tokio::{net::TcpListener, sync::broadcast};
+use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::{Any, CorsLayer};
+use tracing::error;
 use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
+
+struct SchemaName {
+    type_name:  &'static str,
+    value_name: &'static str,
+}
+
+enum SmartContractSchemaNames {
+    Event,
+    InputParameterReceiveFunction,
+}
+
+impl SmartContractSchemaNames {
+    pub const EVENT: SchemaName = SchemaName {
+        type_name:  "event",
+        value_name: "contract log",
+    };
+    pub const INPUT_PARAMETER_RECEIVE_FUNCTION: SchemaName = SchemaName {
+        type_name:  "receive parameter",
+        value_name: "input parameter of receive function",
+    };
+
+    pub fn value(&self) -> &'static str {
+        match self {
+            SmartContractSchemaNames::Event => Self::EVENT.value_name,
+            SmartContractSchemaNames::InputParameterReceiveFunction => {
+                Self::INPUT_PARAMETER_RECEIVE_FUNCTION.value_name
+            }
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            SmartContractSchemaNames::Event => Self::EVENT.type_name,
+            SmartContractSchemaNames::InputParameterReceiveFunction => {
+                Self::INPUT_PARAMETER_RECEIVE_FUNCTION.type_name
+            }
+        }
+    }
+}
 
 #[derive(clap::Args)]
 pub struct ApiServiceConfig {
     /// Account(s) that should not be considered in circulation.
     #[arg(long, env = "CCDSCAN_API_CONFIG_NON_CIRCULATING_ACCOUNTS", value_delimiter = ',')]
-    non_circulating_account:            Vec<sdk_types::AccountAddress>,
+    non_circulating_account: Vec<sdk_types::AccountAddress>,
     /// The most transactions which can be queried at once.
     #[arg(long, env = "CCDSCAN_API_CONFIG_TRANSACTION_CONNECTION_LIMIT", default_value = "100")]
-    transaction_connection_limit:       u64,
+    transaction_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_BLOCK_CONNECTION_LIMIT", default_value = "100")]
-    block_connection_limit:             u64,
+    block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
-    account_connection_limit:           u64,
+    account_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    account_schedule_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_CONTRACT_CONNECTION_LIMIT", default_value = "100")]
-    contract_connection_limit:          u64,
+    contract_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    contract_events_collection_limit:   u64,
+    contract_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    module_reference_reject_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_CONTRACT_LINK_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    module_reference_contract_link_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
@@ -105,13 +163,18 @@ impl Service {
         tcp_listener: TcpListener,
         stop_signal: CancellationToken,
     ) -> anyhow::Result<()> {
+        let cors_layer = CorsLayer::new()
+            .allow_origin(Any)  // Open access to selected route
+            .allow_methods(Any)
+            .allow_headers(Any);
         let app = axum::Router::new()
             .route("/", axum::routing::get(Self::graphiql))
             .route(
                 "/api/graphql",
                 axum::routing::post_service(async_graphql_axum::GraphQL::new(self.schema.clone())),
             )
-            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema));
+            .route_service("/ws/graphql", GraphQLSubscription::new(self.schema))
+            .layer(cors_layer);
 
         axum::serve(tcp_listener, app)
             .with_graceful_shutdown(stop_signal.cancelled_owned())
@@ -595,7 +658,9 @@ impl BaseQuery {
                     address,
                     amount,
                     delegated_stake,
-                    num_txs
+                    num_txs,
+                    delegated_restake_earnings,
+                    delegated_target_baker_id
                 FROM accounts
                 WHERE
                     -- Filter for only the accounts that are within the
@@ -1024,42 +1089,85 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
 }
 
 pub struct Subscription {
-    pub block_added: broadcast::Receiver<Arc<Block>>,
+    pub block_added:      broadcast::Receiver<Block>,
+    pub accounts_updated: broadcast::Receiver<AccountsUpdatedSubscriptionItem>,
 }
+
 impl Subscription {
     pub fn new() -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
+        let (accounts_updated_sender, accounts_updated) = broadcast::channel(100);
         (
             Subscription {
                 block_added,
+                accounts_updated,
             },
             SubscriptionContext {
                 block_added_sender,
+                accounts_updated_sender,
             },
         )
     }
 }
+
 #[Subscription]
 impl Subscription {
-    async fn block_added(
-        &self,
-    ) -> impl Stream<Item = Result<Arc<Block>, tokio_stream::wrappers::errors::BroadcastStreamRecvError>>
-    {
+    async fn block_added(&self) -> impl Stream<Item = Result<Block, BroadcastStreamRecvError>> {
         tokio_stream::wrappers::BroadcastStream::new(self.block_added.resubscribe())
     }
+
+    async fn accounts_updated(
+        &self,
+        account_address: Option<String>,
+    ) -> impl Stream<Item = Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>> {
+        let stream =
+            tokio_stream::wrappers::BroadcastStream::new(self.accounts_updated.resubscribe());
+
+        // Apply filtering based on `account_address`.
+        stream.filter_map(
+            move |item: Result<AccountsUpdatedSubscriptionItem, BroadcastStreamRecvError>| {
+                let address_filter = account_address.clone();
+                async move {
+                    match item {
+                        Ok(notification) => {
+                            if let Some(filter) = address_filter {
+                                if notification.address == filter {
+                                    // Pass on notification.
+                                    Some(Ok(notification))
+                                } else {
+                                    // Skip if filter does not match.
+                                    None
+                                }
+                            } else {
+                                // Pass on all notification if no filter is set.
+                                Some(Ok(notification))
+                            }
+                        }
+                        // Pass on errors.
+                        Err(e) => Some(Err(e)),
+                    }
+                }
+            },
+        )
+    }
 }
+
 pub struct SubscriptionContext {
-    block_added_sender: broadcast::Sender<Arc<Block>>,
+    block_added_sender:      broadcast::Sender<Block>,
+    accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
 }
+
 impl SubscriptionContext {
+    const ACCOUNTS_UPDATED_CHANNEL: &'static str = "account_updated";
     const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
         let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
             .await
             .context("Failed to create a postgreSQL listener")?;
+
         listener
-            .listen_all([Self::BLOCK_ADDED_CHANNEL])
+            .listen_all([Self::BLOCK_ADDED_CHANNEL, Self::ACCOUNTS_UPDATED_CHANNEL])
             .await
             .context("Failed to listen to postgreSQL notifications")?;
 
@@ -1072,20 +1180,34 @@ impl SubscriptionContext {
                             let block_height = BlockHeight::from_str(notification.payload())
                                 .context("Failed to parse payload of block added")?;
                             let block = Block::query_by_height(&pool, block_height).await?;
-                            self.block_added_sender.send(Arc::new(block))?;
+                            self.block_added_sender.send(block)?;
                         }
+
+                        Self::ACCOUNTS_UPDATED_CHANNEL => {
+                            self.accounts_updated_sender.send(AccountsUpdatedSubscriptionItem {
+                                address: notification.payload().to_string(),
+                            })?;
+                        }
+
                         unknown => {
-                            anyhow::bail!("Unknown channel {}", unknown);
+                            anyhow::bail!("Received notification on unknown channel: {unknown}");
                         }
                     }
                 }
             })
             .await;
+
         if let Some(result) = exit {
             result.context("Failed listening")?;
         }
+
         Ok(())
     }
+}
+
+#[derive(Clone, Debug, SimpleObject)]
+pub struct AccountsUpdatedSubscriptionItem {
+    address: String,
 }
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
@@ -1227,8 +1349,10 @@ impl From<Duration> for TimeSpan {
 type BlockHeight = i64;
 type BlockHash = String;
 type TransactionHash = String;
+type ModuleReference = String;
 type BakerId = i64;
 type AccountIndex = i64;
+type TransactionIndex = i64;
 type Amount = i64; // TODO: should be UnsignedLong in graphQL
 type Energy = i64; // TODO: should be UnsignedLong in graphQL
 type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
@@ -1241,7 +1365,7 @@ struct Versions {
     backend_versions: String,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Block {
     hash:              BlockHash,
     height:            BlockHeight,
@@ -2237,11 +2361,29 @@ struct AccountAddressAmount {
     amount:          Amount,
 }
 
-#[derive(SimpleObject)]
+type AccountReleaseScheduleItemIndex = i64;
+
 struct AccountReleaseScheduleItem {
-    transaction: Transaction,
-    timestamp:   DateTime,
-    amount:      Amount,
+    /// Table index
+    /// Used for the cursor in the connection
+    index:             AccountReleaseScheduleItemIndex,
+    transaction_index: TransactionIndex,
+    timestamp:         DateTime,
+    amount:            Amount,
+}
+#[Object]
+impl AccountReleaseScheduleItem {
+    async fn transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
+        Transaction::query_by_index(get_pool(ctx)?, self.transaction_index).await?.ok_or(
+            ApiError::InternalError(
+                "AccountReleaseScheduleItem: No transaction at transaction_index".to_string(),
+            ),
+        )
+    }
+
+    async fn timestamp(&self) -> DateTime { self.timestamp }
+
+    async fn amount(&self) -> Amount { self.amount }
 }
 
 #[derive(SimpleObject)]
@@ -2585,7 +2727,7 @@ impl From<String> for AccountAddress {
 }
 
 struct Transaction {
-    index: i64,
+    index: TransactionIndex,
     block_height: BlockHeight,
     hash: TransactionHash,
     ccd_cost: Amount,
@@ -2601,7 +2743,7 @@ struct Transaction {
 }
 
 impl Transaction {
-    async fn query_by_index(pool: &PgPool, index: i64) -> ApiResult<Option<Self>> {
+    async fn query_by_index(pool: &PgPool, index: TransactionIndex) -> ApiResult<Option<Self>> {
         let transaction = sqlx::query_as!(
             Transaction,
             r#"SELECT
@@ -2663,7 +2805,7 @@ impl Transaction {
     /// Transaction index as a string.
     async fn id(&self) -> types::ID { self.index.into() }
 
-    async fn transaction_index(&self) -> i64 { self.index }
+    async fn transaction_index(&self) -> TransactionIndex { self.index }
 
     async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
 
@@ -2957,29 +3099,30 @@ struct Rejected<'a> {
 #[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
-    index:             i64,
+    index: i64,
     /// Index of the transaction creating this account.
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
-    address:           AccountAddress,
+    address: AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount:            Amount,
+    amount: Amount,
     /// The total delegated stake of this account.
-    delegated_stake:   Amount,
+    delegated_stake: Amount,
     /// The total number of transactions this account has been involved in or
     /// affected by.
-    num_txs:           i64,
-    // Get baker information if this account is baking.
-    // baker: Option<Baker>,
-    // delegation: Option<Delegation>,
+    num_txs: i64,
+    delegated_restake_earnings: Option<bool>,
+    delegated_target_baker_id: Option<i64>, /* Get baker information if this account is baking.
+                                             * baker: Option<Baker>, */
 }
 impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, \
+             delegated_restake_earnings, delegated_target_baker_id
             FROM accounts
             WHERE index = $1",
             index
@@ -2992,7 +3135,8 @@ impl Account {
     async fn query_by_address(pool: &PgPool, address: String) -> ApiResult<Option<Self>> {
         let account = sqlx::query_as!(
             Account,
-            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs
+            "SELECT index, transaction_index, address, amount, delegated_stake, num_txs, \
+             delegated_restake_earnings, delegated_target_baker_id
             FROM accounts
             WHERE address = $1",
             address
@@ -3013,18 +3157,44 @@ impl Account {
     /// The total amount of CCD hold by the account.
     async fn amount(&self) -> Amount { self.amount }
 
+    async fn delegation(&self) -> Option<Delegation> {
+        self.delegated_restake_earnings.map(|restake_earnings| Delegation {
+            delegator_id: self.index,
+            restake_earnings,
+            staked_amount: self.delegated_stake,
+            delegation_target: if let Some(target) = self.delegated_target_baker_id {
+                DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
+                    baker_id: target,
+                })
+            } else {
+                DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
+                    dummy: false,
+                })
+            },
+        })
+    }
+
     /// Timestamp of the block where this account was created.
     async fn created_at(&self, ctx: &Context<'_>) -> ApiResult<DateTime> {
-        let slot_time = sqlx::query_scalar!(
-            "SELECT slot_time
-            FROM transactions
-            JOIN blocks ON transactions.block_height = blocks.height
-            WHERE transactions.index = $1",
-            self.transaction_index
-        )
-        .fetch_one(get_pool(ctx)?)
-        .await?;
-
+        let slot_time = if let Some(transaction_index) = self.transaction_index {
+            sqlx::query_scalar!(
+                "SELECT slot_time
+                FROM transactions
+                JOIN blocks ON transactions.block_height = blocks.height
+                WHERE transactions.index = $1",
+                transaction_index
+            )
+            .fetch_one(get_pool(ctx)?)
+            .await?
+        } else {
+            sqlx::query_scalar!(
+                "SELECT slot_time
+                FROM blocks
+                WHERE height = 0"
+            )
+            .fetch_one(get_pool(ctx)?)
+            .await?
+        };
         Ok(slot_time)
     }
 
@@ -3183,25 +3353,123 @@ impl Account {
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
         todo_api!()
     }
+
+    async fn release_schedule(&self) -> AccountReleaseSchedule {
+        AccountReleaseSchedule {
+            account_index: self.index,
+        }
+    }
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
 struct AccountReleaseSchedule {
-    total_amount: Amount,
+    account_index: AccountIndex,
 }
-#[ComplexObject]
+#[Object]
 impl AccountReleaseSchedule {
+    async fn total_amount(&self, ctx: &Context<'_>) -> ApiResult<Amount> {
+        let pool = get_pool(ctx)?;
+        let total_amount = sqlx::query_scalar!(
+            "SELECT
+               SUM(amount)::BIGINT
+             FROM scheduled_releases
+             WHERE account_index = $1",
+            self.account_index,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(total_amount.unwrap_or(0))
+    }
+
     async fn schedule(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReleaseScheduleItem>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<AccountReleaseScheduleItemIndex>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_schedule_connection_limit,
+        )?;
+        let rows = sqlx::query_as!(
+            AccountReleaseScheduleItem,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    transaction_index,
+                    release_time as timestamp,
+                    amount
+                FROM scheduled_releases
+                WHERE account_index = $5
+                      AND NOW() < release_time
+                      AND index > $1 AND index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN index END) DESC,
+                    (CASE WHEN NOT $4 THEN index END) ASC
+                LIMIT $3
+            ) ORDER BY index ASC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            self.account_index
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let has_previous_page = if let Some(first_row) = rows.first() {
+            sqlx::query_scalar!(
+                "SELECT true
+                 FROM scheduled_releases
+                 WHERE
+                     account_index = $1
+                     AND NOW() < release_time
+                     AND index < $2
+                 LIMIT 1",
+                self.account_index,
+                first_row.index,
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        let has_next_page = if let Some(last_row) = rows.last() {
+            sqlx::query_scalar!(
+                "SELECT true
+                 FROM scheduled_releases
+                 WHERE
+                   account_index = $1
+                   AND NOW() < release_time
+                   AND $2 < index
+                 LIMIT 1",
+                self.account_index,
+                last_row.index,
+            )
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+            .unwrap_or_default()
+        } else {
+            false
+        };
+
+        let mut connection = connection::Connection::new(has_previous_page, has_next_page);
+        for row in rows {
+            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
+        }
+        Ok(connection)
     }
 }
 
@@ -3475,7 +3743,6 @@ struct Delegation {
     staked_amount:     Amount,
     restake_earnings:  bool,
     delegation_target: DelegationTarget,
-    pending_change:    PendingDelegationChange,
 }
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
@@ -3765,16 +4032,15 @@ impl SearchResult {
 
 fn decode_value_with_schema(
     opt_schema: Option<&Type>,
-    schema_name: &str,
     value: &[u8],
-    value_name: &str,
+    schema_name: SmartContractSchemaNames,
 ) -> String {
     let Some(schema) = opt_schema else {
-        // Note: There could be something better displayed than this string if no schema is
-        // available for decoding at the frontend long-term.
+        // Note: There could be something better displayed than this string if no schema
+        // is available for decoding at the frontend long-term.
         return format!(
             "No embedded {} schema in smart contract available for decoding",
-            schema_name
+            schema_name.kind()
         );
     };
 
@@ -3791,7 +4057,9 @@ fn decode_value_with_schema(
                 // contract developer for debugging purposes here.
                 format!(
                     "Failed to deserialize {} with {} schema into string: {:?}",
-                    value_name, schema_name, e
+                    schema_name.value(),
+                    schema_name.kind(),
+                    e
                 )
             })
         }
@@ -3805,8 +4073,8 @@ fn decode_value_with_schema(
             // contract developer for debugging purposes here.
             format!(
                 "Failed to deserialize {} with {} schema: {:?}",
-                value_name,
-                schema_name,
+                schema_name.value(),
+                schema_name.kind(),
                 e.display(true)
             )
         }
@@ -3814,10 +4082,24 @@ fn decode_value_with_schema(
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 struct ContractAddress {
     index:     ContractIndex,
     sub_index: ContractIndex,
-    as_string: String,
+}
+#[ComplexObject]
+impl ContractAddress {
+    async fn as_string(&self) -> String {
+        concordium_rust_sdk::types::ContractAddress::new(self.index.0, self.sub_index.0).to_string()
+    }
+}
+impl ContractAddress {
+    fn new(index: i64, sub_index: i64) -> ApiResult<Self> {
+        Ok(Self {
+            index:     u64::try_from(index)?.into(),
+            sub_index: u64::try_from(index)?.into(),
+        })
+    }
 }
 
 impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
@@ -3825,7 +4107,6 @@ impl From<concordium_rust_sdk::types::ContractAddress> for ContractAddress {
         Self {
             index:     value.index.into(),
             sub_index: value.subindex.into(),
-            as_string: value.to_string(),
         }
     }
 }
@@ -3954,7 +4235,8 @@ pub fn events_from_summary(
                             address,
                             events,
                         } => Ok(Event::ContractInterrupted(ContractInterrupted {
-                            contract_address: address.into(),
+                            contract_address:  address.into(),
+                            contract_logs_raw: events.iter().map(|e| e.as_ref().to_vec()).collect(),
                         })),
                         ContractTraceElement::Resumed {
                             address,
@@ -4159,7 +4441,6 @@ pub fn events_from_summary(
             } => {
                 vec![Event::DataRegistered(DataRegistered {
                     data_as_hex: hex::encode(data.as_ref()),
-                    decoded:     DecodedText::from_bytes(data.as_ref()),
                 })]
             }
             AccountTransactionEffects::BakerConfigured {
@@ -4326,9 +4607,9 @@ pub fn events_from_summary(
                         })),
                         DelegationEvent::BakerRemoved {
                             baker_id,
-                        } => {
-                            unimplemented!();
-                        }
+                        } => Ok(Event::BakerRemoved(BakerRemoved {
+                            baker_id: baker_id.id.index.try_into()?,
+                        })),
                     })
                     .collect::<anyhow::Result<Vec<_>>>()?
             }
@@ -4675,7 +4956,6 @@ impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReas
 impl From<concordium_rust_sdk::types::Memo> for TransferMemo {
     fn from(value: concordium_rust_sdk::types::Memo) -> Self {
         TransferMemo {
-            decoded: DecodedText::from_bytes(value.as_ref()),
             raw_hex: hex::encode(value.as_ref()),
         }
     }
@@ -4803,7 +5083,7 @@ impl ContractInitialized {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -4832,24 +5112,33 @@ impl ContractInitialized {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_event_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema.get_event_schema(&row.contract_name).ok()
-            });
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
 
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            let decoded_log =
-                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -4917,9 +5206,21 @@ pub struct CredentialsUpdated {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct DataRegistered {
-    decoded:     DecodedText,
     data_as_hex: String,
+}
+
+#[ComplexObject]
+impl DataRegistered {
+    async fn decoded(&self) -> ApiResult<DecodedText> {
+        let decoded_data = hex::decode(&self.data_as_hex).map_err(|e| {
+            error!("Invalid hex encoding {:?} in a controlled environment", e);
+            ApiError::InternalError("Failed to decode hex data".to_string())
+        })?;
+
+        Ok(DecodedText::from_bytes(decoded_data.as_slice()))
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5004,9 +5305,21 @@ impl TryFrom<concordium_rust_sdk::types::NewEncryptedAmountEvent> for NewEncrypt
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct TransferMemo {
-    decoded: DecodedText,
     raw_hex: String,
+}
+
+#[ComplexObject]
+impl TransferMemo {
+    async fn decoded(&self) -> ApiResult<DecodedText> {
+        let decoded_data = hex::decode(&self.raw_hex).map_err(|e| {
+            error!("Invalid hex encoding {:?} in a controlled environment", e);
+            ApiError::InternalError("Failed to decode hex data".to_string())
+        })?;
+
+        Ok(DecodedText::from_bytes(decoded_data.as_slice()))
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5021,18 +5334,193 @@ pub struct TransferredWithSchedule {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ModuleReferenceEvent {
-    module_reference: String,
+    module_reference: ModuleReference,
     sender:           AccountAddress,
     block_height:     BlockHeight,
-    transaction_hash: String,
+    transaction_hash: TransactionHash,
     block_slot_time:  DateTime,
     display_schema:   Option<String>,
-    // TODO:
-    // moduleReferenceRejectEvents(skip: Int take: Int):
-    // ModuleReferenceRejectEventsCollectionSegment moduleReferenceContractLinkEvents(skip: Int
-    // take: Int): ModuleReferenceContractLinkEventsCollectionSegment linkedContracts(skip: Int
-    // take: Int): LinkedContractsCollectionSegment
+    // TODO: linkedContracts(skip: Int take: Int): LinkedContractsCollectionSegment
+}
+#[ComplexObject]
+impl ModuleReferenceEvent {
+    async fn module_reference_reject_events(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<ModuleReferenceRejectEventsCollectionSegment> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let min_index = i64::try_from(skip.unwrap_or(0))?;
+        let limit = i64::try_from(
+            take.map_or(config.module_reference_reject_events_collection_limit, |t| {
+                config.module_reference_reject_events_collection_limit.min(t)
+            }),
+        )?;
+
+        let mut items = sqlx::query_as!(
+            ModuleReferenceRejectEvent,
+            r#"SELECT
+                module_reference,
+                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>",
+                transactions.block_height,
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
+            FROM rejected_smart_contract_module_transactions
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE module_reference = $1
+                AND rejected_smart_contract_module_transactions.index >= $2
+            LIMIT $3
+        "#,
+            self.module_reference,
+            min_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = min_index > 0;
+        Ok(ModuleReferenceRejectEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
+    }
+
+    async fn module_reference_contract_link_events(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<ModuleReferenceContractLinkEventsCollectionSegment> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+        let min_index = i64::try_from(skip.unwrap_or(0))?;
+        let limit = i64::try_from(
+            take.map_or(config.module_reference_contract_link_events_collection_limit, |t| {
+                config.module_reference_contract_link_events_collection_limit.min(t)
+            }),
+        )?;
+
+        let mut items = sqlx::query_as!(
+            ModuleReferenceContractLinkEvent,
+            r#"SELECT
+                link_action as "link_action: ModuleReferenceContractLinkAction",
+                contract_index,
+                contract_sub_index,
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
+            FROM link_smart_contract_module_transactions
+                JOIN transactions ON transaction_index = transactions.index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE module_reference = $1
+                AND link_smart_contract_module_transactions.index >= $2
+            LIMIT $3
+        "#,
+            self.module_reference,
+            min_index,
+            limit + 1
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = min_index > 0;
+
+        Ok(ModuleReferenceContractLinkEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
+    }
+}
+
+#[derive(SimpleObject)]
+struct ModuleReferenceRejectEventsCollectionSegment {
+    page_info:   CollectionSegmentInfo,
+    items:       Vec<ModuleReferenceRejectEvent>,
+    total_count: u64,
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+struct ModuleReferenceRejectEvent {
+    module_reference: ModuleReference,
+    #[graphql(skip)]
+    reject:           Option<sqlx::types::Json<TransactionRejectReason>>,
+    block_height:     BlockHeight,
+    transaction_hash: TransactionHash,
+    block_slot_time:  DateTime,
+}
+#[ComplexObject]
+impl ModuleReferenceRejectEvent {
+    async fn rejected_event(&self) -> ApiResult<&TransactionRejectReason> {
+        if let Some(sqlx::types::Json(reason)) = self.reject.as_ref() {
+            Ok(reason)
+        } else {
+            Err(ApiError::InternalError(
+                "ModuleReferenceRejectEvent: No reject reason found".to_string(),
+            ))
+        }
+    }
+}
+
+#[derive(SimpleObject)]
+#[graphql(complex)]
+struct ModuleReferenceContractLinkEvent {
+    block_slot_time:    DateTime,
+    transaction_hash:   TransactionHash,
+    link_action:        ModuleReferenceContractLinkAction,
+    #[graphql(skip)]
+    contract_index:     i64,
+    #[graphql(skip)]
+    contract_sub_index: i64,
+}
+#[ComplexObject]
+impl ModuleReferenceContractLinkEvent {
+    async fn contract_address(&self) -> ApiResult<ContractAddress> {
+        ContractAddress::new(self.contract_index, self.contract_sub_index)
+    }
+}
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "module_reference_contract_link_action")]
+pub enum ModuleReferenceContractLinkAction {
+    Added,
+    Removed,
+}
+
+/// A segment of a collection.
+#[derive(SimpleObject)]
+struct ModuleReferenceContractLinkEventsCollectionSegment {
+    /// Information to aid in pagination.
+    page_info:   CollectionSegmentInfo,
+    /// A flattened list of the items.
+    items:       Vec<ModuleReferenceContractLinkEvent>,
+    total_count: u64,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5061,15 +5549,79 @@ pub struct ChainUpdatePayload {
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
 pub struct ContractInterrupted {
-    contract_address: ContractAddress,
-    // eventsAsHex("Returns the first _n_ elements from the list." first: Int "Returns the elements
-    // in the list that come after the specified cursor." after: String "Returns the last _n_
-    // elements from the list." last: Int "Returns the elements in the list that come before the
-    // specified cursor." before: String): StringConnection events("Returns the first _n_
-    // elements from the list." first: Int "Returns the elements in the list that come after the
-    // specified cursor." after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor." before: String):
-    // StringConnection
+    contract_address:  ContractAddress,
+    // All logged events by the smart contract during this section of the transaction execution.
+    contract_logs_raw: Vec<Vec<u8>>,
+}
+
+#[ComplexObject]
+impl ContractInterrupted {
+    async fn events_as_hex(&self) -> ApiResult<connection::Connection<String, String>> {
+        let mut connection = connection::Connection::new(true, true);
+
+        self.contract_logs_raw.iter().enumerate().for_each(|(index, log)| {
+            connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
+        });
+
+        // TODO: pagination info but not used at front-end currently (issue#318).
+
+        Ok(connection)
+    }
+
+    async fn events<'a>(
+        &self,
+        ctx: &Context<'a>,
+    ) -> ApiResult<connection::Connection<String, String>> {
+        let pool = get_pool(ctx)?;
+
+        let row = sqlx::query!(
+            "
+            SELECT
+                contracts.module_reference as module_reference,
+                name as contract_name,
+                schema as display_schema
+            FROM contracts
+            JOIN smart_contract_modules ON smart_contract_modules.module_reference = \
+             contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            self.contract_address.index.0 as i64,
+            self.contract_address.sub_index.0 as i64
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
+
+        let mut connection = connection::Connection::new(true, true);
+
+        for (index, log) in self.contract_logs_raw.iter().enumerate() {
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
+
+            connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
+        }
+
+        // TODO: pagination info but not used at front-end currently (issue#318).
+
+        Ok(connection)
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -5086,7 +5638,7 @@ pub struct ContractUpdated {
     amount:            Amount,
     receive_name:      String,
     version:           ContractVersion,
-    // All logged events by the smart contract during the transaction execution.
+    // All logged events by the smart contract during this section of the transaction execution.
     contract_logs_raw: Vec<Vec<u8>>,
     input_parameter:   Vec<u8>,
 }
@@ -5116,24 +5668,29 @@ impl ContractUpdated {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_receive_param_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema
-                    .get_receive_param_schema(
-                        &row.contract_name,
-                        ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+        // Get the receive param schema if it exists.
+        let opt_receive_param_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
                     )
-                    .ok()
-            });
+                })?;
+
+            versioned_schema
+                .get_receive_param_schema(
+                    &row.contract_name,
+                    ReceiveName::new_unchecked(&self.receive_name).entrypoint_name().into(),
+                )
+                .ok()
+        } else {
+            None
+        };
 
         let decoded_input_parameter = decode_value_with_schema(
             opt_receive_param_schema.as_ref(),
-            "receive param",
             &self.input_parameter,
-            "input parameter of receive function",
+            SmartContractSchemaNames::InputParameterReceiveFunction,
         );
 
         Ok(decoded_input_parameter)
@@ -5146,7 +5703,7 @@ impl ContractUpdated {
             connection.edges.push(connection::Edge::new(index.to_string(), hex::encode(log)));
         });
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }
@@ -5175,24 +5732,33 @@ impl ContractUpdated {
         .await?
         .ok_or(ApiError::NotFound)?;
 
-        let opt_event_schema = row
-            .display_schema
-            .as_ref()
-            .and_then(|schema| VersionedModuleSchema::new(schema, &None).ok())
-            .and_then(|versioned_schema| {
-                versioned_schema.get_event_schema(&row.contract_name).ok()
-            });
+        // Get the event schema if it exists.
+        let opt_event_schema = if let Some(event_schema) = row.display_schema.as_ref() {
+            let versioned_schema =
+                VersionedModuleSchema::new(event_schema, &None).map_err(|_| {
+                    ApiError::InternalError(
+                        "Database bytes should be a valid VersionedModuleSchema".to_string(),
+                    )
+                })?;
+
+            versioned_schema.get_event_schema(&row.contract_name).ok()
+        } else {
+            None
+        };
 
         let mut connection = connection::Connection::new(true, true);
 
         for (index, log) in self.contract_logs_raw.iter().enumerate() {
-            let decoded_log =
-                decode_value_with_schema(opt_event_schema.as_ref(), "event", log, "contract_log");
+            let decoded_log = decode_value_with_schema(
+                opt_event_schema.as_ref(),
+                log,
+                SmartContractSchemaNames::Event,
+            );
 
             connection.edges.push(connection::Edge::new(index.to_string(), decoded_log));
         }
 
-        // Nice-to-have: pagination info but not used at front-end currently.
+        // TODO: pagination info but not used at front-end currently (issue#318).
 
         Ok(connection)
     }

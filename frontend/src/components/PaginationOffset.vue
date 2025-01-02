@@ -118,7 +118,7 @@ const currentPage = computed(() => {
 const inputPage = ref()
 watch(
 	currentPage,
-	(newCurrentPage, _) => {
+	newCurrentPage => {
 		inputPage.value = newCurrentPage
 	},
 	{ immediate: true }

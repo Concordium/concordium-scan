@@ -34,13 +34,21 @@ struct Cli {
     metrics_listen:  SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config:      graphql_api::ApiServiceConfig,
+    #[arg(
+        long = "log-level",
+        default_value = "info",
+        help = "The maximum log level. Possible values are: `trace`, `debug`, `info`, `warn`, and \
+                `error`.",
+        env = "LOG_LEVEL"
+    )]
+    log_level:       tracing_subscriber::filter::LevelFilter,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
     let cli = Cli::parse();
-    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
+    tracing_subscriber::fmt().with_max_level(cli.log_level).init();
     let pool = PgPoolOptions::new()
         .min_connections(cli.min_connections)
         .max_connections(cli.max_connections)

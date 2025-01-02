@@ -19,7 +19,7 @@
 			<Tooltip text-class="text-left">
 				<template #content>
 					<div>
-						<span class="legend"></span>
+						<span class="legend" />
 						Validator:
 						<Amount
 							:amount="totalAmounts.baker"
@@ -28,7 +28,7 @@
 						/>
 					</div>
 					<div v-if="reward.bakerReward.delegatorsAmount">
-						<span class="legend legend-green"></span>
+						<span class="legend legend-green" />
 						Delegators:
 						<Amount
 							:amount="totalAmounts.delegators"
@@ -71,8 +71,8 @@
 	</TableRow>
 
 	<TableRow v-if="isOpen">
-		<TableTd v-if="breakpoint >= Breakpoint.SM"></TableTd>
-		<TableTd v-if="breakpoint >= Breakpoint.MD"></TableTd>
+		<TableTd v-if="breakpoint >= Breakpoint.SM" />
+		<TableTd v-if="breakpoint >= Breakpoint.MD" />
 		<TableTd :colspan="breakpoint >= Breakpoint.SM ? 1 : 3" align="right">
 			<div class="block">
 				<DescriptionList class="text-sm text-theme-faded">

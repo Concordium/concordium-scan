@@ -3,19 +3,25 @@
 
 use crate::graphql_api::{
     events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
-    CredentialDeploymentTransactionType, DbTransactionType, UpdateTransactionType,
+    CredentialDeploymentTransactionType, DbTransactionType, ModuleReferenceContractLinkAction,
+    UpdateTransactionType,
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use concordium_rust_sdk::{
-    base::{contracts_common::to_bytes, smart_contracts::WasmVersion},
-    common::types::Amount,
+    base::{
+        contracts_common::to_bytes,
+        smart_contracts::WasmVersion,
+        transactions::{BlockItem, EncodedPayload, Payload},
+    },
+    common::types::{Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
         AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails,
-        ContractInitializedEvent, ContractTraceElement, PartsPerHundredThousands, RewardsOverview,
+        ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
+        RejectReason, RewardsOverview, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -311,6 +317,7 @@ impl Indexer for BlockPreProcessor {
             let mut client1 = client.clone();
             let mut client2 = client.clone();
             let mut client3 = client.clone();
+            let mut client4 = client.clone();
             let get_events = async move {
                 let events = client3
                     .get_block_transaction_events(fbi.height)
@@ -321,11 +328,22 @@ impl Indexer for BlockPreProcessor {
                 Ok(events)
             };
 
+            let get_items = async move {
+                let items = client4
+                    .get_block_items(fbi.height)
+                    .await?
+                    .response
+                    .try_collect::<Vec<_>>()
+                    .await?;
+                Ok(items)
+            };
+
             let start_fetching = Instant::now();
-            let (block_info, chain_parameters, events, tokenomics_info) = try_join!(
+            let (block_info, chain_parameters, events, items, tokenomics_info) = try_join!(
                 client1.get_block_info(fbi.height),
                 client2.get_block_chain_parameters(fbi.height),
                 get_events,
+                get_items,
                 client.get_tokenomics_info(fbi.height)
             )?;
             let total_staked_capital = match tokenomics_info.response {
@@ -351,6 +369,7 @@ impl Indexer for BlockPreProcessor {
                 finalized_block_info: fbi,
                 block_info: block_info.response,
                 events,
+                items,
                 chain_parameters: chain_parameters.response,
                 tokenomics_info: tokenomics_info.response,
                 total_staked_capital,
@@ -525,6 +544,9 @@ impl ProcessEvent for BlockProcessor {
             }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
+        process_release_schedules(new_context.last_block_slot_time, &mut tx)
+            .await
+            .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
         // Update metrics.
         let duration = start_time.elapsed();
@@ -570,11 +592,28 @@ struct BlockProcessingContext {
     last_cumulative_num_txs: i64,
 }
 
+/// Process schedule releases based on the slot time of the last processed
+/// block.
+async fn process_release_schedules(
+    last_block_slot_time: DateTime<Utc>,
+    tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+) -> anyhow::Result<()> {
+    sqlx::query!(
+        "DELETE FROM scheduled_releases
+         WHERE release_time <= $1",
+        last_block_slot_time
+    )
+    .execute(tx.as_mut())
+    .await?;
+    Ok(())
+}
+
 /// Raw block information fetched from a Concordium Node.
 struct BlockData {
     finalized_block_info: FinalizedBlockInfo,
     block_info:           BlockInfo,
     events:               Vec<BlockItemSummary>,
+    items:                Vec<BlockItem<EncodedPayload>>,
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
@@ -724,9 +763,9 @@ impl PreparedBlock {
             i64::try_from(data.tokenomics_info.common_reward_data().total_amount.micro_ccd())?;
         let total_staked = i64::try_from(data.total_staked_capital.micro_ccd())?;
         let mut prepared_block_items = Vec::new();
-        for block_item in data.events.iter() {
+        for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, block_item).await?)
+                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
         Ok(Self {
             hash,
@@ -883,17 +922,18 @@ impl PreparedBlockItem {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
+        item_summary: &BlockItemSummary,
+        item: &BlockItem<EncodedPayload>,
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_item_index = i64::try_from(block_item.index.index)?;
-        let block_item_hash = block_item.hash.to_string();
+        let block_item_index = i64::try_from(item_summary.index.index)?;
+        let block_item_hash = item_summary.hash.to_string();
         let ccd_cost =
-            i64::try_from(data.chain_parameters.ccd_cost(block_item.energy_cost).micro_ccd)?;
-        let energy_cost = i64::try_from(block_item.energy_cost.energy)?;
-        let sender = block_item.sender_account().map(|a| a.to_string());
+            i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?;
+        let energy_cost = i64::try_from(item_summary.energy_cost.energy)?;
+        let sender = item_summary.sender_account().map(|a| a.to_string());
         let (transaction_type, account_type, credential_type, update_type) =
-            match &block_item.details {
+            match &item_summary.details {
                 BlockItemSummaryDetails::AccountTransaction(details) => {
                     let account_transaction_type =
                         details.transaction_type().map(AccountTransactionType::from);
@@ -909,9 +949,9 @@ impl PreparedBlockItem {
                     (DbTransactionType::Update, None, None, Some(update_type))
                 }
             };
-        let success = block_item.is_success();
+        let success = item_summary.is_success();
         let (events, reject) = if success {
-            let events = serde_json::to_value(events_from_summary(block_item.details.clone())?)?;
+            let events = serde_json::to_value(events_from_summary(item_summary.details.clone())?)?;
             (Some(events), None)
         } else {
             let reject =
@@ -922,7 +962,7 @@ impl PreparedBlockItem {
                             ..
                         },
                     ..
-                }) = &block_item.details
+                }) = &item_summary.details
                 {
                     serde_json::to_value(crate::graphql_api::TransactionRejectReason::try_from(
                         reject_reason.clone(),
@@ -933,9 +973,8 @@ impl PreparedBlockItem {
             (None, Some(reject))
         };
         let affected_accounts =
-            block_item.affected_addresses().into_iter().map(|a| a.to_string()).collect();
-
-        let prepared_event = PreparedEvent::prepare(node_client, data, block_item).await?;
+            item_summary.affected_addresses().into_iter().map(|a| a.to_string()).collect();
+        let prepared_event = PreparedEvent::prepare(node_client, data, item_summary, item).await?;
 
         Ok(Self {
             block_item_index,
@@ -1042,12 +1081,19 @@ enum PreparedEvent {
     AccountCreation(PreparedAccountCreation),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
+    /// Account delegation events
+    AccountDelegationEvents(Vec<PreparedAccountDelegationEvent>),
     /// Smart contract module got deployed.
     ModuleDeployed(PreparedModuleDeployed),
     /// Contract got initialized.
     ContractInitialized(PreparedContractInitialized),
+    /// Rejected transaction attempting to initialize a smart contract
+    /// instance or redeploying a module reference.
+    RejectModuleTransaction(PreparedRejectModuleTransaction),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
+    /// A scheduled transfer got executed.
+    ScheduledTransfer(PreparedScheduledReleases),
     /// No changes in the database was caused by this event.
     NoOperation,
 }
@@ -1055,29 +1101,71 @@ impl PreparedEvent {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
+        item_summary: &BlockItemSummary,
+        item: &BlockItem<EncodedPayload>,
     ) -> anyhow::Result<Option<Self>> {
-        let prepared_event = match &block_item.details {
+        let prepared_event = match &item_summary.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
                 Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data, block_item, details,
+                    data,
+                    item_summary,
+                    details,
                 )?))
             }
             BlockItemSummaryDetails::AccountTransaction(details) => match &details.effects {
                 AccountTransactionEffects::None {
                     transaction_type,
                     reject_reason,
-                } => None,
+                } => match transaction_type.as_ref() {
+                    Some(&TransactionType::InitContract) | Some(&TransactionType::DeployModule) => {
+                        if let RejectReason::ModuleNotWF
+                        | RejectReason::InvalidModuleReference {
+                            ..
+                        } = reject_reason
+                        {
+                            // Trying to initialize a smart contract from invalid module
+                            // reference or deploying invalid smart contract modules are not indexed
+                            // further.
+                            None
+                        } else {
+                            let decoded = if let BlockItem::AccountTransaction(ac) = item {
+                                ac.payload
+                                    .decode()
+                                    .context("Failed decoding account transaction payload")?
+                            } else {
+                                anyhow::bail!(
+                                    "Block item was expected to be an account transaction"
+                                )
+                            };
+                            let module_reference = match decoded {
+                                Payload::InitContract {
+                                    payload,
+                                } => payload.mod_ref,
+                                Payload::DeployModule {
+                                    module,
+                                } => module.get_module_ref(),
+                                _ => anyhow::bail!(
+                                    "Payload did not match InitContract or DeployModule as \
+                                     expected"
+                                ),
+                            };
+                            Some(PreparedEvent::RejectModuleTransaction(
+                                PreparedRejectModuleTransaction::prepare(module_reference)?,
+                            ))
+                        }
+                    }
+                    _ => None,
+                },
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
                 } => Some(PreparedEvent::ModuleDeployed(
-                    PreparedModuleDeployed::prepare(node_client, data, block_item, *module_ref)
+                    PreparedModuleDeployed::prepare(node_client, data, item_summary, *module_ref)
                         .await?,
                 )),
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
                 } => Some(PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(data, block_item, event_data)?,
+                    PreparedContractInitialized::prepare(data, item_summary, event_data)?,
                 )),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
@@ -1088,7 +1176,7 @@ impl PreparedEvent {
                         .map(|(trace_element_index, effect)| {
                             PreparedContractUpdate::prepare(
                                 data,
-                                block_item,
+                                item_summary,
                                 effect,
                                 trace_element_index,
                             )
@@ -1185,13 +1273,19 @@ impl PreparedEvent {
                 } => None,
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
-                    amount,
-                } => None,
+                    amount: scheduled_releases,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(),
+                    scheduled_releases,
+                )?)),
                 AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
-                    amount,
+                    amount: scheduled_releases,
                     memo,
-                } => None,
+                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    to.to_string(),
+                    scheduled_releases,
+                )?)),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     cred_id,
                 } => None,
@@ -1205,8 +1299,13 @@ impl PreparedEvent {
                 } => None,
 
                 AccountTransactionEffects::DelegationConfigured {
-                    data,
-                } => None,
+                    data: events,
+                } => Some(PreparedEvent::AccountDelegationEvents(
+                    events
+                        .iter()
+                        .map(PreparedAccountDelegationEvent::prepare)
+                        .collect::<anyhow::Result<Vec<_>>>()?,
+                )),
             },
             details => {
                 warn!("details = \n {:#?}", details);
@@ -1231,12 +1330,20 @@ impl PreparedEvent {
             }
             PreparedEvent::ModuleDeployed(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractInitialized(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::RejectModuleTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::ContractUpdate(events) => {
                 for event in events {
                     event.save(tx, tx_idx).await?;
                 }
                 Ok(())
             }
+            PreparedEvent::AccountDelegationEvents(events) => {
+                for event in events {
+                    event.save(tx).await?;
+                }
+                Ok(())
+            }
+            PreparedEvent::ScheduledTransfer(event) => event.save(tx, tx_idx).await,
             PreparedEvent::NoOperation => Ok(()),
         }
     }
@@ -1291,6 +1398,153 @@ impl PreparedAccountCreation {
         .execute(tx.as_mut())
         .await?;
 
+        Ok(())
+    }
+}
+
+enum PreparedAccountDelegationEvent {
+    StakeIncrease {
+        account_id: i64,
+        staked:     i64,
+    },
+    StakeDecrease {
+        account_id: i64,
+        staked:     i64,
+    },
+    SetRestakeEarnings {
+        account_id:       i64,
+        restake_earnings: bool,
+    },
+    Added {
+        account_id: i64,
+    },
+    Removed {
+        account_id: i64,
+    },
+    SetDelegationTarget {
+        account_id: i64,
+        target_id:  Option<i64>,
+    },
+    NoOperation,
+}
+
+impl PreparedAccountDelegationEvent {
+    fn prepare(event: &concordium_rust_sdk::types::DelegationEvent) -> anyhow::Result<Self> {
+        use concordium_rust_sdk::types::DelegationEvent;
+        let prepared = match event {
+            DelegationEvent::DelegationStakeIncreased {
+                delegator_id,
+                new_stake,
+            } => PreparedAccountDelegationEvent::StakeIncrease {
+                account_id: delegator_id.id.index.try_into()?,
+                staked:     new_stake.micro_ccd.try_into()?,
+            },
+            DelegationEvent::DelegationStakeDecreased {
+                delegator_id,
+                new_stake,
+            } => PreparedAccountDelegationEvent::StakeIncrease {
+                account_id: delegator_id.id.index.try_into()?,
+                staked:     new_stake.micro_ccd.try_into()?,
+            },
+            DelegationEvent::DelegationSetRestakeEarnings {
+                delegator_id,
+                restake_earnings,
+            } => PreparedAccountDelegationEvent::SetRestakeEarnings {
+                account_id:       delegator_id.id.index.try_into()?,
+                restake_earnings: *restake_earnings,
+            },
+            DelegationEvent::DelegationSetDelegationTarget {
+                delegator_id,
+                delegation_target,
+            } => PreparedAccountDelegationEvent::SetDelegationTarget {
+                account_id: delegator_id.id.index.try_into()?,
+                target_id:  if let DelegationTarget::Baker {
+                    baker_id,
+                } = delegation_target
+                {
+                    Some(baker_id.id.index.try_into()?)
+                } else {
+                    None
+                },
+            },
+            DelegationEvent::DelegationAdded {
+                delegator_id,
+            } => PreparedAccountDelegationEvent::Added {
+                account_id: delegator_id.id.index.try_into()?,
+            },
+            DelegationEvent::DelegationRemoved {
+                delegator_id,
+            } => PreparedAccountDelegationEvent::Removed {
+                account_id: delegator_id.id.index.try_into()?,
+            },
+            DelegationEvent::BakerRemoved {
+                baker_id,
+            } => PreparedAccountDelegationEvent::NoOperation,
+        };
+        Ok(prepared)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        match self {
+            PreparedAccountDelegationEvent::StakeIncrease {
+                account_id,
+                staked,
+            }
+            | PreparedAccountDelegationEvent::StakeDecrease {
+                account_id,
+                staked,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = $1 WHERE index = $2"#,
+                    staked,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedAccountDelegationEvent::Added {
+                account_id,
+            }
+            | PreparedAccountDelegationEvent::Removed {
+                account_id,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+
+            PreparedAccountDelegationEvent::SetRestakeEarnings {
+                account_id,
+                restake_earnings,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_restake_earnings = $1 WHERE index = $2"#,
+                    *restake_earnings,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedAccountDelegationEvent::SetDelegationTarget {
+                account_id,
+                target_id,
+            } => {
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_target_baker_id = $1 WHERE index = $2"#,
+                    *target_id,
+                    account_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedAccountDelegationEvent::NoOperation {} => (),
+        }
         Ok(())
     }
 }
@@ -1546,10 +1800,14 @@ impl PreparedBakerEvent {
                 .await?;
             }
             PreparedBakerEvent::RemoveDelegation {
-                delegator_id: _,
+                delegator_id,
             } => {
-                // TODO: Implement this when database is tracking delegation as well.
-                todo!()
+                sqlx::query!(
+                    r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
+                    delegator_id
+                )
+                .execute(tx.as_mut())
+                .await?;
             }
             PreparedBakerEvent::NoOperation => (),
         }
@@ -1610,13 +1868,64 @@ impl PreparedModuleDeployed {
     }
 }
 
+struct PreparedModuleLinkAction {
+    module_reference:   String,
+    contract_index:     i64,
+    contract_sub_index: i64,
+    link_action:        ModuleReferenceContractLinkAction,
+}
+impl PreparedModuleLinkAction {
+    fn prepare(
+        module_reference: sdk_types::hashes::ModuleReference,
+        contract_address: sdk_types::ContractAddress,
+        link_action: ModuleReferenceContractLinkAction,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            contract_index: i64::try_from(contract_address.index)?,
+            contract_sub_index: i64::try_from(contract_address.subindex)?,
+            module_reference: module_reference.into(),
+            link_action,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO link_smart_contract_module_transactions (
+                index,
+                module_reference,
+                transaction_index,
+                contract_index,
+                contract_sub_index,
+                link_action
+            ) VALUES (
+                (SELECT COALESCE(MAX(index) + 1, 0)
+                 FROM link_smart_contract_module_transactions
+                 WHERE module_reference = $1),
+                $1, $2, $3, $4, $5)"#,
+            self.module_reference,
+            transaction_index,
+            self.contract_index,
+            self.contract_sub_index,
+            self.link_action as ModuleReferenceContractLinkAction
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
 struct PreparedContractInitialized {
-    index:            i64,
-    sub_index:        i64,
-    module_reference: String,
-    name:             String,
-    amount:           i64,
-    height:           i64,
+    index:             i64,
+    sub_index:         i64,
+    module_reference:  String,
+    name:              String,
+    amount:            i64,
+    height:            i64,
+    module_link_event: PreparedModuleLinkAction,
 }
 
 impl PreparedContractInitialized {
@@ -1633,6 +1942,11 @@ impl PreparedContractInitialized {
         let amount = i64::try_from(event.amount.micro_ccd)?;
         let height = i64::try_from(data.finalized_block_info.height.height)?;
 
+        let module_link_event = PreparedModuleLinkAction::prepare(
+            module_reference,
+            event.address,
+            ModuleReferenceContractLinkAction::Added,
+        )?;
         Ok(Self {
             index,
             sub_index,
@@ -1640,6 +1954,7 @@ impl PreparedContractInitialized {
             name,
             amount,
             height,
+            module_link_event,
         })
     }
 
@@ -1666,7 +1981,43 @@ impl PreparedContractInitialized {
         )
         .execute(tx.as_mut())
         .await?;
+        self.module_link_event.save(tx, transaction_index).await?;
+        Ok(())
+    }
+}
 
+struct PreparedRejectModuleTransaction {
+    module_reference: String,
+}
+
+impl PreparedRejectModuleTransaction {
+    fn prepare(module_reference: sdk_types::hashes::ModuleReference) -> anyhow::Result<Self> {
+        Ok(Self {
+            module_reference: module_reference.into(),
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO rejected_smart_contract_module_transactions (
+                index,
+                module_reference,
+                transaction_index
+            ) VALUES (
+                (SELECT
+                    COALESCE(MAX(index) + 1, 0)
+                FROM rejected_smart_contract_module_transactions
+                WHERE module_reference = $1),
+            $1, $2)",
+            self.module_reference,
+            transaction_index
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
@@ -1676,6 +2027,8 @@ struct PreparedContractUpdate {
     height:              i64,
     contract_index:      i64,
     contract_sub_index:  i64,
+    /// Potential module link events from a smart contract upgrade
+    module_link_event:   Option<(PreparedModuleLinkAction, PreparedModuleLinkAction)>,
 }
 
 impl PreparedContractUpdate {
@@ -1692,11 +2045,32 @@ impl PreparedContractUpdate {
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
+        let module_link_event = match event {
+            &ContractTraceElement::Upgraded {
+                address,
+                from,
+                to,
+            } => Some((
+                PreparedModuleLinkAction::prepare(
+                    from,
+                    address,
+                    ModuleReferenceContractLinkAction::Removed,
+                )?,
+                PreparedModuleLinkAction::prepare(
+                    to,
+                    address,
+                    ModuleReferenceContractLinkAction::Added,
+                )?,
+            )),
+            _ => None,
+        };
+
         Ok(Self {
             trace_element_index,
             height,
             contract_index: index,
             contract_sub_index: sub_index,
+            module_link_event,
         })
     }
 
@@ -1724,8 +2098,77 @@ impl PreparedContractUpdate {
             self.contract_sub_index
         )
         .execute(tx.as_mut())
-        .await?;
+            .await?;
 
+        if let Some((remove, add)) = self.module_link_event.as_ref() {
+            remove.save(tx, transaction_index).await?;
+            add.save(tx, transaction_index).await?;
+        }
+
+        Ok(())
+    }
+}
+
+struct PreparedScheduledReleases {
+    account_address: String,
+    release_times:   Vec<DateTime<Utc>>,
+    amounts:         Vec<i64>,
+    total_amount:    i64,
+}
+
+impl PreparedScheduledReleases {
+    fn prepare(to: String, scheduled_releases: &[(Timestamp, Amount)]) -> anyhow::Result<Self> {
+        let capacity = scheduled_releases.len();
+        let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
+        let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
+        let mut total_amount = 0;
+        for (timestamp, amount) in scheduled_releases.iter() {
+            release_times.push(DateTime::<Utc>::try_from(*timestamp)?);
+            let micro_ccd = i64::try_from(amount.micro_ccd())?;
+            amounts.push(micro_ccd);
+            total_amount += micro_ccd;
+        }
+
+        Ok(Self {
+            account_address: to,
+            release_times,
+            amounts,
+            total_amount,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO scheduled_releases (
+                transaction_index,
+                account_index,
+                release_time,
+                amount
+            )
+            SELECT
+                $1,
+                (SELECT index FROM accounts WHERE address = $2),
+                UNNEST($3::TIMESTAMPTZ[]),
+                UNNEST($4::BIGINT[])
+            ",
+            transaction_index,
+            self.account_address,
+            &self.release_times,
+            &self.amounts
+        )
+        .execute(tx.as_mut())
+        .await?;
+        sqlx::query!(
+            "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
+            &self.total_amount,
+            self.account_address,
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }

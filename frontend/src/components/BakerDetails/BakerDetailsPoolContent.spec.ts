@@ -1,12 +1,6 @@
 import { h } from 'vue'
 import BakerDetailsPoolContent from './BakerDetailsPoolContent.vue'
-import {
-	setupComponent,
-	screen,
-	within,
-	fireEvent,
-	waitFor,
-} from '~/utils/testing'
+import { setupComponent, screen, within, fireEvent } from '~/utils/testing'
 import { BakerPoolOpenStatus } from '~/types/generated'
 
 jest.mock('~/composables/useDrawer', () => ({

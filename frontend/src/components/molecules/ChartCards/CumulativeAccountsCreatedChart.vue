@@ -1,6 +1,6 @@
 ﻿<template>
 	<KPICardContent>
-		<template #topRight></template>
+		<template #topRight />
 		<template #title>Cumulative Accounts Created</template>
 		<template #icon><UserIcon class="w-6 h-6" /></template>
 		<template #value>{{
