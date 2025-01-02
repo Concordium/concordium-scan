@@ -2442,7 +2442,7 @@ struct AccountToken {
     token_id:           String,
     balance:            BigInteger,
     token:              Token,
-    account_index:      i64,
+    account_id:         i64,
     account:            Account,
 }
 
