@@ -1094,7 +1094,7 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new() -> (Self, SubscriptionContext) {
+    pub fn new(retry_delay_sec: u64) -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
         let (accounts_updated_sender, accounts_updated) = broadcast::channel(100);
         (
@@ -1105,6 +1105,7 @@ impl Subscription {
             SubscriptionContext {
                 block_added_sender,
                 accounts_updated_sender,
+                retry_delay_sec,
             },
         )
     }
@@ -1155,6 +1156,7 @@ impl Subscription {
 pub struct SubscriptionContext {
     block_added_sender:      broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
+    retry_delay_sec:         u64,
 }
 
 impl SubscriptionContext {
@@ -1170,7 +1172,6 @@ impl SubscriptionContext {
                     break; // Graceful exit, stop the loop
                 }
                 Err(err) => {
-                    println!("err: {:?}", err);
                     error!("PgListener encountered an error: {}. Retrying...", err);
 
                     // Check if the stop signal has been triggered before retrying
@@ -1178,8 +1179,7 @@ impl SubscriptionContext {
                         info!("Stop signal received. Exiting PgListener loop.");
                         break;
                     }
-
-                    tokio::time::sleep(std::time::Duration::from_secs(Self::RETRY_DELAY_SEC)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(self.retry_delay_sec)).await;
                 }
             }
         }
@@ -1230,7 +1230,7 @@ impl SubscriptionContext {
 
         // Handle early exit due to stop signal or errors
         if let Some(result) = exit {
-            result.context("Failed while listening")?;
+            result.context("Failed while listening on database changes")?;
         }
 
         Ok(())
