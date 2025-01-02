@@ -2374,7 +2374,9 @@ struct AccountStatementEntry {
     entry_type:      AccountStatementEntryType,
     amount:          Amount,
     account_balance: Amount,
+    #[graphql(skip)]
     transaction_id:  Option<TransactionIndex>,
+    #[graphql(skip)]
     block_height:    BlockHeight,
 }
 
