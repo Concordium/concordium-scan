@@ -1,10 +1,8 @@
-use axum::extract::State;
+use axum::{extract::State, routing::get, Json, Router};
 use prometheus_client::registry::Registry;
-use std::sync::Arc;
-use axum::{Json, Router};
-use axum::routing::get;
 use serde_json::json;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
@@ -15,18 +13,11 @@ pub async fn serve(
     pool: PgPool,
     stop_signal: CancellationToken,
 ) -> anyhow::Result<()> {
-    let health_routes = Router::new()
-        .route("/", get(health))
-        .with_state(pool);
+    let health_routes = Router::new().route("/", get(health)).with_state(pool);
 
-    let metric_routes =
-        Router::new()
-            .route("/", get(metrics)).with_state(Arc::new(registry));
+    let metric_routes = Router::new().route("/", get(metrics)).with_state(Arc::new(registry));
 
-    let app =
-        Router::new()
-            .nest("/metrics", metric_routes)
-            .nest("/health", health_routes);
+    let app = Router::new().nest("/metrics", metric_routes).nest("/health", health_routes);
     axum::serve(tcp_listener, app).with_graceful_shutdown(stop_signal.cancelled_owned()).await?;
     Ok(())
 }
