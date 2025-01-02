@@ -1155,12 +1155,12 @@ impl Subscription {
 pub struct SubscriptionContext {
     block_added_sender:      broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
+    retry_delay_sec:         u64,
 }
 
 impl SubscriptionContext {
     const ACCOUNTS_UPDATED_CHANNEL: &'static str = "account_updated";
     const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
-    const RETRY_DELAY_SEC: u64 = 5;
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
         loop {
@@ -1178,7 +1178,7 @@ impl SubscriptionContext {
                         break;
                     }
 
-                    tokio::time::sleep(std::time::Duration::from_secs(Self::RETRY_DELAY_SEC)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(self.retry_delay_sec)).await;
                 }
             }
         }
@@ -1228,7 +1228,7 @@ impl SubscriptionContext {
 
         // Handle early exit due to stop signal or errors
         if let Some(result) = exit {
-            result.context("Failed while listening")?;
+            result.context("Failed while listening on database changes")?;
         }
 
         Ok(())
