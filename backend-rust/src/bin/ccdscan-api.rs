@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_graphql::SDLExportOptions;
 use clap::Parser;
-use concordium_scan::{graphql_api, metrics};
+use concordium_scan::{graphql_api, router};
 use prometheus_client::registry::Registry;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::SocketAddr, path::PathBuf};
@@ -31,9 +31,9 @@ struct Cli {
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
     listen:                    SocketAddr,
-    /// Address to listen to for metrics requests.
-    #[arg(long, env = "CCDSCAN_API_METRICS_ADDRESS", default_value = "127.0.0.1:8003")]
-    metrics_listen:            SocketAddr,
+    /// Address to listen for monitoring related requests
+    #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8003")]
+    monitoring_listen:         SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
     api_config:                graphql_api::ApiServiceConfig,
     #[arg(
@@ -80,6 +80,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let mut queries_task = {
+        let pool = pool.clone();
         let service = graphql_api::Service::new(subscription, &mut registry, pool, cli.api_config);
         if let Some(schema_file) = cli.schema_out {
             info!("Writing schema to {}", schema_file.to_string_lossy());
@@ -97,13 +98,13 @@ async fn main() -> anyhow::Result<()> {
         info!("Server is running at {:?}", cli.listen);
         tokio::spawn(async move { service.serve(tcp_listener, stop_signal).await })
     };
-    let mut metrics_task = {
-        let tcp_listener = TcpListener::bind(cli.metrics_listen)
+    let mut monitoring_task = {
+        let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
-        info!("Metrics server is running at {:?}", cli.metrics_listen);
-        tokio::spawn(metrics::serve(registry, tcp_listener, stop_signal))
+        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
+        tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
     };
 
     // Await for signal to shutdown or any of the tasks to stop.
@@ -113,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
             cancel_token.cancel();
             let _ = queries_task.await?;
             let _ = pgnotify_listener.await?;
-            let _ = metrics_task.await?;
+            let _ = monitoring_task.await?;
         },
         result = &mut queries_task => {
             error!("Queries task stopped.");
@@ -123,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
             info!("Shutting down");
             cancel_token.cancel();
             let _ = pgnotify_listener.await?;
-            let _ = metrics_task.await?;
+            let _ = monitoring_task.await?;
         },
         result = &mut pgnotify_listener => {
             error!("Pgnotify listener task stopped.");
@@ -133,12 +134,12 @@ async fn main() -> anyhow::Result<()> {
             info!("Shutting down");
             cancel_token.cancel();
             let _ = queries_task.await?;
-            let _ = metrics_task.await?;
+            let _ = monitoring_task.await?;
         },
-        result = &mut metrics_task => {
-            error!("Metrics task stopped.");
+        result = &mut monitoring_task => {
+            error!("Monitoring task stopped.");
             if let Err(err) = result? {
-                error!("Metrics error: {}", err);
+                error!("Monitoring error: {}", err);
             }
             cancel_token.cancel();
             let _ = queries_task.await?;
