@@ -44,7 +44,7 @@ use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::error;
+use tracing::{error, info};
 use transaction_metrics::TransactionMetricsQuery;
 
 const VERSION: &str = clap::crate_version!();
@@ -1094,7 +1094,7 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new() -> (Self, SubscriptionContext) {
+    pub fn new(retry_delay_sec: u64) -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
         let (accounts_updated_sender, accounts_updated) = broadcast::channel(100);
         (
@@ -1105,6 +1105,7 @@ impl Subscription {
             SubscriptionContext {
                 block_added_sender,
                 accounts_updated_sender,
+                retry_delay_sec,
             },
         )
     }
@@ -1155,6 +1156,7 @@ impl Subscription {
 pub struct SubscriptionContext {
     block_added_sender:      broadcast::Sender<Block>,
     accounts_updated_sender: broadcast::Sender<AccountsUpdatedSubscriptionItem>,
+    retry_delay_sec:         u64,
 }
 
 impl SubscriptionContext {
@@ -1162,14 +1164,42 @@ impl SubscriptionContext {
     const BLOCK_ADDED_CHANNEL: &'static str = "block_added";
 
     pub async fn listen(self, pool: PgPool, stop_signal: CancellationToken) -> anyhow::Result<()> {
-        let mut listener = sqlx::postgres::PgListener::connect_with(&pool)
+        loop {
+            match self.run_listener(&pool, &stop_signal).await {
+                Ok(_) => {
+                    info!("PgListener stopped gracefully.");
+                    break; // Graceful exit, stop the loop
+                }
+                Err(err) => {
+                    error!("PgListener encountered an error: {}. Retrying...", err);
+
+                    // Check if the stop signal has been triggered before retrying
+                    if stop_signal.is_cancelled() {
+                        info!("Stop signal received. Exiting PgListener loop.");
+                        break;
+                    }
+
+                    tokio::time::sleep(std::time::Duration::from_secs(self.retry_delay_sec)).await;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn run_listener(
+        &self,
+        pool: &PgPool,
+        stop_signal: &CancellationToken,
+    ) -> anyhow::Result<()> {
+        let mut listener = sqlx::postgres::PgListener::connect_with(pool)
             .await
-            .context("Failed to create a postgreSQL listener")?;
+            .context("Failed to create a PostgreSQL listener")?;
 
         listener
             .listen_all([Self::BLOCK_ADDED_CHANNEL, Self::ACCOUNTS_UPDATED_CHANNEL])
             .await
-            .context("Failed to listen to postgreSQL notifications")?;
+            .context("Failed to listen to PostgreSQL notifications")?;
 
         let exit = stop_signal
             .run_until_cancelled(async move {
@@ -1179,7 +1209,7 @@ impl SubscriptionContext {
                         Self::BLOCK_ADDED_CHANNEL => {
                             let block_height = BlockHeight::from_str(notification.payload())
                                 .context("Failed to parse payload of block added")?;
-                            let block = Block::query_by_height(&pool, block_height).await?;
+                            let block = Block::query_by_height(pool, block_height).await?;
                             self.block_added_sender.send(block)?;
                         }
 
@@ -1197,8 +1227,9 @@ impl SubscriptionContext {
             })
             .await;
 
+        // Handle early exit due to stop signal or errors
         if let Some(result) = exit {
-            result.context("Failed listening")?;
+            result.context("Failed while listening on database changes")?;
         }
 
         Ok(())
