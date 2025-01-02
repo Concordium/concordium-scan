@@ -1203,7 +1203,6 @@ impl SubscriptionContext {
         let exit = stop_signal
             .run_until_cancelled(async move {
                 loop {
-                    println!("Listening for notifications...");
                     let notification = listener.recv().await?;
                     match notification.channel() {
                         Self::BLOCK_ADDED_CHANNEL => {
