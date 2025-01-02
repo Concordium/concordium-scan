@@ -36,9 +36,9 @@ struct Cli {
         default_value = "http://localhost:20000"
     )]
     node:            Vec<v2::Endpoint>,
-    /// Address to listen for metrics requests
-    #[arg(long, env = "CCDSCAN_INDEXER_METRICS_ADDRESS", default_value = "127.0.0.1:8001")]
-    metrics_listen:  SocketAddr,
+    /// Address to listen for monitoring related requests
+    #[arg(long, env = "CCDSCAN_INDEXER_MONITORING_ADDRESS", default_value = "127.0.0.1:8001")]
+    monitoring_listen:  SocketAddr,
     #[command(flatten, next_help_heading = "Performance tuning")]
     indexer_config:  IndexerServiceConfig,
     #[arg(
@@ -83,13 +83,13 @@ async fn main() -> anyhow::Result<()> {
             indexer::IndexerService::new(cli.node, pool, &mut registry, cli.indexer_config).await?;
         tokio::spawn(async move { indexer.run(stop_signal).await })
     };
-    let mut metrics_task = {
+    let mut monitoring_task = {
         let pool = pool.clone();
-        let tcp_listener = TcpListener::bind(cli.metrics_listen)
+        let tcp_listener = TcpListener::bind(cli.monitoring_listen)
             .await
             .context("Parsing TCP listener address failed")?;
         let stop_signal = cancel_token.child_token();
-        info!("Metrics server is running at {:?}", cli.metrics_listen);
+        info!("Monitoring server is running at {:?}", cli.monitoring_listen);
         tokio::spawn(router::serve(registry, tcp_listener, pool, stop_signal))
     };
     // Await for signal to shutdown or any of the tasks to stop.
@@ -98,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
             info!("Received signal to shutdown");
             cancel_token.cancel();
             let _ = indexer_task.await?;
-            let _ = metrics_task.await?;
+            let _ = monitoring_task.await?;
         },
         result = &mut indexer_task => {
             error!("Indexer task stopped.");
@@ -106,12 +106,12 @@ async fn main() -> anyhow::Result<()> {
                 error!("Indexer error: {}", err);
             }
             cancel_token.cancel();
-            let _ = metrics_task.await?;
+            let _ = monitoring_task.await?;
         }
-        result = &mut metrics_task => {
-            error!("Metrics task stopped.");
+        result = &mut monitoring_task => {
+            error!("Monitoring task stopped.");
             if let Err(err) = result? {
-                error!("Metrics error: {}", err);
+                error!("Monitoring error: {}", err);
             }
             cancel_token.cancel();
             let _ = indexer_task.await?;
