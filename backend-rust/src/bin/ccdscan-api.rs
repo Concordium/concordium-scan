@@ -16,26 +16,26 @@ struct Cli {
     /// Use an environment variable when the connection contains a password, as
     /// command line arguments are visible across OS processes.
     #[arg(long, env = "DATABASE_URL")]
-    database_url:        String,
-    #[arg(long, env = "DATABASE_RETRY_SECS", default_value_t = 5)]
-    database_retry_secs: String,
+    database_url:              String,
+    #[arg(long, env = "DATABASE_RETRY_DELAY_SECS", default_value_t = 5)]
+    database_retry_delay_secs: u64,
     /// Minimum number of connections in the pool.
     #[arg(long, env = "DATABASE_MIN_CONNECTIONS", default_value_t = 5)]
-    min_connections:     u32,
+    min_connections:           u32,
     /// Maximum number of connections in the pool.
     #[arg(long, env = "DATABASE_MAX_CONNECTIONS", default_value_t = 10)]
-    max_connections:     u32,
+    max_connections:           u32,
     /// Output the GraphQL Schema for the API to this path.
     #[arg(long)]
-    schema_out:          Option<PathBuf>,
+    schema_out:                Option<PathBuf>,
     /// Address to listen to for API requests.
     #[arg(long, env = "CCDSCAN_API_ADDRESS", default_value = "127.0.0.1:8000")]
-    listen:              SocketAddr,
+    listen:                    SocketAddr,
     /// Address to listen to for metrics requests.
     #[arg(long, env = "CCDSCAN_API_METRICS_ADDRESS", default_value = "127.0.0.1:8003")]
-    metrics_listen:      SocketAddr,
+    metrics_listen:            SocketAddr,
     #[command(flatten, next_help_heading = "Configuration")]
-    api_config:          graphql_api::ApiServiceConfig,
+    api_config:                graphql_api::ApiServiceConfig,
     #[arg(
         long = "log-level",
         default_value = "info",
@@ -43,7 +43,7 @@ struct Cli {
                 `error`.",
         env = "LOG_LEVEL"
     )]
-    log_level:           tracing_subscriber::filter::LevelFilter,
+    log_level:                 tracing_subscriber::filter::LevelFilter,
 }
 
 #[tokio::main]
@@ -71,7 +71,8 @@ async fn main() -> anyhow::Result<()> {
         prometheus_client::metrics::gauge::ConstGauge::new(chrono::Utc::now().timestamp_millis()),
     );
 
-    let (subscription, subscription_listener) = graphql_api::Subscription::new();
+    let (subscription, subscription_listener) =
+        graphql_api::Subscription::new(cli.database_retry_delay_secs);
     let mut pgnotify_listener = {
         let pool = pool.clone();
         let stop_signal = cancel_token.child_token();

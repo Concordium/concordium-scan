@@ -1094,7 +1094,7 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new() -> (Self, SubscriptionContext) {
+    pub fn new(retry_delay_sec: u64) -> (Self, SubscriptionContext) {
         let (block_added_sender, block_added) = broadcast::channel(100);
         let (accounts_updated_sender, accounts_updated) = broadcast::channel(100);
         (
@@ -1105,6 +1105,7 @@ impl Subscription {
             SubscriptionContext {
                 block_added_sender,
                 accounts_updated_sender,
+                retry_delay_sec,
             },
         )
     }
