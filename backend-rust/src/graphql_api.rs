@@ -1178,6 +1178,7 @@ impl SubscriptionContext {
                         info!("Stop signal received. Exiting PgListener loop.");
                         break;
                     }
+
                     tokio::time::sleep(std::time::Duration::from_secs(self.retry_delay_sec)).await;
                 }
             }
