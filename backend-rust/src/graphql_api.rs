@@ -84,6 +84,12 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_tokens_collection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -1626,8 +1632,79 @@ impl Contract {
         todo_api!()
     }
 
-    async fn tokens(&self, skip: u32, take: u32) -> ApiResult<TokensCollectionSegment> {
-        todo_api!()
+    // This function fetches CIS2 tokens associated to a given contract, ordered by
+    // their creation index in descending order. It retrieves the most recent
+    // tokens first, with support for pagination through `skip` and `take`
+    // parameters.
+    // - `skip` determines how many of the most recent tokens to skip.
+    // - `take` controls the number of tokens to return, respecting the collection
+    //   limit.
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
+    ) -> ApiResult<TokensCollectionSegment> {
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+
+        let max_token_index = sqlx::query_scalar!(
+            "SELECT MAX(token_index_per_contract)
+            FROM tokens
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0) as u64;
+
+        let max_index = max_token_index.saturating_sub(skip.unwrap_or(0));
+        let limit = i64::try_from(take.map_or(config.contract_tokens_collection_limit, |t| {
+            config.contract_tokens_collection_limit.min(t)
+        }))?;
+
+        let mut items = sqlx::query_as!(
+            Token,
+            "SELECT
+                total_supply as raw_total_supply,
+                token_id,
+                contract_index,
+                contract_sub_index,
+                token_address,
+                metadata_url,
+                init_transaction_index
+            FROM tokens
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2
+                AND tokens.token_index_per_contract <= $3
+            ORDER BY tokens.token_index_per_contract DESC
+            LIMIT $4
+            ",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            max_index as i64,
+            limit as i64 + 1,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = max_token_index > max_index;
+
+        Ok(TokensCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
     }
 }
 

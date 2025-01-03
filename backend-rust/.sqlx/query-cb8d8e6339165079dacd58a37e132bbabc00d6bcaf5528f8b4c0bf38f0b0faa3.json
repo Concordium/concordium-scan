@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                total_supply as raw_total_supply,\n                token_id,\n                contract_index,\n                contract_sub_index,\n                token_address,\n                metadata_url,\n                init_transaction_index\n            FROM tokens\n            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2\n                AND tokens.token_index_per_contract <= $3\n            ORDER BY tokens.token_index_per_contract DESC\n            LIMIT $4\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "raw_total_supply",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "token_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "metadata_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "init_transaction_index",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "cb8d8e6339165079dacd58a37e132bbabc00d6bcaf5528f8b4c0bf38f0b0faa3"
+}
