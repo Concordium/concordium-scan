@@ -23,7 +23,7 @@ use concordium_rust_sdk::{
     types::{
         self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
         AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
-        BlockItemSummaryDetails, ContractInitializedEvent, ContractAddress, ContractTraceElement,
+        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
         DelegationTarget, PartsPerHundredThousands, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
     },
