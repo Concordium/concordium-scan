@@ -2463,11 +2463,11 @@ impl AccountReward {
     }
 
     async fn reward_type(&self, ctx: &Context<'_>) -> ApiResult<RewardType> {
-        let transaction: RewardType = self.entry_type.try_into().or_else(|_| {
-            Err(ApiError::InternalError(format!(
+        let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
+            ApiError::InternalError(format!(
                 "AccountStatementEntryType: Not a valid reward type: {}",
                 &self.entry_type
-            )))
+            ))
         })?;
         Ok(transaction)
     }

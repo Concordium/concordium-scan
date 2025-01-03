@@ -801,11 +801,7 @@ impl PreparedBlock {
             .special_events
             .iter()
             .flat_map(|event| {
-                PreparedBlockSpecialEvent::prepare(
-                    event,
-                    data.block_info.block_slot_time,
-                    data.block_info.block_height,
-                )
+                PreparedBlockSpecialEvent::prepare(event, data.block_info.block_height)
             })
             .flatten()
             .filter(|event| event.amount > 0)
@@ -924,14 +920,12 @@ struct PreparedBlockSpecialEvent {
     account_address:  String,
     amount:           i64,
     block_height:     i64,
-    slot_time:        DateTime<Utc>,
     transaction_type: AccountStatementEntryType,
 }
 
 impl PreparedBlockSpecialEvent {
     fn prepare(
         event: &SpecialTransactionOutcome,
-        slot_time: DateTime<Utc>,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Vec<Self>> {
         let results = match &event {
@@ -942,10 +936,9 @@ impl PreparedBlockSpecialEvent {
                 .iter()
                 .map(|(account_address, amount)| {
                     Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
-                        account_address: account_address.to_string(),
-                        amount: amount.micro_ccd.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        slot_time,
+                        account_address:  account_address.to_string(),
+                        amount:           amount.micro_ccd.try_into()?,
+                        block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::BakerReward,
                     })
                 })
@@ -955,10 +948,9 @@ impl PreparedBlockSpecialEvent {
                 mint_platform_development_charge,
                 ..
             } => vec![PreparedBlockSpecialEvent {
-                account_address: foundation_account.to_string(),
-                amount: mint_platform_development_charge.micro_ccd.try_into()?,
-                block_height: block_height.height.try_into()?,
-                slot_time,
+                account_address:  foundation_account.to_string(),
+                amount:           mint_platform_development_charge.micro_ccd.try_into()?,
+                block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
             }],
             SpecialTransactionOutcome::FinalizationRewards {
@@ -968,10 +960,9 @@ impl PreparedBlockSpecialEvent {
                 .iter()
                 .map(|(account_address, amount)| {
                     Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
-                        account_address: account_address.to_string(),
-                        amount: amount.micro_ccd.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        slot_time,
+                        account_address:  account_address.to_string(),
+                        amount:           amount.micro_ccd.try_into()?,
+                        block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::FinalizationReward,
                     })
                 })
@@ -984,17 +975,15 @@ impl PreparedBlockSpecialEvent {
                 ..
             } => vec![
                 PreparedBlockSpecialEvent {
-                    account_address: foundation_account.to_string(),
-                    amount: foundation_charge.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
+                    account_address:  foundation_account.to_string(),
+                    amount:           foundation_charge.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FoundationReward,
                 },
                 PreparedBlockSpecialEvent {
-                    account_address: baker.to_string(),
-                    amount: baker_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
+                    account_address:  baker.to_string(),
+                    amount:           baker_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
                 },
             ],
@@ -1002,10 +991,9 @@ impl PreparedBlockSpecialEvent {
                 foundation_account,
                 development_charge,
             } => vec![PreparedBlockSpecialEvent {
-                account_address: foundation_account.to_string(),
-                amount: development_charge.micro_ccd.try_into()?,
-                block_height: block_height.height.try_into()?,
-                slot_time,
+                account_address:  foundation_account.to_string(),
+                amount:           development_charge.micro_ccd.try_into()?,
+                block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
             }],
             SpecialTransactionOutcome::PaydayAccountReward {
@@ -1015,27 +1003,25 @@ impl PreparedBlockSpecialEvent {
                 finalization_reward,
             } => vec![
                 PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: transaction_fees.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
+                    account_address:  account.to_string(),
+                    amount:           transaction_fees.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::TransactionFeeReward,
                 },
                 PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: baker_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
+                    account_address:  account.to_string(),
+                    amount:           baker_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
                 },
                 PreparedBlockSpecialEvent {
-                    account_address: account.to_string(),
-                    amount: finalization_reward.micro_ccd.try_into()?,
-                    block_height: block_height.height.try_into()?,
-                    slot_time,
+                    account_address:  account.to_string(),
+                    amount:           finalization_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FinalizationReward,
                 },
             ],
+            // TODO: These also impact a baker
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
             }
