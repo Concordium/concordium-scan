@@ -168,6 +168,7 @@ impl From<concordium_rust_sdk::types::UpdateType> for UpdateTransactionType {
             UpdateType::UpdateFinalizationCommitteeParameters => {
                 UpdateTransactionType::FinalizationCommitteeParametersUpdate
             }
+            UpdateType::UpdateValidatorScoreParameters => todo!(),
         }
     }
 }

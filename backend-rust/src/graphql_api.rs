@@ -42,6 +42,7 @@ use async_graphql::{
     Schema, SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
+use bigdecimal::BigDecimal;
 use chrono::Duration;
 use concordium_rust_sdk::{
     base::contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
@@ -291,7 +292,7 @@ mod monitor {
             }
         }
     }
-    impl<'a> futures::stream::Stream for WrappedStream<'a> {
+    impl futures::stream::Stream for WrappedStream<'_> {
         type Item = async_graphql::Response;
 
         fn poll_next(
@@ -301,7 +302,7 @@ mod monitor {
             self.inner.poll_next_unpin(cx)
         }
     }
-    impl<'a> std::ops::Drop for WrappedStream<'a> {
+    impl std::ops::Drop for WrappedStream<'_> {
         fn drop(&mut self) { self.active_subscriptions.dec(); }
     }
 }
@@ -648,7 +649,19 @@ impl BaseQuery {
                     -- Need to filter for only delegators if the user requests this.
                     (NOT $7 OR delegated_stake > 0)
                 ORDER BY
-                    -- Order by the field requested, and by desc/asc as appropriate.
+                    -- Order by the field requested. Depending on the order of the collection
+                    -- and whether it is the first or last being queried, this sub-query must
+                    -- order by:
+                    --
+                    -- | Collection | Operation | Sub-query |
+                    -- |------------|-----------|-----------|
+                    -- | ASC        | first     | ASC       |
+                    -- | DESC       | first     | DESC      |
+                    -- | ASC        | last      | DESC      |
+                    -- | DESC       | last      | ASC       |
+                    --
+                    -- Note that `$8` below represents `is_desc != is_last`.
+                    --
                     -- The first condition is true if we order by that field.
                     -- Otherwise false, which makes the CASE null, which means
                     -- it will not affect the ordering at all.
@@ -662,16 +675,19 @@ impl BaseQuery {
                     (CASE WHEN $6 AND NOT $8 THEN delegated_stake END) ASC
                 LIMIT $9
             )
-            -- We need to order each page ASC still, we only use the DESC/ASC ordering above
+            -- We need to order each page still, as we only use the DESC/ASC ordering above
             -- to select page items from the start/end of the range.
-            -- Each page must still independently be ordered ascending.
+            -- Each page must still independently be ordered.
             -- See also https://relay.dev/graphql/connections.htm#sec-Edge-order
-            ORDER BY CASE
-                WHEN $3 THEN index
-                WHEN $4 THEN amount
-                WHEN $5 THEN num_txs
-                WHEN $6 THEN delegated_stake
-            END ASC",
+            ORDER BY
+                (CASE WHEN $3 AND $10     THEN index           END) DESC,
+                (CASE WHEN $3 AND NOT $10 THEN index           END) ASC,
+                (CASE WHEN $4 AND $10     THEN amount          END) DESC,
+                (CASE WHEN $4 AND NOT $10 THEN amount          END) ASC,
+                (CASE WHEN $5 AND $10     THEN num_txs         END) DESC,
+                (CASE WHEN $5 AND NOT $10 THEN num_txs         END) ASC,
+                (CASE WHEN $6 AND $10     THEN delegated_stake END) DESC,
+                (CASE WHEN $6 AND NOT $10 THEN delegated_stake END) ASC",
             query.from,
             query.to,
             matches!(order.field, AccountOrderField::Age),
@@ -679,8 +695,9 @@ impl BaseQuery {
             matches!(order.field, AccountOrderField::TransactionCount),
             matches!(order.field, AccountOrderField::DelegatedStake),
             filter.map(|f| f.is_delegator).unwrap_or_default(),
-            matches!(order.dir, OrderDir::Desc),
+            query.desc != matches!(order.dir, OrderDir::Desc),
             query.limit,
+            matches!(order.dir, OrderDir::Desc),
         )
         .fetch(pool);
 
@@ -858,8 +875,40 @@ LIMIT 30", // WHERE slot_time > (LOCALTIMESTAMP - $1::interval)
     // the elements in the list that come after the specified cursor." after:
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection token(contractIndex: UnsignedLong!
-    // contractSubIndex: UnsignedLong! tokenId: String!): Token!
+    // String): TokensConnection
+
+    async fn token<'a>(
+        &self,
+        ctx: &Context<'a>,
+        contract_index: ContractIndex,
+        contract_sub_index: ContractIndex,
+        token_id: String,
+    ) -> ApiResult<Token> {
+        let pool = get_pool(ctx)?;
+
+        let token = sqlx::query_as!(
+            Token,
+            "SELECT
+                total_supply as raw_total_supply,
+                token_id,
+                contract_index,
+                contract_sub_index,
+                token_address,
+                metadata_url,
+                init_transaction_index
+            FROM tokens
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
+             tokens.token_id = $3",
+            contract_index.0 as i64,
+            contract_sub_index.0 as i64,
+            token_id
+        )
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+
+        Ok(token)
+    }
 
     async fn contract<'a>(
         &self,
@@ -2241,28 +2290,56 @@ impl AccountReleaseScheduleItem {
 }
 
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct AccountToken {
     contract_index:     ContractIndex,
     contract_sub_index: ContractIndex,
     token_id:           String,
-    balance:            BigInteger,
+    #[graphql(skip)]
+    raw_balance:        BigDecimal,
     token:              Token,
     account_id:         i64,
     account:            Account,
 }
 
+#[ComplexObject]
+impl AccountToken {
+    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+        Ok(BigInteger::from(self.raw_balance.clone()))
+    }
+}
+
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct Token {
-    initial_transaction:        Transaction,
-    contract_index:             ContractIndex,
-    contract_sub_index:         ContractIndex,
-    token_id:                   String,
-    metadata_url:               String,
-    total_supply:               BigInteger,
-    contract_address_formatted: String,
-    token_address:              String,
+    #[graphql(skip)]
+    init_transaction_index: TransactionIndex,
+    contract_index:         i64,
+    contract_sub_index:     i64,
+    token_id:               String,
+    metadata_url:           Option<String>,
+    #[graphql(skip)]
+    raw_total_supply:       BigDecimal,
+    token_address:          String,
     // TODO accounts(skip: Int take: Int): AccountsCollectionSegment
     // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
+}
+
+#[ComplexObject]
+impl Token {
+    async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
+        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or(
+            ApiError::InternalError("Token: No transaction at init_transaction_index".to_string()),
+        )
+    }
+
+    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
+        Ok(BigInteger::from(self.raw_total_supply.clone()))
+    }
+
+    async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {
+        Ok(format!("<{},{}>", self.contract_index, self.contract_sub_index))
+    }
 }
 
 #[derive(Union)]

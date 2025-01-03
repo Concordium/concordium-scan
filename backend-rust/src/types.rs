@@ -1,5 +1,5 @@
 use anyhow::Context;
-use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
+use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
 
 pub type Amount = i64; // TODO: should be UnsignedLong in graphQL
 pub type Energy = i64; // TODO: should be UnsignedLong in graphQL
@@ -11,31 +11,7 @@ pub type TransactionHash = String;
 pub type ModuleReference = String;
 pub type TransactionIndex = i64;
 pub type AccountIndex = i64;
-
-pub type BigInteger = u64; // TODO check format.
 pub type MetadataUrl = String;
-
-#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
-#[repr(transparent)]
-#[serde(transparent)]
-pub struct Decimal(rust_decimal::Decimal);
-#[Scalar]
-impl ScalarType for Decimal {
-    fn parse(value: Value) -> InputValueResult<Self> {
-        let Value::String(string) = value else {
-            return Err(InputValueError::expected_type(value));
-        };
-        Ok(Self(string.parse()?))
-    }
-
-    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
-}
-
-impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
-    fn from(fraction: concordium_rust_sdk::types::AmountFraction) -> Self {
-        Self(concordium_rust_sdk::types::PartsPerHundredThousands::from(fraction).into())
-    }
-}
 
 /// The UnsignedLong scalar type represents a unsigned 64-bit numeric
 /// non-fractional value greater than or equal to 0.
@@ -79,7 +55,7 @@ impl TryFrom<i64> for UnsignedLong {
 #[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
 #[repr(transparent)]
 #[serde(transparent)]
-pub struct Long(i64);
+pub struct Long(pub i64);
 #[Scalar]
 impl ScalarType for Long {
     fn parse(value: Value) -> InputValueResult<Self> {
@@ -94,6 +70,28 @@ impl ScalarType for Long {
     }
 
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[repr(transparent)]
+#[serde(transparent)]
+pub struct Decimal(pub rust_decimal::Decimal);
+#[Scalar]
+impl ScalarType for Decimal {
+    fn parse(value: Value) -> InputValueResult<Self> {
+        let Value::String(string) = value else {
+            return Err(InputValueError::expected_type(value));
+        };
+        Ok(Self(string.parse()?))
+    }
+
+    fn to_value(&self) -> Value { Value::String(self.0.to_string()) }
+}
+
+impl From<concordium_rust_sdk::types::AmountFraction> for Decimal {
+    fn from(fraction: concordium_rust_sdk::types::AmountFraction) -> Self {
+        Self(concordium_rust_sdk::types::PartsPerHundredThousands::from(fraction).into())
+    }
 }
 
 /// The `TimeSpan` scalar represents an ISO-8601 compliant duration type.
@@ -126,4 +124,28 @@ impl From<TimeSpan> for String {
 }
 impl From<chrono::Duration> for TimeSpan {
     fn from(duration: chrono::Duration) -> Self { TimeSpan(duration) }
+}
+
+/// The `BigInteger` scalar represents an `BigDecimal` compliant type.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[repr(transparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct BigInteger(pub bigdecimal::BigDecimal);
+
+scalar!(BigInteger);
+
+impl TryFrom<String> for BigInteger {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let big_decimal: bigdecimal::BigDecimal =
+            value.parse().map_err(|err| anyhow::anyhow!("Invalid BigDecimal format: {}", err))?;
+        Ok(Self(big_decimal))
+    }
+}
+impl From<BigInteger> for String {
+    fn from(value: BigInteger) -> Self { value.0.to_string() }
+}
+impl From<bigdecimal::BigDecimal> for BigInteger {
+    fn from(value: bigdecimal::BigDecimal) -> Self { BigInteger(value) }
 }

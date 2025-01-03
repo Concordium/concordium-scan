@@ -3,7 +3,7 @@ pub mod indexer;
 
 pub mod address;
 pub mod decoded_text;
-pub mod metrics;
+pub mod router;
 pub mod transaction_event;
 pub mod transaction_type;
 pub mod types;
