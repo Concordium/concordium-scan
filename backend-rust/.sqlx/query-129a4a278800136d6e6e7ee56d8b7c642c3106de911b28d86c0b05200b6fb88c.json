@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT id, amount, entry_type as \"entry_type: AccountStatementEntryType\", timestamp, account_balance, transaction_id, block_height\n                FROM account_statements\n                WHERE account_index = $4\n                  AND id > $1 AND id < $2\n                ORDER BY id ASC\n                LIMIT $3\n            ",
+  "query": "\n            SELECT\n                id,\n                amount,\n                entry_type as \"entry_type: AccountStatementEntryType\",\n                blocks.slot_time as timestamp,\n                account_balance,\n                transaction_id,\n                block_height\n            FROM\n                account_statements\n            JOIN\n                blocks\n            ON\n                blocks.height = account_statements.block_height\n            WHERE\n                account_index = $4\n                AND id > $1\n                AND id < $2\n            ORDER BY\n                id ASC\n            LIMIT $3;\n            ",
   "describe": {
     "columns": [
       {
@@ -74,5 +74,5 @@
       false
     ]
   },
-  "hash": "d8340af1051c647fe8cbf28fb0bc84ce13ee77b70ab225093e2f2139223cfdcb"
+  "hash": "129a4a278800136d6e6e7ee56d8b7c642c3106de911b28d86c0b05200b6fb88c"
 }
