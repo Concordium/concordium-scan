@@ -921,6 +921,7 @@ struct PreparedBlockSpecialEvent {
     amount:           i64,
     block_height:     i64,
     transaction_type: AccountStatementEntryType,
+    transaction_id:   Option<i64>,
 }
 
 impl PreparedBlockSpecialEvent {
@@ -940,6 +941,7 @@ impl PreparedBlockSpecialEvent {
                         amount:           amount.micro_ccd.try_into()?,
                         block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::BakerReward,
+                        transaction_id:   None,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -952,6 +954,7 @@ impl PreparedBlockSpecialEvent {
                 amount:           mint_platform_development_charge.micro_ccd.try_into()?,
                 block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
+                transaction_id:   None,
             }],
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
@@ -964,6 +967,7 @@ impl PreparedBlockSpecialEvent {
                         amount:           amount.micro_ccd.try_into()?,
                         block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::FinalizationReward,
+                        transaction_id:   None,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -979,12 +983,14 @@ impl PreparedBlockSpecialEvent {
                     amount:           foundation_charge.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FoundationReward,
+                    transaction_id:   None,
                 },
                 PreparedBlockSpecialEvent {
                     account_address:  baker.to_string(),
                     amount:           baker_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
+                    transaction_id:   None,
                 },
             ],
             SpecialTransactionOutcome::PaydayFoundationReward {
@@ -995,6 +1001,7 @@ impl PreparedBlockSpecialEvent {
                 amount:           development_charge.micro_ccd.try_into()?,
                 block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
+                transaction_id:   None,
             }],
             SpecialTransactionOutcome::PaydayAccountReward {
                 account,
@@ -1007,18 +1014,21 @@ impl PreparedBlockSpecialEvent {
                     amount:           transaction_fees.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::TransactionFeeReward,
+                    transaction_id:   None,
                 },
                 PreparedBlockSpecialEvent {
                     account_address:  account.to_string(),
                     amount:           baker_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
+                    transaction_id:   None,
                 },
                 PreparedBlockSpecialEvent {
                     account_address:  account.to_string(),
                     amount:           finalization_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FinalizationReward,
+                    transaction_id:   None,
                 },
             ],
             // TODO: Support these two types. (Deviates from Old CCDScan)
