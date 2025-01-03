@@ -2308,10 +2308,20 @@ async fn process_cis2_event(
             // value in the database.
             sqlx::query!(
                 "
-                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
-                 total_supply, token_id, init_transaction_index)
-                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
-                 $6)
+                    INSERT INTO tokens (index, token_index_per_contract, token_address, \
+                 contract_index, contract_sub_index, total_supply, token_id, \
+                 init_transaction_index)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
+                        (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
+                 contract_index = $2 AND contract_sub_index = $3),
+                        $1, 
+                        $2, 
+                        $3, 
+                        $4, 
+                        $5, 
+                        $6
+                    )
                     ON CONFLICT (token_address)
                     DO UPDATE SET total_supply = tokens.total_supply + EXCLUDED.total_supply",
                 token_address,
@@ -2353,10 +2363,20 @@ async fn process_cis2_event(
             // database.
             sqlx::query!(
                 "
-                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
-                 total_supply, token_id, init_transaction_index)
-                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
-                 $6)
+                    INSERT INTO tokens (index, token_index_per_contract, token_address, \
+                 contract_index, contract_sub_index, total_supply, token_id, \
+                 init_transaction_index)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
+                        (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
+                 contract_index = $2 AND contract_sub_index = $3), 
+                        $1, 
+                        $2, 
+                        $3,
+                        $4, 
+                        $5, 
+                        $6
+                    )
                     ON CONFLICT (token_address)
                     DO UPDATE SET total_supply = tokens.total_supply + EXCLUDED.total_supply",
                 token_address,
@@ -2388,10 +2408,20 @@ async fn process_cis2_event(
             // database.
             sqlx::query!(
                 "
-                    INSERT INTO tokens (index, token_address, contract_index, contract_sub_index, \
-                 metadata_url, token_id, init_transaction_index)
-                    VALUES ((SELECT COALESCE(MAX(index) + 1, 0) FROM tokens), $1, $2, $3, $4, $5, \
-                 $6)
+                    INSERT INTO tokens (index, token_index_per_contract, token_address, \
+                 contract_index, contract_sub_index, metadata_url, token_id, \
+                 init_transaction_index)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
+                        (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
+                 contract_index = $2 AND contract_sub_index = $3),
+                        $1, 
+                        $2, 
+                        $3, 
+                        $4,
+                        $5, 
+                        $6
+                    )
                     ON CONFLICT (token_address)
                     DO UPDATE SET metadata_url = EXCLUDED.metadata_url",
                 token_address,
