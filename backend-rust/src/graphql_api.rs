@@ -112,6 +112,12 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_tokens_collection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -1812,8 +1818,57 @@ impl Contract {
         todo_api!()
     }
 
-    async fn tokens(&self, skip: u32, take: u32) -> ApiResult<TokensCollectionSegment> {
-        todo_api!()
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        skip: u32,
+        take: u32,
+    ) -> ApiResult<TokensCollectionSegment> {
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+
+        let limit = i64::try_from(config.contract_tokens_collection_limit.min(take as u64))?;
+
+        let mut items = sqlx::query_as!(
+            Token,
+            "SELECT
+                total_supply as raw_total_supply,
+                token_id,
+                contract_index,
+                contract_sub_index,
+                token_address,
+                metadata_url,
+                init_transaction_index
+            FROM tokens
+            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2
+                AND tokens.token_index_per_contract >= $3
+            LIMIT $4
+            ",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            skip as i64,
+            limit as i64 + 1,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+        let has_previous_page = skip > 0;
+
+        Ok(TokensCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page,
+            },
+            total_count: items.len().try_into()?,
+            items,
+        })
     }
 }
 

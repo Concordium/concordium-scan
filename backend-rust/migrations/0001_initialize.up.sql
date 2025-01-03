@@ -479,6 +479,11 @@ CREATE TABLE tokens (
     index
         BIGINT
         PRIMARY KEY,
+    -- Every time an token is associated with a contract, this index is incremented for that contract.
+    -- This value is used to quickly filter/sort tokens by the order they were created by a contract.
+    token_index_per_contract
+        BIGINT
+        NOT NULL,
     -- Contract index that the token is associated with.
     contract_index
         BIGINT
