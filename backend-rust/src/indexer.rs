@@ -1021,7 +1021,7 @@ impl PreparedBlockSpecialEvent {
                     transaction_type: AccountStatementEntryType::FinalizationReward,
                 },
             ],
-            // TODO: These also impact a baker
+            // TODO: Support these two types. (Deviates from Old CCDScan)
             SpecialTransactionOutcome::BlockAccrueReward {
                 ..
             }
