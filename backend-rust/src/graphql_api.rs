@@ -17,6 +17,10 @@ pub(crate) use todo_api;
 
 use crate::{
     address::{Address, ContractAddress, ContractIndex},
+    scalar_types::{
+        AccountIndex, Amount, BakerId, BigInteger, BlockHash, BlockHeight, DateTime, Decimal,
+        Energy, MetadataUrl, ModuleReference, TimeSpan, TransactionHash, TransactionIndex,
+    },
     transaction_event::{
         baker::BakerPoolOpenStatus,
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
@@ -27,10 +31,6 @@ use crate::{
         AccountTransaction, AccountTransactionType, CredentialDeploymentTransaction,
         CredentialDeploymentTransactionType, DbTransactionType, TransactionType, UpdateTransaction,
         UpdateTransactionType,
-    },
-    types::{
-        AccountIndex, Amount, BakerId, BigInteger, BlockHash, BlockHeight, DateTime, Decimal,
-        Energy, MetadataUrl, ModuleReference, TimeSpan, TransactionHash, TransactionIndex,
     },
 };
 use account_metrics::AccountMetricsQuery;

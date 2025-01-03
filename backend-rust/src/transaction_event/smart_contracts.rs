@@ -1,7 +1,7 @@
 use crate::{
     address::{Address, ContractAddress},
     graphql_api::{get_pool, ApiError, ApiResult},
-    types::Amount,
+    scalar_types::Amount,
 };
 use async_graphql::{connection, ComplexObject, Context, Enum, SimpleObject};
 use concordium_rust_sdk::base::{

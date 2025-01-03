@@ -1,6 +1,6 @@
 use crate::{
     address::AccountAddress,
-    types::{AccountIndex, Amount, BakerId},
+    scalar_types::{AccountIndex, Amount, BakerId},
 };
 use async_graphql::{SimpleObject, Union};
 

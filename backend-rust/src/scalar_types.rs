@@ -149,3 +149,27 @@ impl From<BigInteger> for String {
 impl From<bigdecimal::BigDecimal> for BigInteger {
     fn from(value: bigdecimal::BigDecimal) -> Self { BigInteger(value) }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, derive_more::From)]
+#[repr(transparent)]
+#[serde(transparent)]
+pub struct Byte(pub u8);
+#[Scalar]
+impl ScalarType for Byte {
+    fn parse(value: Value) -> InputValueResult<Self> {
+        let Value::Number(number) = &value else {
+            return Err(InputValueError::expected_type(value));
+        };
+        let Some(v) = number.as_u64() else {
+            return Err(InputValueError::expected_type(value));
+        };
+
+        if let Ok(v) = u8::try_from(v) {
+            Ok(Self(v))
+        } else {
+            Err(InputValueError::expected_type(value))
+        }
+    }
+
+    fn to_value(&self) -> Value { Value::Number(self.0.into()) }
+}

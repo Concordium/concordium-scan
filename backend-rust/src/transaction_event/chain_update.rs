@@ -1,4 +1,4 @@
-use crate::types::DateTime;
+use crate::scalar_types::DateTime;
 use async_graphql::SimpleObject;
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]

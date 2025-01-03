@@ -1,7 +1,7 @@
 use crate::{
     address::AccountAddress,
     graphql_api::{todo_api, ApiResult},
-    types::{Amount, BakerId, Decimal},
+    scalar_types::{Amount, BakerId, Decimal},
 };
 use async_graphql::{ComplexObject, Context, Enum, SimpleObject};
 

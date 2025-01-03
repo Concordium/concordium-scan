@@ -2,7 +2,7 @@ use crate::{
     address::{AccountAddress, Address},
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
-    types::Amount,
+    scalar_types::Amount,
 };
 use async_graphql::{ComplexObject, SimpleObject};
 use tracing::error;

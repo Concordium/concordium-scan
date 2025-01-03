@@ -2,7 +2,7 @@ use crate::{
     address::Address,
     decoded_text::DecodedText,
     graphql_api::{ApiError, ApiResult},
-    types::DateTime,
+    scalar_types::{Byte, DateTime},
 };
 use anyhow::Context;
 use async_graphql::{ComplexObject, SimpleObject, Union};
@@ -340,7 +340,7 @@ pub fn events_from_summary(
                         .into_iter()
                         .map(|cred| cred.to_string())
                         .collect(),
-                    new_threshold:    credentials::Byte(u8::from(new_threshold)),
+                    new_threshold:    Byte(u8::from(new_threshold)),
                 })]
             }
             AccountTransactionEffects::DataRegistered {
