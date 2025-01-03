@@ -1,10 +1,13 @@
 #![allow(unused_variables)] // TODO Remove before first release
 #![allow(dead_code)] // TODO Remove before first release
 
-use crate::graphql_api::{
-    events_from_summary, AccountTransactionType, BakerPoolOpenStatus,
-    CredentialDeploymentTransactionType, DbTransactionType, ModuleReferenceContractLinkAction,
-    UpdateTransactionType,
+use crate::{
+    graphql_api::ModuleReferenceContractLinkAction,
+    transaction_event::{baker::BakerPoolOpenStatus, events_from_summary},
+    transaction_type::{
+        AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
+        UpdateTransactionType,
+    },
 };
 use anyhow::Context;
 use chrono::{DateTime, Utc};
