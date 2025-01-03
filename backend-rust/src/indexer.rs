@@ -1057,6 +1057,7 @@ impl PreparedBlockSpecialEvent {
             entry_type,
             amount,
             block_height,
+            transaction_id,
             account_balance
         )
         SELECT
@@ -1064,12 +1065,14 @@ impl PreparedBlockSpecialEvent {
             $2,
             $3,
             $4,
+            $5,
             current_balance
         FROM account_info",
             self.account_address,
             self.transaction_type as AccountStatementEntryType,
             self.amount,
             self.block_height,
+            self.transaction_id
         )
         .execute(tx.as_mut())
         .await?;
