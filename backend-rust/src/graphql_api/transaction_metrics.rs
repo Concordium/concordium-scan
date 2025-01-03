@@ -6,7 +6,7 @@ use sqlx::postgres::types::PgInterval;
 use crate::graphql_api::{get_pool, ApiError, ApiResult, DateTime, MetricsPeriod, TimeSpan};
 
 #[derive(Default)]
-pub(crate) struct TransactionMetricsQuery;
+pub(crate) struct Query;
 
 #[derive(SimpleObject)]
 struct TransactionMetrics {
@@ -38,7 +38,7 @@ struct TransactionMetricsBuckets {
 }
 
 #[Object]
-impl TransactionMetricsQuery {
+impl Query {
     async fn transaction_metrics(
         &self,
         ctx: &Context<'_>,
