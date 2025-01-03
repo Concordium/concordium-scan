@@ -1834,8 +1834,8 @@ impl Contract {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
 
-        let max_token_index = sqlx::query!(
-            "SELECT MAX(token_index_per_contract) AS max_token_index
+        let max_token_index = sqlx::query_scalar!(
+            "SELECT MAX(token_index_per_contract)
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
             self.contract_address_index.0 as i64,
@@ -1843,7 +1843,6 @@ impl Contract {
         )
         .fetch_one(pool)
         .await?
-        .max_token_index
         .unwrap_or(0) as u64;
 
         let max_index = max_token_index.saturating_sub(skip.unwrap_or(0));
@@ -1851,10 +1850,10 @@ impl Contract {
             config.contract_tokens_collection_limit.min(t)
         }))?;
 
-        let tokens = sqlx::query!(
+        let mut items = sqlx::query_as!(
+            Token,
             "SELECT
                 total_supply as raw_total_supply,
-                token_index_per_contract,
                 token_id,
                 contract_index,
                 contract_sub_index,
@@ -1874,19 +1873,6 @@ impl Contract {
         )
         .fetch_all(pool)
         .await?;
-
-        let mut items: Vec<Token> = tokens
-            .into_iter()
-            .map(|row| Token {
-                raw_total_supply:       row.raw_total_supply,
-                token_id:               row.token_id,
-                contract_index:         row.contract_index,
-                contract_sub_index:     row.contract_sub_index,
-                token_address:          row.token_address,
-                metadata_url:           row.metadata_url,
-                init_transaction_index: row.init_transaction_index,
-            })
-            .collect();
 
         // Determine if there is a next page by checking if we got more than `limit`
         // rows.
