@@ -5,7 +5,7 @@ use sqlx::postgres::types::PgInterval;
 
 use crate::{
     graphql_api::{ApiResult, MetricsPeriod},
-    types::{Amount, BlockHeight, DateTime, TimeSpan},
+    scalar_types::{Amount, BlockHeight, DateTime, TimeSpan},
 };
 
 use super::{get_config, get_pool, ApiError};

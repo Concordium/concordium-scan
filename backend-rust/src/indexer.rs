@@ -972,9 +972,11 @@ impl PreparedBlockItem {
                     ..
                 }) = &item_summary.details
                 {
-                    serde_json::to_value(crate::graphql_api::TransactionRejectReason::try_from(
-                        reject_reason.clone(),
-                    )?)?
+                    serde_json::to_value(
+                        crate::transaction_reject::TransactionRejectReason::try_from(
+                            reject_reason.clone(),
+                        )?,
+                    )?
                 } else {
                     anyhow::bail!("Invariant violation: Failed transaction without a reject reason")
                 };
