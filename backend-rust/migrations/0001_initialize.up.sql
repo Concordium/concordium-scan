@@ -479,7 +479,7 @@ CREATE TABLE tokens (
     index
         BIGINT
         PRIMARY KEY,
-    -- Every time an token is associated with a contract, this index is incremented for that contract.
+    -- Every time a token is associated with a contract, this index is incremented for that contract.
     -- This value is used to quickly filter/sort tokens by the order they were created by a contract.
     token_index_per_contract
         BIGINT
@@ -527,6 +527,9 @@ CREATE TABLE tokens (
 
 -- We want to find a specific token (this index should be removed once the front-end queries a token by `token_address`).
 CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
+
+-- Important for quickly filtering/sorting tokens by the order they were created by a contract.
+CREATE INDEX token_index_per_contract_idx ON tokens (token_index_per_contract);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
