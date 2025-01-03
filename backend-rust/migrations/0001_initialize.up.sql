@@ -612,7 +612,7 @@ CREATE TABLE account_statements (
         BIGINT
         REFERENCES blocks(height)
         NOT NULL,
-    -- Used as reference for all events but PaydayFoundationReward, PaydayAccountReward and BlockAccrueReward
+    -- Used as reference for all account statements not of type reward type
     transaction_id
         BIGINT
         NULL
