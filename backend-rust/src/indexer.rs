@@ -2,8 +2,10 @@
 #![allow(dead_code)] // TODO Remove before first release
 
 use crate::{
-    graphql_api::ModuleReferenceContractLinkAction,
-    transaction_event::{baker::BakerPoolOpenStatus, events_from_summary},
+    transaction_event::{
+        baker::BakerPoolOpenStatus, events_from_summary,
+        smart_contracts::ModuleReferenceContractLinkAction,
+    },
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
         UpdateTransactionType,
