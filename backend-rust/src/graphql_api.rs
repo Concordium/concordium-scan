@@ -120,11 +120,11 @@ pub struct ApiServiceConfig {
 #[derive(MergedObject, Default)]
 pub struct Query(
     BaseQuery,
-    block::Query,
-    transaction::Query,
-    account_metrics::Query,
-    transaction_metrics::Query,
-    block_metrics::Query,
+    block::QueryBlocks,
+    transaction::QueryTransactions,
+    account_metrics::QueryAccountMetrics,
+    transaction_metrics::QueryTransactionMetrics,
+    block_metrics::QueryBlockMetrics,
 );
 
 pub struct Service {
