@@ -193,6 +193,11 @@ impl ModuleReferenceEvent {
                 config.module_reference_linked_contracts_collection_limit.min(t)
             }),
         )?;
+        // This offset approach below does not scale well for smart contract modules
+        // with a large number of instances currently linked, since a large
+        // offset would traverse these. This might have to be improved in the
+        // future by either indexing more or break the API to not use offset
+        // pagination.
         let mut items = sqlx::query_as!(
             LinkedContract,
             "SELECT
