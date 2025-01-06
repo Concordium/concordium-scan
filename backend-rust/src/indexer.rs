@@ -2010,9 +2010,8 @@ impl PreparedContractInitialized {
                 event.init_name.as_contract_name(),
                 cis0::StandardIdentifier::CIS2,
             )
-            .await?
-            .response
-            .is_support();
+            .await
+            .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
                 potential_cis2_events
@@ -2214,9 +2213,8 @@ impl PreparedContractUpdate {
                 contract_name,
                 cis0::StandardIdentifier::CIS2,
             )
-            .await?
-            .response
-            .is_support();
+            .await
+            .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
                 potential_cis2_events
