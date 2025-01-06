@@ -69,10 +69,10 @@ struct BlockMetricsBuckets {
 }
 
 #[derive(Default)]
-pub(crate) struct Query;
+pub(crate) struct QueryBlockMetrics;
 
 #[Object]
-impl Query {
+impl QueryBlockMetrics {
     async fn block_metrics<'a>(
         &self,
         ctx: &Context<'a>,

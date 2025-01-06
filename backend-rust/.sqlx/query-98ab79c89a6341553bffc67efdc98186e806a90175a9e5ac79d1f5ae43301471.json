@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO tokens (index, token_index_per_contract, token_address, contract_index, contract_sub_index, total_supply, token_id, init_transaction_index)\n                    VALUES (\n                        (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),\n                        (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE contract_index = $2 AND contract_sub_index = $3),\n                        $1,\n                        $2,\n                        $3,\n                        $4,\n                        $5,\n                        $6\n                    )\n                    ON CONFLICT (token_address)\n                    DO UPDATE SET total_supply = tokens.total_supply + EXCLUDED.total_supply",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Numeric",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "98ab79c89a6341553bffc67efdc98186e806a90175a9e5ac79d1f5ae43301471"
+}

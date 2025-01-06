@@ -2,11 +2,10 @@
 #![allow(dead_code)] // TODO Remove before first release
 
 use crate::{
-    graphql_api::{
-        ModuleReferenceContractLinkAction,
-        AccountStatementEntryType
+    transaction_event::{
+        baker::BakerPoolOpenStatus, events_from_summary,
+        smart_contracts::ModuleReferenceContractLinkAction,
     },
-    transaction_event::{baker::BakerPoolOpenStatus, events_from_summary},
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
         UpdateTransactionType,
@@ -53,6 +52,7 @@ use std::convert::TryInto;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
+use crate::graphql_api::AccountStatementEntryType;
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///
@@ -2221,9 +2221,8 @@ impl PreparedContractInitialized {
                 event.init_name.as_contract_name(),
                 cis0::StandardIdentifier::CIS2,
             )
-            .await?
-            .response
-            .is_support();
+            .await
+            .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
                 potential_cis2_events
@@ -2321,7 +2320,7 @@ struct PreparedContractUpdate {
     contract_index:      i64,
     contract_sub_index:  i64,
     /// Potential module link events from a smart contract upgrade
-    module_link_event:   Option<(PreparedModuleLinkAction, PreparedModuleLinkAction)>,
+    module_link_event:   Option<PreparedContractUpgrade>,
     cis2_events:         Vec<cis2::Event>,
 }
 
@@ -2345,18 +2344,7 @@ impl PreparedContractUpdate {
                 address,
                 from,
                 to,
-            } => Some((
-                PreparedModuleLinkAction::prepare(
-                    from,
-                    address,
-                    ModuleReferenceContractLinkAction::Removed,
-                )?,
-                PreparedModuleLinkAction::prepare(
-                    to,
-                    address,
-                    ModuleReferenceContractLinkAction::Added,
-                )?,
-            )),
+            } => Some(PreparedContractUpgrade::prepare(address, from, to)?),
             _ => None,
         };
 
@@ -2425,9 +2413,8 @@ impl PreparedContractUpdate {
                 contract_name,
                 cis0::StandardIdentifier::CIS2,
             )
-            .await?
-            .response
-            .is_support();
+            .await
+            .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
                 potential_cis2_events
@@ -2475,9 +2462,8 @@ impl PreparedContractUpdate {
         .execute(tx.as_mut())
         .await?;
 
-        if let Some((remove, add)) = self.module_link_event.as_ref() {
-            remove.save(tx, transaction_index).await?;
-            add.save(tx, transaction_index).await?;
+        if let Some(upgrade) = self.module_link_event.as_ref() {
+            upgrade.save(tx, transaction_index).await?;
         }
 
         for log in self.cis2_events.iter() {
@@ -2490,6 +2476,75 @@ impl PreparedContractUpdate {
             )
             .await?
         }
+        Ok(())
+    }
+}
+
+struct PreparedContractUpgrade {
+    module_removed:        PreparedModuleLinkAction,
+    module_added:          PreparedModuleLinkAction,
+    contract_last_upgrade: PreparedUpdateContractLastUpgrade,
+}
+
+impl PreparedContractUpgrade {
+    fn prepare(
+        address: ContractAddress,
+        from: sdk_types::hashes::ModuleReference,
+        to: sdk_types::hashes::ModuleReference,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            module_removed:        PreparedModuleLinkAction::prepare(
+                from,
+                address,
+                ModuleReferenceContractLinkAction::Removed,
+            )?,
+            module_added:          PreparedModuleLinkAction::prepare(
+                to,
+                address,
+                ModuleReferenceContractLinkAction::Added,
+            )?,
+            contract_last_upgrade: PreparedUpdateContractLastUpgrade::prepare(address)?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        self.module_removed.save(tx, transaction_index).await?;
+        self.module_added.save(tx, transaction_index).await?;
+        self.contract_last_upgrade.save(tx, transaction_index).await
+    }
+}
+
+struct PreparedUpdateContractLastUpgrade {
+    contract_index:     i64,
+    contract_sub_index: i64,
+}
+impl PreparedUpdateContractLastUpgrade {
+    fn prepare(address: ContractAddress) -> anyhow::Result<Self> {
+        Ok(Self {
+            contract_index:     i64::try_from(address.index)?,
+            contract_sub_index: i64::try_from(address.subindex)?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "UPDATE contracts
+             SET last_upgrade_transaction_index = $1
+             WHERE index = $2 AND sub_index = $3",
+            transaction_index,
+            self.contract_index,
+            self.contract_sub_index
+        )
+        .execute(tx.as_mut())
+        .await?;
         Ok(())
     }
 }
@@ -2533,11 +2588,11 @@ async fn process_cis2_event(
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
                         (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
                  contract_index = $2 AND contract_sub_index = $3),
-                        $1, 
-                        $2, 
-                        $3, 
-                        $4, 
-                        $5, 
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
                         $6
                     )
                     ON CONFLICT (token_address)
