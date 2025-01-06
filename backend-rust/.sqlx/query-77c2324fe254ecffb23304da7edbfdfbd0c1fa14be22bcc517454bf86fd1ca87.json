@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                token_id,\n                contract_index,\n                contract_sub_index,\n                balance as raw_balance,\n                account_index as account_id\n            FROM account_tokens\n            WHERE account_tokens.contract_index = $1 AND account_tokens.contract_sub_index = $2 AND \n                account_tokens.token_id = $3 AND account_tokens.index >= $4\n            LIMIT $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "raw_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "77c2324fe254ecffb23304da7edbfdfbd0c1fa14be22bcc517454bf86fd1ca87"
+}

@@ -87,6 +87,12 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transaction_event_connection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -117,10 +123,10 @@ pub struct ApiServiceConfig {
     module_reference_contract_link_events_collection_limit: u64,
     #[arg(
         long,
-        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        env = "CCDSCAN_API_CONFIG_TOKEN_HOLDER_ADDRESSES_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: u64,
+    token_holder_addresses_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
