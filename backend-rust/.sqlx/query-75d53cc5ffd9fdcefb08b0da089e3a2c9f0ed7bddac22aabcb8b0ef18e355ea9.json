@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE contracts\n             SET last_upgrade_transaction_index = $1\n             WHERE index = $2 AND sub_index = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "75d53cc5ffd9fdcefb08b0da089e3a2c9f0ed7bddac22aabcb8b0ef18e355ea9"
+}

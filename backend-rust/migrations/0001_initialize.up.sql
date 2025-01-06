@@ -362,10 +362,19 @@ CREATE TABLE contracts(
         BIGINT
         NOT NULL
         REFERENCES transactions,
-
+    -- The index of the most recent transaction which upgraded this contract.
+    -- Is NULL for contracts which have never upgraded.
+    last_upgrade_transaction_index
+        BIGINT
+        NULL
+        REFERENCES transactions,
     -- Make the contract index and subindex the primary key.
     PRIMARY KEY (index, sub_index)
 );
+
+-- This index allows for efficiently listing every contract currently linked to a specific smart
+-- contract module.
+CREATE INDEX contracts_module_reference_index ON contracts (module_reference);
 
 -- Every successful event associated to a contract.
 CREATE TABLE contract_events (
