@@ -645,7 +645,7 @@ CREATE VIEW account_rewards AS
         amount,
         block_height
     FROM account_statements
-    WHERE entry_type::TEXT IN (
+    WHERE entry_type IN (
         'FinalizationReward',
         'FoundationReward',
         'BakerReward',
