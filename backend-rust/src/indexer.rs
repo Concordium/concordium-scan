@@ -2,6 +2,7 @@
 #![allow(dead_code)] // TODO Remove before first release
 
 use crate::{
+    graphql_api::AccountStatementEntryType,
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
         smart_contracts::ModuleReferenceContractLinkAction,
@@ -52,7 +53,6 @@ use std::convert::TryInto;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
-use crate::graphql_api::AccountStatementEntryType;
 
 /// Service traversing each block of the chain, indexing it into a database.
 ///

@@ -22,7 +22,6 @@ macro_rules! todo_api {
 }
 pub(crate) use todo_api;
 
-use anyhow::{anyhow, Context as _};
 use crate::{
     address::{AccountAddress, ContractIndex},
     scalar_types::{
@@ -39,6 +38,7 @@ use crate::{
         UpdateTransactionType,
     },
 };
+use anyhow::{anyhow, Context as _};
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
@@ -56,8 +56,12 @@ use derive_more::Display;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
-use std::{error::Error, str::FromStr, sync::Arc};
-use std::cmp::{max, min};
+use std::{
+    cmp::{max, min},
+    error::Error,
+    str::FromStr,
+    sync::Arc,
+};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
