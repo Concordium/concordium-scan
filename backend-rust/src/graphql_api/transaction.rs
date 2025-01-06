@@ -16,10 +16,10 @@ use sqlx::PgPool;
 use std::str::FromStr;
 
 #[derive(Default)]
-pub struct Query;
+pub struct QueryTransactions;
 
 #[Object]
-impl Query {
+impl QueryTransactions {
     async fn transaction(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<Transaction> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
         Transaction::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
