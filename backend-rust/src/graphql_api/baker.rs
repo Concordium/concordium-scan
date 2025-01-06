@@ -22,6 +22,7 @@ impl QueryBaker {
         Baker::query_by_id(get_pool(ctx)?, id).await
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn bakers(
         &self,
         #[graphql(default)] _sort: BakerSort,
