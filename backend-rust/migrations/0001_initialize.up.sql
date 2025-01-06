@@ -372,7 +372,7 @@ CREATE TABLE contracts(
     PRIMARY KEY (index, sub_index)
 );
 
--- This index allow for efficiently listing every contract currently linked to a specific smart
+-- This index allows for efficiently listing every contract currently linked to a specific smart
 -- contract module.
 CREATE INDEX contracts_module_reference_index ON contracts (module_reference);
 
