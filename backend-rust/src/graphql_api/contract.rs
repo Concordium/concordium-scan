@@ -1,5 +1,5 @@
 use super::{
-    get_config, get_pool, todo_api, token::TokensCollectionSegment, ApiError, ApiResult,
+    get_config, get_pool, token::TokensCollectionSegment, ApiError, ApiResult,
     CollectionSegmentInfo, ConnectionQuery,
 };
 use crate::{
@@ -382,10 +382,74 @@ impl Contract {
 
     async fn contract_reject_events(
         &self,
-        _skip: u32,
-        _take: u32,
+        ctx: &Context<'_>,
+        skip: Option<u64>,
+        take: Option<u64>,
     ) -> ApiResult<ContractRejectEventsCollectionSegment> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+
+        let offset = i64::try_from(skip.unwrap_or(0))?;
+        let limit =
+            i64::try_from(take.map_or(config.contract_reject_events_collection_limit, |t| {
+                config.contract_reject_events_collection_limit.min(t)
+            }))?;
+
+        let mut items = sqlx::query_as!(
+            ContractRejectEvent,
+            r#"SELECT
+                transactions.reject as "rejected_event: sqlx::types::Json<TransactionRejectReason>",
+                transactions.hash as transaction_hash,
+                blocks.slot_time as block_slot_time
+            FROM contract_reject_transactions
+                JOIN transactions ON
+                    transactions.index = contract_reject_transactions.transaction_index
+                JOIN blocks ON blocks.height = transactions.block_height
+            WHERE contract_reject_transactions.contract_index = $1
+                AND contract_reject_transactions.contract_sub_index = $2
+                AND contract_reject_transactions.transaction_index_per_contract <= $3
+            ORDER BY contract_reject_transactions.transaction_index_per_contract DESC
+            LIMIT $4
+            "#,
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64,
+            offset,
+            limit + 1,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        // Determine if there is a next page by checking if we got more than `limit`
+        // rows.
+        let has_next_page = items.len() > limit as usize;
+
+        // If there is a next page, remove the extra row used for pagination detection.
+        if has_next_page {
+            items.pop();
+        }
+
+        let total_count: i32 = sqlx::query_scalar!(
+            "SELECT
+                MAX(transaction_index_per_contract)
+            FROM contract_reject_transactions
+            WHERE contract_reject_transactions.contract_index = $1
+                AND contract_reject_transactions.contract_sub_index = $2",
+            self.contract_address_index.0 as i64,
+            self.contract_address_sub_index.0 as i64
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
+        Ok(ContractRejectEventsCollectionSegment {
+            page_info: CollectionSegmentInfo {
+                has_next_page,
+                has_previous_page: offset > 0,
+            },
+            items,
+            total_count,
+        })
     }
 
     // This function fetches CIS2 tokens associated to a given contract, ordered by
@@ -474,15 +538,24 @@ struct ContractRejectEventsCollectionSegment {
     total_count: i32,
 }
 
-#[derive(SimpleObject)]
 struct ContractRejectEvent {
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    sender:                     AccountAddress,
-    rejected_event:             TransactionRejectReason,
-    block_height:               BlockHeight,
-    transaction_hash:           TransactionHash,
-    block_slot_time:            DateTime,
+    rejected_event:   Option<sqlx::types::Json<TransactionRejectReason>>,
+    transaction_hash: TransactionHash,
+    block_slot_time:  DateTime,
+}
+#[Object]
+impl ContractRejectEvent {
+    async fn rejected_event(&self) -> ApiResult<&TransactionRejectReason> {
+        if let Some(sqlx::types::Json(reason)) = self.rejected_event.as_ref() {
+            Ok(reason)
+        } else {
+            Err(ApiError::InternalError("ContractRejectEvent: No reject reason found".to_string()))
+        }
+    }
+
+    async fn transaction_hash(&self) -> &TransactionHash { &self.transaction_hash }
+
+    async fn block_slot_time(&self) -> &DateTime { &self.block_slot_time }
 }
 
 #[derive(SimpleObject)]

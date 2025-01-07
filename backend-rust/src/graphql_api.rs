@@ -99,6 +99,12 @@ pub struct ApiServiceConfig {
     contract_events_collection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_REJECT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_reject_events_collection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
