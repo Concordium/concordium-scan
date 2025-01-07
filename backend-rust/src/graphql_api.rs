@@ -1301,13 +1301,19 @@ impl Account {
                     blocks.slot_time as "timestamp",
                     entry_type,
                     amount
-                FROM account_rewards
+                FROM account_statements
                 JOIN
                     blocks
                 ON
-                    blocks.height = account_rewards.block_height
+                    blocks.height = account_statements.block_height
                 WHERE
-                    account_index = $5
+                    entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
+                    AND account_index = $5
                     AND id > $1
                     AND id < $2
                 ORDER BY

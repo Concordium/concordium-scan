@@ -636,18 +636,3 @@ CREATE TABLE account_statements (
 );
 
 CREATE INDEX account_statements_entry_type_idx ON account_statements (entry_type);
-
-CREATE VIEW account_rewards AS
-    SELECT
-        id,
-        account_index,
-        entry_type,
-        amount,
-        block_height
-    FROM account_statements
-    WHERE entry_type IN (
-        'FinalizationReward',
-        'FoundationReward',
-        'BakerReward',
-        'TransactionFeeReward'
-    );
