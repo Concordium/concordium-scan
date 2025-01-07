@@ -21,22 +21,24 @@ use concordium_rust_sdk::{
         transactions::{BlockItem, EncodedPayload, Payload},
     },
     cis0,
-    cis2::{self, TokenAddress},
-    common::types::{Amount, Timestamp},
+    cis2::{self, OperatorUpdate, TokenAddress, TokenAmount, TokenId},
+    cis4::MetadataUrl,
+    common::types::{Address, Amount, Timestamp},
+    id::types::AccountAddress,
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
-        self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails, ContractAddress,
-        ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
-        RejectReason, RewardsOverview, TransactionType,
+        self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountIndex,
+        AccountStakingInfo, AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
+        DelegationTarget, PartsPerHundredThousands, RejectReason, RewardsOverview, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
         RPCError,
     },
 };
-use futures::{future::join_all, StreamExt, TryStreamExt};
+use futures::{future::join_all, stream::FuturesOrdered, StreamExt, TryStreamExt};
 use prometheus_client::{
     metrics::{
         counter::Counter,
@@ -1949,7 +1951,7 @@ struct PreparedContractInitialized {
     amount:            i64,
     height:            i64,
     module_link_event: PreparedModuleLinkAction,
-    cis2_events:       Vec<cis2::Event>,
+    cis2_events:       Vec<Cis2EventExtended>,
 }
 
 impl PreparedContractInitialized {
@@ -2014,7 +2016,21 @@ impl PreparedContractInitialized {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
+                // Extends the `Cis2Event`s by including `AccountIndexes` for
+                // `AccountAddresses`.
                 potential_cis2_events
+                    .into_iter()
+                    .map(|event| {
+                        let mut node_client = node_client.clone();
+
+                        async move {
+                            extend_cis2_event(event, &mut node_client, data.block_info.block_height)
+                                .await
+                        }
+                    })
+                    .collect::<FuturesOrdered<_>>()
+                    .try_collect::<Vec<_>>()
+                    .await?
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2110,7 +2126,7 @@ struct PreparedContractUpdate {
     contract_sub_index:  i64,
     /// Potential module link events from a smart contract upgrade
     module_link_event:   Option<PreparedContractUpgrade>,
-    cis2_events:         Vec<cis2::Event>,
+    cis2_events:         Vec<Cis2EventExtended>,
 }
 
 impl PreparedContractUpdate {
@@ -2206,7 +2222,21 @@ impl PreparedContractUpdate {
             .is_ok_and(|r| r.response.is_support());
 
             if supports_cis2 {
+                // Extends the `Cis2Event`s by including `AccountIndexes` for
+                // `AccountAddresses`.
                 potential_cis2_events
+                    .into_iter()
+                    .map(|event| {
+                        let mut node_client = node_client.clone();
+
+                        async move {
+                            extend_cis2_event(event, &mut node_client, data.block_info.block_height)
+                                .await
+                        }
+                    })
+                    .collect::<FuturesOrdered<_>>()
+                    .try_collect::<Vec<_>>()
+                    .await?
             } else {
                 // If contract does not support `CIS2`, don't consider the events as CIS2
                 // events.
@@ -2339,7 +2369,7 @@ impl PreparedUpdateContractLastUpgrade {
 }
 
 async fn process_cis2_event(
-    cis2_event: &cis2::Event,
+    cis2_event: &Cis2EventExtended,
     contract_index: i64,
     contract_sub_index: i64,
     transaction_index: i64,
@@ -2349,7 +2379,7 @@ async fn process_cis2_event(
         // The `total_supply` value of a token is inserted/updated in the database here.
         // Only `Mint` and `Burn` events affect the `total_supply` of a
         // token.
-        cis2::Event::Mint {
+        Cis2EventExtended::Mint {
             token_id,
             amount,
             owner,
@@ -2403,7 +2433,7 @@ async fn process_cis2_event(
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
         // initially minted. The `total_supply` can have a negative value in that case
         // and even underflow.
-        cis2::Event::Burn {
+        Cis2EventExtended::Burn {
             token_id,
             amount,
             owner,
@@ -2455,7 +2485,7 @@ async fn process_cis2_event(
         // The `metadata_url` of a token is inserted/updated in the database here.
         // Only `TokenMetadata` events affect the `metadata_url` of a
         // token.
-        cis2::Event::TokenMetadata {
+        Cis2EventExtended::TokenMetadata {
             token_id,
             metadata_url,
         } => {
@@ -2563,5 +2593,148 @@ impl PreparedScheduledReleases {
         .execute(tx.as_mut())
         .await?;
         Ok(())
+    }
+}
+
+// Extends the `Account` type by including the `AccountIndex`.
+pub struct AccountExtended {
+    pub account_address: AccountAddress,
+    pub account_index:   AccountIndex,
+}
+
+// Extends the `Address` type by including the `AccountIndex` in the `Account`
+// case.
+pub enum AddressExtended {
+    Account(AccountExtended),
+    Contract(ContractAddress),
+}
+
+// Extends the `Cis2Event` type by including `AccountIndexes` for
+// `AccountAddresses`.
+pub enum Cis2EventExtended {
+    Transfer {
+        token_id: TokenId,
+        amount:   TokenAmount,
+        from:     AddressExtended,
+        to:       AddressExtended,
+    },
+    Mint {
+        token_id: TokenId,
+        amount:   TokenAmount,
+        owner:    AddressExtended,
+    },
+    Burn {
+        token_id: TokenId,
+        amount:   TokenAmount,
+        owner:    AddressExtended,
+    },
+    UpdateOperator {
+        update:   OperatorUpdate,
+        owner:    AddressExtended,
+        operator: AddressExtended,
+    },
+    TokenMetadata {
+        token_id:     TokenId,
+        metadata_url: MetadataUrl,
+    },
+    Unknown,
+}
+
+// Extends the `Address` type by including the `AccountIndex` in the `Account`
+// case.
+async fn extend_account_address(
+    address: Address,
+    node_client: &mut v2::Client,
+    block_height: AbsoluteBlockHeight,
+) -> anyhow::Result<AddressExtended> {
+    let extended_address = match address {
+        Address::Account(account_address) => {
+            let address = node_client
+                .get_account_info(
+                    &v2::AccountIdentifier::Address(account_address),
+                    BlockIdentifier::AbsoluteHeight(block_height),
+                )
+                .await?
+                .response;
+
+            let account_index = address.account_index;
+            AddressExtended::Account(AccountExtended {
+                account_address,
+                account_index,
+            })
+        }
+        Address::Contract(from) => AddressExtended::Contract(from),
+    };
+    Ok(extended_address)
+}
+
+// Extends the `Cis2Event` by including `AccountIndexes` for `AccountAddresses`.
+async fn extend_cis2_event(
+    event: cis2::Event,
+    node_client: &mut v2::Client,
+    block_height: AbsoluteBlockHeight,
+) -> anyhow::Result<Cis2EventExtended> {
+    match event {
+        cis2::Event::Transfer {
+            token_id,
+            amount,
+            from,
+            to,
+        } => {
+            let from_extended = extend_account_address(from, node_client, block_height).await?;
+            let to_extended = extend_account_address(to, node_client, block_height).await?;
+            Ok::<Cis2EventExtended, anyhow::Error>(Cis2EventExtended::Transfer {
+                token_id,
+                amount,
+                from: from_extended,
+                to: to_extended,
+            })
+        }
+        cis2::Event::Mint {
+            token_id,
+            amount,
+            owner,
+        } => {
+            let owner_extended = extend_account_address(owner, node_client, block_height).await?;
+            Ok(Cis2EventExtended::Mint {
+                token_id,
+                amount,
+                owner: owner_extended,
+            })
+        }
+        cis2::Event::Burn {
+            token_id,
+            amount,
+            owner,
+        } => {
+            let owner_extended = extend_account_address(owner, node_client, block_height).await?;
+            Ok(Cis2EventExtended::Burn {
+                token_id,
+                amount,
+                owner: owner_extended,
+            })
+        }
+        cis2::Event::UpdateOperator {
+            update,
+            owner,
+            operator,
+        } => {
+            let owner_extended = extend_account_address(owner, node_client, block_height).await?;
+            let operator_extended =
+                extend_account_address(operator, node_client, block_height).await?;
+            Ok(Cis2EventExtended::UpdateOperator {
+                update,
+                owner: owner_extended,
+                operator: operator_extended,
+            })
+        }
+        cis2::Event::TokenMetadata {
+            token_id,
+            metadata_url,
+        } => Ok(Cis2EventExtended::TokenMetadata {
+            token_id,
+            metadata_url,
+        }),
+        cis2::Event::Unknown => Ok(Cis2EventExtended::Unknown),
     }
 }
