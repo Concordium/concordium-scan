@@ -102,8 +102,7 @@ impl Token {
                 account_index as account_id
             FROM account_tokens
             WHERE account_tokens.contract_index = $1 AND account_tokens.contract_sub_index = $2 \
-             AND 
-                account_tokens.token_id = $3 AND account_tokens.index >= $4
+             AND account_tokens.token_id = $3 AND account_tokens.index_per_token >= $4
             LIMIT $5
         ",
             self.contract_index as i64,

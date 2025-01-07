@@ -551,6 +551,11 @@ CREATE TABLE account_tokens (
     account_index
         BIGINT
         NOT NULL,
+    -- Every time a row is associated with a token, this index is incremented for that token.
+    -- This value is used for the `skip/take` parameter when querying token holders.
+    index_per_token
+        BIGINT
+        NOT NULL,
     -- The accumulated balance of the token by the above account calculated by considering all `MintEvents`, `BurnEvents` and 
     -- `TransferEvents` associated to the token and account. If no balance is specified when inserting a new row in the table,
     -- the default balance 0 is used.

@@ -2435,10 +2435,12 @@ async fn process_cis2_event(
             if let AddressExtended::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, token_address, contract_index, \
-                     contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, token_address, \
+                     contract_index, contract_sub_index, balance, token_id, account_index)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
+                     token_address = $1), 
                         $1, 
                         $2, 
                         $3,
@@ -2523,10 +2525,12 @@ async fn process_cis2_event(
             if let AddressExtended::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, token_address, contract_index, \
-                     contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, token_address, \
+                     contract_index, contract_sub_index, balance, token_id, account_index)
                     VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
+                     token_address = $1), 
                         $1, 
                         $2, 
                         $3,
@@ -2574,10 +2578,12 @@ async fn process_cis2_event(
             if let AddressExtended::Account(from) = from {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, token_address, contract_index, \
-                     contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, token_address, \
+                     contract_index, contract_sub_index, balance, token_id, account_index)
                     VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
+                     token_address = $1),  
                         $1, 
                         $2, 
                         $3,
@@ -2605,10 +2611,12 @@ async fn process_cis2_event(
             if let AddressExtended::Account(to) = to {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, token_address, contract_index, \
-                     contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, token_address, \
+                     contract_index, contract_sub_index, balance, token_id, account_index)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
+                     token_address = $1), 
                         $1, 
                         $2, 
                         $3,
