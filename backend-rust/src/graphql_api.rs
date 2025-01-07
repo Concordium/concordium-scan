@@ -4,8 +4,13 @@
 #![allow(unused_variables)]
 
 mod account_metrics;
+mod baker;
 mod block;
 mod block_metrics;
+mod contract;
+mod module_reference_event;
+mod token;
+mod transaction;
 mod transaction_metrics;
 
 // TODO remove this macro, when done with first iteration
@@ -17,26 +22,23 @@ macro_rules! todo_api {
 }
 pub(crate) use todo_api;
 
-use anyhow::{anyhow, Context as _};
 use crate::{
-    address::{AccountAddress, ContractAddress, ContractIndex},
+    address::{AccountAddress, ContractIndex},
     scalar_types::{
-        AccountIndex, Amount, BakerId, BigInteger, BlockHeight, DateTime, Decimal, Energy,
-        MetadataUrl, ModuleReference, TimeSpan, TransactionHash, TransactionIndex,
+        AccountIndex, Amount, BigInteger, BlockHeight, DateTime, TimeSpan, TransactionIndex,
     },
     transaction_event::{
-        baker::BakerPoolOpenStatus,
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
         smart_contracts::InvalidContractVersionError,
         Event,
     },
     transaction_reject::TransactionRejectReason,
     transaction_type::{
-        AccountTransaction, AccountTransactionType, CredentialDeploymentTransaction,
-        CredentialDeploymentTransactionType, DbTransactionType, TransactionType, UpdateTransaction,
+        AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
         UpdateTransactionType,
     },
 };
+use anyhow::{anyhow, Context as _};
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
@@ -48,9 +50,7 @@ use bigdecimal::BigDecimal;
 use block::Block;
 use chrono::Duration;
 use concordium_rust_sdk::{
-    base::contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
-    id::types as sdk_types,
-    types::AmountFraction,
+    base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
 };
 use derive_more::Display;
 use futures::prelude::*;
@@ -59,7 +59,6 @@ use sqlx::PgPool;
 use std::{
     cmp::{max, min},
     error::Error,
-    mem,
     str::FromStr,
     sync::Arc,
 };
@@ -68,6 +67,7 @@ use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
+use transaction::Transaction;
 
 const VERSION: &str = clap::crate_version!();
 
@@ -117,6 +117,12 @@ pub struct ApiServiceConfig {
     module_reference_reject_events_collection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_LINKED_CONTRACTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    module_reference_linked_contracts_collection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_CONTRACT_LINK_EVENTS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -134,10 +140,15 @@ pub struct ApiServiceConfig {
 #[derive(MergedObject, Default)]
 pub struct Query(
     BaseQuery,
-    block::Query,
-    account_metrics::Query,
-    transaction_metrics::Query,
-    block_metrics::Query,
+    baker::QueryBaker,
+    block::QueryBlocks,
+    transaction::QueryTransactions,
+    account_metrics::QueryAccountMetrics,
+    transaction_metrics::QueryTransactionMetrics,
+    block_metrics::QueryBlockMetrics,
+    module_reference_event::QueryModuleReferenceEvent,
+    contract::QueryContract,
+    token::QueryToken,
 );
 
 pub struct Service {
@@ -455,85 +466,6 @@ impl BaseQuery {
         }
     }
 
-    async fn transaction(&self, ctx: &Context<'_>, id: types::ID) -> ApiResult<Transaction> {
-        let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
-        Transaction::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
-    }
-
-    async fn transaction_by_transaction_hash<'a>(
-        &self,
-        ctx: &Context<'a>,
-        transaction_hash: TransactionHash,
-    ) -> ApiResult<Transaction> {
-        Transaction::query_by_hash(get_pool(ctx)?, transaction_hash)
-            .await?
-            .ok_or(ApiError::NotFound)
-    }
-
-    async fn transactions<'a>(
-        &self,
-        ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Transaction>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
-            first,
-            after,
-            last,
-            before,
-            config.transaction_connection_limit,
-        )?;
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
-        let mut row_stream = sqlx::query_as!(
-            Transaction,
-            r#"SELECT * FROM (
-                SELECT
-                    index,
-                    block_height,
-                    hash,
-                    ccd_cost,
-                    energy_cost,
-                    sender,
-                    type as "tx_type: DbTransactionType",
-                    type_account as "type_account: AccountTransactionType",
-                    type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-                    type_update as "type_update: UpdateTransactionType",
-                    success,
-                    events as "events: sqlx::types::Json<Vec<Event>>",
-                    reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-                FROM transactions
-                WHERE $1 < index AND index < $2
-                ORDER BY
-                    (CASE WHEN $3 THEN index END) DESC,
-                    (CASE WHEN NOT $3 THEN index END) ASC
-                LIMIT $4
-            ) ORDER BY index ASC"#,
-            query.from,
-            query.to,
-            query.desc,
-            query.limit,
-        )
-        .fetch(pool);
-
-        // TODO Update page prev/next
-        let mut connection = connection::Connection::new(true, true);
-
-        while let Some(row) = row_stream.try_next().await? {
-            connection.edges.push(connection::Edge::new(row.index.to_string(), row));
-        }
-
-        Ok(connection)
-    }
-
     async fn account<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Account> {
         let index: i64 = id.try_into().map_err(ApiError::InvalidIdInt)?;
         Account::query_by_index(get_pool(ctx)?, index).await?.ok_or(ApiError::NotFound)
@@ -664,29 +596,6 @@ impl BaseQuery {
         Ok(connection)
     }
 
-    async fn baker<'a>(&self, ctx: &Context<'a>, id: types::ID) -> ApiResult<Baker> {
-        let id = IdBaker::try_from(id)?.baker_id;
-        Baker::query_by_id(get_pool(ctx)?, id).await
-    }
-
-    async fn baker_by_baker_id<'a>(&self, ctx: &Context<'a>, id: BakerId) -> ApiResult<Baker> {
-        Baker::query_by_id(get_pool(ctx)?, id).await
-    }
-
-    async fn bakers(
-        &self,
-        #[graphql(default)] _sort: BakerSort,
-        _filter: BakerFilterInput,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Baker>> {
-        todo_api!()
-    }
-
     async fn search(&self, query: String) -> SearchResult {
         SearchResult {
             _query: query,
@@ -714,238 +623,6 @@ impl BaseQuery {
     // String "Returns the last _n_ elements from the list." last: Int "Returns
     // the elements in the list that come before the specified cursor." before:
     // String): TokensConnection
-
-    async fn token<'a>(
-        &self,
-        ctx: &Context<'a>,
-        contract_index: ContractIndex,
-        contract_sub_index: ContractIndex,
-        token_id: String,
-    ) -> ApiResult<Token> {
-        let pool = get_pool(ctx)?;
-
-        let token = sqlx::query_as!(
-            Token,
-            "SELECT
-                total_supply as raw_total_supply,
-                token_id,
-                contract_index,
-                contract_sub_index,
-                token_address,
-                metadata_url,
-                init_transaction_index
-            FROM tokens
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
-             tokens.token_id = $3",
-            contract_index.0 as i64,
-            contract_sub_index.0 as i64,
-            token_id
-        )
-        .fetch_optional(pool)
-        .await?
-        .ok_or(ApiError::NotFound)?;
-
-        Ok(token)
-    }
-
-    async fn contract<'a>(
-        &self,
-        ctx: &Context<'a>,
-        contract_address_index: ContractIndex,
-        contract_address_sub_index: ContractIndex,
-    ) -> ApiResult<Contract> {
-        let pool = get_pool(ctx)?;
-
-        let row = sqlx::query!(
-            r#"SELECT
-                module_reference,
-                name as contract_name,
-                contracts.amount,
-                blocks.slot_time as block_slot_time,
-                transactions.block_height,
-                transactions.hash as transaction_hash,
-                accounts.address as creator
-            FROM contracts
-            JOIN transactions ON transaction_index = transactions.index
-            JOIN blocks ON transactions.block_height = blocks.height
-            JOIN accounts ON transactions.sender = accounts.index
-            WHERE contracts.index = $1 AND contracts.sub_index = $2"#,
-            contract_address_index.0 as i64,
-            contract_address_sub_index.0 as i64,
-        )
-        .fetch_optional(pool)
-        .await?
-        .ok_or(ApiError::NotFound)?;
-
-        let snapshot = ContractSnapshot {
-            block_height: row.block_height,
-            contract_address_index,
-            contract_address_sub_index,
-            contract_name: row.contract_name,
-            module_reference: row.module_reference,
-            amount: row.amount,
-        };
-
-        Ok(Contract {
-            contract_address_index,
-            contract_address_sub_index,
-            contract_address: format!(
-                "<{},{}>",
-                contract_address_index, contract_address_sub_index
-            ),
-            creator: row.creator.into(),
-            block_height: row.block_height,
-            transaction_hash: row.transaction_hash,
-            block_slot_time: row.block_slot_time,
-            snapshot,
-        })
-    }
-
-    async fn contracts<'a>(
-        &self,
-        ctx: &Context<'a>,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Contract>> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-        let query = ConnectionQuery::<i64>::new(
-            first,
-            after,
-            last,
-            before,
-            config.contract_connection_limit,
-        )?;
-
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
-        let mut row_stream = sqlx::query!(
-            "SELECT * FROM (
-                SELECT
-                    contracts.index as index,
-                    sub_index,
-                    module_reference,
-                    name as contract_name,
-                    contracts.amount,
-                    blocks.slot_time as block_slot_time,
-                    transactions.block_height,
-                    transactions.hash as transaction_hash,
-                    accounts.address as creator
-                FROM contracts
-                JOIN transactions ON transaction_index = transactions.index
-                JOIN blocks ON transactions.block_height = blocks.height
-                JOIN accounts ON transactions.sender = accounts.index
-                WHERE contracts.index > $1 AND contracts.index < $2
-                ORDER BY
-                    (CASE WHEN $4 THEN contracts.index END) DESC,
-                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
-                LIMIT $3
-            ) AS contract_data
-            ORDER BY contract_data.index ASC",
-            query.from,
-            query.to,
-            query.limit,
-            query.desc
-        )
-        .fetch(pool);
-
-        let mut connection = connection::Connection::new(true, true);
-
-        while let Some(row) = row_stream.try_next().await? {
-            let contract_address_index =
-                row.index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
-                })?;
-            let contract_address_sub_index =
-                row.sub_index.try_into().map_err(|e: <u64 as TryFrom<i64>>::Error| {
-                    ApiError::InternalError(e.to_string())
-                })?;
-
-            let snapshot = ContractSnapshot {
-                block_height: row.block_height,
-                contract_address_index,
-                contract_address_sub_index,
-                contract_name: row.contract_name,
-                module_reference: row.module_reference,
-                amount: row.amount,
-            };
-
-            let contract = Contract {
-                contract_address_index,
-                contract_address_sub_index,
-                contract_address: format!(
-                    "<{},{}>",
-                    contract_address_index, contract_address_sub_index
-                ),
-                creator: row.creator.into(),
-                block_height: row.block_height,
-                transaction_hash: row.transaction_hash,
-                block_slot_time: row.block_slot_time,
-                snapshot,
-            };
-            connection
-                .edges
-                .push(connection::Edge::new(contract.contract_address_index.to_string(), contract));
-        }
-
-        if last.is_some() {
-            if let Some(edge) = connection.edges.last() {
-                connection.has_previous_page = edge.node.contract_address_index.0 != 0;
-            }
-        } else if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.contract_address_index.0 != 0;
-        }
-
-        Ok(connection)
-    }
-
-    async fn module_reference_event<'a>(
-        &self,
-        ctx: &Context<'a>,
-        module_reference: String,
-    ) -> ApiResult<ModuleReferenceEvent> {
-        let pool = get_pool(ctx)?;
-
-        let row = sqlx::query!(
-            r#"SELECT
-                blocks.height as block_height,
-                smart_contract_modules.transaction_index,
-                schema as display_schema,
-                blocks.slot_time as block_slot_time,
-                transactions.hash as transaction_hash,
-                accounts.address as sender
-            FROM smart_contract_modules
-            JOIN transactions ON smart_contract_modules.transaction_index = transactions.index
-            JOIN blocks ON transactions.block_height = blocks.height
-            JOIN accounts ON transactions.sender = accounts.index
-            WHERE module_reference = $1"#,
-            module_reference
-        )
-        .fetch_optional(pool)
-        .await?
-        .ok_or(ApiError::NotFound)?;
-
-        let display_schema = row
-            .display_schema
-            .as_ref()
-            .map(|s| VersionedModuleSchema::new(s, &None).map(|schema| schema.to_string()))
-            .transpose()?;
-
-        Ok(ModuleReferenceEvent {
-            module_reference,
-            sender: row.sender.into(),
-            block_height: row.block_height,
-            transaction_hash: row.transaction_hash,
-            block_slot_time: row.block_slot_time,
-            display_schema,
-        })
-    }
 }
 
 pub struct Subscription {
@@ -1106,357 +783,6 @@ struct Versions {
     backend_versions: String,
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct Contract {
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    contract_address:           String,
-    creator:                    AccountAddress,
-    block_height:               BlockHeight,
-    transaction_hash:           String,
-    block_slot_time:            DateTime,
-    snapshot:                   ContractSnapshot,
-}
-
-#[ComplexObject]
-impl Contract {
-    // This function returns events from the `contract_events` table as well as
-    // one `init_transaction_event` from when the contract was initialized. The
-    // `skip` and `take` parameters are used to paginate the events.
-    async fn contract_events(
-        &self,
-        ctx: &Context<'_>,
-        skip: u32,
-        take: u32,
-    ) -> ApiResult<ContractEventsCollectionSegment> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-
-        // If `skip` is 0 and at least one event is taken, include the
-        // `init_transaction_event`.
-        let include_initial_event = skip == 0 && take > 0;
-        // Adjust the `take` and `skip` values considering if the
-        // `init_transaction_event` is requested to be included or not.
-        let take_without_initial_event = take.saturating_sub(include_initial_event as u32);
-        let skip_without_initial_event = skip.saturating_sub(1);
-
-        // Limit the number of events to be fetched from the `contract_events` table.
-        let limit = std::cmp::min(
-            take_without_initial_event as u64,
-            config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
-        );
-
-        let mut contract_events = vec![];
-        let mut total_events_count = 0;
-
-        // Get the events from the `contract_events` table.
-        let mut rows = sqlx::query!(
-            "
-            SELECT * FROM (
-                SELECT
-                    event_index_per_contract,
-                    contract_events.transaction_index,
-                    trace_element_index,
-                    contract_events.block_height AS event_block_height,
-                    transactions.hash as transaction_hash,
-                    transactions.events,
-                    accounts.address as creator,
-                    blocks.slot_time as block_slot_time,
-                    blocks.height as block_height
-                FROM contract_events
-                JOIN transactions
-                    ON contract_events.block_height = transactions.block_height
-                    AND contract_events.transaction_index = transactions.index
-                JOIN accounts
-                    ON transactions.sender = accounts.index
-                JOIN blocks
-                    ON contract_events.block_height = blocks.height
-                WHERE contract_events.contract_index = $1 AND contract_events.contract_sub_index = \
-             $2
-                AND event_index_per_contract >= $4
-                LIMIT $3
-                ) AS contract_data
-                ORDER BY event_index_per_contract DESC
-            ",
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64,
-            limit as i64 + 1,
-            skip_without_initial_event as i64
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = rows.len() > limit as usize;
-
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            rows.pop();
-        }
-
-        for row in rows {
-            let Some(events) = row.events else {
-                return Err(ApiError::InternalError("Missing events in database".to_string()));
-            };
-
-            let mut events: Vec<Event> = serde_json::from_value(events).map_err(|_| {
-                ApiError::InternalError("Failed to deserialize events from database".to_string())
-            })?;
-
-            if row.trace_element_index as usize >= events.len() {
-                return Err(ApiError::InternalError(
-                    "Trace element index does not exist in events".to_string(),
-                ));
-            }
-
-            // Get the associated contract event from the `events` vector.
-            let event = events.swap_remove(row.trace_element_index as usize);
-
-            match event {
-                Event::Transferred(_)
-                | Event::ContractInterrupted(_)
-                | Event::ContractResumed(_)
-                | Event::ContractUpgraded(_)
-                | Event::ContractUpdated(_) => Ok(()),
-                _ => Err(ApiError::InternalError(format!(
-                    "Not Transferred, ContractInterrupted, ContractResumed, ContractUpgraded, or \
-                     ContractUpdated event; Wrong event enum tag: {:?}",
-                    mem::discriminant(&event)
-                ))),
-            }?;
-
-            let contract_event = ContractEvent {
-                contract_address_index: self.contract_address_index,
-                contract_address_sub_index: self.contract_address_sub_index,
-                sender: row.creator.into(),
-                event,
-                block_height: row.block_height,
-                transaction_hash: row.transaction_hash,
-                block_slot_time: row.block_slot_time,
-            };
-
-            contract_events.push(contract_event);
-            total_events_count += 1;
-        }
-
-        // Get the `init_transaction_event`.
-        if include_initial_event {
-            let row = sqlx::query!(
-                "
-                SELECT
-                    module_reference,
-                    name as contract_name,
-                    contracts.amount as amount,
-                    contracts.transaction_index as transaction_index,
-                    transactions.events,
-                    transactions.hash as transaction_hash,
-                    transactions.block_height as block_height,
-                    blocks.slot_time as block_slot_time,
-                    accounts.address as creator
-                FROM contracts
-                JOIN transactions ON transaction_index=transactions.index
-                JOIN blocks ON block_height = blocks.height
-                JOIN accounts ON transactions.sender = accounts.index
-                WHERE contracts.index = $1 AND contracts.sub_index = $2
-                ",
-                self.contract_address_index.0 as i64,
-                self.contract_address_sub_index.0 as i64
-            )
-            .fetch_optional(pool)
-            .await?
-            .ok_or(ApiError::NotFound)?;
-
-            let Some(events) = row.events else {
-                return Err(ApiError::InternalError("Missing events in database".to_string()));
-            };
-
-            let [event]: [Event; 1] = serde_json::from_value(events).map_err(|_| {
-                ApiError::InternalError(
-                    "Failed to deserialize events from database. Contract init transaction \
-                     expects exactly one event"
-                        .to_string(),
-                )
-            })?;
-
-            match event {
-                Event::ContractInitialized(_) => Ok(()),
-                _ => Err(ApiError::InternalError(format!(
-                    "Not ContractInitialized event; Wrong event enum tag: {:?}",
-                    mem::discriminant(&event)
-                ))),
-            }?;
-
-            let initial_event = ContractEvent {
-                contract_address_index: self.contract_address_index,
-                contract_address_sub_index: self.contract_address_sub_index,
-                sender: row.creator.into(),
-                event,
-                block_height: row.block_height,
-                transaction_hash: row.transaction_hash,
-                block_slot_time: row.block_slot_time,
-            };
-            contract_events.push(initial_event);
-            total_events_count += 1;
-        }
-
-        Ok(ContractEventsCollectionSegment {
-            page_info:   CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page: skip > 0,
-            },
-            items:       contract_events,
-            total_count: total_events_count,
-        })
-    }
-
-    async fn contract_reject_events(
-        &self,
-        _skip: u32,
-        _take: u32,
-    ) -> ApiResult<ContractRejectEventsCollectionSegment> {
-        todo_api!()
-    }
-
-    // This function fetches CIS2 tokens associated to a given contract, ordered by
-    // their creation index in descending order. It retrieves the most recent
-    // tokens first, with support for pagination through `skip` and `take`
-    // parameters.
-    // - `skip` determines how many of the most recent tokens to skip.
-    // - `take` controls the number of tokens to return, respecting the collection
-    //   limit.
-    async fn tokens(
-        &self,
-        ctx: &Context<'_>,
-        skip: Option<u64>,
-        take: Option<u64>,
-    ) -> ApiResult<TokensCollectionSegment> {
-        let config = get_config(ctx)?;
-        let pool = get_pool(ctx)?;
-
-        let max_token_index = sqlx::query_scalar!(
-            "SELECT MAX(token_index_per_contract)
-            FROM tokens
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2",
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64,
-        )
-        .fetch_one(pool)
-        .await?
-        .unwrap_or(0) as u64;
-
-        let max_index = max_token_index.saturating_sub(skip.unwrap_or(0));
-        let limit = i64::try_from(take.map_or(config.contract_tokens_collection_limit, |t| {
-            config.contract_tokens_collection_limit.min(t)
-        }))?;
-
-        let mut items = sqlx::query_as!(
-            Token,
-            "SELECT
-                total_supply as raw_total_supply,
-                token_id,
-                contract_index,
-                contract_sub_index,
-                token_address,
-                metadata_url,
-                init_transaction_index
-            FROM tokens
-            WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2
-                AND tokens.token_index_per_contract <= $3
-            ORDER BY tokens.token_index_per_contract DESC
-            LIMIT $4
-            ",
-            self.contract_address_index.0 as i64,
-            self.contract_address_sub_index.0 as i64,
-            max_index as i64,
-            limit as i64 + 1,
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = max_token_index > max_index;
-
-        Ok(TokensCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
-            total_count: items.len().try_into()?,
-            items,
-        })
-    }
-}
-
-/// A segment of a collection.
-#[derive(SimpleObject)]
-struct TokensCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
-    /// A flattened list of the items.
-    items:       Vec<Token>,
-    total_count: i32,
-}
-
-/// A segment of a collection.
-#[derive(SimpleObject)]
-struct ContractRejectEventsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
-    /// A flattened list of the items.
-    items:       Vec<ContractRejectEvent>,
-    total_count: i32,
-}
-
-#[derive(SimpleObject)]
-struct ContractRejectEvent {
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    sender:                     AccountAddress,
-    rejected_event:             TransactionRejectReason,
-    block_height:               BlockHeight,
-    transaction_hash:           TransactionHash,
-    block_slot_time:            DateTime,
-}
-
-#[derive(SimpleObject)]
-struct ContractSnapshot {
-    block_height:               BlockHeight,
-    contract_address_index:     ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    contract_name:              String,
-    module_reference:           String,
-    amount:                     Amount,
-}
-
-/// A segment of a collection.
-#[derive(SimpleObject)]
-struct ContractEventsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
-    /// A flattened list of the items.
-    items:       Vec<ContractEvent>,
-    total_count: i32,
-}
-
-#[derive(SimpleObject)]
-struct ContractEvent {
-    contract_address_index: ContractIndex,
-    contract_address_sub_index: ContractIndex,
-    sender: AccountAddress,
-    event: Event,
-    block_height: BlockHeight,
-    transaction_hash: String,
-    block_slot_time: DateTime,
-}
-
 /// Information about the offset pagination.
 #[derive(SimpleObject)]
 struct CollectionSegmentInfo {
@@ -1599,7 +925,7 @@ struct AccountToken {
     token_id:           String,
     #[graphql(skip)]
     raw_balance:        BigDecimal,
-    token:              Token,
+    token:              token::Token,
     account_id:         i64,
     account:            Account,
 }
@@ -1609,247 +935,6 @@ impl AccountToken {
     async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
         Ok(BigInteger::from(self.raw_balance.clone()))
     }
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct Token {
-    #[graphql(skip)]
-    init_transaction_index: TransactionIndex,
-    contract_index:         i64,
-    contract_sub_index:     i64,
-    token_id:               String,
-    metadata_url:           Option<String>,
-    #[graphql(skip)]
-    raw_total_supply:       BigDecimal,
-    token_address:          String,
-    // TODO accounts(skip: Int take: Int): AccountsCollectionSegment
-    // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
-}
-
-#[ComplexObject]
-impl Token {
-    async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
-        Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or(
-            ApiError::InternalError("Token: No transaction at init_transaction_index".to_string()),
-        )
-    }
-
-    async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.raw_total_supply.clone()))
-    }
-
-    async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {
-        Ok(format!("<{},{}>", self.contract_index, self.contract_sub_index))
-    }
-}
-
-struct Transaction {
-    index: TransactionIndex,
-    block_height: BlockHeight,
-    hash: TransactionHash,
-    ccd_cost: Amount,
-    energy_cost: Energy,
-    sender: Option<AccountIndex>,
-    tx_type: DbTransactionType,
-    type_account: Option<AccountTransactionType>,
-    type_credential_deployment: Option<CredentialDeploymentTransactionType>,
-    type_update: Option<UpdateTransactionType>,
-    success: bool,
-    events: Option<sqlx::types::Json<Vec<Event>>>,
-    reject: Option<sqlx::types::Json<TransactionRejectReason>>,
-}
-
-impl Transaction {
-    async fn query_by_index(pool: &PgPool, index: TransactionIndex) -> ApiResult<Option<Self>> {
-        let transaction = sqlx::query_as!(
-            Transaction,
-            r#"SELECT
-                index,
-                block_height,
-                hash,
-                ccd_cost,
-                energy_cost,
-                sender,
-                type as "tx_type: DbTransactionType",
-                type_account as "type_account: AccountTransactionType",
-                type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-                type_update as "type_update: UpdateTransactionType",
-                success,
-                events as "events: sqlx::types::Json<Vec<Event>>",
-                reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-            FROM transactions
-            WHERE index = $1"#,
-            index
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(transaction)
-    }
-
-    async fn query_by_hash(
-        pool: &PgPool,
-        transaction_hash: TransactionHash,
-    ) -> ApiResult<Option<Self>> {
-        let transaction = sqlx::query_as!(
-            Transaction,
-            r#"SELECT
-                index,
-                block_height,
-                hash,
-                ccd_cost,
-                energy_cost,
-                sender,
-                type as "tx_type: DbTransactionType",
-                type_account as "type_account: AccountTransactionType",
-                type_credential_deployment as "type_credential_deployment: CredentialDeploymentTransactionType",
-                type_update as "type_update: UpdateTransactionType",
-                success,
-                events as "events: sqlx::types::Json<Vec<Event>>",
-                reject as "reject: sqlx::types::Json<TransactionRejectReason>"
-            FROM transactions
-            WHERE hash = $1"#,
-            transaction_hash
-        )
-        .fetch_optional(pool)
-        .await?;
-        Ok(transaction)
-    }
-}
-
-#[Object]
-impl Transaction {
-    /// Transaction index as a string.
-    async fn id(&self) -> types::ID { self.index.into() }
-
-    async fn transaction_index(&self) -> TransactionIndex { self.index }
-
-    async fn transaction_hash(&self) -> &TransactionHash { &self.hash }
-
-    async fn ccd_cost(&self) -> Amount { self.ccd_cost }
-
-    async fn energy_cost(&self) -> Energy { self.energy_cost }
-
-    async fn block<'a>(&self, ctx: &Context<'a>) -> ApiResult<Block> {
-        Block::query_by_height(get_pool(ctx)?, self.block_height).await
-    }
-
-    async fn sender_account_address<'a>(
-        &self,
-        ctx: &Context<'a>,
-    ) -> ApiResult<Option<AccountAddress>> {
-        let Some(account_index) = self.sender else {
-            return Ok(None);
-        };
-        let result = sqlx::query!("SELECT address FROM accounts WHERE index=$1", account_index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(Some(result.address.into()))
-    }
-
-    async fn transaction_type(&self) -> ApiResult<TransactionType> {
-        let tt = match self.tx_type {
-            DbTransactionType::Account => TransactionType::AccountTransaction(AccountTransaction {
-                account_transaction_type: self.type_account,
-            }),
-            DbTransactionType::CredentialDeployment => {
-                TransactionType::CredentialDeploymentTransaction(CredentialDeploymentTransaction {
-                    credential_deployment_transaction_type: self.type_credential_deployment.ok_or(
-                        ApiError::InternalError(
-                            "Database invariant violated, transaction type is credential \
-                             deployment, but credential deployment type is null"
-                                .to_string(),
-                        ),
-                    )?,
-                })
-            }
-            DbTransactionType::Update => TransactionType::UpdateTransaction(UpdateTransaction {
-                update_transaction_type: self.type_update.ok_or(ApiError::InternalError(
-                    "Database invariant violated, transaction type is update, but update type is \
-                     null"
-                        .to_string(),
-                ))?,
-            }),
-        };
-        Ok(tt)
-    }
-
-    async fn result(&self) -> ApiResult<TransactionResult<'_>> {
-        if self.success {
-            let events = self
-                .events
-                .as_ref()
-                .ok_or(ApiError::InternalError("Success events is null".to_string()))?;
-            Ok(TransactionResult::Success(Success {
-                events,
-            }))
-        } else {
-            let reason = self
-                .reject
-                .as_ref()
-                .ok_or(ApiError::InternalError("Success events is null".to_string()))?;
-            Ok(TransactionResult::Rejected(Rejected {
-                reason,
-            }))
-        }
-    }
-}
-
-#[derive(Union)]
-enum TransactionResult<'a> {
-    Success(Success<'a>),
-    Rejected(Rejected<'a>),
-}
-
-struct Success<'a> {
-    events: &'a Vec<Event>,
-}
-#[Object]
-impl Success<'_> {
-    async fn events(
-        &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<usize>,
-        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, &Event>> {
-        if first.is_some() && last.is_some() {
-            return Err(ApiError::QueryConnectionFirstLast);
-        }
-        let mut start = if let Some(after) = after.as_ref() {
-            usize::from_str(after.as_str())?
-        } else {
-            0
-        };
-        let mut end = if let Some(before) = before.as_ref() {
-            usize::from_str(before.as_str())?
-        } else {
-            self.events.len()
-        };
-        if let Some(first) = first {
-            end = usize::min(end, start + first);
-        }
-        if let Some(last) = last {
-            if let Some(new_end) = end.checked_sub(last) {
-                start = usize::max(start, new_end);
-            }
-        }
-        let mut connection = connection::Connection::new(start == 0, end == self.events.len());
-        connection.edges = self.events[start..end]
-            .iter()
-            .enumerate()
-            .map(|(i, event)| connection::Edge::new(i.to_string(), event))
-            .collect();
-        Ok(connection)
-    }
-}
-
-#[derive(SimpleObject)]
-struct Rejected<'a> {
-    reason: &'a TransactionRejectReason,
 }
 
 #[derive(sqlx::FromRow)]
@@ -2110,35 +1195,41 @@ impl Account {
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-            SELECT
-                id,
-                amount,
-                entry_type as "entry_type: AccountStatementEntryType",
-                blocks.slot_time as timestamp,
-                account_balance,
-                transaction_id,
-                block_height
-            FROM
-                account_statements
-            JOIN
-                blocks
-            ON
-                blocks.height = account_statements.block_height
-            WHERE
-                account_index = $4
-                AND id > $1
-                AND id < $2
+            SELECT *
+            FROM (
+                SELECT
+                    id,
+                    amount,
+                    entry_type as "entry_type: AccountStatementEntryType",
+                    blocks.slot_time as timestamp,
+                    account_balance,
+                    transaction_id,
+                    block_height
+                FROM
+                    account_statements
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_statements.block_height
+                WHERE
+                    account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN id END) DESC,
+                    (CASE WHEN NOT $4 THEN id END) ASC
+                LIMIT $3
+            )
             ORDER BY
                 id ASC
-            LIMIT $3;
             "#,
             query.from,
             query.to,
             query.limit,
+            query.desc,
             &self.index
         )
         .fetch(pool);
-
         let mut connection = connection::Connection::new(false, false);
         let mut min_index = None;
         let mut max_index = None;
@@ -2200,23 +1291,43 @@ impl Account {
             SELECT
                 id as "id!",
                 block_height as "block_height!",
-                blocks.slot_time as "timestamp",
+                timestamp,
                 entry_type as "entry_type!: AccountStatementEntryType",
                 amount as "amount!"
-            FROM account_rewards
-            JOIN
-                blocks
-            ON
-                blocks.height = account_rewards.block_height
-            WHERE
-                account_index = $4
-                AND id > $1 AND id < $2
-                ORDER BY id ASC
-            LIMIT $3;
+            FROM (
+                SELECT
+                    id,
+                    block_height,
+                    blocks.slot_time as "timestamp",
+                    entry_type,
+                    amount
+                FROM account_statements
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_statements.block_height
+                WHERE
+                    entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
+                    AND account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    CASE WHEN $4 THEN id END DESC,
+                    CASE WHEN NOT $4 THEN id END ASC
+                LIMIT $3
+            )
+            ORDER BY
+                id ASC
             "#,
             query.from,
             query.to,
             query.limit,
+            query.desc,
             &self.index
         )
         .fetch(pool);
@@ -2375,149 +1486,6 @@ impl AccountReleaseSchedule {
     }
 }
 
-#[repr(transparent)]
-struct IdBaker {
-    baker_id: BakerId,
-}
-impl std::str::FromStr for IdBaker {
-    type Err = ApiError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let baker_id = value.parse()?;
-        Ok(IdBaker {
-            baker_id,
-        })
-    }
-}
-impl TryFrom<types::ID> for IdBaker {
-    type Error = ApiError;
-
-    fn try_from(value: types::ID) -> Result<Self, Self::Error> { value.0.parse() }
-}
-
-struct Baker {
-    id: BakerId,
-    staked: Amount,
-    restake_earnings: bool,
-    open_status: Option<BakerPoolOpenStatus>,
-    metadata_url: Option<MetadataUrl>,
-    transaction_commission: Option<i64>,
-    baking_commission: Option<i64>,
-    finalization_commission: Option<i64>,
-}
-impl Baker {
-    async fn query_by_id(pool: &PgPool, baker_id: BakerId) -> ApiResult<Self> {
-        sqlx::query_as!(
-            Baker,
-            r#"SELECT
-    id,
-    staked,
-    restake_earnings,
-    open_status as "open_status: BakerPoolOpenStatus",
-    metadata_url,
-    transaction_commission,
-    baking_commission,
-    finalization_commission
- FROM bakers WHERE id=$1
-"#,
-            baker_id
-        )
-        .fetch_optional(pool)
-        .await?
-        .ok_or(ApiError::NotFound)
-    }
-}
-#[Object]
-impl Baker {
-    async fn id(&self) -> types::ID { types::ID::from(self.id.to_string()) }
-
-    async fn baker_id(&self) -> BakerId { self.id }
-
-    async fn state<'a>(&'a self) -> ApiResult<BakerState<'a>> {
-        let transaction_commission = self
-            .transaction_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
-        let baking_commission = self
-            .baking_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
-        let finalization_commission = self
-            .finalization_commission
-            .map(u32::try_from)
-            .transpose()?
-            .map(|c| AmountFraction::new_unchecked(c).into());
-
-        let out = BakerState::ActiveBakerState(ActiveBakerState {
-            staked_amount:    self.staked,
-            restake_earnings: self.restake_earnings,
-            pool:             BakerPool {
-                open_status:      self.open_status,
-                commission_rates: CommissionRates {
-                    transaction_commission,
-                    baking_commission,
-                    finalization_commission,
-                },
-                metadata_url:     self.metadata_url.as_deref(),
-            },
-            pending_change:   None, // This is not used starting from P7.
-        });
-        Ok(out)
-    }
-
-    async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.id).await?.ok_or(ApiError::NotFound)
-    }
-
-    // transactions("Returns the first _n_ elements from the list." first: Int
-    // "Returns the elements in the list that come after the specified cursor."
-    // after: String "Returns the last _n_ elements from the list." last: Int
-    // "Returns the elements in the list that come before the specified cursor."
-    // before: String): BakerTransactionRelationConnection
-}
-
-#[derive(Union)]
-enum BakerState<'a> {
-    ActiveBakerState(ActiveBakerState<'a>),
-    RemovedBakerState(RemovedBakerState),
-}
-
-#[derive(SimpleObject)]
-struct ActiveBakerState<'a> {
-    // /// The status of the bakers node. Will be null if no status for the node
-    // /// exists.
-    // node_status:      NodeStatus,
-    staked_amount:    Amount,
-    restake_earnings: bool,
-    pool:             BakerPool<'a>,
-    // This will not be used starting from P7
-    pending_change:   Option<PendingBakerChange>,
-}
-
-#[derive(Union)]
-enum PendingBakerChange {
-    PendingBakerRemoval(PendingBakerRemoval),
-    PendingBakerReduceStake(PendingBakerReduceStake),
-}
-
-#[derive(SimpleObject)]
-struct PendingBakerRemoval {
-    effective_time: DateTime,
-}
-
-#[derive(SimpleObject)]
-struct PendingBakerReduceStake {
-    new_staked_amount: Amount,
-    effective_time:    DateTime,
-}
-
-#[derive(SimpleObject)]
-struct RemovedBakerState {
-    removed_at: DateTime,
-}
-
 #[derive(SimpleObject)]
 struct NodeStatus {
     // TODO: add below fields
@@ -2569,49 +1537,6 @@ struct NodeStatus {
     // averageBytesPerSecondIn: Float!
     // averageBytesPerSecondOut: Float!
     id: types::ID,
-}
-
-#[derive(SimpleObject)]
-struct BakerPool<'a> {
-    // /// Total stake of the baker pool as a percentage of all CCDs in existence.
-    // /// Value may be null for brand new bakers where statistics have not
-    // /// been calculated yet. This should be rare and only a temporary
-    // /// condition.
-    // total_stake_percentage:  Decimal,
-    // lottery_power:           Decimal,
-    // payday_commission_rates: CommissionRates,
-    open_status:      Option<BakerPoolOpenStatus>,
-    commission_rates: CommissionRates,
-    metadata_url:     Option<&'a str>,
-    // /// The total amount staked by delegation to this baker pool.
-    // delegated_stake:         Amount,
-    // /// The maximum amount that may be delegated to the pool, accounting for
-    // /// leverage and stake limits.
-    // delegated_stake_cap:     Amount,
-    // /// The total amount staked in this baker pool. Includes both baker stake
-    // /// and delegated stake.
-    // total_stake:             Amount,
-    // delegator_count:         i32,
-    // /// Ranking of the baker pool by total staked amount. Value may be null for
-    // /// brand new bakers where statistics have not been calculated yet. This
-    // /// should be rare and only a temporary condition.
-    // ranking_by_total_stake:  Ranking,
-    // TODO: apy(period: ApyPeriod!): PoolApy!
-    // TODO: delegators("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): DelegatorsConnection
-    // TODO: poolRewards("Returns the first _n_ elements from the list." first: Int "Returns the
-    // elements in the list that come after the specified cursor." after: String "Returns the last
-    // _n_ elements from the list." last: Int "Returns the elements in the list that come before
-    // the specified cursor." before: String): PaydayPoolRewardConnection
-}
-
-#[derive(SimpleObject)]
-struct CommissionRates {
-    transaction_commission:  Option<Decimal>,
-    finalization_commission: Option<Decimal>,
-    baking_commission:       Option<Decimal>,
 }
 
 #[derive(SimpleObject)]
@@ -2759,29 +1684,6 @@ struct AccountFilterInput {
     is_delegator: bool,
 }
 
-#[derive(InputObject)]
-struct BakerFilterInput {
-    open_status_filter: BakerPoolOpenStatus,
-    include_removed:    bool,
-}
-
-#[derive(Enum, Clone, Copy, PartialEq, Eq, Default)]
-enum BakerSort {
-    #[default]
-    BakerIdAsc,
-    BakerIdDesc,
-    BakerStakedAmountAsc,
-    BakerStakedAmountDesc,
-    TotalStakedAmountAsc,
-    TotalStakedAmountDesc,
-    DelegatorCountAsc,
-    DelegatorCountDesc,
-    BakerApy30DaysDesc,
-    DelegatorApy30DaysDesc,
-    BlockCommissionsAsc,
-    BlockCommissionsDesc,
-}
-
 struct SearchResult {
     _query: String,
 }
@@ -2797,7 +1699,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Contract>> {
+    ) -> ApiResult<connection::Connection<String, contract::Contract>> {
         todo_api!()
     }
 
@@ -2847,7 +1749,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Token>> {
+    ) -> ApiResult<connection::Connection<String, token::Token>> {
         todo_api!()
     }
 
@@ -2871,7 +1773,7 @@ impl SearchResult {
         #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
-    ) -> ApiResult<connection::Connection<String, Baker>> {
+    ) -> ApiResult<connection::Connection<String, baker::Baker>> {
         todo_api!()
     }
 
@@ -2886,196 +1788,6 @@ impl SearchResult {
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         todo_api!()
     }
-}
-
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
-#[graphql(complex)]
-pub struct ModuleReferenceEvent {
-    module_reference: ModuleReference,
-    sender:           AccountAddress,
-    block_height:     BlockHeight,
-    transaction_hash: TransactionHash,
-    block_slot_time:  DateTime,
-    display_schema:   Option<String>,
-    // TODO: linkedContracts(skip: Int take: Int): LinkedContractsCollectionSegment
-}
-#[ComplexObject]
-impl ModuleReferenceEvent {
-    async fn module_reference_reject_events(
-        &self,
-        ctx: &Context<'_>,
-        skip: Option<u64>,
-        take: Option<u64>,
-    ) -> ApiResult<ModuleReferenceRejectEventsCollectionSegment> {
-        let pool = get_pool(ctx)?;
-        let config = get_config(ctx)?;
-        let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(
-            take.map_or(config.module_reference_reject_events_collection_limit, |t| {
-                config.module_reference_reject_events_collection_limit.min(t)
-            }),
-        )?;
-
-        let mut items = sqlx::query_as!(
-            ModuleReferenceRejectEvent,
-            r#"SELECT
-                module_reference,
-                transactions.reject as "reject: sqlx::types::Json<TransactionRejectReason>",
-                transactions.block_height,
-                transactions.hash as transaction_hash,
-                blocks.slot_time as block_slot_time
-            FROM rejected_smart_contract_module_transactions
-                JOIN transactions ON transaction_index = transactions.index
-                JOIN blocks ON blocks.height = transactions.block_height
-            WHERE module_reference = $1
-                AND rejected_smart_contract_module_transactions.index >= $2
-            LIMIT $3
-        "#,
-            self.module_reference,
-            min_index,
-            limit + 1
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
-        Ok(ModuleReferenceRejectEventsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
-            total_count: items.len().try_into()?,
-            items,
-        })
-    }
-
-    async fn module_reference_contract_link_events(
-        &self,
-        ctx: &Context<'_>,
-        skip: Option<u64>,
-        take: Option<u64>,
-    ) -> ApiResult<ModuleReferenceContractLinkEventsCollectionSegment> {
-        let pool = get_pool(ctx)?;
-        let config = get_config(ctx)?;
-        let min_index = i64::try_from(skip.unwrap_or(0))?;
-        let limit = i64::try_from(
-            take.map_or(config.module_reference_contract_link_events_collection_limit, |t| {
-                config.module_reference_contract_link_events_collection_limit.min(t)
-            }),
-        )?;
-
-        let mut items = sqlx::query_as!(
-            ModuleReferenceContractLinkEvent,
-            r#"SELECT
-                link_action as "link_action: ModuleReferenceContractLinkAction",
-                contract_index,
-                contract_sub_index,
-                transactions.hash as transaction_hash,
-                blocks.slot_time as block_slot_time
-            FROM link_smart_contract_module_transactions
-                JOIN transactions ON transaction_index = transactions.index
-                JOIN blocks ON blocks.height = transactions.block_height
-            WHERE module_reference = $1
-                AND link_smart_contract_module_transactions.index >= $2
-            LIMIT $3
-        "#,
-            self.module_reference,
-            min_index,
-            limit + 1
-        )
-        .fetch_all(pool)
-        .await?;
-
-        // Determine if there is a next page by checking if we got more than `limit`
-        // rows.
-        let has_next_page = items.len() > limit as usize;
-        // If there is a next page, remove the extra row used for pagination detection.
-        if has_next_page {
-            items.pop();
-        }
-        let has_previous_page = min_index > 0;
-
-        Ok(ModuleReferenceContractLinkEventsCollectionSegment {
-            page_info: CollectionSegmentInfo {
-                has_next_page,
-                has_previous_page,
-            },
-            total_count: items.len().try_into()?,
-            items,
-        })
-    }
-}
-
-#[derive(SimpleObject)]
-struct ModuleReferenceRejectEventsCollectionSegment {
-    page_info:   CollectionSegmentInfo,
-    items:       Vec<ModuleReferenceRejectEvent>,
-    total_count: u64,
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct ModuleReferenceRejectEvent {
-    module_reference: ModuleReference,
-    #[graphql(skip)]
-    reject:           Option<sqlx::types::Json<TransactionRejectReason>>,
-    block_height:     BlockHeight,
-    transaction_hash: TransactionHash,
-    block_slot_time:  DateTime,
-}
-#[ComplexObject]
-impl ModuleReferenceRejectEvent {
-    async fn rejected_event(&self) -> ApiResult<&TransactionRejectReason> {
-        if let Some(sqlx::types::Json(reason)) = self.reject.as_ref() {
-            Ok(reason)
-        } else {
-            Err(ApiError::InternalError(
-                "ModuleReferenceRejectEvent: No reject reason found".to_string(),
-            ))
-        }
-    }
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct ModuleReferenceContractLinkEvent {
-    block_slot_time:    DateTime,
-    transaction_hash:   TransactionHash,
-    link_action:        ModuleReferenceContractLinkAction,
-    #[graphql(skip)]
-    contract_index:     i64,
-    #[graphql(skip)]
-    contract_sub_index: i64,
-}
-#[ComplexObject]
-impl ModuleReferenceContractLinkEvent {
-    async fn contract_address(&self) -> ApiResult<ContractAddress> {
-        ContractAddress::new(self.contract_index, self.contract_sub_index)
-    }
-}
-
-#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "module_reference_contract_link_action")]
-pub enum ModuleReferenceContractLinkAction {
-    Added,
-    Removed,
-}
-
-/// A segment of a collection.
-#[derive(SimpleObject)]
-struct ModuleReferenceContractLinkEventsCollectionSegment {
-    /// Information to aid in pagination.
-    page_info:   CollectionSegmentInfo,
-    /// A flattened list of the items.
-    items:       Vec<ModuleReferenceContractLinkEvent>,
-    total_count: u64,
 }
 
 #[derive(Enum, Clone, Copy, PartialEq, Eq)]

@@ -37,10 +37,10 @@ struct AccountMetricsBuckets {
 }
 
 #[derive(Default)]
-pub(crate) struct Query;
+pub(crate) struct QueryAccountMetrics;
 
 #[Object]
-impl Query {
+impl QueryAccountMetrics {
     async fn accounts_metrics(
         &self,
         ctx: &Context<'_>,

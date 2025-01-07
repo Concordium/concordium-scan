@@ -449,3 +449,10 @@ fn decode_value_with_schema(
         }
     }
 }
+
+#[derive(Enum, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "module_reference_contract_link_action")]
+pub enum ModuleReferenceContractLinkAction {
+    Added,
+    Removed,
+}
