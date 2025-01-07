@@ -1195,35 +1195,41 @@ impl Account {
         let mut account_statements = sqlx::query_as!(
             AccountStatementEntry,
             r#"
-            SELECT
-                id,
-                amount,
-                entry_type as "entry_type: AccountStatementEntryType",
-                blocks.slot_time as timestamp,
-                account_balance,
-                transaction_id,
-                block_height
-            FROM
-                account_statements
-            JOIN
-                blocks
-            ON
-                blocks.height = account_statements.block_height
-            WHERE
-                account_index = $4
-                AND id > $1
-                AND id < $2
+            SELECT *
+            FROM (
+                SELECT
+                    id,
+                    amount,
+                    entry_type as "entry_type: AccountStatementEntryType",
+                    blocks.slot_time as timestamp,
+                    account_balance,
+                    transaction_id,
+                    block_height
+                FROM
+                    account_statements
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_statements.block_height
+                WHERE
+                    account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN id END) DESC,
+                    (CASE WHEN NOT $4 THEN id END) ASC
+                LIMIT $3
+            )
             ORDER BY
                 id ASC
-            LIMIT $3;
             "#,
             query.from,
             query.to,
             query.limit,
+            query.desc,
             &self.index
         )
         .fetch(pool);
-
         let mut connection = connection::Connection::new(false, false);
         let mut min_index = None;
         let mut max_index = None;
@@ -1285,23 +1291,37 @@ impl Account {
             SELECT
                 id as "id!",
                 block_height as "block_height!",
-                blocks.slot_time as "timestamp",
+                timestamp,
                 entry_type as "entry_type!: AccountStatementEntryType",
                 amount as "amount!"
-            FROM account_rewards
-            JOIN
-                blocks
-            ON
-                blocks.height = account_rewards.block_height
-            WHERE
-                account_index = $4
-                AND id > $1 AND id < $2
-                ORDER BY id ASC
-            LIMIT $3;
+            FROM (
+                SELECT
+                    id,
+                    block_height,
+                    blocks.slot_time as "timestamp",
+                    entry_type,
+                    amount
+                FROM account_rewards
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_rewards.block_height
+                WHERE
+                    account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    CASE WHEN $4 THEN id END DESC,
+                    CASE WHEN NOT $4 THEN id END ASC
+                LIMIT $3
+            )
+            ORDER BY
+                id ASC
             "#,
             query.from,
             query.to,
             query.limit,
+            query.desc,
             &self.index
         )
         .fetch(pool);
