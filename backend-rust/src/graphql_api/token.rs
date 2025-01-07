@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     address::ContractIndex,
+    graphql_api::todo_api,
     scalar_types::{BigInteger, TransactionIndex},
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
@@ -156,15 +157,17 @@ pub struct AccountsCollectionSegment {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct AccountToken {
-    token_id:           String,
-    contract_index:     i64,
-    contract_sub_index: i64,
+    pub token_id:           String,
+    pub contract_index:     i64,
+    pub contract_sub_index: i64,
     #[graphql(skip)]
-    raw_balance:        bigdecimal::BigDecimal,
-    account_id:         i64,
+    pub raw_balance:        bigdecimal::BigDecimal,
+    pub account_id:         i64,
 }
 #[ComplexObject]
 impl AccountToken {
+    async fn token<'a>(&self, ctx: &Context<'a>) -> ApiResult<Token> { todo_api!() }
+
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
         Account::query_by_index(get_pool(ctx)?, self.account_id).await?.ok_or(ApiError::NotFound)
     }

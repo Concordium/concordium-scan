@@ -579,12 +579,14 @@ CREATE TABLE account_tokens (
     -- https://proposals.concordium.software/CIS/cis-2.html#token-address
     token_address
         TEXT
-        UNIQUE
         NOT NULL,
     -- Token id of the token.
     token_id
         TEXT
-        NOT NULL
+        NOT NULL,
+
+    -- Ensure that each token_address and account_index pair is unique.
+    CONSTRAINT unique_token_account_relationship UNIQUE (token_address, account_index)
 );
 
 -- Important for quickly filtering/sorting token holder addresses (this index can be simplified
