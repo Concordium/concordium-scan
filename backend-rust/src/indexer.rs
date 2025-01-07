@@ -28,7 +28,7 @@ use concordium_rust_sdk::{
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
         self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
-        AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+        AccountTransactionDetails, AccountTransactionEffects, Address, BlockItemSummary,
         BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
         DelegationTarget, PartsPerHundredThousands, RejectReason, RewardsOverview,
         SpecialTransactionOutcome, TransactionType,
@@ -50,7 +50,6 @@ use prometheus_client::{
 };
 use sqlx::PgPool;
 use std::convert::TryInto;
-use concordium_rust_sdk::types::Address;
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -804,12 +803,12 @@ impl PreparedBlock {
             prepared_block_items
                 .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?);
         }
-        let prepared_account_statements_iter = data
-            .events
-            .iter()
-            .zip(data.items.iter())
-            .map(|(item_summary, item)| {
-                PreparedAccountStatement::prepare_from_block_item(item_summary, data.block_info.block_height)
+        let prepared_account_statements_iter =
+            data.events.iter().zip(data.items.iter()).map(|(item_summary, item)| {
+                PreparedAccountStatement::prepare_from_block_item(
+                    item_summary,
+                    data.block_info.block_height,
+                )
             });
 
         // Create an iterator for special items
@@ -817,15 +816,17 @@ impl PreparedBlock {
             .special_events
             .iter()
             .flat_map(|event| {
-                PreparedAccountStatement::prepare_from_special_transaction(event, data.block_info.block_height)
+                PreparedAccountStatement::prepare_from_special_transaction(
+                    event,
+                    data.block_info.block_height,
+                )
             })
             .flatten()
             .filter(|event| event.amount > 0);
 
         // Chain the two iterators and collect into a single vector
-        let combined_statements: Vec<_> = prepared_account_statements_iter
-            .chain(special_items_iter)
-            .collect();
+        let combined_statements: Vec<_> =
+            prepared_account_statements_iter.chain(special_items_iter).collect();
         Ok(Self {
             hash,
             height,
@@ -945,7 +946,10 @@ struct PreparedAccountStatement {
 }
 
 impl PreparedAccountStatement {
-    fn prepare_from_block_item(event: &BlockItemSummary, block_height: AbsoluteBlockHeight,) -> anyhow::Result<Vec<PreparedAccountStatement>> {
+    fn prepare_from_block_item(
+        event: &BlockItemSummary,
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Vec<PreparedAccountStatement>> {
         if let BlockItemSummaryDetails::AccountTransaction(details) = &event.details {
             let transaction_id: Option<i64> = Some(event.index.index.try_into()?);
             let mut statements = vec![PreparedAccountStatement {
@@ -957,7 +961,10 @@ impl PreparedAccountStatement {
             }];
 
             match &details.effects {
-                AccountTransactionEffects::AccountTransfer{ amount, to } => {
+                AccountTransactionEffects::AccountTransfer {
+                    amount,
+                    to,
+                } => {
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
                         amount: -1 * i64::try_from(amount.micro_ccd)?,
@@ -973,7 +980,9 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
                 }
-                AccountTransactionEffects::ContractInitialized { data } => {
+                AccountTransactionEffects::ContractInitialized {
+                    data,
+                } => {
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
                         amount: -1 * i64::try_from(data.amount.micro_ccd)?,
@@ -982,10 +991,16 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
                 }
-                AccountTransactionEffects::ContractUpdateIssued { effects } => {
+                AccountTransactionEffects::ContractUpdateIssued {
+                    effects,
+                } => {
                     for effect in effects {
                         match effect {
-                            ContractTraceElement::Transferred { from, amount, to } => {
+                            ContractTraceElement::Transferred {
+                                from,
+                                amount,
+                                to,
+                            } => {
                                 statements.push(PreparedAccountStatement {
                                     account_address: to.to_string(),
                                     amount: amount.micro_ccd.try_into()?,
@@ -994,7 +1009,9 @@ impl PreparedAccountStatement {
                                     transaction_id,
                                 });
                             }
-                            ContractTraceElement::Updated { data}  => {
+                            ContractTraceElement::Updated {
+                                data,
+                            } => {
                                 if let Address::Account(account_address) = data.instigator {
                                     statements.push(PreparedAccountStatement {
                                         account_address: account_address.to_string(),
@@ -1005,11 +1022,13 @@ impl PreparedAccountStatement {
                                     });
                                 }
                             }
-                            _ => ()
+                            _ => (),
                         }
                     }
                 }
-                AccountTransactionEffects::TransferredToEncrypted{ data} => {
+                AccountTransactionEffects::TransferredToEncrypted {
+                    data,
+                } => {
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
                         amount: -1 * i64::try_from(data.amount.micro_ccd)?,
@@ -1018,7 +1037,10 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
                 }
-                AccountTransactionEffects::TransferredToPublic { amount, ..} => {
+                AccountTransactionEffects::TransferredToPublic {
+                    amount,
+                    ..
+                } => {
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
                         amount: amount.micro_ccd.try_into()?,
@@ -1027,17 +1049,16 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
                 }
-                AccountTransactionEffects::TransferredWithSchedule { amount, to } => {
-                    let sum: u64 =
-                        amount
-                        .iter()
-                        .map(|(_, amount)| amount.micro_ccd)
-                        .sum();
+                AccountTransactionEffects::TransferredWithSchedule {
+                    amount,
+                    to,
+                } => {
+                    let sum: u64 = amount.iter().map(|(_, amount)| amount.micro_ccd).sum();
 
                     // Transfer Out
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
-                        amount: -1  * i64::try_from(sum)?,
+                        amount: -1 * i64::try_from(sum)?,
                         block_height: block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::TransferOut,
                         transaction_id,
@@ -1052,7 +1073,7 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
                 }
-                _ => ()
+                _ => (),
             }
 
             return Ok(statements);
