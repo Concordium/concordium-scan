@@ -1,6 +1,3 @@
-#![allow(unused_variables)] // TODO Remove before first release
-#![allow(dead_code)] // TODO Remove before first release
-
 use crate::{
     graphql_api::AccountStatementEntryType,
     transaction_event::{
@@ -49,7 +46,7 @@ use prometheus_client::{
     registry::Registry,
 };
 use sqlx::PgPool;
-use std::convert::TryInto;
+use std::{convert::TryInto, sync::Arc};
 use tokio::{time::Instant, try_join};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -903,7 +900,7 @@ SELECT * FROM UNNEST(
         // we update the blocks below which does not contain finalization time and
         // compute it to be the difference between the slot_time of the block and the
         // finalizer block.
-        let rec = sqlx::query!(
+        sqlx::query!(
             r#"
 UPDATE blocks
    SET finalization_time = EXTRACT("MILLISECONDS" FROM finalizer.slot_time - blocks.slot_time),
@@ -1099,8 +1096,6 @@ impl PreparedBlockSpecialEvent {
 
 /// Prepared block item (transaction), ready to be inserted in the database
 struct PreparedBlockItem {
-    /// Index of the block item within the block.
-    block_item_index:  i64,
     /// Hash of the transaction
     block_item_hash:   String,
     /// Cost for the account signing the block item (in microCCD), always 0 for
@@ -1134,9 +1129,8 @@ struct PreparedBlockItem {
     /// All affected accounts for this transaction. Each entry is the `String`
     /// representation of an account address.
     affected_accounts: Vec<String>,
-    // This is an option temporarily, until we are able to handle every type of event.
     /// Block item events prepared for inserting into the database.
-    prepared_event:    Option<PreparedEvent>,
+    prepared_event:    PreparedEvent,
 }
 
 impl PreparedBlockItem {
@@ -1147,7 +1141,6 @@ impl PreparedBlockItem {
         item: &BlockItem<EncodedPayload>,
     ) -> anyhow::Result<Self> {
         let block_height = i64::try_from(data.finalized_block_info.height.height)?;
-        let block_item_index = i64::try_from(item_summary.index.index)?;
         let block_item_hash = item_summary.hash.to_string();
         let ccd_cost =
             i64::try_from(data.chain_parameters.ccd_cost(item_summary.energy_cost).micro_ccd)?;
@@ -1200,7 +1193,6 @@ impl PreparedBlockItem {
         let prepared_event = PreparedEvent::prepare(node_client, data, item_summary, item).await?;
 
         Ok(Self {
-            block_item_index,
             block_item_hash,
             ccd_cost,
             energy_cost,
@@ -1290,10 +1282,7 @@ impl PreparedBlockItem {
         .execute(tx.as_mut())
         .await?;
 
-        if let Some(prepared_event) = &self.prepared_event {
-            prepared_event.save(tx, tx_idx).await?;
-        }
-
+        self.prepared_event.save(tx, tx_idx).await?;
         Ok(())
     }
 }
@@ -1302,6 +1291,10 @@ impl PreparedBlockItem {
 enum PreparedEvent {
     /// A new account got created.
     AccountCreation(PreparedAccountCreation),
+    /// A transfer of CCD from one account to another account.
+    CcdTransfer(PreparedCcdTransferEvent),
+    /// Event of moving funds either from or to the encrypted balance.
+    EncryptedBalance(PreparedUpdateAccountBalance),
     /// Changes related to validators (previously referred to as bakers).
     BakerEvents(Vec<PreparedBakerEvent>),
     /// Account delegation events
@@ -1328,14 +1321,10 @@ impl PreparedEvent {
         data: &BlockData,
         item_summary: &BlockItemSummary,
         item: &BlockItem<EncodedPayload>,
-    ) -> anyhow::Result<Option<Self>> {
+    ) -> anyhow::Result<Self> {
         let prepared_event = match &item_summary.details {
             BlockItemSummaryDetails::AccountCreation(details) => {
-                Some(PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(
-                    data,
-                    item_summary,
-                    details,
-                )?))
+                PreparedEvent::AccountCreation(PreparedAccountCreation::prepare(details)?)
             }
             BlockItemSummaryDetails::AccountTransaction(details) => match &details.effects {
                 AccountTransactionEffects::None {
@@ -1351,34 +1340,29 @@ impl PreparedEvent {
                             // Trying to initialize a smart contract from invalid module
                             // reference or deploying invalid smart contract modules are not indexed
                             // further.
-                            None
-                        } else {
-                            let BlockItem::AccountTransaction(account_transaction) = item else {
-                                anyhow::bail!(
-                                    "Block item was expected to be an account transaction"
-                                )
-                            };
-                            let decoded = account_transaction
-                                .payload
-                                .decode()
-                                .context("Failed decoding account transaction payload")?;
-
-                            let module_reference = match decoded {
-                                Payload::InitContract {
-                                    payload,
-                                } => payload.mod_ref,
-                                Payload::DeployModule {
-                                    module,
-                                } => module.get_module_ref(),
-                                _ => anyhow::bail!(
-                                    "Payload did not match InitContract or DeployModule as \
-                                     expected"
-                                ),
-                            };
-                            Some(PreparedEvent::RejectModuleTransaction(
-                                PreparedRejectModuleTransaction::prepare(module_reference)?,
-                            ))
+                            return Ok(PreparedEvent::NoOperation);
                         }
+                        let BlockItem::AccountTransaction(account_transaction) = item else {
+                            anyhow::bail!("Block item was expected to be an account transaction")
+                        };
+                        let decoded = account_transaction
+                            .payload
+                            .decode()
+                            .context("Failed decoding account transaction payload")?;
+                        let module_reference = match decoded {
+                            Payload::InitContract {
+                                payload,
+                            } => payload.mod_ref,
+                            Payload::DeployModule {
+                                module,
+                            } => module.get_module_ref(),
+                            _ => anyhow::bail!(
+                                "Payload did not match InitContract or DeployModule as expected"
+                            ),
+                        };
+                        PreparedEvent::RejectModuleTransaction(
+                            PreparedRejectModuleTransaction::prepare(module_reference)?,
+                        )
                     }
                     Some(&TransactionType::Update) => {
                         if let RejectReason::InvalidContractAddress {
@@ -1387,67 +1371,57 @@ impl PreparedEvent {
                         {
                             // Updating a smart contract instances using invalid contract addresses,
                             // i.e. non existing instance, are not indexed further.
-                            None
-                        } else {
-                            anyhow::ensure!(
-                                matches!(
-                                    reject_reason,
-                                    RejectReason::InvalidReceiveMethod { .. }
-                                        | RejectReason::RuntimeFailure
-                                        | RejectReason::AmountTooLarge { .. }
-                                        | RejectReason::OutOfEnergy
-                                        | RejectReason::RejectedReceive { .. }
-                                        | RejectReason::InvalidAccountReference { .. }
-                                ),
-                                "Unexpected reject reason for Contract Update transaction: {:?}",
-                                reject_reason
-                            );
-
-                            let BlockItem::AccountTransaction(account_transaction) = item else {
-                                anyhow::bail!(
-                                    "Block item was expected to be an account transaction"
-                                )
-                            };
-                            let payload = account_transaction
-                                .payload
-                                .decode()
-                                .context("Failed decoding account transaction payload")?;
-                            let Payload::Update {
-                                payload,
-                            } = payload
-                            else {
-                                anyhow::bail!(
-                                    "Unexpected payload for transaction of type Update: {:?}",
-                                    payload
-                                )
-                            };
-                            Some(PreparedEvent::RejectContractUpdateTransaction(
-                                PreparedRejectContractUpdateTransaction::prepare(payload.address)?,
-                            ))
+                            return Ok(PreparedEvent::NoOperation);
                         }
+                        anyhow::ensure!(
+                            matches!(
+                                reject_reason,
+                                RejectReason::InvalidReceiveMethod { .. }
+                                    | RejectReason::RuntimeFailure
+                                    | RejectReason::AmountTooLarge { .. }
+                                    | RejectReason::OutOfEnergy
+                                    | RejectReason::RejectedReceive { .. }
+                                    | RejectReason::InvalidAccountReference { .. }
+                            ),
+                            "Unexpected reject reason for Contract Update transaction: {:?}",
+                            reject_reason
+                        );
+
+                        let BlockItem::AccountTransaction(account_transaction) = item else {
+                            anyhow::bail!("Block item was expected to be an account transaction")
+                        };
+                        let payload = account_transaction
+                            .payload
+                            .decode()
+                            .context("Failed decoding account transaction payload")?;
+                        let Payload::Update {
+                            payload,
+                        } = payload
+                        else {
+                            anyhow::bail!(
+                                "Unexpected payload for transaction of type Update: {:?}",
+                                payload
+                            )
+                        };
+                        PreparedEvent::RejectContractUpdateTransaction(
+                            PreparedRejectContractUpdateTransaction::prepare(payload.address)?,
+                        )
                     }
-                    _ => None,
+                    _ => PreparedEvent::NoOperation,
                 },
                 AccountTransactionEffects::ModuleDeployed {
                     module_ref,
-                } => Some(PreparedEvent::ModuleDeployed(
-                    PreparedModuleDeployed::prepare(node_client, data, item_summary, *module_ref)
-                        .await?,
-                )),
+                } => PreparedEvent::ModuleDeployed(
+                    PreparedModuleDeployed::prepare(node_client, data, *module_ref).await?,
+                ),
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
-                } => Some(PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(
-                        node_client,
-                        data,
-                        item_summary,
-                        event_data,
-                    )
-                    .await?,
-                )),
+                } => PreparedEvent::ContractInitialized(
+                    PreparedContractInitialized::prepare(node_client, data, event_data).await?,
+                ),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
-                } => Some(PreparedEvent::ContractUpdate(
+                } => PreparedEvent::ContractUpdate(
                     join_all(effects.iter().enumerate().map(|(trace_element_index, effect)| {
                         let mut node_client = node_client.clone();
 
@@ -1455,7 +1429,6 @@ impl PreparedEvent {
                             PreparedContractUpdate::prepare(
                                 &mut node_client,
                                 data,
-                                item_summary,
                                 effect,
                                 trace_element_index,
                             )
@@ -1465,16 +1438,21 @@ impl PreparedEvent {
                     .await
                     .into_iter()
                     .collect::<Result<Vec<_>, anyhow::Error>>()?,
-                )),
+                ),
                 AccountTransactionEffects::AccountTransfer {
                     amount,
                     to,
-                } => None,
-                AccountTransactionEffects::AccountTransferWithMemo {
+                }
+                | AccountTransactionEffects::AccountTransferWithMemo {
                     amount,
                     to,
-                    memo,
-                } => None,
+                    ..
+                } => PreparedEvent::CcdTransfer(PreparedCcdTransferEvent::prepare(
+                    Arc::new(details.sender.to_string()),
+                    Arc::new(to.to_string()),
+                    amount.micro_ccd().try_into()?,
+                )?),
+
                 AccountTransactionEffects::BakerAdded {
                     data: event_data,
                 } => {
@@ -1482,7 +1460,7 @@ impl PreparedEvent {
                         data: event_data.clone(),
                     };
                     let prepared = PreparedBakerEvent::prepare(&event)?;
-                    Some(PreparedEvent::BakerEvents(vec![prepared]))
+                    PreparedEvent::BakerEvents(vec![prepared])
                 }
                 AccountTransactionEffects::BakerRemoved {
                     baker_id,
@@ -1491,108 +1469,102 @@ impl PreparedEvent {
                         baker_id: *baker_id,
                     };
                     let prepared = PreparedBakerEvent::prepare(&event)?;
-                    Some(PreparedEvent::BakerEvents(vec![prepared]))
+                    PreparedEvent::BakerEvents(vec![prepared])
                 }
                 AccountTransactionEffects::BakerStakeUpdated {
                     data: update,
                 } => {
-                    if let Some(update) = update {
-                        let event = if update.increased {
-                            concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
-                                baker_id:  update.baker_id,
-                                new_stake: update.new_stake,
-                            }
-                        } else {
-                            concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
-                                baker_id:  update.baker_id,
-                                new_stake: update.new_stake,
-                            }
-                        };
-                        let prepared = PreparedBakerEvent::prepare(&event)?;
-                        Some(PreparedEvent::BakerEvents(vec![prepared]))
+                    let Some(update) = update else {
+                        return Ok(PreparedEvent::NoOperation);
+                    };
+                    let event = if update.increased {
+                        concordium_rust_sdk::types::BakerEvent::BakerStakeIncreased {
+                            baker_id:  update.baker_id,
+                            new_stake: update.new_stake,
+                        }
                     } else {
-                        Some(PreparedEvent::NoOperation)
-                    }
+                        concordium_rust_sdk::types::BakerEvent::BakerStakeDecreased {
+                            baker_id:  update.baker_id,
+                            new_stake: update.new_stake,
+                        }
+                    };
+                    let prepared = PreparedBakerEvent::prepare(&event)?;
+                    PreparedEvent::BakerEvents(vec![prepared])
                 }
                 AccountTransactionEffects::BakerRestakeEarningsUpdated {
                     baker_id,
                     restake_earnings,
-                } => {
-                    let prepared = PreparedEvent::BakerEvents(vec![PreparedBakerEvent::prepare(
-                        &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
-                            baker_id:         *baker_id,
-                            restake_earnings: *restake_earnings,
-                        },
-                    )?]);
-                    Some(prepared)
-                }
+                } => PreparedEvent::BakerEvents(vec![PreparedBakerEvent::prepare(
+                    &concordium_rust_sdk::types::BakerEvent::BakerRestakeEarningsUpdated {
+                        baker_id:         *baker_id,
+                        restake_earnings: *restake_earnings,
+                    },
+                )?]),
                 AccountTransactionEffects::BakerKeysUpdated {
                     ..
-                } => Some(PreparedEvent::NoOperation),
+                } => PreparedEvent::NoOperation,
                 AccountTransactionEffects::BakerConfigured {
                     data: events,
-                } => Some(PreparedEvent::BakerEvents(
+                } => PreparedEvent::BakerEvents(
                     events
                         .iter()
                         .map(PreparedBakerEvent::prepare)
                         .collect::<anyhow::Result<Vec<_>>>()?,
-                )),
+                ),
 
                 AccountTransactionEffects::EncryptedAmountTransferred {
-                    removed,
-                    added,
-                } => None,
-                AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
-                    removed,
-                    added,
-                    memo,
-                } => None,
+                    ..
+                }
+                | AccountTransactionEffects::EncryptedAmountTransferredWithMemo {
+                    ..
+                } => PreparedEvent::NoOperation,
                 AccountTransactionEffects::TransferredToEncrypted {
                     data,
-                } => None,
+                } => PreparedEvent::EncryptedBalance(PreparedUpdateAccountBalance {
+                    account_address: Arc::new(details.sender.to_string()),
+                    change:          -i64::try_from(data.amount.micro_ccd())?,
+                }),
                 AccountTransactionEffects::TransferredToPublic {
-                    removed,
                     amount,
-                } => None,
+                    ..
+                } => PreparedEvent::EncryptedBalance(PreparedUpdateAccountBalance {
+                    account_address: Arc::new(details.sender.to_string()),
+                    change:          i64::try_from(amount.micro_ccd())?,
+                }),
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
                     amount: scheduled_releases,
-                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                    to.to_string(),
-                    scheduled_releases,
-                )?)),
-                AccountTransactionEffects::TransferredWithScheduleAndMemo {
+                }
+                | AccountTransactionEffects::TransferredWithScheduleAndMemo {
                     to,
                     amount: scheduled_releases,
-                    memo,
-                } => Some(PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
-                    to.to_string(),
+                    ..
+                } => PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
+                    Arc::new(to.to_string()),
                     scheduled_releases,
-                )?)),
+                )?),
                 AccountTransactionEffects::CredentialKeysUpdated {
-                    cred_id,
-                } => None,
-                AccountTransactionEffects::CredentialsUpdated {
-                    new_cred_ids,
-                    removed_cred_ids,
-                    new_threshold,
-                } => None,
-                AccountTransactionEffects::DataRegistered {
-                    data,
-                } => None,
+                    ..
+                }
+                | AccountTransactionEffects::CredentialsUpdated {
+                    ..
+                }
+                | AccountTransactionEffects::DataRegistered {
+                    ..
+                } => PreparedEvent::NoOperation,
 
                 AccountTransactionEffects::DelegationConfigured {
                     data: events,
-                } => Some(PreparedEvent::AccountDelegationEvents(
+                } => PreparedEvent::AccountDelegationEvents(
                     events
                         .iter()
                         .map(PreparedAccountDelegationEvent::prepare)
                         .collect::<anyhow::Result<Vec<_>>>()?,
-                )),
+                ),
             },
             details => {
                 warn!("details = \n {:#?}", details);
-                None
+                PreparedEvent::NoOperation
             }
         };
         Ok(prepared_event)
@@ -1605,6 +1577,8 @@ impl PreparedEvent {
     ) -> anyhow::Result<()> {
         match self {
             PreparedEvent::AccountCreation(event) => event.save(tx, tx_idx).await,
+            PreparedEvent::CcdTransfer(event) => event.save(tx).await,
+            PreparedEvent::EncryptedBalance(event) => event.save(tx).await,
             PreparedEvent::BakerEvents(events) => {
                 for event in events {
                     event.save(tx).await?;
@@ -1636,23 +1610,15 @@ impl PreparedEvent {
 /// Prepared database insertion of a new account.
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
-    account_address:  String,
-    /// The absolute block height for the block creating this account.
-    block_height:     i64,
-    /// The transaction index within the block creating this account.
-    block_item_index: i64,
+    account_address: String,
 }
 
 impl PreparedAccountCreation {
     fn prepare(
-        data: &BlockData,
-        block_item: &BlockItemSummary,
         details: &concordium_rust_sdk::types::AccountCreationDetails,
     ) -> anyhow::Result<Self> {
         Ok(Self {
-            account_address:  details.address.to_string(),
-            block_height:     i64::try_from(data.finalized_block_info.height.height)?,
-            block_item_index: i64::try_from(block_item.index.index)?,
+            account_address: details.address.to_string(),
         })
     }
 
@@ -1726,7 +1692,7 @@ impl PreparedAccountDelegationEvent {
             DelegationEvent::DelegationStakeDecreased {
                 delegator_id,
                 new_stake,
-            } => PreparedAccountDelegationEvent::StakeIncrease {
+            } => PreparedAccountDelegationEvent::StakeDecrease {
                 account_id: delegator_id.id.index.try_into()?,
                 staked:     new_stake.micro_ccd.try_into()?,
             },
@@ -1762,7 +1728,7 @@ impl PreparedAccountDelegationEvent {
                 account_id: delegator_id.id.index.try_into()?,
             },
             DelegationEvent::BakerRemoved {
-                baker_id,
+                ..
             } => PreparedAccountDelegationEvent::NoOperation,
         };
         Ok(prepared)
@@ -2108,7 +2074,6 @@ impl PreparedModuleDeployed {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
         module_reference: sdk_types::hashes::ModuleReference,
     ) -> anyhow::Result<Self> {
         let block_height = data.finalized_block_info.height;
@@ -2208,7 +2173,6 @@ struct PreparedContractInitialized {
     module_reference:  String,
     name:              String,
     amount:            i64,
-    height:            i64,
     module_link_event: PreparedModuleLinkAction,
     cis2_events:       Vec<cis2::Event>,
 }
@@ -2217,7 +2181,6 @@ impl PreparedContractInitialized {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
         event: &ContractInitializedEvent,
     ) -> anyhow::Result<Self> {
         let contract_address = event.address;
@@ -2227,7 +2190,6 @@ impl PreparedContractInitialized {
         // We remove the `init_` prefix from the name to get the contract name.
         let name = event.init_name.as_contract_name().contract_name().to_string();
         let amount = i64::try_from(event.amount.micro_ccd)?;
-        let height = i64::try_from(data.finalized_block_info.height.height)?;
 
         let module_link_event = PreparedModuleLinkAction::prepare(
             module_reference,
@@ -2289,7 +2251,6 @@ impl PreparedContractInitialized {
             module_reference: module_reference.into(),
             name,
             amount,
-            height,
             module_link_event,
             cis2_events,
         })
@@ -2378,7 +2339,6 @@ impl PreparedContractUpdate {
     async fn prepare(
         node_client: &mut v2::Client,
         data: &BlockData,
-        block_item: &BlockItemSummary,
         event: &ContractTraceElement,
         trace_element_index: usize,
     ) -> anyhow::Result<Self> {
@@ -2423,22 +2383,17 @@ impl PreparedContractUpdate {
                 data,
             } => data.events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
             ContractTraceElement::Transferred {
-                from,
-                amount,
-                to,
+                ..
             } => vec![],
             ContractTraceElement::Interrupted {
-                address,
                 events,
+                ..
             } => events.iter().filter_map(|log| log.try_into().ok()).collect::<Vec<_>>(),
             ContractTraceElement::Resumed {
-                address,
-                success,
+                ..
             } => vec![],
             ContractTraceElement::Upgraded {
-                address,
-                from,
-                to,
+                ..
             } => vec![],
         };
 
@@ -2659,7 +2614,7 @@ async fn process_cis2_event(
         cis2::Event::Mint {
             token_id,
             amount,
-            owner,
+            ..
         } => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
@@ -2739,7 +2694,7 @@ async fn process_cis2_event(
         cis2::Event::Burn {
             token_id,
             amount,
-            owner,
+            ..
         } => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
@@ -2764,12 +2719,12 @@ async fn process_cis2_event(
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
                         (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
-                 contract_index = $2 AND contract_sub_index = $3), 
-                        $1, 
-                        $2, 
+                 contract_index = $2 AND contract_sub_index = $3),
+                        $1,
+                        $2,
                         $3,
-                        $4, 
-                        $5, 
+                        $4,
+                        $5,
                         $6
                     )
                     ON CONFLICT (token_address)
@@ -2924,14 +2879,17 @@ async fn process_cis2_event(
 }
 
 struct PreparedScheduledReleases {
-    account_address: String,
+    account_address: Arc<String>,
     release_times:   Vec<DateTime<Utc>>,
     amounts:         Vec<i64>,
-    total_amount:    i64,
+    update_balance:  PreparedUpdateAccountBalance,
 }
 
 impl PreparedScheduledReleases {
-    fn prepare(to: String, scheduled_releases: &[(Timestamp, Amount)]) -> anyhow::Result<Self> {
+    fn prepare(
+        account_address: Arc<String>,
+        scheduled_releases: &[(Timestamp, Amount)],
+    ) -> anyhow::Result<Self> {
         let capacity = scheduled_releases.len();
         let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
         let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
@@ -2942,12 +2900,16 @@ impl PreparedScheduledReleases {
             amounts.push(micro_ccd);
             total_amount += micro_ccd;
         }
+        let update_balance = PreparedUpdateAccountBalance {
+            account_address: account_address.clone(),
+            change:          total_amount,
+        };
 
         Ok(Self {
-            account_address: to,
+            account_address,
             release_times,
             amounts,
-            total_amount,
+            update_balance,
         })
     }
 
@@ -2970,19 +2932,73 @@ impl PreparedScheduledReleases {
                 UNNEST($4::BIGINT[])
             ",
             transaction_index,
-            self.account_address,
+            self.account_address.as_ref(),
             &self.release_times,
             &self.amounts
         )
         .execute(tx.as_mut())
         .await?;
+        self.update_balance.save(tx).await?;
+        Ok(())
+    }
+}
+
+/// Represents change in the balance of some account.
+pub struct PreparedUpdateAccountBalance {
+    /// Address of the account.
+    account_address: Arc<String>,
+    /// Difference in the balance.
+    change:          i64,
+}
+
+impl PreparedUpdateAccountBalance {
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
         sqlx::query!(
             "UPDATE accounts SET amount = amount + $1 WHERE address = $2",
-            &self.total_amount,
-            self.account_address,
+            self.change,
+            self.account_address.as_ref(),
         )
         .execute(tx.as_mut())
         .await?;
+        Ok(())
+    }
+}
+
+/// Represent the event of a transfer of CCD from one account to another.
+pub struct PreparedCcdTransferEvent {
+    /// Updating the sender account balance.
+    update_sender:   PreparedUpdateAccountBalance,
+    /// Updating the receivers account balance.
+    update_receiver: PreparedUpdateAccountBalance,
+}
+
+impl PreparedCcdTransferEvent {
+    pub fn prepare(
+        sender_address: Arc<String>,
+        receiver_address: Arc<String>,
+        amount: i64,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            update_sender:   PreparedUpdateAccountBalance {
+                account_address: sender_address.clone(),
+                change:          -amount,
+            },
+            update_receiver: PreparedUpdateAccountBalance {
+                account_address: receiver_address.clone(),
+                change:          amount,
+            },
+        })
+    }
+
+    pub async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        self.update_sender.save(tx).await?;
+        self.update_receiver.save(tx).await?;
         Ok(())
     }
 }
