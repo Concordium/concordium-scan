@@ -2435,27 +2435,21 @@ async fn process_cis2_event(
             if let AddressExtended::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, token_address, \
-                     contract_index, contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, account_index, \
+                     token_index, balance)
                     VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
                         (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_address = $1), 
-                        $1, 
-                        $2, 
-                        $3,
-                        $4, 
-                        $5, 
-                        $6
+                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
                     )
-                    ON CONFLICT (token_address, account_index)
+                    ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    owner.account_address.to_string(),
                     token_address,
-                    contract_index,
-                    contract_sub_index,
                     tokens_minted,
-                    token_id.to_string(),
-                    owner.account_index
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2518,34 +2512,24 @@ async fn process_cis2_event(
             .execute(tx.as_mut())
             .await?;
 
-            // If the owner doesn't already hold this token, insert a new row with a balance
-            // of `-tokens_burned`. Otherwise, update the existing row by
-            // decrementing the owner's balance by `tokens_burned`.
-            // Note: CCDScan currently only tracks token balances of accounts (issue #357).
             if let AddressExtended::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, token_address, \
-                     contract_index, contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, account_index, \
+                     token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
                         (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_address = $1), 
-                        $1, 
-                        $2, 
-                        $3,
-                        $4, 
-                        $5, 
-                        $6
+                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
                     )
-                    ON CONFLICT (token_address, account_index)
+                    ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
-                    token_address,
-                    contract_index,
-                    contract_sub_index,
-                    -tokens_burned,
-                    token_id.to_string(),
-                    owner.account_index
+                    owner.account_address.to_string(),
+                    token_address.to_string(),
+                    -tokens_burned
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2578,27 +2562,21 @@ async fn process_cis2_event(
             if let AddressExtended::Account(from) = from {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, token_address, \
-                     contract_index, contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, account_index, \
+                     token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
                         (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_address = $1),  
-                        $1, 
-                        $2, 
-                        $3,
-                        $4, 
-                        $5, 
-                        $6
+                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
                     )
-                    ON CONFLICT (token_address, account_index)
+                    ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    from.account_address.to_string(),
                     token_address,
-                    contract_index,
-                    contract_sub_index,
                     -tokens_transferred.clone(),
-                    token_id.to_string(),
-                    from.account_index
                 )
                 .execute(tx.as_mut())
                 .await?;
@@ -2611,27 +2589,21 @@ async fn process_cis2_event(
             if let AddressExtended::Account(to) = to {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, token_address, \
-                     contract_index, contract_sub_index, balance, token_id, account_index)
+                    INSERT INTO account_tokens (index, index_per_token, account_index, \
+                     token_index, balance)
                     VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens), 
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
                         (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_address = $1), 
-                        $1, 
-                        $2, 
-                        $3,
-                        $4, 
-                        $5, 
-                        $6
+                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
                     )
-                    ON CONFLICT (token_address, account_index)
+                    ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    to.account_address.to_string(),
                     token_address,
-                    contract_index,
-                    contract_sub_index,
-                    tokens_transferred,
-                    token_id.to_string(),
-                    to.account_index
+                    tokens_transferred
                 )
                 .execute(tx.as_mut())
                 .await?;
