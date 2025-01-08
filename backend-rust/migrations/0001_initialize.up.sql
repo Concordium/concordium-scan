@@ -503,7 +503,7 @@ CREATE TABLE scheduled_releases (
 -- This index is useful for that.
 CREATE INDEX scheduled_releases_idx ON scheduled_releases (account_index, release_time);
 
--- All CIS2 tokens. A token is added to this table whenever a CIS2 `MintEvent`/`BurnEvent`
+-- All CIS2 tokens. A token is added to this table whenever a CIS2 `MintEvent`, `BurnEvent`
 -- or `TokenMetadataEvent` is logged for the first time by a contract claiming
 -- to follow the `CIS2 standard`.
 CREATE TABLE tokens (
@@ -562,6 +562,33 @@ CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 
 -- Important for quickly filtering/sorting tokens by the order they were created by a contract.
 CREATE INDEX token_index_per_contract_idx ON tokens (token_index_per_contract);
+
+-- Relations between accounts and CIS2 tokens. Rows are added or updated in this table whenever a CIS2 `MintEvent`, `BurnEvent`
+-- or `TransferEvent` is logged by a contract claiming to follow the `CIS2 standard`.
+CREATE TABLE account_tokens (
+    -- An index/id for the row (row number).
+    index
+        BIGINT
+        PRIMARY KEY,
+  -- An account index (row in the `accounts` table) that owns a token balance.
+    account_index
+        BIGINT
+        NOT NULL,
+    -- The token index (row in the `tokens` table) of the associated token.
+    token_index
+        BIGINT
+        NOT NULL,
+    -- The accumulated balance of the token by the above account calculated by considering all `MintEvents`, `BurnEvents` and 
+    -- `TransferEvents` associated to the token and account. If no balance is specified when inserting a new row in the table,
+    -- the default balance 0 is used.
+    balance
+        NUMERIC
+        NOT NULL
+        DEFAULT 0,
+
+    -- Ensure that each token_index and account_index pair is unique.
+    CONSTRAINT unique_token_account_relationship UNIQUE (token_index, account_index)
+);
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
