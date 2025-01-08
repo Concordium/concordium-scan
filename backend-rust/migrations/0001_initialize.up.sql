@@ -635,4 +635,4 @@ CREATE TABLE account_statements (
         NULL
 );
 
-CREATE INDEX account_statements_entry_type_idx ON account_statements (account_index, entry_type);
+CREATE INDEX account_statements_entry_type_idx ON account_statements (id, account_index, entry_type);
