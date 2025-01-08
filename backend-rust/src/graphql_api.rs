@@ -37,7 +37,12 @@ use crate::{
     },
 };
 use anyhow::{anyhow, Context as _};
-use async_graphql::{http::GraphiQLSource, types::{self, connection}, ComplexObject, Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema, SimpleObject, Subscription, Union};
+use async_graphql::{
+    http::GraphiQLSource,
+    types::{self, connection},
+    ComplexObject, Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema,
+    SimpleObject, Subscription, Union,
+};
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
 use chrono::Duration;
