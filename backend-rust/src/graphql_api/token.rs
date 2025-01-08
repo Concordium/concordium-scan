@@ -93,21 +93,39 @@ impl Token {
                 config.token_holder_addresses_collection_limit.min(t)
             }))?;
 
+        // Tokens with 0 balance are filter out. We still display tokens with a negative
+        // balance (buggy cis2 smart contract) to help smart contract developers
+        // to debug their smart contracts.
         let mut items = sqlx::query_as!(
             AccountToken,
-            "SELECT
+            "WITH filtered_tokens AS (
+                SELECT
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    balance AS raw_balance,
+                    account_index AS account_id,
+                    ROW_NUMBER() OVER (ORDER BY account_tokens.index_per_token) AS row_num
+                FROM account_tokens
+                JOIN tokens
+                    ON tokens.contract_index = $1
+                    AND tokens.contract_sub_index = $2
+                    AND tokens.token_id = $3
+                    AND tokens.index = account_tokens.token_index
+                WHERE account_tokens.balance != 0
+            )
+            SELECT
                 token_id,
                 contract_index,
                 contract_sub_index,
-                balance as raw_balance,
-                account_index as account_id
-            FROM account_tokens
-            WHERE account_tokens.contract_index = $1 AND account_tokens.contract_sub_index = $2 \
-             AND account_tokens.token_id = $3 AND account_tokens.index_per_token >= $4
+                raw_balance,
+                account_id
+            FROM filtered_tokens
+            WHERE row_num > $4
             LIMIT $5
         ",
-            self.contract_index as i64,
-            self.contract_sub_index as i64,
+            self.contract_index,
+            self.contract_sub_index,
             self.token_id,
             min_index,
             limit + 1
@@ -124,12 +142,28 @@ impl Token {
         }
         let has_previous_page = min_index > 0;
 
+        let total_count: i32 = sqlx::query_scalar!(
+            "SELECT
+                MAX(index_per_token)
+            FROM account_tokens
+                JOIN tokens ON tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
+             tokens.token_id = $3
+            WHERE tokens.index = account_tokens.token_index",
+            self.contract_index,
+            self.contract_sub_index,
+            self.token_id,
+        )
+        .fetch_one(pool)
+        .await?
+        .unwrap_or(0)
+        .try_into()?;
+
         Ok(AccountsCollectionSegment {
             page_info: CollectionSegmentInfo {
                 has_next_page,
                 has_previous_page,
             },
-            total_count: items.len().try_into()?,
+            total_count,
             items,
         })
     }

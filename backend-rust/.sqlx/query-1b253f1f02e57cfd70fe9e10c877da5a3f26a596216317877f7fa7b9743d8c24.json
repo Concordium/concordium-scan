@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                MAX(index_per_token)\n            FROM account_tokens\n                JOIN tokens ON tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND tokens.token_id = $3\n            WHERE tokens.index = account_tokens.token_index",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "1b253f1f02e57cfd70fe9e10c877da5a3f26a596216317877f7fa7b9743d8c24"
+}

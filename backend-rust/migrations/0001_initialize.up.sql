@@ -572,9 +572,6 @@ CREATE TABLE account_tokens (
     CONSTRAINT unique_token_account_relationship UNIQUE (token_index, account_index)
 );
 
--- Important for quickly filtering/sorting token holder addresses.
-CREATE INDEX token_holder_addresses_idx ON account_tokens (token_index, account_index);
-
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;
