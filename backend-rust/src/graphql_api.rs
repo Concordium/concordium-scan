@@ -23,10 +23,8 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    address::{AccountAddress, ContractIndex},
-    scalar_types::{
-        AccountIndex, Amount, BigInteger, BlockHeight, DateTime, TimeSpan, TransactionIndex,
-    },
+    address::AccountAddress,
+    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, TimeSpan, TransactionIndex},
     transaction_event::{
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
         smart_contracts::InvalidContractVersionError,
@@ -39,14 +37,8 @@ use crate::{
     },
 };
 use anyhow::{anyhow, Context as _};
-use async_graphql::{
-    http::GraphiQLSource,
-    types::{self, connection},
-    ComplexObject, Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema,
-    SimpleObject, Subscription, Union,
-};
+use async_graphql::{http::GraphiQLSource, types::{self, connection}, ComplexObject, Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema, SimpleObject, Subscription, Union};
 use async_graphql_axum::GraphQLSubscription;
-use bigdecimal::BigDecimal;
 use block::Block;
 use chrono::Duration;
 use concordium_rust_sdk::{
@@ -62,6 +54,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
+use token::AccountToken;
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -99,6 +92,12 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transaction_event_connection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -109,6 +108,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     contract_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_REJECT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_reject_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
@@ -131,10 +136,10 @@ pub struct ApiServiceConfig {
     reward_connection_limit: u64,
     #[arg(
         long,
-        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        env = "CCDSCAN_API_CONFIG_TOKEN_HOLDER_ADDRESSES_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: u64,
+    token_holder_addresses_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -915,26 +920,6 @@ impl AccountReleaseScheduleItem {
     async fn timestamp(&self) -> DateTime { self.timestamp }
 
     async fn amount(&self) -> Amount { self.amount }
-}
-
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct AccountToken {
-    contract_index:     ContractIndex,
-    contract_sub_index: ContractIndex,
-    token_id:           String,
-    #[graphql(skip)]
-    raw_balance:        BigDecimal,
-    token:              token::Token,
-    account_id:         i64,
-    account:            Account,
-}
-
-#[ComplexObject]
-impl AccountToken {
-    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.raw_balance.clone()))
-    }
 }
 
 #[derive(sqlx::FromRow)]

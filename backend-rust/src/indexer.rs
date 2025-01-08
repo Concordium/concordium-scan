@@ -23,7 +23,7 @@ use concordium_rust_sdk::{
     },
     cis0,
     cis2::{self, TokenAddress},
-    common::types::{Amount, Timestamp},
+    common::types::{Address, Amount, Timestamp},
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
@@ -1313,6 +1313,8 @@ enum PreparedEvent {
     /// Rejected transaction attempting to initialize a smart contract
     /// instance or redeploying a module reference.
     RejectModuleTransaction(PreparedRejectModuleTransaction),
+    /// Rejected transaction attempting to update a smart contract instance.
+    RejectContractUpdateTransaction(PreparedRejectContractUpdateTransaction),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
     /// A scheduled transfer got executed.
@@ -1351,15 +1353,16 @@ impl PreparedEvent {
                             // further.
                             None
                         } else {
-                            let decoded = if let BlockItem::AccountTransaction(ac) = item {
-                                ac.payload
-                                    .decode()
-                                    .context("Failed decoding account transaction payload")?
-                            } else {
+                            let BlockItem::AccountTransaction(account_transaction) = item else {
                                 anyhow::bail!(
                                     "Block item was expected to be an account transaction"
                                 )
                             };
+                            let decoded = account_transaction
+                                .payload
+                                .decode()
+                                .context("Failed decoding account transaction payload")?;
+
                             let module_reference = match decoded {
                                 Payload::InitContract {
                                     payload,
@@ -1374,6 +1377,52 @@ impl PreparedEvent {
                             };
                             Some(PreparedEvent::RejectModuleTransaction(
                                 PreparedRejectModuleTransaction::prepare(module_reference)?,
+                            ))
+                        }
+                    }
+                    Some(&TransactionType::Update) => {
+                        if let RejectReason::InvalidContractAddress {
+                            ..
+                        } = reject_reason
+                        {
+                            // Updating a smart contract instances using invalid contract addresses,
+                            // i.e. non existing instance, are not indexed further.
+                            None
+                        } else {
+                            anyhow::ensure!(
+                                matches!(
+                                    reject_reason,
+                                    RejectReason::InvalidReceiveMethod { .. }
+                                        | RejectReason::RuntimeFailure
+                                        | RejectReason::AmountTooLarge { .. }
+                                        | RejectReason::OutOfEnergy
+                                        | RejectReason::RejectedReceive { .. }
+                                        | RejectReason::InvalidAccountReference { .. }
+                                ),
+                                "Unexpected reject reason for Contract Update transaction: {:?}",
+                                reject_reason
+                            );
+
+                            let BlockItem::AccountTransaction(account_transaction) = item else {
+                                anyhow::bail!(
+                                    "Block item was expected to be an account transaction"
+                                )
+                            };
+                            let payload = account_transaction
+                                .payload
+                                .decode()
+                                .context("Failed decoding account transaction payload")?;
+                            let Payload::Update {
+                                payload,
+                            } = payload
+                            else {
+                                anyhow::bail!(
+                                    "Unexpected payload for transaction of type Update: {:?}",
+                                    payload
+                                )
+                            };
+                            Some(PreparedEvent::RejectContractUpdateTransaction(
+                                PreparedRejectContractUpdateTransaction::prepare(payload.address)?,
                             ))
                         }
                     }
@@ -1571,6 +1620,7 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::RejectContractUpdateTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::AccountDelegationEvents(events) => {
                 for event in events {
                     event.save(tx).await?;
@@ -2549,6 +2599,50 @@ impl PreparedUpdateContractLastUpgrade {
     }
 }
 
+struct PreparedRejectContractUpdateTransaction {
+    contract_index:     i64,
+    contract_sub_index: i64,
+}
+impl PreparedRejectContractUpdateTransaction {
+    fn prepare(address: ContractAddress) -> anyhow::Result<Self> {
+        Ok(Self {
+            contract_index:     i64::try_from(address.index)?,
+            contract_sub_index: i64::try_from(address.subindex)?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO contract_reject_transactions (
+                 contract_index,
+                 contract_sub_index,
+                 transaction_index,
+                 transaction_index_per_contract
+             ) VALUES (
+                 $1,
+                 $2,
+                 $3,
+                 (SELECT
+                     COALESCE(MAX(transaction_index_per_contract) + 1, 0)
+                  FROM contract_reject_transactions
+                  WHERE
+                      contract_index = $1 AND contract_sub_index = $2
+                 )
+             )",
+            self.contract_index,
+            self.contract_sub_index,
+            transaction_index,
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
 async fn process_cis2_event(
     cis2_event: &cis2::Event,
     contract_index: i64,
@@ -2557,9 +2651,11 @@ async fn process_cis2_event(
     tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
     match cis2_event {
-        // The `total_supply` value of a token is inserted/updated in the database here.
+        // - The `total_supply` value of a token is inserted/updated in the database here.
         // Only `Mint` and `Burn` events affect the `total_supply` of a
         // token.
+        // - The `balance` value of the token owner is inserted/updated in the database here.
+        // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
         cis2::Event::Mint {
             token_id,
             amount,
@@ -2573,7 +2669,7 @@ async fn process_cis2_event(
 
             // Note: Some `buggy` CIS2 token contracts might mint more tokens than the
             // MAX::TOKEN_AMOUNT specified in the CIS2 standard. The
-            // `total_supply` eventually overflows in that case.
+            // `total_supply/balance` eventually overflows in that case.
             let tokens_minted = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist, insert the new token with its
             // `total_supply` set to `tokens_minted`. If the `token_address` exists,
@@ -2600,19 +2696,45 @@ async fn process_cis2_event(
                 token_address,
                 contract_index,
                 contract_sub_index,
-                tokens_minted,
+                tokens_minted.clone(),
                 token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
             .await?;
+
+            // If the owner doesn't already hold this token, insert a new row with a balance
+            // of `tokens_minted`. Otherwise, update the existing row by
+            // incrementing the owner's balance by `tokens_minted`.
+            // Note: CCDScan currently only tracks token balances of accounts (issue #357).
+            if let Address::Account(owner) = owner {
+                sqlx::query!(
+                    "
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
+                    )
+                    ON CONFLICT (token_index, account_index)
+                    DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    owner.to_string(),
+                    token_address,
+                    tokens_minted,
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
         }
 
-        // The `total_supply` value of a token is inserted/updated in the database here.
+        // - The `total_supply` value of a token is inserted/updated in the database here.
         // Only `Mint` and `Burn` events affect the `total_supply` of a
         // token.
+        // - The `balance` value of the token owner is inserted/updated in the database here.
+        // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-        // initially minted. The `total_supply` can have a negative value in that case
+        // initially minted. The `total_supply/balance` can have a negative value in that case
         // and even underflow.
         cis2::Event::Burn {
             token_id,
@@ -2626,8 +2748,8 @@ async fn process_cis2_event(
             .to_string();
 
             // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
-            // initially minted. The `total_supply` will be set to a negative value and
-            // eventually underflow in that case.
+            // initially minted. The `total_supply/balance` will be set to a negative value
+            // and eventually underflow in that case.
             let tokens_burned = BigDecimal::from_biguint(amount.0.clone(), 0);
             // If the `token_address` does not exist (likely a `buggy` CIS2 token contract),
             // insert the new token with its `total_supply` set to `-tokens_burned`. If the
@@ -2655,12 +2777,100 @@ async fn process_cis2_event(
                 token_address,
                 contract_index,
                 contract_sub_index,
-                -tokens_burned,
+                -tokens_burned.clone(),
                 token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
             .await?;
+
+            if let Address::Account(owner) = owner {
+                sqlx::query!(
+                    "
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
+                    )
+                    ON CONFLICT (token_index, account_index)
+                    DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    owner.to_string(),
+                    token_address.to_string(),
+                    -tokens_burned
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+        }
+
+        // - The `balance` values of the token are inserted/updated in the database here for the
+        //   `from` and `to` addresses.
+        // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // Note: Some `buggy` CIS2 token contracts might transfer more tokens than an owner owns.
+        // The `balance` can have a negative value in that case.
+        cis2::Event::Transfer {
+            token_id,
+            amount,
+            from,
+            to,
+        } => {
+            let token_address = TokenAddress::new(
+                ContractAddress::new(contract_index as u64, contract_sub_index as u64),
+                token_id.clone(),
+            )
+            .to_string();
+
+            let tokens_transferred = BigDecimal::from_biguint(amount.0.clone(), 0);
+
+            // If the `from` address doesn't already hold this token, insert a new row with
+            // a balance of `-tokens_transferred`. Otherwise, update the existing row
+            // by decrementing the owner's balance by `tokens_transferred`.
+            // Note: CCDScan currently only tracks token balances of accounts (issue #357).
+            if let Address::Account(from) = from {
+                sqlx::query!(
+                    "
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
+                    )
+                    ON CONFLICT (token_index, account_index)
+                    DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    from.to_string(),
+                    token_address,
+                    -tokens_transferred.clone(),
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+
+            // If the `to` address doesn't already hold this token, insert a new row with a
+            // balance of `tokens_transferred`. Otherwise, update the existing row by
+            // incrementing the owner's balance by `tokens_transferred`.
+            // Note: CCDScan currently only tracks token balances of accounts (issue #357).
+            if let Address::Account(to) = to {
+                sqlx::query!(
+                    "
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
+                    VALUES (
+                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
+                        (SELECT index FROM accounts WHERE address = $1),
+                        (SELECT index FROM tokens WHERE token_address = $2),  
+                        $3
+                    )
+                    ON CONFLICT (token_index, account_index)
+                    DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                    to.to_string(),
+                    token_address,
+                    tokens_transferred
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
         }
 
         // The `metadata_url` of a token is inserted/updated in the database here.
