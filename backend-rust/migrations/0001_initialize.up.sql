@@ -427,7 +427,7 @@ CREATE TABLE contract_reject_transactions (
         BIGINT
         NOT NULL,
     -- Every time a new transactions is rejected by a contract, this index is incremented for that contract.
-    -- This value is used to quickly filter/sort events by the order they were emitted by a contract.
+    -- This value is used to quickly filter/sort transactions by the order they were rejected by a contract.
     transaction_index_per_contract
         BIGINT
         NOT NULL,
