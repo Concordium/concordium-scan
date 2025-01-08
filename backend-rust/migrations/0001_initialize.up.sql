@@ -306,7 +306,19 @@ CREATE TABLE bakers(
     -- Fraction of finalization rewards charged by the pool owner.
     -- Stored as a fraction of an amount with a precision of `1/100_000`.
     finalization_commission
+        BIGINT,
+    -- Transaction used for self suspending.
+    -- This is not null only when a baker have send the transaction for self suspending.
+    -- This should always be null, when `inactive_suspended` column is not null.
+    self_suspended
         BIGINT
+        REFERENCES transactions,
+    -- Block which suspended this baker due to inactivity.
+    -- This is not null only when a baker got suspended due to inactivity.
+    -- This should always be null, when `self_suspended` column is not null.
+    inactive_suspended
+        BIGINT
+        REFERENCES blocks
 );
 
 -- Every module on chain.

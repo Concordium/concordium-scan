@@ -720,6 +720,7 @@ async fn save_genesis_data(endpoint: v2::Endpoint, pool: &PgPool) -> anyhow::Res
             baker_info: _,
             pending_change: _,
             pool_info,
+            is_suspended: _,
         }) = info.account_stake
         {
             let stake = i64::try_from(staked_amount.micro_ccd())?;
@@ -1041,6 +1042,12 @@ impl PreparedBlockSpecialEvent {
             | SpecialTransactionOutcome::PaydayPoolReward {
                 ..
             } => Vec::new(),
+            SpecialTransactionOutcome::ValidatorSuspended {
+                ..
+            } => todo!(),
+            SpecialTransactionOutcome::ValidatorPrimedForSuspension {
+                ..
+            } => todo!(),
         };
         Ok(results)
     }
@@ -1581,7 +1588,7 @@ impl PreparedEvent {
             PreparedEvent::EncryptedBalance(event) => event.save(tx).await,
             PreparedEvent::BakerEvents(events) => {
                 for event in events {
-                    event.save(tx).await?;
+                    event.save(tx, tx_idx).await?;
                 }
                 Ok(())
             }
@@ -1844,6 +1851,12 @@ enum PreparedBakerEvent {
     RemoveDelegation {
         delegator_id: i64,
     },
+    Suspended {
+        baker_id: i64,
+    },
+    Resumed {
+        baker_id: i64,
+    },
     NoOperation,
 }
 impl PreparedBakerEvent {
@@ -1931,6 +1944,16 @@ impl PreparedBakerEvent {
             } => PreparedBakerEvent::RemoveDelegation {
                 delegator_id: delegator_id.id.index.try_into()?,
             },
+            BakerEvent::BakerSuspended {
+                baker_id,
+            } => PreparedBakerEvent::Suspended {
+                baker_id: baker_id.id.index.try_into()?,
+            },
+            BakerEvent::BakerResumed {
+                baker_id,
+            } => PreparedBakerEvent::Resumed {
+                baker_id: baker_id.id.index.try_into()?,
+            },
         };
         Ok(prepared)
     }
@@ -1938,6 +1961,7 @@ impl PreparedBakerEvent {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         match self {
             PreparedBakerEvent::Add {
@@ -2055,6 +2079,35 @@ impl PreparedBakerEvent {
                 sqlx::query!(
                     r#"UPDATE accounts SET delegated_stake = 0, delegated_restake_earnings = false, delegated_target_baker_id = NULL WHERE index = $1"#,
                     delegator_id
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::Suspended {
+                baker_id,
+            } => {
+                sqlx::query!(
+                    "UPDATE bakers
+                     SET
+                         self_suspended = $2,
+                         inactive_suspended = NULL
+                     WHERE id=$1",
+                    baker_id,
+                    transaction_index
+                )
+                .execute(tx.as_mut())
+                .await?;
+            }
+            PreparedBakerEvent::Resumed {
+                baker_id,
+            } => {
+                sqlx::query!(
+                    "UPDATE bakers
+                     SET
+                         self_suspended = NULL,
+                         inactive_suspended = NULL
+                     WHERE id=$1",
+                    baker_id
                 )
                 .execute(tx.as_mut())
                 .await?;
