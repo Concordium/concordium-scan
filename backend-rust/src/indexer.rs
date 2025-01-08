@@ -1102,6 +1102,8 @@ enum PreparedEvent {
     /// Rejected transaction attempting to initialize a smart contract
     /// instance or redeploying a module reference.
     RejectModuleTransaction(PreparedRejectModuleTransaction),
+    /// Rejected transaction attempting to update a smart contract instance.
+    RejectContractUpdateTransaction(PreparedRejectContractUpdateTransaction),
     /// Contract got updated.
     ContractUpdate(Vec<PreparedContractUpdate>),
     /// A scheduled transfer got executed.
@@ -1140,15 +1142,16 @@ impl PreparedEvent {
                             // further.
                             None
                         } else {
-                            let decoded = if let BlockItem::AccountTransaction(ac) = item {
-                                ac.payload
-                                    .decode()
-                                    .context("Failed decoding account transaction payload")?
-                            } else {
+                            let BlockItem::AccountTransaction(account_transaction) = item else {
                                 anyhow::bail!(
                                     "Block item was expected to be an account transaction"
                                 )
                             };
+                            let decoded = account_transaction
+                                .payload
+                                .decode()
+                                .context("Failed decoding account transaction payload")?;
+
                             let module_reference = match decoded {
                                 Payload::InitContract {
                                     payload,
@@ -1163,6 +1166,52 @@ impl PreparedEvent {
                             };
                             Some(PreparedEvent::RejectModuleTransaction(
                                 PreparedRejectModuleTransaction::prepare(module_reference)?,
+                            ))
+                        }
+                    }
+                    Some(&TransactionType::Update) => {
+                        if let RejectReason::InvalidContractAddress {
+                            ..
+                        } = reject_reason
+                        {
+                            // Updating a smart contract instances using invalid contract addresses,
+                            // i.e. non existing instance, are not indexed further.
+                            None
+                        } else {
+                            anyhow::ensure!(
+                                matches!(
+                                    reject_reason,
+                                    RejectReason::InvalidReceiveMethod { .. }
+                                        | RejectReason::RuntimeFailure
+                                        | RejectReason::AmountTooLarge { .. }
+                                        | RejectReason::OutOfEnergy
+                                        | RejectReason::RejectedReceive { .. }
+                                        | RejectReason::InvalidAccountReference { .. }
+                                ),
+                                "Unexpected reject reason for Contract Update transaction: {:?}",
+                                reject_reason
+                            );
+
+                            let BlockItem::AccountTransaction(account_transaction) = item else {
+                                anyhow::bail!(
+                                    "Block item was expected to be an account transaction"
+                                )
+                            };
+                            let payload = account_transaction
+                                .payload
+                                .decode()
+                                .context("Failed decoding account transaction payload")?;
+                            let Payload::Update {
+                                payload,
+                            } = payload
+                            else {
+                                anyhow::bail!(
+                                    "Unexpected payload for transaction of type Update: {:?}",
+                                    payload
+                                )
+                            };
+                            Some(PreparedEvent::RejectContractUpdateTransaction(
+                                PreparedRejectContractUpdateTransaction::prepare(payload.address)?,
                             ))
                         }
                     }
@@ -1360,6 +1409,7 @@ impl PreparedEvent {
                 }
                 Ok(())
             }
+            PreparedEvent::RejectContractUpdateTransaction(event) => event.save(tx, tx_idx).await,
             PreparedEvent::AccountDelegationEvents(events) => {
                 for event in events {
                     event.save(tx).await?;
@@ -2331,6 +2381,50 @@ impl PreparedUpdateContractLastUpgrade {
             transaction_index,
             self.contract_index,
             self.contract_sub_index
+        )
+        .execute(tx.as_mut())
+        .await?;
+        Ok(())
+    }
+}
+
+struct PreparedRejectContractUpdateTransaction {
+    contract_index:     i64,
+    contract_sub_index: i64,
+}
+impl PreparedRejectContractUpdateTransaction {
+    fn prepare(address: ContractAddress) -> anyhow::Result<Self> {
+        Ok(Self {
+            contract_index:     i64::try_from(address.index)?,
+            contract_sub_index: i64::try_from(address.subindex)?,
+        })
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "INSERT INTO contract_reject_transactions (
+                 contract_index,
+                 contract_sub_index,
+                 transaction_index,
+                 transaction_index_per_contract
+             ) VALUES (
+                 $1,
+                 $2,
+                 $3,
+                 (SELECT
+                     COALESCE(MAX(transaction_index_per_contract) + 1, 0)
+                  FROM contract_reject_transactions
+                  WHERE
+                      contract_index = $1 AND contract_sub_index = $2
+                 )
+             )",
+            self.contract_index,
+            self.contract_sub_index,
+            transaction_index,
         )
         .execute(tx.as_mut())
         .await?;

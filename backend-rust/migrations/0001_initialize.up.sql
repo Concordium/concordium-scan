@@ -415,6 +415,29 @@ CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_co
 -- Important for quickly filtering contract events by a specific contract.
 CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
 
+-- Table indexing the rejected update transactions for each contract instance, tracking an incrementing
+-- index allowing for efficient offset pagination.
+CREATE TABLE contract_reject_transactions (
+    -- Index of the contract rejecting the transaction.
+    contract_index
+        BIGINT
+        NOT NULL,
+    -- Sub index of the contract rejecting the transaction.
+    contract_sub_index
+        BIGINT
+        NOT NULL,
+    -- Every time a new transactions is rejected by a contract, this index is incremented for that contract.
+    -- This value is used to quickly filter/sort transactions by the order they were rejected by a contract.
+    transaction_index_per_contract
+        BIGINT
+        NOT NULL,
+    -- Transaction index including the event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    PRIMARY KEY (contract_index, contract_sub_index, transaction_index_per_contract)
+);
+
 -- Indexing of transactions linking smart contract modules to a smart contract instance.
 -- Such as init contract or contract upgrades.
 CREATE TABLE link_smart_contract_module_transactions (
