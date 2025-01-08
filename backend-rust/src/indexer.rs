@@ -801,7 +801,7 @@ impl PreparedBlock {
         let mut prepared_block_items = Vec::new();
         for (item_summary, item) in data.events.iter().zip(data.items.iter()) {
             prepared_block_items
-                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?);
+                .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
         let prepared_account_statements_iter =
             data.events.iter().zip(data.items.iter()).map(|(item_summary, item)| {
@@ -1053,7 +1053,6 @@ impl PreparedAccountStatement {
                 } => {
                     let sum: u64 = amount.iter().map(|(_, amount)| amount.micro_ccd).sum();
 
-                    // Transfer Out
                     statements.push(PreparedAccountStatement {
                         account_address: details.sender.to_string(),
                         amount: -1 * i64::try_from(sum)?,
@@ -1062,7 +1061,6 @@ impl PreparedAccountStatement {
                         transaction_id,
                     });
 
-                    // Transfer In
                     statements.push(PreparedAccountStatement {
                         account_address: to.to_string(),
                         amount: sum.try_into()?,
