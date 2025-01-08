@@ -2614,7 +2614,7 @@ async fn process_cis2_event(
         cis2::Event::Mint {
             token_id,
             amount,
-            ..
+            owner,
         } => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
@@ -2694,7 +2694,7 @@ async fn process_cis2_event(
         cis2::Event::Burn {
             token_id,
             amount,
-            ..
+            owner,
         } => {
             let token_address = TokenAddress::new(
                 ContractAddress::new(contract_index as u64, contract_sub_index as u64),
