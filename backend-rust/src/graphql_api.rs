@@ -1352,8 +1352,14 @@ impl Account {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(id) as max_id, MIN(id) as min_id
-                    FROM account_rewards
+                    FROM account_statements
                     WHERE account_index = $1
+                    AND entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
                 "#,
                 &self.index
             )
