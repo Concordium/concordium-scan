@@ -1077,7 +1077,7 @@ impl PreparedAccountStatement {
             return Ok(statements);
         }
 
-        Ok(vec![]) // Default return when not AccountTransactionDetails
+        Ok(vec![])
     }
 
     fn prepare_from_special_transaction(
