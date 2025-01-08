@@ -2,6 +2,7 @@
 #![allow(dead_code)] // TODO Remove before first release
 
 use crate::{
+    graphql_api::AccountStatementEntryType,
     transaction_event::{
         baker::BakerPoolOpenStatus, events_from_summary,
         smart_contracts::ModuleReferenceContractLinkAction,
@@ -26,10 +27,11 @@ use concordium_rust_sdk::{
     indexer::{async_trait, Indexer, ProcessEvent, TraverseConfig, TraverseError},
     smart_contracts::engine::utils::{get_embedded_schema_v0, get_embedded_schema_v1},
     types::{
-        self as sdk_types, queries::BlockInfo, AccountStakingInfo, AccountTransactionDetails,
-        AccountTransactionEffects, BlockItemSummary, BlockItemSummaryDetails, ContractAddress,
-        ContractInitializedEvent, ContractTraceElement, DelegationTarget, PartsPerHundredThousands,
-        RejectReason, RewardsOverview, TransactionType,
+        self as sdk_types, queries::BlockInfo, AbsoluteBlockHeight, AccountStakingInfo,
+        AccountTransactionDetails, AccountTransactionEffects, BlockItemSummary,
+        BlockItemSummaryDetails, ContractAddress, ContractInitializedEvent, ContractTraceElement,
+        DelegationTarget, PartsPerHundredThousands, RejectReason, RewardsOverview,
+        SpecialTransactionOutcome, TransactionType,
     },
     v2::{
         self, BlockIdentifier, ChainParameters, FinalizedBlockInfo, QueryError, QueryResult,
@@ -322,72 +324,90 @@ impl Indexer for BlockPreProcessor {
         self.blocks_being_preprocessed.get_or_create(label).inc();
         // We block together the computation, so we can update the metric in the error
         // case, before returning early.
-        let result = async move {
-            let mut client1 = client.clone();
-            let mut client2 = client.clone();
-            let mut client3 = client.clone();
-            let mut client4 = client.clone();
-            let get_events = async move {
-                let events = client3
-                    .get_block_transaction_events(fbi.height)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?;
-                Ok(events)
-            };
+        let result =
+            async move {
+                let mut client1 = client.clone();
+                let mut client2 = client.clone();
+                let mut client3 = client.clone();
+                let mut client4 = client.clone();
+                let mut client5 = client.clone();
+                let get_events = async move {
+                    let events = client3
+                        .get_block_transaction_events(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(events)
+                };
 
-            let get_items = async move {
-                let items = client4
-                    .get_block_items(fbi.height)
-                    .await?
-                    .response
-                    .try_collect::<Vec<_>>()
-                    .await?;
-                Ok(items)
-            };
+                let get_items = async move {
+                    let items = client4
+                        .get_block_items(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(items)
+                };
 
-            let start_fetching = Instant::now();
-            let (block_info, chain_parameters, events, items, tokenomics_info) = try_join!(
-                client1.get_block_info(fbi.height),
-                client2.get_block_chain_parameters(fbi.height),
-                get_events,
-                get_items,
-                client.get_tokenomics_info(fbi.height)
-            )?;
-            let total_staked_capital = match tokenomics_info.response {
-                RewardsOverview::V0 {
-                    ..
-                } => {
-                    compute_total_stake_capital(
-                        &mut client,
-                        BlockIdentifier::AbsoluteHeight(fbi.height),
-                    )
-                    .await?
-                }
-                RewardsOverview::V1 {
+                let get_special_items = async move {
+                    let items = client5
+                        .get_block_special_events(fbi.height)
+                        .await?
+                        .response
+                        .try_collect::<Vec<_>>()
+                        .await?;
+                    Ok(items)
+                };
+
+                let start_fetching = Instant::now();
+                let (block_info, chain_parameters, events, items, tokenomics_info, special_events) =
+                    try_join!(
+                        client1.get_block_info(fbi.height),
+                        client2.get_block_chain_parameters(fbi.height),
+                        get_events,
+                        get_items,
+                        client.get_tokenomics_info(fbi.height),
+                        get_special_items
+                    )?;
+                let total_staked_capital = match tokenomics_info.response {
+                    RewardsOverview::V0 {
+                        ..
+                    } => {
+                        compute_total_stake_capital(
+                            &mut client,
+                            BlockIdentifier::AbsoluteHeight(fbi.height),
+                        )
+                        .await?
+                    }
+                    RewardsOverview::V1 {
+                        total_staked_capital,
+                        ..
+                    } => total_staked_capital,
+                };
+                let node_response_time = start_fetching.elapsed();
+                self.node_response_time
+                    .get_or_create(label)
+                    .observe(node_response_time.as_secs_f64());
+
+                let data = BlockData {
+                    finalized_block_info: fbi,
+                    block_info: block_info.response,
+                    events,
+                    items,
+                    chain_parameters: chain_parameters.response,
+                    tokenomics_info: tokenomics_info.response,
                     total_staked_capital,
-                    ..
-                } => total_staked_capital,
-            };
+                    special_events,
+                };
 
-            let node_response_time = start_fetching.elapsed();
-            self.node_response_time.get_or_create(label).observe(node_response_time.as_secs_f64());
-
-            let data = BlockData {
-                finalized_block_info: fbi,
-                block_info: block_info.response,
-                events,
-                items,
-                chain_parameters: chain_parameters.response,
-                tokenomics_info: tokenomics_info.response,
-                total_staked_capital,
-            };
-            let prepared_block =
-                PreparedBlock::prepare(&mut client, &data).await.map_err(RPCError::ParseError)?;
-            Ok(prepared_block)
-        }
-        .await;
+                let prepared_block = PreparedBlock::prepare(&mut client, &data)
+                    .await
+                    .map_err(RPCError::ParseError)?;
+                Ok(prepared_block)
+            }
+            .await;
         self.blocks_being_preprocessed.get_or_create(label).dec();
         result
     }
@@ -551,6 +571,9 @@ impl ProcessEvent for BlockProcessor {
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
             }
+            for item in block.special_items.iter() {
+                item.save(&mut tx).await?;
+            }
             out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
@@ -626,6 +649,7 @@ struct BlockData {
     chain_parameters:     ChainParameters,
     tokenomics_info:      RewardsOverview,
     total_staked_capital: Amount,
+    special_events:       Vec<SpecialTransactionOutcome>,
 }
 
 /// Function for initializing the database with the genesis block.
@@ -756,6 +780,8 @@ struct PreparedBlock {
     block_last_finalized: String,
     /// Preprocessed block items, ready to be saved in the database.
     prepared_block_items: Vec<PreparedBlockItem>,
+    /// Preprocessed block special items, ready to be saved in the database.
+    special_items:        Vec<PreparedBlockSpecialEvent>,
 }
 
 impl PreparedBlock {
@@ -777,6 +803,15 @@ impl PreparedBlock {
             prepared_block_items
                 .push(PreparedBlockItem::prepare(node_client, data, item_summary, item).await?)
         }
+        let special_items: Vec<_> = data
+            .special_events
+            .iter()
+            .flat_map(|event| {
+                PreparedBlockSpecialEvent::prepare(event, data.block_info.block_height)
+            })
+            .flatten()
+            .filter(|event| event.amount > 0)
+            .collect();
         Ok(Self {
             hash,
             height,
@@ -786,6 +821,7 @@ impl PreparedBlock {
             total_staked,
             block_last_finalized,
             prepared_block_items,
+            special_items,
         })
     }
 
@@ -886,7 +922,182 @@ WHERE blocks.finalization_time IS NULL AND blocks.height <= last.height
     }
 }
 
-/// Prepared block item (transaction), ready to be inserted in the database.
+struct PreparedBlockSpecialEvent {
+    account_address:  String,
+    amount:           i64,
+    block_height:     i64,
+    transaction_type: AccountStatementEntryType,
+    transaction_id:   Option<i64>,
+}
+
+impl PreparedBlockSpecialEvent {
+    fn prepare(
+        event: &SpecialTransactionOutcome,
+        block_height: AbsoluteBlockHeight,
+    ) -> anyhow::Result<Vec<Self>> {
+        let results = match &event {
+            SpecialTransactionOutcome::BakingRewards {
+                baker_rewards,
+                ..
+            } => baker_rewards
+                .iter()
+                .map(|(account_address, amount)| {
+                    Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
+                        account_address:  account_address.to_string(),
+                        amount:           amount.micro_ccd.try_into()?,
+                        block_height:     block_height.height.try_into()?,
+                        transaction_type: AccountStatementEntryType::BakerReward,
+                        transaction_id:   None,
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            SpecialTransactionOutcome::Mint {
+                foundation_account,
+                mint_platform_development_charge,
+                ..
+            } => vec![PreparedBlockSpecialEvent {
+                account_address:  foundation_account.to_string(),
+                amount:           mint_platform_development_charge.micro_ccd.try_into()?,
+                block_height:     block_height.height.try_into()?,
+                transaction_type: AccountStatementEntryType::FoundationReward,
+                transaction_id:   None,
+            }],
+            SpecialTransactionOutcome::FinalizationRewards {
+                finalization_rewards,
+                ..
+            } => finalization_rewards
+                .iter()
+                .map(|(account_address, amount)| {
+                    Ok::<PreparedBlockSpecialEvent, anyhow::Error>(PreparedBlockSpecialEvent {
+                        account_address:  account_address.to_string(),
+                        amount:           amount.micro_ccd.try_into()?,
+                        block_height:     block_height.height.try_into()?,
+                        transaction_type: AccountStatementEntryType::FinalizationReward,
+                        transaction_id:   None,
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+            SpecialTransactionOutcome::BlockReward {
+                baker,
+                foundation_account,
+                baker_reward,
+                foundation_charge,
+                ..
+            } => vec![
+                PreparedBlockSpecialEvent {
+                    account_address:  foundation_account.to_string(),
+                    amount:           foundation_charge.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
+                    transaction_type: AccountStatementEntryType::FoundationReward,
+                    transaction_id:   None,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address:  baker.to_string(),
+                    amount:           baker_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
+                    transaction_type: AccountStatementEntryType::BakerReward,
+                    transaction_id:   None,
+                },
+            ],
+            SpecialTransactionOutcome::PaydayFoundationReward {
+                foundation_account,
+                development_charge,
+            } => vec![PreparedBlockSpecialEvent {
+                account_address:  foundation_account.to_string(),
+                amount:           development_charge.micro_ccd.try_into()?,
+                block_height:     block_height.height.try_into()?,
+                transaction_type: AccountStatementEntryType::FoundationReward,
+                transaction_id:   None,
+            }],
+            SpecialTransactionOutcome::PaydayAccountReward {
+                account,
+                transaction_fees,
+                baker_reward,
+                finalization_reward,
+            } => vec![
+                PreparedBlockSpecialEvent {
+                    account_address:  account.to_string(),
+                    amount:           transaction_fees.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
+                    transaction_type: AccountStatementEntryType::TransactionFeeReward,
+                    transaction_id:   None,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address:  account.to_string(),
+                    amount:           baker_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
+                    transaction_type: AccountStatementEntryType::BakerReward,
+                    transaction_id:   None,
+                },
+                PreparedBlockSpecialEvent {
+                    account_address:  account.to_string(),
+                    amount:           finalization_reward.micro_ccd.try_into()?,
+                    block_height:     block_height.height.try_into()?,
+                    transaction_type: AccountStatementEntryType::FinalizationReward,
+                    transaction_id:   None,
+                },
+            ],
+            // TODO: Support these two types. (Deviates from Old CCDScan)
+            SpecialTransactionOutcome::BlockAccrueReward {
+                ..
+            }
+            | SpecialTransactionOutcome::PaydayPoolReward {
+                ..
+            } => Vec::new(),
+        };
+        Ok(results)
+    }
+
+    async fn save(
+        &self,
+        tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query!(
+            "WITH account_info AS (
+            SELECT index AS account_index, amount + $3 AS current_balance
+            FROM accounts
+            WHERE address = $1
+        )
+        INSERT INTO account_statements (
+            account_index,
+            entry_type,
+            amount,
+            block_height,
+            transaction_id,
+            account_balance
+        )
+        SELECT
+            account_index,
+            $2,
+            $3,
+            $4,
+            $5,
+            current_balance
+        FROM account_info",
+            self.account_address,
+            self.transaction_type as AccountStatementEntryType,
+            self.amount,
+            self.block_height,
+            self.transaction_id
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        sqlx::query!(
+            "UPDATE accounts
+            SET amount = amount + $1
+            WHERE address = $2",
+            self.amount,
+            self.account_address
+        )
+        .execute(tx.as_mut())
+        .await?;
+
+        Ok(())
+    }
+}
+
+/// Prepared block item (transaction), ready to be inserted in the database
 struct PreparedBlockItem {
     /// Index of the block item within the block.
     block_item_index:  i64,

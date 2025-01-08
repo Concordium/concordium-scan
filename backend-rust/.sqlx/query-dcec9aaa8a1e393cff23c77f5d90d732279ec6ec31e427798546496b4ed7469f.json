@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT *\n            FROM (\n                SELECT\n                    id,\n                    amount,\n                    entry_type as \"entry_type: AccountStatementEntryType\",\n                    blocks.slot_time as timestamp,\n                    account_balance,\n                    transaction_id,\n                    block_height\n                FROM\n                    account_statements\n                JOIN\n                    blocks\n                ON\n                    blocks.height = account_statements.block_height\n                WHERE\n                    account_index = $5\n                    AND id > $1\n                    AND id < $2\n                ORDER BY\n                    (CASE WHEN $4 THEN id END) DESC,\n                    (CASE WHEN NOT $4 THEN id END) ASC\n                LIMIT $3\n            )\n            ORDER BY\n                id ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "entry_type: AccountStatementEntryType",
+        "type_info": {
+          "Custom": {
+            "name": "account_statement_entry_type",
+            "kind": {
+              "Enum": [
+                "TransferIn",
+                "TransferOut",
+                "AmountDecrypted",
+                "AmountEncrypted",
+                "TransactionFee",
+                "FinalizationReward",
+                "FoundationReward",
+                "BakerReward",
+                "TransactionFeeReward"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "transaction_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "block_height",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "dcec9aaa8a1e393cff23c77f5d90d732279ec6ec31e427798546496b4ed7469f"
+}

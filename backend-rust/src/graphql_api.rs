@@ -36,12 +36,12 @@ use crate::{
         UpdateTransactionType,
     },
 };
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _};
 use async_graphql::{
     http::GraphiQLSource,
     types::{self, connection},
-    Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema, SimpleObject,
-    Subscription, Union,
+    ComplexObject, Context, EmptyMutation, Enum, InputObject, MergedObject, Object, Schema,
+    SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
 use block::Block;
@@ -49,10 +49,16 @@ use chrono::Duration;
 use concordium_rust_sdk::{
     base::contracts_common::schema::VersionedSchemaError, id::types as sdk_types,
 };
+use derive_more::Display;
 use futures::prelude::*;
 use prometheus_client::registry::Registry;
 use sqlx::PgPool;
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{
+    cmp::{max, min},
+    error::Error,
+    str::FromStr,
+    sync::Arc,
+};
 use token::AccountToken;
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
@@ -75,6 +81,12 @@ pub struct ApiServiceConfig {
     block_connection_limit: u64,
     #[arg(long, env = "CCDSCAN_API_CONFIG_ACCOUNT_CONNECTION_LIMIT", default_value = "100")]
     account_connection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_ACCOUNT_STATEMENTS_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    account_statements_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_ACCOUNT_SCHEDULE_CONNECTION_LIMIT",
@@ -125,6 +137,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     module_reference_contract_link_events_collection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_REWARD_CONNECTION_LIMIT", default_value = "100")]
+    reward_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_TOKEN_HOLDER_ADDRESSES_COLLECTION_LIMIT",
@@ -791,31 +805,96 @@ struct CollectionSegmentInfo {
 }
 
 #[derive(SimpleObject)]
-struct AccountReward {
-    block:       Block,
-    id:          types::ID,
-    timestamp:   DateTime,
-    reward_type: RewardType,
-    amount:      Amount,
+#[graphql(complex)]
+pub struct AccountReward {
+    #[graphql(skip)]
+    id:           i64,
+    #[graphql(skip)]
+    block_height: BlockHeight,
+    timestamp:    DateTime,
+    #[graphql(skip)]
+    entry_type:   AccountStatementEntryType,
+    amount:       Amount,
+}
+#[ComplexObject]
+impl AccountReward {
+    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
+    async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
+        Block::query_by_height(get_pool(ctx)?, self.block_height).await
+    }
+
+    async fn reward_type(&self, ctx: &Context<'_>) -> ApiResult<RewardType> {
+        let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
+            ApiError::InternalError(format!(
+                "AccountStatementEntryType: Not a valid reward type: {}",
+                &self.entry_type
+            ))
+        })?;
+        Ok(transaction)
+    }
 }
 
-#[derive(Enum, Copy, Clone, PartialEq, Eq)]
-#[allow(clippy::enum_variant_names)]
-enum RewardType {
+#[derive(Enum, Copy, Clone, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "reward_type")]
+pub enum RewardType {
     FinalizationReward,
     FoundationReward,
     BakerReward,
     TransactionFeeReward,
 }
 
+impl TryFrom<AccountStatementEntryType> for RewardType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: AccountStatementEntryType) -> Result<Self, Self::Error> {
+        match value {
+            AccountStatementEntryType::FinalizationReward => Ok(RewardType::FinalizationReward),
+            AccountStatementEntryType::FoundationReward => Ok(RewardType::FoundationReward),
+            AccountStatementEntryType::BakerReward => Ok(RewardType::BakerReward),
+            AccountStatementEntryType::TransactionFeeReward => Ok(RewardType::TransactionFeeReward),
+            other => Err(anyhow!(
+                "AccountStatementEntryType '{}' cannot be converted to RewardType",
+                other
+            )),
+        }
+    }
+}
+
 #[derive(SimpleObject)]
+#[graphql(complex)]
 struct AccountStatementEntry {
-    reference:       BlockOrTransaction,
-    id:              types::ID,
+    #[graphql(skip)]
+    id:              i64,
     timestamp:       DateTime,
     entry_type:      AccountStatementEntryType,
-    amount:          i64,
+    amount:          Amount,
     account_balance: Amount,
+    #[graphql(skip)]
+    transaction_id:  Option<TransactionIndex>,
+    #[graphql(skip)]
+    block_height:    BlockHeight,
+}
+
+#[ComplexObject]
+impl AccountStatementEntry {
+    async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
+    async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
+        if let Some(id) = self.transaction_id {
+            let transaction = Transaction::query_by_index(get_pool(ctx)?, id).await?;
+            let transaction = transaction.ok_or_else(|| {
+                ApiError::InternalError(
+                    "AccountStatementEntry: No transaction at transaction_index".to_string(),
+                )
+            })?;
+            Ok(BlockOrTransaction::Transaction(transaction))
+        } else {
+            Ok(BlockOrTransaction::Block(
+                Block::query_by_height(get_pool(ctx)?, self.block_height).await?,
+            ))
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -851,23 +930,24 @@ impl AccountReleaseScheduleItem {
 #[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
-    index: i64,
+    index:             i64,
     /// Index of the transaction creating this account.
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
     #[sqlx(try_from = "String")]
-    address: AccountAddress,
+    address:           AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount: Amount,
+    amount:            Amount,
     /// The total delegated stake of this account.
-    delegated_stake: Amount,
+    delegated_stake:   Amount,
     /// The total number of transactions this account has been involved in or
     /// affected by.
-    num_txs: i64,
+    num_txs:           i64,
+
     delegated_restake_earnings: Option<bool>,
-    delegated_target_baker_id: Option<i64>, /* Get baker information if this account is baking.
-                                             * baker: Option<Baker>, */
+    delegated_target_baker_id:  Option<i64>, /* Get baker information if this account is baking.
+                                              * baker: Option<Baker>, */
 }
 impl Account {
     async fn query_by_index(pool: &PgPool, index: AccountIndex) -> ApiResult<Option<Self>> {
@@ -1084,26 +1164,203 @@ impl Account {
 
     async fn account_statement(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountStatementEntry>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.account_statements_connection_limit,
+        )?;
+
+        let mut account_statements = sqlx::query_as!(
+            AccountStatementEntry,
+            r#"
+            SELECT *
+            FROM (
+                SELECT
+                    id,
+                    amount,
+                    entry_type as "entry_type: AccountStatementEntryType",
+                    blocks.slot_time as timestamp,
+                    account_balance,
+                    transaction_id,
+                    block_height
+                FROM
+                    account_statements
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_statements.block_height
+                WHERE
+                    account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN id END) DESC,
+                    (CASE WHEN NOT $4 THEN id END) ASC
+                LIMIT $3
+            )
+            ORDER BY
+                id ASC
+            "#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            &self.index
+        )
+        .fetch(pool);
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+        while let Some(statement) = account_statements.try_next().await? {
+            min_index = Some(match min_index {
+                None => statement.id,
+                Some(current_min) => min(current_min, statement.id),
+            });
+
+            max_index = Some(match max_index {
+                None => statement.id,
+                Some(current_max) => max(current_max, statement.id),
+            });
+            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(id) as max_id, MIN(id) as min_id
+                    FROM account_statements
+                    WHERE account_index = $1
+                "#,
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+
+        Ok(connection)
     }
 
     async fn rewards(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountReward>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.reward_connection_limit,
+        )?;
+        let mut rewards = sqlx::query_as!(
+            AccountReward,
+            r#"
+            SELECT
+                id as "id!",
+                block_height as "block_height!",
+                timestamp,
+                entry_type as "entry_type!: AccountStatementEntryType",
+                amount as "amount!"
+            FROM (
+                SELECT
+                    id,
+                    block_height,
+                    blocks.slot_time as "timestamp",
+                    entry_type,
+                    amount
+                FROM account_statements
+                JOIN
+                    blocks
+                ON
+                    blocks.height = account_statements.block_height
+                WHERE
+                    entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
+                    AND account_index = $5
+                    AND id > $1
+                    AND id < $2
+                ORDER BY
+                    CASE WHEN $4 THEN id END DESC,
+                    CASE WHEN NOT $4 THEN id END ASC
+                LIMIT $3
+            )
+            ORDER BY
+                id ASC
+            "#,
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            &self.index
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+        let mut min_index = None;
+        let mut max_index = None;
+        while let Some(statement) = rewards.try_next().await? {
+            min_index = Some(match min_index {
+                None => statement.id,
+                Some(current_min) => min(current_min, statement.id),
+            });
+
+            max_index = Some(match max_index {
+                None => statement.id,
+                Some(current_max) => max(current_max, statement.id),
+            });
+            connection.edges.push(connection::Edge::new(statement.id.to_string(), statement));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (min_index, max_index) {
+            let result = sqlx::query!(
+                r#"
+                    SELECT MAX(id) as max_id, MIN(id) as min_id
+                    FROM account_statements
+                    WHERE account_index = $1
+                    AND entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
+                "#,
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+        Ok(connection)
     }
 
     async fn release_schedule(&self) -> AccountReleaseSchedule {
@@ -1309,8 +1566,9 @@ struct PendingDelegationReduceStake {
     effective_time:    DateTime,
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq)]
-enum AccountStatementEntryType {
+#[derive(Enum, Clone, Copy, Display, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "account_statement_entry_type")]
+pub enum AccountStatementEntryType {
     TransferIn,
     TransferOut,
     AmountDecrypted,
