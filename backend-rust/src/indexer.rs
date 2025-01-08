@@ -811,7 +811,6 @@ impl PreparedBlock {
                 )
             });
 
-        // Create an iterator for special items
         let special_items_iter = data
             .special_events
             .iter()
@@ -824,7 +823,6 @@ impl PreparedBlock {
             .flatten()
             .filter(|event| event.amount > 0);
 
-        // Chain the two iterators and collect into a single vector
         let combined_statements: Vec<_> =
             prepared_account_statements_iter.chain(special_items_iter).collect();
         Ok(Self {
