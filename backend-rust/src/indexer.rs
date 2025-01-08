@@ -2405,12 +2405,9 @@ async fn process_cis2_event(
             if let Address::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, account_index, \
-                     token_index, balance)
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
                         (SELECT index FROM accounts WHERE address = $1),
                         (SELECT index FROM tokens WHERE token_address = $2),  
                         $3
@@ -2485,12 +2482,9 @@ async fn process_cis2_event(
             if let Address::Account(owner) = owner {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, account_index, \
-                     token_index, balance)
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
                         (SELECT index FROM accounts WHERE address = $1),
                         (SELECT index FROM tokens WHERE token_address = $2),  
                         $3
@@ -2532,12 +2526,9 @@ async fn process_cis2_event(
             if let Address::Account(from) = from {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, account_index, \
-                     token_index, balance)
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
                         (SELECT index FROM accounts WHERE address = $1),
                         (SELECT index FROM tokens WHERE token_address = $2),  
                         $3
@@ -2559,12 +2550,9 @@ async fn process_cis2_event(
             if let Address::Account(to) = to {
                 sqlx::query!(
                     "
-                    INSERT INTO account_tokens (index, index_per_token, account_index, \
-                     token_index, balance)
+                    INSERT INTO account_tokens (index, account_index, token_index, balance)
                     VALUES (
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT COALESCE(MAX(index_per_token) + 1, 0) FROM account_tokens WHERE \
-                     token_index = (SELECT index FROM tokens WHERE token_address = $2)),
                         (SELECT index FROM accounts WHERE address = $1),
                         (SELECT index FROM tokens WHERE token_address = $2),  
                         $3

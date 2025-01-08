@@ -93,9 +93,12 @@ impl Token {
                 config.token_holder_addresses_collection_limit.min(t)
             }))?;
 
-        // Tokens with 0 balance are filter out. We still display tokens with a negative
-        // balance (buggy cis2 smart contract) to help smart contract developers
-        // to debug their smart contracts.
+        // Tokens with 0 balance are filtered out. We still display tokens with a
+        // negative balance (buggy cis2 smart contract) to help smart contract
+        // developers to debug their smart contracts.
+        // Excluding tokens with 0 balances does not scale well for smart contracts
+        // with a large number of account token holdings currently. We might need to
+        // introduce a specific index to optimize this query in the future.
         let mut items = sqlx::query_as!(
             AccountToken,
             "WITH filtered_tokens AS (
@@ -105,7 +108,7 @@ impl Token {
                     contract_sub_index,
                     balance AS raw_balance,
                     account_index AS account_id,
-                    ROW_NUMBER() OVER (ORDER BY account_tokens.index_per_token) AS row_num
+                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num
                 FROM account_tokens
                 JOIN tokens
                     ON tokens.contract_index = $1
@@ -142,13 +145,23 @@ impl Token {
         }
         let has_previous_page = min_index > 0;
 
+        // Tokens with 0 balance are filtered out. We still display tokens with a
+        // negative balance (buggy cis2 smart contract) to help smart contract
+        // developers to debug their smart contracts.
+        // This counting approach below does not scale well for smart contracts
+        // with a large number of account token holdings currently, since a large
+        // number of rows would be traversed. This might have to be improved in the
+        // future by indexing more.
         let total_count: i32 = sqlx::query_scalar!(
             "SELECT
-                MAX(index_per_token)
+                COUNT(*)
             FROM account_tokens
-                JOIN tokens ON tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
-             tokens.token_id = $3
-            WHERE tokens.index = account_tokens.token_index",
+                JOIN tokens 
+                ON tokens.contract_index = $1 
+                AND tokens.contract_sub_index = $2 
+                AND tokens.token_id = $3
+            WHERE tokens.index = account_tokens.token_index 
+                AND account_tokens.balance != 0",
             self.contract_index,
             self.contract_sub_index,
             self.token_id,
