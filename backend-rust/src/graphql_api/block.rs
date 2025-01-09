@@ -106,7 +106,7 @@ pub struct Block {
     /// being finalized.
     finalization_time: Option<i32>,
     // finalized_by:      Option<BlockHeight>,
-    baker_id:          Option<BakerId>,
+    baker_id:          Option<i64>,
     total_amount:      Amount,
     // total_staked:      Amount,
 }
@@ -165,7 +165,7 @@ impl Block {
 
     async fn block_height(&self) -> &BlockHeight { &self.height }
 
-    async fn baker_id(&self) -> Option<BakerId> { self.baker_id }
+    async fn baker_id(&self) -> Option<BakerId> { self.baker_id.map(BakerId::from) }
 
     async fn total_amount(&self) -> &Amount { &self.total_amount }
 

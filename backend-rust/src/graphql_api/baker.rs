@@ -18,8 +18,12 @@ impl QueryBaker {
         Baker::query_by_id(get_pool(ctx)?, id).await
     }
 
-    async fn baker_by_baker_id<'a>(&self, ctx: &Context<'a>, id: BakerId) -> ApiResult<Baker> {
-        Baker::query_by_id(get_pool(ctx)?, id).await
+    async fn baker_by_baker_id<'a>(
+        &self,
+        ctx: &Context<'a>,
+        baker_id: BakerId,
+    ) -> ApiResult<Baker> {
+        Baker::query_by_id(get_pool(ctx)?, baker_id).await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -83,7 +87,7 @@ impl Baker {
     finalization_commission
  FROM bakers WHERE id=$1
 "#,
-            baker_id
+            i64::from(baker_id)
         )
         .fetch_optional(pool)
         .await?
@@ -131,7 +135,7 @@ impl Baker {
     }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
-        Account::query_by_index(get_pool(ctx)?, self.id).await?.ok_or(ApiError::NotFound)
+        Account::query_by_index(get_pool(ctx)?, i64::from(self.id)).await?.ok_or(ApiError::NotFound)
     }
 
     // transactions("Returns the first _n_ elements from the list." first: Int

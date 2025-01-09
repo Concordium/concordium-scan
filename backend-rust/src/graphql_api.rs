@@ -1002,7 +1002,6 @@ impl AccountReleaseScheduleItem {
     async fn amount(&self) -> Amount { self.amount }
 }
 
-#[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
     index:             i64,
@@ -1010,7 +1009,6 @@ struct Account {
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
-    #[sqlx(try_from = "String")]
     address:           AccountAddress,
     /// The total amount of CCD hold by the account.
     amount:            Amount,
@@ -1071,7 +1069,7 @@ impl Account {
             staked_amount: self.delegated_stake,
             delegation_target: if let Some(target) = self.delegated_target_baker_id {
                 DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                    baker_id: target,
+                    baker_id: target.into(),
                 })
             } else {
                 DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
