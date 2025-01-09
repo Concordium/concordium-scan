@@ -2666,12 +2666,14 @@ async fn process_cis2_event(
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
-                    VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT index FROM accounts WHERE address = $1),
-                        (SELECT index FROM tokens WHERE token_address = $2),  
+                    SELECT
+                        COALESCE((SELECT MAX(index) + 1 FROM account_tokens), 0),
+                        accounts.index,
+                        tokens.index,
                         $3
-                    )
+                    FROM accounts, tokens
+                    WHERE accounts.address = $1
+                        AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
                     owner.to_string(),
@@ -2743,12 +2745,14 @@ async fn process_cis2_event(
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
-                    VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT index FROM accounts WHERE address = $1),
-                        (SELECT index FROM tokens WHERE token_address = $2),  
+                    SELECT
+                        COALESCE((SELECT MAX(index) + 1 FROM account_tokens), 0),
+                        accounts.index,
+                        tokens.index,
                         $3
-                    )
+                    FROM accounts, tokens
+                    WHERE accounts.address = $1
+                        AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
                     owner.to_string(),
@@ -2787,12 +2791,14 @@ async fn process_cis2_event(
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
-                    VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT index FROM accounts WHERE address = $1),
-                        (SELECT index FROM tokens WHERE token_address = $2),  
+                    SELECT
+                        COALESCE((SELECT MAX(index) + 1 FROM account_tokens), 0),
+                        accounts.index,
+                        tokens.index,
                         $3
-                    )
+                    FROM accounts, tokens
+                    WHERE accounts.address = $1
+                        AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
                     DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
                     from.to_string(),
@@ -2811,14 +2817,16 @@ async fn process_cis2_event(
                 sqlx::query!(
                     "
                     INSERT INTO account_tokens (index, account_index, token_index, balance)
-                    VALUES (
-                        (SELECT COALESCE(MAX(index) + 1, 0) FROM account_tokens),
-                        (SELECT index FROM accounts WHERE address = $1),
-                        (SELECT index FROM tokens WHERE token_address = $2),  
+                    SELECT
+                        COALESCE((SELECT MAX(index) + 1 FROM account_tokens), 0),
+                        accounts.index,
+                        tokens.index,
                         $3
-                    )
+                    FROM accounts, tokens
+                    WHERE accounts.address = $1
+                        AND tokens.token_address = $2
                     ON CONFLICT (token_index, account_index)
-                    DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
+                        DO UPDATE SET balance = account_tokens.balance + EXCLUDED.balance",
                     to.to_string(),
                     token_address,
                     tokens_transferred
