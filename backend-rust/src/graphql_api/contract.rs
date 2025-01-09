@@ -487,6 +487,7 @@ impl Contract {
         let mut items = sqlx::query_as!(
             Token,
             "SELECT
+                index,
                 total_supply as raw_total_supply,
                 token_id,
                 contract_index,

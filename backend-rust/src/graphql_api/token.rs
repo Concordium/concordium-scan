@@ -26,6 +26,7 @@ impl QueryToken {
         let token = sqlx::query_as!(
             Token,
             "SELECT
+                index,
                 total_supply as raw_total_supply,
                 token_id,
                 contract_index,
@@ -51,6 +52,8 @@ impl QueryToken {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct Token {
+    #[graphql(skip)]
+    pub index:                  i64,
     #[graphql(skip)]
     pub init_transaction_index: TransactionIndex,
     pub contract_index:         i64,

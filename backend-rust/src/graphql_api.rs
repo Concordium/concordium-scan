@@ -59,7 +59,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use token::AccountToken;
+use token::{AccountToken, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -101,6 +101,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     transaction_event_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKENS_CONNECTION_LIMIT", default_value = "100")]
+    tokens_connection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
@@ -514,10 +516,6 @@ impl BaseQuery {
             config.account_connection_limit,
         )?;
 
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
         let mut accounts = sqlx::query_as!(
             Account,
             r"SELECT * FROM (
@@ -606,6 +604,88 @@ impl BaseQuery {
         Ok(connection)
     }
 
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.tokens_connection_limit,
+        )?;
+
+        let mut row_stream = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE tokens.index > $1 AND tokens.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) DESC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index ASC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        while let Some(token) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => token.index,
+                Some(current_max) => max(current_max, token.index),
+            });
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+
+        if let Some(page_max_index) = page_max_index {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_index
+                    FROM tokens
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            if let Some(edge) = connection.edges.last() {
+                connection.has_next_page =
+                    result.max_index.map_or(false, |db_max| db_max > page_max_index)
+            }
+        }
+
+        if let Some(edge) = connection.edges.first() {
+            connection.has_previous_page = edge.node.index != 0;
+        }
+
+        Ok(connection)
+    }
+
     async fn search(&self, query: String) -> SearchResult {
         SearchResult {
             _query: query,
@@ -628,11 +708,6 @@ impl BaseQuery {
     // "Returns the last _n_ elements from the list." last: Int "Returns the
     // elements in the list that come before the specified cursor." before: String):
     // NodeStatusesConnection nodeStatus(id: ID!): NodeStatus
-    // tokens("Returns the first _n_ elements from the list." first: Int "Returns
-    // the elements in the list that come after the specified cursor." after:
-    // String "Returns the last _n_ elements from the list." last: Int "Returns
-    // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection
 }
 
 pub struct Subscription {
