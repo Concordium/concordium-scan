@@ -3,7 +3,7 @@ import type { PageInfo } from '~/types/generated'
 export const PAGE_SIZE = 25
 export const PAGE_SIZE_SMALL = 10
 
-export type PaginationTarget = 'first' | 'previous' | 'next'
+export type PaginationTarget = 'first' | 'previous' | 'next' | 'last'
 
 /**
  * Hook to control pagination state and actions
@@ -36,6 +36,8 @@ export const usePagination = (
 		} else if (target === 'next' && pageInfo.endCursor) {
 			after.value = pageInfo.endCursor
 			first.value = pageSize
+		} else if (target === 'last' && pageInfo.hasNextPage) {
+			last.value = pageSize
 		} else {
 			console.error('Incorrect pagination arguments:', { target, ...pageInfo })
 		}
