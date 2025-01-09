@@ -196,23 +196,25 @@ impl Contract {
     async fn contract_events(
         &self,
         ctx: &Context<'_>,
-        skip: u32,
-        take: u32,
+        skip: Option<u64>,
+        take: Option<u64>,
     ) -> ApiResult<ContractEventsCollectionSegment> {
         let config = get_config(ctx)?;
         let pool = get_pool(ctx)?;
+        let skip = skip.unwrap_or(0);
+        let take = take.unwrap_or(config.contract_events_collection_limit);
 
         // If `skip` is 0 and at least one event is taken, include the
         // `init_transaction_event`.
         let include_initial_event = skip == 0 && take > 0;
         // Adjust the `take` and `skip` values considering if the
         // `init_transaction_event` is requested to be included or not.
-        let take_without_initial_event = take.saturating_sub(include_initial_event as u32);
+        let take_without_initial_event = take.saturating_sub(include_initial_event as u64);
         let skip_without_initial_event = skip.saturating_sub(1);
 
         // Limit the number of events to be fetched from the `contract_events` table.
         let limit = std::cmp::min(
-            take_without_initial_event as u64,
+            take_without_initial_event,
             config.contract_events_collection_limit.saturating_sub(include_initial_event as u64),
         );
 

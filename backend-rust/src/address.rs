@@ -67,3 +67,9 @@ impl From<concordium_rust_sdk::types::Address> for Address {
         }
     }
 }
+
+impl From<concordium_rust_sdk::common::types::AccountAddress> for Address {
+    fn from(address: concordium_rust_sdk::common::types::AccountAddress) -> Self {
+        Address::AccountAddress(address.into())
+    }
+}
