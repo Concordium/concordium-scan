@@ -644,7 +644,7 @@ impl BaseQuery {
                     (CASE WHEN NOT $4 THEN tokens.index END) ASC
                 LIMIT $3
             ) AS token_data
-            ORDER BY token_data.index DESC",
+            ORDER BY token_data.index ASC",
             query.from,
             query.to,
             query.limit,
@@ -652,15 +652,34 @@ impl BaseQuery {
         )
         .fetch(pool);
 
-        let mut connection = connection::Connection::new(true, true);
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
         while let Some(token) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => token.index,
+                Some(current_max) => max(current_max, token.index),
+            });
             connection.edges.push(connection::Edge::new(token.index.to_string(), token));
         }
-        if last.is_some() {
+
+        if let Some(page_max_index) = page_max_index {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_index
+                    FROM tokens
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
             if let Some(edge) = connection.edges.last() {
-                connection.has_previous_page = edge.node.index != 0;
+                connection.has_next_page =
+                    result.max_index.map_or(false, |db_max| db_max > page_max_index)
             }
-        } else if let Some(edge) = connection.edges.first() {
+        }
+
+        if let Some(edge) = connection.edges.first() {
             connection.has_previous_page = edge.node.index != 0;
         }
 
