@@ -271,6 +271,7 @@ pub struct ContractCall {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct ContractInterrupted {
     pub contract_address:  ContractAddress,
     // All logged events by the smart contract during this section of the transaction execution.
