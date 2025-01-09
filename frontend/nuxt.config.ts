@@ -1,17 +1,6 @@
 import { defineNuxtConfig } from 'nuxt/config'
 
 export default defineNuxtConfig({
-	vite: {
-		server: {
-			proxy: {
-				'/api': 'http://127.0.0.1:8000',
-				'/ws': {
-					target: 'ws://127.0.0.1:8000',
-					ws: true,
-				},
-			},
-		},
-	},
 	// Configuration available to the application at runtime, note the `public` object will be
 	// expose directly in the client-side code and therefore should not contain secrets.
 	// Below values are default and can be overwritten by environment variables at runtime.
@@ -24,6 +13,12 @@ export default defineNuxtConfig({
 			// URL to use when using websockets in GraphQL CCDscan API.
 			// (env NUXT_PUBLIC_WS_URL)
 			wsUrl: 'ws://localhost:5090/graphql',
+			// URL to use when sending GraphQL queries to the CCDscan API.
+			// (env NUXT_PUBLIC_API_URL_RUST)
+			apiUrlRust: 'http://localhost:8000/api/graphql',
+			// URL to use when using websockets in GraphQL CCDscan API.
+			// (env NUXT_PUBLIC_WS_URL_RUST)
+			wsUrlRust: 'ws://localhost:8000/api/graphql',
 			// Settings for how to display the explorer.
 			explorer: {
 				// The name to display for the explorer.
@@ -47,8 +42,6 @@ export default defineNuxtConfig({
 		},
 	},
 	// Directory for finding the source files.
-
-
 
 	srcDir: 'src/',
 	// Directories to search for components.

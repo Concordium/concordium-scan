@@ -31,7 +31,7 @@ const BlockMetricsQuery = gql<BlockMetricsQueryResponse>`
 
 export const useBlockMetricsQuery = (period: Ref<MetricsPeriod>) => {
 	const { data, executeQuery, fetching } = useQuery({
-		context: { url: '/api/graphql' },
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: BlockMetricsQuery,
 		requestPolicy: 'cache-and-network',
 		variables: { period },
