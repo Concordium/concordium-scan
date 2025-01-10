@@ -601,7 +601,7 @@ impl ProcessEvent for BlockProcessor {
         error: Self::Error,
         successive_failures: u32,
     ) -> Result<bool, Self::Error> {
-        info!("Failed processing {} times in row: {}", successive_failures, error);
+        info!("Failed processing {} times in row: \n{:?}", successive_failures, error);
         self.processing_failures.inc();
         Ok(self.max_successive_failures >= successive_failures)
     }
@@ -2278,12 +2278,18 @@ impl PreparedContractInitialized {
             transaction_index
         )
         .execute(tx.as_mut())
-        .await?;
+        .await
+        .context("Failed inserting new to 'contracts' table")?;
 
-        self.module_link_event.save(tx, transaction_index).await?;
+        self.module_link_event
+            .save(tx, transaction_index)
+            .await
+            .context("Failed linking new contract to module")?;
 
         for log in self.cis2_events.iter() {
-            process_cis2_event(log, self.index, self.sub_index, transaction_index, tx).await?
+            process_cis2_event(log, self.index, self.sub_index, transaction_index, tx)
+                .await
+                .context("Failed processing a CIS-2 event")?
         }
         Ok(())
     }
@@ -2656,7 +2662,8 @@ async fn process_cis2_event(
                 transaction_index
             )
             .execute(tx.as_mut())
-            .await?;
+            .await
+            .context("Failed inserting or updating token from mint event")?;
 
             // If the owner doesn't already hold this token, insert a new row with a balance
             // of `tokens_minted`. Otherwise, update the existing row by
@@ -2681,7 +2688,8 @@ async fn process_cis2_event(
                     tokens_minted,
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await
+                .context("Failed inserting or updating account balance from mint event")?;
             }
         }
 
@@ -2739,7 +2747,8 @@ async fn process_cis2_event(
                 transaction_index
             )
             .execute(tx.as_mut())
-            .await?;
+            .await
+            .context("Failed inserting or updating token from burn event")?;
 
             if let Address::Account(owner) = owner {
                 sqlx::query!(
@@ -2760,7 +2769,8 @@ async fn process_cis2_event(
                     -tokens_burned
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await
+                .context("Failed inserting or updating account balance from burn event")?;
             }
         }
 
@@ -2806,7 +2816,10 @@ async fn process_cis2_event(
                     -tokens_transferred.clone(),
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await
+                .context(
+                    "Failed inserting or updating account balance from transfer event (sender)",
+                )?;
             }
 
             // If the `to` address doesn't already hold this token, insert a new row with a
@@ -2832,7 +2845,8 @@ async fn process_cis2_event(
                     tokens_transferred
                 )
                 .execute(tx.as_mut())
-                .await?;
+                .await
+                .context("Failed inserting or updating account balance from transfer event (to)")?;
             }
         }
 
@@ -2849,6 +2863,10 @@ async fn process_cis2_event(
             )
             .to_string();
 
+            // Since PostgreSQL Text data type does not support NUL we must replace these
+            // before inserting. These are replaced by the a Unicode 'REPLACEMENT CHARACTER'
+            // (U+FFFD).
+            let metadata_url = metadata_url.url().replace('\0', "\u{FFFD}");
             // If the `token_address` does not exist, insert the new token.
             // If the `token_address` exists, update the `metadata_url` value in the
             // database.
@@ -2861,11 +2879,11 @@ async fn process_cis2_event(
                         (SELECT COALESCE(MAX(index) + 1, 0) FROM tokens),
                         (SELECT COALESCE(MAX(token_index_per_contract) + 1, 0) FROM tokens WHERE \
                  contract_index = $2 AND contract_sub_index = $3),
-                        $1, 
-                        $2, 
-                        $3, 
+                        $1,
+                        $2,
+                        $3,
                         $4,
-                        $5, 
+                        $5,
                         $6
                     )
                     ON CONFLICT (token_address)
@@ -2873,12 +2891,13 @@ async fn process_cis2_event(
                 token_address,
                 contract_index,
                 contract_sub_index,
-                metadata_url.url(),
+                metadata_url.as_str(),
                 token_id.to_string(),
                 transaction_index
             )
             .execute(tx.as_mut())
-            .await?;
+            .await
+            .context("Failed inserting or updating token from token metadata event")?;
         }
 
         _ => {}
