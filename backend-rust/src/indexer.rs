@@ -940,143 +940,9 @@ struct PreparedAccountStatement {
     amount:           i64,
     block_height:     i64,
     transaction_type: AccountStatementEntryType,
-    transaction_id:   Option<i64>,
 }
 
 impl PreparedAccountStatement {
-    fn prepare_from_block_item(
-        event: &BlockItemSummary,
-        block_height: AbsoluteBlockHeight,
-    ) -> anyhow::Result<Vec<PreparedAccountStatement>> {
-        if let BlockItemSummaryDetails::AccountTransaction(details) = &event.details {
-            let transaction_id: Option<i64> = Some(event.index.index.try_into()?);
-            let mut statements = vec![PreparedAccountStatement {
-                account_address: details.sender.to_string(),
-                amount: -1 * i64::try_from(details.cost.micro_ccd)?,
-                block_height: block_height.height.try_into()?,
-                transaction_type: AccountStatementEntryType::TransactionFee,
-                transaction_id,
-            }];
-
-            match &details.effects {
-                AccountTransactionEffects::AccountTransfer {
-                    amount,
-                    to,
-                } => {
-                    statements.push(PreparedAccountStatement {
-                        account_address: details.sender.to_string(),
-                        amount: -1 * i64::try_from(amount.micro_ccd)?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::TransferOut,
-                        transaction_id,
-                    });
-                    statements.push(PreparedAccountStatement {
-                        account_address: to.to_string(),
-                        amount: amount.micro_ccd.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::TransferIn,
-                        transaction_id,
-                    });
-                }
-                AccountTransactionEffects::ContractInitialized {
-                    data,
-                } => {
-                    statements.push(PreparedAccountStatement {
-                        account_address: details.sender.to_string(),
-                        amount: -1 * i64::try_from(data.amount.micro_ccd)?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::TransferOut,
-                        transaction_id,
-                    });
-                }
-                AccountTransactionEffects::ContractUpdateIssued {
-                    effects,
-                } => {
-                    for effect in effects {
-                        match effect {
-                            ContractTraceElement::Transferred {
-                                from,
-                                amount,
-                                to,
-                            } => {
-                                statements.push(PreparedAccountStatement {
-                                    account_address: to.to_string(),
-                                    amount: amount.micro_ccd.try_into()?,
-                                    block_height: block_height.height.try_into()?,
-                                    transaction_type: AccountStatementEntryType::TransferIn,
-                                    transaction_id,
-                                });
-                            }
-                            ContractTraceElement::Updated {
-                                data,
-                            } => {
-                                if let Address::Account(account_address) = data.instigator {
-                                    statements.push(PreparedAccountStatement {
-                                        account_address: account_address.to_string(),
-                                        amount: -1 * i64::try_from(data.amount.micro_ccd)?,
-                                        block_height: block_height.height.try_into()?,
-                                        transaction_type: AccountStatementEntryType::TransferOut,
-                                        transaction_id,
-                                    });
-                                }
-                            }
-                            _ => (),
-                        }
-                    }
-                }
-                AccountTransactionEffects::TransferredToEncrypted {
-                    data,
-                } => {
-                    statements.push(PreparedAccountStatement {
-                        account_address: details.sender.to_string(),
-                        amount: -1 * i64::try_from(data.amount.micro_ccd)?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::AmountEncrypted,
-                        transaction_id,
-                    });
-                }
-                AccountTransactionEffects::TransferredToPublic {
-                    amount,
-                    ..
-                } => {
-                    statements.push(PreparedAccountStatement {
-                        account_address: details.sender.to_string(),
-                        amount: amount.micro_ccd.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::AmountDecrypted,
-                        transaction_id,
-                    });
-                }
-                AccountTransactionEffects::TransferredWithSchedule {
-                    amount,
-                    to,
-                } => {
-                    let sum: u64 = amount.iter().map(|(_, amount)| amount.micro_ccd).sum();
-
-                    statements.push(PreparedAccountStatement {
-                        account_address: details.sender.to_string(),
-                        amount: -1 * i64::try_from(sum)?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::TransferOut,
-                        transaction_id,
-                    });
-
-                    statements.push(PreparedAccountStatement {
-                        account_address: to.to_string(),
-                        amount: sum.try_into()?,
-                        block_height: block_height.height.try_into()?,
-                        transaction_type: AccountStatementEntryType::TransferIn,
-                        transaction_id,
-                    });
-                }
-                _ => (),
-            }
-
-            return Ok(statements);
-        }
-
-        Ok(vec![])
-    }
 
     fn prepare_from_special_transaction(
         event: &SpecialTransactionOutcome,
@@ -1094,7 +960,6 @@ impl PreparedAccountStatement {
                         amount:           amount.micro_ccd.try_into()?,
                         block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::BakerReward,
-                        transaction_id:   None,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -1107,7 +972,6 @@ impl PreparedAccountStatement {
                 amount:           mint_platform_development_charge.micro_ccd.try_into()?,
                 block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
-                transaction_id:   None,
             }],
             SpecialTransactionOutcome::FinalizationRewards {
                 finalization_rewards,
@@ -1120,7 +984,6 @@ impl PreparedAccountStatement {
                         amount:           amount.micro_ccd.try_into()?,
                         block_height:     block_height.height.try_into()?,
                         transaction_type: AccountStatementEntryType::FinalizationReward,
-                        transaction_id:   None,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -1136,14 +999,12 @@ impl PreparedAccountStatement {
                     amount:           foundation_charge.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FoundationReward,
-                    transaction_id:   None,
                 },
                 PreparedAccountStatement {
                     account_address:  baker.to_string(),
                     amount:           baker_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
-                    transaction_id:   None,
                 },
             ],
             SpecialTransactionOutcome::PaydayFoundationReward {
@@ -1154,7 +1015,6 @@ impl PreparedAccountStatement {
                 amount:           development_charge.micro_ccd.try_into()?,
                 block_height:     block_height.height.try_into()?,
                 transaction_type: AccountStatementEntryType::FoundationReward,
-                transaction_id:   None,
             }],
             SpecialTransactionOutcome::PaydayAccountReward {
                 account,
@@ -1167,21 +1027,18 @@ impl PreparedAccountStatement {
                     amount:           transaction_fees.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::TransactionFeeReward,
-                    transaction_id:   None,
                 },
                 PreparedAccountStatement {
                     account_address:  account.to_string(),
                     amount:           baker_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::BakerReward,
-                    transaction_id:   None,
                 },
                 PreparedAccountStatement {
                     account_address:  account.to_string(),
                     amount:           finalization_reward.micro_ccd.try_into()?,
                     block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::FinalizationReward,
-                    transaction_id:   None,
                 },
             ],
             // TODO: Support these two types. (Deviates from Old CCDScan)
@@ -1198,6 +1055,7 @@ impl PreparedAccountStatement {
     async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         sqlx::query!(
             "WITH account_info AS (
@@ -1225,7 +1083,7 @@ impl PreparedAccountStatement {
             self.transaction_type as AccountStatementEntryType,
             self.amount,
             self.block_height,
-            self.transaction_id
+            transaction_id
         )
         .execute(tx.as_mut())
         .await?;
@@ -2469,6 +2327,7 @@ struct PreparedContractUpdate {
     /// Potential module link events from a smart contract upgrade
     module_link_event:   Option<PreparedContractUpgrade>,
     cis2_events:         Vec<cis2::Event>,
+    prepared_account_statement: Option<PreparedAccountStatement>
 }
 
 impl PreparedContractUpdate {
@@ -2539,6 +2398,34 @@ impl PreparedContractUpdate {
             } => vec![],
         };
 
+        let prepared_account_statement = match event {
+            ContractTraceElement::Updated {
+                data,
+            } => if let Address::Account(account_address) = data.instigator {
+                Some(PreparedAccountStatement {
+                    account_address: account_address.to_string(),
+                    amount: -1 * i64::try_from(data.amount.micro_ccd)?,
+                    block_height: height,
+                    transaction_type: AccountStatementEntryType::TransferOut,
+                    transaction_id,
+                })
+            } else {
+                None
+            },
+            ContractTraceElement::Transferred {
+                from,
+                amount,
+                to,
+            } => Some(PreparedAccountStatement {
+                account_address: to.to_string(),
+                amount: amount.micro_ccd.try_into()?,
+                block_height: height,
+                transaction_type: AccountStatementEntryType::TransferIn,
+                transaction_id,
+            }),
+            _ => None
+        };
+
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
         // contract supports the CIS2 standard before accepting the events as
         // valid.
@@ -2579,6 +2466,7 @@ impl PreparedContractUpdate {
             contract_sub_index: sub_index,
             module_link_event,
             cis2_events,
+            prepared_account_statement
         })
     }
 
@@ -2609,8 +2497,13 @@ impl PreparedContractUpdate {
         .execute(tx.as_mut())
         .await?;
 
+
         if let Some(upgrade) = self.module_link_event.as_ref() {
             upgrade.save(tx, transaction_index).await?;
+        }
+
+        if let Some(prepared_account_statement) = self.prepared_account_statement.as_ref() {
+            prepared_account_statement.save(tx, transaction_index)
         }
 
         for log in self.cis2_events.iter() {
