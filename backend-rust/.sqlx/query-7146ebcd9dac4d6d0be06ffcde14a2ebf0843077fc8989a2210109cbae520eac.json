@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH filtered_tokens AS (\n                SELECT\n                    token_id,\n                    contract_index,\n                    contract_sub_index,\n                    balance AS raw_balance,\n                    account_index AS account_id,\n                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num\n                FROM account_tokens\n                JOIN tokens\n                    ON tokens.contract_index = $1\n                    AND tokens.contract_sub_index = $2\n                    AND tokens.token_id = $3\n                    AND tokens.index = account_tokens.token_index\n                WHERE account_tokens.balance != 0\n            )\n            SELECT\n                token_id,\n                contract_index,\n                contract_sub_index,\n                raw_balance,\n                account_id,\n                row_num\n            FROM filtered_tokens\n            WHERE row_num > $4\n            LIMIT $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "raw_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "row_num",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "7146ebcd9dac4d6d0be06ffcde14a2ebf0843077fc8989a2210109cbae520eac"
+}

@@ -102,8 +102,8 @@ impl Token {
         // Excluding tokens with 0 balances does not scale well for smart contracts
         // with a large number of account token holdings currently. We might need to
         // introduce a specific index to optimize this query in the future.
-        let mut items = sqlx::query_as!(
-            AccountToken,
+        let items_interim = sqlx::query_as!(
+            AccountTokenInterim,
             "WITH filtered_tokens AS (
                 SELECT
                     token_id,
@@ -125,7 +125,8 @@ impl Token {
                 contract_index,
                 contract_sub_index,
                 raw_balance,
-                account_id
+                account_id,
+                row_num
             FROM filtered_tokens
             WHERE row_num > $4
             LIMIT $5
@@ -138,6 +139,11 @@ impl Token {
         )
         .fetch_all(pool)
         .await?;
+
+        let mut items: Vec<AccountToken> = items_interim
+            .into_iter()
+            .map(AccountToken::try_from)
+            .collect::<Result<Vec<AccountToken>, ApiError>>()?;
 
         // Determine if there is a next page by checking if we got more than `limit`
         // rows.
@@ -207,6 +213,9 @@ pub struct AccountsCollectionSegment {
 #[derive(SimpleObject)]
 #[graphql(complex)]
 pub struct AccountToken {
+    // The value is used for pagination/sorting in some queries.
+    #[graphql(skip)]
+    pub row_num:            i64,
     pub token_id:           String,
     pub contract_index:     i64,
     pub contract_sub_index: i64,
@@ -224,5 +233,36 @@ impl AccountToken {
 
     async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
         Ok(BigInteger::from(self.raw_balance.clone()))
+    }
+}
+
+// Interim struct used to fetch AccountToken data from the database
+pub struct AccountTokenInterim {
+    // This value is used for pagination/sorting in some queries. Although it is always guaranteed
+    // to have a value in the way our queries are constructed, SQLx infers ROW_NUMBER() as
+    // nullable and the corresponding `Option` type in Rust has to be used here.
+    pub row_num:            Option<i64>,
+    pub token_id:           String,
+    pub contract_index:     i64,
+    pub contract_sub_index: i64,
+    pub raw_balance:        bigdecimal::BigDecimal,
+    pub account_id:         i64,
+}
+impl TryFrom<AccountTokenInterim> for AccountToken {
+    type Error = ApiError;
+
+    fn try_from(item: AccountTokenInterim) -> Result<Self, Self::Error> {
+        let row_num = item.row_num.ok_or(ApiError::InternalError(
+            "Row number is missing (None) when fetching a token".to_string(),
+        ))?;
+
+        Ok(AccountToken {
+            row_num,
+            token_id: item.token_id,
+            contract_index: item.contract_index,
+            contract_sub_index: item.contract_sub_index,
+            raw_balance: item.raw_balance,
+            account_id: item.account_id,
+        })
     }
 }
