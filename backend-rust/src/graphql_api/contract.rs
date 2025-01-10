@@ -90,10 +90,10 @@ impl QueryContract {
             config.contract_connection_limit,
         )?;
 
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
+        // The CCDScan front-end currently expects an DESC order of the nodes/edges
         // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
+        // get the correct nodes/edges selected based on whether the `first` or `last`
+        // query parameter is specified.
         let mut row_stream = sqlx::query!(
             "SELECT * FROM (
                 SELECT
@@ -112,11 +112,11 @@ impl QueryContract {
                 JOIN accounts ON transactions.sender = accounts.index
                 WHERE contracts.index > $1 AND contracts.index < $2
                 ORDER BY
-                    (CASE WHEN $4 THEN contracts.index END) DESC,
-                    (CASE WHEN NOT $4 THEN contracts.index END) ASC
+                    (CASE WHEN $4 THEN contracts.index END) ASC,
+                    (CASE WHEN NOT $4 THEN contracts.index END) DESC
                 LIMIT $3
             ) AS contract_data
-            ORDER BY contract_data.index ASC",
+            ORDER BY contract_data.index DESC",
             query.from,
             query.to,
             query.limit,
