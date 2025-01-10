@@ -136,6 +136,9 @@ CREATE TABLE blocks(
 
 -- Important for quickly filtering blocks by slot time, such as is done in the transactions metrics query.
 CREATE INDEX blocks_slot_time_idx ON blocks (slot_time);
+-- Used when updating the finalization time for a block to efficiently find blocks which are not yet
+-- finalized during indexing.
+CREATE INDEX blocks_height_null_fin_time ON blocks (height) WHERE finalization_time IS NULL;
 
 -- Every transaction on chain.
 CREATE TABLE transactions(
@@ -422,10 +425,7 @@ CREATE TABLE contract_events (
 );
 
 -- Important for quickly filtering/sorting events by the order they were emitted by a contract.
-CREATE INDEX event_index_per_contract_idx ON contract_events (event_index_per_contract);
-
--- Important for quickly filtering contract events by a specific contract.
-CREATE INDEX contract_events_idx ON contract_events (contract_index, contract_sub_index);
+CREATE INDEX event_index_per_contract_idx ON contract_events (contract_index, contract_sub_index, event_index_per_contract);
 
 -- Table indexing the rejected update transactions for each contract instance, tracking an incrementing
 -- index allowing for efficient offset pagination.
