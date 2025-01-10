@@ -23,10 +23,8 @@ macro_rules! todo_api {
 pub(crate) use todo_api;
 
 use crate::{
-    address::{AccountAddress, ContractIndex},
-    scalar_types::{
-        AccountIndex, Amount, BigInteger, BlockHeight, DateTime, TimeSpan, TransactionIndex,
-    },
+    address::AccountAddress,
+    scalar_types::{AccountIndex, Amount, BlockHeight, DateTime, TimeSpan, TransactionIndex},
     transaction_event::{
         delegation::{BakerDelegationTarget, DelegationTarget, PassiveDelegationTarget},
         smart_contracts::InvalidContractVersionError,
@@ -46,7 +44,6 @@ use async_graphql::{
     SimpleObject, Subscription, Union,
 };
 use async_graphql_axum::GraphQLSubscription;
-use bigdecimal::BigDecimal;
 use block::Block;
 use chrono::Duration;
 use concordium_rust_sdk::{
@@ -62,6 +59,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
+use token::{AccountToken, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -99,6 +97,14 @@ pub struct ApiServiceConfig {
     contract_connection_limit: u64,
     #[arg(
         long,
+        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        default_value = "100"
+    )]
+    transaction_event_connection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKENS_CONNECTION_LIMIT", default_value = "100")]
+    tokens_connection_limit: u64,
+    #[arg(
+        long,
         env = "CCDSCAN_API_CONFIG_CONTRACT_TOKENS_COLLECTION_LIMIT",
         default_value = "100"
     )]
@@ -109,6 +115,12 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     contract_events_collection_limit: u64,
+    #[arg(
+        long,
+        env = "CCDSCAN_API_CONFIG_CONTRACT_REJECT_EVENTS_COLLECTION_LIMIT",
+        default_value = "100"
+    )]
+    contract_reject_events_collection_limit: u64,
     #[arg(
         long,
         env = "CCDSCAN_API_CONFIG_MODULE_REFERENCE_REJECT_EVENTS_COLLECTION_LIMIT",
@@ -131,10 +143,10 @@ pub struct ApiServiceConfig {
     reward_connection_limit: u64,
     #[arg(
         long,
-        env = "CCDSCAN_API_CONFIG_TRANSACTION_EVENT_CONNECTION_LIMIT",
+        env = "CCDSCAN_API_CONFIG_TOKEN_HOLDER_ADDRESSES_COLLECTION_LIMIT",
         default_value = "100"
     )]
-    transaction_event_connection_limit: u64,
+    token_holder_addresses_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]
@@ -504,10 +516,6 @@ impl BaseQuery {
             config.account_connection_limit,
         )?;
 
-        // The CCDScan front-end currently expects an ASC order of the nodes/edges
-        // returned (outer `ORDER BY`), while the inner `ORDER BY` is a trick to
-        // get the correct nodes/edges selected based on the `after/before` key
-        // specified.
         let mut accounts = sqlx::query_as!(
             Account,
             r"SELECT * FROM (
@@ -596,6 +604,88 @@ impl BaseQuery {
         Ok(connection)
     }
 
+    async fn tokens(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
+        before: Option<String>,
+    ) -> ApiResult<connection::Connection<String, Token>> {
+        let pool = get_pool(ctx)?;
+        let config = get_config(ctx)?;
+
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.tokens_connection_limit,
+        )?;
+
+        let mut row_stream = sqlx::query_as!(
+            Token,
+            "SELECT * FROM (
+                SELECT
+                    index,
+                    init_transaction_index,
+                    total_supply as raw_total_supply,
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    token_address,
+                    metadata_url
+                FROM tokens
+                WHERE tokens.index > $1 AND tokens.index < $2
+                ORDER BY
+                    (CASE WHEN $4 THEN tokens.index END) DESC,
+                    (CASE WHEN NOT $4 THEN tokens.index END) ASC
+                LIMIT $3
+            ) AS token_data
+            ORDER BY token_data.index ASC",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        while let Some(token) = row_stream.try_next().await? {
+            page_max_index = Some(match page_max_index {
+                None => token.index,
+                Some(current_max) => max(current_max, token.index),
+            });
+            connection.edges.push(connection::Edge::new(token.index.to_string(), token));
+        }
+
+        if let Some(page_max_index) = page_max_index {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(index) as max_index
+                    FROM tokens
+                "
+            )
+            .fetch_one(pool)
+            .await?;
+
+            if let Some(edge) = connection.edges.last() {
+                connection.has_next_page =
+                    result.max_index.map_or(false, |db_max| db_max > page_max_index)
+            }
+        }
+
+        if let Some(edge) = connection.edges.first() {
+            connection.has_previous_page = edge.node.index != 0;
+        }
+
+        Ok(connection)
+    }
+
     async fn search(&self, query: String) -> SearchResult {
         SearchResult {
             _query: query,
@@ -618,11 +708,6 @@ impl BaseQuery {
     // "Returns the last _n_ elements from the list." last: Int "Returns the
     // elements in the list that come before the specified cursor." before: String):
     // NodeStatusesConnection nodeStatus(id: ID!): NodeStatus
-    // tokens("Returns the first _n_ elements from the list." first: Int "Returns
-    // the elements in the list that come after the specified cursor." after:
-    // String "Returns the last _n_ elements from the list." last: Int "Returns
-    // the elements in the list that come before the specified cursor." before:
-    // String): TokensConnection
 }
 
 pub struct Subscription {
@@ -917,27 +1002,6 @@ impl AccountReleaseScheduleItem {
     async fn amount(&self) -> Amount { self.amount }
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
-struct AccountToken {
-    contract_index:     ContractIndex,
-    contract_sub_index: ContractIndex,
-    token_id:           String,
-    #[graphql(skip)]
-    raw_balance:        BigDecimal,
-    token:              token::Token,
-    account_id:         i64,
-    account:            Account,
-}
-
-#[ComplexObject]
-impl AccountToken {
-    async fn balance(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
-        Ok(BigInteger::from(self.raw_balance.clone()))
-    }
-}
-
-#[derive(sqlx::FromRow)]
 struct Account {
     // release_schedule: AccountReleaseSchedule,
     index:             i64,
@@ -945,7 +1009,6 @@ struct Account {
     /// Only `None` for genesis accounts.
     transaction_index: Option<i64>,
     /// The address of the account in Base58Check.
-    #[sqlx(try_from = "String")]
     address:           AccountAddress,
     /// The total amount of CCD hold by the account.
     amount:            Amount,
@@ -1006,7 +1069,7 @@ impl Account {
             staked_amount: self.delegated_stake,
             delegation_target: if let Some(target) = self.delegated_target_baker_id {
                 DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
-                    baker_id: target,
+                    baker_id: target.into(),
                 })
             } else {
                 DelegationTarget::PassiveDelegationTarget(PassiveDelegationTarget {
@@ -1352,8 +1415,14 @@ impl Account {
             let result = sqlx::query!(
                 r#"
                     SELECT MAX(id) as max_id, MIN(id) as min_id
-                    FROM account_rewards
+                    FROM account_statements
                     WHERE account_index = $1
+                    AND entry_type IN (
+                        'FinalizationReward',
+                        'FoundationReward',
+                        'BakerReward',
+                        'TransactionFeeReward'
+                    )
                 "#,
                 &self.index
             )

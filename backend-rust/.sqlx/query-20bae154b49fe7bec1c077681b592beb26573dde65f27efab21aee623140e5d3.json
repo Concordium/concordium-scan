@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                COUNT(*)\n            FROM account_tokens\n                JOIN tokens \n                ON tokens.contract_index = $1 \n                AND tokens.contract_sub_index = $2 \n                AND tokens.token_id = $3\n            WHERE tokens.index = account_tokens.token_index \n                AND account_tokens.balance != 0",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "20bae154b49fe7bec1c077681b592beb26573dde65f27efab21aee623140e5d3"
+}
