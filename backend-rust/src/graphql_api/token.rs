@@ -4,10 +4,10 @@ use super::{
 };
 use crate::{
     address::ContractIndex,
-    graphql_api::todo_api,
     scalar_types::{BigInteger, TransactionIndex},
 };
 use async_graphql::{ComplexObject, Context, Object, SimpleObject};
+use sqlx::PgPool;
 
 #[derive(Default)]
 pub struct QueryToken;
@@ -23,6 +23,35 @@ impl QueryToken {
     ) -> ApiResult<Token> {
         let pool = get_pool(ctx)?;
 
+        Token::query_by_contract_and_id(
+            get_pool(ctx)?,
+            contract_index.0 as i64,
+            contract_sub_index.0 as i64,
+            &token_id,
+        )
+        .await
+    }
+}
+
+pub struct Token {
+    pub index:                  i64,
+    pub init_transaction_index: TransactionIndex,
+    pub contract_index:         i64,
+    pub contract_sub_index:     i64,
+    pub token_id:               String,
+    pub metadata_url:           Option<String>,
+    pub raw_total_supply:       bigdecimal::BigDecimal,
+    pub token_address:          String,
+    // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
+}
+
+impl Token {
+    async fn query_by_contract_and_id(
+        pool: &PgPool,
+        contract_index: i64,
+        contract_sub_index: i64,
+        token_id: &str,
+    ) -> ApiResult<Self> {
         let token = sqlx::query_as!(
             Token,
             "SELECT
@@ -37,8 +66,8 @@ impl QueryToken {
             FROM tokens
             WHERE tokens.contract_index = $1 AND tokens.contract_sub_index = $2 AND \
              tokens.token_id = $3",
-            contract_index.0 as i64,
-            contract_sub_index.0 as i64,
+            contract_index,
+            contract_sub_index,
             token_id
         )
         .fetch_optional(pool)
@@ -49,24 +78,7 @@ impl QueryToken {
     }
 }
 
-#[derive(SimpleObject)]
-#[graphql(complex)]
-pub struct Token {
-    #[graphql(skip)]
-    pub index:                  i64,
-    #[graphql(skip)]
-    pub init_transaction_index: TransactionIndex,
-    pub contract_index:         i64,
-    pub contract_sub_index:     i64,
-    pub token_id:               String,
-    pub metadata_url:           Option<String>,
-    #[graphql(skip)]
-    pub raw_total_supply:       bigdecimal::BigDecimal,
-    pub token_address:          String,
-    // TODO tokenEvents(skip: Int take: Int): TokenEventsCollectionSegment
-}
-
-#[ComplexObject]
+#[Object]
 impl Token {
     async fn initial_transaction(&self, ctx: &Context<'_>) -> ApiResult<Transaction> {
         Transaction::query_by_index(get_pool(ctx)?, self.init_transaction_index).await?.ok_or(
@@ -77,6 +89,16 @@ impl Token {
     async fn total_supply(&self, ctx: &Context<'_>) -> ApiResult<BigInteger> {
         Ok(BigInteger::from(self.raw_total_supply.clone()))
     }
+
+    async fn token_address(&self) -> &String { &self.token_address }
+
+    async fn token_id(&self) -> &String { &self.token_id }
+
+    async fn metadata_url(&self) -> &Option<String> { &self.metadata_url }
+
+    async fn contract_index(&self) -> i64 { self.contract_index }
+
+    async fn contract_sub_index(&self) -> i64 { self.contract_sub_index }
 
     async fn contract_address_formatted(&self, ctx: &Context<'_>) -> ApiResult<String> {
         Ok(format!("<{},{}>", self.contract_index, self.contract_sub_index))
@@ -225,7 +247,15 @@ pub struct AccountToken {
 }
 #[ComplexObject]
 impl AccountToken {
-    async fn token<'a>(&self, ctx: &Context<'a>) -> ApiResult<Token> { todo_api!() }
+    async fn token(&self, ctx: &Context<'_>) -> ApiResult<Token> {
+        Token::query_by_contract_and_id(
+            get_pool(ctx)?,
+            self.contract_index,
+            self.contract_sub_index,
+            &self.token_id,
+        )
+        .await
+    }
 
     async fn account<'a>(&self, ctx: &Context<'a>) -> ApiResult<Account> {
         Account::query_by_index(get_pool(ctx)?, self.account_id).await?.ok_or(ApiError::NotFound)
