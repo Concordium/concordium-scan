@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cis2TokenEvents (\n                    transaction_index,\n                    trace_element_index,\n                    token_index\n                )\n                SELECT\n                    $1,\n                    $2,\n                    tokens.index\n                FROM tokens\n                WHERE tokens.token_address = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2f21283a700c99c61f31bfb9ef6341674ced55e3e66781a782082828002a468d"
+}

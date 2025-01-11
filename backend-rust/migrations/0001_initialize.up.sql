@@ -611,6 +611,26 @@ CREATE TABLE account_tokens (
 
 CREATE INDEX non_zero_account_token_idx ON account_tokens (account_index, change_seq) WHERE balance != 0;
 
+-- Table to collect CIS2 token events (`Mint`, `Burn`, `Transfer` and `TokenMetadata` events).
+CREATE TABLE cis2TokenEvents (
+    -- An index/id for the event (row number).
+    index
+        BIGINT GENERATED ALWAYS AS IDENTITY
+        PRIMARY KEY,
+    -- Index (row in the `transaction` table) of the transaction with the token event.
+    transaction_index
+        BIGINT
+        NOT NULL,
+    -- Trace element index of the event traces from above transaction.
+    trace_element_index
+        BIGINT
+        NOT NULL,
+    -- The token index (row in the `tokens` table) of the associated token.
+    token_index
+        BIGINT
+        NOT NULL
+);
+
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE
   rec blocks;

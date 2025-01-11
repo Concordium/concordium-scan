@@ -2306,7 +2306,8 @@ impl PreparedContractInitialized {
             .context("Failed linking new contract to module")?;
 
         for log in self.cis2_events.iter() {
-            process_cis2_event(log, self.index, self.sub_index, transaction_index, tx)
+            // The `trace_element_index` is 0 for any `initTransaction`.
+            process_cis2_event(log, self.index, self.sub_index, transaction_index, 0i64, tx)
                 .await
                 .context("Failed processing a CIS-2 event")?
         }
@@ -2352,13 +2353,13 @@ impl PreparedRejectModuleTransaction {
 }
 
 struct PreparedContractUpdate {
-    trace_element_index:        i64,
     height:                     i64,
     contract_index:             i64,
     contract_sub_index:         i64,
     /// Potential module link events from a smart contract upgrade
     module_link_event:          Option<PreparedContractUpgrade>,
     cis2_events:                Vec<cis2::Event>,
+    trace_element_index:        i64,
     prepared_account_statement: Option<PreparedUpdateAccountBalance>,
 }
 
@@ -2537,6 +2538,7 @@ impl PreparedContractUpdate {
                 self.contract_index,
                 self.contract_sub_index,
                 transaction_index,
+                self.trace_element_index,
                 tx,
             )
             .await?
@@ -2663,6 +2665,7 @@ async fn process_cis2_event(
     contract_index: i64,
     contract_sub_index: i64,
     transaction_index: i64,
+    trace_element_index: i64,
     tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
 ) -> anyhow::Result<()> {
     match cis2_event {
@@ -2671,6 +2674,8 @@ async fn process_cis2_event(
         // token.
         // - The `balance` value of the token owner is inserted/updated in the database here.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         cis2::Event::Mint {
             token_id,
             amount,
@@ -2745,6 +2750,26 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from mint event")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2TokenEvents (
+                    transaction_index,
+                    trace_element_index,
+                    token_index
+                )
+                SELECT
+                    $1,
+                    $2,
+                    tokens.index
+                FROM tokens
+                WHERE tokens.token_address = $3",
+                transaction_index,
+                trace_element_index,
+                token_address,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
         // - The `total_supply` value of a token is inserted/updated in the database here.
@@ -2752,6 +2777,8 @@ async fn process_cis2_event(
         // token.
         // - The `balance` value of the token owner is inserted/updated in the database here.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         // Note: Some `buggy` CIS2 token contracts might burn more tokens than they have
         // initially minted. The `total_supply/balance` can have a negative value in that case
         // and even underflow.
@@ -2826,11 +2853,33 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from burn event")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2TokenEvents (
+                    transaction_index,
+                    trace_element_index,
+                    token_index
+                )
+                SELECT
+                    $1,
+                    $2,
+                    tokens.index
+                FROM tokens
+                WHERE tokens.token_address = $3",
+                transaction_index,
+                trace_element_index,
+                token_address,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
         // - The `balance` values of the token are inserted/updated in the database here for the
         //   `from` and `to` addresses.
         // Only `Mint`, `Burn`, and `Transfer` events affect the `balance` of a token owner.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         // Note: Some `buggy` CIS2 token contracts might transfer more tokens than an owner owns.
         // The `balance` can have a negative value in that case.
         cis2::Event::Transfer {
@@ -2902,11 +2951,33 @@ async fn process_cis2_event(
                 .await
                 .context("Failed inserting or updating account balance from transfer event (to)")?;
             }
+
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2TokenEvents (
+                    transaction_index,
+                    trace_element_index,
+                    token_index
+                )
+                SELECT
+                    $1,
+                    $2,
+                    tokens.index
+                FROM tokens
+                WHERE tokens.token_address = $3",
+                transaction_index,
+                trace_element_index,
+                token_address,
+            )
+            .execute(tx.as_mut())
+            .await?;
         }
 
-        // The `metadata_url` of a token is inserted/updated in the database here.
+        // - The `metadata_url` of a token is inserted/updated in the database here.
         // Only `TokenMetadata` events affect the `metadata_url` of a
         // token.
+        // - The `tokenEvent` is inserted in the database here.
+        // Only `Mint`, `Burn`, `Transfer`, and `TokenMetadata` events are tracked as token events.
         cis2::Event::TokenMetadata {
             token_id,
             metadata_url,
@@ -2952,9 +3023,28 @@ async fn process_cis2_event(
             .execute(tx.as_mut())
             .await
             .context("Failed inserting or updating token from token metadata event")?;
-        }
 
-        _ => {}
+            // Insert the token event into the table.
+            sqlx::query!(
+                "INSERT INTO cis2TokenEvents (
+                    transaction_index,
+                    trace_element_index,
+                    token_index
+                )
+                SELECT
+                    $1,
+                    $2,
+                    tokens.index
+                FROM tokens
+                WHERE tokens.token_address = $3",
+                transaction_index,
+                trace_element_index,
+                token_address,
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+        _ => (),
     }
     Ok(())
 }
