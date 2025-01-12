@@ -2212,7 +2212,7 @@ impl PreparedContractInitialized {
             account_address:  sender_account,
             transaction_type: AccountStatementEntryType::TransferOut,
             block_height:     data.block_info.block_height.height.try_into()?,
-            amount:           -1 * amount,
+            amount:           -amount,
         };
 
         // To track CIS2 tokens (e.g., token balances, total supply, token metadata
@@ -2431,7 +2431,7 @@ impl PreparedContractUpdate {
                 if let Address::Account(account_address) = data.instigator {
                     Some(PreparedAccountStatement {
                         account_address:  account_address.to_string(),
-                        amount:           -1 * i64::try_from(data.amount.micro_ccd)?,
+                        amount:           -i64::try_from(data.amount.micro_ccd)?,
                         block_height:     height,
                         transaction_type: AccountStatementEntryType::TransferOut,
                     })
