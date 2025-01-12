@@ -804,7 +804,12 @@ impl PreparedBlock {
         let special_items: Vec<_> = data
             .special_events
             .iter()
-            .flat_map(|event| PreparedAccountStatement::prepare_from_special_transaction(event, data.block_info.block_height))
+            .flat_map(|event| {
+                PreparedAccountStatement::prepare_from_special_transaction(
+                    event,
+                    data.block_info.block_height,
+                )
+            })
             .flatten()
             .filter(|event| event.amount > 0)
             .collect();
@@ -927,7 +932,6 @@ struct PreparedAccountStatement {
 }
 
 impl PreparedAccountStatement {
-
     fn prepare_from_special_transaction(
         event: &SpecialTransactionOutcome,
         block_height: AbsoluteBlockHeight,
@@ -1410,7 +1414,13 @@ impl PreparedEvent {
                 AccountTransactionEffects::ContractInitialized {
                     data: event_data,
                 } => PreparedEvent::ContractInitialized(
-                    PreparedContractInitialized::prepare(node_client, data, event_data, details.sender.to_string()).await?,
+                    PreparedContractInitialized::prepare(
+                        node_client,
+                        data,
+                        event_data,
+                        details.sender.to_string(),
+                    )
+                    .await?,
                 ),
                 AccountTransactionEffects::ContractUpdateIssued {
                     effects,
@@ -1444,7 +1454,7 @@ impl PreparedEvent {
                     Arc::new(details.sender.to_string()),
                     Arc::new(to.to_string()),
                     amount.micro_ccd().try_into()?,
-                    height
+                    height,
                 )?),
 
                 AccountTransactionEffects::BakerAdded {
@@ -1514,23 +1524,21 @@ impl PreparedEvent {
                 } => PreparedEvent::NoOperation,
                 AccountTransactionEffects::TransferredToEncrypted {
                     data,
-                } => PreparedEvent::EncryptedBalance(
-                    PreparedUpdateAccountBalance::prepare(
-                        details.sender.to_string(),
-                        -i64::try_from(data.amount.micro_ccd)?,
-                        height,
-                        AccountStatementEntryType::AmountEncrypted
-                    )?),
+                } => PreparedEvent::EncryptedBalance(PreparedUpdateAccountBalance::prepare(
+                    details.sender.to_string(),
+                    -i64::try_from(data.amount.micro_ccd)?,
+                    height,
+                    AccountStatementEntryType::AmountEncrypted,
+                )?),
                 AccountTransactionEffects::TransferredToPublic {
                     amount,
                     ..
-                } => PreparedEvent::EncryptedBalance(
-                    PreparedUpdateAccountBalance::prepare(
-                        details.sender.to_string(),
-                        i64::try_from(amount.micro_ccd)?,
-                        height,
-                        AccountStatementEntryType::AmountDecrypted
-                    )?),
+                } => PreparedEvent::EncryptedBalance(PreparedUpdateAccountBalance::prepare(
+                    details.sender.to_string(),
+                    i64::try_from(amount.micro_ccd)?,
+                    height,
+                    AccountStatementEntryType::AmountDecrypted,
+                )?),
                 AccountTransactionEffects::TransferredWithSchedule {
                     to,
                     amount: scheduled_releases,
@@ -1541,8 +1549,9 @@ impl PreparedEvent {
                     ..
                 } => PreparedEvent::ScheduledTransfer(PreparedScheduledReleases::prepare(
                     Arc::new(to.to_string()),
+                    details.sender.to_string(),
                     scheduled_releases,
-                    height
+                    height,
                 )?),
                 AccountTransactionEffects::CredentialKeysUpdated {
                     ..
@@ -1612,7 +1621,6 @@ impl PreparedEvent {
 struct PreparedAccountCreation {
     /// The base58check representation of the canonical account address.
     account_address: String,
-
 }
 
 impl PreparedAccountCreation {
@@ -2177,7 +2185,7 @@ struct PreparedContractInitialized {
     amount:            i64,
     module_link_event: PreparedModuleLinkAction,
     cis2_events:       Vec<cis2::Event>,
-    account_statement: PreparedAccountStatement
+    account_statement: PreparedAccountStatement,
 }
 
 impl PreparedContractInitialized {
@@ -2185,7 +2193,7 @@ impl PreparedContractInitialized {
         node_client: &mut v2::Client,
         data: &BlockData,
         event: &ContractInitializedEvent,
-        sender_account: String
+        sender_account: String,
     ) -> anyhow::Result<Self> {
         let contract_address = event.address;
         let index = i64::try_from(event.address.index)?;
@@ -2201,10 +2209,10 @@ impl PreparedContractInitialized {
             ModuleReferenceContractLinkAction::Added,
         )?;
         let account_statement = PreparedAccountStatement {
-            account_address: sender_account,
+            account_address:  sender_account,
             transaction_type: AccountStatementEntryType::TransferOut,
-            block_height: data.block_info.block_height.height.try_into()?,
-            amount: -1 * amount
+            block_height:     data.block_info.block_height.height.try_into()?,
+            amount:           -1 * amount,
         };
 
         // To track CIS2 tokens (e.g., token balances, total supply, token metadata
@@ -2263,7 +2271,7 @@ impl PreparedContractInitialized {
             amount,
             module_link_event,
             cis2_events,
-            account_statement
+            account_statement,
         })
     }
 
@@ -2344,14 +2352,14 @@ impl PreparedRejectModuleTransaction {
 }
 
 struct PreparedContractUpdate {
-    trace_element_index: i64,
-    height:              i64,
-    contract_index:      i64,
-    contract_sub_index:  i64,
+    trace_element_index:        i64,
+    height:                     i64,
+    contract_index:             i64,
+    contract_sub_index:         i64,
     /// Potential module link events from a smart contract upgrade
-    module_link_event:   Option<PreparedContractUpgrade>,
-    cis2_events:         Vec<cis2::Event>,
-    prepared_account_statement: Option<PreparedAccountStatement>
+    module_link_event:          Option<PreparedContractUpgrade>,
+    cis2_events:                Vec<cis2::Event>,
+    prepared_account_statement: Option<PreparedAccountStatement>,
 }
 
 impl PreparedContractUpdate {
@@ -2419,27 +2427,29 @@ impl PreparedContractUpdate {
         let prepared_account_statement = match event {
             ContractTraceElement::Updated {
                 data,
-            } => if let Address::Account(account_address) = data.instigator {
-                Some(PreparedAccountStatement {
-                    account_address: account_address.to_string(),
-                    amount: -1 * i64::try_from(data.amount.micro_ccd)?,
-                    block_height: height,
-                    transaction_type: AccountStatementEntryType::TransferOut,
-                })
-            } else {
-                None
-            },
+            } => {
+                if let Address::Account(account_address) = data.instigator {
+                    Some(PreparedAccountStatement {
+                        account_address:  account_address.to_string(),
+                        amount:           -1 * i64::try_from(data.amount.micro_ccd)?,
+                        block_height:     height,
+                        transaction_type: AccountStatementEntryType::TransferOut,
+                    })
+                } else {
+                    None
+                }
+            }
             ContractTraceElement::Transferred {
                 amount,
                 to,
                 ..
             } => Some(PreparedAccountStatement {
-                account_address: to.to_string(),
-                amount: amount.micro_ccd.try_into()?,
-                block_height: height,
+                account_address:  to.to_string(),
+                amount:           amount.micro_ccd.try_into()?,
+                block_height:     height,
                 transaction_type: AccountStatementEntryType::TransferIn,
             }),
-            _ => None
+            _ => None,
         };
 
         // If the vector `potential_cis2_events` is not empty, we verify that the smart
@@ -2482,7 +2492,7 @@ impl PreparedContractUpdate {
             contract_sub_index: sub_index,
             module_link_event,
             cis2_events,
-            prepared_account_statement
+            prepared_account_statement,
         })
     }
 
@@ -2512,7 +2522,6 @@ impl PreparedContractUpdate {
         )
         .execute(tx.as_mut())
         .await?;
-
 
         if let Some(upgrade) = self.module_link_event.as_ref() {
             upgrade.save(tx, transaction_index).await?;
@@ -2952,35 +2961,49 @@ async fn process_cis2_event(
 
 struct PreparedScheduledReleases {
     account_address: Arc<String>,
-    release_times:   Vec<DateTime<Utc>>,
-    amounts:         Vec<i64>,
-    update_balance:  PreparedUpdateAccountBalance,
+    release_times: Vec<DateTime<Utc>>,
+    amounts: Vec<i64>,
+    target_account_balance_update: PreparedUpdateAccountBalance,
+    source_account_balance_update: PreparedUpdateAccountBalance,
 }
 
 impl PreparedScheduledReleases {
     fn prepare(
-        account_address: Arc<String>,
+        target_address: Arc<String>,
+        source_address: String,
         scheduled_releases: &[(Timestamp, Amount)],
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
         let capacity = scheduled_releases.len();
         let mut release_times: Vec<DateTime<Utc>> = Vec::with_capacity(capacity);
         let mut amounts: Vec<i64> = Vec::with_capacity(capacity);
-        let mut total_amount: i64 = 0;
+        let mut total_amount = 0;
         for (timestamp, amount) in scheduled_releases.iter() {
             release_times.push(DateTime::<Utc>::try_from(*timestamp)?);
             let micro_ccd = i64::try_from(amount.micro_ccd())?;
             amounts.push(micro_ccd);
-            total_amount = micro_ccd.try_into()?;
+            total_amount += micro_ccd;
         }
-        let update_balance = PreparedUpdateAccountBalance::prepare(
-            account_address.to_string(), total_amount, block_height, AccountStatementEntryType::TransferIn)?;
+        let target_account_balance_update = PreparedUpdateAccountBalance::prepare(
+            target_address.to_string(),
+            total_amount,
+            block_height,
+            AccountStatementEntryType::TransferIn,
+        )?;
+
+        let source_account_balance_update = PreparedUpdateAccountBalance::prepare(
+            source_address,
+            -total_amount,
+            block_height,
+            AccountStatementEntryType::TransferOut,
+        )?;
 
         Ok(Self {
-            account_address,
+            account_address: target_address,
             release_times,
             amounts,
-            update_balance,
+            target_account_balance_update,
+            source_account_balance_update,
         })
     }
 
@@ -3009,7 +3032,8 @@ impl PreparedScheduledReleases {
         )
         .execute(tx.as_mut())
         .await?;
-        self.update_balance.save(tx, transaction_index).await?;
+        self.target_account_balance_update.save(tx, transaction_index).await?;
+        self.source_account_balance_update.save(tx, transaction_index).await?;
         Ok(())
     }
 }
@@ -3017,24 +3041,24 @@ impl PreparedScheduledReleases {
 /// Represents change in the balance of some account.
 pub struct PreparedUpdateAccountBalance {
     /// Address of the account.
-    account_address: Arc<String>,
+    account_address:   Arc<String>,
     /// Difference in the balance.
-    change:          i64,
-    account_statement: PreparedAccountStatement
+    change:            i64,
+    account_statement: PreparedAccountStatement,
 }
 
 impl PreparedUpdateAccountBalance {
     fn prepare(
-       sender: String,
-       amount: i64,
-       block_height: AbsoluteBlockHeight,
-       transaction_type: AccountStatementEntryType
+        sender: String,
+        amount: i64,
+        block_height: AbsoluteBlockHeight,
+        transaction_type: AccountStatementEntryType,
     ) -> anyhow::Result<Self> {
         let account_statement = PreparedAccountStatement {
             block_height: block_height.height.try_into()?,
             amount,
             account_address: sender.clone(),
-            transaction_type
+            transaction_type,
         };
         Ok(Self {
             account_address: Arc::new(sender),
@@ -3042,6 +3066,7 @@ impl PreparedUpdateAccountBalance {
             account_statement,
         })
     }
+
     pub async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
@@ -3076,24 +3101,24 @@ impl PreparedCcdTransferEvent {
     ) -> anyhow::Result<Self> {
         Ok(Self {
             update_sender:   PreparedUpdateAccountBalance {
-                account_address: sender_address.clone(),
-                change:          -amount,
+                account_address:   sender_address.clone(),
+                change:            -amount,
                 account_statement: PreparedAccountStatement {
-                    account_address: sender_address.clone().to_string(),
-                    amount: -amount,
-                    block_height: block_height.height.try_into()?,
+                    account_address:  sender_address.clone().to_string(),
+                    amount:           -amount,
+                    block_height:     block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::TransferOut,
-                }
+                },
             },
             update_receiver: PreparedUpdateAccountBalance {
-                account_address: receiver_address.clone(),
-                change:          amount,
+                account_address:   receiver_address.clone(),
+                change:            amount,
                 account_statement: PreparedAccountStatement {
                     account_address: receiver_address.clone().to_string(),
                     amount,
                     block_height: block_height.height.try_into()?,
                     transaction_type: AccountStatementEntryType::TransferIn,
-                }
+                },
             },
         })
     }
@@ -3101,7 +3126,7 @@ impl PreparedCcdTransferEvent {
     pub async fn save(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-        transaction_index: i64
+        transaction_index: i64,
     ) -> anyhow::Result<()> {
         self.update_sender.save(tx, transaction_index).await?;
         self.update_receiver.save(tx, transaction_index).await?;
