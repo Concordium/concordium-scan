@@ -3099,27 +3099,21 @@ impl PreparedCcdTransferEvent {
         amount: i64,
         block_height: AbsoluteBlockHeight,
     ) -> anyhow::Result<Self> {
+        let update_sender = PreparedUpdateAccountBalance::prepare(
+            sender_address.clone().to_string(),
+            -amount,
+            block_height.height.try_into()?,
+            AccountStatementEntryType::TransferOut,
+        )?;
+        let update_receiver = PreparedUpdateAccountBalance::prepare(
+            receiver_address.clone().to_string(),
+            amount,
+            block_height.height.try_into()?,
+            AccountStatementEntryType::TransferIn,
+        )?;
         Ok(Self {
-            update_sender:   PreparedUpdateAccountBalance {
-                account_address:   sender_address.clone(),
-                change:            -amount,
-                account_statement: PreparedAccountStatement {
-                    account_address:  sender_address.clone().to_string(),
-                    amount:           -amount,
-                    block_height:     block_height.height.try_into()?,
-                    transaction_type: AccountStatementEntryType::TransferOut,
-                },
-            },
-            update_receiver: PreparedUpdateAccountBalance {
-                account_address:   receiver_address.clone(),
-                change:            amount,
-                account_statement: PreparedAccountStatement {
-                    account_address: receiver_address.clone().to_string(),
-                    amount,
-                    block_height: block_height.height.try_into()?,
-                    transaction_type: AccountStatementEntryType::TransferIn,
-                },
-            },
+            update_sender,
+            update_receiver,
         })
     }
 
