@@ -3102,13 +3102,13 @@ impl PreparedCcdTransferEvent {
         let update_sender = PreparedUpdateAccountBalance::prepare(
             sender_address.clone().to_string(),
             -amount,
-            block_height.height.try_into()?,
+            block_height,
             AccountStatementEntryType::TransferOut,
         )?;
         let update_receiver = PreparedUpdateAccountBalance::prepare(
             receiver_address.clone().to_string(),
             amount,
-            block_height.height.try_into()?,
+            block_height,
             AccountStatementEntryType::TransferIn,
         )?;
         Ok(Self {
