@@ -105,10 +105,8 @@ pub struct Block {
     /// finalization proof or quorum certificate that justifies this block
     /// being finalized.
     finalization_time: Option<i32>,
-    // finalized_by:      Option<BlockHeight>,
     baker_id:          Option<i64>,
-    total_amount:      Amount,
-    // total_staked:      Amount,
+    total_amount:      i64,
 }
 
 impl Block {
@@ -167,7 +165,7 @@ impl Block {
 
     async fn baker_id(&self) -> Option<BakerId> { self.baker_id.map(BakerId::from) }
 
-    async fn total_amount(&self) -> &Amount { &self.total_amount }
+    async fn total_amount(&self) -> ApiResult<Amount> { Ok(self.total_amount.try_into()?) }
 
     /// Time of the block being baked.
     async fn block_slot_time(&self) -> &DateTime { &self.slot_time }
