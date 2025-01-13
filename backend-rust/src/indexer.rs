@@ -2359,7 +2359,7 @@ struct PreparedContractUpdate {
     /// Potential module link events from a smart contract upgrade
     module_link_event:          Option<PreparedContractUpgrade>,
     cis2_events:                Vec<cis2::Event>,
-    prepared_account_statement: Option<PreparedAccountStatement>,
+    prepared_account_statement: Option<PreparedUpdateAccountBalance>,
 }
 
 impl PreparedContractUpdate {
@@ -2372,7 +2372,7 @@ impl PreparedContractUpdate {
         let contract_address = event.affected_address();
 
         let trace_element_index = trace_element_index.try_into()?;
-        let height = i64::try_from(data.finalized_block_info.height.height)?;
+        let height = data.finalized_block_info.height;
         let index = i64::try_from(contract_address.index)?;
         let sub_index = i64::try_from(contract_address.subindex)?;
 
@@ -2429,12 +2429,12 @@ impl PreparedContractUpdate {
                 data,
             } => {
                 if let Address::Account(account_address) = data.instigator {
-                    Some(PreparedAccountStatement {
-                        account_address:  account_address.to_string(),
-                        amount:           -i64::try_from(data.amount.micro_ccd)?,
-                        block_height:     height,
-                        transaction_type: AccountStatementEntryType::TransferOut,
-                    })
+                    Some(PreparedUpdateAccountBalance::prepare(
+                        account_address.to_string(),
+                        -i64::try_from(data.amount.micro_ccd)?,
+                        height,
+                        AccountStatementEntryType::TransferOut,
+                    )?)
                 } else {
                     None
                 }
@@ -2443,12 +2443,12 @@ impl PreparedContractUpdate {
                 amount,
                 to,
                 ..
-            } => Some(PreparedAccountStatement {
-                account_address:  to.to_string(),
-                amount:           amount.micro_ccd.try_into()?,
-                block_height:     height,
-                transaction_type: AccountStatementEntryType::TransferIn,
-            }),
+            } => Some(PreparedUpdateAccountBalance::prepare(
+                to.to_string(),
+                amount.micro_ccd.try_into()?,
+                height,
+                AccountStatementEntryType::TransferIn,
+            )?),
             _ => None,
         };
 
@@ -2487,7 +2487,7 @@ impl PreparedContractUpdate {
 
         Ok(Self {
             trace_element_index,
-            height,
+            height: height.height.try_into()?,
             contract_index: index,
             contract_sub_index: sub_index,
             module_link_event,
@@ -2528,7 +2528,7 @@ impl PreparedContractUpdate {
         }
 
         if let Some(prepared_account_statement) = self.prepared_account_statement.as_ref() {
-            prepared_account_statement.save(tx, Some(transaction_index)).await?;
+            prepared_account_statement.save(tx, transaction_index).await?;
         }
 
         for log in self.cis2_events.iter() {
