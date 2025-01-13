@@ -131,6 +131,7 @@ impl Token {
                     contract_sub_index,
                     balance AS raw_balance,
                     account_index AS account_id,
+                    change_seq,
                     ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
                 FROM account_tokens
                 JOIN tokens
@@ -146,7 +147,7 @@ impl Token {
                 contract_sub_index,
                 raw_balance,
                 account_id,
-                row_num
+                change_seq
             FROM filtered_tokens
             WHERE row_num > $4
             LIMIT $5
@@ -234,8 +235,7 @@ pub struct AccountsCollectionSegment {
 #[graphql(complex)]
 pub struct AccountToken {
     // The value is used for pagination/sorting in some queries.
-    #[graphql(skip)]
-    pub row_num:            i64,
+    pub change_seq:         i64,
     pub token_id:           String,
     pub contract_index:     i64,
     pub contract_sub_index: i64,
@@ -266,10 +266,9 @@ impl AccountToken {
 
 // Interim struct used to fetch AccountToken data from the database.
 pub struct AccountTokenInterim {
-    // This value is used for pagination/sorting in some queries. Although it is always guaranteed
-    // to have a value in the way our queries are constructed, SQLx infers ROW_NUMBER() as
-    // nullable and the corresponding `Option` type in Rust has to be used here.
-    pub row_num:            Option<i64>,
+    // This value is used for pagination/sorting in some queries. The value is inferred as
+    // nullable and the corresponding `Option` type in Rust is used here.
+    pub change_seq:         Option<i64>,
     pub token_id:           String,
     pub contract_index:     i64,
     pub contract_sub_index: i64,
@@ -280,12 +279,14 @@ impl TryFrom<AccountTokenInterim> for AccountToken {
     type Error = ApiError;
 
     fn try_from(item: AccountTokenInterim) -> Result<Self, Self::Error> {
-        let row_num = item.row_num.ok_or(ApiError::InternalError(
-            "Row number is missing (None) when fetching a token".to_string(),
+        let change_seq = item.change_seq.ok_or(ApiError::InternalError(
+            "Change_seq is not set for the queried row in `account_tokens` table. 
+            This error should not happen if at least one row exists in the table."
+                .to_string(),
         ))?;
 
         Ok(AccountToken {
-            row_num,
+            change_seq,
             token_id: item.token_id,
             contract_index: item.contract_index,
             contract_sub_index: item.contract_sub_index,

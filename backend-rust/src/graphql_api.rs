@@ -1134,8 +1134,8 @@ impl Account {
         // Tokens with 0 balance are filtered out. We still display tokens with a
         // negative balance (buggy cis2 smart contract) to help smart contract
         // developers to debug their smart contracts.
-        // Excluding tokens with 0 balances does not scale well currently. We might need
-        // to introduce a specific index to optimize this query in the future.
+        // The tokens are sorted/filtered by the newest tokens transferred to an account
+        // address.
         let mut row_stream = sqlx::query_as!(
             AccountTokenInterim,
             "
@@ -1147,19 +1147,19 @@ impl Account {
                         contract_sub_index,
                         balance AS raw_balance,
                         account_index AS account_id,
-                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
+                        change_seq
                     FROM account_tokens
                     JOIN tokens
                         ON tokens.index = account_tokens.token_index
                     WHERE account_tokens.balance != 0 
                         AND account_tokens.account_index = $5
                 ) AS filtered_tokens
-                WHERE $1 < row_num AND row_num < $2
+                WHERE $1 < change_seq AND change_seq < $2
                 ORDER BY
-                    CASE WHEN $4 THEN row_num END DESC,
-                    CASE WHEN NOT $4 THEN row_num END ASC
+                    CASE WHEN $4 THEN change_seq END DESC,
+                    CASE WHEN NOT $4 THEN change_seq END ASC
                 LIMIT $3
-            ) ORDER BY row_num ASC
+            ) ORDER BY change_seq ASC
             ",
             query.from,
             query.to,
@@ -1172,42 +1172,39 @@ impl Account {
         let mut connection = connection::Connection::new(false, false);
 
         let mut page_max_index = None;
+        let mut page_min_index = None;
         while let Some(token) = row_stream.try_next().await? {
             let token = AccountToken::try_from(token)?;
 
             page_max_index = Some(match page_max_index {
-                None => token.row_num,
-                Some(current_max) => max(current_max, token.row_num),
+                None => token.change_seq,
+                Some(current_max) => max(current_max, token.change_seq),
             });
 
-            connection.edges.push(connection::Edge::new(token.row_num.to_string(), token));
+            page_min_index = Some(match page_min_index {
+                None => token.change_seq,
+                Some(current_min) => min(current_min, token.change_seq),
+            });
+
+            connection.edges.push(connection::Edge::new(token.change_seq.to_string(), token));
         }
 
-        if let Some(page_max_index) = page_max_index {
-            let max_index = sqlx::query_scalar!(
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
                 "
-                SELECT
-                    MAX(row_num) AS max_index
-                FROM (
-                    SELECT
-                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
+                    SELECT MAX(change_seq) as max_id, MIN(change_seq) as min_id 
                     FROM account_tokens
                     WHERE account_tokens.balance != 0
                         AND account_tokens.account_index = $1
-                ) 
                 ",
                 &self.index
             )
             .fetch_one(pool)
             .await?;
 
-            if let Some(edge) = connection.edges.last() {
-                connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
-            }
-        }
-
-        if let Some(edge) = connection.edges.first() {
-            connection.has_previous_page = edge.node.row_num != 0;
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
         }
 
         Ok(connection)

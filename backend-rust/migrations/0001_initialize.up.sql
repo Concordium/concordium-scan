@@ -575,6 +575,9 @@ CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 -- Important for quickly filtering/sorting tokens by the order they were created by a contract.
 CREATE INDEX token_index_per_contract_idx ON tokens (token_index_per_contract);
 
+-- This sequence is used to sort/filter the newest tokens transferred to an account address.
+CREATE SEQUENCE account_tokens_update_seq;
+
 -- Relations between accounts and CIS2 tokens. Rows are added or updated in this table whenever a CIS2 `MintEvent`, `BurnEvent`
 -- or `TransferEvent` is logged by a contract claiming to follow the `CIS2 standard`.
 CREATE TABLE account_tokens (
@@ -597,6 +600,10 @@ CREATE TABLE account_tokens (
         NUMERIC
         NOT NULL
         DEFAULT 0,
+    -- Every time an `account_token` is inserted or updated in this table, a sequential index is assigned 
+    -- to the operation and tracked in this sequence.
+    -- This sequence is used to sort/filter the newest tokens transferred to an account address.
+    change_seq BIGINT DEFAULT nextval('account_tokens_update_seq'),
 
     -- Ensure that each token_index and account_index pair is unique.
     CONSTRAINT unique_token_account_relationship UNIQUE (token_index, account_index)
@@ -646,6 +653,20 @@ $trigger$ LANGUAGE plpgsql;
 CREATE TRIGGER account_updated_notify_trigger AFTER INSERT
 ON affected_accounts
 FOR EACH ROW EXECUTE PROCEDURE account_updated_notify_trigger_function();
+
+-- Function to update the change_seq column with the next sequence value
+CREATE OR REPLACE FUNCTION update_change_seq()
+RETURNS trigger AS $trigger$
+BEGIN
+    -- Fetch the next value from the sequence and assign it to change_seq
+    NEW.change_seq := nextval('account_tokens_update_seq');
+    RETURN NEW;
+END;
+$trigger$ LANGUAGE plpgsql;
+
+-- Create a trigger for INSERT and UPDATE events
+CREATE TRIGGER set_change_seq BEFORE INSERT OR UPDATE ON account_tokens
+FOR EACH ROW EXECUTE PROCEDURE update_change_seq();
 
 -- Table for logging all account-related activities on-chain.
 -- This table tracks individual entries related to changes in account balances.
