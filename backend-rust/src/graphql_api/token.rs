@@ -132,7 +132,7 @@ impl Token {
                     balance AS raw_balance,
                     account_index AS account_id,
                     change_seq,
-                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
+                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num
                 FROM account_tokens
                 JOIN tokens
                     ON tokens.contract_index = $1
