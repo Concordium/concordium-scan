@@ -67,12 +67,11 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
 
-    let registry = Registry::with_prefix("indexer");
+    let mut registry = Registry::with_prefix("indexer");
     let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
     let gauge =
         service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
     gauge.set(1);
-    let mut registry = Registry::with_prefix("api");
     registry.register(
         "service_info",
         "Information about the software",
