@@ -16,7 +16,7 @@ type TokenQueryResponse = {
 	token: Token
 }
 
-const eventsFragment = `
+const tokenEventsFragment = `
 __typename
 tokenId
 contractIndex
@@ -103,35 +103,6 @@ event {
     transactionHash
     parsed
   }
-  ... on CisUpdateOperatorEvent {
-    operator{
-      __typename
-      ... on AccountAddress {
-        asString
-      }
-      ... on ContractAddress {
-        index
-        subIndex
-        asString
-      }
-    }
-    owner {
-      __typename
-      ... on AccountAddress {
-        asString
-      }
-      ... on ContractAddress {
-        index
-        subIndex
-        asString
-      }
-    }
-    update
-    contractIndex
-    contractSubIndex
-    transactionHash
-    parsed
-  }
 }
 `
 
@@ -178,7 +149,7 @@ query (
       totalCount
     }
     tokenEvents(skip: $skipEvent, take: $takeEvent) {
-      items { ${eventsFragment} }
+      items { ${tokenEventsFragment} }
       totalCount
     }
   }
