@@ -5,7 +5,10 @@ use concordium_scan::{
     indexer::{self, IndexerServiceConfig},
     router,
 };
-use prometheus_client::registry::Registry;
+use prometheus_client::{
+    metrics::{family::Family, gauge::Gauge},
+    registry::Registry,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -64,11 +67,16 @@ async fn main() -> anyhow::Result<()> {
         .context("Failed constructing database connection pool")?;
     let cancel_token = CancellationToken::new();
 
-    let mut registry = Registry::with_prefix("indexer");
+    let registry = Registry::with_prefix("indexer");
+    let service_info_family = Family::<Vec<(&str, String)>, Gauge>::default();
+    let gauge =
+        service_info_family.get_or_create(&vec![("version", clap::crate_version!().to_string())]);
+    gauge.set(1);
+    let mut registry = Registry::with_prefix("api");
     registry.register(
-        "service",
+        "service_info",
         "Information about the software",
-        prometheus_client::metrics::info::Info::new(vec![("version", clap::crate_version!())]),
+        service_info_family.clone(),
     );
     registry.register(
         "service_startup_timestamp_millis",
