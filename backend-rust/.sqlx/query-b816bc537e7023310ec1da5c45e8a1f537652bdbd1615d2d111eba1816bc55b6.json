@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT * FROM (\n                SELECT * FROM (\n                    SELECT\n                        token_id,\n                        contract_index,\n                        contract_sub_index,\n                        balance AS raw_balance,\n                        account_index AS account_id,\n                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num\n                    FROM account_tokens\n                    JOIN tokens\n                        ON tokens.index = account_tokens.token_index\n                    WHERE account_tokens.balance != 0 \n                        AND account_tokens.account_index = $5\n                ) AS filtered_tokens\n                WHERE $1 < row_num AND row_num < $2\n                ORDER BY\n                    CASE WHEN $4 THEN row_num END DESC,\n                    CASE WHEN NOT $4 THEN row_num END ASC\n                LIMIT $3\n            ) ORDER BY row_num ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "raw_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "account_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "row_num",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b816bc537e7023310ec1da5c45e8a1f537652bdbd1615d2d111eba1816bc55b6"
+}

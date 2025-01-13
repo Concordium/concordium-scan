@@ -21,8 +21,6 @@ impl QueryToken {
         contract_sub_index: ContractIndex,
         token_id: String,
     ) -> ApiResult<Token> {
-        let pool = get_pool(ctx)?;
-
         Token::query_by_contract_and_id(
             get_pool(ctx)?,
             contract_index.0 as i64,

@@ -1139,22 +1139,8 @@ impl Account {
         let mut row_stream = sqlx::query_as!(
             AccountTokenInterim,
             "
-            SELECT 
-                token_id,
-                contract_index,
-                contract_sub_index,
-                raw_balance,
-                account_id,
-                row_num
-            FROM (
-                SELECT 
-                    token_id,
-                    contract_index,
-                    contract_sub_index,
-                    raw_balance,
-                    account_id,
-                    row_num
-                FROM (
+            SELECT * FROM (
+                SELECT * FROM (
                     SELECT
                         token_id,
                         contract_index,
