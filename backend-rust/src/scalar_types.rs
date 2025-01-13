@@ -58,7 +58,7 @@ impl TryFrom<i64> for UnsignedLong {
 impl TryFrom<UnsignedLong> for i64 {
     type Error = <i64 as TryFrom<u64>>::Error;
 
-    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { Ok(number.0.try_into()?) }
+    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { number.0.try_into() }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric

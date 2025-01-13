@@ -101,7 +101,7 @@ pub fn events_from_summary(
                 vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
                     module_ref:        data.origin_ref.to_string(),
                     contract_address:  data.address.into(),
-                    amount:            data.amount.micro_ccd().try_into()?,
+                    amount:            data.amount.micro_ccd().into(),
                     init_name:         data.init_name.to_string(),
                     version:           data.contract_version.into(),
                     contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
@@ -119,7 +119,7 @@ pub fn events_from_summary(
                         } => Ok(Event::ContractUpdated(smart_contracts::ContractUpdated {
                             contract_address:  data.address.into(),
                             instigator:        data.instigator.into(),
-                            amount:            data.amount.micro_ccd().try_into()?,
+                            amount:            data.amount.micro_ccd().into(),
                             receive_name:      data.receive_name.to_string(),
                             version:           data.contract_version.into(),
                             input_parameter:   data.message.as_ref().to_vec(),
@@ -134,7 +134,7 @@ pub fn events_from_summary(
                             amount,
                             to,
                         } => Ok(Event::Transferred(transfers::Transferred {
-                            amount: amount.micro_ccd().try_into()?,
+                            amount: amount.micro_ccd().into(),
                             from:   Address::ContractAddress(from.into()),
                             to:     to.into(),
                         })),
@@ -169,7 +169,7 @@ pub fn events_from_summary(
                 to,
             } => {
                 vec![Event::Transferred(transfers::Transferred {
-                    amount: amount.micro_ccd().try_into()?,
+                    amount: amount.micro_ccd().into(),
                     from:   Address::AccountAddress(details.sender.into()),
                     to:     to.into(),
                 })]
@@ -181,7 +181,7 @@ pub fn events_from_summary(
             } => {
                 vec![
                     Event::Transferred(transfers::Transferred {
-                        amount: amount.micro_ccd().try_into()?,
+                        amount: amount.micro_ccd().into(),
                         from:   Address::AccountAddress(details.sender.into()),
                         to:     to.into(),
                     }),
@@ -192,7 +192,7 @@ pub fn events_from_summary(
                 data,
             } => {
                 vec![Event::BakerAdded(baker::BakerAdded {
-                    staked_amount:    data.stake.micro_ccd.try_into()?,
+                    staked_amount:    data.stake.micro_ccd().into(),
                     restake_earnings: data.restake_earnings,
                     baker_id:         data.keys_event.baker_id.id.index.try_into()?,
                     sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
@@ -214,12 +214,12 @@ pub fn events_from_summary(
                     if data.increased {
                         vec![Event::BakerStakeIncreased(baker::BakerStakeIncreased {
                             baker_id:          data.baker_id.id.index.try_into()?,
-                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     } else {
                         vec![Event::BakerStakeDecreased(baker::BakerStakeDecreased {
                             baker_id:          data.baker_id.id.index.try_into()?,
-                            new_staked_amount: data.new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: data.new_stake.micro_ccd().into(),
                         })]
                     }
                 } else {
@@ -271,7 +271,7 @@ pub fn events_from_summary(
                 vec![Event::EncryptedSelfAmountAdded(transfers::EncryptedSelfAmountAdded {
                     account_address:      data.account.into(),
                     new_encrypted_amount: serde_json::to_string(&data.new_amount)?,
-                    amount:               data.amount.micro_ccd.try_into()?,
+                    amount:               data.amount.micro_ccd().into(),
                 })]
             }
             AccountTransactionEffects::TransferredToPublic {
@@ -281,7 +281,7 @@ pub fn events_from_summary(
                 vec![
                     Event::EncryptedAmountsRemoved((*removed).try_into()?),
                     Event::AmountAddedByDecryption(transfers::AmountAddedByDecryption {
-                        amount:          amount.micro_ccd().try_into()?,
+                        amount:          amount.micro_ccd().into(),
                         account_address: details.sender.into(),
                     }),
                 ]
@@ -297,7 +297,7 @@ pub fn events_from_summary(
                         .into_iter()
                         .map(|(_, amount)| amount.micro_ccd())
                         .sum::<u64>()
-                        .try_into()?,
+                        .into(),
                 })]
             }
             AccountTransactionEffects::TransferredWithScheduleAndMemo {
@@ -313,7 +313,7 @@ pub fn events_from_summary(
                             .into_iter()
                             .map(|(_, amount)| amount.micro_ccd())
                             .sum::<u64>()
-                            .try_into()?,
+                            .into(),
                     }),
                     Event::TransferMemo(memo.into()),
                 ]
@@ -360,7 +360,7 @@ pub fn events_from_summary(
                         BakerEvent::BakerAdded {
                             data,
                         } => Ok(Event::BakerAdded(baker::BakerAdded {
-                            staked_amount:    data.stake.micro_ccd.try_into()?,
+                            staked_amount:    data.stake.micro_ccd().into(),
                             restake_earnings: data.restake_earnings,
                             baker_id:         data.keys_event.baker_id.id.index.try_into()?,
                             sign_key:         serde_json::to_string(&data.keys_event.sign_key)?,
@@ -379,14 +379,14 @@ pub fn events_from_summary(
                             new_stake,
                         } => Ok(Event::BakerStakeIncreased(baker::BakerStakeIncreased {
                             baker_id:          baker_id.id.index.try_into()?,
-                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerStakeDecreased {
                             baker_id,
                             new_stake,
                         } => Ok(Event::BakerStakeDecreased(baker::BakerStakeDecreased {
                             baker_id:          baker_id.id.index.try_into()?,
-                            new_staked_amount: new_stake.micro_ccd.try_into()?,
+                            new_staked_amount: new_stake.micro_ccd().into(),
                         })),
                         BakerEvent::BakerRestakeEarningsUpdated {
                             baker_id,
@@ -471,7 +471,7 @@ pub fn events_from_summary(
                             delegation::DelegationStakeIncreased {
                                 delegator_id:      delegator_id.id.index.try_into()?,
                                 account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
                         DelegationEvent::DelegationStakeDecreased {
@@ -481,7 +481,7 @@ pub fn events_from_summary(
                             delegation::DelegationStakeDecreased {
                                 delegator_id:      delegator_id.id.index.try_into()?,
                                 account_address:   details.sender.into(),
-                                new_staked_amount: new_stake.micro_ccd().try_into()?,
+                                new_staked_amount: new_stake.micro_ccd().into(),
                             },
                         )),
                         DelegationEvent::DelegationSetRestakeEarnings {
