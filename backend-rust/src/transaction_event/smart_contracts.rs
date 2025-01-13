@@ -84,7 +84,6 @@ impl ContractInitialized {
         let row = sqlx::query!(
             "
             SELECT
-                contracts.module_reference as module_reference,
                 name as contract_name,
                 schema as display_schema
             FROM contracts

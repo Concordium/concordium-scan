@@ -1,8 +1,13 @@
 use crate::{
     address::{AccountAddress, Address, ContractAddress},
+    graphql_api::{get_pool, ApiError, ApiResult},
     scalar_types::{Amount, BakerId},
 };
-use async_graphql::{SimpleObject, Union};
+use async_graphql::{ComplexObject, Context, SimpleObject, Union};
+use concordium_rust_sdk::base::{
+    contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
+    smart_contracts::ReceiveName,
+};
 
 #[derive(Union, serde::Serialize, serde::Deserialize)]
 pub enum TransactionRejectReason {
@@ -147,12 +152,77 @@ pub struct RejectedInit {
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
+#[graphql(complex)]
 pub struct RejectedReceive {
     reject_reason:    i32,
     contract_address: ContractAddress,
     receive_name:     String,
     message_as_hex:   String,
-    // TODO message: String,
+}
+#[ComplexObject]
+impl RejectedReceive {
+    async fn message(&self, ctx: &Context<'_>) -> ApiResult<Option<String>> {
+        if self.message_as_hex.is_empty() {
+            return Ok(None);
+        }
+
+        let pool = get_pool(ctx)?;
+
+        let schema = sqlx::query_scalar!(
+            "SELECT
+                schema
+            FROM contracts
+                JOIN smart_contract_modules
+                    ON smart_contract_modules.module_reference = contracts.module_reference
+            WHERE index = $1 AND sub_index = $2
+            ",
+            i64::try_from(self.contract_address.index.0)?,
+            i64::try_from(self.contract_address.sub_index.0)?
+        )
+        .fetch_one(pool)
+        .await?;
+
+        let Some(schema) = schema else {
+            // No schema found in the smart contract module.
+            return Ok(None);
+        };
+        let schema = VersionedModuleSchema::new(&schema, &None).map_err(|_| {
+            ApiError::InternalError(
+                "Database bytes should be a valid VersionedModuleSchema".to_string(),
+            )
+        })?;
+        let receive_name = ReceiveName::new(&self.receive_name).map_err(|err| {
+            ApiError::InternalError(format!("Invalid receive name for RejectedReceive: {}", err))
+        })?;
+
+        let schema_type = match schema.get_receive_param_schema(
+            receive_name.contract_name(),
+            receive_name.entrypoint_name().into(),
+        ) {
+            Ok(t) => t,
+            Err(VersionedSchemaError::NoContractInModule)
+            | Err(VersionedSchemaError::NoReceiveInContract) => return Ok(None),
+            Err(err) => {
+                return Err(ApiError::InternalError(format!(
+                    "Database bytes should be a valid VersionedModuleSchema: {}",
+                    err
+                )))
+            }
+        };
+        let message = hex::decode(&self.message_as_hex).map_err(|err| {
+            ApiError::InternalError(format!(
+                "Failed hex decoding of RejectedReceive message: {}",
+                err
+            ))
+        })?;
+        let message = schema_type.to_json_string_pretty(&message).map_err(|err| {
+            ApiError::InternalError(format!(
+                "Failed to construct JSON representation of message: {}",
+                err
+            ))
+        })?;
+        Ok(Some(message))
+    }
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize)]
@@ -595,15 +665,12 @@ impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReas
                 contract_address,
                 receive_name,
                 parameter,
-            } => {
-                Ok(TransactionRejectReason::RejectedReceive(RejectedReceive {
-                    reject_reason,
-                    contract_address: contract_address.into(),
-                    receive_name: receive_name.to_string(),
-                    message_as_hex: hex::encode(parameter.as_ref()),
-                    // message: todo!(),
-                }))
-            }
+            } => Ok(TransactionRejectReason::RejectedReceive(RejectedReceive {
+                reject_reason,
+                contract_address: contract_address.into(),
+                receive_name: receive_name.to_string(),
+                message_as_hex: hex::encode(parameter.as_ref()),
+            })),
             RejectReason::InvalidProof => Ok(TransactionRejectReason::InvalidProof(InvalidProof {
                 dummy: true,
             })),
