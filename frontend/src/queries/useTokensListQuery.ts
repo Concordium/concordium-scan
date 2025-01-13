@@ -38,6 +38,7 @@ export const useTokensListQuery = (
 	variables: ListVariables
 ): { data: Ref<ListResponse | undefined> } => {
 	const { data } = useQuery<ListResponse, ListVariables>({
+		context: { url: useRuntimeConfig().public.apiUrlRust },
 		query: TokensQuery,
 		requestPolicy: 'cache-and-network',
 		variables,
