@@ -133,7 +133,7 @@ impl Token {
                     contract_sub_index,
                     balance AS raw_balance,
                     account_index AS account_id,
-                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num
+                    ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
                 FROM account_tokens
                 JOIN tokens
                     ON tokens.contract_index = $1
@@ -266,7 +266,7 @@ impl AccountToken {
     }
 }
 
-// Interim struct used to fetch AccountToken data from the database
+// Interim struct used to fetch AccountToken data from the database.
 pub struct AccountTokenInterim {
     // This value is used for pagination/sorting in some queries. Although it is always guaranteed
     // to have a value in the way our queries are constructed, SQLx infers ROW_NUMBER() as

@@ -1161,7 +1161,7 @@ impl Account {
                         contract_sub_index,
                         balance AS raw_balance,
                         account_index AS account_id,
-                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num
+                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
                     FROM account_tokens
                     JOIN tokens
                         ON tokens.index = account_tokens.token_index
@@ -1204,7 +1204,7 @@ impl Account {
                     MAX(row_num) AS max_index
                 FROM (
                     SELECT
-                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) AS row_num
+                        ROW_NUMBER() OVER (ORDER BY account_tokens.index) - 1 AS row_num
                     FROM account_tokens
                     WHERE account_tokens.balance != 0
                         AND account_tokens.account_index = $1
