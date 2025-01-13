@@ -101,7 +101,7 @@ pub fn events_from_summary(
                 vec![Event::ContractInitialized(smart_contracts::ContractInitialized {
                     module_ref:        data.origin_ref.to_string(),
                     contract_address:  data.address.into(),
-                    amount:            i64::try_from(data.amount.micro_ccd)?,
+                    amount:            data.amount.micro_ccd().try_into()?,
                     init_name:         data.init_name.to_string(),
                     version:           data.contract_version.into(),
                     contract_logs_raw: data.events.iter().map(|e| e.as_ref().to_vec()).collect(),
@@ -169,7 +169,7 @@ pub fn events_from_summary(
                 to,
             } => {
                 vec![Event::Transferred(transfers::Transferred {
-                    amount: i64::try_from(amount.micro_ccd)?,
+                    amount: amount.micro_ccd().try_into()?,
                     from:   Address::AccountAddress(details.sender.into()),
                     to:     to.into(),
                 })]
@@ -181,7 +181,7 @@ pub fn events_from_summary(
             } => {
                 vec![
                     Event::Transferred(transfers::Transferred {
-                        amount: i64::try_from(amount.micro_ccd)?,
+                        amount: amount.micro_ccd().try_into()?,
                         from:   Address::AccountAddress(details.sender.into()),
                         to:     to.into(),
                     }),

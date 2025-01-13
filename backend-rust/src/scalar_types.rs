@@ -1,7 +1,7 @@
 use anyhow::Context;
 use async_graphql::{scalar, InputValueError, InputValueResult, Scalar, ScalarType, Value};
 
-pub type Amount = i64; // TODO: should be UnsignedLong in graphQL
+pub type Amount = UnsignedLong;
 pub type Energy = i64; // TODO: should be UnsignedLong in graphQL
 pub type DateTime = chrono::DateTime<chrono::Utc>; // TODO check format matches.
 pub type BakerId = Long;
@@ -45,10 +45,20 @@ impl ScalarType for UnsignedLong {
     fn to_value(&self) -> Value { Value::Number(self.0.into()) }
 }
 
+impl From<UnsignedLong> for bigdecimal::BigDecimal {
+    fn from(UnsignedLong(v): UnsignedLong) -> Self { v.into() }
+}
+
 impl TryFrom<i64> for UnsignedLong {
     type Error = <u64 as TryFrom<i64>>::Error;
 
     fn try_from(number: i64) -> Result<Self, Self::Error> { Ok(UnsignedLong(number.try_into()?)) }
+}
+
+impl TryFrom<UnsignedLong> for i64 {
+    type Error = <i64 as TryFrom<u64>>::Error;
+
+    fn try_from(number: UnsignedLong) -> Result<Self, Self::Error> { Ok(number.0.try_into()?) }
 }
 
 /// The `Long` scalar type represents non-fractional signed whole 64-bit numeric

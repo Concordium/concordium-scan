@@ -52,7 +52,7 @@ impl QueryContract {
             contract_address_sub_index,
             contract_name: row.contract_name,
             module_reference: row.module_reference,
-            amount: row.amount,
+            amount: row.amount.try_into()?,
         };
 
         Ok(Contract {
@@ -142,7 +142,7 @@ impl QueryContract {
                 contract_address_sub_index,
                 contract_name: row.contract_name,
                 module_reference: row.module_reference,
-                amount: row.amount,
+                amount: row.amount.try_into()?,
             };
 
             let contract = Contract {

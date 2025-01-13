@@ -64,7 +64,7 @@ impl TryFrom<types::ID> for IdBaker {
 
 pub struct Baker {
     id: BakerId,
-    staked: Amount,
+    staked: i64,
     restake_earnings: bool,
     open_status: Option<BakerPoolOpenStatus>,
     metadata_url: Option<MetadataUrl>,
@@ -118,7 +118,7 @@ impl Baker {
             .map(|c| AmountFraction::new_unchecked(c).into());
 
         let out = BakerState::ActiveBakerState(ActiveBakerState {
-            staked_amount:    self.staked,
+            staked_amount:    Amount::try_from(self.staked)?,
             restake_earnings: self.restake_earnings,
             pool:             BakerPool {
                 open_status:      self.open_status,

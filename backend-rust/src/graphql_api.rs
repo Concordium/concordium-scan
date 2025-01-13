@@ -889,7 +889,8 @@ pub struct AccountReward {
     timestamp:    DateTime,
     #[graphql(skip)]
     entry_type:   AccountStatementEntryType,
-    amount:       Amount,
+    #[graphql(skip)]
+    amount:       i64,
 }
 #[ComplexObject]
 impl AccountReward {
@@ -898,6 +899,8 @@ impl AccountReward {
     async fn block(&self, ctx: &Context<'_>) -> ApiResult<Block> {
         Block::query_by_height(get_pool(ctx)?, self.block_height).await
     }
+
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 
     async fn reward_type(&self, ctx: &Context<'_>) -> ApiResult<RewardType> {
         let transaction: RewardType = self.entry_type.try_into().map_err(|_| {
@@ -943,8 +946,10 @@ struct AccountStatementEntry {
     id:              i64,
     timestamp:       DateTime,
     entry_type:      AccountStatementEntryType,
-    amount:          Amount,
-    account_balance: Amount,
+    #[graphql(skip)]
+    amount:          i64,
+    #[graphql(skip)]
+    account_balance: i64,
     #[graphql(skip)]
     transaction_id:  Option<TransactionIndex>,
     #[graphql(skip)]
@@ -954,6 +959,10 @@ struct AccountStatementEntry {
 #[ComplexObject]
 impl AccountStatementEntry {
     async fn id(&self) -> types::ID { types::ID::from(self.id) }
+
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
+
+    async fn account_balance(&self) -> ApiResult<Amount> { Ok(self.account_balance.try_into()?) }
 
     async fn reference(&self, ctx: &Context<'_>) -> ApiResult<BlockOrTransaction> {
         if let Some(id) = self.transaction_id {
@@ -985,7 +994,7 @@ struct AccountReleaseScheduleItem {
     index:             AccountReleaseScheduleItemIndex,
     transaction_index: TransactionIndex,
     timestamp:         DateTime,
-    amount:            Amount,
+    amount:            i64,
 }
 #[Object]
 impl AccountReleaseScheduleItem {
@@ -999,7 +1008,7 @@ impl AccountReleaseScheduleItem {
 
     async fn timestamp(&self) -> DateTime { self.timestamp }
 
-    async fn amount(&self) -> Amount { self.amount }
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 }
 
 struct Account {
@@ -1011,9 +1020,9 @@ struct Account {
     /// The address of the account in Base58Check.
     address:           AccountAddress,
     /// The total amount of CCD hold by the account.
-    amount:            Amount,
+    amount:            i64,
     /// The total delegated stake of this account.
-    delegated_stake:   Amount,
+    delegated_stake:   i64,
     /// The total number of transactions this account has been involved in or
     /// affected by.
     num_txs:           i64,
@@ -1060,13 +1069,14 @@ impl Account {
     async fn address(&self) -> &AccountAddress { &self.address }
 
     /// The total amount of CCD hold by the account.
-    async fn amount(&self) -> Amount { self.amount }
+    async fn amount(&self) -> ApiResult<Amount> { Ok(self.amount.try_into()?) }
 
-    async fn delegation(&self) -> Option<Delegation> {
-        self.delegated_restake_earnings.map(|restake_earnings| Delegation {
+    async fn delegation(&self) -> ApiResult<Option<Delegation>> {
+        let staked_amount = self.delegated_stake.try_into()?;
+        Ok(self.delegated_restake_earnings.map(|restake_earnings| Delegation {
             delegator_id: self.index,
             restake_earnings,
-            staked_amount: self.delegated_stake,
+            staked_amount,
             delegation_target: if let Some(target) = self.delegated_target_baker_id {
                 DelegationTarget::BakerDelegationTarget(BakerDelegationTarget {
                     baker_id: target.into(),
@@ -1076,7 +1086,7 @@ impl Account {
                     dummy: false,
                 })
             },
-        })
+        }))
     }
 
     /// Timestamp of the block where this account was created.
@@ -1459,7 +1469,7 @@ impl AccountReleaseSchedule {
         )
         .fetch_one(pool)
         .await?;
-        Ok(total_amount.unwrap_or(0))
+        Ok(total_amount.unwrap_or(0).try_into()?)
     }
 
     async fn schedule(

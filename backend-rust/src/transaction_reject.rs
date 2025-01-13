@@ -575,7 +575,7 @@ impl TryFrom<concordium_rust_sdk::types::RejectReason> for TransactionRejectReas
                 contents,
             } => Ok(TransactionRejectReason::AmountTooLarge(AmountTooLarge {
                 address: contents.0.into(),
-                amount:  contents.1.micro_ccd().try_into()?,
+                amount:  contents.1.micro_ccd().into(),
             })),
             RejectReason::SerializationFailure => {
                 Ok(TransactionRejectReason::SerializationFailure(SerializationFailure {
