@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TYPE account_transaction_type AS ENUM (
     'InitializeSmartContractInstance',
     'UpdateSmartContractInstance',
@@ -203,7 +205,7 @@ CREATE TABLE accounts(
         PRIMARY KEY,
     -- Account address bytes encoded using base58check.
     address
-        CHAR(50)
+        VARCHAR(50)
         UNIQUE
         NOT NULL,
     -- Index of the transaction creating this account.
@@ -244,6 +246,7 @@ CREATE TABLE accounts(
 CREATE INDEX accounts_amount_idx ON accounts (amount);
 CREATE INDEX accounts_delegated_stake_idx ON accounts (delegated_stake);
 CREATE INDEX accounts_num_txs_idx ON accounts (num_txs);
+CREATE INDEX accounts_address_trgm_idx ON accounts USING gin (address gin_trgm_ops);
 
 -- Add foreign key constraint now that the account table is created.
 ALTER TABLE transactions
