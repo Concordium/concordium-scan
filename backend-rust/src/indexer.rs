@@ -2753,12 +2753,14 @@ async fn process_cis2_event(
 
             // Insert the token event into the table.
             sqlx::query!(
-                "INSERT INTO cis2TokenEvents (
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
                     transaction_index,
                     trace_element_index,
                     token_index
                 )
                 SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
                     tokens.index
@@ -2856,12 +2858,14 @@ async fn process_cis2_event(
 
             // Insert the token event into the table.
             sqlx::query!(
-                "INSERT INTO cis2TokenEvents (
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
                     transaction_index,
                     trace_element_index,
                     token_index
                 )
                 SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
                     tokens.index
@@ -2954,12 +2958,14 @@ async fn process_cis2_event(
 
             // Insert the token event into the table.
             sqlx::query!(
-                "INSERT INTO cis2TokenEvents (
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
                     transaction_index,
                     trace_element_index,
                     token_index
                 )
                 SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
                     tokens.index
@@ -3026,12 +3032,14 @@ async fn process_cis2_event(
 
             // Insert the token event into the table.
             sqlx::query!(
-                "INSERT INTO cis2TokenEvents (
+                "INSERT INTO cis2_token_events (
+                    index_per_token,
                     transaction_index,
                     trace_element_index,
                     token_index
                 )
                 SELECT
+                    COALESCE((SELECT MAX(index_per_token) + 1 FROM cis2_token_events), 0),
                     $1,
                     $2,
                     tokens.index

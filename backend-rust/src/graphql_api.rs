@@ -147,6 +147,8 @@ pub struct ApiServiceConfig {
         default_value = "100"
     )]
     token_holder_addresses_collection_limit: u64,
+    #[arg(long, env = "CCDSCAN_API_CONFIG_TOKEN_EVENTS_COLLECTION_LIMIT", default_value = "100")]
+    token_events_collection_limit: u64,
 }
 
 #[derive(MergedObject, Default)]

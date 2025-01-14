@@ -450,7 +450,7 @@ impl Contract {
                 has_previous_page: offset > 0,
             },
             items,
-            total_count,
+            total_count: total_count + 1,
         })
     }
 

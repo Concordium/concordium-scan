@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                token_id,\n                contract_index,\n                contract_sub_index,\n                transaction_index,\n                index_per_token\n            FROM cis2_token_events\n            JOIN tokens\n                ON tokens.contract_index = $1\n                AND tokens.contract_sub_index = $2\n                AND tokens.token_id = $3\n                AND tokens.index = cis2_token_events.token_index\n                AND index_per_token >= $4\n            LIMIT $5\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "contract_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_sub_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_index",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "index_per_token",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "83c2c066608b20754ca395824ef24c8e6a79a704aa56307e23490ca54d63b412"
+}
