@@ -579,7 +579,7 @@ impl ProcessEvent for BlockProcessor {
         tx.commit().await.context("Failed to commit SQL transaction")?;
         // Update metrics.
         let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64() / batch.len() as f64);
+        self.processing_duration_seconds.observe(duration.as_secs_f64());
         self.blocks_processed.inc_by(u64::try_from(batch.len())?);
         // Update the current context when we are certain that nothing failed during
         // processing.
