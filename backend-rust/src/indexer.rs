@@ -557,7 +557,6 @@ impl ProcessEvent for BlockProcessor {
     /// error. This property is relied upon by the [`ProcessorConfig`] to retry
     /// failed attempts.
     async fn process(&mut self, batch: &Self::Data) -> Result<Self::Description, Self::Error> {
-        let start_time = Instant::now();
         let mut out = format!("Processed {} blocks:", batch.len());
         let mut tx = self.pool.begin().await.context("Failed to create SQL transaction")?;
         // Clone the context, to avoid mutating the current context until we are certain
@@ -565,22 +564,21 @@ impl ProcessEvent for BlockProcessor {
         let mut new_context = self.current_context.clone();
         PreparedBlock::batch_save(batch, &mut new_context, &mut tx).await?;
         for block in batch {
+            let start_time = Instant::now();
             for item in block.prepared_block_items.iter() {
                 item.save(&mut tx).await?;
             }
             for item in block.special_items.iter() {
                 item.save(&mut tx, None).await?;
             }
-            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
+            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
+            let duration = start_time.elapsed();
+            self.processing_duration_seconds.observe(duration.as_secs_f64());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
             .await
             .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
-        // Update metrics.
-        let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64());
-        self.blocks_processed.inc_by(u64::try_from(batch.len())?);
         // Update the current context when we are certain that nothing failed during
         // processing.
         self.current_context = new_context;
