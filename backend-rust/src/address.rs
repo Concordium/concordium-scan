@@ -1,7 +1,8 @@
 use crate::{graphql_api::ApiResult, scalar_types::UnsignedLong};
 use async_graphql::{ComplexObject, SimpleObject, Union};
+use derive_more::Display;
 
-#[derive(SimpleObject, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(SimpleObject, Clone, Display, serde::Serialize, serde::Deserialize)]
 pub struct AccountAddress {
     as_string: String,
 }
