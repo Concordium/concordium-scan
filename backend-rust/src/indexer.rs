@@ -453,8 +453,6 @@ async fn compute_total_stake_capital(
 struct BlockProcessor {
     /// Database connection pool
     pool: PgPool,
-    /// Metric counting how many blocks was saved to the database successfully.
-    blocks_processed: Counter,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
     processing_failures: Counter,
@@ -509,12 +507,6 @@ LIMIT 1
             last_cumulative_num_txs: last_block.cumulative_num_txs,
         };
 
-        let blocks_processed = Counter::default();
-        registry.register(
-            "blocks_processed",
-            "Number of blocks save to the database",
-            blocks_processed.clone(),
-        );
         let processing_failures = Counter::default();
         registry.register(
             "processing_failures",
@@ -532,7 +524,6 @@ LIMIT 1
         Ok(Self {
             pool,
             current_context: starting_context,
-            blocks_processed,
             processing_failures,
             processing_duration_seconds,
             max_successive_failures,
