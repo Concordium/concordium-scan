@@ -1843,7 +1843,8 @@ impl SearchResult {
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Account>> {
-        let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$").unwrap();
+        let account_address_regex: Regex = Regex::new(r"^[1-9A-HJ-NP-Za-km-z]{1,50}$")
+            .map_err(|_| ApiError::InternalError("Invalid regex".to_string()))?;
         let pool = get_pool(ctx)?;
         let query = ConnectionQuery::<i64>::new(first, after, last, before, 10)?;
         let mut connection = connection::Connection::new(false, false);
