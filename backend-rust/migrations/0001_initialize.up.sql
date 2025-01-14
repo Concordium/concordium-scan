@@ -573,7 +573,7 @@ CREATE TABLE tokens (
 CREATE INDEX token_idx ON tokens (contract_index, contract_sub_index, token_id);
 
 -- Important for quickly filtering/sorting tokens by the order they were created by a contract.
-CREATE INDEX token_index_per_contract_idx ON tokens (token_index_per_contract);
+CREATE INDEX token_index_per_contract_idx ON tokens (contract_index, contract_sub_index, token_index_per_contract);
 
 -- This sequence is used to sort/filter the newest tokens transferred to an account address.
 CREATE SEQUENCE account_tokens_update_seq;
