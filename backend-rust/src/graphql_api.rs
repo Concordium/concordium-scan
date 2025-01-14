@@ -59,7 +59,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-use token::{AccountToken, Token};
+use token::{AccountToken, AccountTokenInterim, Token};
 use tokio::{net::TcpListener, sync::broadcast};
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 use tokio_util::sync::CancellationToken;
@@ -664,7 +664,7 @@ impl BaseQuery {
         }
 
         if let Some(page_max_index) = page_max_index {
-            let result = sqlx::query!(
+            let max_index = sqlx::query_scalar!(
                 "
                     SELECT MAX(index) as max_index
                     FROM tokens
@@ -674,8 +674,7 @@ impl BaseQuery {
             .await?;
 
             if let Some(edge) = connection.edges.last() {
-                connection.has_next_page =
-                    result.max_index.map_or(false, |db_max| db_max > page_max_index)
+                connection.has_next_page = max_index.map_or(false, |db_max| db_max > page_max_index)
             }
         }
 
@@ -1115,22 +1114,109 @@ impl Account {
 
     /// Number of transactions where this account is used as sender.
     async fn transaction_count<'a>(&self, ctx: &Context<'a>) -> ApiResult<i64> {
-        let rec = sqlx::query!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
-            .fetch_one(get_pool(ctx)?)
-            .await?;
-        Ok(rec.count.unwrap_or(0))
+        let count =
+            sqlx::query_scalar!("SELECT COUNT(*) FROM transactions WHERE sender=$1", self.index)
+                .fetch_one(get_pool(ctx)?)
+                .await?;
+        Ok(count.unwrap_or(0))
     }
 
     async fn tokens(
         &self,
-        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: i32,
+        ctx: &Context<'_>,
+        #[graphql(desc = "Returns the first _n_ elements from the list.")] first: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
-        after: String,
-        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: i32,
+        after: Option<String>,
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] last: Option<u64>,
         #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
-        before: String,
+        before: Option<String>,
     ) -> ApiResult<connection::Connection<String, AccountToken>> {
-        todo_api!()
+        let config = get_config(ctx)?;
+        let pool = get_pool(ctx)?;
+        let query = ConnectionQuery::<i64>::new(
+            first,
+            after,
+            last,
+            before,
+            config.contract_connection_limit,
+        )?;
+
+        // Tokens with 0 balance are filtered out. We still display tokens with a
+        // negative balance (buggy cis2 smart contract) to help smart contract
+        // developers to debug their smart contracts.
+        // The tokens are sorted/filtered by the newest tokens transferred to an account
+        // address.
+        let mut row_stream = sqlx::query_as!(
+            AccountTokenInterim,
+            "
+            SELECT * FROM (
+                SELECT
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    balance AS raw_balance,
+                    account_index AS account_id,
+                    change_seq
+                FROM account_tokens
+                JOIN tokens
+                    ON tokens.index = account_tokens.token_index
+                WHERE account_tokens.balance != 0 
+                    AND account_tokens.account_index = $5
+                    AND $1 < change_seq 
+                    AND change_seq < $2
+                ORDER BY
+                    CASE WHEN NOT $4 THEN change_seq END DESC,
+                    CASE WHEN $4 THEN change_seq END ASC
+                LIMIT $3
+            ) ORDER BY change_seq DESC
+            ",
+            query.from,
+            query.to,
+            query.limit,
+            query.desc,
+            &self.index
+        )
+        .fetch(pool);
+
+        let mut connection = connection::Connection::new(false, false);
+
+        let mut page_max_index = None;
+        let mut page_min_index = None;
+        while let Some(token) = row_stream.try_next().await? {
+            let token = AccountToken::try_from(token)?;
+
+            page_max_index = Some(match page_max_index {
+                None => token.change_seq,
+                Some(current_max) => max(current_max, token.change_seq),
+            });
+
+            page_min_index = Some(match page_min_index {
+                None => token.change_seq,
+                Some(current_min) => min(current_min, token.change_seq),
+            });
+
+            connection.edges.push(connection::Edge::new(token.change_seq.to_string(), token));
+        }
+
+        if let (Some(page_min_id), Some(page_max_id)) = (page_min_index, page_max_index) {
+            let result = sqlx::query!(
+                "
+                    SELECT MAX(change_seq) as max_id, MIN(change_seq) as min_id 
+                    FROM account_tokens
+                    WHERE account_tokens.balance != 0
+                        AND account_tokens.account_index = $1
+                ",
+                &self.index
+            )
+            .fetch_one(pool)
+            .await?;
+
+            connection.has_previous_page =
+                result.min_id.map_or(false, |db_min| db_min < page_min_id);
+            connection.has_next_page = result.max_id.map_or(false, |db_max| db_max > page_max_id);
+        }
+
+        Ok(connection)
     }
 
     async fn transactions(
