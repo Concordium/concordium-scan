@@ -609,7 +609,7 @@ CREATE TABLE account_tokens (
     CONSTRAINT unique_token_account_relationship UNIQUE (token_index, account_index)
 );
 
-CREATE INDEX non_zero_account_token_idx ON account_tokens (account_index) WHERE balance != 0;
+CREATE INDEX non_zero_account_token_idx ON account_tokens (account_index, change_seq) WHERE balance != 0;
 
 CREATE OR REPLACE FUNCTION block_added_notify_trigger_function() RETURNS trigger AS $trigger$
 DECLARE

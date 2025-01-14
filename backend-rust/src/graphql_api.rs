@@ -1140,26 +1140,25 @@ impl Account {
             AccountTokenInterim,
             "
             SELECT * FROM (
-                SELECT * FROM (
-                    SELECT
-                        token_id,
-                        contract_index,
-                        contract_sub_index,
-                        balance AS raw_balance,
-                        account_index AS account_id,
-                        change_seq
-                    FROM account_tokens
-                    JOIN tokens
-                        ON tokens.index = account_tokens.token_index
-                    WHERE account_tokens.balance != 0 
-                        AND account_tokens.account_index = $5
-                ) AS filtered_tokens
-                WHERE $1 < change_seq AND change_seq < $2
+                SELECT
+                    token_id,
+                    contract_index,
+                    contract_sub_index,
+                    balance AS raw_balance,
+                    account_index AS account_id,
+                    change_seq
+                FROM account_tokens
+                JOIN tokens
+                    ON tokens.index = account_tokens.token_index
+                WHERE account_tokens.balance != 0 
+                    AND account_tokens.account_index = $5
+                    AND $1 < change_seq 
+                    AND change_seq < $2
                 ORDER BY
-                    CASE WHEN $4 THEN change_seq END DESC,
-                    CASE WHEN NOT $4 THEN change_seq END ASC
+                    CASE WHEN NOT $4 THEN change_seq END DESC,
+                    CASE WHEN $4 THEN change_seq END ASC
                 LIMIT $3
-            ) ORDER BY change_seq ASC
+            ) ORDER BY change_seq DESC
             ",
             query.from,
             query.to,
