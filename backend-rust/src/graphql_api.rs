@@ -1851,7 +1851,7 @@ impl SearchResult {
             return Ok(connection);
         }
 
-        let results = if let Ok(parsed_address) =
+        if let Ok(parsed_address) =
             concordium_rust_sdk::common::types::AccountAddress::from_str(&self.query)
         {
             if let Some(account) = sqlx::query_as!(
