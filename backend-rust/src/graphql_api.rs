@@ -1774,44 +1774,36 @@ impl SearchResult {
         &self,
         _ctx: &Context<'a>,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, contract::Contract>> {
         todo_api!()
     }
 
-//    async fn modules(
-//        &self,
-//        #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-//        #[graphql(desc = "Returns the elements in the
-//     list that come after the specified cursor.")]
-//        _after: Option<String>,
-//        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
-//        #[graphql(desc = "Returns the elements in the list that come before the
-//     specified cursor.")]
-//        _before: Option<String>,
-//    ) -> ApiResult<connection::Connection<String, Module>> {
-//        todo_api!()
-//    }
+    //    async fn modules(
+    //        &self,
+    //        #[graphql(desc = "Returns the first _n_ elements from the list.")]
+    // _first: Option<i32>,        #[graphql(desc = "Returns the elements in the
+    //     list that come after the specified cursor.")]
+    //        _after: Option<String>,
+    //        #[graphql(desc = "Returns the last _n_ elements from the list.")]
+    // _last: Option<i32>,        #[graphql(desc = "Returns the elements in the
+    // list that come before the     specified cursor.")]
+    //        _before: Option<String>,
+    //    ) -> ApiResult<connection::Connection<String, Module>> {
+    //        todo_api!()
+    //    }
 
     async fn blocks(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Block>> {
         todo_api!()
@@ -1820,14 +1812,10 @@ impl SearchResult {
     async fn transactions(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, Transaction>> {
         todo_api!()
@@ -1836,14 +1824,10 @@ impl SearchResult {
     async fn tokens(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, token::Token>> {
         todo_api!()
@@ -1924,7 +1908,6 @@ impl SearchResult {
         .fetch_all(pool)
         .await?;
 
-        let mut connection = connection::Connection::new(false, false);
         let mut min_index = None;
         let mut max_index = None;
         for account in accounts {
@@ -1963,14 +1946,10 @@ impl SearchResult {
     async fn bakers(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, baker::Baker>> {
         todo_api!()
@@ -1979,14 +1958,10 @@ impl SearchResult {
     async fn node_statuses(
         &self,
         #[graphql(desc = "Returns the first _n_ elements from the list.")] _first: Option<i32>,
-        #[graphql(desc = "Returns the elements in the
-     list that come after the specified cursor.")]
+        #[graphql(desc = "Returns the elements in the list that come after the specified cursor.")]
         _after: Option<String>,
-        #[graphql(desc = "Returns the last _n_ elements
-     from the list.")]
-        _last: Option<i32>,
-        #[graphql(desc = "Returns
-     the elements in the list that come before the specified cursor.")]
+        #[graphql(desc = "Returns the last _n_ elements from the list.")] _last: Option<i32>,
+        #[graphql(desc = "Returns the elements in the list that come before the specified cursor.")]
         _before: Option<String>,
     ) -> ApiResult<connection::Connection<String, NodeStatus>> {
         todo_api!()
