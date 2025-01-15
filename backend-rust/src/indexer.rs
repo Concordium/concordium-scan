@@ -453,8 +453,8 @@ async fn compute_total_stake_capital(
 struct BlockProcessor {
     /// Database connection pool
     pool: PgPool,
-    /// Metric counting how many blocks was saved to the database successfully.
-    blocks_processed: Counter,
+    /// Histogram collecting batch size
+    batch_size: Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
     processing_failures: Counter,
@@ -509,12 +509,6 @@ LIMIT 1
             last_cumulative_num_txs: last_block.cumulative_num_txs,
         };
 
-        let blocks_processed = Counter::default();
-        registry.register(
-            "blocks_processed",
-            "Number of blocks save to the database",
-            blocks_processed.clone(),
-        );
         let processing_failures = Counter::default();
         registry.register(
             "processing_failures",
@@ -528,11 +522,13 @@ LIMIT 1
             "Time taken for processing a block",
             processing_duration_seconds.clone(),
         );
+        let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
+        registry.register("batch_size", "Batch sizes", batch_size.clone());
 
         Ok(Self {
             pool,
             current_context: starting_context,
-            blocks_processed,
+            batch_size,
             processing_failures,
             processing_duration_seconds,
             max_successive_failures,
@@ -571,18 +567,15 @@ impl ProcessEvent for BlockProcessor {
             for item in block.special_items.iter() {
                 item.save(&mut tx, None).await?;
             }
-            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str())
+            out.push_str(format!("\n- {}:{}", block.height, block.hash).as_str());
         }
         process_release_schedules(new_context.last_block_slot_time, &mut tx)
             .await
             .context("Processing scheduled releases")?;
         tx.commit().await.context("Failed to commit SQL transaction")?;
-        // Update metrics.
+        self.batch_size.observe(batch.len() as f64);
         let duration = start_time.elapsed();
-        self.processing_duration_seconds.observe(duration.as_secs_f64() / batch.len() as f64);
-        self.blocks_processed.inc_by(u64::try_from(batch.len())?);
-        // Update the current context when we are certain that nothing failed during
-        // processing.
+        self.processing_duration_seconds.observe(duration.as_secs_f64());
         self.current_context = new_context;
         Ok(out)
     }
