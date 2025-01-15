@@ -4,6 +4,7 @@ use crate::{
         baker::BakerPoolOpenStatus, events_from_summary,
         smart_contracts::ModuleReferenceContractLinkAction,
     },
+    transaction_reject::PreparedTransactionRejectReason,
     transaction_type::{
         AccountTransactionType, CredentialDeploymentTransactionType, DbTransactionType,
         UpdateTransactionType,
@@ -1114,7 +1115,7 @@ struct PreparedBlockItem {
     /// Events of the block item. Is none for rejected block items.
     events:            Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
-    reject:            Option<serde_json::Value>,
+    reject:            Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the `String`
     /// representation of an account address.
     affected_accounts: Vec<String>,
@@ -1167,11 +1168,7 @@ impl PreparedBlockItem {
                     ..
                 }) = &item_summary.details
                 {
-                    serde_json::to_value(
-                        crate::transaction_reject::TransactionRejectReason::try_from(
-                            reject_reason.clone(),
-                        )?,
-                    )?
+                    PreparedTransactionRejectReason::prepare(reject_reason.clone())?
                 } else {
                     anyhow::bail!("Invariant violation: Failed transaction without a reject reason")
                 };
@@ -1203,6 +1200,12 @@ impl PreparedBlockItem {
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
+        let reject = if let Some(reason) = &self.reject {
+            Some(reason.process(tx).await?)
+        } else {
+            None
+        };
+
         let tx_idx = sqlx::query_scalar!(
             "INSERT INTO transactions (
                 index,
@@ -1244,7 +1247,7 @@ impl PreparedBlockItem {
             self.update_type as Option<UpdateTransactionType>,
             self.success,
             self.events,
-            self.reject
+            reject
         )
         .fetch_one(tx.as_mut())
         .await?;
