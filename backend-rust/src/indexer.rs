@@ -453,15 +453,13 @@ async fn compute_total_stake_capital(
 struct BlockProcessor {
     /// Database connection pool
     pool: PgPool,
-    /// Metric counting how many blocks was saved to the database successfully.
+    /// Histogram collecting batch size
     batch_size: Histogram,
     /// Metric counting the total number of failed attempts to process
     /// blocks.
     processing_failures: Counter,
     /// Histogram collecting the time it took to process a block.
     processing_duration_seconds: Histogram,
-    /// Last time batch has been successfully written to the database
-    processing_last_successful_batch_save: Gauge,
     /// Max number of acceptable successive failures before shutting down the
     /// service.
     max_successive_failures: u32,
@@ -524,12 +522,6 @@ LIMIT 1
             "Time taken for processing a block",
             processing_duration_seconds.clone(),
         );
-        let processing_last_successful_batch_save = Gauge::default();
-        registry.register(
-            "processing_last_successful_write",
-            "Last time a successful batch was written to the database",
-            processing_last_successful_batch_save.clone(),
-        );
         let batch_size = Histogram::new(histogram::linear_buckets(1.0, 1.0, 10));
         registry.register("batch_size", "Batch sizes", batch_size.clone());
 
@@ -538,7 +530,6 @@ LIMIT 1
             current_context: starting_context,
             batch_size,
             processing_failures,
-            processing_last_successful_batch_save,
             processing_duration_seconds,
             max_successive_failures,
         })
