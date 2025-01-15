@@ -3,7 +3,7 @@ use crate::{
     scalar_types::{Amount, BakerId},
 };
 use anyhow::Context;
-use async_graphql::{SimpleObject, Union};
+use async_graphql::{Enum, SimpleObject, Union};
 use concordium_rust_sdk::base::{
     contracts_common::schema::{VersionedModuleSchema, VersionedSchemaError},
     smart_contracts::ReceiveName,
@@ -155,23 +155,45 @@ pub struct RejectedInit {
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RejectedReceive {
     /// Reject reason code produced by the smart contract instance.
-    reject_reason:         i32,
+    reject_reason:          i32,
     /// Address of the smart contract instance which rejected the update.
-    contract_address:      ContractAddress,
+    contract_address:       ContractAddress,
     /// The name of the entry point called in the smart contract instance (in
     /// ReceiveName format '<contract_name>.<entrypoint>').
-    receive_name:          String,
+    receive_name:           String,
     /// The HEX representation of the message provided for the smart contract
     /// instance as parameter.
-    message_as_hex:        String,
+    message_as_hex:         String,
     /// The JSON representation of the message provided for the smart contract
     /// instance as parameter. Decoded using the smart contract module
     /// schema if present otherwise undefined. Failing to parse the message
-    /// will result in this being undefined and `message_parsing_error` being
-    /// defined with an error message.
-    message:               Option<String>,
-    /// Error message produced if parsing the message fails.
-    message_parsing_error: Option<String>,
+    /// will result in this being undefined and `message_parsing_status`
+    /// representing the error.
+    message:                Option<String>,
+    /// The status of parsing `message` into its JSON representation using the
+    /// smart contract module schema.
+    message_parsing_status: InstanceMessageParsingStatus,
+}
+
+/// The status of parsing `message` into its JSON representation using the
+/// smart contract module schema.
+#[derive(Enum, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum InstanceMessageParsingStatus {
+    /// Parsing succeeded.
+    Success,
+    /// No message was provided.
+    EmptyMessage,
+    /// No module schema found in the deployed smart contract module.
+    ModuleSchemaNotFound,
+    /// Relevant smart contract not found in smart contract module schema.
+    ContractNotFound,
+    /// Relevant smart contract function not found in smart contract schema.
+    FunctionNotFound,
+    /// Schema for parameter not found in smart contract schema.
+    ParamNotFound,
+    /// Failed to construct the JSON representation from message using the smart
+    /// contract schema.
+    Failed,
 }
 
 #[derive(SimpleObject, serde::Serialize, serde::Deserialize, Clone)]
@@ -910,18 +932,14 @@ impl PreparedRejectedReceive {
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
     ) -> anyhow::Result<RejectedReceive> {
         // Handle and store errors
-        let (message, message_parsing_error) = match self.process_message(tx).await {
-            Ok(message) => (message, None),
-            Err(error) => (None, Some(error.to_string())),
-        };
-
+        let (message, message_parsing_status) = self.process_message(tx).await?;
         Ok(RejectedReceive {
             reject_reason: self.reject_reason,
             contract_address: self.contract_address,
             receive_name: self.receive_name.clone(),
             message_as_hex: self.message_as_hex.clone(),
             message,
-            message_parsing_error,
+            message_parsing_status,
         })
     }
 
@@ -930,9 +948,10 @@ impl PreparedRejectedReceive {
     async fn process_message(
         &self,
         tx: &mut sqlx::Transaction<'static, sqlx::Postgres>,
-    ) -> anyhow::Result<Option<String>> {
+    ) -> anyhow::Result<(Option<String>, InstanceMessageParsingStatus)> {
+        use InstanceMessageParsingStatus as Status;
         if self.message_as_hex.is_empty() {
-            return Ok(None);
+            return Ok((None, Status::EmptyMessage));
         }
         let schema = sqlx::query_scalar!(
             "SELECT
@@ -948,7 +967,7 @@ impl PreparedRejectedReceive {
         .await?;
         let Some(schema) = schema else {
             // No schema found in the smart contract module.
-            return Ok(None);
+            return Ok((None, Status::ModuleSchemaNotFound));
         };
         let schema = VersionedModuleSchema::new(&schema, &None)
             .context("Failed to parse smart contract module schema")?;
@@ -959,17 +978,24 @@ impl PreparedRejectedReceive {
             receive_name.entrypoint_name().into(),
         ) {
             Ok(t) => t,
-            Err(VersionedSchemaError::NoContractInModule)
-            | Err(VersionedSchemaError::NoReceiveInContract) => return Ok(None),
+            Err(VersionedSchemaError::NoContractInModule) => {
+                return Ok((None, Status::ContractNotFound))
+            }
+            Err(VersionedSchemaError::NoReceiveInContract) => {
+                return Ok((None, Status::FunctionNotFound))
+            }
+            Err(VersionedSchemaError::NoParamsInReceive) => {
+                return Ok((None, Status::ParamNotFound))
+            }
             Err(err) => {
                 anyhow::bail!("Database bytes should be a valid VersionedModuleSchema: {}", err);
             }
         };
         let message = hex::decode(&self.message_as_hex)
             .context("Failed hex decoding of RejectedReceive message")?;
-        let message = schema_type
-            .to_json_string_pretty(&message)
-            .context("Failed to construct JSON representation of message")?;
-        Ok(Some(message))
+        let Ok(message) = schema_type.to_json_string_pretty(&message) else {
+            return Ok((None, Status::Failed));
+        };
+        Ok((Some(message), Status::Success))
     }
 }

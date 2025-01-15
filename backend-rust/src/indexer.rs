@@ -1122,7 +1122,7 @@ struct PreparedBlockItem {
     /// Events of the block item. Is none for rejected block items.
     events:            Option<serde_json::Value>,
     /// Reject reason the block item. Is none for successful block items.
-    reject:            Option<PreparedTransactionRejectReason>, //Option<serde_json::Value>,
+    reject:            Option<PreparedTransactionRejectReason>,
     /// All affected accounts for this transaction. Each entry is the `String`
     /// representation of an account address.
     affected_accounts: Vec<String>,
